@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactFlow, { addEdge, MiniMap, Controls } from 'react-flow-renderer';
 import { getNodes } from './services/nodeService';
+import TextEditor from './components/TextEditor';
 
 function App() {
   const [nodeTypes, setNodeTypes] = useState({});
@@ -17,15 +18,18 @@ function App() {
   const onConnect = (params) => setElements((els) => addEdge(params, els));
 
   return (
-    <ReactFlow
-      elements={elements}
-      onConnect={onConnect}
-      nodeTypes={nodeTypes}
-      style={{ width: '100%', height: '90vh' }}
-    >
-      <MiniMap />
-      <Controls />
-    </ReactFlow>
+    <div className="App">
+      <ReactFlow
+        elements={elements}
+        onConnect={onConnect}
+        nodeTypes={nodeTypes}
+        style={{ width: '100%', height: '90vh' }}
+      >
+        <MiniMap />
+        <Controls />
+      </ReactFlow>
+      <TextEditor />
+    </div>
   );
 }
 
