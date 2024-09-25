@@ -1,16 +1,16 @@
+// pages/index.js
 import React, { useState, useEffect } from 'react';
 import ReactFlow, { addEdge, MiniMap, Controls } from 'react-flow-renderer';
-import { getNodes } from './services/nodeService';
-import TextEditor from './components/TextEditor';
+import { getNodes } from '../services/nodeService';
+import TextEditor from '../components/TextEditor';
 
-function App() {
+const Home = () => {
   const [nodeTypes, setNodeTypes] = useState({});
   const [elements, setElements] = useState([]);
 
   useEffect(() => {
     getNodes().then((nodes) => {
       // Process nodes to create custom node types if necessary
-      // For simplicity, we'll assume nodes are standard types
       setNodeTypes(nodes);
     });
   }, []);
@@ -19,6 +19,7 @@ function App() {
 
   return (
     <div className="App">
+      <div>Welcome to Next.js!</div>
       <ReactFlow
         elements={elements}
         onConnect={onConnect}
@@ -28,9 +29,9 @@ function App() {
         <MiniMap />
         <Controls />
       </ReactFlow>
-      <TextEditor />
+      {/* <TextEditor /> */}
     </div>
   );
-}
+};
 
-export default App;
+export default Home;

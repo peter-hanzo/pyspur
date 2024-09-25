@@ -1,17 +1,21 @@
-import React from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import React, { useState } from 'react';
+import { EditorContent, EditorRoot } from "novel";
+
 
 function TextEditor() {
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: '<p>Hello World!</p>',
-  });
+  const [content, setContent] = useState(null);
 
   return (
-    <div>
-      <EditorContent editor={editor} />
-    </div>
+    <EditorRoot>
+      <EditorContent
+        initialContent={content}
+        immediatelyRender={false} // {{ edit_1 }}
+        onUpdate={({ editor }) => {
+          const json = editor.getJSON();
+          setContent(json);
+        }}
+      />
+    </EditorRoot>
   );
 }
 
