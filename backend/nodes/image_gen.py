@@ -2,9 +2,51 @@ import os
 import requests
 import fal_client
 from typing import Dict, Any
+from .base import BaseNode
+from pydantic import BaseModel, Base64Str
 
+class ImageGenConfig(BaseModel):
+    """
+    Configuration parameters for the ImageGenNode.
+    """
+    model: str
 
-### BFL
+class ImageGenInput(BaseModel):
+    """
+    Input parameters for the ImageGenNode.
+    """
+    prompt: str
+    width: int = 1024
+    height: int = 1024
+    aspect_ratio: str = "ASPECT_10_16"
+    model_version: str = "V_2"
+    magic_prompt_option: str = "AUTO"
+
+class ImageGenOutput(BaseModel):
+    """
+    Output parameters for the ImageGenNode.
+    """
+    image_data_uri: Base64Str
+
+class ImageGenNode(BaseNode):
+    """
+    Node that generates an image based on a prompt using the specified model.
+    """
+    def __init__(self, config: ImageGenConfig):
+        super().__init__(config, ImageGenInput, ImageGenOutput)
+
+    async def __call__(self, input_data: ImageGenInput) -> ImageGenOutput:
+        result = generate_image(
+            model=self.config.model,
+            prompt=input_data.prompt,
+            width=input_data.width,
+            height=input_data.height,
+            aspect_ratio=input_data.aspect_ratio,
+            model_version=input_data.model_version,
+            magic_prompt_option=input_data.magic_prompt_option
+        )
+        return ImageGenOutput(image_data_uri=result["image_data_uri"])
+
 def generate_image_bfl(prompt: str, width: int = 1024, height: int = 1024) -> Dict[str, Any]:
     """
     Generate an image using the BFL API.
