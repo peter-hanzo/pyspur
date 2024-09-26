@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from .base import BaseNode
+from .base import BaseNodeType
 
 class ExampleNodeConfig(BaseModel):
     """
@@ -19,7 +19,7 @@ class ExampleNodeOutput(BaseModel):
     """
     greeting: str
 
-class ExampleNode(BaseNode):
+class ExampleNodeType(BaseNodeType):
     """
     Example node that takes a name and returns a greeting.
     """
@@ -31,6 +31,6 @@ class ExampleNode(BaseNode):
     
 if __name__ == "__main__":
     import asyncio
-    example_node = ExampleNode(ExampleNodeConfig())
+    example_node = ExampleNodeType(ExampleNodeConfig())
     output = asyncio.run(example_node(ExampleNodeInput(name="Alice")))
     print(output)

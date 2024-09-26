@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 from typing import Type
 
-class BaseNode(ABC):
+class BaseNodeType(ABC):
 
     def __init__(self, config: BaseModel, input_schema: Type[BaseModel], output_schema: Type[BaseModel]):
         """

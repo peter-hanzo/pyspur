@@ -2,8 +2,8 @@ import inspect
 import pkgutil
 import importlib
 
-# Dictionary to hold the class registry
-node_registry = {}
+# Dictionary to hold all available node_types
+node_type_registry = {}
 
 # Iterate over all submodules in the node package
 for _, module_name, _ in pkgutil.iter_modules(__path__):
@@ -15,4 +15,4 @@ for _, module_name, _ in pkgutil.iter_modules(__path__):
         # Check if the member is a class
         if inspect.isclass(member):
             # Add the class to the registry
-            node_registry[member_name] = member
+            node_type_registry[member_name] = member
