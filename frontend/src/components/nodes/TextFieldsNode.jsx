@@ -1,14 +1,13 @@
 import React from 'react';
 import { Handle } from 'reactflow';
+import BaseNode from './BaseNode';
 
 const TextFieldsNode = ({ data }) => {
   return (
-    <div className="text-fields-node">
-      <Handle type="target" position="top" />
+    <BaseNode data={{ ...data, showTargetHandle: true, showSourceHandle: true }}>
       <div>{data.label}</div>
       {/* Add your text fields or other UI elements here */}
-      <Handle type="source" position="bottom" />
-    </div>
+    </BaseNode>
   );
 };
 

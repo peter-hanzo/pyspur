@@ -1,5 +1,6 @@
 import React from 'react';
 import { Handle } from 'reactflow';
+import BaseNode from './BaseNode';
 
 const LLMNode = ({ data }) => {
   const handleChange = (event) => {
@@ -7,24 +8,14 @@ const LLMNode = ({ data }) => {
   };
 
   return (
-    <div
-      className="llm-node"
-      style={{
-        padding: '10px',
-        border: '1px solid #ddd',
-        borderRadius: '4px',
-        background: '#fff',
-      }}
-    >
+    <BaseNode data={{ ...data, showTargetHandle: true, showSourceHandle: true }}>
       <textarea
         placeholder="Enter prompt"
         value={data.prompt || ''}
         onChange={handleChange}
         style={{ width: '200px', height: '100px' }}
       />
-      <Handle type="target" position="left" style={{ background: '#555' }} />
-      <Handle type="source" position="right" style={{ background: '#555' }} />
-    </div>
+    </BaseNode>
   );
 };
 
