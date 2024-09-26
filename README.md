@@ -1,10 +1,10 @@
 # PySpur
 
-PySpur is an AI Workflow Builder that allows developers to create complex AI workflows using a combination of backend and frontend technologies. This repository contains both the backend and frontend code necessary to run the application.
+PySpur is an intuitive AI dev tool that simplifies building LLM workflows. Developers can visually drag, drop, and link nodes on a 2D canvas, enabling quick assembly of LLM pipelines. Workflows can be exported as API endpoints or raw Python code for seamless integration.
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher)
 - Python (v3.12 or higher)
 - Docker (optional, for containerized development)
 
@@ -38,7 +38,7 @@ PySpur is an AI Workflow Builder that allows developers to create complex AI wor
 
 2. **Install Node.js dependencies:**
     ```sh
-    npm install
+    yarn install
     ```
 
 ## Development
@@ -54,7 +54,7 @@ PySpur is an AI Workflow Builder that allows developers to create complex AI wor
 
 1. **Run the frontend development server:**
     ```sh
-    npm start
+    yarn start
     ```
 
 2. **Open your browser and navigate to:**
@@ -85,10 +85,10 @@ PySpur is an AI Workflow Builder that allows developers to create complex AI wor
 
 In the `frontend` directory, you can run:
 
-- **`npm start`**: Runs the app in development mode.
-- **`npm test`**: Launches the test runner.
-- **`npm run build`**: Builds the app for production.
-- **`npm run eject`**: Ejects the Create React App configuration.
+- **`yarn start`**: Runs the app in development mode.
+- **`yarn test`**: Launches the test runner.
+- **`yarn build`**: Builds the app for production.
+- **`yarn eject`**: Ejects the Create React App configuration.
 
 For more details, refer to the [frontend/README.md](frontend/README.md).
 
@@ -97,7 +97,3 @@ For more details, refer to the [frontend/README.md](frontend/README.md).
 - **Create React App documentation**: [Create React App](https://facebook.github.io/create-react-app/docs/getting-started)
 - **React documentation**: [React](https://reactjs.org/)
 - **FastAPI documentation**: [FastAPI](https://fastapi.tiangolo.com/)
-
-## License
-
-This project is licensed under the MIT License.
