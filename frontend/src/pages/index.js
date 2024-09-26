@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import ReactFlow, { addEdge, MiniMap, Controls } from 'react-flow-renderer';
 import { getNodes } from '../services/nodeService';
 import TextEditor from '../components/textEditor';
+import Table from '../components/table';
+
 const Home = () => {
   const [nodeTypes, setNodeTypes] = useState({});
   const [elements, setElements] = useState([]);
@@ -29,6 +31,7 @@ const Home = () => {
         <Controls />
       </ReactFlow>
       <TextEditor />
+      <Table />
     </div>
   );
 };
