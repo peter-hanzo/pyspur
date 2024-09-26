@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
+from typing import Type
 
 class BaseNode(ABC):
 
-    def __init__(self, config: BaseModel, input_schema: BaseModel, output_schema: BaseModel):
+    def __init__(self, config: BaseModel, input_schema: Type[BaseModel], output_schema: Type[BaseModel]):
         """
         Initialize the node with a configuration object.
 
