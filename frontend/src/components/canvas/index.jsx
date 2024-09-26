@@ -7,6 +7,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import useFlowStore from '../../store';
 import TextFieldsNode from '../nodes/TextFieldsNode';
+import Header from '../Header'; // Import the Header component
 // Import other custom nodes as needed
 
 const nodeTypes = {
@@ -37,7 +38,7 @@ const FlowCanvas = () => {
     const newNode = {
       id,
       type: 'textfields',
-      position: reactFlowInstance.project({ x: 250, y: 5 }),
+      position: reactFlowInstance.screenToFlowPosition({ x: 250, y: 5 }),
       data: { label: `TextFields Node ${id}` },
     };
     addNode(newNode);
@@ -45,22 +46,32 @@ const FlowCanvas = () => {
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
-      <button onClick={addTextFieldsNode}>Add TextFields Node</button>
-      {/* Add buttons for other node types */}
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        fitView
-        onInit={onInit} // Pass onInit callback to ReactFlow
-      >
-        <Background />
-        <Controls />
-        <MiniMap />
-      </ReactFlow>
+
+      <div style={{ paddingTop: '60px', width: '100%', height: 'calc(100vh - 60px)' }}> {/* Adjust padding and set width/height */}
+        <button
+          onClick={addTextFieldsNode}
+          style={{ position: 'fixed', bottom: '20px', right: '20px' }}
+        >
+          Add TextFields Node
+        </button>
+        {/* Add buttons for other node types */}
+        <div style={{ width: '100%', height: '100%' }}> {/* Ensure ReactFlow parent container has width and height */}
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            onInit={onInit} // Pass onInit callback to ReactFlow
+          >
+            <Background />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+        </div>
+      </div>
     </div>
   );
 };
