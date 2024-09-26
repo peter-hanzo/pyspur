@@ -20,6 +20,12 @@ const useFlowStore = create((set, get) => ({
     set({
       nodes: [...get().nodes, node],
     }),
+  updateNodeData: (id, data) =>
+    set({
+      nodes: get().nodes.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+      ),
+    }),
 }));
 
 export default useFlowStore;
