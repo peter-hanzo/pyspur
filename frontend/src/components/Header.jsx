@@ -3,7 +3,7 @@ import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, DropdownItem, Dro
 
 const Header = () => {
   return (
-    <Navbar className="rounded-lg border-2 border-black w-1/2 mx-auto">
+    <Navbar className="rounded-lg border-2 border-black w-1/2 mx-auto absolute top-0 left-1/2 transform -translate-x-1/2 z-10">
       <NavbarBrand>
         <p className="font-bold text-inherit">PySpur</p> {/* Placeholder text */}
       </NavbarBrand>
@@ -11,12 +11,12 @@ const Header = () => {
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
         <NavbarItem>
           <Link color="foreground" href="#">
-            Features
+            Explore
           </Link>
         </NavbarItem>
         <NavbarItem isActive>
-          <Link href="#" aria-current="page" color="secondary">
-            Customers
+          <Link href="#" aria-current="page" color="primary">
+            Studio
           </Link>
         </NavbarItem>
         <NavbarItem>
