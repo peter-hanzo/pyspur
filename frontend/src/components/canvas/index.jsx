@@ -9,6 +9,7 @@ import useFlowStore from '../../store';
 import TextFieldsNode from '../nodes/TextFieldsNode';
 import Header from '../Header'; // Import the Header component
 // Import other custom nodes as needed
+import { Button } from '@nextui-org/react';
 
 const nodeTypes = {
   textfields: TextFieldsNode,
@@ -46,16 +47,25 @@ const FlowCanvas = () => {
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
-
-      <div style={{ width: '100%', height: 'calc(100vh - 60px)' }}> {/* Adjust padding and set width/height */}
-        <button
+      <div style={{ width: '100%', height: 'calc(100vh - 60px)' }}>
+        <Button
           onClick={addTextFieldsNode}
-          style={{ position: 'fixed', bottom: '20px', right: '20px' }}
+          css={{
+            position: 'fixed',
+            top: '50%',
+            left: '20px',
+            transform: 'translateY(-50%)',
+            padding: '10px 20px',
+            backgroundColor: '#007bff',
+            color: '#fff',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            zIndex: '1000', // Ensures the button stays above the canvas
+          }}
         >
           Add TextFields Node
-        </button>
-        {/* Add buttons for other node types */}
-        <div style={{ width: '100%', height: '100%' }}> {/* Ensure ReactFlow parent container has width and height */}
+        </Button>
+        <div style={{ width: '100%', height: '100%' }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -64,7 +74,7 @@ const FlowCanvas = () => {
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             fitView
-            onInit={onInit} // Pass onInit callback to ReactFlow
+            onInit={onInit}
           >
             <Background />
             <Controls />
