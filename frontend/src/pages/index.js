@@ -6,8 +6,8 @@ import Header from '../components/Header'; // Import the Header component
 
 const Home = () => {
   return (
-    <div className="App pt-24">
-      <Header /> {/* Add the Header component */}
+    <div className="App pt-16">
+      <Header />
       <FlowCanvas />
       <TextEditor />
       {/* <Table /> */}

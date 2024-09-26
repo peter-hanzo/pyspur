@@ -47,7 +47,7 @@ const FlowCanvas = () => {
   return (
     <div style={{ width: '100%', height: '100vh' }}>
 
-      <div style={{ paddingTop: '60px', width: '100%', height: 'calc(100vh - 60px)' }}> {/* Adjust padding and set width/height */}
+      <div style={{ width: '100%', height: 'calc(100vh - 60px)' }}> {/* Adjust padding and set width/height */}
         <button
           onClick={addTextFieldsNode}
           style={{ position: 'fixed', bottom: '20px', right: '20px' }}
