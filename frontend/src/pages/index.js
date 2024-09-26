@@ -1,9 +1,8 @@
-// pages/index.js
+
 import React, { useState, useEffect } from 'react';
 import ReactFlow, { addEdge, MiniMap, Controls } from 'react-flow-renderer';
 import { getNodes } from '../services/nodeService';
-import TextEditor from '../components/TextEditor';
-
+import TextEditor from '../components/textEditor';
 const Home = () => {
   const [nodeTypes, setNodeTypes] = useState({});
   const [elements, setElements] = useState([]);
@@ -29,7 +28,7 @@ const Home = () => {
         <MiniMap />
         <Controls />
       </ReactFlow>
-      {/* <TextEditor /> */}
+      <TextEditor />
     </div>
   );
 };
