@@ -30,13 +30,12 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
         super().__init_subclass__()
         if not hasattr(cls, "name"):
             raise NotImplementedError("Node type must define a 'name' property")
-        # Iterate over the base classes
-        for base in cls.__bases__:
+        for base in getattr(cls, "__orig_bases__", []):
             origin = get_origin(base)
             if origin is BaseNodeType:
                 type_args = get_args(base)
                 if len(type_args) == 3:
-                    cls.InputType, cls.OutputType, cls.ConfigType = type_args
+                    cls.ConfigType, cls.InputType, cls.OutputType = type_args
                 else:
                     raise TypeError(f"Expected 3 type arguments, got {len(type_args)}")
                 break
