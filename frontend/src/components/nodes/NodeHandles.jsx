@@ -1,12 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-// Import any additional hooks or components you need
-// import { useAvailableBlocks, useNodesInteractions, ... } from '../../hooks';
-
-// Define the NodeTargetHandle component
 export const NodeTargetHandle = memo(({ id, data, handleId, handleClassName, nodeSelectorClassName }) => {
-  // Implement the required logic here, inspired by your provided code
-  // For example, manage state, handle events, etc.
 
   return (
     <Handle
@@ -15,6 +9,7 @@ export const NodeTargetHandle = memo(({ id, data, handleId, handleClassName, nod
       position={Position.Left}
       className={handleClassName}
       isConnectable={true} // Update based on your logic
+      style={{ width: '10px', height: '10px' }} // {{ edit_1 }} Adjust thickness here
       onClick={() => {
         // Handle click event
       }}
@@ -24,10 +19,7 @@ export const NodeTargetHandle = memo(({ id, data, handleId, handleClassName, nod
   );
 });
 
-// Define the NodeSourceHandle component
 export const NodeSourceHandle = memo(({ id, data, handleId, handleClassName, nodeSelectorClassName }) => {
-  // Implement the required logic here, inspired by your provided code
-  // For example, manage state, handle events, etc.
 
   return (
     <Handle
@@ -36,11 +28,10 @@ export const NodeSourceHandle = memo(({ id, data, handleId, handleClassName, nod
       position={Position.Right}
       className={handleClassName}
       isConnectable={true} // Update based on your logic
+      style={{ width: '10px', height: '10px' }} // {{ edit_2 }} Adjust thickness here
       onClick={() => {
-        // Handle click event
       }}
     >
-      {/* Additional content or components if needed */}
     </Handle>
   );
 });

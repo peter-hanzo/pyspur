@@ -1,5 +1,4 @@
 import React from 'react';
-import { Handle } from 'reactflow';
 import BaseNode from './BaseNode';
 
 const TextFieldsNode = ({ data }) => {

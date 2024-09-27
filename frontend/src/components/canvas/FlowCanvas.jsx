@@ -8,7 +8,7 @@ import 'reactflow/dist/style.css';
 import useFlowStore from '../../store/flowStore';
 import TextFieldsNode from '../nodes/TextFieldsNode';
 import Header from '../Header'; // Import the Header component
-// Import other custom nodes as needed
+
 import { Button } from '@nextui-org/react';
 import LLMNode from '../nodes/LLMNode';
 
@@ -75,7 +75,7 @@ const FlowCanvas = () => {
     const newNode = {
       id,
       type: 'llmnode',
-      position: reactFlowInstance.project({ x: 250, y: 5 }),
+      position: reactFlowInstance.screenToFlowPosition({ x: 250, y: 5 }),
       data: {
         prompt: '',
         onChange: (prompt) => onPromptChange(id, prompt), // Ensure correct id
