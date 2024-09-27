@@ -1,18 +1,14 @@
 import inspect
 import pkgutil
 import importlib
+from typing import Dict, Type
+from .base import BaseNodeType
 
-# Dictionary to hold all available node_types
-node_type_registry = {}
+node_type_registry: Dict[str, Type[BaseNodeType]] = {}
 
-# Iterate over all submodules in the node package
+# Dynamically load and register node types
 for _, module_name, _ in pkgutil.iter_modules(__path__):
-    full_module_name = f"{__name__}.{module_name}"
-    module = importlib.import_module(full_module_name)
-    
-    # Iterate over all members of the module
-    for member_name, member in inspect.getmembers(module):
-        # Check if the member is a class
-        if inspect.isclass(member):
-            # Add the class to the registry
-            node_type_registry[member_name] = member
+    module = importlib.import_module(f"{__name__}.{module_name}")
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        if issubclass(obj, BaseNodeType) and obj is not BaseNodeType:
+            node_type_registry[obj.__name__] = obj
