@@ -11,6 +11,7 @@ import Header from '../Header'; // Import the Header component
 
 import { Button } from '@nextui-org/react';
 import LLMNode from '../nodes/LLMNode';
+import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
 
 const nodeTypes = {
   textfields: TextFieldsNode,
@@ -87,40 +88,8 @@ const FlowCanvas = () => {
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <div style={{ width: '100%', height: 'calc(100vh - 60px)' }}>
-        <Button
-          onClick={addTextFieldsNode}
-          css={{
-            position: 'fixed',
-            top: '50%',
-            left: '20px',
-            transform: 'translateY(-50%)',
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: '#fff',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            zIndex: '1000', // Ensures the button stays above the canvas
-          }}
-        >
-          Add TextFields Node
-        </Button>
-        <Button
-          onClick={addLLMNode}
-          css={{
-            position: 'fixed',
-            top: '60%',
-            left: '20px',
-            transform: 'translateY(-50%)',
-            padding: '10px 20px',
-            backgroundColor: '#28a745',
-            color: '#fff',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            zIndex: '1000',
-          }}
-        >
-          Add LLM Node
-        </Button>
+        {/* Remove existing floating buttons if replacing them with the footer bar */}
+        {/* ... existing code ... */}
         <div style={{ width: '100%', height: '100%' }}>
           <ReactFlow
             nodes={nodes}
@@ -133,8 +102,8 @@ const FlowCanvas = () => {
             onInit={onInit}
           >
             <Background />
-            <Controls />
-            <MiniMap />
+
+            <Operator />
           </ReactFlow>
         </div>
       </div>
