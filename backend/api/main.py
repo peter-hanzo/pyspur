@@ -33,17 +33,20 @@ async def get_node_types() -> List[Dict[str, Any]]:
     return node_schemas
 
 
-@app.post("/run_node/", response_model=BaseModel)
-async def run_node(node: Node, input_data: BaseModel) -> BaseModel:
+@app.post("/run_node/")
+async def run_node(node: Node, input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Runs a node with the given name, configuration, and input data.
     """
-    node_instance = node_type_registry[node.type](node.config)
-    return await node_instance(input_data)
+    node_class = node_type_registry[node.type]
+    node_instance = node_class(node.config)
+    input_model = node_class.InputType(**input_data)
+    result = await node_instance(input_model)
+    return result.model_dump()
 
 
-@app.post("/run_workflow/", response_model=BaseModel)
-async def run_workflow(workflow: Workflow) -> Dict[str, BaseModel]:
+@app.post("/run_workflow/")
+async def run_workflow(workflow: Workflow) -> Dict[str, Any]:
     """
     Runs a workflow with the given nodes and edges.
     """
