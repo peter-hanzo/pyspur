@@ -1,8 +1,8 @@
 import asyncio
 from typing import List, Dict, Optional, Set, Any
 from pydantic import BaseModel, field_validator
-from backend.node_types.base import BaseNodeType
-from backend.node_types import node_type_registry
+from node_types.base import BaseNodeType
+from node_types import node_type_registry
 
 
 class Node(BaseModel):
@@ -14,7 +14,6 @@ class Node(BaseModel):
     type: str  # Name of the node type
     config: BaseModel
     position: Dict[str, int]
-    node_instance: Optional[BaseNodeType] = None
     output: Optional[BaseModel] = None
 
     @field_validator("type")
@@ -23,13 +22,20 @@ class Node(BaseModel):
             raise ValueError(f"Node type '{v}' is not registered")
         return v
 
+    @property
+    def node_instance(self) -> Optional[BaseNodeType]:
+        if not hasattr(self, "_node_instance"):
+            self._node_instance = node_type_registry[self.type](self.config)
+        return self._node_instance
+
     async def __call__(self, input_data: BaseModel) -> BaseModel:
         """
         Execute the node with the given input data.
         """
-        if self.node_instance is None:
-            self.node_instance = node_type_registry[self.type](self.config)
-        self.output = await self.node_instance(input_data)
+        node_instance = self.node_instance
+        if node_instance is None:
+            raise ValueError("Node instance not found")
+        self.output = await node_instance(input_data)
         return self.output
 
 
@@ -51,8 +57,8 @@ class Link(BaseModel):
         target_node = next(
             node for node in values["nodes"] if node.id == values["target_id"]
         )
-        source_output_schema = node_type_registry[source_node.type].output_schema
-        target_input_schema = node_type_registry[target_node.type].input_schema
+        source_output_schema = node_type_registry[source_node.type].OutputType
+        target_input_schema = node_type_registry[target_node.type].InputType
         if v not in source_output_schema.model_fields:
             raise ValueError(f"Output key '{v}' not found in source node output schema")
         if values["target_input_key"] not in target_input_schema.model_fields:
@@ -160,7 +166,7 @@ class Workflow(BaseModel):
         input_data_dict = self._prepare_node_input(node_id)
 
         # Create input data object using the node's input schema
-        input_schema = node_type_registry[node.type].input_schema
+        input_schema = node_type_registry[node.type].InputType
         node_input_data = input_schema(**input_data_dict)
 
         # Execute the node and store the output
