@@ -1,40 +1,48 @@
 from abc import ABC, abstractmethod
+from pyclbr import Class
 from pydantic import BaseModel
-from typing import Type
+from typing import ClassVar, Generic, Type, TypeVar, get_args, get_origin
+
+from pyparsing import C
+from regex import B
+
+ConfigType = TypeVar("ConfigType", bound=BaseModel)
+InputType = TypeVar("InputType", bound=BaseModel)
+OutputType = TypeVar("OutputType", bound=BaseModel)
 
 
-class BaseNodeType(ABC):
+class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
+    """
+    Base class for all node types.
+    """
 
     name: str
-    config_schema: Type[BaseModel]
-    input_schema: Type[BaseModel]
-    output_schema: Type[BaseModel]
 
-    def __init__(
-        self,
-        config: BaseModel,
-    ):
-        """
-        Initialize the node with a configuration object.
+    ConfigType: ClassVar[Type[BaseModel]]
+    InputType: ClassVar[Type[BaseModel]]
+    OutputType: ClassVar[Type[BaseModel]]
 
-        Args:
-            config (BaseModel): Pydantic model containing configuration parameters.
-        """
-        self.config = config
+    @abstractmethod
+    def __init__(self, config: BaseModel) -> None:
+        pass
 
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()
         if not hasattr(cls, "name"):
             raise NotImplementedError("Node type must define a 'name' property")
-        if not hasattr(cls, "config_schema"):
-            raise NotImplementedError(
-                "Node type must define a 'config_schema' property"
-            )
-        if not hasattr(cls, "input_schema"):
-            raise NotImplementedError("Node type must define a 'input_schema' property")
-        if not hasattr(cls, "output_schema"):
-            raise NotImplementedError(
-                "Node type must define a 'output_schema' property"
+        # Iterate over the base classes
+        for base in cls.__bases__:
+            origin = get_origin(base)
+            if origin is BaseNodeType:
+                type_args = get_args(base)
+                if len(type_args) == 3:
+                    cls.InputType, cls.OutputType, cls.ConfigType = type_args
+                else:
+                    raise TypeError(f"Expected 3 type arguments, got {len(type_args)}")
+                break
+        else:
+            raise TypeError(
+                "Generic type parameters not specified for BaseNodeType subclass."
             )
 
     @abstractmethod

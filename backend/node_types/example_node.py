@@ -27,15 +27,17 @@ class ExampleNodeOutput(BaseModel):
     greeting: str
 
 
-class ExampleNodeType(BaseNodeType):
+class ExampleNodeType(
+    BaseNodeType[ExampleNodeConfig, ExampleNodeInput, ExampleNodeOutput]
+):
     """
     Example node that takes a name and returns a greeting.
     """
 
     name = "example"
-    config_schema = ExampleNodeConfig
-    input_schema = ExampleNodeInput
-    output_schema = ExampleNodeOutput
+
+    def __init__(self, config: ExampleNodeConfig) -> None:
+        self.config = config
 
     async def __call__(self, input_data: ExampleNodeInput) -> ExampleNodeOutput:
         return ExampleNodeOutput(greeting=f"Hello, {input_data.name}!")
