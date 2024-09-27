@@ -13,7 +13,9 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
+from dotenv import load_dotenv
 
+load_dotenv()
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 EMBEDDING_MODEL = "text-embedding-3-small"

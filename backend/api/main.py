@@ -1,9 +1,12 @@
+from dotenv import load_dotenv
 from regex import B
 from node_types import node_type_registry
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from .models import Node, Link, Workflow
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -16,15 +19,15 @@ async def get_node_types() -> List[Dict[str, Any]]:
     # get the schemas for each node class
     node_schemas = []
     for node_class in node_type_registry.values():
-        config_schema = node_class.config_schema()
-        input_schema = node_class.input_schema()
-        output_schema = node_class.output_schema()
+        config_schema = node_class.ConfigType
+        input_schema = node_class.InputType
+        output_schema = node_class.OutputType
         node_schemas.append(
             {
                 "name": node_class.__name__,
-                "config": config_schema.schema(),
-                "input": input_schema.schema(),
-                "output": output_schema.schema(),
+                "config": config_schema.model_json_schema(),
+                "input": input_schema.model_json_schema(),
+                "output": output_schema.model_json_schema(),
             }
         )
     return node_schemas
