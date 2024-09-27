@@ -170,7 +170,7 @@ class ImageGenOutput(BaseModel):
     image_data_uri: Base64Str
 
 
-class ImageGenNode(BaseNodeType):
+class ImageGenNode(BaseNodeType[ImageGenConfig, ImageGenInput, ImageGenOutput]):
     """
     Node that generates an image based on a prompt using the specified model.
     """
