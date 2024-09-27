@@ -25,3 +25,4 @@ pymupdf==1.24.10
 fastapi
 uvicorn
 pydantic
+apscheduler

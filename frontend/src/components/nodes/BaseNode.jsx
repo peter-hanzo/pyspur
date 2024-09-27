@@ -1,13 +1,24 @@
 import React from 'react';
-import { Handle } from 'reactflow';
+import useFlowStore from '../../store/flowStore';
 
 // Add NextUI imports
 import { Card, CardHeader, CardBody, CardFooter, Divider, Link, Image } from "@nextui-org/react";
 
-const BaseNode = ({ data, children, style }) => {
+// Import NodeTargetHandle and NodeSourceHandle components
+import { NodeTargetHandle, NodeSourceHandle } from './NodeHandles';
+
+const BaseNode = ({ id, data, children, style }) => {
+  // Get setHoveredNode from useFlowStore
+  const setHoveredNode = useFlowStore((state) => state.setHoveredNode);
+
   return (
     // Replace <div> with <Card>
-    <Card className="base-node" style={{ ...style }}>
+    <Card
+      className="base-node"
+      style={{ ...style }}
+      onMouseEnter={() => setHoveredNode(id)}
+      onMouseLeave={() => setHoveredNode(null)}
+    >
       {/* Optionally include CardHeader */}
       {data.title && (
         <CardHeader>
@@ -27,11 +38,24 @@ const BaseNode = ({ data, children, style }) => {
           <Link href={data.footerLink}>{data.footer}</Link>
         </CardFooter>
       )}
+      {/* Replace Handle components with NodeTargetHandle and NodeSourceHandle */}
       {data.showTargetHandle && (
-        <Handle type="target" position="left" style={{ background: '#555' }} />
+        <NodeTargetHandle
+          id={data.id}
+          data={data}
+          handleId="target-handle"
+          handleClassName="your-handle-class" // Customize your class names
+          nodeSelectorClassName="your-selector-class"
+        />
       )}
       {data.showSourceHandle && (
-        <Handle type="source" position="right" style={{ background: '#555' }} />
+        <NodeSourceHandle
+          id={data.id}
+          data={data}
+          handleId="source-handle"
+          handleClassName="your-handle-class"
+          nodeSelectorClassName="your-selector-class"
+        />
       )}
     </Card>
   );

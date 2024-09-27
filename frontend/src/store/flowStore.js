@@ -26,6 +26,9 @@ const useFlowStore = create((set, get) => ({
         node.id === id ? { ...node, data: { ...node.data, ...data } } : node
       ),
     }),
+  // Add hoveredNode state and setHoveredNode action
+  hoveredNode: null,
+  setHoveredNode: (id) => set({ hoveredNode: id }),
 }));
 
 export default useFlowStore;

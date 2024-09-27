@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useContext } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -11,7 +11,6 @@ import Header from '../Header'; // Import the Header component
 // Import other custom nodes as needed
 import { Button } from '@nextui-org/react';
 import LLMNode from '../nodes/LLMNode';
-import { HoveredNodeContext } from '../../context/HoveredNodeContext'; // Ensure this path is correct
 
 const nodeTypes = {
   textfields: TextFieldsNode,
@@ -28,11 +27,10 @@ const FlowCanvas = () => {
     onNodesChange,
     onEdgesChange,
     onConnect,
+    hoveredNode, // Get hoveredNode from useFlowStore
   } = useFlowStore();
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
-
-  const { hoveredNode } = useContext(HoveredNodeContext);
 
   const styledEdges = useMemo(() => {
     return edges.map((edge) => {
