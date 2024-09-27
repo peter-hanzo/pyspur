@@ -27,10 +27,14 @@ class Node(BaseModel):
         return v
 
     @property
-    def node_instance(self) -> Optional[BaseNodeType]:
+    def node_instance(self) -> BaseNodeType:
         if not hasattr(self, "_node_instance"):
             self._node_instance = node_type_registry[self.type](self.config)
         return self._node_instance
+
+    @property
+    def output(self) -> Optional[BaseModel]:
+        return getattr(self, "_output", None)
 
     async def __call__(self, input_data: BaseModel) -> BaseModel:
         """
@@ -39,8 +43,8 @@ class Node(BaseModel):
         node_instance = self.node_instance
         if node_instance is None:
             raise ValueError("Node instance not found")
-        self.output = await node_instance(input_data)
-        return self.output
+        self._output = await node_instance(input_data)
+        return self._output
 
 
 class Link(BaseModel):
