@@ -24,7 +24,7 @@ const Control = () => {
       <div className='flex items-center text-gray-500'>
         <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
           <PopoverTrigger>
-            <Button auto light onClick={() => setVisible(true)}>  {/* Changed to Button */}
+            <Button auto light>  {/* Removed onClick */}
               <RiAddCircleFill />
             </Button>
           </PopoverTrigger>
