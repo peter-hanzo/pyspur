@@ -1,11 +1,11 @@
 import React, { memo } from 'react';
 import ZoomInOut from './ZoomInOut';
 import Control from './Control';
-import UndoRedo from '../../../UndoRedo'
 import { MiniMap } from 'reactflow';
 
+function Operator() {
 
-const Operator = () => {
+
   return (
     <>
       <MiniMap
@@ -23,6 +23,6 @@ const Operator = () => {
       </div>
     </>
   );
-};
+}
 
 export default memo(Operator);

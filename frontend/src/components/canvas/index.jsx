@@ -5,7 +5,7 @@ import ReactFlow, {
   MiniMap,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import useFlowStore from '../../store/flowStore';
+import useFlowStore from '../../store/store';
 import TextFieldsNode from '../nodes/TextFieldsNode';
 import Header from '../Header'; // Import the Header component
 // Import other custom nodes as needed

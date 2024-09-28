@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
 import { useReactFlow } from 'reactflow';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react'; // Updated imports
+import { useSelector, useDispatch } from 'react-redux'; // Added Redux imports
 
 const Control = () => {
   const reactFlowInstance = useReactFlow();
   const [visible, setVisible] = useState(false); // State to control popover visibility
+  const dispatch = useDispatch(); // Added Redux dispatch
+  const hoveredNode = useSelector((state) => state.hoveredNode); // Added Redux state access
 
   const handleSelectNode = (nodeType) => {
     const id = `${reactFlowInstance.getNodes().length + 1}`;
@@ -17,6 +20,10 @@ const Control = () => {
     };
     reactFlowInstance.addNodes(newNode);
     setVisible(false); // Close the popover after adding a node
+  };
+
+  const setHoveredNode = (id) => {
+    dispatch({ type: 'SET_HOVERED_NODE', payload: { id } }); // Added Redux action dispatch
   };
 
   return (

@@ -1,22 +1,19 @@
 import React from 'react';
 import { Handle } from 'reactflow';
 import BaseNode from './BaseNode';
+import { useSelector, useDispatch } from 'react-redux';
 
-const LLMNode = ({ data }) => {
-  const handleChange = (event) => {
-    data.onChange(event.target.value);
+function LLMNode({ id }) {
+  const dispatch = useDispatch();
+
+  // Find the node data from the Redux state
+  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
+
+  const updateNodeData = (data) => {
+    dispatch({ type: 'UPDATE_NODE_DATA', payload: { id, data } });
   };
 
-  return (
-    <BaseNode data={{ ...data, showTargetHandle: true, showSourceHandle: true }}>
-      <textarea
-        placeholder="Enter prompt"
-        value={data.prompt || ''}
-        onChange={handleChange}
-        style={{ width: '200px', height: '100px' }}
-      />
-    </BaseNode>
-  );
-};
+  // ... rest of your component logic ...
+}
 
 export default LLMNode;

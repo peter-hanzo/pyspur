@@ -1,23 +1,34 @@
 import React from 'react';
-import useFlowStore from '../../store/flowStore';
-
-// Add NextUI imports
+import { useDispatch } from 'react-redux';
 import { Card, CardHeader, CardBody, CardFooter, Divider, Link, Image } from "@nextui-org/react";
-
-// Import NodeTargetHandle and NodeSourceHandle components
 import { NodeTargetHandle, NodeSourceHandle } from './NodeHandles';
 
+// Define action types (ensure these match the ones in your flowStore.js)
+const SET_HOVERED_NODE = 'SET_HOVERED_NODE';
+
 const BaseNode = ({ id, data, children, style }) => {
-  // Get setHoveredNode from useFlowStore
-  const setHoveredNode = useFlowStore((state) => state.setHoveredNode);
+  const dispatch = useDispatch();
+
+  const handleMouseEnter = () => {
+    dispatch({
+      type: SET_HOVERED_NODE,
+      payload: { id },
+    });
+  };
+
+  const handleMouseLeave = () => {
+    dispatch({
+      type: SET_HOVERED_NODE,
+      payload: { id: null },
+    });
+  };
 
   return (
-    // Replace <div> with <Card>
     <Card
       className="base-node"
       style={{ ...style }}
-      onMouseEnter={() => setHoveredNode(id)}
-      onMouseLeave={() => setHoveredNode(null)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Optionally include CardHeader */}
       {data.title && (
@@ -25,23 +36,28 @@ const BaseNode = ({ id, data, children, style }) => {
           <p className="text-md">{data.title}</p>
         </CardHeader>
       )}
+
       {/* Optionally include Divider */}
       {/* <Divider /> */}
+
       <CardBody>
         {children}
       </CardBody>
+
       {/* Optionally include Divider */}
       {/* <Divider /> */}
+
       {/* Optionally include CardFooter */}
       {data.footer && (
         <CardFooter>
           <Link href={data.footerLink}>{data.footer}</Link>
         </CardFooter>
       )}
+
       {/* Replace Handle components with NodeTargetHandle and NodeSourceHandle */}
       {data.showTargetHandle && (
         <NodeTargetHandle
-          id={data.id}
+          id={id}
           data={data}
           handleId="target-handle"
           handleClassName="your-handle-class" // Customize your class names
@@ -50,7 +66,7 @@ const BaseNode = ({ id, data, children, style }) => {
       )}
       {data.showSourceHandle && (
         <NodeSourceHandle
-          id={data.id}
+          id={id}
           data={data}
           handleId="source-handle"
           handleClassName="your-handle-class"

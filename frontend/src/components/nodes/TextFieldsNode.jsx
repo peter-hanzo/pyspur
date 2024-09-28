@@ -1,13 +1,18 @@
 import React from 'react';
 import BaseNode from './BaseNode';
+import { useSelector, useDispatch } from 'react-redux';
 
-const TextFieldsNode = ({ data }) => {
-  return (
-    <BaseNode data={{ ...data, showTargetHandle: true, showSourceHandle: true }}>
-      <div>{data.label}</div>
-      {/* Add your text fields or other UI elements here */}
-    </BaseNode>
-  );
-};
+function TextFieldsNode({ id }) {
+  const dispatch = useDispatch();
+
+  // Find the node data from the Redux state
+  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
+
+  const updateNodeData = (data) => {
+    dispatch({ type: 'UPDATE_NODE_DATA', payload: { id, data } });
+  };
+
+  // ... rest of your component logic ...
+}
 
 export default TextFieldsNode;
