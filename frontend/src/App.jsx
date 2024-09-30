@@ -1,9 +1,9 @@
 import React from 'react';
-import FlowCanvas from './components/canvas/FlowCanvas';
+import Home from './pages';
 
 function App() {
   return (
-    <FlowCanvas />
+    <Home />
   );
 }
 

@@ -20,7 +20,6 @@ const nodeTypes = {
 };
 
 const FlowCanvas = () => {
-  // Replace useFlowStore with useSelector and useDispatch
   const dispatch = useDispatch();
 
   const nodes = useSelector((state) => state.flow.nodes);
