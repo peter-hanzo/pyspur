@@ -1,0 +1,103 @@
+.tiptap {
+    background: transparent;
+    border-radius: 0 0 5px 5px;
+    min-height: 100px;
+}
+
+.tiptap>*+* {
+    margin-top: 0;
+}
+
+.tiptap ul {
+    padding: 0 1rem;
+    list-style: disc !important;
+}
+
+.tiptap ol {
+    padding: 0 1rem;
+    list-style: decimal !important;
+}
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4,
+.tiptap h5,
+.tiptap h6 {
+    font-size: 2rem;
+    line-height: 1.1;
+    text-wrap: pretty;
+    margin-bottom: 1rem;
+}
+
+.tiptap h1,
+.tiptap h2 {
+    margin-bottom: 1.5rem;
+}
+
+.tiptap h1 {
+    font-size: 1.4rem;
+}
+
+.tiptap h2 {
+    font-size: 1.2rem;
+}
+
+.tiptap h3 {
+    font-size: 1.1rem;
+}
+
+.tiptap h4,
+.tiptap h5,
+.tiptap h6 {
+    font-size: 1rem;
+}
+
+.tiptap h4 {
+    margin-bottom: 1.33rem;
+}
+
+.tiptap h5 {
+    margin-bottom: 1.67rem;
+}
+
+.tiptap h6 {
+    margin-bottom: 2.33rem;
+}
+
+.tiptap code {
+    background-color: rgba(88, 5, 255, .05) !important;
+    border-radius: 0.4rem !important;
+    color: #000000;
+    font-size: 0.85rem !important;
+    padding: 0.25em 0.3em
+    ;
+}
+
+.tiptap pre {
+    background: #0d0d0d;
+    color: #fff;
+    font-family: 'JetBrainsMono', monospace;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    width: 100%;
+}
+
+.tiptap code {
+    color: inherit;
+    padding: 0;
+    background: none;
+    font-size: 0.8rem;
+}
+
+.tiptap blockquote {
+    padding-left: 1rem;
+    border-left: 3px solid #999999;
+}
+
+.tiptap hr {
+    border: none;
+    border-top: 1px solid #999999;
+    margin: 2rem 0;
+    width: 100%
+}
