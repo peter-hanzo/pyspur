@@ -2,6 +2,7 @@
     background: transparent;
     border-radius: 0 0 5px 5px;
     min-height: 100px;
+    caret-color: #958DF1;
 }
 
 .tiptap>*+* {
@@ -101,3 +102,4 @@
     margin: 2rem 0;
     width: 100%
 }
+

@@ -7,7 +7,7 @@ import Underline from "@tiptap/extension-underline";
 import styles from "./TextEditor.module.css";
 import { Color } from '@tiptap/extension-color'
 import TextStyle from "@tiptap/extension-text-style";
-
+import ListItem from '@tiptap/extension-list-item'
 
 const TextEditor = ({ content, onChange = () => { } }) => {
 
@@ -17,10 +17,19 @@ const TextEditor = ({ content, onChange = () => { } }) => {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      Color.configure({ types: [TextStyle.name, ListItem.name] }),
+      TextStyle.configure({ types: [ListItem.name] }),
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+        },
+      }),
       Underline,
-      TextStyle,
-      Color
     ],
     content: content,
     editorProps: {
@@ -32,7 +41,7 @@ const TextEditor = ({ content, onChange = () => { } }) => {
     onUpdate: ({ editor }) => {
       handleChange(editor.getHTML());
     },
-    immediatelyRender: false,
+    immediatelyRender: false, 
   });
 
   return (
