@@ -14,7 +14,7 @@ import {
     Code,
 } from "lucide-react";
 
-const Toolbar = ({ editor, content }) => {
+const Toolbar = ({ editor }) => {
     if (!editor) {
         return null;
     }
@@ -38,7 +38,7 @@ const Toolbar = ({ editor, content }) => {
                     className={
                         editor.isActive("bold")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                     }
                 >
                     <Bold className="w-5 h-5" />
@@ -57,7 +57,7 @@ const Toolbar = ({ editor, content }) => {
                     className={
                         editor.isActive("italic")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                     }
                 >
                     <Italic className="w-5 h-5" />
@@ -76,7 +76,7 @@ const Toolbar = ({ editor, content }) => {
                     className={
                         editor.isActive("underline")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                     }
                 >
                     <Underline className="w-5 h-5" />
@@ -95,10 +95,29 @@ const Toolbar = ({ editor, content }) => {
                     className={
                         editor.isActive("strike")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                     }
                 >
                     <Strikethrough className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => {
+                        editor.chain().focus().setCode().run();
+                    }}
+                    disabled={
+                        !editor.can()
+                          .chain()
+                          .focus()
+                          .toggleCode()
+                          .run()
+                      }
+                    className={
+                        editor.isActive("code")
+                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                    }
+                >
+                    <Code className="w-5 h-5" />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().unsetAllMarks().run()}
@@ -155,30 +174,6 @@ const Toolbar = ({ editor, content }) => {
                     H6
                 </button>
                 <button
-                    onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                    className={editor.isActive('codeBlock')
-                        ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                        : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"}
-                >
-                    Code block
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                    className="bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
-                >
-                    Horizontal rule
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().setHardBreak().run()}
-                    className={
-                        editor.isActive("bulletList")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
-                    }
-                >
-                    Hard break
-                </button>
-                <button
                     onClick={() => {
                         editor.chain().focus().toggleBulletList().run();
                     }}
@@ -215,16 +210,28 @@ const Toolbar = ({ editor, content }) => {
                     <Quote className="w-5 h-5" />
                 </button>
                 <button
-                    onClick={() => {
-                        editor.chain().focus().setCode().run();
-                    }}
+                    onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                    className={editor.isActive('codeBlock')
+                        ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
+                        : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"}
+                >
+                    Code block
+                </button>
+                <button
+                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                    className="bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                >
+                    Horizontal rule
+                </button>
+                <button
+                    onClick={() => editor.chain().focus().setHardBreak().run()}
                     className={
-                        editor.isActive("code")
+                        editor.isActive("bulletList")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
                             : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
                     }
                 >
-                    <Code className="w-5 h-5" />
+                    Hard break
                 </button>
                 <button
                     onClick={() => {
@@ -240,7 +247,7 @@ const Toolbar = ({ editor, content }) => {
                     className={
                         editor.isActive("undo")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                     }
                 >
                     <Undo className="w-5 h-5" />
@@ -259,7 +266,7 @@ const Toolbar = ({ editor, content }) => {
                     className={
                         editor.isActive("redo")
                             ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                     }
                 >
                     <Redo className="w-5 h-5" />
