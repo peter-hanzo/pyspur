@@ -5,7 +5,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux'; // Add this line
 import TextFieldsNode from '../nodes/TextFieldsNode';
-import LLMNode from '../nodes/LLMNode';
+import LLMNode from '../nodes/LLMNode'; // Import your custom nodes
+import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
 import {
   nodesChange,
@@ -15,8 +16,8 @@ import {
 } from '../../store/flowSlice'; // Updated import path
 
 const nodeTypes = {
-  textfields: TextFieldsNode,
-  llmnode: LLMNode,
+  LLMNode: LLMNode,
+  // ... other node types
 };
 
 const FlowCanvas = () => {
@@ -61,27 +62,28 @@ const FlowCanvas = () => {
     setReactFlowInstance(instance);
   }, []);
 
+  // Define the height of the footer in pixels
+  const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
 
   return (
-    <div style={{ width: '100%', height: '100vh' }}>
-      <div style={{ width: '100%', height: 'calc(100vh - 60px)' }}>
-
-        <div style={{ width: '100%', height: '100%' }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={styledEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-            onInit={onInit}
-          >
-            <Background />
-
-            <Operator />
-          </ReactFlow>
-        </div>
+    <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ height: `calc(100% - ${footerHeight}px)`, overflow: 'auto' }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={styledEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          fitView
+          onInit={onInit}
+        >
+          <Background />
+          <Operator />
+        </ReactFlow>
+      </div>
+      <div style={{ height: `${footerHeight}px` }}>
+        <TabbedFooter />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { Handle } from 'reactflow';
 import BaseNode from './BaseNode';
 import { useSelector, useDispatch } from 'react-redux';
+import { Input } from '@nextui-org/react'; // Import NextUI Input component
 
 function LLMNode({ id }) {
   const dispatch = useDispatch();
@@ -13,7 +14,30 @@ function LLMNode({ id }) {
     dispatch({ type: 'UPDATE_NODE_DATA', payload: { id, data } });
   };
 
-  // ... rest of your component logic ...
+  // Handler for prompt text field change
+  const handlePromptChange = (event) => {
+    updateNodeData({ ...node.data, prompt: event.target.value });
+  };
+
+  return (
+    <BaseNode id={id}>
+      {/* Existing component logic */}
+      <Handle type="target" position="top" />
+      <Handle type="source" position="bottom" />
+
+      {/* NextUI Text Field for Prompt */}
+      <Input
+        clearable
+        underlined
+        fullWidth
+        label="Prompt"
+        placeholder="Enter your prompt..."
+        value={node.data.prompt || ''}
+        onChange={handlePromptChange}
+        css={{ marginTop: '10px' }} // Optional styling
+      />
+    </BaseNode>
+  );
 }
 
 export default LLMNode;

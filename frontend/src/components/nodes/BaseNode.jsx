@@ -6,7 +6,7 @@ import { NodeTargetHandle, NodeSourceHandle } from './NodeHandles';
 // Define action types (ensure these match the ones in your flowStore.js)
 const SET_HOVERED_NODE = 'SET_HOVERED_NODE';
 
-const BaseNode = ({ id, data, children, style }) => {
+const BaseNode = ({ id, data = {}, children, style }) => {
   const dispatch = useDispatch();
 
   const handleMouseEnter = () => {
@@ -31,7 +31,7 @@ const BaseNode = ({ id, data, children, style }) => {
       onMouseLeave={handleMouseLeave}
     >
       {/* Optionally include CardHeader */}
-      {data.title && (
+      {data && data.title && (
         <CardHeader>
           <p className="text-md">{data.title}</p>
         </CardHeader>
