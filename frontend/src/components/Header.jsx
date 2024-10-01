@@ -1,32 +1,44 @@
 import React from 'react';
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, DropdownItem, DropdownTrigger, Dropdown, DropdownMenu, Avatar } from "@nextui-org/react";
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  Link,
+  DropdownItem,
+  DropdownTrigger,
+  Dropdown,
+  DropdownMenu,
+  Avatar, Input
+} from "@nextui-org/react";
+import { Button } from '@nextui-org/react'; // Import NextUI Button component
+import { RiPlayFill, RiShareFill, RiUploadCloud2Line } from '@remixicon/react'; // Import icons
 
 const Header = () => {
   return (
-    <Navbar className="rounded-lg border-2 border-black w-1/2 mx-auto absolute top-0 left-1/2 transform -translate-x-1/2 z-10">
-      <NavbarBrand>
-        <p className="font-bold text-inherit">PySpur</p> {/* Placeholder text */}
-      </NavbarBrand>
+    <Navbar isBordered>
+      <NavbarContent justify="start">
 
-      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+        <NavbarBrand>
+          <p className="font-bold text-inherit">PySpur</p> {/* Placeholder text */}
+        </NavbarBrand>
+      </NavbarContent>
+      <NavbarContent className="hidden sm:flex" justify="center">
+        {/* Highlighted Project Title */}
         <NavbarItem>
-          <Link color="foreground" href="#">
-            Explore
-          </Link>
-        </NavbarItem>
-        <NavbarItem isActive>
-          <Link href="#" aria-current="page" color="primary">
-            Studio
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link color="foreground" href="#">
-            Integrations
-          </Link>
+          <Input
+            defaultValue="Paper Summarizer"
+            color="primary"
+            type="text"
+            radius="lg"
+          />
         </NavbarItem>
       </NavbarContent>
 
-      <NavbarContent as="div" justify="end">
+      <NavbarContent>
+        {/* Add Toolbar buttons */}
+
+        {/* Existing Avatar Dropdown */}
         <Dropdown placement="bottom-end">
           <DropdownTrigger>
             <Avatar
@@ -55,6 +67,26 @@ const Header = () => {
             </DropdownItem>
           </DropdownMenu>
         </Dropdown>
+
+
+      </NavbarContent>
+
+      <NavbarContent justify="end">
+
+        <NavbarItem>
+          <Button auto flat css={{ marginRight: '20px' }}>
+            <RiPlayFill />
+            Run
+          </Button>
+          <Button auto flat css={{ marginRight: '20px' }}>
+            <RiShareFill />
+            Share
+          </Button>
+          <Button auto flat>
+            <RiUploadCloud2Line />
+            Publish
+          </Button>
+        </NavbarItem>
       </NavbarContent>
     </Navbar>
   );

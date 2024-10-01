@@ -17,7 +17,8 @@ import {
 } from '../../store/flowSlice'; // Updated import path
 import { Button } from '@nextui-org/react'; // Import NextUI Button component
 
-import Toolbar from './header/Toolbar'; // Import the Toolbar component
+// Remove the import of Toolbar
+// import Toolbar from './header/Toolbar'; // Remove or comment out this line
 
 const nodeTypes = {
   LLMNode: LLMNode,
@@ -78,16 +79,22 @@ const FlowCanvas = () => {
     setReactFlowInstance(instance);
   }, []);
 
-  // Define the height of the footer in pixels
   const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
 
   return (
-    // Add inline style to make the container relative
     <div style={{ position: 'relative' }}>
-      <Toolbar />
+      {/* Remove the Toolbar component */}
+      {/* <Toolbar /> */}
 
       <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
-        <div style={{ height: `calc(100% - ${footerHeight}px)`, overflow: 'auto' }}>
+        <div
+          style={{
+            height: `calc(100% - ${footerHeight}px)`,
+            overflow: 'auto',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
           <ReactFlow
             nodes={nodes}
             edges={styledEdges} // Use styledEdges
@@ -110,8 +117,6 @@ const FlowCanvas = () => {
           <TabbedFooter />
         </div>
       </div>
-
-      {/* </div> */} // Remove this line if you removed the wrapper div
     </div>
   );
 };
