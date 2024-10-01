@@ -92,6 +92,8 @@ const FlowCanvas = () => {
           onInit={onInit}
           onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
           onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
+          snapToGrid={true}          // Add this line to enable snapping
+          snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
         >
           <Background />
           <Operator />
