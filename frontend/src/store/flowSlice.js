@@ -23,7 +23,17 @@ const flowSlice = createSlice({
       state.edges.push(action.payload.connection);
     },
     addNode: (state, action) => {
-      state.nodes.push(action.payload.node);
+      const node = action.payload.node;
+
+      // Initialize the prompt field for LLMNode types
+      if (node.type === 'LLMNode') {
+        node.data = {
+          ...node.data,
+          prompt: node.data?.prompt || '', // Ensure prompt is initialized
+        };
+      }
+
+      state.nodes.push(node);
     },
     updateNodeData: (state, action) => {
       const { id, data } = action.payload;

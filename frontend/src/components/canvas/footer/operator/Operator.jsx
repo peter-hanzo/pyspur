@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import ZoomInOut from './ZoomInOut';
 import Control from './Control';
 import { MiniMap } from 'reactflow';
+import UndoRedo from '../../../UndoRedo';
 
 function Operator() {
 
