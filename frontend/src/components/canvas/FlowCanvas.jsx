@@ -13,6 +13,7 @@ import {
   edgesChange,
   connect,
   updateNodeData,
+  setHoveredNode, // Import the setHoveredNode action
 } from '../../store/flowSlice'; // Updated import path
 
 const nodeTypes = {
@@ -25,7 +26,7 @@ const FlowCanvas = () => {
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
-  const hoveredNode = useSelector((state) => state.flow.hoveredNode);
+  const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -58,6 +59,18 @@ const FlowCanvas = () => {
     });
   }, [edges, hoveredNode]);
 
+  // Handle hover events
+  const onNodeMouseEnter = useCallback(
+    (event, node) => {
+      dispatch(setHoveredNode({ nodeId: node.id })); // Set hovered node in Redux
+    },
+    [dispatch]
+  );
+
+  const onNodeMouseLeave = useCallback(() => {
+    dispatch(setHoveredNode({ nodeId: null })); // Clear hovered node in Redux
+  }, [dispatch]);
+
   const onInit = useCallback((instance) => {
     setReactFlowInstance(instance);
   }, []);
@@ -70,13 +83,15 @@ const FlowCanvas = () => {
       <div style={{ height: `calc(100% - ${footerHeight}px)`, overflow: 'auto' }}>
         <ReactFlow
           nodes={nodes}
-          edges={styledEdges}
+          edges={styledEdges} // Use styledEdges
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
           onInit={onInit}
+          onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
+          onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
         >
           <Background />
           <Operator />
