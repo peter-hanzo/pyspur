@@ -15,6 +15,9 @@ import {
   updateNodeData,
   setHoveredNode, // Import the setHoveredNode action
 } from '../../store/flowSlice'; // Updated import path
+import { Button } from '@nextui-org/react'; // Import NextUI Button component
+
+import Toolbar from './header/Toolbar'; // Import the Toolbar component
 
 const nodeTypes = {
   LLMNode: LLMNode,
@@ -79,29 +82,36 @@ const FlowCanvas = () => {
   const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
 
   return (
-    <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
-      <div style={{ height: `calc(100% - ${footerHeight}px)`, overflow: 'auto' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={styledEdges} // Use styledEdges
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          onInit={onInit}
-          onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
-          onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
-          snapToGrid={true}          // Add this line to enable snapping
-          snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
-        >
-          <Background />
-          <Operator />
-        </ReactFlow>
+    // Add inline style to make the container relative
+    <div style={{ position: 'relative' }}>
+      <Toolbar />
+
+      <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
+        <div style={{ height: `calc(100% - ${footerHeight}px)`, overflow: 'auto' }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={styledEdges} // Use styledEdges
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            onInit={onInit}
+            onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
+            onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
+            snapToGrid={true}          // Add this line to enable snapping
+            snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
+          >
+            <Background />
+            <Operator />
+          </ReactFlow>
+        </div>
+        <div style={{ height: `${footerHeight}px` }}>
+          <TabbedFooter />
+        </div>
       </div>
-      <div style={{ height: `${footerHeight}px` }}>
-        <TabbedFooter />
-      </div>
+
+      {/* </div> */} // Remove this line if you removed the wrapper div
     </div>
   );
 };
