@@ -9,8 +9,6 @@ const Home = () => {
     <div className="App pt-16 relative">
       <Header />
       <FlowCanvas />
-      <TextEditor />
-      {/* <Table /> */}
     </div>
   );
 };
