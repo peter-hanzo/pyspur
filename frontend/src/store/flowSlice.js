@@ -5,7 +5,7 @@ import { applyNodeChanges, applyEdgeChanges } from 'reactflow';
 const initialState = {
   nodes: [],
   edges: [],
-  hoveredNode: null,
+  hoveredNode: null, // To store the hovered node's ID
 };
 
 // Create the flow slice
@@ -43,7 +43,7 @@ const flowSlice = createSlice({
       }
     },
     setHoveredNode: (state, action) => {
-      state.hoveredNode = action.payload.id;
+      state.hoveredNode = action.payload.nodeId; // Correct the payload key here
     },
   },
 });
