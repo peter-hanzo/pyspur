@@ -4,7 +4,6 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux'; // Add this line
-import TextFieldsNode from '../nodes/TextFieldsNode';
 import LLMNode from '../nodes/LLMNode'; // Import your custom nodes
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
@@ -17,7 +16,6 @@ import {
   setHoveredNode, // Import the setHoveredNode action
   setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
-import { Button, select } from '@nextui-org/react'; // Import NextUI Button component
 
 // Remove the import of Toolbar
 // import Toolbar from './header/Toolbar'; // Remove or comment out this line
