@@ -8,14 +8,16 @@ import TextFieldsNode from '../nodes/TextFieldsNode';
 import LLMNode from '../nodes/LLMNode'; // Import your custom nodes
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
+import TextEditor from '../textEditor/TextEditor'; // Import your text editor component
 import {
   nodesChange,
   edgesChange,
   connect,
   updateNodeData,
   setHoveredNode, // Import the setHoveredNode action
+  setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
-import { Button } from '@nextui-org/react'; // Import NextUI Button component
+import { Button, select } from '@nextui-org/react'; // Import NextUI Button component
 
 // Remove the import of Toolbar
 // import Toolbar from './header/Toolbar'; // Remove or comment out this line
@@ -31,6 +33,7 @@ const FlowCanvas = () => {
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
+  const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -79,6 +82,20 @@ const FlowCanvas = () => {
     setReactFlowInstance(instance);
   }, []);
 
+  // Handle node click to open text editor
+  const onNodeClick = useCallback(
+    (event, node) => {
+      dispatch(setSelectedNode({ nodeId: node.id })); // Set the clicked node in Redux
+    },
+    [dispatch]
+  );
+
+  const onPaneClick = useCallback(() => {
+    if (selectedNodeID) {
+      dispatch(setSelectedNode({ nodeId: null })); // Clear selected node in Redux
+    }
+  }, [dispatch, selectedNodeID]);
+
   const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
 
   return (
@@ -108,11 +125,22 @@ const FlowCanvas = () => {
             onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
             snapToGrid={true}          // Add this line to enable snapping
             snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
+            onPaneClick={onPaneClick}  // Add event handler for pane click
+            onNodeClick={onNodeClick}  // Add event handler for node click
           >
             <Background />
             <Operator />
           </ReactFlow>
         </div>
+        {selectedNodeID && (
+          // Render the component here 
+          <div
+            className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
+            style={{ zIndex: 2 }}
+          >
+            <TextEditor nodeID={selectedNodeID} />
+          </div>
+        )}
         <div style={{ height: `${footerHeight}px` }}>
           <TabbedFooter />
         </div>
