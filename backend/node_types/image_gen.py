@@ -158,7 +158,7 @@ class ImageGenInput(BaseModel):
     width: int = 1024
     height: int = 1024
     aspect_ratio: str = "ASPECT_10_16"
-    model_version: str = "V_2"
+    image_gen_model_version: str = "V_2"
     magic_prompt_option: str = "AUTO"
 
 
@@ -190,7 +190,7 @@ class ImageGenNode(BaseNodeType[ImageGenConfig, ImageGenInput, ImageGenOutput]):
             width=input_data.width,
             height=input_data.height,
             aspect_ratio=input_data.aspect_ratio,
-            model_version=input_data.model_version,
+            model_version=input_data.image_gen_model_version,
             magic_prompt_option=input_data.magic_prompt_option,
         )
         return ImageGenOutput(image_data_uri=result["image_data_uri"])
