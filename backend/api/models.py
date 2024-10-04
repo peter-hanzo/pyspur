@@ -17,7 +17,7 @@ class Node(BaseModel):
 
     id: str  # ID in the workflow
     type: str  # Name of the node type
-    config: BaseModel
+    config: Dict[str, Any] = {}  # Configuration parameters
     coords: Coords
 
     @field_validator("type")
@@ -29,7 +29,11 @@ class Node(BaseModel):
     @property
     def node_instance(self) -> BaseNodeType:
         if not hasattr(self, "_node_instance"):
-            self._node_instance = node_type_registry[self.type](self.config)
+            node_type = node_type_registry.get(self.type)
+            if node_type is None:
+                raise ValueError(f"Node type '{self.type}' not found in registry")
+            node_config = node_type.ConfigType(**self.config)
+            self._node_instance = node_type_registry[self.type](node_config)
         return self._node_instance
 
     @property

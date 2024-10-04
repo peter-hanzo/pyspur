@@ -38,10 +38,9 @@ async def run_node(node: Node, input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Runs a node with the given name, configuration, and input data.
     """
-    node_class = node_type_registry[node.type]
-    node_instance = node_class(node.config)
-    input_model = node_class.InputType(**input_data)
-    result = await node_instance(input_model)
+    node_instance = node.node_instance
+    input_obj = node_instance.InputType.model_validate(input_data)
+    result = await node_instance(input_obj)
     return result.model_dump()
 
 
