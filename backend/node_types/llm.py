@@ -113,11 +113,8 @@ class StructuredOutputLLMNodeType(
     def __init__(self, config: StructuredOutputLLMNodeConfig) -> None:
         self.config = StructuredOutputLLMNodeConfig.model_validate(config.model_dump())
         output_schema = config.output_schema
-        print("output_schema", output_schema)
         output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
-        print("output_schema", output_schema)
         output_schema = {k: (v, ...) for k, v in output_schema.items()}
-        print("output_schema", output_schema)
         self.output_model = create_model(  # type: ignore
             "StructuredOutputLLMNodeOutput",
             **output_schema,  # type: ignore
@@ -127,11 +124,16 @@ class StructuredOutputLLMNodeType(
     async def __call__(
         self, input_data: StructuredOutputLLMNodeInput
     ) -> StructuredOutputLLMNodeOutput:
+        system_message = self.config.system_prompt
+        output_schema = self.config.output_schema
+        output_schema = {k: v.value for k, v in output_schema.items()}
+        system_message += (
+            f"""\nMake sure the output follows this JSON schema: {output_schema}"""
+        )
         messages = create_messages(
-            system_message=self.config.system_prompt,
+            system_message=system_message,
             user_message=input_data.user_message,
         )
-        print("config", self.config.model_json_schema())
         assistant_message = await generate_text(
             messages=messages,
             model_name=self.config.llm_name,
