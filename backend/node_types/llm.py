@@ -73,7 +73,7 @@ class StructuredOutputLLMNodeConfig(BaseModel):
     max_tokens: int
     temperature: float
     system_prompt: str
-    output_keys_and_types: Dict[str, LLMStructuredOutputValueType]
+    output_schema: Dict[str, LLMStructuredOutputValueType]  # output keys and types
 
 
 class StructuredOutputLLMNodeInput(BaseModel):
@@ -116,7 +116,7 @@ class StructuredOutputLLMNodeType(
         )
         assistant_message = json.loads(assistant_message)
         # ensure the output keys and types are correct
-        for key, value_type in self.config.output_keys_and_types.items():
+        for key, value_type in self.config.output_schema.items():
             if key not in assistant_message:
                 raise ValueError(f"Key {key} not found in assistant message.")
             if value_type == LLMStructuredOutputValueType.INT:
