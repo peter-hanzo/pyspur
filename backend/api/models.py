@@ -5,11 +5,6 @@ from node_types.base import BaseNodeType
 from node_types import node_type_registry
 
 
-class Coords(BaseModel):
-    x: int
-    y: int
-
-
 class Node(BaseModel):
     """
     A node represents a single step in a workflow.
@@ -18,7 +13,6 @@ class Node(BaseModel):
     id: str  # ID in the workflow
     type: str  # Name of the node type
     config: Dict[str, Any] = {}  # Configuration parameters
-    coords: Coords
 
     @field_validator("type")
     def type_must_be_in_node_registry(cls, v):
