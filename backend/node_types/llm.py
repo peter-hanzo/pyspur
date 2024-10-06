@@ -103,6 +103,7 @@ class StructuredOutputLLMNodeType(
             **output_schema,  # type: ignore
             __base__=StructuredOutputLLMNodeOutput,
         )
+        self.OutputType = self.output_model
 
     async def __call__(
         self, input_data: StructuredOutputLLMNodeInput
