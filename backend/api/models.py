@@ -55,24 +55,6 @@ class Link(BaseModel):
     target_id: str
     target_input_key: str
 
-    @field_validator("source_output_key")
-    def source_output_key_must_match_target_input_key(cls, v, values):
-        source_node = next(
-            node for node in values["nodes"] if node.id == values["source_id"]
-        )
-        target_node = next(
-            node for node in values["nodes"] if node.id == values["target_id"]
-        )
-        source_output_schema = node_type_registry[source_node.type].OutputType
-        target_input_schema = node_type_registry[target_node.type].InputType
-        if v not in source_output_schema.model_fields:
-            raise ValueError(f"Output key '{v}' not found in source node output schema")
-        if values["target_input_key"] not in target_input_schema.model_fields:
-            raise ValueError(
-                f"Input key '{values['target_input_key']}' not found in target node input schema"
-            )
-        return v
-
 
 class Workflow(BaseModel):
     """
@@ -81,6 +63,47 @@ class Workflow(BaseModel):
 
     nodes: List[Node]
     links: List[Link]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.dependencies = {}
+        # self.initial_inputs = {}
+        # self.node_tasks = {}
+        self.validate_links()
+
+    def are_link_types_compatible(self, link: Link) -> bool:
+        """
+        Check if the types of the source and target nodes are compatible.
+
+        Args:
+            link (Link): The link to check.
+
+        Returns:
+            bool: True if the types are compatible, False otherwise.
+        """
+        source_node = next((n for n in self.nodes if n.id == link.source_id), None)
+        target_node = next((n for n in self.nodes if n.id == link.target_id), None)
+        if source_node is None or target_node is None:
+            return False
+
+        source_output_type = source_node.node_instance.OutputType.model_fields.get(
+            link.source_output_key
+        )
+        target_input_type = target_node.node_instance.InputType.model_fields.get(
+            link.target_input_key
+        )
+        if source_output_type is None or target_input_type is None:
+            return False
+
+        return source_output_type.annotation == target_input_type.annotation
+
+    def validate_links(self):
+        """
+        Validate that all links in the workflow are compatible.
+        """
+        for link in self.links:
+            if not self.are_link_types_compatible(link):
+                raise ValueError(f"Link {link} is not compatible with the node types")
 
     async def execute(
         self, initial_inputs: Dict[str, Any] = {}
@@ -96,20 +119,20 @@ class Workflow(BaseModel):
         """
 
         # Step 1: Build mappings and initialize variables
-        self.node_dict = self._build_node_dict()
-        self.dependencies = self._build_dependencies()
-        self.initial_inputs = initial_inputs
-        self.node_tasks = {}
+        self._node_dict = self._build_node_dict()
+        self._dependencies = self._build_dependencies()
+        self._initial_inputs = initial_inputs
+        self._node_tasks = {}
 
         # Step 2: Start tasks for all nodes
-        for node_id in self.node_dict:
+        for node_id in self._node_dict:
             self._get_node_task(node_id)
 
         # Step 3: Wait for all tasks to complete
-        await asyncio.gather(*self.node_tasks.values())
+        await asyncio.gather(*self._node_tasks.values())
 
         # Step 4: Collect and return outputs
-        outputs = {node_id: node.output for node_id, node in self.node_dict.items()}
+        outputs = {node_id: node.output for node_id, node in self._node_dict.items()}
         outputs = {k: v for k, v in outputs.items() if v is not None}
         return outputs
 
@@ -144,12 +167,12 @@ class Workflow(BaseModel):
         Returns:
             asyncio.Task: The asyncio task associated with the node.
         """
-        if node_id in self.node_tasks:
-            return self.node_tasks[node_id]
+        if node_id in self._node_tasks:
+            return self._node_tasks[node_id]
 
         # Create a new task for the node execution
         task = asyncio.create_task(self._execute_node(node_id))
-        self.node_tasks[node_id] = task
+        self._node_tasks[node_id] = task
         return task
 
     async def _execute_node(self, node_id: str):
@@ -159,10 +182,10 @@ class Workflow(BaseModel):
         Args:
             node_id (str): The ID of the node to execute.
         """
-        node = self.node_dict[node_id]
+        node = self._node_dict[node_id]
 
         # Wait for all dependencies to complete
-        dependency_ids = self.dependencies.get(node_id, set())
+        dependency_ids = self._dependencies.get(node_id, set())
         if dependency_ids:
             await asyncio.gather(
                 *(self._get_node_task(dep_id) for dep_id in dependency_ids)
@@ -172,7 +195,7 @@ class Workflow(BaseModel):
         input_data_dict = self._prepare_node_input(node_id)
 
         # Create input data object using the node's input schema
-        input_schema = node_type_registry[node.type].InputType
+        input_schema = node.node_instance.InputType
         node_input_data = input_schema(**input_data_dict)
 
         # Execute the node and store the output
@@ -193,7 +216,7 @@ class Workflow(BaseModel):
         # Collect inputs from linked source nodes
         for link in self.links:
             if link.target_id == node_id:
-                source_node = self.node_dict[link.source_id]
+                source_node = self._node_dict[link.source_id]
                 if source_node.output is None:
                     raise ValueError(
                         f"Node '{link.source_id}' has not produced an output yet."
@@ -202,7 +225,7 @@ class Workflow(BaseModel):
                 input_data[link.target_input_key] = source_value
 
         # Include initial inputs if available
-        if node_id in self.initial_inputs:
-            input_data.update(self.initial_inputs[node_id])
+        if node_id in self._initial_inputs:
+            input_data.update(self._initial_inputs[node_id])
 
         return input_data

@@ -45,9 +45,11 @@ async def run_node(node: Node, input_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.post("/run_workflow/")
-async def run_workflow(workflow: Workflow) -> Dict[str, Any]:
+async def run_workflow(
+    workflow: Workflow, initial_inputs: Dict[str, Any] = {}
+) -> Dict[str, Any]:
     """
     Runs a workflow with the given nodes and edges.
     """
-    results = await workflow.execute()
+    results = await workflow.execute(initial_inputs)
     return results
