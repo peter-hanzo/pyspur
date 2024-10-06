@@ -1,13 +1,14 @@
 import json
-from re import A, T
+from re import A, S, T
 from typing import Any, Dict
 from venv import create
+from attr import validate
 from click import INT
 
 from regex import D, E
 from .llm_utils import create_messages, generate_text
 from .base import BaseNodeType
-from pydantic import BaseModel, FilePath
+from pydantic import BaseModel, create_model
 from enum import Enum
 
 
@@ -81,7 +82,7 @@ class StructuredOutputLLMNodeInput(BaseModel):
 
 
 class StructuredOutputLLMNodeOutput(BaseModel):
-    assistant_message: Dict[str, Any]
+    pass
 
 
 class StructuredOutputLLMNodeType(
@@ -97,8 +98,31 @@ class StructuredOutputLLMNodeType(
 
     name = "structured_output_llm_node"
 
+    def _get_python_type(self, value_type: LLMStructuredOutputValueType) -> Any:
+        if value_type == LLMStructuredOutputValueType.INT:
+            return int
+        elif value_type == LLMStructuredOutputValueType.FLOAT:
+            return float
+        elif value_type == LLMStructuredOutputValueType.STR:
+            return str
+        elif value_type == LLMStructuredOutputValueType.BOOL:
+            return bool
+        else:
+            raise ValueError(f"Invalid value type: {value_type}")
+
     def __init__(self, config: StructuredOutputLLMNodeConfig) -> None:
         self.config = StructuredOutputLLMNodeConfig.model_validate(config.model_dump())
+        output_schema = config.output_schema
+        print("output_schema", output_schema)
+        output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
+        print("output_schema", output_schema)
+        output_schema = {k: (v, ...) for k, v in output_schema.items()}
+        print("output_schema", output_schema)
+        self.output_model = create_model(  # type: ignore
+            "StructuredOutputLLMNodeOutput",
+            **output_schema,  # type: ignore
+            __base__=StructuredOutputLLMNodeOutput,
+        )
 
     async def __call__(
         self, input_data: StructuredOutputLLMNodeInput
@@ -115,18 +139,5 @@ class StructuredOutputLLMNodeType(
             json_mode=True,
         )
         assistant_message = json.loads(assistant_message)
-        # ensure the output keys and types are correct
-        for key, value_type in self.config.output_schema.items():
-            if key not in assistant_message:
-                raise ValueError(f"Key {key} not found in assistant message.")
-            if value_type == LLMStructuredOutputValueType.INT:
-                assistant_message[key] = int(assistant_message[key])
-            elif value_type == LLMStructuredOutputValueType.FLOAT:
-                assistant_message[key] = float(assistant_message[key])
-            elif value_type == LLMStructuredOutputValueType.BOOL:
-                assistant_message[key] = bool(assistant_message[key])
-            elif value_type == LLMStructuredOutputValueType.STR:
-                assistant_message[key] = str(assistant_message[key])
-            else:
-                raise ValueError(f"Invalid value type: {value_type}")
-        return StructuredOutputLLMNodeOutput(assistant_message=assistant_message)
+        assistant_message = self.output_model(**assistant_message)
+        return assistant_message
