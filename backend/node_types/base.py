@@ -1,14 +1,18 @@
 from abc import ABC, abstractmethod
-from pyclbr import Class
+from enum import Enum
 from pydantic import BaseModel
 from typing import ClassVar, Generic, Type, TypeVar, get_args, get_origin
-
-from pyparsing import C
-from regex import B
 
 ConfigType = TypeVar("ConfigType", bound=BaseModel)
 InputType = TypeVar("InputType", bound=BaseModel)
 OutputType = TypeVar("OutputType", bound=BaseModel)
+
+
+class DynamicSchemaValueType(str, Enum):
+    INT = "int"
+    FLOAT = "float"
+    STR = "str"
+    BOOL = "bool"
 
 
 class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
@@ -56,3 +60,16 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
             BaseModel: Pydantic model containing output data.
         """
         pass
+
+    @staticmethod
+    def _get_python_type(value_type: DynamicSchemaValueType) -> Type:
+        if value_type == DynamicSchemaValueType.INT:
+            return int
+        elif value_type == DynamicSchemaValueType.FLOAT:
+            return float
+        elif value_type == DynamicSchemaValueType.STR:
+            return str
+        elif value_type == DynamicSchemaValueType.BOOL:
+            return bool
+        else:
+            raise ValueError(f"Invalid value type: {value_type}")
