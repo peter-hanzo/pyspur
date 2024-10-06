@@ -7,7 +7,7 @@ from click import INT
 
 from regex import D, E
 from .llm_utils import create_messages, generate_text
-from .base import BaseNodeType
+from .base import BaseNodeType, DynamicSchemaValueType
 from pydantic import BaseModel, create_model
 from enum import Enum
 
@@ -62,19 +62,14 @@ class BasicLLMNodeType(
         return BasicLLMNodeOutput(assistant_message=assistant_message)
 
 
-class LLMStructuredOutputValueType(str, Enum):
-    INT = "int"
-    FLOAT = "float"
-    STR = "str"
-    BOOL = "bool"
-
-
 class StructuredOutputLLMNodeConfig(BaseModel):
     llm_name: ModelName
     max_tokens: int
     temperature: float
     system_prompt: str
-    output_schema: Dict[str, LLMStructuredOutputValueType]  # output keys and types
+    output_schema: Dict[
+        str, DynamicSchemaValueType
+    ]  # Output schema with field names and types
 
 
 class StructuredOutputLLMNodeInput(BaseModel):
@@ -98,24 +93,12 @@ class StructuredOutputLLMNodeType(
 
     name = "structured_output_llm_node"
 
-    def _get_python_type(self, value_type: LLMStructuredOutputValueType) -> Any:
-        if value_type == LLMStructuredOutputValueType.INT:
-            return int
-        elif value_type == LLMStructuredOutputValueType.FLOAT:
-            return float
-        elif value_type == LLMStructuredOutputValueType.STR:
-            return str
-        elif value_type == LLMStructuredOutputValueType.BOOL:
-            return bool
-        else:
-            raise ValueError(f"Invalid value type: {value_type}")
-
     def __init__(self, config: StructuredOutputLLMNodeConfig) -> None:
         self.config = StructuredOutputLLMNodeConfig.model_validate(config.model_dump())
         output_schema = config.output_schema
         output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
         output_schema = {k: (v, ...) for k, v in output_schema.items()}
-        self.output_model = create_model(  # type: ignore
+        self.output_model = create_model(
             "StructuredOutputLLMNodeOutput",
             **output_schema,  # type: ignore
             __base__=StructuredOutputLLMNodeOutput,
