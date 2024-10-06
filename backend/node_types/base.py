@@ -18,9 +18,9 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
 
     name: str
 
-    ConfigType: ClassVar[Type[BaseModel]]
-    InputType: ClassVar[Type[BaseModel]]
-    OutputType: ClassVar[Type[BaseModel]]
+    ConfigType: Type[BaseModel]
+    InputType: Type[BaseModel]
+    OutputType: Type[BaseModel]
 
     @abstractmethod
     def __init__(self, config: BaseModel) -> None:
