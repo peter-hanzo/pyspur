@@ -51,5 +51,5 @@ async def run_workflow(
     """
     Runs a workflow with the given nodes and edges.
     """
-    results = await workflow.execute(initial_inputs)
+    results = await workflow(initial_inputs)
     return results
