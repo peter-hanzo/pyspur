@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -10,10 +10,15 @@ import {
   Button,
 } from '@nextui-org/react';
 
-const Spreadsheet = ({ initialData = [[]] }) => {
+const Spreadsheet = ({ initialData = [[]], onDataUpdate }) => {
   const [data, setData] = useState(initialData.length > 0 ? initialData : [[null]]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [selectedCol, setSelectedCol] = useState(null);
+
+  // Update the parent component's state whenever the table data changes
+  useEffect(() => {
+    onDataUpdate(data);
+  }, [data, onDataUpdate]);
 
   const getColumnLabel = (colIndex) => String.fromCharCode(65 + colIndex); // A, B, C, ...
 
@@ -81,10 +86,10 @@ const Spreadsheet = ({ initialData = [[]] }) => {
         {selectedCol !== null && (
           <>
             <Button color="secondary" onClick={() => addColumn('left')} className="bg-purple-500 text-white">
-              Add Column to Left
+              Add Column Left
             </Button>
             <Button color="secondary" onClick={() => addColumn('right')} className="bg-purple-500 text-white">
-              Add Column to Right
+              Add Column Right
             </Button>
           </>
         )}
@@ -111,7 +116,6 @@ const Spreadsheet = ({ initialData = [[]] }) => {
               key={`row-${rowIndex}`}
               className={`${selectedRow === rowIndex ? 'bg-blue-100 border border-blue-500' : ''}`}
             >
-              {/* Row ID cell */}
               <TableCell
                 className={`p-2 cursor-pointer ${selectedRow === rowIndex ? 'bg-blue-100 border border-blue-500' : ''} rounded-l-md`}
                 onClick={() => toggleRowSelection(rowIndex)}
