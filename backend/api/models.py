@@ -105,7 +105,7 @@ class Workflow(BaseModel):
             if not self.are_link_types_compatible(link):
                 raise ValueError(f"Link {link} is not compatible with the node types")
 
-    async def execute(
+    async def __call__(
         self, initial_inputs: Dict[str, Any] = {}
     ) -> Dict[str, BaseModel]:
         """
