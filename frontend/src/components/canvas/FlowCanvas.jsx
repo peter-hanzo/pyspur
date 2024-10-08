@@ -16,9 +16,7 @@ import {
   setHoveredNode, // Import the setHoveredNode action
   setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
-
-// Remove the import of Toolbar
-// import Toolbar from './header/Toolbar'; // Remove or comment out this line
+import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
 
 const nodeTypes = {
   LLMNode: LLMNode,
@@ -51,6 +49,10 @@ const FlowCanvas = () => {
   );
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
+  // Adding new state to manage active tab and spreadsheet data
+  const [activeTab, setActiveTab] = useState('sheet1'); // Manage active tab state
+  const [spreadsheetData, setSpreadsheetData] = useState([[""]]); // Store spreadsheet data
 
   const styledEdges = useMemo(() => {
     return edges.map((edge) => {
@@ -98,9 +100,6 @@ const FlowCanvas = () => {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Remove the Toolbar component */}
-      {/* <Toolbar /> */}
-
       <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
         <div
           style={{
@@ -110,27 +109,32 @@ const FlowCanvas = () => {
             zIndex: 1,
           }}
         >
-          <ReactFlow
-            nodes={nodes}
-            edges={styledEdges} // Use styledEdges
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-            onInit={onInit}
-            onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
-            onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
-            snapToGrid={true}          // Add this line to enable snapping
-            snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
-            onPaneClick={onPaneClick}  // Add event handler for pane click
-            onNodeClick={onNodeClick}  // Add event handler for node click
-          >
-            <Background />
-            <Operator />
-          </ReactFlow>
+          {/* Conditionally render FlowCanvas or Spreadsheet based on activeTab */}
+          {activeTab === 'sheet1' ? (
+            <ReactFlow
+              nodes={nodes}
+              edges={styledEdges} // Use styledEdges
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              fitView
+              onInit={onInit}
+              onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
+              onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
+              snapToGrid={true}          // Add this line to enable snapping
+              snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
+              onPaneClick={onPaneClick}  // Add event handler for pane click
+              onNodeClick={onNodeClick}  // Add event handler for node click
+            >
+              <Background />
+              <Operator />
+            </ReactFlow>
+          ) : (
+            <Spreadsheet initialData={spreadsheetData} onDataUpdate={setSpreadsheetData} />
+          )}
         </div>
-        {selectedNodeID && (
+        {activeTab === 'sheet1' && selectedNodeID && (
           // Render the component here 
           <div
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
@@ -140,7 +144,7 @@ const FlowCanvas = () => {
           </div>
         )}
         <div style={{ height: `${footerHeight}px` }}>
-          <TabbedFooter />
+          <TabbedFooter activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
       </div>
     </div>
