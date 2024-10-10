@@ -15,6 +15,7 @@ More info can be found [here](https://arcprize.org/guide).
 
 - [ ] Reproduce results for a single problem
   - [ ] Set up data loading
+  - [ ] Set up feature engineering (grid and ASCII)
   - [ ] Use PySpur primitives inside `run.py` to solve the problem
-  - [ ] Sanitizie prompts and grid rendering
+  - [ ] Sanitize prompts and grid rendering
 - [ ] Write `eval.py` to evaluate the results cleanly
