@@ -4,6 +4,11 @@
 
 More info can be found [here](https://arcprize.org/guide).
 
+## Some learnings
+
+* The number of train examples can vary from task to task
+* 
+
 # Why this module
 
 * The goal of this module is to guide the design of pyspur towards solving the ARC-AGI benchmark

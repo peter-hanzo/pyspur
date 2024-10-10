@@ -1630,7 +1630,7 @@ reasoning_labeled_items_alt_color = [
     ),
 ]
 
-# %%
+
 
 # typo: "There is a purple with". Fix at some point, but already cached...
 example_2_reasoning_full_spreadsheet_alt_color = """
@@ -2246,7 +2246,7 @@ reasoning_labeled_items_full_spreadsheet_alt_color_alt_again = [
     ),
 ]
 
-# %%
+
 
 
 example_3_reasoning_full_spreadsheet_alt_color_with_diff = """
@@ -2830,7 +2830,7 @@ assert len(
     )
 ) == len(reasoning_labeled_items_full_spreadsheet_alt_color_concise_diff_variants)
 
-# %%
+
 
 
 example_20_full_spreadsheet_reasoning_with_diff_use_connected_diagonal = """
@@ -2959,7 +2959,7 @@ def transform(grid_lst: list[list[int]]) -> list[list[int]]:
 """.strip()
 
 
-# %%
+
 
 example_1_reasoning_for_change_alt_color = """
 <reasoning>
@@ -3877,7 +3877,7 @@ reasoning_labeled_change_prompt_alt_color_another_alt_prompt_alt_order = [
     ),
 ]
 
-# %%
+
 
 reasoning_labeled_change_prompt_alt_color_add_swap_change_order = [
     (
@@ -3967,7 +3967,7 @@ assert len(set(tuple(x) for x in basic_change_alt_color_variants)) == len(
     basic_change_alt_color_variants
 )
 
-# %%
+
 
 
 reasoning_labeled_change_prompt_alt_color_add_swap_again = [
@@ -4060,7 +4060,7 @@ reasoning_labeled_change_spreadsheet_prompt_alt_color_add_just_change = [
 ]
 
 
-# %%
+
 
 code_repair_example_10_for_spreadsheet_alt_color = "63613498.json"
 
@@ -4827,7 +4827,7 @@ code_repair_spreadsheet_alt_color_reasoning_examples_alt_shorter: list[
     ),
 ]
 
-# %%
+
 
 # for normal ones:
 # - 'b2862040.json'
@@ -5087,7 +5087,7 @@ def transform(grid_lst: list[list[int]]) -> list[list[int]]:
 ```
 """.strip()
 
-# %%
+
 
 # change code example items
 

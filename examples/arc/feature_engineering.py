@@ -25,6 +25,7 @@ color_scheme_consts = {
 
 invalid_color = (255, 255, 255)  # White
 
+tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 @attrs.frozen
 class StdoutStderr:
@@ -375,11 +376,6 @@ def spreadsheet_ascii_grid_as_color_by_location(grid: np.ndarray):
     )
 
     return out
-
-
-tokenizer = tiktoken.encoding_for_model("gpt-4o")
-
-# [tokenizer.decode([x]) for x in tokenizer.encode("A1 ... A7")]
 
 
 def get_spreadsheet_notation_support_runs(rows_cols: list[tuple[int, int]]):
