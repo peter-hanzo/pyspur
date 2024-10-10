@@ -1,5 +1,6 @@
 import argparse
 
+
 def add_display_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--use-diff-highlight",

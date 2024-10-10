@@ -27,6 +27,7 @@ invalid_color = (255, 255, 255)  # White
 
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
+
 @attrs.frozen
 class StdoutStderr:
     stdout: str

@@ -22,11 +22,9 @@ from rrutils.llm_api.base_llm import ContextLengthExceeded, LLMResponse
 
 nest_asyncio.apply()
 
-
-from arc_solve.permutations import all_permutation_indices
 from arc_solve.edit_distance import get_rank_geo_mean_score
-from rrutils.llm_api.llm import ModelAPI
-from arc_solve.render import (
+
+from feature_engineering import (
     RenderArgs,
     grid_to_base64_png_oai_content,
     color_scheme_name,
@@ -41,8 +39,8 @@ from arc_solve.run_programs import (
     StdoutStderr,
     evaluate_funcs_with_timeout_cache,
 )
-from arc_solve.load_data import out_train_data_by_name_d
-from arc_solve.reasoning_and_labels import (
+
+from prompts_and_examples import (
     reasoning_labeled_items_alt_color,
     reasoning_labeled_items_full_spreadsheet_alt_color,
     reasoning_labeled_change_prompt_alt_color_add_swap,

@@ -3,6 +3,7 @@ from typing import Dict
 from load_data import load_train_eval_test_data
 from config.display import add_display_args
 from config.prompt import add_prompt_args
+from config.render import add_render_args
 
 
 def parse_args() -> argparse.Namespace:
@@ -17,6 +18,7 @@ def parse_args() -> argparse.Namespace:
     )
     add_display_args(parser)
     add_prompt_args(parser)
+    add_render_args(parser)
     return parser.parse_args()
 
 
