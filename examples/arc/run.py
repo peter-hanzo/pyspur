@@ -4,6 +4,7 @@ from load_data import load_train_eval_test_data
 from config.display import add_display_args
 from config.prompt import add_prompt_args
 from config.render import add_render_args
+from permutations import ALL_PERMUTATION_INDICES
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,34 +23,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def transform_data(data: Dict, grid_representation: str) -> Dict:
-    if grid_representation == "pixels":
-        return data
-    elif grid_representation == "ascii":
-        return data
-    elif grid_representation == "hybrid":
-        return data
-    else:
-        raise ValueError(f"Invalid grid representation: {grid_representation}")
-
-
 def main() -> None:
     args = parse_args()
 
     train_data_by_name_d, eval_data_by_name_d, test_data_by_name_d = (
-        load_train_eval_test_data()
-    )
-
-    print(f"Grid representation selected: {args.grid_representation}")
-
-    transformed_train_data = transform_data(
-        train_data_by_name_d, args.grid_representation
-    )
-    transformed_eval_data = transform_data(
-        eval_data_by_name_d, args.grid_representation
-    )
-    transformed_test_data = transform_data(
-        test_data_by_name_d, args.grid_representation
+        load_train_eval_test_data(args.grid_representation)
     )
 
 

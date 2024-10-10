@@ -7,7 +7,7 @@ More info can be found [here](https://arcprize.org/guide).
 ## Some learnings
 
 * The number of train examples can vary from task to task
-* 
+*
 
 # Why this module
 
@@ -19,8 +19,8 @@ More info can be found [here](https://arcprize.org/guide).
 # To-dos
 
 - [ ] Reproduce results for a single problem
-  - [ ] Set up data loading
-  - [ ] Set up feature engineering (grid and ASCII)
+  - [X] Set up data loading
+  - [X] Set up feature engineering (grid and ASCII)
   - [ ] Use PySpur primitives inside `run.py` to solve the problem
   - [ ] Sanitize prompts and grid rendering
 - [ ] Write `eval.py` to evaluate the results cleanly

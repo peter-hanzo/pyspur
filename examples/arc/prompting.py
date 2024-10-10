@@ -17,12 +17,10 @@ import numpy as np
 import openai
 import nest_asyncio
 import tiktoken
-
-from rrutils.llm_api.base_llm import ContextLengthExceeded, LLMResponse
+from typing import Dict
+from permutations import ALL_PERMUTATION_INDICES
 
 nest_asyncio.apply()
-
-from arc_solve.edit_distance import get_rank_geo_mean_score
 
 from feature_engineering import (
     RenderArgs,
@@ -31,6 +29,9 @@ from feature_engineering import (
     alt_color_scheme_name,
     alt_color_scheme_consts_name,
     color_scheme_consts_name,
+    display_single_grid_alt,
+    display_wrong_output_alt,
+    display_example_alt,
 )
 from arc_solve.run_programs import (
     KeyNameS,
@@ -40,7 +41,7 @@ from arc_solve.run_programs import (
     evaluate_funcs_with_timeout_cache,
 )
 
-from prompts_and_examples import (
+from examples.arc.reasoning_examples import (
     reasoning_labeled_items_alt_color,
     reasoning_labeled_items_full_spreadsheet_alt_color,
     reasoning_labeled_change_prompt_alt_color_add_swap,
@@ -254,6 +255,72 @@ class PromptArgs:
             assert self.display_args.render_args.use_alt_color_scheme
 
 
+def get_rule_input_alt(
+    name: str,
+    data_by_name_d: Dict,
+    display_args: DisplayArgs = DisplayArgs(),
+    shuffle_example_order_with_permutation_index: Optional[int] = None,
+    use_multi_part_transformation_rule_hint: bool = False,
+):
+    exs = list(data_by_name_d[name]["train"]).copy()  # yes, copy is redundant
+    if shuffle_example_order_with_permutation_index is not None:
+        assert len(exs) > 1
+        these_indices_ex = ALL_PERMUTATION_INDICES[len(exs)]
+        exs = [
+            exs[i]
+            for i in these_indices_ex[
+                shuffle_example_order_with_permutation_index % len(these_indices_ex)
+            ]
+        ]
+
+    start = []
+
+    out = start + sum(
+        [
+            display_example_alt(i, ex, display_args=display_args)
+            for i, ex in enumerate(exs)
+        ],
+        [],
+    )
+
+    test = list(out_train_data_by_name_d[name]["test"]).copy()
+    if shuffle_example_order_with_permutation_index is not None and len(test) > 1:
+        these_indices_test = ALL_PERMUTATION_INDICES[len(test)]
+        test = [
+            test[i]
+            for i in these_indices_test[
+                (
+                    len(these_indices_test)
+                    - 1
+                    - shuffle_example_order_with_permutation_index
+                )
+                % len(these_indices_test)
+            ]
+        ]
+
+    for test_idx, t in enumerate(test):
+        test_idx_str = "" if len(test) == 1 else f" ({test_idx + 1})"
+        out.extend(
+            [
+                {
+                    "type": "text",
+                    "text": f"# Additional input{test_idx_str}\n\n",
+                },
+                *display_single_grid_alt(t["input"], display_args=display_args),
+            ]
+        )
+
+    if use_multi_part_transformation_rule_hint:
+        out.append(
+            {
+                "type": "text",
+                "text": f"""While reasoning, recall that the transformation rule might have multiple components and might be fairly complex.""",
+            }
+        )
+
+    return out
+
+
 @cache
 def make_prompt_alt(
     args: PromptArgs = PromptArgs(),
@@ -314,6 +381,146 @@ def make_prompt_alt(
         )
 
     return basic_prompt
+
+
+def fix_prompt(
+    name: str,
+    data_by_name_d: Dict,
+    run_output: RunOutput,
+    display_args: DisplayArgs = DisplayArgs(),
+    attempt_num: int = 0,
+    use_output_diff: bool = True,
+    use_if_fix_fail_line: bool = False,
+    shuffle_example_order_with_permutation_index: Optional[int] = None,
+    use_fix_reasoning_tags: bool = False,
+    use_typical_issue_text: bool = False,
+):
+    attempt_str = (
+        f" (This is attempt {attempt_num + 1} at fixing the implementation.)"
+        if attempt_num > 0
+        else ""
+    )
+
+    # We should maybe support diffs, but this requires some additional work.
+    assert not display_args.use_diff_highlight
+    assert not display_args.use_diff_triangles
+
+    scheme = (
+        alt_color_scheme_consts_name
+        if display_args.render_args.use_alt_color_scheme
+        else color_scheme_consts_name
+    )
+
+    # TODO: note allow_comma_after_etc_typo_fix in sys prompt
+    location_denote_as_needed = " Locations are denoted like A7 or D3, where columns are denoted with A, B, C, etc., and rows are denoted with 1, 2, 3, etc. So, D3 corresponds to the cell in the 4th column and the 3rd row. Note that rows are 1-indexed."
+
+    location_row_cont_denote_as_needed = f"We use 'XR ... YR' to denote that row R differs from X to Y (inclusive). For instance, 'C5 ... G5' would correspond to 'C5 D5 E5 F5 G5'. We only use this '...' notation for moderately long contiguous runs of cells that differ in a row. We don't use this notation for columns."
+
+    if display_args.spreadsheet_ascii_full:
+        location_denote_as_needed = ""
+        location_row_cont_denote_as_needed = (
+            "We will use the '...' notation as described earlier when applicable."
+        )
+
+    diff_rep = f"""Below, we show what this incorrect `transform` function outputs for each example (if the corresponding output differed from the correct output).
+
+We also show an ASCII representation of which cells differ between the expected output and the actual output for each example on which the function is incorrect. This is shown under "## Color differences between the expected output and the actual output". This representation shows the locations where the expected output and the actual output differ in color.{location_denote_as_needed} For instance, if at locations A1 A2 B7 the expected output has {scheme[0]} but the actual output has {scheme[2]}, this would be represented as "Expected {scheme[0]} (0) but got {scheme[2]} (2): A1 A2 B7". For each pair of expected and actual colors that differ at some location(s), it shows the list of locations where the expected output has the expected color but the actual output has the actual color.
+
+We only show this representation if the expected output and the actual output have the same shape and if this representation would be sufficiently concise (not take up too much space).
+
+{location_row_cont_denote_as_needed}
+
+Ok, now here are the outputs and differences for each example:"""
+
+    non_diff_rep_outputs = "Here is what this incorrect `transform` function outputs for each example (if the corresponding output differed from the correct output). You should compare this to the expected output for the corresponding example."
+
+    if use_output_diff:
+        show_rep = diff_rep
+    else:
+        show_rep = non_diff_rep_outputs
+
+    # between the  shows the difference between an input grid and an output grid as a list of the locations where one color changes to another. For instance, if {scheme[0]} changes to {scheme[2]} at A1 A2 B7, this would be represented as "{scheme[0]} (0) to {scheme[2]} (2): A1 A2 B7".
+
+    # We will use the '...' notation as described earlier when applicable."""
+
+    reasoning_tag_str = (
+        "<fix_reasoning></fix_reasoning>"
+        if use_fix_reasoning_tags
+        else "<reasoning></reasoning>"
+    )
+
+    prompt = f"""The `transform` function you implemented failed on at least one of the examples you were provided.{attempt_str} Your task is to determine what this issue is and then fix the code. The issue could be a bug in the code and/or an issue with your previous understanding of the transformation rule.
+
+You'll need to carefully reason to determine the issue and to determine how to fix the code. Start your response by doing this reasoning in {reasoning_tag_str} tags. Then, implement the fixed transformation in code.
+
+{show_rep}""".strip()
+
+    exs = data_by_name_d[name]["train"]
+
+    assert len(exs) == len(run_output.train_results)
+
+    wrong_results_to_show = list(
+        zip(
+            run_output.train_results,
+            exs,
+            run_output.train_stdout_stderr,
+        )
+    )
+
+    if shuffle_example_order_with_permutation_index is not None:
+        assert len(wrong_results_to_show) > 1
+        these_indices = ALL_PERMUTATION_INDICES[len(wrong_results_to_show)]
+        wrong_results_to_show = [
+            wrong_results_to_show[i]
+            for i in these_indices[
+                shuffle_example_order_with_permutation_index % len(these_indices)
+            ]
+        ]
+
+    transform_outputs = sum(
+        [
+            display_wrong_output_alt(
+                i,
+                item=actual_output,
+                expected_output=ex["output"],
+                stdout_stderr=stdout_stderr,
+                display_args=display_args,
+                use_output_diff=use_output_diff,
+            )
+            for i, (actual_output, ex, stdout_stderr) in enumerate(
+                wrong_results_to_show
+            )
+        ],
+        [],
+    )
+
+    if_fix_fail_line = "\n\nIf your attempted fix fails, you'll be called again (in the same way) to continue debugging. So, if print statements would help you debug, you can include them in your code."
+
+    if not use_if_fix_fail_line:
+        if_fix_fail_line = ""
+
+    typical_issue_text = "\n\nIf you notice an issue with your previous understanding of the transformation rule, you'll need to do further analysis (including analyzing properties of the example inputs and outputs) to determine exactly what the correct transformation rule is."
+
+    if not use_typical_issue_text:
+        typical_issue_text = ""
+
+    after_examples_prompt = f"""Ok, that is all of the actual and expected outputs.
+
+Recall that you should start by reasoning to determine what the issue is in {reasoning_tag_str} tags. Also recall that the problem could be a bug in the code and/or an issue with your previous understanding of the transformation rule.{typical_issue_text}
+
+Once you are done reasoning, rewrite the code to fix the issue. Return the code in triple backticks (```python and then ```).{if_fix_fail_line}""".strip()
+
+    return [
+        {
+            "type": "text",
+            "text": prompt + "\n\n",
+        },
+        *transform_outputs,
+        {
+            "type": "text",
+            "text": after_examples_prompt,
+        },
+    ]
 
 
 @cache

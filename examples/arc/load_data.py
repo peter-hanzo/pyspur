@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Dict, List, Tuple
+import argparse
 
 
 def load_json_data(json_file_path: str) -> Dict:
@@ -51,18 +52,24 @@ def get_subset_to_run(loaded_names: List[str], subset_length: int = -1) -> List[
     return names_subset
 
 
-def load_train_eval_test_data(verbose: bool = False) -> Tuple[Dict, Dict, Dict]:
+def transform_data(data: Dict, args: argparse.Namespace) -> Dict:
+    if args.grid_representation == "pixels":
+        return data
+    elif args.grid_representation == "ascii":
+        return data
+    else:
+        raise ValueError(f"Invalid grid representation: {args.grid_representation}")
+
+
+def load_train_eval_test_data(args: argparse.Namespace) -> Tuple[Dict, Dict, Dict]:
     """
     Main function that loads train, eval, and test datasets.
 
     Returns:
         Tuple[Dict, Dict, Dict]: The train, eval, and test datasets.
     """
-    # Load test data
-    test_json_file_path = os.path.join("data/kaggle", "arc-agi_test_challenges.json")
-    test_data_by_name_d = load_json_data(test_json_file_path)
 
-    # Load training data and update main data
+    # Load training data
     train_json_file_path = os.path.join(
         "data/kaggle", "arc-agi_training_challenges.json"
     )
@@ -74,13 +81,12 @@ def load_train_eval_test_data(verbose: bool = False) -> Tuple[Dict, Dict, Dict]:
     )
     eval_data_by_name_d = load_json_data(eval_json_file_path)
 
-    if verbose:
-        print(f"len(train_data_by_name_d)={len(train_data_by_name_d)}")
-        print(f"len(eval_data_by_name_d)={len(eval_data_by_name_d)}")
-        print(f"len(test_data_by_name_d)={len(test_data_by_name_d)}")
+    # Load test data
+    test_json_file_path = os.path.join("data/kaggle", "arc-agi_test_challenges.json")
+    test_data_by_name_d = load_json_data(test_json_file_path)
 
-    return train_data_by_name_d, eval_data_by_name_d, test_data_by_name_d
+    transformed_train_data = transform_data(train_data_by_name_d, args)
+    transformed_eval_data = transform_data(eval_data_by_name_d, args)
+    transformed_test_data = transform_data(test_data_by_name_d, args)
 
-
-if __name__ == "__main__":
-    load_train_eval_test_data(verbose=True)
+    return transformed_train_data, transformed_eval_data, transformed_test_data
