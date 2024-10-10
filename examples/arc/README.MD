@@ -10,3 +10,11 @@ More info can be found [here](https://arcprize.org/guide).
 * I will try to reproduce the results of other approaches here while using as many Pyspur modules as possible.
 * If not possible, I will make new modules that we can later integrate into pyspur
 * I will also push ARC-specific code that won't be relevant for other tasks/pyspur as a whole
+
+# To-dos
+
+- [ ] Reproduce results for a single problem
+  - [ ] Set up data loading
+  - [ ] Use PySpur primitives inside `run.py` to solve the problem
+  - [ ] Sanitizie prompts and grid rendering
+- [ ] Write `eval.py` to evaluate the results cleanly
