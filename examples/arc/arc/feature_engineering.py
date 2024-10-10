@@ -1,11 +1,13 @@
+import base64
 from collections import defaultdict
 from io import BytesIO
-import base64
 from typing import Optional
 
 import attrs
 import numpy as np
+import tiktoken
 from PIL import Image
+from scipy.ndimage import generate_binary_structure, label
 
 # Define the exact color scheme (0-9) as RGB tuples
 color_scheme_consts = {
@@ -22,6 +24,12 @@ color_scheme_consts = {
 }
 
 invalid_color = (255, 255, 255)  # White
+
+
+@attrs.frozen
+class StdoutStderr:
+    stdout: str
+    stderr: str
 
 
 color_scheme_consts_name = {
@@ -484,11 +492,10 @@ def diff_is_concise(grid_input: np.ndarray, grid_output: np.ndarray):
     return True
 
 
-def always_diff_is_concise(name: str):
-    for item in out_train_data_by_name_d[name]["train"]:
-        if not diff_is_concise(np.array(item["input"]), np.array(item["output"])):
+def always_diff_is_concise(list_of_inputs_and_outputs: list[dict[str, np.ndarray]]):
+    for item in list_of_inputs_and_outputs:
+        if not diff_is_concise(item["input"], item["output"]):
             return False
-
     return True
 
 
@@ -504,9 +511,9 @@ def spreadsheet_ascii_grid_by_color_diffs(
         defaultdict(list)
     )
     for x, y in zip(grid_differs_x.tolist(), grid_differs_y.tolist()):
-        differences_by_color_pairs[(grid_input[x, y], grid_output[x, y])].append(
-            (int(x), int(y))
-        )
+        differences_by_color_pairs[
+            (int(grid_input[x, y]), int(grid_output[x, y]))
+        ].append((int(x), int(y)))
 
     out = ""
     for (color_input, color_output), differing_locs in sorted(
