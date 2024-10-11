@@ -26,3 +26,7 @@ fastapi
 uvicorn
 pydantic
 apscheduler
+attrs
+Pillow
+scipy
+nest_asyncio
