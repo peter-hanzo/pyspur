@@ -1,18 +1,14 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from pydantic import BaseModel
-from typing import ClassVar, Generic, Type, TypeVar, get_args, get_origin
+from typing import ClassVar, Generic, Type, TypeVar, get_args, get_origin, List
 
 ConfigType = TypeVar("ConfigType", bound=BaseModel)
 InputType = TypeVar("InputType", bound=BaseModel)
 OutputType = TypeVar("OutputType", bound=BaseModel)
 
 
-class DynamicSchemaValueType(str, Enum):
-    INT = "int"
-    FLOAT = "float"
-    STR = "str"
-    BOOL = "bool"
+DynamicSchemaValueType = str
 
 
 class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
@@ -63,13 +59,27 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
 
     @staticmethod
     def _get_python_type(value_type: DynamicSchemaValueType) -> Type:
-        if value_type == DynamicSchemaValueType.INT:
-            return int
-        elif value_type == DynamicSchemaValueType.FLOAT:
-            return float
-        elif value_type == DynamicSchemaValueType.STR:
-            return str
-        elif value_type == DynamicSchemaValueType.BOOL:
-            return bool
-        else:
-            raise ValueError(f"Invalid value type: {value_type}")
+        """
+        Parse the value_type string into an actual Python type.
+        Supports arbitrarily nested types like 'int', 'list[int]', 'list[list[int]]', etc.
+        """
+        from typing import List
+
+        def parse_type(s: str) -> Type:
+            s = s.strip()
+            if s.startswith('list[') and s.endswith(']'):
+                inner_type_str = s[5:-1]
+                inner_type = parse_type(inner_type_str)
+                return List[inner_type]
+            elif s == 'int':
+                return int
+            elif s == 'float':
+                return float
+            elif s == 'str':
+                return str
+            elif s == 'bool':
+                return bool
+            else:
+                raise ValueError(f"Unsupported type: {s}")
+
+        return parse_type(value_type)
