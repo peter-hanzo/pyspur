@@ -1,7 +1,7 @@
 .tiptap {
     background: transparent;
     border-radius: 0 0 5px 5px;
-    min-height: 100px;
+    margin-bottom: 1rem;
     caret-color: #958DF1;
 }
 

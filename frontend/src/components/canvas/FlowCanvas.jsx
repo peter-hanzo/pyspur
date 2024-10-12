@@ -7,7 +7,6 @@ import { useSelector, useDispatch } from 'react-redux'; // Add this line
 import LLMNode from '../nodes/LLMNode'; // Import your custom nodes
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
-import TextEditor from '../textEditor/TextEditor'; // Import your text editor component
 import {
   nodesChange,
   edgesChange,
@@ -17,6 +16,7 @@ import {
   setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
 import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
+import NodeDetails from '../textEditor/LLMNodeDetails'; // Import the NodeDetails component
 
 const nodeTypes = {
   LLMNode: LLMNode,
@@ -109,23 +109,22 @@ const FlowCanvas = () => {
             zIndex: 1,
           }}
         >
-          {/* Conditionally render FlowCanvas or Spreadsheet based on activeTab */}
           {activeTab === 'sheet1' ? (
             <ReactFlow
               nodes={nodes}
-              edges={styledEdges} // Use styledEdges
+              edges={styledEdges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
               fitView
               onInit={onInit}
-              onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
-              onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
-              snapToGrid={true}          // Add this line to enable snapping
-              snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
-              onPaneClick={onPaneClick}  // Add event handler for pane click
-              onNodeClick={onNodeClick}  // Add event handler for node click
+              onNodeMouseEnter={onNodeMouseEnter}
+              onNodeMouseLeave={onNodeMouseLeave}
+              snapToGrid={true}
+              snapGrid={[15, 15]}
+              onPaneClick={onPaneClick}
+              onNodeClick={onNodeClick}
             >
               <Background />
               <Operator />
@@ -135,12 +134,11 @@ const FlowCanvas = () => {
           )}
         </div>
         {activeTab === 'sheet1' && selectedNodeID && (
-          // Render the component here 
           <div
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            <TextEditor nodeID={selectedNodeID} />
+            <NodeDetails nodeID={selectedNodeID} />
           </div>
         )}
         <div style={{ height: `${footerHeight}px` }}>
