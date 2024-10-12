@@ -72,27 +72,7 @@ const Control = () => {
                 <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval')}>Knowledge Retrieval</Button>
                 <Button auto light onClick={() => handleSelectNode('End')}>End</Button>
               </div>
-              <div className='flex flex-col space-y-2'>
-                <h3 className='text-sm font-semibold'>Question Understand</h3>
-                <Button auto light onClick={() => handleSelectNode('Question Classifier')}>Question Classifier</Button>
-              </div>
-              <div className='flex flex-col space-y-2'>
-                <h3 className='text-sm font-semibold'>Logic</h3>
-                <Button auto light onClick={() => handleSelectNode('IF/ELSE')}>IF/ELSE</Button>
-                <Button auto light onClick={() => handleSelectNode('Iteration')}>Iteration</Button>
-              </div>
-              <div className='flex flex-col space-y-2'>
-                <h3 className='text-sm font-semibold'>Transform</h3>
-                <Button auto light onClick={() => handleSelectNode('Code')}>Code</Button>
-                <Button auto light onClick={() => handleSelectNode('Template')}>Template</Button>
-                <Button auto light onClick={() => handleSelectNode('Variable Aggregator')}>Variable Aggregator</Button>
-                <Button auto light onClick={() => handleSelectNode('Variable Assigner')}>Variable Assigner</Button>
-                <Button auto light onClick={() => handleSelectNode('Parameter Extractor')}>Parameter Extractor</Button>
-              </div>
-              <div className='flex flex-col space-y-2'>
-                <h3 className='text-sm font-semibold'>Utilities</h3>
-                <Button auto light onClick={() => handleSelectNode('HTTP Request')}>HTTP Request</Button>
-              </div>
+
             </div>
           </PopoverContent>
         </Popover>
