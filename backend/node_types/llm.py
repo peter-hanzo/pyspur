@@ -27,7 +27,6 @@ class BasicLLMNodeConfig(BaseModel):
     json_mode: bool
     system_prompt: str
 
-
 class BasicLLMNodeInput(BaseModel):
     user_message: str
 

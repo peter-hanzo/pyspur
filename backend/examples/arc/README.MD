@@ -18,9 +18,18 @@ More info can be found [here](https://arcprize.org/guide).
 
 # To-dos
 
-- [ ] Reproduce results for a single problem
+- [ ] ARC-specific
   - [X] Set up data loading
   - [X] Set up feature engineering (grid and ASCII)
-  - [ ] Use PySpur primitives inside `run.py` to solve the problem
   - [ ] Sanitize prompts and grid rendering
-- [ ] Write `eval.py` to evaluate the results cleanly
+  - [ ] Write `eval.py` to evaluate the solutions
+- [ ] PySpur Modules
+  - [ ] Node Looper
+  - [ ] Vectorizer
+    - [ ] Fan out (eg. 6k samples)
+    - [ ] Fan in (Reducer)
+      - [ ] Majority voting
+      - [ ] Code verification
+  - [ ] Caching (like what Ryan did with Redis)
+  - [ ] Logging
+  - [ ] Node-level evals
