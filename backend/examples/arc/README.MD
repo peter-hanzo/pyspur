@@ -1,5 +1,7 @@
 # Case Study: ARC-AGI
 
+Here we showcase how to use PySpur for the ARC challenge, inspired by [Ryan Greenblatt's approach](https://redwoodresearch.substack.com/p/getting-50-sota-on-arc-agi-with-gpt).
+
 * ARC-AGI is an AGI benchmark that consists of unique training and evaluation tasks. * Each task contains input-output examples. The puzzle-like inputs and outputs present a grid where each square can be one of ten colors. A grid can be any height or width between 1x1 and 30x30.
 
 More info can be found [here](https://arcprize.org/guide).
@@ -9,13 +11,6 @@ More info can be found [here](https://arcprize.org/guide).
 * The number of train examples can vary from task to task
 *
 
-# Why this module
-
-* The goal of this module is to guide the design of pyspur towards solving the ARC-AGI benchmark
-* I will try to reproduce the results of other approaches here while using as many Pyspur modules as possible.
-* If not possible, I will make new modules that we can later integrate into pyspur
-* I will also push ARC-specific code that won't be relevant for other tasks/pyspur as a whole
-
 # To-dos
 
 - [ ] ARC-specific
@@ -23,13 +18,3 @@ More info can be found [here](https://arcprize.org/guide).
   - [X] Set up feature engineering (grid and ASCII)
   - [ ] Sanitize prompts and grid rendering
   - [ ] Write `eval.py` to evaluate the solutions
-- [ ] PySpur Modules
-  - [ ] Node Looper
-  - [ ] Vectorizer
-    - [ ] Fan out (eg. 6k samples)
-    - [ ] Fan in (Reducer)
-      - [ ] Majority voting
-      - [ ] Code verification
-  - [ ] Caching (like what Ryan did with Redis)
-  - [ ] Logging
-  - [ ] Node-level evals

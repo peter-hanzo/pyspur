@@ -5,9 +5,15 @@ from collections import defaultdict
 from typing import Dict, List
 
 from dotenv import load_dotenv
+from backend.examples.arc.prompts import (
+    STEP_1_GENERATE_CODE,
+    example_1,
+    example_1_reasoning,
+)
 from examples.arc.config.display import add_display_args
 from examples.arc.config.prompt import add_prompt_args
 from examples.arc.config.render import add_render_args
+
 from examples.arc.eval import score_submission
 from examples.arc.load_data import load_tasks_from_file, task_sets
 from node_types.llm import (
@@ -38,9 +44,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-TRIVIAL_PROMPT = "Solve the below visual reasoning puzzle. You will get a number of input and output examples and are then asked to solve a new puzzle. Return the solution and nothing else."
-
-
 async def main() -> None:
 
     args = parse_args()
@@ -52,32 +55,32 @@ async def main() -> None:
         llm_name=ModelName.GPT_4O_MINI,
         max_tokens=1000,
         temperature=0.8,
-        system_prompt=TRIVIAL_PROMPT,
-        output_schema={"solution": "list[list[int]]"},
+        system_prompt=STEP_1_GENERATE_CODE,
+        output_schema={"code": "str"},
     )
 
     # Create an instance of the LLM node
     llm_node = StructuredOutputLLMNodeType(llm_config)
+
+    few_shot_messages = [
+        {
+            "input": train_challenges[example_1]["train"],
+            "output": example_1_reasoning,
+        },
+    ]
 
     # Prepare the input data for LLM node
     llm_input = StructuredOutputLLMNodeInput(
         user_message=json.dumps(train_challenges["007bbfb7"])
     )
 
+    generated_python_code = await llm_node(llm_input)
+
     # Configure the Python function node
     python_config = PythonFuncNodeConfig(
-        code="""
-def solve(challenge: dict) -> list[list[int]]:
-    # Implement your solution logic here
-    # Example: Increment each cell by 1
-    solution = [[cell + 1 for cell in row] for row in challenge["test"][0]["input"]]
-    return solution
-
-# Invoke the solve function and set the output_data
-output_data = {"solution": solve(input_data["challenge"])}
-""",
-        input_schema={"challenge": "dict"},
-        output_schema={"solution": "list[list[int]]"},
+        code=generated_python_code.code,
+        input_schema={"grid_lst": "list[list[int]]"},
+        output_schema={"grid_lst": "list[list[int]]"},
     )
 
     python_node = PythonFuncNodeType(python_config)
@@ -88,15 +91,10 @@ output_data = {"solution": solve(input_data["challenge"])}
     # Execute the Python function node
     python_output = await python_node(python_input_model)
 
-    # Call the LLM node
-    attempt_1 = await llm_node(llm_input)
-    attempt_2 = await llm_node(llm_input)
-
     predicted_solutions: Dict[str, List[Dict[str, List[List[int]]]]] = defaultdict(list)
     predicted_solutions["007bbfb7"] = [
         {
-            "attempt_1": attempt_1.solution,
-            "attempt_2": attempt_2.solution,
+            "attempt_1": python_output.grid_lst,
         }
     ]
     score = score_submission(predicted_solutions, train_solutions)
