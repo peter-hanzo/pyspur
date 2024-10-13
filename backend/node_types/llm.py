@@ -1,15 +1,16 @@
 import json
+from enum import Enum
 from re import A, S, T
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 from venv import create
+
 from attr import validate
 from click import INT
-
+from pydantic import BaseModel, create_model, field_validator
 from regex import D, E
-from .llm_utils import create_messages, generate_text
+
 from .base import BaseNodeType, DynamicSchemaValueType
-from pydantic import BaseModel, create_model, validator, field_validator
-from enum import Enum
+from .llm_utils import create_messages, generate_text
 
 
 class ModelName(str, Enum):
@@ -26,6 +27,7 @@ class BasicLLMNodeConfig(BaseModel):
     temperature: float
     json_mode: bool
     system_prompt: str
+    few_shot_examples: Optional[List[Dict[str, str]]] = None  # Add this line
 
 
 class BasicLLMNodeInput(BaseModel):
@@ -52,6 +54,7 @@ class BasicLLMNodeType(
         messages = create_messages(
             system_message=self.config.system_prompt,
             user_message=input_data.user_message,
+            few_shot_examples=self.config.few_shot_examples,  # Pass examples here
         )
         assistant_message = await generate_text(
             messages=messages,
@@ -67,9 +70,9 @@ class StructuredOutputLLMNodeConfig(BaseModel):
     max_tokens: int
     temperature: float
     system_prompt: str
-    output_schema: Dict[str, str]  # Output schema with field names and types as strings
+    output_schema: Dict[str, str]
+    few_shot_examples: Optional[List[Dict[str, str]]] = None  # Add this line
 
-    # Updated: Use Pydantic V2 field_validator
     @field_validator("output_schema")
     def validate_output_schema(cls, v):
         allowed_base_types = {"int", "float", "str", "bool"}
@@ -117,7 +120,6 @@ class StructuredOutputLLMNodeType(
     def __init__(self, config: StructuredOutputLLMNodeConfig) -> None:
         self.config = StructuredOutputLLMNodeConfig.model_validate(config.model_dump())
         output_schema = config.output_schema
-        # Use v directly since it's now a string
         output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
         output_schema = {k: (v, ...) for k, v in output_schema.items()}
         self.output_model = create_model(
@@ -132,13 +134,13 @@ class StructuredOutputLLMNodeType(
     ) -> StructuredOutputLLMNodeOutput:
         system_message = self.config.system_prompt
         output_schema = self.config.output_schema
-        # Use the string representation directly
         system_message += (
             f"\nMake sure the output follows this JSON schema: {output_schema}"
         )
         messages = create_messages(
             system_message=system_message,
             user_message=input_data.user_message,
+            few_shot_examples=self.config.few_shot_examples,  # Pass examples here
         )
         assistant_message = await generate_text(
             messages=messages,
