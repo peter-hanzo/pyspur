@@ -1,7 +1,17 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from pydantic import BaseModel
-from typing import ClassVar, Generic, Type, TypeVar, get_args, get_origin, List
+from typing import (
+    ClassVar,
+    Generic,
+    Type,
+    TypeVar,
+    get_args,
+    get_origin,
+    List,
+    Dict,
+    Any,
+)
 
 ConfigType = TypeVar("ConfigType", bound=BaseModel)
 InputType = TypeVar("InputType", bound=BaseModel)
@@ -61,25 +71,49 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
     def _get_python_type(value_type: DynamicSchemaValueType) -> Type:
         """
         Parse the value_type string into an actual Python type.
-        Supports arbitrarily nested types like 'int', 'list[int]', 'list[list[int]]', etc.
+        Supports arbitrarily nested types like 'int', 'list[int]', 'dict[str, int]', 'list[dict[str, list[int]]]', etc.
         """
-        from typing import List
+        from typing import List, Dict, Any, Type
 
-        def parse_type(s: str) -> Type:
+        def parse_type(s: str) -> Type[Any]:
             s = s.strip()
-            if s.startswith('list[') and s.endswith(']'):
+            if s in ("int", "float", "str", "bool"):
+                return {"int": int, "float": float, "str": str, "bool": bool}[s]
+            elif s == "dict":
+                return dict
+            elif s == "list":
+                return list
+            elif s.startswith("list[") and s.endswith("]"):
                 inner_type_str = s[5:-1]
                 inner_type = parse_type(inner_type_str)
                 return List[inner_type]
-            elif s == 'int':
-                return int
-            elif s == 'float':
-                return float
-            elif s == 'str':
-                return str
-            elif s == 'bool':
-                return bool
+            elif s.startswith("dict[") and s.endswith("]"):
+                inner_types_str = s[5:-1]
+                key_type_str, value_type_str = split_types(inner_types_str)
+                key_type = parse_type(key_type_str)
+                value_type = parse_type(value_type_str)
+                return Dict[key_type, value_type]
             else:
                 raise ValueError(f"Unsupported type: {s}")
+
+        def split_types(s: str) -> (str, str):
+            """
+            Splits the string s at the top-level comma, correctly handling nested brackets.
+            """
+            depth = 0
+            start = 0
+            splits = []
+            for i, c in enumerate(s):
+                if c == "[":
+                    depth += 1
+                elif c == "]":
+                    depth -= 1
+                elif c == "," and depth == 0:
+                    splits.append(s[start:i].strip())
+                    start = i + 1
+            splits.append(s[start:].strip())
+            if len(splits) != 2:
+                raise ValueError(f"Invalid dict type specification: {s}")
+            return splits[0], splits[1]
 
         return parse_type(value_type)
