@@ -26,3 +26,6 @@ fastapi
 uvicorn
 pydantic
 apscheduler
+sqlalchemy
+dask
+distributed

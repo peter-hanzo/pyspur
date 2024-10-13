@@ -2,7 +2,7 @@ import os
 import requests
 import fal_client
 from typing import Dict, Any
-from .base import BaseNodeType
+from .base import BaseNode
 from pydantic import BaseModel, Base64Str
 
 
@@ -170,7 +170,7 @@ class ImageGenOutput(BaseModel):
     image_data_uri: Base64Str
 
 
-class ImageGenNode(BaseNodeType[ImageGenConfig, ImageGenInput, ImageGenOutput]):
+class ImageGenNode(BaseNode[ImageGenConfig, ImageGenInput, ImageGenOutput]):
     """
     Node that generates an image based on a prompt using the specified model.
     """
