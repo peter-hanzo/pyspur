@@ -50,12 +50,23 @@ const CustomEdge = ({
 
   return (
     <>
+      {/* Visible edge path */}
       <path
         id={id}
         style={style}
         className="react-flow__edge-path"
         d={edgePath}
         markerEnd={markerEnd}
+        fill="none"
+      />
+      {/* Invisible path to increase hover area */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={30} // Increased strokeWidth for better sensitivity
+        style={{ pointerEvents: 'stroke' }}
+        className="react-flow__edge-hover"
       />
       {data.showPlusButton && (
         <foreignObject
@@ -65,7 +76,16 @@ const CustomEdge = ({
           y={labelY - 15}
           style={{ pointerEvents: 'none' }}
         >
-          <div style={{ pointerEvents: 'all', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+          <div
+            style={{
+              pointerEvents: 'all',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+            }}
+          >
             <Button
               auto
               onClick={() => console.log('Plus button clicked')}
