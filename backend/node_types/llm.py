@@ -27,7 +27,7 @@ class BasicLLMNodeConfig(BaseModel):
     temperature: float
     json_mode: bool
     system_prompt: str
-    few_shot_examples: Optional[List[Dict[str, str]]] = None  # Add this line
+    few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
 class BasicLLMNodeInput(BaseModel):
@@ -54,7 +54,7 @@ class BasicLLMNodeType(
         messages = create_messages(
             system_message=self.config.system_prompt,
             user_message=input_data.user_message,
-            few_shot_examples=self.config.few_shot_examples,  # Pass examples here
+            few_shot_examples=self.config.few_shot_examples,
         )
         assistant_message = await generate_text(
             messages=messages,
@@ -71,7 +71,7 @@ class StructuredOutputLLMNodeConfig(BaseModel):
     temperature: float
     system_prompt: str
     output_schema: Dict[str, str]
-    few_shot_examples: Optional[List[Dict[str, str]]] = None  # Add this line
+    few_shot_examples: Optional[List[Dict[str, str]]] = None
 
     @field_validator("output_schema")
     def validate_output_schema(cls, v):
