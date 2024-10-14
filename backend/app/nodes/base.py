@@ -21,9 +21,9 @@ OutputType = TypeVar("OutputType", bound=BaseModel)
 DynamicSchemaValueType = str
 
 
-class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
+class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
     """
-    Base class for all node types.
+    Base class for all nodes.
     """
 
     name: str
@@ -42,7 +42,7 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
             raise NotImplementedError("Node type must define a 'name' property")
         for base in getattr(cls, "__orig_bases__", []):
             origin = get_origin(base)
-            if origin is BaseNodeType:
+            if origin is BaseNode:
                 type_args = get_args(base)
                 if len(type_args) == 3:
                     cls.ConfigType, cls.InputType, cls.OutputType = type_args
@@ -51,7 +51,7 @@ class BaseNodeType(Generic[ConfigType, InputType, OutputType], ABC):
                 break
         else:
             raise TypeError(
-                "Generic type parameters not specified for BaseNodeType subclass."
+                "Generic type parameters not specified for BaseNode subclass."
             )
 
     @abstractmethod

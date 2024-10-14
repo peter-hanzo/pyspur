@@ -1,14 +1,26 @@
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from regex import B
-from node_types import node_type_registry
+
+from ..execution.workflow_executor_dask import WorkflowExecutorDask
+from ..execution.node_executor import NodeExecutor
+from ..nodes import node_registry
 from fastapi import FastAPI
-from pydantic import BaseModel
 from typing import List, Dict, Any
-from .models import Node, Link, Workflow
+from ..schemas.workflow import WorkflowNode, Workflow
+from ..execution.dask_cluster_manager import DaskClusterManager
 
 load_dotenv()
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    DaskClusterManager.get_client()
+    yield
+    DaskClusterManager.shutdown()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/node_types/", response_model=List[Dict[str, Any]])
@@ -18,7 +30,7 @@ async def get_node_types() -> List[Dict[str, Any]]:
     """
     # get the schemas for each node class
     node_schemas = []
-    for node_class in node_type_registry.values():
+    for node_class in node_registry.values():
         config_schema = node_class.ConfigType
         input_schema = node_class.InputType
         output_schema = node_class.OutputType
@@ -34,14 +46,14 @@ async def get_node_types() -> List[Dict[str, Any]]:
 
 
 @app.post("/run_node/")
-async def run_node(node: Node, input_data: Dict[str, Any]) -> Dict[str, Any]:
+async def run_node(node: WorkflowNode, input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Runs a node with the given name, configuration, and input data.
     """
-    node_instance = node.node_instance
-    input_obj = node_instance.InputType.model_validate(input_data)
-    result = await node_instance(input_obj)
-    return result.model_dump()
+    executor = NodeExecutor(node)
+    output_data = await executor(input_data)
+
+    return output_data.model_dump()
 
 
 @app.post("/run_workflow/")
@@ -51,5 +63,5 @@ async def run_workflow(
     """
     Runs a workflow with the given nodes and edges.
     """
-    results = await workflow(initial_inputs)
-    return results
+    executor = WorkflowExecutorDask(workflow)
+    return await executor(initial_inputs)

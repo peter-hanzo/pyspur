@@ -8,9 +8,10 @@ from attr import validate
 from click import INT
 from pydantic import BaseModel, create_model, field_validator
 from regex import D, E
-
-from .base import BaseNodeType, DynamicSchemaValueType
 from .llm_utils import create_messages, generate_text
+from .base import BaseNode, DynamicSchemaValueType
+from pydantic import BaseModel, create_model
+from enum import Enum
 
 
 class ModelName(str, Enum):
@@ -38,9 +39,7 @@ class BasicLLMNodeOutput(BaseModel):
     assistant_message: str
 
 
-class BasicLLMNodeType(
-    BaseNodeType[BasicLLMNodeConfig, BasicLLMNodeInput, BasicLLMNodeOutput]
-):
+class BasicLLMNode(BaseNode[BasicLLMNodeConfig, BasicLLMNodeInput, BasicLLMNodeOutput]):
     """
     Basic node type for calling an LLM.
     """
@@ -104,8 +103,8 @@ class StructuredOutputLLMNodeOutput(BaseModel):
     pass
 
 
-class StructuredOutputLLMNodeType(
-    BaseNodeType[
+class StructuredOutputLLMNode(
+    BaseNode[
         StructuredOutputLLMNodeConfig,
         StructuredOutputLLMNodeInput,
         StructuredOutputLLMNodeOutput,

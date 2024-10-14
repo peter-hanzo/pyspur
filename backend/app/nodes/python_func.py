@@ -1,6 +1,6 @@
 from typing import Any, Dict, Type
 from pydantic import BaseModel, create_model
-from .base import BaseNodeType, DynamicSchemaValueType
+from .base import BaseNode, DynamicSchemaValueType
 
 
 class PythonFuncNodeConfig(BaseModel):
@@ -17,8 +17,8 @@ class PythonFuncNodeOutput(BaseModel):
     pass
 
 
-class PythonFuncNodeType(
-    BaseNodeType[PythonFuncNodeConfig, PythonFuncNodeInput, PythonFuncNodeOutput]
+class PythonFuncNode(
+    BaseNode[PythonFuncNodeConfig, PythonFuncNodeInput, PythonFuncNodeOutput]
 ):
     """
     Node type for executing Python code on the input data.

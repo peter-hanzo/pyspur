@@ -1,13 +1,14 @@
 version: '3.8'
 
 services:
-  backend:
+  api:
     build: ./backend
-    command: uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+    command: uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
+      - "8787:8787"
   frontend:
     build: ./frontend
     command: npm start
@@ -16,4 +17,4 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      - api

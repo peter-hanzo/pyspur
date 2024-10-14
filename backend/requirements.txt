@@ -1,4 +1,4 @@
-asyncio==3.4.3
+asyncio
 numpy<2.0.0
 tiktoken==0.7.0
 python-dotenv==1.0.1
@@ -26,6 +26,10 @@ fastapi
 uvicorn
 pydantic
 apscheduler
+sqlalchemy
+dask
+distributed
+bokeh>=3.1.0
 attrs
 Pillow
 scipy
