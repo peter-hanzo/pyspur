@@ -7,10 +7,19 @@ from ..nodes import node_registry
 from fastapi import FastAPI
 from typing import List, Dict, Any
 from ..schemas.workflow import WorkflowNode, Workflow
+from ..execution.dask_cluster_manager import DaskClusterManager
 
 load_dotenv()
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    DaskClusterManager.get_client()
+    yield
+    DaskClusterManager.shutdown()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/node_types/", response_model=List[Dict[str, Any]])
