@@ -1,7 +1,8 @@
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from regex import B
 
-from ..execution.workflow_executor import WorkflowExecutor
+from ..execution.workflow_executor_dask import WorkflowExecutorDask
 from ..execution.node_executor import NodeExecutor
 from ..nodes import node_registry
 from fastapi import FastAPI
@@ -62,5 +63,5 @@ async def run_workflow(
     """
     Runs a workflow with the given nodes and edges.
     """
-    executor = WorkflowExecutor(workflow)
+    executor = WorkflowExecutorDask(workflow)
     return await executor(initial_inputs)
