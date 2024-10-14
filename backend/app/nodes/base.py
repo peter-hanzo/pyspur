@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import (
     ClassVar,
     Generic,
+    Tuple,
     Type,
     TypeVar,
     get_args,
@@ -96,7 +97,7 @@ class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
             else:
                 raise ValueError(f"Unsupported type: {s}")
 
-        def split_types(s: str) -> (str, str):
+        def split_types(s: str) -> Tuple[str, str]:
             """
             Splits the string s at the top-level comma, correctly handling nested brackets.
             """
