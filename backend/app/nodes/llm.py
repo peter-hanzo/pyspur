@@ -1,10 +1,12 @@
 import json
+from enum import Enum
 from re import A, S, T
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 from venv import create
+
 from attr import validate
 from click import INT
-
+from pydantic import BaseModel, create_model, field_validator
 from regex import D, E
 from .llm_utils import create_messages, generate_text
 from .base import BaseNode, DynamicSchemaValueType
@@ -26,6 +28,7 @@ class BasicLLMNodeConfig(BaseModel):
     temperature: float
     json_mode: bool
     system_prompt: str
+    few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
 class BasicLLMNodeInput(BaseModel):
@@ -50,6 +53,7 @@ class BasicLLMNode(BaseNode[BasicLLMNodeConfig, BasicLLMNodeInput, BasicLLMNodeO
         messages = create_messages(
             system_message=self.config.system_prompt,
             user_message=input_data.user_message,
+            few_shot_examples=self.config.few_shot_examples,
         )
         assistant_message = await generate_text(
             messages=messages,
@@ -65,9 +69,30 @@ class StructuredOutputLLMNodeConfig(BaseModel):
     max_tokens: int
     temperature: float
     system_prompt: str
-    output_schema: Dict[
-        str, DynamicSchemaValueType
-    ]  # Output schema with field names and types
+    output_schema: Dict[str, str]
+    few_shot_examples: Optional[List[Dict[str, str]]] = None
+
+    @field_validator("output_schema")
+    def validate_output_schema(cls, v):
+        allowed_base_types = {"int", "float", "str", "bool"}
+
+        def is_valid_type(type_str):
+            type_str = type_str.strip()
+            if type_str in allowed_base_types:
+                return True
+            elif type_str.startswith("list[") and type_str.endswith("]"):
+                inner_type = type_str[5:-1].strip()
+                return is_valid_type(inner_type)
+            else:
+                return False
+
+        for field_name, type_str in v.items():
+            if not is_valid_type(type_str):
+                raise ValueError(
+                    f"Invalid type '{type_str}' for field '{field_name}'. "
+                    f"Allowed types are base types and nested lists thereof."
+                )
+        return v
 
 
 class StructuredOutputLLMNodeInput(BaseModel):
@@ -108,13 +133,13 @@ class StructuredOutputLLMNode(
     ) -> StructuredOutputLLMNodeOutput:
         system_message = self.config.system_prompt
         output_schema = self.config.output_schema
-        output_schema = {k: v.value for k, v in output_schema.items()}
         system_message += (
-            f"""\nMake sure the output follows this JSON schema: {output_schema}"""
+            f"\nMake sure the output follows this JSON schema: {output_schema}"
         )
         messages = create_messages(
             system_message=system_message,
             user_message=input_data.user_message,
+            few_shot_examples=self.config.few_shot_examples,  # Pass examples here
         )
         assistant_message = await generate_text(
             messages=messages,

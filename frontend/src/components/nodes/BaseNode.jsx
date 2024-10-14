@@ -1,66 +1,67 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
-import { Card, CardHeader, CardBody, CardFooter, Divider, Link, Image } from "@nextui-org/react";
+import { useDispatch, useSelector } from 'react-redux';
+import { setHoveredNode } from '../../store/flowSlice';
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  CardFooter,
+  Link,
+} from "@nextui-org/react";
 import { NodeTargetHandle, NodeSourceHandle } from './NodeHandles';
 
-// Define action types (ensure these match the ones in your flowStore.js)
-const SET_HOVERED_NODE = 'SET_HOVERED_NODE';
-
-const BaseNode = ({ id, data = {}, children, style }) => {
+const BaseNode = ({ id, data = {}, children, style = {} }) => {
   const dispatch = useDispatch();
 
+  const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
+
   const handleMouseEnter = () => {
-    dispatch({
-      type: SET_HOVERED_NODE,
-      payload: { id },
-    });
+    dispatch(setHoveredNode({ nodeId: id }));
   };
 
   const handleMouseLeave = () => {
-    dispatch({
-      type: SET_HOVERED_NODE,
-      payload: { id: null },
-    });
+    dispatch(setHoveredNode({ nodeId: null }));
+  };
+
+  // Determine if this node is currently hovered
+  const isHovered = String(id) === String(hoveredNodeId);
+  console.log('Node ID:', id, 'Hovered Node ID:', hoveredNodeId, 'isHovered:', isHovered);
+
+  const cardStyle = {
+    ...style,
+    borderColor: isHovered ? '#4CAF50' : style.borderColor || '#ccc',
+    borderWidth: isHovered ? '2px' : style.borderWidth || '1px',
+    borderStyle: 'solid',
+    transition: 'border-color 0.2s, border-width 0.2s',
   };
 
   return (
     <Card
       className="base-node"
-      style={{ ...style }}
+      style={cardStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Optionally include CardHeader */}
       {data && data.title && (
         <CardHeader>
           <p className="text-md">{data.title}</p>
         </CardHeader>
       )}
 
-      {/* Optionally include Divider */}
-      {/* <Divider /> */}
+      <CardBody>{children}</CardBody>
 
-      <CardBody>
-        {children}
-      </CardBody>
-
-      {/* Optionally include Divider */}
-      {/* <Divider /> */}
-
-      {/* Optionally include CardFooter */}
       {data.footer && (
         <CardFooter>
           <Link href={data.footerLink}>{data.footer}</Link>
         </CardFooter>
       )}
 
-      {/* Replace Handle components with NodeTargetHandle and NodeSourceHandle */}
       {data.showTargetHandle && (
         <NodeTargetHandle
           id={id}
           data={data}
           handleId="target-handle"
-          handleClassName="your-handle-class" // Customize your class names
+          handleClassName="your-handle-class"
           nodeSelectorClassName="your-selector-class"
         />
       )}

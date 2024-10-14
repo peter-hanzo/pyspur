@@ -7,7 +7,6 @@ import { useSelector, useDispatch } from 'react-redux'; // Add this line
 import LLMNode from '../nodes/LLMNode'; // Import your custom nodes
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
-import TextEditor from '../textEditor/TextEditor'; // Import your text editor component
 import {
   nodesChange,
   edgesChange,
@@ -16,13 +15,94 @@ import {
   setHoveredNode, // Import the setHoveredNode action
   setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
-
-// Remove the import of Toolbar
-// import Toolbar from './header/Toolbar'; // Remove or comment out this line
+import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
+import NodeDetails from '../textEditor/LLMNodeDetails'; // Import the NodeDetails component
+import { Card, Button } from '@nextui-org/react'; // Import NextUI components
+import { getBezierPath } from 'reactflow'; // Import helper for custom edge
+import { RiAddCircleFill } from '@remixicon/react';
 
 const nodeTypes = {
   LLMNode: LLMNode,
   // ... other node types
+};
+
+// Custom edge component
+const CustomEdge = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style = {},
+  data,
+  markerEnd,
+}) => {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  return (
+    <>
+      {/* Visible edge path */}
+      <path
+        id={id}
+        style={style}
+        className="react-flow__edge-path"
+        d={edgePath}
+        markerEnd={markerEnd}
+        fill="none"
+      />
+      {/* Invisible path to increase hover area */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={30} // Increased strokeWidth for better sensitivity
+        style={{ pointerEvents: 'stroke' }}
+        className="react-flow__edge-hover"
+      />
+      {data.showPlusButton && (
+        <foreignObject
+          width={30}
+          height={30}
+          x={labelX - 15}
+          y={labelY - 15}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div
+            style={{
+              pointerEvents: 'all',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            <Button
+              auto
+              onClick={() => console.log('Plus button clicked')}
+              style={{ padding: 0, minWidth: 'auto' }}
+            >
+              <RiAddCircleFill size={20} />
+            </Button>
+          </div>
+        </foreignObject>
+      )}
+    </>
+  );
+};
+
+// Update nodeTypes to include the custom edge
+const edgeTypes = {
+  custom: CustomEdge,
 };
 
 const FlowCanvas = () => {
@@ -52,19 +132,42 @@ const FlowCanvas = () => {
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
+  // Adding new state to manage active tab and spreadsheet data
+  const [activeTab, setActiveTab] = useState('sheet1'); // Manage active tab state
+  const [spreadsheetData, setSpreadsheetData] = useState([[""]]); // Store spreadsheet data
+
+  const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
+
   const styledEdges = useMemo(() => {
     return edges.map((edge) => {
-      if (edge.source === hoveredNode || edge.target === hoveredNode) {
-        return {
-          ...edge,
-          style: { stroke: 'red', strokeWidth: 2 }, // Highlighted edge style
-        };
-      }
-      return edge;
+      const isHovered = edge.id === hoveredEdge;
+      return {
+        ...edge,
+        type: 'custom', // Use custom edge type
+        style: {
+          stroke: isHovered ? 'blue' : edge.source === hoveredNode || edge.target === hoveredNode ? 'red' : undefined,
+          strokeWidth: isHovered ? 3 : edge.source === hoveredNode || edge.target === hoveredNode ? 2 : undefined,
+        },
+        data: {
+          ...edge.data,
+          showPlusButton: isHovered, // Add flag to show + button
+        },
+      };
     });
-  }, [edges, hoveredNode]);
+  }, [edges, hoveredNode, hoveredEdge]);
 
-  // Handle hover events
+  // Define edge hover event handlers
+  const onEdgeMouseEnter = useCallback(
+    (event, edge) => {
+      setHoveredEdge(edge.id); // Set hovered edge
+    },
+    []
+  );
+
+  const onEdgeMouseLeave = useCallback(() => {
+    setHoveredEdge(null); // Clear hovered edge
+  }, []);
+
   const onNodeMouseEnter = useCallback(
     (event, node) => {
       dispatch(setHoveredNode({ nodeId: node.id })); // Set hovered node in Redux
@@ -98,9 +201,6 @@ const FlowCanvas = () => {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Remove the Toolbar component */}
-      {/* <Toolbar /> */}
-
       <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
         <div
           style={{
@@ -110,37 +210,43 @@ const FlowCanvas = () => {
             zIndex: 1,
           }}
         >
-          <ReactFlow
-            nodes={nodes}
-            edges={styledEdges} // Use styledEdges
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-            onInit={onInit}
-            onNodeMouseEnter={onNodeMouseEnter} // Add event handler for hover enter
-            onNodeMouseLeave={onNodeMouseLeave} // Add event handler for hover leave
-            snapToGrid={true}          // Add this line to enable snapping
-            snapGrid={[15, 15]}        // Add this line to set grid size (e.g., 15x15 pixels)
-            onPaneClick={onPaneClick}  // Add event handler for pane click
-            onNodeClick={onNodeClick}  // Add event handler for node click
-          >
-            <Background />
-            <Operator />
-          </ReactFlow>
+          {activeTab === 'sheet1' ? (
+            <ReactFlow
+              nodes={nodes}
+              edges={styledEdges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes} // Add edgeTypes to ReactFlow
+              fitView
+              onInit={onInit}
+              onNodeMouseEnter={onNodeMouseEnter}
+              onNodeMouseLeave={onNodeMouseLeave}
+              snapToGrid={true}
+              snapGrid={[15, 15]}
+              onPaneClick={onPaneClick}
+              onNodeClick={onNodeClick}
+              onEdgeMouseEnter={onEdgeMouseEnter}
+              onEdgeMouseLeave={onEdgeMouseLeave}
+            >
+              <Background />
+              <Operator />
+            </ReactFlow>
+          ) : (
+            <Spreadsheet initialData={spreadsheetData} onDataUpdate={setSpreadsheetData} />
+          )}
         </div>
-        {selectedNodeID && (
-          // Render the component here 
+        {activeTab === 'sheet1' && selectedNodeID && (
           <div
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            <TextEditor nodeID={selectedNodeID} />
+            <NodeDetails nodeID={selectedNodeID} />
           </div>
         )}
         <div style={{ height: `${footerHeight}px` }}>
-          <TabbedFooter />
+          <TabbedFooter activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
       </div>
     </div>

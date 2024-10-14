@@ -30,3 +30,7 @@ sqlalchemy
 dask
 distributed
 bokeh>=3.1.0
+attrs
+Pillow
+scipy
+nest_asyncio
