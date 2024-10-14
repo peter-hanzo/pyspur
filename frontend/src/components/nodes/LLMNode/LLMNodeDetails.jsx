@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import Wrapper from './Wrapper';
-import Editor from './Editor';
-import { updateNodeData } from '../../store/flowSlice';
-import PromptEditor from './PromptEditor';
-import FewShotEditor from './FewShotEditor';
+import Wrapper from '../../textEditor/Wrapper';
+import Editor from '../../textEditor/Editor';
+import { updateNodeData } from '../../../store/flowSlice';
+import PromptEditor from './Utils/PromptEditor';
+import FewShotEditor from './Utils/FewShotEditor';
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
