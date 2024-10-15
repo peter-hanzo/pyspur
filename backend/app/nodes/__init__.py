@@ -1,14 +1,23 @@
+import os
 import inspect
-import pkgutil
 import importlib
 from typing import Dict, Type
 from .base import BaseNode
 
 node_registry: Dict[str, Type[BaseNode]] = {}
 
-# Dynamically load and register node types
-for _, module_name, _ in pkgutil.iter_modules(__path__):
-    module = importlib.import_module(f"{__name__}.{module_name}")
-    for name, obj in inspect.getmembers(module, inspect.isclass):
-        if issubclass(obj, BaseNode) and obj is not BaseNode:
-            node_registry[obj.__name__] = obj
+
+def recursive_import_and_register(package_path, package_name):
+    for root, _, files in os.walk(package_path):
+        for file in files:
+            if file.endswith(".py") and not file.startswith("__"):
+                module_path = os.path.relpath(os.path.join(root, file), package_path)
+                module_name = module_path.replace(os.sep, ".").rsplit(".", 1)[0]
+                full_module_name = f"{package_name}.{module_name}"
+                module = importlib.import_module(full_module_name)
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    if issubclass(obj, BaseNode) and obj is not BaseNode:
+                        node_registry[obj.__name__] = obj
+
+
+recursive_import_and_register(list(__path__)[0], __name__)
