@@ -1,4 +1,5 @@
-from typing import Dict, Any, Set
+import asyncio
+from typing import Awaitable, Callable, Coroutine, Dict, Any, Set, Iterator, Tuple
 from pydantic import BaseModel
 from app.schemas.workflow import Workflow, WorkflowNode, WorkflowLink
 from .node_executor_dask import NodeExecutorDask
@@ -108,3 +109,63 @@ class WorkflowExecutorDask:
 
     async def __call__(self, initial_inputs: Dict[str, Dict[str, Any]] = {}):
         return await self.run(initial_inputs)
+
+    async def run_batch(
+        self, input_iterator: Iterator[Dict[str, Any]], batch_size: int = 100
+    ):
+        """
+        Run the workflow on a batch of inputs.
+        """
+        results = []
+        batch_tasks = []
+        for input_data in input_iterator:
+            batch_tasks.append(self.run(input_data))
+            if len(batch_tasks) == batch_size:
+                results.extend(await asyncio.gather(*batch_tasks))
+                batch_tasks = []
+        if batch_tasks:
+            results.extend(await asyncio.gather(*batch_tasks))
+
+        return results
+
+    async def evalaute(
+        self,
+        input_data: Dict[str, Any],
+        expected_output: Dict[str, Any],
+        evaluate_fn: Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[bool]] = None,  # type: ignore
+    ):
+        """
+        Evaluate the workflow on a single input and compare the output with the expected output.
+        """
+        output = await self.run(input_data)
+        if evaluate_fn is not None:
+            match = await evaluate_fn(output, expected_output)
+        else:
+            match = output == expected_output
+        return {
+            "input": input_data,
+            "output": output,
+            "expected_output": expected_output,
+            "match": match,
+        }
+
+    async def evaluate_batch(
+        self,
+        examples: Iterator[Tuple[Dict[str, Any], Dict[str, Any]]],
+        evaluate_fn: Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[bool]] = None,  # type: ignore
+        batch_size: int = 100,
+    ):
+        """
+        Evaluate the workflow on a batch of inputs and compare the output with the expected output.
+        """
+        results = []
+        batch_tasks = []
+        for input_data, expected_output in examples:
+            batch_tasks.append(self.evalaute(input_data, expected_output, evaluate_fn))
+            if len(batch_tasks) == batch_size:
+                results.extend(await asyncio.gather(*batch_tasks))
+                batch_tasks = []
+        if batch_tasks:
+            results.extend(await asyncio.gather(*batch_tasks))
+
+        return results
