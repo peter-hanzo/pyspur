@@ -177,15 +177,9 @@ class AdvancedLLMNodeConfig(BaseModel):
                 )
         return v
 
-    @field_validator("input_schema")
-    def ensure_user_message_key(cls, v):
-        if "user_message" not in v:
-            raise ValueError("input_schema must contain a 'user_message' key.")
-        return v
-
 
 class AdvancedLLMNodeInput(BaseModel):
-    user_message: str
+    pass
 
 
 class AdvancedLLMNodeOutput(BaseModel):
@@ -231,9 +225,9 @@ class AdvancedLLMNode(
         system_message += (
             f"\nMake sure the output follows this JSON schema: {output_schema}"
         )
-        user_message = input_data.user_message.format(**input_data_dict)
-
+        user_message = json.dumps(input_data_dict)
         # TODO: parameterize few_shot_examples
+
         messages = create_messages(
             system_message=system_message,
             user_message=user_message,
