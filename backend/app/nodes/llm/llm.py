@@ -205,6 +205,8 @@ class AdvancedLLMNode(
 
         input_data_dict = input_data.model_dump()
         system_message = system_message.format(**input_data_dict)
+        config_data_dict = self.config.model_dump()
+        system_message = system_message.format(**config_data_dict)
         system_message += (
             f"\nMake sure the output follows this JSON schema: {output_schema}"
         )
