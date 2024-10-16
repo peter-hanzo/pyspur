@@ -25,7 +25,9 @@ class NodeExecutor:
             raise ValueError(
                 f"Node type '{self.workflow_node.type}' not found in registry"
             )
-        node_config = node_type_cls.ConfigType(**self.workflow_node.config)
+        node_config = node_type_cls.config_model.model_validate(
+            self.workflow_node.config
+        )
         return node_type_cls(node_config)
 
     @property
@@ -39,7 +41,7 @@ class NodeExecutor:
         Execute the node with the given input data.
         """
         if isinstance(input_data, dict):
-            input_data = self.node_instance.InputType(**input_data)
+            input_data = self.node_instance.input_model.model_validate(input_data)
         if self.node_instance is None:
             raise ValueError("Node instance not found")
         self.output = await self.node_instance(input_data)

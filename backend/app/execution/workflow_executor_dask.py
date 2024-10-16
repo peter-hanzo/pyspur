@@ -42,12 +42,12 @@ class WorkflowExecutorDask:
         target_node_executor = NodeExecutorDask(target_node)
 
         source_output_type = (
-            source_node_executor.node_instance.OutputType.model_fields.get(
+            source_node_executor.node_instance.output_model.model_fields.get(
                 link.source_output_key
             )
         )
         target_input_type = (
-            target_node_executor.node_instance.InputType.model_fields.get(
+            target_node_executor.node_instance.input_model.model_fields.get(
                 link.target_input_key
             )
         )

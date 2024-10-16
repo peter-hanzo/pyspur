@@ -31,9 +31,9 @@ async def get_node_types() -> List[Dict[str, Any]]:
     # get the schemas for each node class
     node_schemas = []
     for node_class in node_registry.values():
-        config_schema = node_class.ConfigType
-        input_schema = node_class.InputType
-        output_schema = node_class.OutputType
+        config_schema = node_class.config_model
+        input_schema = node_class.input_model
+        output_schema = node_class.output_model
         node_schemas.append(
             {
                 "name": node_class.__name__,
