@@ -18,19 +18,11 @@ class BranchSolveMergeNodeConfig(AdvancedLLMNodeConfig):
     )
 
 
-class BranchSolveMergeNodeInput(AdvancedLLMNodeInput):
-    pass
-
-
-class BranchSolveMergeNodeOutput(AdvancedLLMNodeOutput):
-    pass
-
-
 class BranchSolveMergeNode(
     BaseNode[
         BranchSolveMergeNodeConfig,
-        BranchSolveMergeNodeInput,
-        BranchSolveMergeNodeOutput,
+        AdvancedLLMNodeInput,
+        AdvancedLLMNodeOutput,
     ]
 ):
     name = "branch_solve_merge_node"
@@ -58,13 +50,10 @@ class BranchSolveMergeNode(
         self._merge_node = AdvancedLLMNode(merge_config)
 
         # Set input and output types
-        self.InputType = self._branch_node.InputType
+        self.input_model = self._branch_node.input_model
         self.output_model = self._merge_node.output_model
-        self.OutputType = self.output_model
 
-    async def __call__(
-        self, input_data: BranchSolveMergeNodeInput
-    ) -> BranchSolveMergeNodeOutput:
+    async def __call__(self, input_data: AdvancedLLMNodeInput) -> AdvancedLLMNodeOutput:
         # Step 1: Branch - generate subtasks
         subtasks = await self._branch_node(input_data)
 
@@ -74,4 +63,4 @@ class BranchSolveMergeNode(
         # Step 3: Merge - combine the solutions into final output
         final_output = await self._merge_node(solutions)  # type: ignore
 
-        return self.output_model(**final_output.model_dump())
+        return final_output

@@ -1,3 +1,4 @@
+from httpx import get
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
@@ -46,16 +47,15 @@ class BestOfNNode(BaseNode[BestOfNNodeConfig, BestOfNNodeInput, BestOfNNodeOutpu
         )
         self._rating_llm_node = AdvancedLLMNode(rating_llm_config)
 
-        # Set input and output types
-        self.InputType = self._llm_node.InputType
-        self.OutputType = self._llm_node.OutputType
-
     async def _generate_response_and_rate_it(
         self, input_data: AdvancedLLMNodeInput
     ) -> Tuple[AdvancedLLMNodeOutput, float]:
         response = await self._llm_node(input_data)
-        rating_output = await self._rating_llm_node(response)  # type: ignore
-        rating = rating_output.rating  # type: ignore
+        _response = self._rating_llm_node.input_model.model_validate(
+            response.model_dump()
+        )
+        rating_output = await self._rating_llm_node(_response)
+        rating = rating_output.model_dump().get("rating", 0.0)
         return response, rating
 
     async def __call__(self, input_data: BestOfNNodeInput) -> BestOfNNodeOutput:

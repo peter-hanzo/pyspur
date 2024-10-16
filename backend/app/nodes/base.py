@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 from typing import (
     ClassVar,
     Generic,
@@ -14,24 +14,24 @@ from typing import (
     Any,
 )
 
-ConfigType = TypeVar("ConfigType", bound=BaseModel)
-InputType = TypeVar("InputType", bound=BaseModel)
-OutputType = TypeVar("OutputType", bound=BaseModel)
+TConfig = TypeVar("TConfig", bound=BaseModel)
+TInput = TypeVar("TInput", bound=BaseModel)
+TOutput = TypeVar("TOutput", bound=BaseModel)
 
 
 DynamicSchemaValueType = str
 
 
-class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
+class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
     """
     Base class for all nodes.
     """
 
     name: str
 
-    ConfigType: Type[BaseModel]
-    InputType: Type[BaseModel]
-    OutputType: Type[BaseModel]
+    config_model: TConfig
+    input_model: TInput
+    output_model: TOutput
 
     @abstractmethod
     def __init__(self, config: BaseModel) -> None:
@@ -46,7 +46,9 @@ class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
             if origin is BaseNode:
                 type_args = get_args(base)
                 if len(type_args) == 3:
-                    cls.ConfigType, cls.InputType, cls.OutputType = type_args
+                    cls.config_model = type_args[0]
+                    cls.input_model = type_args[1]
+                    cls.output_model = type_args[2]
                 else:
                     raise TypeError(f"Expected 3 type arguments, got {len(type_args)}")
                 break
@@ -56,7 +58,7 @@ class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
             )
 
     @abstractmethod
-    async def __call__(self, input_data: BaseModel) -> BaseModel:
+    async def __call__(self, input_data: TInput) -> TOutput:
         """
         Execute the node with the given input data.
 
@@ -118,3 +120,32 @@ class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
             return splits[0], splits[1]
 
         return parse_type(value_type)
+
+    def _get_model_for_schema_dict(
+        self, schema: Dict[str, DynamicSchemaValueType], schema_name: str, base_model
+    ):
+        """
+        Create a Pydantic model from a schema dictionary.
+        """
+        schema = {k: self._get_python_type(v) for k, v in schema.items()}
+        schema_type_dict = {k: (v, ...) for k, v in schema.items()}
+        return create_model(
+            schema_name,
+            **schema_type_dict,  # type: ignore
+            __base__=base_model,
+        )
+
+    def _get_input_model(
+        self, schema: Dict[str, DynamicSchemaValueType], schema_name: str
+    ) -> TInput:
+        return self._get_model_for_schema_dict(schema, schema_name, self.input_model)
+
+    def _get_output_model(
+        self, schema: Dict[str, DynamicSchemaValueType], schema_name: str
+    ) -> TOutput:
+        return self._get_model_for_schema_dict(schema, schema_name, self.output_model)
+
+    def _get_config_model(
+        self, schema: Dict[str, DynamicSchemaValueType], schema_name: str
+    ) -> TConfig:
+        return self._get_model_for_schema_dict(schema, schema_name, self.config_model)

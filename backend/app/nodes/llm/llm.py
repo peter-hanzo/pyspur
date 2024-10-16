@@ -112,15 +112,10 @@ class StructuredOutputLLMNode(
 
     def __init__(self, config: StructuredOutputLLMNodeConfig) -> None:
         self.config = StructuredOutputLLMNodeConfig.model_validate(config.model_dump())
-        output_schema = config.output_schema
-        output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
-        output_schema = {k: (v, ...) for k, v in output_schema.items()}
-        self.output_model = create_model(
-            "StructuredOutputLLMNodeOutput",
-            **output_schema,  # type: ignore
-            __base__=StructuredOutputLLMNodeOutput,
+        self.output_model = self._get_output_model(
+            schema=self.config.output_schema,
+            schema_name="StructuredOutputLLMNodeOutput",
         )
-        self.OutputType = self.output_model
 
     async def __call__(
         self, input_data: StructuredOutputLLMNodeInput
@@ -142,7 +137,7 @@ class StructuredOutputLLMNode(
             json_mode=True,
         )
         assistant_message = json.loads(assistant_message)
-        assistant_message = self.output_model(**assistant_message)
+        assistant_message = self.output_model.model_validate(assistant_message)
         return assistant_message
 
 
@@ -197,24 +192,12 @@ class AdvancedLLMNode(
 
     def __init__(self, config: AdvancedLLMNodeConfig) -> None:
         self.config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
-        input_schema = config.input_schema
-        input_schema = {k: self._get_python_type(v) for k, v in input_schema.items()}
-        input_schema = {k: (v, ...) for k, v in input_schema.items()}
-        self.input_model = create_model(
-            "AdvancedLLMNodeInput",
-            **input_schema,  # type: ignore
-            __base__=AdvancedLLMNodeInput,
+        self.input_model = self._get_input_model(
+            schema=self.config.input_schema, schema_name="AdvancedLLMNodeInput"
         )
-        self.InputType = self.input_model
-        output_schema = config.output_schema
-        output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
-        output_schema = {k: (v, ...) for k, v in output_schema.items()}
-        self.output_model = create_model(
-            "AdvancedLLMNodeOutput",
-            **output_schema,  # type: ignore
-            __base__=AdvancedLLMNodeOutput,
+        self.output_model = self._get_output_model(
+            schema=self.config.output_schema, schema_name="AdvancedLLMNodeOutput"
         )
-        self.OutputType = self.output_model
 
     async def __call__(self, input_data: AdvancedLLMNodeInput) -> AdvancedLLMNodeOutput:
         system_message = self.config.system_prompt
@@ -240,5 +223,57 @@ class AdvancedLLMNode(
             json_mode=True,
         )
         assistant_message = json.loads(assistant_message)
-        assistant_message = self.output_model(**assistant_message)
+        assistant_message = self.output_model.model_validate(assistant_message)
         return assistant_message
+
+
+if __name__ == "__main__":
+
+    async def test_llm_nodes():
+        basic_llm_node = BasicLLMNode(
+            config=BasicLLMNodeConfig(
+                llm_name=ModelName.GPT_4O_MINI,
+                max_tokens=32,
+                temperature=0.1,
+                json_mode=False,
+                system_prompt="This is a test prompt.",
+            )
+        )
+        basic_input = BasicLLMNodeInput(user_message="This is a test message.")
+        basic_output = await basic_llm_node(basic_input)
+        print(basic_output)
+
+        structured_output_llm_node = StructuredOutputLLMNode(
+            config=StructuredOutputLLMNodeConfig(
+                llm_name=ModelName.GPT_4O_MINI,
+                max_tokens=32,
+                temperature=0.1,
+                system_prompt="This is a test prompt.",
+                output_schema={"response": "str"},
+            )
+        )
+        structured_input = StructuredOutputLLMNodeInput(
+            user_message="This is a test message."
+        )
+        structured_output = await structured_output_llm_node(structured_input)
+        print(structured_output)
+
+        advanced_llm_node = AdvancedLLMNode(
+            config=AdvancedLLMNodeConfig(
+                llm_name=ModelName.GPT_4O_MINI,
+                max_tokens=32,
+                temperature=0.1,
+                system_prompt="This is a test prompt.",
+                output_schema={"response": "str", "your_name": "str"},
+                input_schema={"user_message": "str", "your_name": "str"},
+            )
+        )
+        advanced_input = advanced_llm_node.input_model.model_validate(
+            {"user_message": "This is a test message.", "your_name": "tsotsobe"}
+        )
+        advanced_output = await advanced_llm_node(advanced_input)
+        print(advanced_output)
+
+    import asyncio
+
+    asyncio.run(test_llm_nodes())
