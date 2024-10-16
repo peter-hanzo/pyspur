@@ -16,6 +16,8 @@ class BestOfNNodeConfig(AdvancedLLMNodeConfig):
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
         "Consider factors such as relevance, coherence, and helpfulness. Respond with only a number."
     )
+    rating_temperature: float = 0.1
+    rating_max_tokens: int = 16
 
 
 class BestOfNNodeInput(AdvancedLLMNodeInput):
@@ -35,12 +37,18 @@ class BestOfNNode(BaseNode[BestOfNNodeConfig, BestOfNNodeInput, BestOfNNodeOutpu
         # Initialize the LLM node for generating samples
         llm_node_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
         self._llm_node = AdvancedLLMNode(llm_node_config)
+        self.input_model = self._get_input_model(
+            schema=self.config.input_schema, schema_name="BestOfNNodeInput"
+        )
+        self.output_model = self._get_output_model(
+            schema=self.config.output_schema, schema_name="BestOfNNodeOutput"
+        )
 
         # Initialize the LLM node for rating responses
         rating_llm_config = AdvancedLLMNodeConfig(
             llm_name=config.llm_name,
-            max_tokens=16,
-            temperature=0.1,
+            max_tokens=config.rating_max_tokens,
+            temperature=config.rating_temperature,
             system_prompt=config.rating_prompt,
             input_schema=config.output_schema,
             output_schema={"rating": "float"},
