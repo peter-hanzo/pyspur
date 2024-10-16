@@ -77,7 +77,7 @@ class BaseNode(Generic[ConfigType, InputType, OutputType], ABC):
         from typing import List, Dict, Any, Type
 
         def parse_type(s: str) -> Type[Any]:
-            s = s.strip()
+            s = s.strip().lower()
             if s in ("int", "float", "str", "bool"):
                 return {"int": int, "float": float, "str": str, "bool": bool}[s]
             elif s == "dict":

@@ -54,10 +54,7 @@ class BestOfNNode(BaseNode[BestOfNNodeConfig, BestOfNNodeInput, BestOfNNodeOutpu
         self, input_data: AdvancedLLMNodeInput
     ) -> Tuple[AdvancedLLMNodeOutput, float]:
         response = await self._llm_node(input_data)
-        rating_input = self._rating_llm_node.InputType.model_validate(
-            response.model_dump()
-        )
-        rating_output = await self._rating_llm_node(rating_input)  # type: ignore
+        rating_output = await self._rating_llm_node(response)  # type: ignore
         rating = rating_output.rating  # type: ignore
         return response, rating
 
