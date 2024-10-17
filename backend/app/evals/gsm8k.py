@@ -1,10 +1,12 @@
 # inspired by https://github.com/google-deepmind/gemma/blob/main/colabs/gsm8k_eval.ipynb
 import re
+from typing import Optional
 import asyncio
 from datasets import load_dataset
 from app.nodes.llm.llm import (
-    create_messages,
-    generate_text,
+    BasicLLMNode,
+    BasicLLMNodeConfig,
+    BasicLLMNodeInput,
 )
 
 
@@ -36,11 +38,19 @@ def maybe_remove_comma(x: str) -> str:
     return x.replace(",", "")
 
 
-def load_gsm8k_dataset():
-    """Loads the GSM8K test dataset."""
-    gsm8k = load_dataset("gsm8k", "main", cache_dir="/tmp")
-    gsm8k_test = gsm8k["test"]
-    return gsm8k_test
+def load_dataset_by_name(
+    dataset_name: str,
+    split: Optional[str] = "test",
+    subset: Optional[str] = "main",
+):
+    """Loads a dataset by name and returns the specified split."""
+    if subset:
+        dataset = load_dataset(dataset_name, subset, cache_dir="/tmp")
+    else:
+        dataset = load_dataset(dataset_name, cache_dir="/tmp")
+    if split:
+        dataset = dataset[split]
+    return dataset
 
 
 # GSM8K Prompts
@@ -89,18 +99,23 @@ def generate_full_prompt(problem):
 
 
 async def call_model(full_prompt):
-    """Calls the LLM model using functions from llm.py."""
-    messages = create_messages(
-        system_message="",
-        user_message=full_prompt,
+    """Calls the LLM model using BasicLLMNode."""
+    # Instantiate the BasicLLMNode with the desired configuration
+    basic_llm_node = BasicLLMNode(
+        config=BasicLLMNodeConfig(
+            llm_name="gpt-4o-mini",
+            max_tokens=256,
+            temperature=0.7,
+            json_mode=False,
+            system_prompt="",  # You can set this if needed
+            few_shot_examples=None,  # Add few-shot examples if required
+        )
     )
-    assistant_message = await generate_text(
-        messages=messages,
-        model_name="gpt-4o-mini",
-        temperature=0.7,
-        max_tokens=256,
-    )
-    return assistant_message
+    # Create the input data
+    basic_input = BasicLLMNodeInput(user_message=full_prompt)
+    # Call the node to get the output
+    basic_output = await basic_llm_node(basic_input)
+    return basic_output.assistant_message
 
 
 def extract_answer(response_text):
@@ -118,14 +133,16 @@ def evaluate_answer(predicted_answer, ground_truth_answer):
     return correct
 
 
-async def evaluate_model_on_gsm8k():
-    """Evaluates the model on the GSM8K dataset."""
-    gsm8k_test = load_gsm8k_dataset()
+async def evaluate_model_on_dataset(
+    dataset_name: str, split: Optional[str] = "test", subset: Optional[str] = "main"
+):
+    """Evaluates the model on the specified dataset."""
+    dataset = load_dataset_by_name(dataset_name, split, subset)
     all_responses = {}
     short_responses = {}
     idx = 0
     correct = 0
-    for task_id, problem in enumerate(gsm8k_test):
+    for task_id, problem in enumerate(dataset):
         print(f"task_id {task_id}")
         full_prompt = generate_full_prompt(problem)
         response_text = await call_model(full_prompt)
@@ -144,4 +161,6 @@ async def evaluate_model_on_gsm8k():
 
 
 if __name__ == "__main__":
-    asyncio.run(evaluate_model_on_gsm8k())
+    # Replace 'gsm8k' with any dataset name you want to evaluate on
+    dataset_name = "gsm8k"
+    asyncio.run(evaluate_model_on_dataset(dataset_name))
