@@ -1,3 +1,4 @@
+# https://arxiv.org/abs/2406.04692
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
