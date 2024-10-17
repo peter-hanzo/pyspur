@@ -2,7 +2,7 @@
 import re
 from typing import Optional
 import asyncio
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from app.nodes.llm.llm import (
     BasicLLMNode,
     BasicLLMNodeConfig,
@@ -42,7 +42,7 @@ def load_dataset_by_name(
     dataset_name: str,
     split: Optional[str] = "test",
     subset: Optional[str] = "main",
-):
+) -> Dataset:
     """Loads a dataset by name and returns the specified split."""
     if subset:
         dataset = load_dataset(dataset_name, subset, cache_dir="/tmp")
@@ -134,30 +134,50 @@ def evaluate_answer(predicted_answer, ground_truth_answer):
 
 
 async def evaluate_model_on_dataset(
-    dataset_name: str, split: Optional[str] = "test", subset: Optional[str] = "main"
-):
-    """Evaluates the model on the specified dataset."""
+    dataset_name: str,
+    split: Optional[str] = "test",
+    subset: Optional[str] = "main",
+    batch_size: int = 10,
+) -> dict:
+    """Evaluates the model on the specified dataset and returns evaluation metrics."""
     dataset = load_dataset_by_name(dataset_name, split, subset)
     all_responses = {}
     short_responses = {}
-    idx = 0
+    total = len(dataset)
     correct = 0
-    for task_id, problem in enumerate(dataset):
-        print(f"task_id {task_id}")
-        full_prompt = generate_full_prompt(problem)
-        response_text = await call_model(full_prompt)
-        print(response_text)
-        all_responses[task_id] = response_text.split("\nQ:")[0]
-        predicted_answer = extract_answer(all_responses[task_id])
-        short_responses[task_id] = predicted_answer
-        ground_truth_answer = maybe_remove_comma(find_number(problem["answer"]))
-        is_correct = evaluate_answer(predicted_answer, ground_truth_answer)
-        correct += int(is_correct)
-        idx += 1
-        print(f"Predicted answer: {predicted_answer}")
-        print(f"Ground truth answer: {ground_truth_answer}")
-        print(f"Correct: {correct} out of {idx}")
-        print("=" * 40)
+    task_id = 0
+
+    for batch in dataset.iter(batch_size=batch_size):
+        print(f"Processing batch starting at task_id {task_id}")
+        # Iterate over the questions and answers in the batch
+        for question, answer in zip(batch["question"], batch["answer"]):
+            full_prompt = generate_full_prompt({"question": question})
+            # Call the model for each prompt
+            response = await call_model(full_prompt)
+            response_text = response.split("\nQ:")[0]
+            predicted_answer = extract_answer(response_text)
+            ground_truth_answer = maybe_remove_comma(find_number(answer))
+            is_correct = evaluate_answer(predicted_answer, ground_truth_answer)
+            correct += int(is_correct)
+            all_responses[task_id] = response_text
+            short_responses[task_id] = predicted_answer
+            print(f"task_id {task_id}")
+            print(f"Predicted answer: {predicted_answer}")
+            print(f"Ground truth answer: {ground_truth_answer}")
+            print(f"Correct: {correct} out of {task_id + 1}")
+            print("=" * 40)
+            task_id += 1
+    # Calculate accuracy
+    accuracy = correct / total
+    # Aggregate metrics in a dictionary
+    metrics = {
+        "total_samples": total,
+        "correct_predictions": correct,
+        "accuracy": accuracy,
+        "all_responses": all_responses,
+        "short_responses": short_responses,
+    }
+    return metrics
 
 
 if __name__ == "__main__":
