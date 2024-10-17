@@ -34,3 +34,4 @@ attrs
 Pillow
 scipy
 nest_asyncio
+datasets
