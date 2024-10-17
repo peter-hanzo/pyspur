@@ -126,6 +126,7 @@ async def generate_text(
     model_name: str,
     temperature: float = 0.5,
     json_mode: bool = False,
+    max_tokens: int = 100000,
 ) -> str:
     kwargs = {
         "model": model_name,

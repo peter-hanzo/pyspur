@@ -1,6 +1,6 @@
 from typing import Any, Dict, Type
 from pydantic import BaseModel, create_model
-from .base import BaseNode, DynamicSchemaValueType
+from ..base import BaseNode, DynamicSchemaValueType
 
 
 class PythonFuncNodeConfig(BaseModel):

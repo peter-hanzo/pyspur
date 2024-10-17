@@ -34,15 +34,12 @@ class SampleLLMNode(
         self.config = config
         llm_node_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
         self._llm_node = AdvancedLLMNode(llm_node_config)
-        self.InputType = self._llm_node.InputType
 
-        llm_output_type = self._llm_node.OutputType
         self.output_model = create_model(
             "SampleLLMNodeOutput",
-            values=(List[llm_output_type], ...),
+            values=(List[self._llm_node.output_model], ...),  # type: ignore
             __base__=SampleLLMNodeOutput,
         )
-        self.OutputType = self.output_model
 
     async def __call__(self, input_data: SampleLLMNodeInput) -> SampleLLMNodeOutput:
         llm_tasks = []
@@ -50,4 +47,4 @@ class SampleLLMNode(
             llm_tasks.append(self._llm_node(input_data))
         outputs = await asyncio.gather(*llm_tasks)
 
-        return self.output_model(values=outputs)
+        return self.output_model.model_validate({"values": outputs})
