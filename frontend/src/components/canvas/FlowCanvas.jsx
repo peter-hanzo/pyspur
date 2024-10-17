@@ -17,6 +17,7 @@ import {
 } from '../../store/flowSlice'; // Updated import path
 import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
 import LLMNodeDetails from '../nodes/LLMNode/LLMNodeDetails'; // Import the LLMNodeDetails component
+import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails component
 import { Card, Button } from '@nextui-org/react'; // Import NextUI components
 import { getBezierPath } from 'reactflow'; // Import helper for custom edge
 import { RiAddCircleFill } from '@remixicon/react';
@@ -112,6 +113,7 @@ const FlowCanvas = () => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
   const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
+  const selectedNodeType = useState("BasicLLMNode");
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -242,7 +244,8 @@ const FlowCanvas = () => {
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            <LLMNodeDetails nodeID={selectedNodeID} />
+            {/* <LLMNodeDetails nodeID={selectedNodeID} /> */}
+            <NodeDetails nodeID={selectedNodeID} nodeType={selectedNodeType}/> {/* Render NodeDetails component */}
           </div>
         )}
         <div style={{ height: `${footerHeight}px` }}>
