@@ -46,7 +46,7 @@ def load_gsm8k_dataset():
 # GSM8K Prompts
 PREAMBLE = """As an expert problem solver solve step by step the following mathematical questions."""
 
-# Replace "..." with your existing prompt text
+
 PROMPT = """Q: There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?
 A: We start with 15 trees. Later we have 21 trees. The difference must be the number of trees they planted. So, they must have planted 21 - 15 = 6 trees. The answer is 6.
 
