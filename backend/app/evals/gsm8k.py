@@ -8,6 +8,9 @@ from app.nodes.llm.llm import (
     BasicLLMNodeConfig,
     BasicLLMNodeInput,
 )
+import yaml
+import os
+from jinja2 import Template
 
 
 def find_numbers(x: str) -> list[str]:
@@ -53,48 +56,22 @@ def load_dataset_by_name(
     return dataset
 
 
-# GSM8K Prompts
-PREAMBLE = """As an expert problem solver solve step by step the following mathematical questions."""
-
-
-PROMPT = """Q: There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done, there will be 21 trees. How many trees did the grove workers plant today?
-A: We start with 15 trees. Later we have 21 trees. The difference must be the number of trees they planted. So, they must have planted 21 - 15 = 6 trees. The answer is 6.
-
-Q: If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?
-A: There are 3 cars in the parking lot already. 2 more arrive. Now there are 3 + 2 = 5 cars. The answer is 5.
-
-Q: Leah had 32 chocolates and her sister had 42. If they ate 35, how many pieces do they have left in total?
-A: Leah had 32 chocolates and Leah's sister had 42. That means there were originally 32 + 42 = 74 chocolates. 35 have been eaten. So in total they still have 74 - 35 = 39 chocolates. The answer is 39.
-
-Q: Jason had 20 lollipops. He gave Denny some lollipops. Now Jason has 12 lollipops. How many lollipops did Jason give to Denny?
-A: Jason had 20 lollipops. Since he only has 12 now, he must have given the rest to Denny. The number of lollipops he has given to Denny must have been 20 - 12 = 8 lollipops. The answer is 8.
-
-Q: Shawn has five toys. For Christmas, he got two toys each from his mom and dad. How many toys does he have now?
-A: He has 5 toys. He got 2 from mom, so after that he has 5 + 2 = 7 toys. Then he got 2 more from dad, so in total he has 7 + 2 = 9 toys. The answer is 9.
-
-Q: There were nine computers in the server room. Five more computers were installed each day, from monday to thursday. How many computers are now in the server room?
-A: There are 4 days from monday to thursday. 5 computers were added each day. That means in total 4 * 5 = 20 computers were added. There were 9 computers in the beginning, so now there are 9 + 20 = 29 computers. The answer is 29.
-
-Q: Michael had 58 golf balls. On tuesday, he lost 23 golf balls. On wednesday, he lost 2 more. How many golf balls did he have at the end of wednesday?
-A: Michael initially had 58 balls. He lost 23 on Tuesday, so after that he has 58 - 23 = 35 balls. On Wednesday he lost 2 more so now he has 35 - 2 = 33 balls. The answer is 33.
-
-Q: Olivia has $23. She bought five bagels for $3 each. How much money does she have left?
-A: She bought 5 bagels for $3 each. This means she spent 5 * $3 = $15 on the bagels. She had $23 in beginning, so now she has $23 - $15 = $8. The answer is 8."""
-
-TEMPLATE = """
-Q: {question}
-A:"""
-
-
-def generate_full_prompt(problem):
-    """Generates the full prompt for the model."""
-    full_prompt = (
-        PREAMBLE
-        + "\n\n"
-        + PROMPT
-        + "\n"
-        + TEMPLATE.format(question=problem["question"])
+def load_prompts_from_yaml(yaml_file_path):
+    with open(yaml_file_path, "r") as file:
+        data = yaml.safe_load(file)
+    return (
+        data["preamble"],
+        data["prompt"],
+        data["doc_to_text"],
+        data["doc_to_target"],
     )
+
+
+def generate_full_prompt(problem, doc_to_text, preamble, prompt):
+    """Generates the full prompt for the model."""
+    doc_to_text_template = Template(doc_to_text)
+    question_text = doc_to_text_template.render(problem)
+    full_prompt = preamble + "\n\n" + prompt + "\n" + question_text
     return full_prompt
 
 
@@ -133,6 +110,13 @@ def evaluate_answer(predicted_answer, ground_truth_answer):
     return correct
 
 
+def get_ground_truth_answer(problem, doc_to_target):
+    """Extracts the ground truth answer using the doc_to_target template."""
+    doc_to_target_template = Template(doc_to_target)
+    ground_truth = doc_to_target_template.render(problem)
+    return ground_truth
+
+
 async def evaluate_model_on_dataset(
     dataset_name: str,
     split: Optional[str] = "test",
@@ -140,6 +124,12 @@ async def evaluate_model_on_dataset(
     batch_size: int = 10,
 ) -> dict:
     """Evaluates the model on the specified dataset and returns evaluation metrics."""
+    # Load prompts from YAML file
+    yaml_file_path = os.path.join("app", "evals", "tasks", "gsm8k.yaml")
+    preamble, prompt, doc_to_text, doc_to_target = load_prompts_from_yaml(
+        yaml_file_path
+    )
+
     dataset = load_dataset_by_name(dataset_name, split, subset)
     all_responses = {}
     short_responses = {}
@@ -148,19 +138,28 @@ async def evaluate_model_on_dataset(
     task_id = 0
 
     for batch in dataset.iter(batch_size=batch_size):
+        transformed_batch = [
+            dict(zip(batch.keys(), values)) for values in zip(*batch.values())
+        ]
         print(f"Processing batch starting at task_id {task_id}")
-        # Iterate over the questions and answers in the batch
-        for question, answer in zip(batch["question"], batch["answer"]):
-            full_prompt = generate_full_prompt({"question": question})
-            # Call the model for each prompt
-            response = await call_model(full_prompt)
-            response_text = response.split("\nQ:")[0]
-            predicted_answer = extract_answer(response_text)
-            ground_truth_answer = maybe_remove_comma(find_number(answer))
+        full_prompts = [
+            generate_full_prompt(problem, doc_to_text, preamble, prompt)
+            for problem in transformed_batch
+        ]
+        # Call the model on all prompts in the batch concurrently
+        responses = await asyncio.gather(
+            *[call_model(prompt) for prompt in full_prompts]
+        )
+        for i, problem in enumerate(transformed_batch):
+            response_text = responses[i]
+            all_responses[task_id] = response_text.split("\nQ:")[0]
+            predicted_answer = extract_answer(all_responses[task_id])
+            short_responses[task_id] = predicted_answer
+            ground_truth_answer = maybe_remove_comma(
+                find_number(get_ground_truth_answer(problem, doc_to_target))
+            )
             is_correct = evaluate_answer(predicted_answer, ground_truth_answer)
             correct += int(is_correct)
-            all_responses[task_id] = response_text
-            short_responses[task_id] = predicted_answer
             print(f"task_id {task_id}")
             print(f"Predicted answer: {predicted_answer}")
             print(f"Ground truth answer: {ground_truth_answer}")
