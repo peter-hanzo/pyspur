@@ -1,8 +1,7 @@
 import asyncio
 import logging
-from pyexpat.errors import messages
 import random
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 
 import numpy as np
 import networkx as nx
@@ -68,7 +67,7 @@ class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
     def __init__(self, config: MCTSNodeConfig) -> None:
         self.config = config
         self.graph = nx.Graph()
-        self.node_labels = {}
+        self.node_labels: Dict[int, str] = {}
         self.root: Optional[MCTSTreeNode] = None
 
     async def __call__(self, input_data: MCTSNodeInput) -> MCTSNodeOutput:
@@ -88,10 +87,10 @@ class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
     async def search(self, initial_state: DialogueState) -> DialogueState:
         if not self.root:
             self.root = MCTSTreeNode(initial_state)
-            self.graph.add_node(id(self.root))
+            self.graph.add_node(id(self.root))  # type: ignore because of networkx not having proper types
             self.node_labels[id(self.root)] = f"Root\nVisits: 0\nValue: 0.00"
 
-        async def one_simulation(node):
+        async def one_simulation(node: MCTSTreeNode):
             if not await self.is_terminal(node.state):
                 node = await self.expand(node)
             value = await self.simulate(node)
@@ -125,7 +124,7 @@ class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
             new_state = await self.apply_action(node.state, action)
             child_node = MCTSTreeNode(new_state, parent=node)
             node.children.append(child_node)
-            self.graph.add_edge(id(node), id(child_node))
+            self.graph.add_edge(id(node), id(child_node))  # type: ignore because of networkx not having proper types
             self.node_labels[id(child_node)] = (
                 f"Visits: {child_node.visits}\nValue: {child_node.value:.2f}"
             )

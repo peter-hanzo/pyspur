@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
-from regex import D
 from app.nodes.base import BaseNode
 from app.nodes import node_registry
 from app.schemas.workflow import WorkflowNode
@@ -13,10 +12,10 @@ class NodeExecutor:
 
     def __init__(self, workflow_node: WorkflowNode):
         self.workflow_node = workflow_node
-        self._node_instance: Optional[BaseNode] = None
+        self._node_instance: Optional[BaseNode[BaseModel, BaseModel, BaseModel]] = None
         self.output: Optional[BaseModel] = None
 
-    def create_node_instance(self) -> BaseNode:
+    def create_node_instance(self) -> BaseNode[BaseModel, BaseModel, BaseModel]:
         """
         Instantiate the node type with the provided configuration.
         """
@@ -31,7 +30,7 @@ class NodeExecutor:
         return node_type_cls(node_config)
 
     @property
-    def node_instance(self) -> BaseNode:
+    def node_instance(self) -> BaseNode[BaseModel, BaseModel, BaseModel]:
         if self._node_instance is None:
             self._node_instance = self.create_node_instance()
         return self._node_instance
@@ -42,7 +41,5 @@ class NodeExecutor:
         """
         if isinstance(input_data, dict):
             input_data = self.node_instance.input_model.model_validate(input_data)
-        if self.node_instance is None:
-            raise ValueError("Node instance not found")
         self.output = await self.node_instance(input_data)
         return self.output

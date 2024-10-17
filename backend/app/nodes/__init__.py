@@ -2,12 +2,14 @@ import os
 import inspect
 import importlib
 from typing import Dict, Type
-from .base import BaseNode
 
-node_registry: Dict[str, Type[BaseNode]] = {}
+from .base import BaseNode, BaseModel
 
 
-def recursive_import_and_register(package_path, package_name):
+node_registry: Dict[str, Type[BaseNode[BaseModel, BaseModel, BaseModel]]] = {}
+
+
+def recursive_import_and_register(package_path: str, package_name: str) -> None:
     for root, _, files in os.walk(package_path):
         for file in files:
             if file.endswith(".py") and not file.startswith("__"):
@@ -15,7 +17,7 @@ def recursive_import_and_register(package_path, package_name):
                 module_name = module_path.replace(os.sep, ".").rsplit(".", 1)[0]
                 full_module_name = f"{package_name}.{module_name}"
                 module = importlib.import_module(full_module_name)
-                for name, obj in inspect.getmembers(module, inspect.isclass):
+                for _, obj in inspect.getmembers(module, inspect.isclass):
                     if issubclass(obj, BaseNode) and obj is not BaseNode:
                         node_registry[obj.__name__] = obj
 

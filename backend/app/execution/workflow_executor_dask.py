@@ -1,5 +1,5 @@
 import asyncio
-from typing import Awaitable, Callable, Coroutine, Dict, Any, Set, Iterator, Tuple
+from typing import Awaitable, Callable, Dict, Any, List, Set, Iterator, Tuple
 from pydantic import BaseModel
 from app.schemas.workflow import Workflow, WorkflowNode, WorkflowLink
 from .node_executor_dask import NodeExecutorDask
@@ -74,7 +74,7 @@ class WorkflowExecutorDask:
         node_executor = NodeExecutorDask(self._node_dict[node_id])
 
         # Prepare dependencies
-        dependency_futures = [
+        dependency_futures: List[Any] = [
             (dep_id, self._submit_node(dep_id))
             for dep_id in self._dependencies.get(node_id, set())
         ]
@@ -83,18 +83,20 @@ class WorkflowExecutorDask:
         initial_input = self._initial_inputs.get(node_id, {})
 
         # Submit the node execution to Dask
-        future = self._client.submit(
+        future = self._client.submit(  # type: ignore because Dask doesn't have type hints
             node_executor.execute_with_dependencies,
-            dependency_futures,
-            self.workflow.links,
-            self._node_dict,
-            initial_input,
+            dependency_futures,  # type: List[Tuple[str, Any]]
+            self.workflow.links,  # type: List[WorkflowLink]
+            self._node_dict,  # type: Dict[str, WorkflowNode]
+            initial_input,  # type: Dict[str, Any]
             pure=False,
         )
         self._futures[node_id] = future
         return future
 
-    async def run(self, initial_inputs: Dict[str, Dict[str, Any]] = {}):
+    async def run(
+        self, initial_inputs: Dict[str, Dict[str, Any]] = {}
+    ) -> Dict[str, BaseModel]:
         if initial_inputs:
             self._initial_inputs = initial_inputs
 
@@ -102,9 +104,8 @@ class WorkflowExecutorDask:
         futures = [self._submit_node(node_id) for node_id in self._node_dict.keys()]
 
         # Gather results
-        results = self._client.gather(futures, asynchronous=True)
-        results = await results  # type: ignore
-        self._outputs = dict(zip(self._node_dict.keys(), results))
+        task_results = await self._client.gather(futures, asynchronous=True)  # type: ignore because Dask doesn't have type hints
+        self._outputs = dict(zip(self._node_dict.keys(), task_results))  # type: ignore because Dask doesn't have type hints
         return self._outputs
 
     async def __call__(self, initial_inputs: Dict[str, Dict[str, Any]] = {}):
@@ -112,12 +113,12 @@ class WorkflowExecutorDask:
 
     async def run_batch(
         self, input_iterator: Iterator[Dict[str, Any]], batch_size: int = 100
-    ):
+    ) -> List[Dict[str, BaseModel]]:
         """
         Run the workflow on a batch of inputs.
         """
-        results = []
-        batch_tasks = []
+        results: List[Dict[str, BaseModel]] = []
+        batch_tasks: List[Awaitable[Dict[str, BaseModel]]] = []
         for input_data in input_iterator:
             batch_tasks.append(self.run(input_data))
             if len(batch_tasks) == batch_size:
@@ -132,7 +133,7 @@ class WorkflowExecutorDask:
         self,
         input_data: Dict[str, Any],
         expected_output: Dict[str, Any],
-        evaluate_fn: Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[bool]] = None,  # type: ignore
+        evaluate_fn: Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[bool]] | None = None,  # type: ignore
     ):
         """
         Evaluate the workflow on a single input and compare the output with the expected output.
@@ -154,12 +155,12 @@ class WorkflowExecutorDask:
         examples: Iterator[Tuple[Dict[str, Any], Dict[str, Any]]],
         evaluate_fn: Callable[[Dict[str, Any], Dict[str, Any]], Awaitable[bool]] = None,  # type: ignore
         batch_size: int = 100,
-    ):
+    ) -> List[Dict[str, Any]]:
         """
         Evaluate the workflow on a batch of inputs and compare the output with the expected output.
         """
-        results = []
-        batch_tasks = []
+        results: List[Dict[str, Any]] = []
+        batch_tasks: List[Awaitable[Dict[str, Any]]] = []
         for input_data, expected_output in examples:
             batch_tasks.append(self.evalaute(input_data, expected_output, evaluate_fn))
             if len(batch_tasks) == batch_size:

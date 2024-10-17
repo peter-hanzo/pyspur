@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any, Set, Optional
+from typing import Dict, Any, Set
 from pydantic import BaseModel
 from app.schemas.workflow import Workflow, WorkflowNode, WorkflowLink
 from app.execution.node_executor import NodeExecutor
@@ -14,7 +14,7 @@ class WorkflowExecutor:
         self.workflow = workflow
         self._node_dict: Dict[str, WorkflowNode] = {}
         self._dependencies: Dict[str, Set[str]] = {}
-        self._node_tasks: Dict[str, asyncio.Task] = {}
+        self._node_tasks: Dict[str, asyncio.Task[None]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
         self._outputs: Dict[str, BaseModel] = {}
         self._build_node_dict()
@@ -64,7 +64,7 @@ class WorkflowExecutor:
             dependencies[link.target_id].add(link.source_id)
         self._dependencies = dependencies
 
-    def _get_node_task(self, node_id: str) -> asyncio.Task:
+    def _get_node_task(self, node_id: str) -> asyncio.Task[None]:
         if node_id in self._node_tasks:
             return self._node_tasks[node_id]
         task = asyncio.create_task(self._execute_node(node_id))
@@ -94,7 +94,7 @@ class WorkflowExecutor:
         self._outputs[node_id] = output
 
     def _prepare_node_input(self, node_id: str) -> Dict[str, Any]:
-        input_data = {}
+        input_data: Dict[str, Any] = {}
 
         # Collect inputs from source nodes
         for link in self.workflow.links:
@@ -109,7 +109,8 @@ class WorkflowExecutor:
 
         # Include initial inputs if available
         if node_id in self._initial_inputs:
-            input_data.update(self._initial_inputs[node_id])
+            initial_input: Dict[str, Any] = self._initial_inputs.get(node_id, {})
+            input_data.update(initial_input)
 
         return input_data
 

@@ -1,37 +1,39 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from pydantic import BaseModel, create_model
 from typing import (
-    ClassVar,
+    Any,
+    Type,
+    Union,
     Generic,
     Tuple,
-    Type,
     TypeVar,
     get_args,
     get_origin,
-    List,
     Dict,
-    Any,
+    List,
+    cast,
 )
 
-TConfig = TypeVar("TConfig", bound=BaseModel)
-TInput = TypeVar("TInput", bound=BaseModel)
-TOutput = TypeVar("TOutput", bound=BaseModel)
-
+ConfigSchema = TypeVar("ConfigSchema", bound=BaseModel)
+InputSchema = TypeVar("InputSchema", bound=BaseModel)
+OutputSchema = TypeVar("OutputSchema", bound=BaseModel)
 
 DynamicSchemaValueType = str
+TSchemaValue = Type[
+    Union[int, float, str, bool, List[Any], Dict[Any, Any], Tuple[Any, ...]]
+]
 
 
-class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
+class BaseNode(Generic[ConfigSchema, InputSchema, OutputSchema], ABC):
     """
     Base class for all nodes.
     """
 
     name: str
 
-    config_model: TConfig
-    input_model: TInput
-    output_model: TOutput
+    config_model: ConfigSchema
+    input_model: InputSchema
+    output_model: OutputSchema
 
     @abstractmethod
     def __init__(self, config: BaseModel) -> None:
@@ -58,7 +60,7 @@ class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
             )
 
     @abstractmethod
-    async def __call__(self, input_data: TInput) -> TOutput:
+    async def __call__(self, input_data: InputSchema) -> OutputSchema:
         """
         Execute the node with the given input data.
 
@@ -71,21 +73,26 @@ class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
         pass
 
     @staticmethod
-    def _get_python_type(value_type: DynamicSchemaValueType) -> Type:
+    def _get_python_type(
+        value_type: DynamicSchemaValueType,
+    ) -> Type[Union[int, float, str, bool, List[Any], Dict[Any, Any], Tuple[Any, ...]]]:
         """
         Parse the value_type string into an actual Python type.
         Supports arbitrarily nested types like 'int', 'list[int]', 'dict[str, int]', 'list[dict[str, list[int]]]', etc.
         """
-        from typing import List, Dict, Any, Type
 
-        def parse_type(s: str) -> Type[Any]:
+        def parse_type(
+            s: str,
+        ) -> TSchemaValue:
             s = s.strip().lower()
-            if s in ("int", "float", "str", "bool"):
+            if s == "int":
+                return int
+            elif s in ("int", "float", "str", "bool"):
                 return {"int": int, "float": float, "str": str, "bool": bool}[s]
             elif s == "dict":
-                return dict
+                return Dict[Any, Any]
             elif s == "list":
-                return list
+                return List[Any]
             elif s.startswith("list[") and s.endswith("]"):
                 inner_type_str = s[5:-1]
                 inner_type = parse_type(inner_type_str)
@@ -105,7 +112,7 @@ class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
             """
             depth = 0
             start = 0
-            splits = []
+            splits: List[str] = []
             for i, c in enumerate(s):
                 if c == "[":
                     depth += 1
@@ -122,13 +129,16 @@ class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
         return parse_type(value_type)
 
     def _get_model_for_schema_dict(
-        self, schema: Dict[str, DynamicSchemaValueType], schema_name: str, base_model
-    ):
+        self,
+        schema: Dict[str, DynamicSchemaValueType],
+        schema_name: str,
+        base_model: Type[BaseModel],
+    ) -> Type[BaseModel]:
         """
         Create a Pydantic model from a schema dictionary.
         """
-        schema = {k: self._get_python_type(v) for k, v in schema.items()}
-        schema_type_dict = {k: (v, ...) for k, v in schema.items()}
+        schema_processed = {k: self._get_python_type(v) for k, v in schema.items()}
+        schema_type_dict = {k: (v, ...) for k, v in schema_processed.items()}
         return create_model(
             schema_name,
             **schema_type_dict,  # type: ignore
@@ -137,15 +147,24 @@ class BaseNode(Generic[TConfig, TInput, TOutput], ABC):
 
     def _get_input_model(
         self, schema: Dict[str, DynamicSchemaValueType], schema_name: str
-    ) -> TInput:
-        return self._get_model_for_schema_dict(schema, schema_name, self.input_model)
+    ) -> InputSchema:
+        return cast(
+            InputSchema,
+            self._get_model_for_schema_dict(schema, schema_name, BaseModel),
+        )
 
     def _get_output_model(
         self, schema: Dict[str, DynamicSchemaValueType], schema_name: str
-    ) -> TOutput:
-        return self._get_model_for_schema_dict(schema, schema_name, self.output_model)
+    ) -> OutputSchema:
+        return cast(
+            OutputSchema,
+            self._get_model_for_schema_dict(schema, schema_name, BaseModel),
+        )
 
     def _get_config_model(
         self, schema: Dict[str, DynamicSchemaValueType], schema_name: str
-    ) -> TConfig:
-        return self._get_model_for_schema_dict(schema, schema_name, self.config_model)
+    ) -> ConfigSchema:
+        return cast(
+            ConfigSchema,
+            self._get_model_for_schema_dict(schema, schema_name, BaseModel),
+        )

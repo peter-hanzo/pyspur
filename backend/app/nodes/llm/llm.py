@@ -1,10 +1,10 @@
 import json
 from enum import Enum
 from typing import Dict, List, Optional
-from pydantic import BaseModel, create_model, field_validator
+from pydantic import BaseModel
 from .llm_utils import create_messages, generate_text
 from ..base import BaseNode
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
 from enum import Enum
 
 
@@ -65,28 +65,6 @@ class StructuredOutputLLMNodeConfig(BaseModel):
     system_prompt: str
     output_schema: Dict[str, str]
     few_shot_examples: Optional[List[Dict[str, str]]] = None
-
-    @field_validator("output_schema")
-    def validate_output_schema(cls, v):
-        allowed_base_types = {"int", "float", "str", "bool"}
-
-        def is_valid_type(type_str):
-            type_str = type_str.strip()
-            if type_str in allowed_base_types:
-                return True
-            elif type_str.startswith("list[") and type_str.endswith("]"):
-                inner_type = type_str[5:-1].strip()
-                return is_valid_type(inner_type)
-            else:
-                return False
-
-        for field_name, type_str in v.items():
-            if not is_valid_type(type_str):
-                raise ValueError(
-                    f"Invalid type '{type_str}' for field '{field_name}'. "
-                    f"Allowed types are base types and nested lists thereof."
-                )
-        return v
 
 
 class StructuredOutputLLMNodeInput(BaseModel):
@@ -149,28 +127,6 @@ class AdvancedLLMNodeConfig(BaseModel):
     output_schema: Dict[str, str]
     input_schema: Dict[str, str] = {"user_message": "str"}
     few_shot_examples: Optional[List[Dict[str, str]]] = None
-
-    @field_validator("output_schema", "input_schema")
-    def validate_output_schema(cls, v):
-        allowed_base_types = {"int", "float", "str", "bool"}
-
-        def is_valid_type(type_str):
-            type_str = type_str.strip()
-            if type_str in allowed_base_types:
-                return True
-            elif type_str.startswith("list[") and type_str.endswith("]"):
-                inner_type = type_str[5:-1].strip()
-                return is_valid_type(inner_type)
-            else:
-                return False
-
-        for field_name, type_str in v.items():
-            if not is_valid_type(type_str):
-                raise ValueError(
-                    f"Invalid type '{type_str}' for field '{field_name}'. "
-                    f"Allowed types are base types and nested lists thereof."
-                )
-        return v
 
 
 class AdvancedLLMNodeInput(BaseModel):

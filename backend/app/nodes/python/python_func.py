@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type
+from typing import Dict
 from pydantic import BaseModel, create_model
 from ..base import BaseNode, DynamicSchemaValueType
 
@@ -44,8 +44,12 @@ class PythonFuncNode(
             **output_schema,  # type: ignore
             __base__=BaseModel,
         )
-        self.InputType = self.input_model
-        self.OutputType = self.output_model
+        self.input_model = self._get_input_model(
+            schema=config.input_schema, schema_name="PythonFuncNodeInput"
+        )
+        self.output_model = self._get_output_model(
+            schema=config.output_schema, schema_name="PythonFuncNodeOutput"
+        )
 
     async def __call__(self, input_data: PythonFuncNodeInput) -> PythonFuncNodeOutput:
         # Prepare the execution environment
@@ -58,4 +62,4 @@ class PythonFuncNode(
 
         # Retrieve the output data
         output_data = exec_locals.get("output_data")
-        return self.output_model(**output_data)
+        return self.output_model.model_validate(output_data)
