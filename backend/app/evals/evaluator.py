@@ -12,6 +12,12 @@ import yaml
 import os
 from jinja2 import Template
 
+from app.evals.common import (
+    MULTILINGUAL_ANSWER_REGEXES,
+    MULTILINGUAL_ANSWER_PATTERN_TEMPLATE,
+    normalize_extracted_answer,
+)
+
 
 def find_numbers(x: str) -> List[str]:
     """Finds all numbers in a string."""
@@ -41,10 +47,24 @@ def maybe_remove_comma(x: str) -> str:
     return x.replace(",", "")
 
 
+def extract_mcq_answer(response_text: str, language: str = "EN") -> str:
+    """Extracts the answer letter (e.g., A, B, C, D) from multiple-choice responses."""
+    # Define regex patterns for different languages if needed
+    answer_regex = r"\b[A-D]\b"  # Matches standalone A, B, C, or D
+    match = re.search(answer_regex, response_text.strip().upper())
+    if match:
+        return match.group(0)
+    else:
+        # If no match is found, attempt to extract from the first line
+        ans = response_text.strip().split("\n")[0]
+        ans = re.sub(r"[^A-D]", "", ans.upper())
+        return ans
+
+
 def load_dataset_by_name(
     dataset_name: str,
     split: Optional[str] = "test",
-    subset: Optional[str] = "main",
+    subset: Optional[str] = None,
 ) -> Dataset:
     """Loads a dataset by name and returns the specified split."""
     if subset:
@@ -96,10 +116,15 @@ def extract_answer(response_text, answer_extraction: Dict[str, Any]):
     if extraction_method == "find_number":
         answer = maybe_remove_comma(find_number(response_text))
         return answer
-    elif extraction_method == "extract_mcq":
-        ans = response_text.strip().split("\n")[0]
-        ans = re.sub(r"[^A-D]", "", ans.upper())
-        return ans
+    elif extraction_method == "mcq":
+        # Use MULTILINGUAL_ANSWER_REGEXES to extract the answer
+        for answer_regex in MULTILINGUAL_ANSWER_REGEXES:
+            regex = MULTILINGUAL_ANSWER_PATTERN_TEMPLATE.format(answer_regex)
+            match = re.search(regex, response_text)
+            if match:
+                extracted_answer = normalize_extracted_answer(match.group(1))
+                return extracted_answer
+        return ""  # Return empty if no match is found
     else:
         # Default extraction method
         return response_text.strip()
@@ -107,7 +132,7 @@ def extract_answer(response_text, answer_extraction: Dict[str, Any]):
 
 def evaluate_answer(predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]):
     """Evaluates if the predicted answer matches the ground truth based on evaluation logic."""
-    evaluation_method = evaluation.get("method", "default")
+    evaluation_method = evaluation.get("method", "default").lower()
     if evaluation_method == "numeric":
         try:
             correct = float(predicted_answer) == float(ground_truth_answer)
@@ -115,7 +140,13 @@ def evaluate_answer(predicted_answer, ground_truth_answer, evaluation: Dict[str,
             correct = predicted_answer == ground_truth_answer
         return correct
     elif evaluation_method == "exact_match":
-        return predicted_answer == ground_truth_answer
+        return predicted_answer.strip().lower() == ground_truth_answer.strip().lower()
+    elif evaluation_method == "mcq":
+        # Normalize both answers before comparison
+        return (
+            normalize_extracted_answer(predicted_answer).strip().upper()
+            == normalize_extracted_answer(ground_truth_answer).strip().upper()
+        )
     else:
         # Default evaluation method
         return predicted_answer == ground_truth_answer
@@ -132,6 +163,10 @@ async def evaluate_on_dataset(
     dataset: Dataset,
     task_config: Dict[str, Any],
     batch_size: int = 10,
+    subject: Optional[str] = None,
+    subject_category_mapping: Optional[Dict[str, str]] = None,
+    category_correct: Optional[Dict[str, int]] = None,
+    category_total: Optional[Dict[str, int]] = None,
 ) -> dict:
     """Evaluates the model on the given dataset and returns evaluation metrics."""
     # Extract necessary components from task_config
@@ -147,6 +182,15 @@ async def evaluate_on_dataset(
     total = len(dataset)
     correct = 0
     task_id = 0
+
+    # Initialize category_correct and category_total if they are None
+    if subject_category_mapping and category_correct is None and category_total is None:
+        category_correct = {
+            category: 0 for category in set(subject_category_mapping.values())
+        }
+        category_total = {
+            category: 0 for category in set(subject_category_mapping.values())
+        }
 
     for batch in dataset.iter(batch_size=batch_size):
         transformed_batch = [
@@ -169,11 +213,24 @@ async def evaluate_on_dataset(
             ground_truth_answer_raw = get_ground_truth_answer(problem, doc_to_target)
             ground_truth_answer = extract_answer(
                 ground_truth_answer_raw, answer_extraction
-            )  # Apply extract_answer
+            )
             is_correct = evaluate_answer(
                 predicted_answer, ground_truth_answer, evaluation
             )
             correct += int(is_correct)
+
+            # Category-wise aggregation
+            if subject_category_mapping:
+                if "subject" in problem:
+                    subject = problem["subject"]
+                # Use provided subject if passed to function
+                if not subject and "Subject" in problem:
+                    subject = problem["Subject"]
+                category = subject_category_mapping.get(subject, "other")
+                category_total[category] += 1
+                if is_correct:
+                    category_correct[category] += 1
+
             print(f"task_id {task_id}")
             print(f"Predicted answer: {predicted_answer}")
             print(f"Ground truth answer: {ground_truth_answer}")
@@ -190,6 +247,17 @@ async def evaluate_on_dataset(
         "all_responses": all_responses,
         "short_responses": short_responses,
     }
+    if subject_category_mapping:
+        metrics["category_correct"] = category_correct
+        metrics["category_total"] = category_total
+        metrics["category_accuracy"] = {
+            category: (
+                category_correct[category] / category_total[category]
+                if category_total[category] > 0
+                else 0
+            )
+            for category in category_correct
+        }
     return metrics
 
 
@@ -202,10 +270,23 @@ async def evaluate_model_on_dataset(
     dataset_name = task_config.get("dataset_name")
     dataset_split = task_config.get("dataset_split", "test")
     dataset_subsets = task_config.get("dataset_subsets", None)
+    subject_category_mapping = task_config.get("subject_category_mapping", None)
 
     # Ensure dataset_name is provided
     if not dataset_name:
         raise ValueError("dataset_name must be provided in task_config.")
+
+    # Initialize category_correct and category_total if mapping exists
+    if subject_category_mapping:
+        category_correct = {
+            category: 0 for category in set(subject_category_mapping.values())
+        }
+        category_total = {
+            category: 0 for category in set(subject_category_mapping.values())
+        }
+    else:
+        category_correct = None
+        category_total = None
 
     # Check if dataset_subsets is a list
     if isinstance(dataset_subsets, list):
@@ -216,24 +297,53 @@ async def evaluate_model_on_dataset(
             print(f"Evaluating subset: {subset}")
             # Load the dataset for the current subset
             dataset = load_dataset_by_name(dataset_name, dataset_split, subset)
-            metrics = await evaluate_on_dataset(dataset, task_config, batch_size)
+            metrics = await evaluate_on_dataset(
+                dataset,
+                task_config,
+                batch_size,
+                subject=subset,
+                subject_category_mapping=subject_category_mapping,
+                category_correct=category_correct,
+                category_total=category_total,
+            )
             subset_metrics[subset] = metrics
             total_correct += metrics["correct_predictions"]
             total_samples += metrics["total_samples"]
         # Calculate overall accuracy across all subsets
         overall_accuracy = total_correct / total_samples if total_samples > 0 else 0
-        return {
+        results = {
             "total_samples": total_samples,
             "correct_predictions": total_correct,
             "accuracy": overall_accuracy,
             "subset_metrics": subset_metrics,
         }
+        if subject_category_mapping:
+            # Add category-wise accuracy
+            category_accuracy = {
+                category: (
+                    category_correct[category] / category_total[category]
+                    if category_total[category] > 0
+                    else 0
+                )
+                for category in category_correct
+            }
+            results["category_accuracy"] = category_accuracy
+        return results
     else:
         # Handle the case where dataset_subsets is a single subset or None
         # Load the dataset
         dataset = load_dataset_by_name(dataset_name, dataset_split, dataset_subsets)
-        metrics = await evaluate_on_dataset(dataset, task_config, batch_size)
-        return metrics
+        metrics = await evaluate_on_dataset(
+            dataset,
+            task_config,
+            batch_size,
+            subject=dataset_subsets,
+            subject_category_mapping=subject_category_mapping,
+        )
+        results = metrics
+        if subject_category_mapping:
+            results["category_accuracy"] = metrics.get("category_accuracy", {})
+        return results
 
 
 if __name__ == "__main__":
@@ -255,6 +365,13 @@ if __name__ == "__main__":
 
     # Print the results
     print("Overall Accuracy:", results.get("accuracy", 0))
-    task_metrics = results.get("task_metrics", {})
+    # Print category-wise accuracy if available
+    category_accuracy = results.get("category_accuracy", {})
+    if category_accuracy:
+        print("\nCategory-wise Accuracy:")
+        for category, accuracy in category_accuracy.items():
+            print(f"Category: {category}, Accuracy: {accuracy:.4f}")
+    # Print subset metrics
+    task_metrics = results.get("subset_metrics", {})
     for task, metrics in task_metrics.items():
-        print(f"Task: {task}, Accuracy: {metrics['accuracy']}")
+        print(f"\nSubset: {task}, Accuracy: {metrics['accuracy']}")
