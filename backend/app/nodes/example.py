@@ -1,4 +1,3 @@
-from typing import Type
 from pydantic import BaseModel
 from .base import BaseNode
 
@@ -27,17 +26,19 @@ class ExampleNodeOutput(BaseModel):
     greeting: str
 
 
-class ExampleNode(BaseNode[ExampleNodeConfig, ExampleNodeInput, ExampleNodeOutput]):
+class ExampleNode(BaseNode):
     """
     Example node that takes a name and returns a greeting.
     """
 
     name = "example"
 
-    def __init__(self, config: ExampleNodeConfig) -> None:
-        self.config = config
+    def setup(self) -> None:
+        self.input_model = ExampleNodeInput
+        self.output_model = ExampleNodeOutput
+        self.config_model = ExampleNodeConfig
 
-    async def __call__(self, input_data: ExampleNodeInput) -> ExampleNodeOutput:
+    async def run(self, input_data: ExampleNodeInput) -> ExampleNodeOutput:
         return ExampleNodeOutput(greeting=f"Hello, {input_data.name}!")
 
 
