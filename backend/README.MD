@@ -11,4 +11,7 @@
   - [ ] Evals
     - [ ] import benchmarks
     - [ ] build your own
-  -
+  - [ ] Generative nodes
+  - [ ] fine-tuning
+  - [ ] build vs. inference-time graph view (for generative/dynamic graphs)
+- [ ] Write tests
