@@ -1,5 +1,4 @@
 from dask.distributed import Client, LocalCluster
-from scipy import cluster
 import os
 
 os.environ["PYTHONUNBUFFERED"] = "1"
