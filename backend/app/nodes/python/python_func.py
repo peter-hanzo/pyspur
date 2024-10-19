@@ -1,5 +1,5 @@
 from typing import Dict
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
 from ..base import BaseNode, DynamicSchemaValueType
 
 
