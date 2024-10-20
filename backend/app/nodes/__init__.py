@@ -3,10 +3,10 @@ import inspect
 import importlib
 from typing import Dict, Type
 
-from .base import BaseNode, BaseModel
+from .base import BaseNode
 
 
-node_registry: Dict[str, Type[BaseNode[BaseModel, BaseModel, BaseModel]]] = {}
+node_registry: Dict[str, Type[BaseNode]] = {}
 
 
 def recursive_import_and_register(package_path: str, package_name: str) -> None:

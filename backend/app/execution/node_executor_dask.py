@@ -12,9 +12,9 @@ class NodeExecutorDask:
 
     def __init__(self, workflow_node: WorkflowNode):
         self.workflow_node = workflow_node
-        self._node_instance: Optional[BaseNode[BaseModel, BaseModel, BaseModel]] = None
+        self._node_instance: Optional[BaseNode] = None
 
-    def create_node_instance(self) -> BaseNode[BaseModel, BaseModel, BaseModel]:
+    def create_node_instance(self) -> BaseNode:
         """
         Instantiate the node type with the provided configuration.
         """
@@ -29,7 +29,7 @@ class NodeExecutorDask:
         return node_type_cls(node_config)
 
     @property
-    def node_instance(self) -> BaseNode[BaseModel, BaseModel, BaseModel]:
+    def node_instance(self) -> BaseNode:
         if self._node_instance is None:
             self._node_instance = self.create_node_instance()
         return self._node_instance

@@ -61,16 +61,18 @@ class MCTSNodeOutput(BaseModel):
     assistant_message: str
 
 
-class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
+class MCTSNode(BaseNode):
     name = "mcts_node"
 
-    def __init__(self, config: MCTSNodeConfig) -> None:
-        self.config = config
+    def setup(self) -> None:
+        self.config_model = MCTSNodeConfig
+        self.input_model = MCTSNodeInput
+        self.output_model = MCTSNodeOutput
         self.graph = nx.Graph()
         self.node_labels: Dict[int, str] = {}
         self.root: Optional[MCTSTreeNode] = None
 
-    async def __call__(self, input_data: MCTSNodeInput) -> MCTSNodeOutput:
+    async def run(self, input_data: MCTSNodeInput) -> MCTSNodeOutput:
         initial_state = DialogueState(
             system_prompt=self.config.system_prompt,
             conversation_history=[],

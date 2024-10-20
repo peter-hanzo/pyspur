@@ -13,7 +13,7 @@ class WorkflowNode(BaseModel):
     config: Dict[str, Any] = {}  # Configuration parameters
 
     @field_validator("type")
-    def type_must_be_in_node_registry(cls, v):
+    def type_must_be_in_node_registry(cls, v: str):
         if v not in node_registry:
             raise ValueError(f"Node type '{v}' is not registered")
         return v

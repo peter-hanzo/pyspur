@@ -1,8 +1,7 @@
+from pydantic import BaseModel
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
-    AdvancedLLMNodeInput,
-    AdvancedLLMNodeOutput,
     AdvancedLLMNodeConfig,
 )
 from typing import Tuple
@@ -19,53 +18,45 @@ class BestOfNNodeConfig(AdvancedLLMNodeConfig):
     rating_max_tokens: int = 16
 
 
-class BestOfNNodeInput(AdvancedLLMNodeInput):
-    pass
-
-
-class BestOfNNodeOutput(AdvancedLLMNodeOutput):
-    pass
-
-
-class BestOfNNode(BaseNode[BestOfNNodeConfig, BestOfNNodeInput, BestOfNNodeOutput]):
+class BestOfNNode(BaseNode):
     name = "best_of_n_node"
 
-    def __init__(self, config: BestOfNNodeConfig) -> None:
-        self.config = config
+    def setup(self) -> None:
+        self.config_model = BestOfNNodeConfig
+        self.input_model = self.get_model_for_schema_dict(
+            self.config.input_schema, "BestOfNNodeInput"
+        )
+        self.output_model = self.get_model_for_schema_dict(
+            self.config.output_schema, "BestOfNNodeOutput"
+        )
 
         # Initialize the LLM node for generating samples
-        llm_node_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
+        llm_node_config = AdvancedLLMNodeConfig.model_validate(self.config.model_dump())
         self._llm_node = AdvancedLLMNode(llm_node_config)
-        self.input_model = self._get_input_model(
-            schema=self.config.input_schema, schema_name="BestOfNNodeInput"
-        )
-        self.output_model = self._get_output_model(
-            schema=self.config.output_schema, schema_name="BestOfNNodeOutput"
-        )
 
         # Initialize the LLM node for rating responses
         rating_llm_config = AdvancedLLMNodeConfig(
-            llm_name=config.llm_name,
-            max_tokens=config.rating_max_tokens,
-            temperature=config.rating_temperature,
-            system_prompt=config.rating_prompt,
-            input_schema=config.output_schema,
+            llm_name=self.config.llm_name,
+            max_tokens=self.config.rating_max_tokens,
+            temperature=self.config.rating_temperature,
+            system_prompt=self.config.rating_prompt,
+            input_schema=self.config.output_schema,
             output_schema={"rating": "float"},
         )
         self._rating_llm_node = AdvancedLLMNode(rating_llm_config)
 
     async def _generate_response_and_rate_it(
-        self, input_data: AdvancedLLMNodeInput
-    ) -> Tuple[AdvancedLLMNodeOutput, float]:
+        self, input_data: BaseModel
+    ) -> Tuple[BaseModel, float]:
         response = await self._llm_node(input_data)
         _response = self._rating_llm_node.input_model.model_validate(
             response.model_dump()
         )
         rating_output = await self._rating_llm_node(_response)
         rating = rating_output.model_dump().get("rating", 0.0)
-        return response, rating
+        return response, float(rating)
 
-    async def __call__(self, input_data: BestOfNNodeInput) -> BestOfNNodeOutput:
+    async def run(self, input_data: BaseModel) -> BaseModel:
         tasks = [
             self._generate_response_and_rate_it(input_data)
             for _ in range(self.config.samples)
