@@ -277,6 +277,12 @@ const NodeDetails = ({ nodeID, nodeType }) => {
         return config;
     };
 
+    const handleJsonChange = (updatedJson) => {
+        dispatch(updateNodeData({ nodeId, data: updatedJson }));
+      };
+      const jsonOptions = ['option1', 'option2', 'option3'];
+
+
     useEffect(() => {
         // console.log(nodeSchema)
         if (node?.data?.config) {
@@ -400,6 +406,7 @@ const NodeDetails = ({ nodeID, nodeType }) => {
                                 <JsonEditor
                                     jsonValue={value}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
+                                    options={jsonOptions}
                                 />
                             </div>
                         );
