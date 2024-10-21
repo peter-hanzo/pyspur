@@ -1,15 +1,18 @@
+# type: ignore
 import asyncio
 import base64
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, wraps
-from typing import Awaitable, Callable, Optional, List, Dict, Any
+from typing import Awaitable, Callable, Optional, List, Dict, Any, cast
+from urllib import response
 
 import numpy as np
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.utils import resample
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 from dotenv import load_dotenv
 
@@ -122,7 +125,7 @@ async def get_embedding(
 
 
 async def generate_text(
-    messages: List[Dict],
+    messages: List[Dict[str, str]],
     model_name: str,
     temperature: float = 0.5,
     json_mode: bool = False,
@@ -136,7 +139,8 @@ async def generate_text(
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
-    return await completion_with_backoff(**kwargs)
+    response = await completion_with_backoff(**kwargs)
+    return cast(str, response)
 
 
 async def generate_texts_in_parallel(

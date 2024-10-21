@@ -69,6 +69,4 @@ class NodeExecutorDask:
         """
         if isinstance(input_data, dict):
             input_data = self.node_instance.input_model.model_validate(input_data)
-        if self.node_instance is None:
-            raise ValueError("Node instance not found")
         return await self.node_instance(input_data)

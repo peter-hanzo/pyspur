@@ -1,3 +1,5 @@
+# Original paper: https://arxiv.org/abs/2305.10601
+# Original code: https://github.com/princeton-nlp/tree-of-thought-llm/tree/master
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
@@ -131,20 +133,20 @@ class TreeOfThoughtsNode(
                 for y in ys
             ]
             new_ys_nested = await asyncio.gather(*tasks)
-            new_ys = [item for sublist in new_ys_nested for item in sublist]
+            samples = [item for sublist in new_ys_nested for item in sublist]
 
             # Evaluation
             if self.config.method_evaluate == "value":
-                values = await self._evaluate_samples(input_data, new_ys)
+                values = await self._evaluate_samples(samples)
             elif self.config.method_evaluate == "vote":
-                values = await self._get_votes(input_data, new_ys)
+                values = await self._get_votes(input_data, samples)
             else:
                 raise ValueError(
                     f"Unknown evaluation method {self.config.method_evaluate}"
                 )
 
             # Selection
-            ids = list(range(len(new_ys)))
+            ids = list(range(len(samples)))
             if self.config.method_select == "greedy":
                 select_ids = sorted(ids, key=lambda x: values[x], reverse=True)[
                     : self.config.n_select_sample
@@ -160,7 +162,7 @@ class TreeOfThoughtsNode(
                     f"Unknown selection method {self.config.method_select}"
                 )
 
-            ys = [new_ys[select_id] for select_id in select_ids]
+            ys = [samples[select_id] for select_id in select_ids]
 
             # Log info if needed
             infos.append(

@@ -1,5 +1,5 @@
-from typing import Any, Dict, Type
-from pydantic import BaseModel, create_model
+from typing import Dict
+from pydantic import BaseModel
 from ..base import BaseNode, DynamicSchemaValueType
 
 
@@ -9,45 +9,22 @@ class PythonFuncNodeConfig(BaseModel):
     output_schema: Dict[str, DynamicSchemaValueType]  # The output schema
 
 
-class PythonFuncNodeInput(BaseModel):
-    pass
-
-
-class PythonFuncNodeOutput(BaseModel):
-    pass
-
-
-class PythonFuncNode(
-    BaseNode[PythonFuncNodeConfig, PythonFuncNodeInput, PythonFuncNodeOutput]
-):
+class PythonFuncNode(BaseNode):
     """
     Node type for executing Python code on the input data.
     """
 
     name = "python_func_node"
 
-    def __init__(self, config: PythonFuncNodeConfig) -> None:
-        self.config = config
-        input_schema = config.input_schema
-        input_schema = {k: self._get_python_type(v) for k, v in input_schema.items()}
-        input_schema = {k: (v, ...) for k, v in input_schema.items()}
-        self.input_model = create_model(
-            "PythonFuncNodeInput",
-            **input_schema,  # type: ignore
-            __base__=BaseModel,
+    def setup(self) -> None:
+        self.input_model = self.get_model_for_schema_dict(
+            self.config.input_schema, "PythonFuncNodeInput"
         )
-        output_schema = config.output_schema
-        output_schema = {k: self._get_python_type(v) for k, v in output_schema.items()}
-        output_schema = {k: (v, ...) for k, v in output_schema.items()}
-        self.output_model = create_model(
-            "PythonFuncNodeOutput",
-            **output_schema,  # type: ignore
-            __base__=BaseModel,
+        self.output_model = self.get_model_for_schema_dict(
+            self.config.output_schema, "PythonFuncNodeOutput"
         )
-        self.InputType = self.input_model
-        self.OutputType = self.output_model
 
-    async def __call__(self, input_data: PythonFuncNodeInput) -> PythonFuncNodeOutput:
+    async def run(self, input_data: BaseModel) -> BaseModel:
         # Prepare the execution environment
         exec_globals = {}
         print("input_data", input_data.model_dump())
@@ -58,4 +35,6 @@ class PythonFuncNode(
 
         # Retrieve the output data
         output_data = exec_locals.get("output_data")
-        return self.output_model(**output_data)
+        if output_data is None:
+            raise ValueError("Output data not found in the execution environment")
+        return self.output_model.model_validate(output_data)

@@ -1,12 +1,9 @@
+from pydantic import BaseModel
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
-    AdvancedLLMNodeInput,
-    AdvancedLLMNodeOutput,
     AdvancedLLMNodeConfig,
 )
-import asyncio
-from typing import List
 
 
 class BranchSolveMergeNodeConfig(AdvancedLLMNodeConfig):
@@ -18,28 +15,23 @@ class BranchSolveMergeNodeConfig(AdvancedLLMNodeConfig):
     )
 
 
-class BranchSolveMergeNode(
-    BaseNode[
-        BranchSolveMergeNodeConfig,
-        AdvancedLLMNodeInput,
-        AdvancedLLMNodeOutput,
-    ]
-):
+class BranchSolveMergeNode(BaseNode):
     name = "branch_solve_merge_node"
 
-    def __init__(self, config: BranchSolveMergeNodeConfig) -> None:
-        self.config = config
+    def setup(self) -> None:
+        self.config_model = BranchSolveMergeNodeConfig
+        config = self.config
 
         # Initialize the LLM node for the branch module
-        branch_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
-        branch_config.output_schema = {"subtasks": "list[str]"}
-        branch_config.system_prompt = config.branch_prompt
-        self._branch_node = AdvancedLLMNode(branch_config)
+        branch_node_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
+        branch_node_config.output_schema = {"subtasks": "list[str]"}
+        branch_node_config.system_prompt = config.branch_prompt
+        self._branch_node = AdvancedLLMNode(branch_node_config)
 
         # Initialize the LLM node for the solve module
         solve_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
         solve_config.system_prompt = config.solve_prompt
-        solve_config.input_schema = branch_config.output_schema
+        solve_config.input_schema = branch_node_config.output_schema
         solve_config.output_schema = {"subtask_solutions": "list[str]"}
         self._solve_node = AdvancedLLMNode(solve_config)
 
@@ -53,7 +45,7 @@ class BranchSolveMergeNode(
         self.input_model = self._branch_node.input_model
         self.output_model = self._merge_node.output_model
 
-    async def __call__(self, input_data: AdvancedLLMNodeInput) -> AdvancedLLMNodeOutput:
+    async def run(self, input_data: BaseModel) -> BaseModel:
         # Step 1: Branch - generate subtasks
         subtasks = await self._branch_node(input_data)
 

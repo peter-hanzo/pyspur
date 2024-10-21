@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from regex import B
 
 from ..execution.workflow_executor_dask import WorkflowExecutorDask
 from ..execution.node_executor import NodeExecutor
@@ -29,7 +28,7 @@ async def get_node_types() -> List[Dict[str, Any]]:
     Returns the schemas for all available node types.
     """
     # get the schemas for each node class
-    node_schemas = []
+    node_schemas: List[Dict[str, Any]] = []
     for node_class in node_registry.values():
         config_schema = node_class.config_model
         input_schema = node_class.input_model

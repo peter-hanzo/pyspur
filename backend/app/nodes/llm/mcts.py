@@ -1,8 +1,7 @@
 import asyncio
 import logging
-from pyexpat.errors import messages
 import random
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 
 import numpy as np
 import networkx as nx
@@ -62,16 +61,18 @@ class MCTSNodeOutput(BaseModel):
     assistant_message: str
 
 
-class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
+class MCTSNode(BaseNode):
     name = "mcts_node"
 
-    def __init__(self, config: MCTSNodeConfig) -> None:
-        self.config = config
+    def setup(self) -> None:
+        self.config_model = MCTSNodeConfig
+        self.input_model = MCTSNodeInput
+        self.output_model = MCTSNodeOutput
         self.graph = nx.Graph()
-        self.node_labels = {}
+        self.node_labels: Dict[int, str] = {}
         self.root: Optional[MCTSTreeNode] = None
 
-    async def __call__(self, input_data: MCTSNodeInput) -> MCTSNodeOutput:
+    async def run(self, input_data: MCTSNodeInput) -> MCTSNodeOutput:
         initial_state = DialogueState(
             system_prompt=self.config.system_prompt,
             conversation_history=[],
@@ -88,10 +89,10 @@ class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
     async def search(self, initial_state: DialogueState) -> DialogueState:
         if not self.root:
             self.root = MCTSTreeNode(initial_state)
-            self.graph.add_node(id(self.root))
+            self.graph.add_node(id(self.root))  # type: ignore because of networkx not having proper types
             self.node_labels[id(self.root)] = f"Root\nVisits: 0\nValue: 0.00"
 
-        async def one_simulation(node):
+        async def one_simulation(node: MCTSTreeNode):
             if not await self.is_terminal(node.state):
                 node = await self.expand(node)
             value = await self.simulate(node)
@@ -125,7 +126,7 @@ class MCTSNode(BaseNode[MCTSNodeConfig, MCTSNodeInput, MCTSNodeOutput]):
             new_state = await self.apply_action(node.state, action)
             child_node = MCTSTreeNode(new_state, parent=node)
             node.children.append(child_node)
-            self.graph.add_edge(id(node), id(child_node))
+            self.graph.add_edge(id(node), id(child_node))  # type: ignore because of networkx not having proper types
             self.node_labels[id(child_node)] = (
                 f"Visits: {child_node.visits}\nValue: {child_node.value:.2f}"
             )

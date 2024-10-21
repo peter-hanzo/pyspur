@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
-from regex import D
 from app.nodes.base import BaseNode
 from app.nodes import node_registry
 from app.schemas.workflow import WorkflowNode
@@ -42,7 +41,5 @@ class NodeExecutor:
         """
         if isinstance(input_data, dict):
             input_data = self.node_instance.input_model.model_validate(input_data)
-        if self.node_instance is None:
-            raise ValueError("Node instance not found")
         self.output = await self.node_instance(input_data)
         return self.output

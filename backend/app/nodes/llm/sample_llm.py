@@ -1,8 +1,6 @@
 import asyncio
-from re import L
-from venv import create
 from pydantic import BaseModel, create_model
-from typing import List
+from typing import Awaitable, List
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
@@ -42,7 +40,7 @@ class SampleLLMNode(
         )
 
     async def __call__(self, input_data: SampleLLMNodeInput) -> SampleLLMNodeOutput:
-        llm_tasks = []
+        llm_tasks: List[Awaitable[AdvancedLLMNodeOutput]] = []
         for _ in range(self.config.samples):
             llm_tasks.append(self._llm_node(input_data))
         outputs = await asyncio.gather(*llm_tasks)
