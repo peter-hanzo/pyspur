@@ -7,29 +7,55 @@ const DynamicNode = ({ id, type }) => {
   const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
 
   const renderHandles = () => {
-    const inputs = node.data.inputs || 1;
-    const outputs = node.data.outputs || 1;
+    const inputSchema = node.data.config.input_schema || {};
+    const outputSchema = node.data.config.output_schema || {};
+    
+    const inputs = Object.keys(inputSchema).length || 1;
+    const outputs = Object.keys(outputSchema).length || 1;
 
     return (
       <>
-        {[...Array(inputs)].map((_, index) => (
+        {Object.entries(inputSchema).length > 0 ? (
+          Object.entries(inputSchema).map(([key, value], index) => (
+            <div key={`input-${index}`} className="flex items-center">
+              <Handle
+                type="target"
+                position="left"
+                id={`input-${key}`}
+                style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}
+              />
+              <span className="text-xs ml-2">{key}</span>
+            </div>
+          ))
+        ) : (
           <Handle
-            key={`input-${index}`}
             type="target"
             position="left"
-            id={`input-${index}`}
-            style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}
+            id="input-default"
+            style={{ top: '50%' }}
           />
-        ))}
-        {[...Array(outputs)].map((_, index) => (
+        )}
+        
+        {Object.entries(outputSchema).length > 0 ? (
+          Object.entries(outputSchema).map(([key, value], index) => (
+            <div key={`output-${index}`} className="flex items-center justify-end">
+              <span className="text-xs mr-2">{key}</span>
+              <Handle
+                type="source"
+                position="right"
+                id={`output-${key}`}
+                style={{ top: `${(index + 1) * 100 / (outputs + 1)}%` }}
+              />
+            </div>
+          ))
+        ) : (
           <Handle
-            key={`output-${index}`}
             type="source"
             position="right"
-            id={`output-${index}`}
-            style={{ top: `${(index + 1) * 100 / (outputs + 1)}%` }}
+            id="output-default"
+            style={{ top: '50%' }}
           />
-        ))}
+        )}
       </>
     );
   };
