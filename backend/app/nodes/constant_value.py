@@ -1,10 +1,15 @@
 from typing import Any, Dict
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
 from .base import BaseNode
 
 
 class ConstantValueNodeConfig(BaseModel):
     values: Dict[str, Any]
+
+
+# empty schema
+class ConstantValueNodeInput(BaseModel):
+    pass
 
 
 class ConstantValueNode(BaseNode):
@@ -16,11 +21,9 @@ class ConstantValueNode(BaseNode):
     config_model = ConstantValueNodeConfig
 
     def setup(self) -> None:
-        self.input_model = BaseModel
-        self.output_model = create_model(
-            "ConstantValueNodeOutput",
-            **self.config.values,
-            __base__=BaseModel,
+        self.input_model = ConstantValueNodeInput
+        self.output_model = self.get_model_for_value_dict(
+            self.config.values, "ConstantValueNodeOutput"
         )
 
     async def run(self, input_data: BaseModel) -> BaseModel:

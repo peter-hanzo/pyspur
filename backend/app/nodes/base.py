@@ -27,9 +27,9 @@ class BaseNode(ABC):
     input_model: Type[BaseModel]
     output_model: Type[BaseModel]
 
-    _config: BaseModel
+    _config: Any
 
-    def __init__(self, config: BaseModel) -> None:
+    def __init__(self, config: Any) -> None:
         self._config = config
         self.setup()
 
@@ -147,3 +147,16 @@ class BaseNode(ABC):
             **schema_type_dict,  # type: ignore
             __base__=base_model,
         )
+
+    @classmethod
+    def get_model_for_value_dict(
+        cls,
+        values: Dict[str, Any],
+        schema_name: str,
+        base_model: Type[BaseModel] = BaseModel,
+    ) -> Type[BaseModel]:
+        """
+        Create a Pydantic model from a dictionary of values.
+        """
+        schema = {k: type(v).__name__ for k, v in values.items()}
+        return cls.get_model_for_schema_dict(schema, schema_name, base_model)
