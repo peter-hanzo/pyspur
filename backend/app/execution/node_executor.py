@@ -1,8 +1,8 @@
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
-from app.nodes.base import BaseNode
-from app.nodes import node_registry
-from app.schemas.workflow import WorkflowNode
+from ..nodes.base import BaseNode
+from ..nodes import node_registry
+from ..schemas.workflow import WorkflowNode
 
 
 class NodeExecutor:

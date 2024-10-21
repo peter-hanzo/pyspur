@@ -1,7 +1,7 @@
 import asyncio
 from typing import Awaitable, Callable, Dict, Any, List, Set, Iterator, Tuple
 from pydantic import BaseModel
-from app.schemas.workflow import Workflow, WorkflowNode, WorkflowLink
+from ..schemas.workflow import Workflow, WorkflowNode, WorkflowLink
 from .node_executor_dask import NodeExecutorDask
 from .dask_cluster_manager import DaskClusterManager
 
