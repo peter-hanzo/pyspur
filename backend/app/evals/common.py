@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 from multiprocessing.pool import ThreadPool
 from typing import Any
+import re
 
 import jinja2
 import numpy as np
@@ -331,28 +332,6 @@ def make_report_from_example_htmls(htmls: list[str]):
     )
 
 
-def normalize_response(response: str) -> str:
-    """
-    Normalize the response by removing markdown and LaTeX formatting that may prevent a match.
-    """
-
-    return (
-        response.replace("**", "")
-        .replace("$\\boxed{", "")
-        .replace("}$", "")
-        .replace("\\$", "")
-        .replace("$\\text{", "")
-        .replace("$", "")
-        .replace("\\mathrm{", "")
-        .replace("\\{", "")
-        .replace("\\text", "")
-        .replace("\\(", "")
-        .replace("\\mathbf{", "")
-        .replace("{", "")
-        .replace("\\boxed", "")
-    )
-
-
 def normalize_extracted_answer(extracted_answer: str) -> str:
     return (
         # In arabic these are the letters used for A-D in multiple choice questions
@@ -372,3 +351,53 @@ def normalize_extracted_answer(extracted_answer: str) -> str:
         .replace("Ｄ", " D")
         .strip()
     )
+
+
+def normalize_math_response(response: str) -> str:
+    """
+    Normalize the response by removing markdown and LaTeX formatting that may prevent a match.
+    """
+
+    # Extract the part after "Answer:"
+    match = re.search(r"(?i)Answer\s*:\s*(.*)", response)
+    if match:
+        response = match.group(1).strip()
+    else:
+        # Handle cases where "Answer:" is directly followed by a character
+        response = re.sub(r"(?i)Answer\s*:", "", response).strip()
+
+    # Remove markdown and LaTeX formatting, except for \frac{}{}
+    response = (
+        response.replace("**", "")
+        .replace("$\\boxed{", "")
+        .replace("}$", "")
+        .replace("\\$", "")
+        .replace("$\\text{", "")
+        .replace("$", "")
+        .replace("\\mathrm{", "")
+        .replace("\\{", "")
+        .replace("\\text", "")
+        .replace("\\(", "")
+        .replace("\\mathbf{", "")
+        .replace("\\boxed", "")
+        .replace("\\)", "")
+        .replace("\\}", "")
+    )
+
+    # Normalize \dfrac to \frac
+    response = response.replace(r"\dfrac", r"\frac")
+
+    # Ensure \frac{}{} is preserved and properly closed
+    response = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"\\frac{\1}{\2}", response)
+
+    # Remove any trailing or leading whitespace
+    response = response.strip()
+
+    # Ensure all brackets are closed
+    if response.count("{") > response.count("}"):
+        response += "}"
+
+    # Remove any whitespace between equations
+    response = re.sub(r"\s+", "", response)
+
+    return response
