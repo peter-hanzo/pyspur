@@ -25,7 +25,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
 
   // Determine if this node is currently hovered
   const isHovered = String(id) === String(hoveredNodeId);
-  console.log('Node ID:', id, 'Hovered Node ID:', hoveredNodeId, 'isHovered:', isHovered);
+  // console.log('Node ID:', id, 'Hovered Node ID:', hoveredNodeId, 'isHovered:', isHovered);
 
   const cardStyle = {
     ...style,

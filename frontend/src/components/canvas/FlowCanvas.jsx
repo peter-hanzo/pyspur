@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
 } from 'reactflow';
@@ -21,10 +21,13 @@ import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails compon
 import { Card, Button } from '@nextui-org/react'; // Import NextUI components
 import { getBezierPath } from 'reactflow'; // Import helper for custom edge
 import { RiAddCircleFill } from '@remixicon/react';
+import DynamicNode from '../nodes/DynamicNode'; // Import the new DynamicNode component
 
 const nodeTypes = {
-  LLMNode: LLMNode,
-  // ... other node types
+  BasicLLMNode: (props) => <DynamicNode {...props} type="BasicLLMNode" />,
+  StructuredOutputLLMNode: (props) => <DynamicNode {...props} type="StructuredOutputLLMNode" />,
+  PythonFuncNode: (props) => <DynamicNode {...props} type="PythonFuncNode" />,
+  // Add other node types here as needed
 };
 
 // Custom edge component
@@ -113,7 +116,16 @@ const FlowCanvas = () => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
   const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
-  const selectedNodeType = useState("BasicLLMNode");
+  const [selectedNodeType, setSelectedNodeType] = useState('BasicLLMNode');
+
+  // useEffect(() => {
+  //   if (selectedNodeID) {
+  //     const node = nodes.find((n) => n.id === selectedNodeID);
+  //     console.log(node);
+  //     setSelectedNodeType(node?.data?.nodeType);
+  //     console.log(selectedNodeType);
+  //   }
+  // }, [selectedNodeID, nodes]);
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -244,8 +256,7 @@ const FlowCanvas = () => {
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            {/* <LLMNodeDetails nodeID={selectedNodeID} /> */}
-            <NodeDetails nodeID={selectedNodeID} nodeType={selectedNodeType}/> {/* Render NodeDetails component */}
+            <NodeDetails nodeID={selectedNodeID} nodeType={selectedNodeType} />
           </div>
         )}
         <div style={{ height: `${footerHeight}px` }}>

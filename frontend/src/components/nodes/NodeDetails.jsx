@@ -237,8 +237,6 @@ const nodeTypes = [
 const NodeDetails = ({ nodeID, nodeType }) => {
     const dispatch = useDispatch();
 
-    const nodeSchema = nodeTypes[1];
-
     
 
     // Initialize configData dynamically based on the selected node type
@@ -268,6 +266,9 @@ const NodeDetails = ({ nodeID, nodeType }) => {
                     case 'object':
                         config[key] = {};
                         break;
+                    case 'code':
+                        config[key] = '';
+                        break;
                     default:
                         config[key] = null;
                 }
@@ -277,15 +278,29 @@ const NodeDetails = ({ nodeID, nodeType }) => {
     };
 
     useEffect(() => {
-        console.log('Node ID:', nodeID, 'Node Type:', nodeType);
-        console.log('Node Schema:', nodeSchema);
+        // console.log(nodeSchema)
+        if (node?.data?.config) {
+            setConfigData(node.data.config);
+        } else {
+            setConfigData(initializeConfigData(nodeSchema?.config));
+        }
+    }, [nodeID, node, nodeSchema]);
+
+    // useEffect(() => {
         
-        // Fetch node data from the redux store and update the local state
-        // setConfigData(node?.data?.config);
-        console.log(node?.data?.config);
-    }, [nodeID, node?.data?.config]);
+    //     console.log('Node ID:', nodeID, 'Node Type:', nodeType);
+    //     console.log('Node Schema:', nodeSchema);
+        
+    //     // Fetch node data from the redux store and update the local state
+    //     // setConfigData(node?.data?.config);
+    //     console.log(node?.data?.config);
+    // }, [nodeID, node?.data?.config]);
 
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
+    const nodeType_ = node?.data?.nodeType;
+    const [nodeSchema, setNodeSchema] = useState(nodeTypes.find((n) => n.name === nodeType_));
+    // const nodeSchema = nodeTypes.find((n) => n.name === nodeType);
+
     const [configData, setConfigData] = useState(initializeConfigData(nodeSchema?.config));
     const [isEditing, setIsEditing] = useState(false);
 
@@ -297,8 +312,10 @@ const NodeDetails = ({ nodeID, nodeType }) => {
     };
 
     const handleSave = () => {
-        dispatch(updateNodeData({ id: nodeID, data: { config: configData } }));
-        console.log(node?.data?.config);
+        dispatch(updateNodeData({ id: nodeID, data: { config: configData, inputs: 2, outputs: 2 } }));
+        console.log(node);
+        // console.log(nodeType);
+        console.log(nodeSchema);
         setIsEditing(false);
     };
 
@@ -375,14 +392,16 @@ const NodeDetails = ({ nodeID, nodeType }) => {
                         />
                     );
                 case 'object':
-                    if (key === 'output_schema') {
-                        // Use JsonEditor for output_schema
+                    if (key === 'output_schema' || key === 'input_schema') {
+                        // Use JsonEditor for output_schema and input_schema with correct labels
                         return (
-                            <JsonEditor
-                                key={key}
-                                jsonValue={value}
-                                onChange={(newValue) => handleInputChange(key, newValue)}
-                            />
+                            <div key={key} className="my-4">
+                                <label className="font-semibold mb-2 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
+                                <JsonEditor
+                                    jsonValue={value}
+                                    onChange={(newValue) => handleInputChange(key, newValue)}
+                                />
+                            </div>
                         );
                     }
                     return (
@@ -392,26 +411,6 @@ const NodeDetails = ({ nodeID, nodeType }) => {
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter key-value pairs as JSON"
-                        />
-                    );
-                case 'string':
-                    if (key === 'code') {
-                        // Use CodeEditor for Python code
-                        console.log('Code:', value);
-                        return (
-                            <CodeEditor
-                                key={key}
-                                code={value}
-                                onChange={(newValue) => handleInputChange(key, newValue)}
-                            />
-                        );
-                    }
-                    return (
-                        <TextInput
-                            key={key}
-                            label={field.title || key}
-                            value={value}
-                            onChange={(e) => handleInputChange(key, e.target.value)}
                         />
                     );
                 case 'code':
@@ -431,7 +430,7 @@ const NodeDetails = ({ nodeID, nodeType }) => {
 
     return (
         <div className="p-4">
-            <h2 className="text-lg font-bold mb-2">Node Details: {nodeType}</h2>
+            <h2 className="text-lg font-bold mb-2">Node Details: {nodeType_}</h2>
             <p><strong>ID:</strong> {nodeID}</p>
 
             <h3 className="my-4 font-semibold">Configuration</h3>
