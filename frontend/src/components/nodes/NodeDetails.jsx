@@ -234,7 +234,7 @@ const nodeTypes = [
     }
 ]
 
-const NodeDetails = ({ nodeID, nodeType }) => {
+const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
 
     

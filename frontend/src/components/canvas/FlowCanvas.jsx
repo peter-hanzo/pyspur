@@ -4,7 +4,6 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux'; // Add this line
-import LLMNode from '../nodes/LLMNode/LLMNode'; // Import your custom nodes
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
 import {
@@ -16,7 +15,6 @@ import {
   setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
 import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
-import LLMNodeDetails from '../nodes/LLMNode/LLMNodeDetails'; // Import the LLMNodeDetails component
 import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails component
 import { Card, Button } from '@nextui-org/react'; // Import NextUI components
 import { getBezierPath } from 'reactflow'; // Import helper for custom edge
@@ -256,7 +254,7 @@ const FlowCanvas = () => {
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            <NodeDetails nodeID={selectedNodeID} nodeType={selectedNodeType} />
+            <NodeDetails nodeID={selectedNodeID} />
           </div>
         )}
         <div style={{ height: `${footerHeight}px` }}>
