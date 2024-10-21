@@ -15,27 +15,14 @@ class SelfConsistencyNodeConfig(BasicLLMNodeConfig):
     similarity_threshold: float = 0.8
 
 
-class SelfConsistencyNodeInput(BasicLLMNodeInput):
-    pass
-
-
-class SelfConsistencyNodeOutput(BasicLLMNodeOutput):
-    pass
-
-
-class SelfConsistencyNode(
-    BaseNode[
-        SelfConsistencyNodeConfig, SelfConsistencyNodeInput, SelfConsistencyNodeOutput
-    ]
-):
+class SelfConsistencyNode(BaseNode):
     name = "self_consistency_node"
+    config_model = SelfConsistencyNodeConfig
 
-    def __init__(self, config: SelfConsistencyNodeConfig) -> None:
-        self.config = config
-
-        # Initialize the LLM node for generating samples
-        llm_node_config = BasicLLMNodeConfig.model_validate(config.model_dump())
-        self._llm_node = BasicLLMNode(llm_node_config)
+    def setup(self) -> None:
+        self.config_model = SelfConsistencyNodeConfig
+        config = self.config
+        self._llm_node = BasicLLMNode(config)
 
     async def _generate_responses(
         self, input_data: BasicLLMNodeInput
@@ -62,9 +49,7 @@ class SelfConsistencyNode(
                 clusters.append([response])
         return clusters
 
-    async def __call__(
-        self, input_data: SelfConsistencyNodeInput
-    ) -> SelfConsistencyNodeOutput:
+    async def run(self, input_data: BasicLLMNodeInput) -> BasicLLMNodeOutput:
         responses = await self._generate_responses(input_data)
         response_texts: List[str] = [
             response.assistant_message for response in responses
@@ -79,6 +64,4 @@ class SelfConsistencyNode(
         best_response_text = (
             best_cluster[0] if best_cluster else "No consistent answer found."
         )
-        return SelfConsistencyNodeOutput(
-            assistant_message=best_response_text
-        )  # Ensure correct instantiation of SelfConsistencyNodeOutput
+        return BasicLLMNodeOutput(assistant_message=best_response_text)

@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel
 from .llm_utils import create_messages, generate_text
 from ..base import BaseNode
+from ..dynamic_schema import DynamicSchemaNode
 from pydantic import BaseModel
 from enum import Enum
 
@@ -20,8 +21,8 @@ class BasicLLMNodeConfig(BaseModel):
     llm_name: ModelName
     max_tokens: int
     temperature: float
-    json_mode: bool
     system_prompt: str
+    json_mode: bool = False
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
@@ -39,11 +40,11 @@ class BasicLLMNode(BaseNode):
     """
 
     name = "basic_llm_node"
+    config_model = BasicLLMNodeConfig
 
     def setup(self) -> None:
         self.input_model = BasicLLMNodeInput
         self.output_model = BasicLLMNodeOutput
-        self.config_model = BasicLLMNodeConfig
 
     async def run(self, input_data: BasicLLMNodeInput) -> BasicLLMNodeOutput:
         system_message = self.config.system_prompt
@@ -84,9 +85,9 @@ class StructuredOutputLLMNode(BaseNode):
     """
 
     name = "structured_output_llm_node"
+    config_model = StructuredOutputLLMNodeConfig
 
     def setup(self) -> None:
-        self.config_model = StructuredOutputLLMNodeConfig
         self.input_model = StructuredOutputLLMNodeInput
         self.output_model = self.get_model_for_schema_dict(
             self.config.output_schema, "StructuredOutputLLMNodeOutput"
@@ -125,21 +126,13 @@ class AdvancedLLMNodeConfig(BaseModel):
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
-class AdvancedLLMNode(BaseNode):
+class AdvancedLLMNode(DynamicSchemaNode):
     """
     Node type for calling an LLM with structured i/o and support for params in system prompt and user_input.
     """
 
     name = "advanced_llm_node"
-
-    def setup(self) -> None:
-        self.config_model = AdvancedLLMNodeConfig
-        self.input_model = self.get_model_for_schema_dict(
-            self.config.input_schema, "AdvancedLLMNodeInput"
-        )
-        self.output_model = self.get_model_for_schema_dict(
-            self.config.output_schema, "AdvancedLLMNodeOutput"
-        )
+    config_model = AdvancedLLMNodeConfig
 
     async def run(self, input_data: BaseModel) -> BaseModel:
         system_message = self.config.system_prompt

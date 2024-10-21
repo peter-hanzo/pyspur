@@ -3,16 +3,18 @@
 from ..base import BaseNode
 from .llm import (
     AdvancedLLMNode,
-    AdvancedLLMNodeInput,
-    AdvancedLLMNodeOutput,
     AdvancedLLMNodeConfig,
+    BasicLLMNode,
+    BasicLLMNodeConfig,
+    BasicLLMNodeInput,
+    BasicLLMNodeOutput,
 )
-from typing import List, Tuple
+from typing import Any, List
 import asyncio
 import numpy as np
 
 
-class TreeOfThoughtsNodeConfig(AdvancedLLMNodeConfig):
+class TreeOfThoughtsNodeConfig(BasicLLMNodeConfig):
     steps: int = 3
     n_generate_sample: int = 1
     n_evaluate_sample: int = 1
@@ -26,29 +28,18 @@ class TreeOfThoughtsNodeConfig(AdvancedLLMNodeConfig):
     search_method: str = "bfs"  # "bfs" or "dfs"
 
 
-class TreeOfThoughtsNodeInput(AdvancedLLMNodeInput):
-    pass
-
-
-class TreeOfThoughtsNodeOutput(AdvancedLLMNodeOutput):
-    pass
-
-
-class TreeOfThoughtsNode(
-    BaseNode[
-        TreeOfThoughtsNodeConfig, TreeOfThoughtsNodeInput, TreeOfThoughtsNodeOutput
-    ]
-):
+class TreeOfThoughtsNode(BaseNode):
     name = "tree_of_thoughts_node"
+    config_model = TreeOfThoughtsNodeConfig
 
-    def __init__(self, config: TreeOfThoughtsNodeConfig) -> None:
-        self.config = config
+    def setup(self) -> None:
+        config = self.config
 
-        # Initialize the LLM node for generating samples
-        generation_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
-        self._llm_node = AdvancedLLMNode(generation_config)
+        # generation node is a basic LLM node
+        generation_config = BasicLLMNodeConfig.model_validate(config.model_dump())
+        self._generation_node = BasicLLMNode(generation_config)
 
-        # Initialize the LLM node for evaluation
+        # evaluation node is an advanced LLM node
         evaluation_config = AdvancedLLMNodeConfig(
             llm_name=config.llm_name,
             max_tokens=16,
@@ -58,29 +49,27 @@ class TreeOfThoughtsNode(
             output_schema={"value": "float"},
         )
         self._evaluation_llm_node = AdvancedLLMNode(evaluation_config)
-        self.input_model = self._get_input_model(
-            schema=self.config.input_schema, schema_name="TreeOfThoughtsNodeInput"
-        )
-        self.output_model = self._get_output_model(
-            schema=self.config.output_schema, schema_name="TreeOfThoughtsNodeOutput"
-        )
+        self.input_model = BasicLLMNodeInput
+        self.output_model = BasicLLMNodeOutput
 
     async def _generate_samples(
-        self, input_data: AdvancedLLMNodeInput, y: str, stop: List[str]
+        self, input_data: BasicLLMNodeInput, y: str, stop: List[str]
     ) -> List[str]:
         if self.config.prompt_sample == "standard":
-            prompt = self._standard_prompt_wrap(input_data, y)
+            prompt = self._standard_prompt_wrap(input_data.user_message, y)
         elif self.config.prompt_sample == "cot":
-            prompt = self._cot_prompt_wrap(input_data, y)
+            prompt = self._cot_prompt_wrap(input_data.user_message, y)
         else:
             raise ValueError(
                 f"prompt_sample {self.config.prompt_sample} not recognized"
             )
 
-        responses = await self._llm_node.generate_multiple(
-            input_data, n=self.config.n_generate_sample, stop=stop
-        )
-        return [y + response.response for response in responses]
+        tasks = [
+            self._generation_node(BasicLLMNodeInput(user_message=prompt))
+            for _ in range(self.config.n_generate_sample)
+        ]
+        responses = await asyncio.gather(*tasks)
+        return [response.assitant_message for response in responses]
 
     def _standard_prompt_wrap(self, x: str, y: str) -> str:
         return f"{x}\n{y}"
@@ -89,19 +78,23 @@ class TreeOfThoughtsNode(
         return f"{x}\nLet's think step by step.\n{y}"
 
     async def _evaluate_samples(self, samples: List[str]) -> List[float]:
-        values = []
-        for sample in samples:
-            value_input = self._evaluation_llm_node.input_model.model_validate(
-                {"prompt": sample}
+        values: List[float] = []
+        tasks = [
+            self._evaluation_llm_node(
+                self._evaluation_llm_node.input_model.model_validate({"prompt": sample})
             )
-            value_output = await self._evaluation_llm_node(value_input)
-            values.append(float(value_output.model_dump().get("value", 0.0)))
+            for sample in samples
+        ]
+        outputs = await asyncio.gather(*tasks)
+        for output in outputs:
+            value = output.model_dump().get("response", "")
+            values.append(value)
         return values
 
     async def _get_votes(
-        self, input_data: AdvancedLLMNodeInput, samples: List[str]
+        self, input_data: BasicLLMNodeInput, samples: List[str]
     ) -> List[float]:
-        vote_prompt = self._vote_prompt_wrap(input_data, samples)
+        vote_prompt = self._vote_prompt_wrap(input_data.user_message, samples)
         vote_input = self._evaluation_llm_node.input_model.model_validate(
             {"prompt": vote_prompt}
         )
@@ -120,11 +113,9 @@ class TreeOfThoughtsNode(
         # For simplicity, assign equal votes here
         return [1.0 for _ in range(num_candidates)]
 
-    async def __call__(
-        self, input_data: TreeOfThoughtsNodeInput
-    ) -> TreeOfThoughtsNodeOutput:
-        ys = [""]  # Current output candidates
-        infos = []
+    async def run(self, input_data: BasicLLMNodeInput) -> BasicLLMNodeOutput:
+        ys: List[str] = [""]  # current output candidates
+        infos: List[Any] = []  # log info
 
         for step in range(self.config.steps):
             # Generation
@@ -174,5 +165,4 @@ class TreeOfThoughtsNode(
             )
 
         final_output = ys[0] if ys else ""
-        final_output = self.output_model.model_validate(final_output)
-        return final_output
+        return BasicLLMNodeOutput.model_validate({"assistant_message": final_output})

@@ -13,9 +13,9 @@ class ConstantValueNode(BaseNode):
     """
 
     name = "constant_value_node"
+    config_model = ConstantValueNodeConfig
 
     def setup(self) -> None:
-        self.config_model = ConstantValueNodeConfig
         self.input_model = BaseModel
         self.output_model = create_model(
             "ConstantValueNodeOutput",

@@ -32,11 +32,11 @@ class ExampleNode(BaseNode):
     """
 
     name = "example"
+    config_model = ExampleNodeConfig
 
     def setup(self) -> None:
         self.input_model = ExampleNodeInput
         self.output_model = ExampleNodeOutput
-        self.config_model = ExampleNodeConfig
 
     async def run(self, input_data: ExampleNodeInput) -> ExampleNodeOutput:
         return ExampleNodeOutput(greeting=f"Hello, {input_data.name}!")

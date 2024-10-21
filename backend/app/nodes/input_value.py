@@ -13,9 +13,9 @@ class InputValueNode(BaseNode):
     """
 
     name = "input_value_node"
+    config_model = InputValueNodeConfig
 
     def setup(self) -> None:
-        self.config_model = InputValueNodeConfig
         self.input_model = create_model(
             "InputValueNodeInput",
             **self.config.input_schema,

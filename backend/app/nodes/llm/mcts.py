@@ -63,9 +63,9 @@ class MCTSNodeOutput(BaseModel):
 
 class MCTSNode(BaseNode):
     name = "mcts_node"
+    config_model = MCTSNodeConfig
 
     def setup(self) -> None:
-        self.config_model = MCTSNodeConfig
         self.input_model = MCTSNodeInput
         self.output_model = MCTSNodeOutput
         self.graph = nx.Graph()
