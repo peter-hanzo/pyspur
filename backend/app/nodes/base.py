@@ -46,21 +46,21 @@ class BaseNode(ABC):
         and validates the output against `output_model`.
         """
         try:
-            input_validated = self.input_model.model_validate(input_data)
+            input_validated = self.input_model.model_validate(input_data.model_dump())
         except ValidationError as e:
             raise ValueError(f"Input data validation error in {self.name}: {e}")
 
         result = await self.run(input_validated)
 
         try:
-            output_validated = self.output_model.model_validate(result)
+            output_validated = self.output_model.model_validate(result.model_dump())
         except ValidationError as e:
             raise ValueError(f"Output data validation error in {self.name}: {e}")
 
         return output_validated
 
     @abstractmethod
-    async def run(self, input_data: Any) -> Any:
+    async def run(self, input_data: BaseModel) -> BaseModel:
         """
         Abstract method where the node's core logic is implemented.
         Should return an instance compatible with `output_model`.
