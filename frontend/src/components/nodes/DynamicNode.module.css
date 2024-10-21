@@ -1,7 +1,11 @@
 .nodeWrapper {
     position: relative;
-    padding: 20px; /* Add padding to increase the size of the node */
-    min-height: 150px; /* Ensure a minimum height to accommodate handles */
+    padding: 20px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* Allow children to stretch */
+    width: auto; /* Allow width to adjust based on content */
 }
 
 .inputHandleWrapper,
@@ -29,6 +33,7 @@
     background-color: rgba(255, 255, 255, 0.8);
     border-radius: 4px;
     pointer-events: none;
+    white-space: nowrap; /* Prevent text from wrapping */
 }
 
 .handle {
@@ -49,4 +54,3 @@
 .handleRight {
     right: -5px;
 }
-

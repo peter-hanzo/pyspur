@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Handle } from 'reactflow';
 import { useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
@@ -6,6 +6,22 @@ import styles from './DynamicNode.module.css';
 
 const DynamicNode = ({ id, type }) => {
   const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
+  const nodeRef = useRef(null);
+  const [nodeWidth, setNodeWidth] = useState('auto');
+
+  useEffect(() => {
+    if (nodeRef.current) {
+      const inputLabels = Object.keys(node.data.config.input_schema || {});
+      const outputLabels = Object.keys(node.data.config.output_schema || {});
+      const typeLength = type.length;
+      const maxLabelLength = Math.max(
+        ...inputLabels.map(label => label.length),
+        ...outputLabels.map(label => label.length)
+      );
+      const calculatedWidth = Math.max(150, (maxLabelLength + typeLength) * 10 + 100); // Adjust multiplier as needed
+      setNodeWidth(`${calculatedWidth}px`);
+    }
+  }, [node]);
 
   const renderHandles = () => {
     const inputSchema = node.data.config.input_schema || {};
@@ -65,11 +81,11 @@ const DynamicNode = ({ id, type }) => {
 
   return (
     <BaseNode id={id}>
-      <div className={styles.nodeWrapper}>
+      <div className={styles.nodeWrapper} ref={nodeRef} style={{ width: nodeWidth }}>
         {renderHandles()}
         <div className="p-2">
-          <h3 className="text-lg font-semibold">{type}</h3>
-          <p className="text-sm text-gray-500">ID: {id}</p>
+          <h3 className="text-lg font-semibold text-center">{type}</h3>
+          <p className="text-sm text-gray-500 text-center">ID: {id}</p>
         </div>
       </div>
     </BaseNode>
