@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import nodeTypes from '../constants/nodeTypes';
 
 // Define initial state
 const initialState = {
@@ -8,7 +7,6 @@ const initialState = {
   edges: [],
   hoveredNode: null,
   selectedNode: null, // Add this to track the selected node
-  nodeTypes: nodeTypes,
 };
 
 // Create the flow slice
