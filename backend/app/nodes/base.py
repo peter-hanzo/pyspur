@@ -60,7 +60,7 @@ class BaseNode(ABC):
         return output_validated
 
     @abstractmethod
-    async def run(self, input_data: BaseModel) -> BaseModel:
+    async def run(self, input_data: Any) -> Any:
         """
         Abstract method where the node's core logic is implemented.
         Should return an instance compatible with `output_model`.
