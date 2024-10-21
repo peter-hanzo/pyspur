@@ -37,11 +37,11 @@ const Control = () => {
     let initialData = { label: `Node ${id}`, nodeType: nodeType };
 
     // You might want to add specific initialData for new node types if needed
-    if (mappedType === 'BasicLLMNode' || mappedType === 'StructuredOutputLLMNode') {
-      initialData = { ...initialData, config: {} };
-    } else if (mappedType === 'PythonFuncNode') {
-      initialData = { ...initialData, config: { code: '', input_schema: {}, output_schema: {} } };
-    }
+    // if (mappedType === 'BasicLLMNode' || mappedType === 'StructuredOutputLLMNode') {
+    //   initialData = { ...initialData, config: {} };
+    // } else if (mappedType === 'PythonFuncNode') {
+    //   initialData = { ...initialData, config: { code: '', input_schema: {}, output_schema: {} } };
+    // }
 
     const newNode = {
       id,

@@ -114,16 +114,6 @@ const FlowCanvas = () => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
   const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
-  const [selectedNodeType, setSelectedNodeType] = useState('BasicLLMNode');
-
-  // useEffect(() => {
-  //   if (selectedNodeID) {
-  //     const node = nodes.find((n) => n.id === selectedNodeID);
-  //     console.log(node);
-  //     setSelectedNodeType(node?.data?.nodeType);
-  //     console.log(selectedNodeType);
-  //   }
-  // }, [selectedNodeID, nodes]);
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),

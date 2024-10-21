@@ -11,8 +11,8 @@ const DynamicNode = ({ id, type }) => {
 
   useEffect(() => {
     if (nodeRef.current) {
-      const inputLabels = Object.keys(node.data.config.input_schema || {});
-      const outputLabels = Object.keys(node.data.config.output_schema || {});
+      const inputLabels = Object.keys(node.data?.config?.input_schema || {});
+      const outputLabels = Object.keys(node.data?.config?.output_schema || {});
       const maxLabelLength = Math.max(
         ...inputLabels.map(label => label.length),
         ...outputLabels.map(label => label.length)
@@ -23,8 +23,8 @@ const DynamicNode = ({ id, type }) => {
   }, [node]);
 
   const renderHandles = () => {
-    const inputSchema = node.data.config.input_schema || {};
-    const outputSchema = node.data.config.output_schema || {};
+    const inputSchema = node.data?.config?.input_schema || {};
+    const outputSchema = node.data?.config?.output_schema || {};
     
     const inputs = Object.keys(inputSchema).length || 1;
     const outputs = Object.keys(outputSchema).length || 1;
