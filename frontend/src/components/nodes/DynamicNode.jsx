@@ -13,12 +13,11 @@ const DynamicNode = ({ id, type }) => {
     if (nodeRef.current) {
       const inputLabels = Object.keys(node.data.config.input_schema || {});
       const outputLabels = Object.keys(node.data.config.output_schema || {});
-      const typeLength = type.length;
       const maxLabelLength = Math.max(
         ...inputLabels.map(label => label.length),
         ...outputLabels.map(label => label.length)
       );
-      const calculatedWidth = Math.max(150, (maxLabelLength + typeLength) * 10 + 100); // Adjust multiplier as needed
+      const calculatedWidth = Math.max(150, (type.length + maxLabelLength) * 10 + 100); // Adjust multiplier as needed
       setNodeWidth(`${calculatedWidth}px`);
     }
   }, [node]);
