@@ -8,7 +8,6 @@ import {
   CardFooter,
   Link,
 } from "@nextui-org/react";
-import { NodeTargetHandle, NodeSourceHandle } from './NodeHandles';
 
 const BaseNode = ({ id, data = {}, children, style = {} }) => {
   const dispatch = useDispatch();
@@ -23,9 +22,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     dispatch(setHoveredNode({ nodeId: null }));
   };
 
-  // Determine if this node is currently hovered
   const isHovered = String(id) === String(hoveredNodeId);
-  // console.log('Node ID:', id, 'Hovered Node ID:', hoveredNodeId, 'isHovered:', isHovered);
 
   const cardStyle = {
     ...style,
@@ -33,6 +30,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     borderWidth: isHovered ? '2px' : style.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.2s, border-width 0.2s',
+    position: 'relative', // Add this to ensure proper positioning of handles
   };
 
   return (
@@ -54,25 +52,6 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
         <CardFooter>
           <Link href={data.footerLink}>{data.footer}</Link>
         </CardFooter>
-      )}
-
-      {data.showTargetHandle && (
-        <NodeTargetHandle
-          id={id}
-          data={data}
-          handleId="target-handle"
-          handleClassName="your-handle-class"
-          nodeSelectorClassName="your-selector-class"
-        />
-      )}
-      {data.showSourceHandle && (
-        <NodeSourceHandle
-          id={id}
-          data={data}
-          handleId="source-handle"
-          handleClassName="your-handle-class"
-          nodeSelectorClassName="your-selector-class"
-        />
       )}
     </Card>
   );

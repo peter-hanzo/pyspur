@@ -1,0 +1,52 @@
+.nodeWrapper {
+    position: relative;
+    padding: 20px; /* Add padding to increase the size of the node */
+    min-height: 150px; /* Ensure a minimum height to accommodate handles */
+}
+
+.inputHandleWrapper,
+.outputHandleWrapper {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    z-index: 1000;
+    top: 50%; /* Center the handles vertically */
+    transform: translateY(-50%); /* Adjust for centering */
+}
+
+.inputHandleWrapper {
+    left: -8px;
+}
+
+.outputHandleWrapper {
+    right: -8px;
+}
+
+.handleLabel {
+    font-size: 0.75rem;
+    padding: 0 4px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.handle {
+    width: 10px !important;
+    height: 10px !important;
+    background-color: #555;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}
+
+.handle:hover {
+    background-color: #777;
+}
+.handleLeft {
+    left: -5px;
+}
+
+.handleRight {
+    right: -5px;
+}
+

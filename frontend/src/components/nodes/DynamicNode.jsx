@@ -2,6 +2,7 @@ import React from 'react';
 import { Handle } from 'reactflow';
 import { useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
+import styles from './DynamicNode.module.css';
 
 const DynamicNode = ({ id, type }) => {
   const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
@@ -17,14 +18,14 @@ const DynamicNode = ({ id, type }) => {
       <>
         {Object.entries(inputSchema).length > 0 ? (
           Object.entries(inputSchema).map(([key, value], index) => (
-            <div key={`input-${index}`} className="flex items-center">
+            <div key={`input-${index}`} className={styles.inputHandleWrapper} style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}>
               <Handle
                 type="target"
                 position="left"
                 id={`input-${key}`}
-                style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}
+                className={`${styles.handle} ${styles.handleLeft}`}
               />
-              <span className="text-xs ml-2">{key}</span>
+              <span className={styles.handleLabel}>{key}</span>
             </div>
           ))
         ) : (
@@ -32,19 +33,20 @@ const DynamicNode = ({ id, type }) => {
             type="target"
             position="left"
             id="input-default"
+            className={`${styles.handle} ${styles.handleLeft}`}
             style={{ top: '50%' }}
           />
         )}
         
         {Object.entries(outputSchema).length > 0 ? (
           Object.entries(outputSchema).map(([key, value], index) => (
-            <div key={`output-${index}`} className="flex items-center justify-end">
-              <span className="text-xs mr-2">{key}</span>
+            <div key={`output-${index}`} className={styles.outputHandleWrapper} style={{ top: `${(index + 1) * 100 / (outputs + 1)}%` }}>
+              <span className={styles.handleLabel}>{key}</span>
               <Handle
                 type="source"
                 position="right"
                 id={`output-${key}`}
-                style={{ top: `${(index + 1) * 100 / (outputs + 1)}%` }}
+                className={`${styles.handle} ${styles.handleRight}`}
               />
             </div>
           ))
@@ -53,6 +55,7 @@ const DynamicNode = ({ id, type }) => {
             type="source"
             position="right"
             id="output-default"
+            className={`${styles.handle} ${styles.handleRight}`}
             style={{ top: '50%' }}
           />
         )}
@@ -62,10 +65,12 @@ const DynamicNode = ({ id, type }) => {
 
   return (
     <BaseNode id={id}>
-      {renderHandles()}
-      <div className="p-2">
-        <h3 className="text-lg font-semibold">{type}</h3>
-        <p className="text-sm text-gray-500">ID: {id}</p>
+      <div className={styles.nodeWrapper}>
+        {renderHandles()}
+        <div className="p-2">
+          <h3 className="text-lg font-semibold">{type}</h3>
+          <p className="text-sm text-gray-500">ID: {id}</p>
+        </div>
       </div>
     </BaseNode>
   );
