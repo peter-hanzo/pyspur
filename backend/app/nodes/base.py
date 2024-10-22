@@ -72,6 +72,8 @@ class BaseNode(ABC):
         """
         Return the node's configuration.
         """
+        if type(self._config) == dict:
+            return self.config_model.model_validate(self._config)
         return self.config_model.model_validate(self._config.model_dump())
 
     @staticmethod
