@@ -7,6 +7,14 @@ class InputValueNodeConfig(BaseModel):
     input_schema: Dict[str, str]  # Mapping of field names to type annotations
 
 
+class InputValueNodeInput(BaseModel):
+    pass
+
+
+class InputValueNodeOutput(BaseModel):
+    pass
+
+
 class InputValueNode(BaseNode):
     """
     Node type for accepting input values.
@@ -14,6 +22,8 @@ class InputValueNode(BaseNode):
 
     name = "input_value_node"
     config_model = InputValueNodeConfig
+    input_model = InputValueNodeInput
+    output_model = InputValueNodeOutput
 
     def setup(self) -> None:
         self.input_model = create_model(

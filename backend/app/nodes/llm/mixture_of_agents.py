@@ -1,4 +1,4 @@
-from .llm import (
+from .basic_llm import (
     BasicLLMNode,
     BasicLLMNodeConfig,
     BasicLLMNodeInput,

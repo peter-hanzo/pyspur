@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from ..base import BaseNode
 from .llm_utils import create_messages, generate_text
-from .llm import ModelName
+from .basic_llm import ModelName
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +64,10 @@ class MCTSNodeOutput(BaseModel):
 class MCTSNode(BaseNode):
     name = "mcts_node"
     config_model = MCTSNodeConfig
+    input_model = MCTSNodeInput
+    output_model = MCTSNodeOutput
 
     def setup(self) -> None:
-        self.input_model = MCTSNodeInput
-        self.output_model = MCTSNodeOutput
         self.graph = nx.Graph()
         self.node_labels: Dict[int, str] = {}
         self.root: Optional[MCTSTreeNode] = None

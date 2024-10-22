@@ -1,14 +1,13 @@
 # Original paper: https://arxiv.org/abs/2305.10601
 # Original code: https://github.com/princeton-nlp/tree-of-thought-llm/tree/master
 from ..base import BaseNode
-from .llm import (
-    AdvancedLLMNode,
-    AdvancedLLMNodeConfig,
+from .basic_llm import (
     BasicLLMNode,
     BasicLLMNodeConfig,
     BasicLLMNodeInput,
     BasicLLMNodeOutput,
 )
+from .advanced import AdvancedNode, AdvancedNodeConfig
 from typing import Any, List
 import asyncio
 import numpy as np
@@ -31,6 +30,8 @@ class TreeOfThoughtsNodeConfig(BasicLLMNodeConfig):
 class TreeOfThoughtsNode(BaseNode):
     name = "tree_of_thoughts_node"
     config_model = TreeOfThoughtsNodeConfig
+    input_model = BasicLLMNodeInput
+    output_model = BasicLLMNodeOutput
 
     def setup(self) -> None:
         config = self.config
@@ -40,7 +41,7 @@ class TreeOfThoughtsNode(BaseNode):
         self._generation_node = BasicLLMNode(generation_config)
 
         # evaluation node is an advanced LLM node
-        evaluation_config = AdvancedLLMNodeConfig(
+        evaluation_config = AdvancedNodeConfig(
             llm_name=config.llm_name,
             max_tokens=16,
             temperature=0.1,
@@ -48,7 +49,7 @@ class TreeOfThoughtsNode(BaseNode):
             input_schema={"prompt": "str"},
             output_schema={"value": "float"},
         )
-        self._evaluation_llm_node = AdvancedLLMNode(evaluation_config)
+        self._evaluation_llm_node = AdvancedNode(evaluation_config)
         self.input_model = BasicLLMNodeInput
         self.output_model = BasicLLMNodeOutput
 
