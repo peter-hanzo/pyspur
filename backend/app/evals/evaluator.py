@@ -3,7 +3,7 @@ import re
 from typing import Optional, List, Dict, Any
 import asyncio
 from datasets import load_dataset, Dataset
-from app.nodes.llm.llm import (
+from app.nodes.llm.basic_llm import (
     BasicLLMNode,
     BasicLLMNodeConfig,
     BasicLLMNodeInput,

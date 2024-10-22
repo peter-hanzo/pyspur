@@ -10,14 +10,14 @@ from urllib import response
 
 import numpy as np
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from litellm import acompletion
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.utils import resample
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 from dotenv import load_dotenv
 
 load_dotenv()
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
@@ -103,7 +103,7 @@ def async_retry(*dargs, **dkwargs):
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(20))
 async def completion_with_backoff(**kwargs) -> str:
     try:
-        response = await client.chat.completions.create(**kwargs)
+        response = await acompletion(**kwargs)
         return response.choices[0].message.content
     except Exception as e:
         logging.error(e)
