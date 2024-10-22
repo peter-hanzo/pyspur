@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from pydantic import BaseModel, field_validator
-from ..nodes import node_registry
+from ..nodes.factory import NodeFactory
 
 
 class WorkflowNode(BaseModel):
@@ -9,13 +9,13 @@ class WorkflowNode(BaseModel):
     """
 
     id: str  # ID in the workflow
-    type: str  # Name of the node type
+    node_type: str  # Name of the node type
     config: Dict[str, Any] = {}  # Configuration parameters
 
-    @field_validator("type")
-    def type_must_be_in_node_registry(cls, v: str):
-        if v not in node_registry:
-            raise ValueError(f"Node type '{v}' is not registered")
+    @field_validator("node_type")
+    def type_must_be_in_factory(cls, v: str):
+        if not NodeFactory.is_valid_node_type(v):
+            raise ValueError(f"Node type '{v}' is not valid.")
         return v
 
 

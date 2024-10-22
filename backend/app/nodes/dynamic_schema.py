@@ -1,7 +1,8 @@
+from abc import ABC
 from .base import BaseNode
 
 
-class DynamicSchemaNode(BaseNode):
+class DynamicSchemaNode(BaseNode, ABC):
     """Base class for nodes with dynamic input/output schemas."""
 
     def setup(self) -> None:

@@ -1,14 +1,14 @@
 from pydantic import BaseModel
-from ..base import BaseNode
-from .llm import (
-    AdvancedLLMNode,
-    AdvancedLLMNodeConfig,
+from ..dynamic_schema import DynamicSchemaNode
+from .advanced import (
+    AdvancedNode,
+    AdvancedNodeConfig,
 )
 from typing import Tuple
 import asyncio
 
 
-class BestOfNNodeConfig(AdvancedLLMNodeConfig):
+class BestOfNNodeConfig(AdvancedNodeConfig):
     samples: int = 3
     rating_prompt: str = (
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
@@ -18,24 +18,21 @@ class BestOfNNodeConfig(AdvancedLLMNodeConfig):
     rating_max_tokens: int = 16
 
 
-class BestOfNNode(BaseNode):
+class BestOfNNode(DynamicSchemaNode):
     name = "best_of_n_node"
     config_model = BestOfNNodeConfig
+    input_model = BaseModel
+    output_model = BaseModel
 
     def setup(self) -> None:
-        self.input_model = self.get_model_for_schema_dict(
-            self.config.input_schema, "BestOfNNodeInput"
-        )
-        self.output_model = self.get_model_for_schema_dict(
-            self.config.output_schema, "BestOfNNodeOutput"
-        )
+        super().setup()
 
         # Initialize the LLM node for generating samples
-        llm_node_config = AdvancedLLMNodeConfig.model_validate(self.config.model_dump())
-        self._llm_node = AdvancedLLMNode(llm_node_config)
+        llm_node_config = AdvancedNodeConfig.model_validate(self.config.model_dump())
+        self._llm_node = AdvancedNode(llm_node_config)
 
         # Initialize the LLM node for rating responses
-        rating_llm_config = AdvancedLLMNodeConfig(
+        rating_llm_config = AdvancedNodeConfig(
             llm_name=self.config.llm_name,
             max_tokens=self.config.rating_max_tokens,
             temperature=self.config.rating_temperature,
@@ -43,7 +40,7 @@ class BestOfNNode(BaseNode):
             input_schema=self.config.output_schema,
             output_schema={"rating": "float"},
         )
-        self._rating_llm_node = AdvancedLLMNode(rating_llm_config)
+        self._rating_llm_node = AdvancedNode(rating_llm_config)
 
     async def _generate_response_and_rate_it(
         self, input_data: BaseModel

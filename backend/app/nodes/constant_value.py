@@ -7,8 +7,11 @@ class ConstantValueNodeConfig(BaseModel):
     values: Dict[str, Any]
 
 
-# empty schema
 class ConstantValueNodeInput(BaseModel):
+    pass
+
+
+class ConstantValueNodeOutput(BaseModel):
     pass
 
 
@@ -19,6 +22,8 @@ class ConstantValueNode(BaseNode):
 
     name = "constant_value_node"
     config_model = ConstantValueNodeConfig
+    input_model = ConstantValueNodeInput
+    output_model = ConstantValueNodeOutput
 
     def setup(self) -> None:
         self.input_model = ConstantValueNodeInput

@@ -1,5 +1,5 @@
 from ..base import BaseNode
-from .llm import (
+from .basic_llm import (
     BasicLLMNode,
     BasicLLMNodeInput,
     BasicLLMNodeOutput,
@@ -18,9 +18,10 @@ class SelfConsistencyNodeConfig(BasicLLMNodeConfig):
 class SelfConsistencyNode(BaseNode):
     name = "self_consistency_node"
     config_model = SelfConsistencyNodeConfig
+    input_model = BasicLLMNodeInput
+    output_model = BasicLLMNodeOutput
 
     def setup(self) -> None:
-        self.config_model = SelfConsistencyNodeConfig
         config = self.config
         self._llm_node = BasicLLMNode(config)
 

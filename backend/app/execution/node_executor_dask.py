@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, List
 from pydantic import BaseModel
 from ..nodes.base import BaseNode
-from ..nodes import node_registry
+from ..nodes.factory import NodeFactory
 from ..schemas.workflow import WorkflowNode, WorkflowLink
 
 
@@ -18,15 +18,9 @@ class NodeExecutorDask:
         """
         Instantiate the node type with the provided configuration.
         """
-        node_type_cls = node_registry.get(self.workflow_node.type)
-        if node_type_cls is None:
-            raise ValueError(
-                f"Node type '{self.workflow_node.type}' not found in registry"
-            )
-        node_config = node_type_cls.config_model.model_validate(
-            self.workflow_node.config
-        )
-        return node_type_cls(node_config)
+        node_type_name = self.workflow_node.node_type
+        config = self.workflow_node.config
+        return NodeFactory.create_node(node_type_name, config)
 
     @property
     def node_instance(self) -> BaseNode:
