@@ -36,3 +36,4 @@ scipy
 nest_asyncio
 datasets
 jinja2
+blobfile

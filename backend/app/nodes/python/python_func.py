@@ -15,6 +15,7 @@ class PythonFuncNode(BaseNode):
     """
 
     name = "python_func_node"
+    config_model = PythonFuncNodeConfig
 
     def setup(self) -> None:
         self.input_model = self.get_model_for_schema_dict(

@@ -17,9 +17,9 @@ class BranchSolveMergeNodeConfig(AdvancedLLMNodeConfig):
 
 class BranchSolveMergeNode(BaseNode):
     name = "branch_solve_merge_node"
+    config_model = BranchSolveMergeNodeConfig
 
     def setup(self) -> None:
-        self.config_model = BranchSolveMergeNodeConfig
         config = self.config
 
         # Initialize the LLM node for the branch module

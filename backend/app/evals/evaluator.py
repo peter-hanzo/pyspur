@@ -11,11 +11,13 @@ from app.nodes.llm.llm import (
 import yaml
 import os
 from jinja2 import Template
+import pandas as pd
 
 from app.evals.common import (
     MULTILINGUAL_ANSWER_REGEXES,
     MULTILINGUAL_ANSWER_PATTERN_TEMPLATE,
     normalize_extracted_answer,
+    normalize_math_response,
 )
 
 
@@ -66,13 +68,21 @@ def load_dataset_by_name(
     split: Optional[str] = "test",
     subset: Optional[str] = None,
 ) -> Dataset:
-    """Loads a dataset by name and returns the specified split."""
-    if subset:
-        dataset = load_dataset(dataset_name, subset, cache_dir="/tmp")
+    """Loads a dataset by name or from a CSV file and returns the specified split."""
+    if dataset_name.endswith(".csv"):
+        # Load dataset from CSV file
+        dataset = pd.read_csv(dataset_name)
+        # Convert pandas DataFrame to Hugging Face Dataset
+        from datasets import Dataset
+
+        dataset = Dataset.from_pandas(dataset)
     else:
-        dataset = load_dataset(dataset_name, cache_dir="/tmp")
-    if split:
-        dataset = dataset[split]
+        if subset:
+            dataset = load_dataset(dataset_name, subset, cache_dir="/tmp")
+        else:
+            dataset = load_dataset(dataset_name, cache_dir="/tmp")
+        if split:
+            dataset = dataset[split]
     return dataset
 
 
@@ -125,6 +135,9 @@ def extract_answer(response_text, answer_extraction: Dict[str, Any]):
                 extracted_answer = normalize_extracted_answer(match.group(1))
                 return extracted_answer
         return ""  # Return empty if no match is found
+    elif extraction_method == "math":
+        extracted_answer = normalize_math_response(response_text)
+        return extracted_answer
     else:
         # Default extraction method
         return response_text.strip()
@@ -353,7 +366,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task_config_path",
         type=str,
-        default=os.path.join(os.path.dirname(__file__), "tasks", "mmlu.yaml"),
+        default=os.path.join(os.path.dirname(__file__), "tasks", "math.yaml"),
         help="Path to the task configuration YAML file.",
     )
     args = parser.parse_args()

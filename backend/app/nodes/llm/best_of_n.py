@@ -20,9 +20,9 @@ class BestOfNNodeConfig(AdvancedLLMNodeConfig):
 
 class BestOfNNode(BaseNode):
     name = "best_of_n_node"
+    config_model = BestOfNNodeConfig
 
     def setup(self) -> None:
-        self.config_model = BestOfNNodeConfig
         self.input_model = self.get_model_for_schema_dict(
             self.config.input_schema, "BestOfNNodeInput"
         )
@@ -48,7 +48,9 @@ class BestOfNNode(BaseNode):
     async def _generate_response_and_rate_it(
         self, input_data: BaseModel
     ) -> Tuple[BaseModel, float]:
-        response = await self._llm_node(input_data)
+        response = await self._llm_node(
+            self._llm_node.input_model.model_validate(input_data.model_dump())
+        )
         _response = self._rating_llm_node.input_model.model_validate(
             response.model_dump()
         )

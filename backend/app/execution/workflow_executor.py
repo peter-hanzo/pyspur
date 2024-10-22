@@ -1,8 +1,8 @@
 import asyncio
 from typing import Dict, Any, Set
 from pydantic import BaseModel
-from app.schemas.workflow import Workflow, WorkflowNode, WorkflowLink
-from app.execution.node_executor import NodeExecutor
+from ..schemas.workflow import Workflow, WorkflowNode, WorkflowLink
+from ..execution.node_executor import NodeExecutor
 
 
 class WorkflowExecutor:

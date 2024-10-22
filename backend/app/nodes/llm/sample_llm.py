@@ -1,11 +1,9 @@
 import asyncio
-from pydantic import BaseModel, create_model
-from typing import Awaitable, List
-from ..base import BaseNode
+from pydantic import BaseModel
+
+from ..dynamic_schema import DynamicSchemaNode
 from .llm import (
     AdvancedLLMNode,
-    AdvancedLLMNodeInput,
-    AdvancedLLMNodeOutput,
     AdvancedLLMNodeConfig,
 )
 
@@ -14,35 +12,18 @@ class SampleLLMNodeConfig(AdvancedLLMNodeConfig):
     samples: int = 1
 
 
-class SampleLLMNodeInput(AdvancedLLMNodeInput):
-    pass
-
-
-class SampleLLMNodeOutput(BaseModel):
-    values: List[AdvancedLLMNodeOutput]
-
-
-class SampleLLMNode(
-    BaseNode[SampleLLMNodeConfig, SampleLLMNodeInput, SampleLLMNodeOutput]
-):
+class SampleLLMNode(DynamicSchemaNode):
     name = "sample_llm_node"
     _llm_node: AdvancedLLMNode
+    config_model = SampleLLMNodeConfig
 
-    def __init__(self, config: SampleLLMNodeConfig) -> None:
-        self.config = config
-        llm_node_config = AdvancedLLMNodeConfig.model_validate(config.model_dump())
-        self._llm_node = AdvancedLLMNode(llm_node_config)
+    def setup(self) -> None:
+        super().setup()
+        self.config_model = SampleLLMNodeConfig
 
-        self.output_model = create_model(
-            "SampleLLMNodeOutput",
-            values=(List[self._llm_node.output_model], ...),  # type: ignore
-            __base__=SampleLLMNodeOutput,
+    async def run(self, input_data: BaseModel) -> BaseModel:
+        tasks = [self._llm_node(input_data) for _ in range(self.config.samples)]
+        responses = await asyncio.gather(*tasks)
+        return self.output_model.model_validate(
+            [response.dict() for response in responses]
         )
-
-    async def __call__(self, input_data: SampleLLMNodeInput) -> SampleLLMNodeOutput:
-        llm_tasks: List[Awaitable[AdvancedLLMNodeOutput]] = []
-        for _ in range(self.config.samples):
-            llm_tasks.append(self._llm_node(input_data))
-        outputs = await asyncio.gather(*llm_tasks)
-
-        return self.output_model.model_validate({"values": outputs})
