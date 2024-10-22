@@ -9,7 +9,6 @@ class NodeType(BaseModel):
 
     @property
     def node_class(self):
-        print(self.module)
         module = importlib.import_module(name=f"{self.module}", package="app")
         return getattr(module, self.class_name)
 
