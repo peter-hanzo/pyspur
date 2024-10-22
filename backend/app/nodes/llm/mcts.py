@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from ..base import BaseNode
 from .llm_utils import create_messages, generate_text
-from .basic_llm import ModelName
+from .string_output_llm import ModelName
 
 logger = logging.getLogger(__name__)
 

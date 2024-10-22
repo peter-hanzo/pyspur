@@ -47,9 +47,9 @@ class NodeFactory:
         ],
         "llm": [
             {
-                "node_type_name": "BasicLLMNode",
+                "node_type_name": "StringOutputLLMNode",
                 "module": ".nodes.llm.basic_llm",
-                "class_name": "BasicLLMNode",
+                "class_name": "StringOutputLLMNode",
             },
             {
                 "node_type_name": "StructuredOutputNode",

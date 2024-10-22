@@ -15,7 +15,7 @@ class ModelName(str, Enum):
     GPT_4_TURBO = "gpt-4-turbo"
 
 
-class BasicLLMNodeConfig(BaseModel):
+class StringOutputLLMNodeConfig(BaseModel):
     llm_name: ModelName
     max_tokens: int
     temperature: float
@@ -24,28 +24,28 @@ class BasicLLMNodeConfig(BaseModel):
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
-class BasicLLMNodeInput(BaseModel):
+class StringOutputLLMNodeInput(BaseModel):
     user_message: str
 
 
-class BasicLLMNodeOutput(BaseModel):
+class StringOutputLLMNodeOutput(BaseModel):
     assistant_message: str
 
 
-class BasicLLMNode(BaseNode):
+class StringOutputLLMNode(BaseNode):
     """
     Basic node type for calling an LLM.
     """
 
-    name = "basic_llm_node"
-    config_model = BasicLLMNodeConfig
-    input_model = BasicLLMNodeInput
-    output_model = BasicLLMNodeOutput
+    name = "string_output_llm_node"
+    config_model = StringOutputLLMNodeConfig
+    input_model = StringOutputLLMNodeInput
+    output_model = StringOutputLLMNodeOutput
 
     def setup(self) -> None:
         pass
 
-    async def run(self, input_data: BasicLLMNodeInput) -> BasicLLMNodeOutput:
+    async def run(self, input_data: StringOutputLLMNodeInput) -> StringOutputLLMNodeOutput:
         system_message = self.config.system_prompt
         messages = create_messages(
             system_message=system_message,
@@ -58,14 +58,13 @@ class BasicLLMNode(BaseNode):
             temperature=self.config.temperature,
             json_mode=self.config.json_mode,
         )
-        return BasicLLMNodeOutput(assistant_message=assistant_message)
+        return StringOutputLLMNodeOutput(assistant_message=assistant_message)
 
 
 if __name__ == "__main__":
-
     async def test_llm_nodes():
-        basic_llm_node = BasicLLMNode(
-            config=BasicLLMNodeConfig(
+        string_output_llm_node = StringOutputLLMNode(
+            config=StringOutputLLMNodeConfig(
                 llm_name=ModelName.GPT_4O_MINI,
                 max_tokens=32,
                 temperature=0.1,
@@ -73,8 +72,8 @@ if __name__ == "__main__":
                 system_prompt="This is a test prompt.",
             )
         )
-        basic_input = BasicLLMNodeInput(user_message="This is a test message.")
-        basic_output = await basic_llm_node(basic_input)
+        basic_input = StringOutputLLMNodeInput(user_message="This is a test message.")
+        basic_output = await string_output_llm_node(basic_input)
         print(basic_output)
         print("-" * 50)
 

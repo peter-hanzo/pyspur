@@ -1,14 +1,14 @@
-from .basic_llm import (
-    BasicLLMNode,
-    BasicLLMNodeConfig,
-    BasicLLMNodeInput,
-    BasicLLMNodeOutput,
+from .string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
+    StringOutputLLMNodeOutput,
 )
 import asyncio
 from typing import List
 
 
-class MixtureOfAgentsNodeConfig(BasicLLMNodeConfig):
+class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
     samples: int = 3
     critique_prompt_template: str = (
         "Original query: {initial_query}\n\n"
@@ -27,46 +27,50 @@ class MixtureOfAgentsNodeConfig(BasicLLMNodeConfig):
     )
 
 
-class MixtureOfAgentsNode(BasicLLMNode):
+class MixtureOfAgentsNode(StringOutputLLMNode):
     name: str = "mixture_of_agents_node"
     config_model = MixtureOfAgentsNodeConfig
-    input_model = BasicLLMNodeInput
-    output_model = BasicLLMNodeOutput
+    input_model = StringOutputLLMNodeInput
+    output_model = StringOutputLLMNodeOutput
 
     def setup(self) -> None:
         super().setup()
 
         config = self.config
         # Initialize the LLM node for generating samples
-        initial_llm_node_config = BasicLLMNodeConfig.model_validate(config.model_dump())
-        self.initial_llm_node = BasicLLMNode(initial_llm_node_config)
+        initial_llm_node_config = StringOutputLLMNodeConfig.model_validate(
+            config.model_dump()
+        )
+        self.initial_llm_node = StringOutputLLMNode(initial_llm_node_config)
 
         # Initialize the LLM node for critiquing responses
-        critique_llm_config = BasicLLMNodeConfig(
+        critique_llm_config = StringOutputLLMNodeConfig(
             llm_name=config.llm_name,
             max_tokens=512,
             temperature=0.1,
             system_prompt=config.system_prompt,
         )
-        self._critique_llm_node = BasicLLMNode(critique_llm_config)
+        self._critique_llm_node = StringOutputLLMNode(critique_llm_config)
 
         # Initialize the LLM node for generating final response
-        final_llm_config = BasicLLMNodeConfig(
+        final_llm_config = StringOutputLLMNodeConfig(
             llm_name=config.llm_name,
             max_tokens=8192,
             temperature=0.1,
             system_prompt=config.system_prompt,
         )
-        self._final_llm_node = BasicLLMNode(final_llm_config)
+        self._final_llm_node = StringOutputLLMNode(final_llm_config)
 
     async def _generate_initial_responses(
-        self, input_data: BasicLLMNodeInput
-    ) -> List[BasicLLMNodeOutput]:
+        self, input_data: StringOutputLLMNodeInput
+    ) -> List[StringOutputLLMNodeOutput]:
         tasks = [self.initial_llm_node(input_data) for _ in range(self.config.samples)]
         responses = await asyncio.gather(*tasks)
         return responses
 
-    async def run(self, input_data: BasicLLMNodeInput) -> BasicLLMNodeOutput:
+    async def run(
+        self, input_data: StringOutputLLMNodeInput
+    ) -> StringOutputLLMNodeOutput:
         # Generate initial responses
         initial_responses = await self._generate_initial_responses(input_data)
 
@@ -83,7 +87,7 @@ class MixtureOfAgentsNode(BasicLLMNode):
         )
 
         # Build the input for the critique LLM node
-        critique_input = BasicLLMNodeInput(user_message=critique_prompt)
+        critique_input = StringOutputLLMNodeInput(user_message=critique_prompt)
 
         # Get the critiques
         critique_output = await self._critique_llm_node(critique_input)
@@ -104,4 +108,4 @@ class MixtureOfAgentsNode(BasicLLMNode):
         # Get the final response
         final_output = await self._final_llm_node(final_input)
 
-        return BasicLLMNodeOutput.model_validate(final_output.model_dump())
+        return StringOutputLLMNodeOutput.model_validate(final_output.model_dump())

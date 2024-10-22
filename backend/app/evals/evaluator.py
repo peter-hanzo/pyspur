@@ -3,10 +3,10 @@ import re
 from typing import Optional, List, Dict, Any
 import asyncio
 from datasets import load_dataset, Dataset
-from app.nodes.llm.basic_llm import (
-    BasicLLMNode,
-    BasicLLMNodeConfig,
-    BasicLLMNodeInput,
+from app.nodes.llm.string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
 )
 import yaml
 import os
@@ -118,10 +118,10 @@ async def check_equality(expr1: str, expr2: str) -> bool:
 
 
 async def call_model(full_prompt):
-    """Calls the LLM model using BasicLLMNode."""
-    # Instantiate the BasicLLMNode with the desired configuration
-    basic_llm_node = BasicLLMNode(
-        config=BasicLLMNodeConfig(
+    """Calls the LLM model using StringOutputLLMNode."""
+    # Instantiate the StringOutputLLMNode with the desired configuration
+    basic_llm_node = StringOutputLLMNode(
+        config=StringOutputLLMNodeConfig(
             llm_name="gpt-4o-mini",
             max_tokens=256,
             temperature=0.0,
@@ -131,7 +131,7 @@ async def call_model(full_prompt):
         )
     )
     # Create the input data
-    basic_input = BasicLLMNodeInput(user_message=full_prompt)
+    basic_input = StringOutputLLMNodeInput(user_message=full_prompt)
     # Call the node to get the output
     basic_output = await basic_llm_node(basic_input)
     return basic_output.assistant_message

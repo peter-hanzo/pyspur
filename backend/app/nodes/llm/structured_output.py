@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from .llm_utils import create_messages, generate_text
 from ..base import BaseNode
 from pydantic import BaseModel
-from .basic_llm import ModelName
+from .string_output_llm import ModelName
 
 
 class StructuredOutputNodeConfig(BaseModel):
