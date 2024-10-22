@@ -1,9 +1,10 @@
+from abc import ABC
 from .base import BaseNode
 from pydantic import BaseModel
 from typing import Type
 
 
-class StaticSchemaNode(BaseNode):
+class StaticSchemaNode(BaseNode, ABC):
     """Base class for nodes with static input/output schemas."""
 
     config_model: Type[BaseModel]
