@@ -1,4 +1,3 @@
-import re
 import importlib
 from typing import Any, Dict, List
 
@@ -104,27 +103,14 @@ class NodeFactory:
                 "class_name": "PythonFuncNode",
             },
         ],
+        "subworkflow": [
+            {
+                "node_type_name": "SubworkflowNode",
+                "module": ".nodes.subworkflow.subworkflow_node",
+                "class_name": "SubworkflowNode",
+            },
+        ],
     }
-
-    @staticmethod
-    def get_class_name_from_module_name(module_name: str) -> str:
-        """
-        class name is camel case version of the module name + "Node"
-        """
-        last_bit = module_name.split(".")[-1]
-        return "".join([word.capitalize() for word in last_bit.split("_")]) + "Node"
-
-    @staticmethod
-    def get_module_name_from_class_name(class_name: str) -> str:
-        """
-        module name is the snake case version of the class name
-        """
-        return "_".join(
-            [
-                word.lower()
-                for word in re.findall(r"[A-Z][a-z]*", class_name.replace("Node", ""))
-            ]
-        )
 
     @staticmethod
     def get_all_node_types() -> Dict[str, List[NodeType]]:
