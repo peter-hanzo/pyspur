@@ -78,7 +78,7 @@ const NodeDetails = ({ nodeID }) => {
     //     // setConfigData(node?.data?.config);
     //     console.log(node?.data?.config);
     // }, [nodeID, node?.data?.config]);
-
+    const nodes = useSelector((state) => state.flow.nodes);
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
     const nodeType_ = node?.data?.nodeType;
     const [nodeSchema, setNodeSchema] = useState(nodeTypes.find((n) => n.name === nodeType_));
@@ -95,8 +95,9 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     const handleSave = () => {
-        dispatch(updateNodeData({ id: nodeID, data: { config: configData, inputs: 2, outputs: 2 } }));
+        dispatch(updateNodeData({ id: nodeID, data: { config: configData } }));
         console.log(node);
+        console.log(nodes);
         // console.log(nodeType);
         console.log(nodeSchema);
         setIsEditing(false);

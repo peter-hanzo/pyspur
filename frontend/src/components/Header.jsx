@@ -25,7 +25,7 @@ const Header = () => {
     try {
       const formattedData = {
         workflow: {
-          nodes: nodes.slice(0, Math.ceil(nodes.length / 2)).map(node => ({
+          nodes: nodes.map(node => ({
             config: node.data?.config || {},
             id: node.id,
             type: node.type

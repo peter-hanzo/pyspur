@@ -51,7 +51,7 @@ const Control = () => {
     };
 
     dispatch(addNode({ node: newNode }));
-    reactFlowInstance.addNodes(newNode);
+    // reactFlowInstance.addNodes(newNode);
     setVisible(false);
   };
 
