@@ -55,9 +55,9 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     const handleJsonChange = (updatedJson) => {
-        dispatch(updateNodeData({ nodeId, data: updatedJson }));
+        dispatch(updateNodeData({ nodeID, data: updatedJson }));
       };
-      const jsonOptions = ['option1', 'option2', 'option3'];
+      const jsonOptions = ['str', 'float'];
 
 
     useEffect(() => {
@@ -162,7 +162,10 @@ const NodeDetails = ({ nodeID }) => {
                             key={key}
                             label={field.title || key}
                             value={value}
-                            onChange={(e) => handleInputChange(key, e.target.value)}
+                            onChange={(e) => {
+                                const newValue = parseFloat(e.target.value);
+                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
+                            }}
                         />
                     );
                 case 'boolean':

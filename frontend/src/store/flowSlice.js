@@ -27,12 +27,12 @@ const flowSlice = createSlice({
       const node = action.payload.node;
 
       // Initialize the prompt field for LLMNode types
-      if (node.type === 'LLMNode') {
-        node.data = {
-          ...node.data,
-          prompt: node.data?.prompt || '', // Ensure prompt is initialized
-        };
-      }
+      // if (node.type === 'LLMNode') {
+      //   node.data = {
+      //     ...node.data,
+      //     prompt: node.data?.prompt || '', // Ensure prompt is initialized
+      //   };
+      // }
 
       state.nodes.push(node);
     },

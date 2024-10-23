@@ -20,6 +20,7 @@ import { Card, Button } from '@nextui-org/react'; // Import NextUI components
 import { getBezierPath } from 'reactflow'; // Import helper for custom edge
 import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode'; // Import the new DynamicNode component
+import { v4 as uuidv4 } from 'uuid'; // Import UUID library for unique IDs
 
 const nodeTypes = {
   BasicLLMNode: (props) => <DynamicNode {...props} type="BasicLLMNode" />,
@@ -124,7 +125,14 @@ const FlowCanvas = () => {
     [dispatch]
   );
   const onConnect = useCallback(
-    (connection) => dispatch(connect({ connection })),
+    (connection) => {
+      const newEdge = {
+        ...connection,
+        id: uuidv4(), // Generate a unique ID for the new edge
+        key: uuidv4(), // Use the same unique ID for the key
+      };
+      dispatch(connect({ connection: newEdge }));
+    },
     [dispatch]
   );
   const onUpdateNodeData = useCallback(
@@ -154,6 +162,7 @@ const FlowCanvas = () => {
           ...edge.data,
           showPlusButton: isHovered, // Add flag to show + button
         },
+        key: edge.id, // Ensure key is set to the unique edge ID
       };
     });
   }, [edges, hoveredNode, hoveredEdge]);
