@@ -76,7 +76,7 @@ class SubworkflowNode(BaseNode):
                     if annotation == None:
                         # Handle variadic inputs
                         continue
-                    input_fields[field_name] = str(annotation)
+                    input_fields[field_name] = annotation.__name__
                     self._input_field_to_node_input[field_name] = (node_id, input_name)
         return input_fields
 
@@ -103,14 +103,14 @@ class SubworkflowNode(BaseNode):
                     if annotation == None:
                         # Handle variadic outputs
                         continue
-                    output_fields[field_name] = str(annotation)
+                    output_fields[field_name] = annotation.__name__
                     self._output_field_to_node_output[field_name] = (
                         node_id,
                         output_name,
                     )
         return output_fields
 
-    async def __call__(self, input_data: BaseModel) -> BaseModel:
+    async def run(self, input_data: BaseModel) -> BaseModel:
         # Prepare initial inputs for nodes
         initial_inputs: Dict[str, Dict[str, Any]] = {}
         for input_name, value in input_data:
@@ -137,3 +137,104 @@ class SubworkflowNode(BaseNode):
             output_data[output_name] = value
 
         return self.output_model.model_validate(output_data)
+
+
+if __name__ == "__main__":
+    # Example usage of the SubworkflowNode
+    workflow_json = """
+{
+    "nodes": [
+      {
+        "id": "1",
+        "node_type": "AdvancedLLMNode",
+        "config": {
+          "llm_name": "gpt-4o",
+          "max_tokens": 150,
+          "temperature": 0.7,
+          "system_prompt": "please provide average annual weather for {city}",
+          "output_schema": { "city": "str",
+            "weather": "str",
+            "temperature": "float",
+            "humidity": "int",
+            "feels_like": "float",
+            "precipitation": "float"
+          },
+          "input_schema": { "user_message": "str", "city":"str", "units":"str" }
+        }
+      },
+      {
+        "id": "3",
+        "node_type": "BestOfNNode",
+        "config": {
+          "llm_name": "gpt-4o",
+          "max_tokens": 150,
+          "temperature": 0.7,
+          "system_prompt": "please provide average annual weather for {city} in {units}",
+          "output_schema": { "general_weather_guidelines": "str", "average_annual_temperature": "float" },
+          "input_schema": { "user_message": "str", "city":"str", "units":"str" },
+          "samples": 5
+        }
+      },
+      {
+        "id": "2",
+        "node_type": "PythonFuncNode",
+        "config": {
+          "code": "import time\\ntime.sleep(1)\\noutput_data = {'result': input_data['number'] * 2}",
+          "input_schema": {
+            "number": "float"
+          },
+          "output_schema": {
+            "result": "float"
+          }
+        }
+      },
+      {
+        "id": "4",
+        "node_type": "MCTSNode",
+        "config": {
+          "llm_name": "gpt-4o",
+          "max_tokens": 2048,
+          "temperature": 0.7,
+          "system_prompt": "You are Jimmy Carr. Your jokes are intelligent and funny. Your task is to create a joke for the user's instruction",
+          "num_simulations": 5,
+          "simulation_depth": 10
+        }
+      },
+      {
+        "id": "5",
+        "node_type": "BranchSolveMergeNode",
+        "config": {
+          "llm_name": "gpt-4o",
+          "max_tokens": 2048,
+          "temperature": 0.7,
+          "input_schema": {"user_message": "str"},
+          "output_schema": {"complete_joke": "str"}
+        }
+      }
+
+    ],
+    "links": [
+      {
+        "source_id": "1",
+        "source_output_key": "temperature",
+        "target_id": "2",
+        "target_input_key": "number"
+      }
+    ]
+  }"""
+    input_data = {
+        "1__user_message": "okay, give it to me",
+        "1__city": "Jabalpur",
+        "1__units": "celsius",
+        "3__user_message": "please enlighten me",
+        "3__city": "Jabalpur",
+        "3__units": "celsius",
+        "4__user_message": "Why do politicians and actors not like to ride shotgun?",
+        "5__user_message": "Complete this joke like Jimmy Carr: Why do politicians and actors not like to ride shotgun?",
+    }
+
+    node = SubworkflowNode(config=SubworkflowNodeConfig(workflow_json=workflow_json))
+    import asyncio
+
+    output = asyncio.run(node(input_data))
+    print(output)
