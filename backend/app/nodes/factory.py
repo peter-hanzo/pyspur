@@ -1,7 +1,5 @@
-import os
-import re
 import importlib
-from typing import Any, List
+from typing import Any, Dict, List
 
 
 from .base import BaseNode
@@ -38,72 +36,127 @@ class NodeFactory:
 
     """
 
-    @staticmethod
-    def get_class_name_from_module_name(module_name: str) -> str:
-        """
-        class name is camel case version of the module name + "Node"
-        """
-        return "".join([word.capitalize() for word in module_name.split("_")]) + "Node"
+    _SUPPORTED_NODE_TYPES = {
+        "primitives": [
+            {
+                "node_type_name": "ConstantValueNode",
+                "module": ".nodes.constant_value",
+                "class_name": "ConstantValueNode",
+            },
+        ],
+        "llm": [
+            {
+                "node_type_name": "StringOutputLLMNode",
+                "module": ".nodes.llm.basic_llm",
+                "class_name": "StringOutputLLMNode",
+            },
+            {
+                "node_type_name": "StructuredOutputNode",
+                "module": ".nodes.llm.structured_output",
+                "class_name": "StructuredOutputNode",
+            },
+            {
+                "node_type_name": "AdvancedLLMNode",
+                "module": ".nodes.llm.advanced",
+                "class_name": "AdvancedNode",
+            },
+            {
+                "node_type_name": "MCTSNode",
+                "module": ".nodes.llm.mcts",
+                "class_name": "MCTSNode",
+            },
+            {
+                "node_type_name": "BestOfNNode",
+                "module": ".nodes.llm.best_of_n",
+                "class_name": "BestOfNNode",
+            },
+            {
+                "node_type_name": "BranchSolveMergeNode",
+                "module": ".nodes.llm.branch_solve_merge",
+                "class_name": "BranchSolveMergeNode",
+            },
+            {
+                "node_type_name": "MixtureOfAgentsNode",
+                "module": ".nodes.llm.mixture_of_agents",
+                "class_name": "MixtureOfAgentsNode",
+            },
+            {
+                "node_type_name": "SampleLLMNode",
+                "module": ".nodes.llm.sample_llm",
+                "class_name": "SampleLLMNode",
+            },
+            {
+                "node_type_name": "SelfConsistencyNode",
+                "module": ".nodes.llm.self_consistency",
+                "class_name": "SelfConsistencyNode",
+            },
+            {
+                "node_type_name": "TreeOfThoughtsNode",
+                "module": ".nodes.llm.tree_of_thoughts",
+                "class_name": "TreeOfThoughtsNode",
+            },
+        ],
+        "python": [
+            {
+                "node_type_name": "PythonFuncNode",
+                "module": ".nodes.python.python_func",
+                "class_name": "PythonFuncNode",
+            },
+        ],
+        "subworkflow": [
+            {
+                "node_type_name": "SubworkflowNode",
+                "module": ".nodes.subworkflow.subworkflow_node",
+                "class_name": "SubworkflowNode",
+            },
+        ],
+    }
 
     @staticmethod
-    def get_module_name_from_class_name(class_name: str) -> str:
-        """
-        module name is the snake case version of the class name
-        """
-        return "_".join(
-            [
-                word.lower()
-                for word in re.findall(r"[A-Z][a-z]*", class_name.replace("Node", ""))
-            ]
-        )
-
-    @staticmethod
-    def get_all_node_types() -> List[NodeType]:
+    def get_all_node_types() -> Dict[str, List[NodeType]]:
         """
         Returns a list of all available node types.
         """
-        node_types: List[NodeType] = []
-
-        # Get all modules in the nodes package
-        package_path = os.path.dirname(__file__)
-        for file in os.listdir(package_path):
-            if file.endswith(".py") and file != "__init__.py":
-                module_name = file[:-3]
-                class_name = NodeFactory.get_class_name_from_module_name(module_name)
-                try:
-                    module = importlib.import_module(
-                        name=f".{module_name}", package="app.nodes"
-                    )
-                    node_class = getattr(module, class_name)
-                    node_types.append(
-                        NodeType(name=node_class.__name__, module=module_name)
-                    )
-                except:
-                    continue
-
-        return node_types
+        node_type_groups: Dict[str, List[NodeType]] = {}
+        for group_name, node_types in NodeFactory._SUPPORTED_NODE_TYPES.items():
+            node_type_groups[group_name] = []
+            for node_type_dict in node_types:
+                node_type = NodeType.model_validate(node_type_dict)
+                node_type_groups[group_name].append(node_type)
+        return node_type_groups
 
     @staticmethod
     def create_node(node_type_name: str, config: Any) -> BaseNode:
         """
         Creates a node instance from a configuration.
         """
-        all_node_types = NodeFactory.get_all_node_types()
-        node_type = next(
-            (
-                node_type
-                for node_type in all_node_types
-                if node_type.name == node_type_name
-            ),
-            None,
-        )
-        if node_type is None:
-            raise ValueError(f"Node type '{node_type_name}' not found")
-        module_name = node_type.module
-        class_name = NodeFactory.get_class_name_from_module_name(module_name)
-        module = importlib.import_module(name=f".{module_name}", package="app.nodes")
+        if not NodeFactory.is_valid_node_type(node_type_name):
+            raise ValueError(f"Node type '{node_type_name}' is not valid.")
+        node_groups = NodeFactory._SUPPORTED_NODE_TYPES
+        module_name = None
+        class_name = None
+        for node_group in node_groups.values():
+            for node_type in node_group:
+                if node_type["node_type_name"] == node_type_name:
+                    module_name = node_type["module"]
+                    class_name = node_type["class_name"]
+                    break
+        if not module_name or not class_name:
+            raise ValueError(f"Node type '{node_type_name}' not found.")
+        module = importlib.import_module(module_name, package="app")
         node_class = getattr(module, class_name)
         return node_class(config)
+
+    @staticmethod
+    def is_valid_node_type(node_type_name: str) -> bool:
+        """
+        Check if a node type is valid.
+        """
+        for node_types in NodeFactory._SUPPORTED_NODE_TYPES.values():
+            for node_type in node_types:
+                if node_type["node_type_name"] == node_type_name:
+                    return True
+        return False
 
 
 if __name__ == "__main__":

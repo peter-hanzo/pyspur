@@ -16,4 +16,4 @@ answer_extraction:
   method: math
 
 evaluation:
-  method: exact_match
+  method: math

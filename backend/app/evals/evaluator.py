@@ -3,10 +3,10 @@ import re
 from typing import Optional, List, Dict, Any
 import asyncio
 from datasets import load_dataset, Dataset
-from app.nodes.llm.llm import (
-    BasicLLMNode,
-    BasicLLMNodeConfig,
-    BasicLLMNodeInput,
+from app.nodes.llm.string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
 )
 import yaml
 import os
@@ -17,7 +17,8 @@ from app.evals.common import (
     MULTILINGUAL_ANSWER_REGEXES,
     MULTILINGUAL_ANSWER_PATTERN_TEMPLATE,
     normalize_extracted_answer,
-    normalize_math_response,
+    extract_answer_with_regex,
+    EQUALITY_TEMPLATE,
 )
 
 
@@ -100,21 +101,37 @@ def generate_full_prompt(problem, doc_to_text, preamble, prompt):
     return full_prompt.strip()
 
 
+async def check_equality(expr1: str, expr2: str) -> bool:
+    """
+    Check if two expressions are equal by using the call_model function.
+
+    Args:
+        expr1 (str): The first expression.
+        expr2 (str): The second expression.
+
+    Returns:
+        bool: True if expressions are equal, False otherwise.
+    """
+    prompt = EQUALITY_TEMPLATE % {"expression1": expr1, "expression2": expr2}
+    response = await call_model(prompt)
+    return response.lower().strip() == "yes"
+
+
 async def call_model(full_prompt):
-    """Calls the LLM model using BasicLLMNode."""
-    # Instantiate the BasicLLMNode with the desired configuration
-    basic_llm_node = BasicLLMNode(
-        config=BasicLLMNodeConfig(
+    """Calls the LLM model using StringOutputLLMNode."""
+    # Instantiate the StringOutputLLMNode with the desired configuration
+    basic_llm_node = StringOutputLLMNode(
+        config=StringOutputLLMNodeConfig(
             llm_name="gpt-4o-mini",
             max_tokens=256,
-            temperature=0.7,
+            temperature=0.0,
             json_mode=False,
             system_prompt="",  # You can set this if needed
             few_shot_examples=None,  # Add few-shot examples if required
         )
     )
     # Create the input data
-    basic_input = BasicLLMNodeInput(user_message=full_prompt)
+    basic_input = StringOutputLLMNodeInput(user_message=full_prompt)
     # Call the node to get the output
     basic_output = await basic_llm_node(basic_input)
     return basic_output.assistant_message
@@ -136,14 +153,16 @@ def extract_answer(response_text, answer_extraction: Dict[str, Any]):
                 return extracted_answer
         return ""  # Return empty if no match is found
     elif extraction_method == "math":
-        extracted_answer = normalize_math_response(response_text)
+        extracted_answer = extract_answer_with_regex(response_text)
         return extracted_answer
     else:
         # Default extraction method
         return response_text.strip()
 
 
-def evaluate_answer(predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]):
+async def evaluate_answer(
+    predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]
+):
     """Evaluates if the predicted answer matches the ground truth based on evaluation logic."""
     evaluation_method = evaluation.get("method", "default").lower()
     if evaluation_method == "numeric":
@@ -160,6 +179,9 @@ def evaluate_answer(predicted_answer, ground_truth_answer, evaluation: Dict[str,
             normalize_extracted_answer(predicted_answer).strip().upper()
             == normalize_extracted_answer(ground_truth_answer).strip().upper()
         )
+    elif evaluation_method == "math":
+        print(f"Checking equality between {predicted_answer} and {ground_truth_answer}")
+        return await check_equality(predicted_answer, ground_truth_answer)
     else:
         # Default evaluation method
         return predicted_answer == ground_truth_answer
@@ -227,7 +249,7 @@ async def evaluate_on_dataset(
             ground_truth_answer = extract_answer(
                 ground_truth_answer_raw, answer_extraction
             )
-            is_correct = evaluate_answer(
+            is_correct = await evaluate_answer(
                 predicted_answer, ground_truth_answer, evaluation
             )
             correct += int(is_correct)
@@ -247,7 +269,7 @@ async def evaluate_on_dataset(
             print(f"task_id {task_id}")
             print(f"Predicted answer: {predicted_answer}")
             print(f"Ground truth answer: {ground_truth_answer}")
-            print(f"Correct: {correct} out of {task_id + 1}")
+            print(f"Correct: {is_correct}")
             print("=" * 40)
             task_id += 1
     # Calculate accuracy

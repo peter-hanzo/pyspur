@@ -40,7 +40,7 @@ class BaseNode(ABC):
         For dynamic schemas, these can be created based on `self.config`.
         """
 
-    async def __call__(self, input_data: BaseModel) -> BaseModel:
+    async def __call__(self, input_data: Any) -> BaseModel:
         """
         Validates `input_data` against `input_model`, runs the node's logic,
         and validates the output against `output_model`.
@@ -49,6 +49,8 @@ class BaseNode(ABC):
             input_validated = self.input_model.model_validate(input_data.model_dump())
         except ValidationError as e:
             raise ValueError(f"Input data validation error in {self.name}: {e}")
+        except AttributeError:
+            input_validated = self.input_model.model_validate(input_data)
 
         result = await self.run(input_validated)
 
@@ -72,6 +74,8 @@ class BaseNode(ABC):
         """
         Return the node's configuration.
         """
+        if type(self._config) == dict:
+            return self.config_model.model_validate(self._config)
         return self.config_model.model_validate(self._config.model_dump())
 
     @staticmethod

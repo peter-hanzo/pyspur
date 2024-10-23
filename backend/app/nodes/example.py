@@ -33,6 +33,8 @@ class ExampleNode(BaseNode):
 
     name = "example"
     config_model = ExampleNodeConfig
+    input_model = ExampleNodeInput
+    output_model = ExampleNodeOutput
 
     def setup(self) -> None:
         self.input_model = ExampleNodeInput

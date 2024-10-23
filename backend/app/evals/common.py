@@ -8,7 +8,8 @@ import jinja2
 import numpy as np
 from tqdm import tqdm
 
-from .types import EvalResult, Message, SamplerBase, SingleEvalResult
+from .types import EvalResult, Message, SingleEvalResult
+
 
 QUERY_TEMPLATE_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
@@ -149,12 +150,6 @@ HTML_JINJA = """
 
 def format_multichoice_question(row):
     return QUERY_TEMPLATE_MULTICHOICE.format(**row)
-
-
-def check_equality(sampler: SamplerBase, expr1: str, expr2: str):
-    prompt = EQUALITY_TEMPLATE % {"expression1": expr1, "expression2": expr2}
-    response = sampler([dict(content=prompt, role="user")])
-    return response.lower().strip() == "yes"
 
 
 def _compute_stat(values: list, stat: str):
@@ -332,6 +327,28 @@ def make_report_from_example_htmls(htmls: list[str]):
     )
 
 
+def normalize_response(response: str) -> str:
+    """
+    Normalize the response by removing markdown and LaTeX formatting that may prevent a match.
+    """
+
+    return (
+        response.replace("**", "")
+        .replace("$\\boxed{", "")
+        .replace("}$", "")
+        .replace("\\$", "")
+        .replace("$\\text{", "")
+        .replace("$", "")
+        .replace("\\mathrm{", "")
+        .replace("\\{", "")
+        .replace("\\text", "")
+        .replace("\\(", "")
+        .replace("\\mathbf{", "")
+        .replace("{", "")
+        .replace("\\boxed", "")
+    )
+
+
 def normalize_extracted_answer(extracted_answer: str) -> str:
     return (
         # In arabic these are the letters used for A-D in multiple choice questions
@@ -353,51 +370,10 @@ def normalize_extracted_answer(extracted_answer: str) -> str:
     )
 
 
-def normalize_math_response(response: str) -> str:
+def extract_answer_with_regex(response_text: str) -> str:
     """
-    Normalize the response by removing markdown and LaTeX formatting that may prevent a match.
+    Extracts the answer from the response text using a regex search.
     """
-
-    # Extract the part after "Answer:"
-    match = re.search(r"(?i)Answer\s*:\s*(.*)", response)
-    if match:
-        response = match.group(1).strip()
-    else:
-        # Handle cases where "Answer:" is directly followed by a character
-        response = re.sub(r"(?i)Answer\s*:", "", response).strip()
-
-    # Remove markdown and LaTeX formatting, except for \frac{}{}
-    response = (
-        response.replace("**", "")
-        .replace("$\\boxed{", "")
-        .replace("}$", "")
-        .replace("\\$", "")
-        .replace("$\\text{", "")
-        .replace("$", "")
-        .replace("\\mathrm{", "")
-        .replace("\\{", "")
-        .replace("\\text", "")
-        .replace("\\(", "")
-        .replace("\\mathbf{", "")
-        .replace("\\boxed", "")
-        .replace("\\)", "")
-        .replace("\\}", "")
-    )
-
-    # Normalize \dfrac to \frac
-    response = response.replace(r"\dfrac", r"\frac")
-
-    # Ensure \frac{}{} is preserved and properly closed
-    response = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"\\frac{\1}{\2}", response)
-
-    # Remove any trailing or leading whitespace
-    response = response.strip()
-
-    # Ensure all brackets are closed
-    if response.count("{") > response.count("}"):
-        response += "}"
-
-    # Remove any whitespace between equations
-    response = re.sub(r"\s+", "", response)
-
-    return response
+    match = re.search(ANSWER_PATTERN, response_text)
+    extracted_answer = match.group(1) if match else response_text
+    return extracted_answer

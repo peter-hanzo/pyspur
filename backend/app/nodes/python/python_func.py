@@ -9,6 +9,14 @@ class PythonFuncNodeConfig(BaseModel):
     output_schema: Dict[str, DynamicSchemaValueType]  # The output schema
 
 
+class PythonFuncNodeInput(BaseModel):
+    pass
+
+
+class PythonFuncNodeOutput(BaseModel):
+    pass
+
+
 class PythonFuncNode(BaseNode):
     """
     Node type for executing Python code on the input data.
@@ -16,6 +24,8 @@ class PythonFuncNode(BaseNode):
 
     name = "python_func_node"
     config_model = PythonFuncNodeConfig
+    input_model = PythonFuncNodeInput
+    output_model = PythonFuncNodeOutput
 
     def setup(self) -> None:
         self.input_model = self.get_model_for_schema_dict(
