@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle } from 'reactflow';
-import BaseNode from './BaseNode';
+import BaseNode from '../BaseNode';
 import { useSelector, useDispatch } from 'react-redux';
 import { Input } from '@nextui-org/react'; // Import NextUI Input component
 

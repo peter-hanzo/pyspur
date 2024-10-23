@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
 import { useReactFlow } from 'reactflow';
-import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react'; // Updated imports
-import { useSelector, useDispatch } from 'react-redux'; // Added Redux imports
+import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
+import { useSelector, useDispatch } from 'react-redux';
 import { addNode } from '../../../../store/flowSlice';
+
 const Control = () => {
   const reactFlowInstance = useReactFlow();
-  const [visible, setVisible] = useState(false); // State to control popover visibility
-  const dispatch = useDispatch(); // Added Redux dispatch
-  const hoveredNode = useSelector((state) => state.hoveredNode); // Added Redux state access
+  const [visible, setVisible] = useState(false);
+  const dispatch = useDispatch();
+  const hoveredNode = useSelector((state) => state.hoveredNode);
 
   const handleSelectNode = (nodeType) => {
     const id = `${reactFlowInstance.getNodes().length + 1}`;
 
-    // Map the nodeType to the component type
+    // Updated nodeTypeMapping to include new node types
     const nodeTypeMapping = {
+      'BasicLLMNode': 'BasicLLMNode',
+      'StructuredOutputLLMNode': 'StructuredOutputLLMNode',
+      'PythonFuncNode': 'PythonFuncNode',
       'LLM': 'LLMNode',
       'Knowledge Retrieval': 'KnowledgeRetrievalNode',
       'End': 'EndNode',
@@ -27,31 +31,32 @@ const Control = () => {
       'Variable Assigner': 'VariableAssignerNode',
       'Parameter Extractor': 'ParameterExtractorNode',
       'HTTP Request': 'HttpRequestNode',
-      // Add other mappings as needed
     };
 
     const mappedType = nodeTypeMapping[nodeType] || nodeType;
-    // Determine the initial data based on node type
-    let initialData = { label: `Node ${id}`, title: nodeType };
-    if (mappedType === 'LLMNode') {
-      initialData = { ...initialData, prompt: '' }; // Initialize prompt for LLMNode
-    }
+    let initialData = { label: `Node ${id}`, nodeType: nodeType };
+
+    // You might want to add specific initialData for new node types if needed
+    // if (mappedType === 'BasicLLMNode' || mappedType === 'StructuredOutputLLMNode') {
+    //   initialData = { ...initialData, config: {} };
+    // } else if (mappedType === 'PythonFuncNode') {
+    //   initialData = { ...initialData, config: { code: '', input_schema: {}, output_schema: {} } };
+    // }
 
     const newNode = {
       id,
-      type: mappedType, // Use the mapped type
-      position: reactFlowInstance.project({ x: 250, y: 5 }), // Updated to use project method
+      type: mappedType,
+      position: reactFlowInstance.project({ x: 250, y: 5 }),
       data: initialData,
     };
 
-    // Dispatch the addNode action to Redux
     dispatch(addNode({ node: newNode }));
     reactFlowInstance.addNodes(newNode);
-    setVisible(false); // Close the popover after adding a node
+    setVisible(false);
   };
 
   const setHoveredNode = (id) => {
-    dispatch({ type: 'SET_HOVERED_NODE', payload: { id } }); // Added Redux action dispatch
+    dispatch({ type: 'SET_HOVERED_NODE', payload: { id } });
   };
 
   return (
@@ -59,20 +64,21 @@ const Control = () => {
       <div className='flex items-center text-gray-500'>
         <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
           <PopoverTrigger>
-            <Button auto light>  {/* Removed onClick */}
+            <Button auto light>
               <RiAddCircleFill />
             </Button>
           </PopoverTrigger>
           <PopoverContent>
-            {/* List of blocks and tools */}
             <div className='p-4 flex flex-col space-y-2'>
               <div className='flex flex-col space-y-2'>
                 <h3 className='text-sm font-semibold'>Blocks</h3>
+                <Button auto light onClick={() => handleSelectNode('BasicLLMNode')}>Basic LLM Node</Button>
+                <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode')}>Structured Output LLM Node</Button>
+                <Button auto light onClick={() => handleSelectNode('PythonFuncNode')}>Python Function Node</Button>
                 <Button auto light onClick={() => handleSelectNode('LLM')}>LLM</Button>
                 <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval')}>Knowledge Retrieval</Button>
                 <Button auto light onClick={() => handleSelectNode('End')}>End</Button>
               </div>
-
             </div>
           </PopoverContent>
         </Popover>

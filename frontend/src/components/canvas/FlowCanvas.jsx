@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux'; // Add this line
-import LLMNode from '../nodes/LLMNode'; // Import your custom nodes
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
 import {
@@ -16,14 +15,17 @@ import {
   setSelectedNode, // Import the setSelectedNode action
 } from '../../store/flowSlice'; // Updated import path
 import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
-import NodeDetails from '../textEditor/LLMNodeDetails'; // Import the NodeDetails component
+import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails component
 import { Card, Button } from '@nextui-org/react'; // Import NextUI components
 import { getBezierPath } from 'reactflow'; // Import helper for custom edge
 import { RiAddCircleFill } from '@remixicon/react';
+import DynamicNode from '../nodes/DynamicNode'; // Import the new DynamicNode component
 
 const nodeTypes = {
-  LLMNode: LLMNode,
-  // ... other node types
+  BasicLLMNode: (props) => <DynamicNode {...props} type="BasicLLMNode" />,
+  StructuredOutputLLMNode: (props) => <DynamicNode {...props} type="StructuredOutputLLMNode" />,
+  PythonFuncNode: (props) => <DynamicNode {...props} type="PythonFuncNode" />,
+  // Add other node types here as needed
 };
 
 // Custom edge component
