@@ -16,10 +16,11 @@ import {
 } from '../../store/flowSlice'; // Updated import path
 import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
 import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails component
-import { Card, Button } from '@nextui-org/react'; // Import NextUI components
+import { Card, Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react'; // Import NextUI components
 import { getBezierPath } from 'reactflow'; // Import helper for custom edge
 import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode'; // Import the new DynamicNode component
+import { useNodeSelector } from '../../hooks/useNodeSelector';
 
 const nodeTypes = {
   BasicLLMNode: (props) => <DynamicNode {...props} type="BasicLLMNode" />,
@@ -41,6 +42,8 @@ const CustomEdge = ({
   data,
   markerEnd,
 }) => {
+  const { visible, setVisible, handleSelectNode } = useNodeSelector(); // Initialize the hook here
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -88,13 +91,29 @@ const CustomEdge = ({
               height: '100%',
             }}
           >
-            <Button
-              auto
-              onClick={() => console.log('Plus button clicked')}
-              style={{ padding: 0, minWidth: 'auto' }}
-            >
-              <RiAddCircleFill size={20} />
-            </Button>
+            <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
+              <PopoverTrigger>
+                <Button
+                  auto
+                  style={{ padding: 0, minWidth: 'auto' }}
+                >
+                  <RiAddCircleFill size={20} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <div className='p-4 flex flex-col space-y-2'>
+                  <div className='flex flex-col space-y-2'>
+                    <h3 className='text-sm font-semibold'>Blocks</h3>
+                    <Button auto light onClick={() => handleSelectNode('BasicLLMNode')}>Basic LLM Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode')}>Structured Output LLM Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('PythonFuncNode')}>Python Function Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('LLM')}>LLM</Button>
+                    <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval')}>Knowledge Retrieval</Button>
+                    <Button auto light onClick={() => handleSelectNode('End')}>End</Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </foreignObject>
       )}
@@ -200,6 +219,7 @@ const FlowCanvas = () => {
   }, [dispatch, selectedNodeID]);
 
   const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
+
 
   return (
     <div style={{ position: 'relative' }}>

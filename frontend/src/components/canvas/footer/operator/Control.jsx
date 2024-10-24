@@ -1,63 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
-import { useReactFlow } from 'reactflow';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
-import { useSelector, useDispatch } from 'react-redux';
-import { addNode } from '../../../../store/flowSlice';
+import { useNodeSelector } from '../../../../hooks/useNodeSelector';
 
 const Control = () => {
-  const reactFlowInstance = useReactFlow();
-  const [visible, setVisible] = useState(false);
-  const dispatch = useDispatch();
-  const hoveredNode = useSelector((state) => state.hoveredNode);
-
-  const handleSelectNode = (nodeType) => {
-    const id = `${reactFlowInstance.getNodes().length + 1}`;
-
-    // Updated nodeTypeMapping to include new node types
-    const nodeTypeMapping = {
-      'BasicLLMNode': 'BasicLLMNode',
-      'StructuredOutputLLMNode': 'StructuredOutputLLMNode',
-      'PythonFuncNode': 'PythonFuncNode',
-      'LLM': 'LLMNode',
-      'Knowledge Retrieval': 'KnowledgeRetrievalNode',
-      'End': 'EndNode',
-      'Question Classifier': 'QuestionClassifierNode',
-      'IF/ELSE': 'IfElseNode',
-      'Iteration': 'IterationNode',
-      'Code': 'CodeNode',
-      'Template': 'TemplateNode',
-      'Variable Aggregator': 'VariableAggregatorNode',
-      'Variable Assigner': 'VariableAssignerNode',
-      'Parameter Extractor': 'ParameterExtractorNode',
-      'HTTP Request': 'HttpRequestNode',
-    };
-
-    const mappedType = nodeTypeMapping[nodeType] || nodeType;
-    let initialData = { label: `Node ${id}`, nodeType: nodeType };
-
-    // You might want to add specific initialData for new node types if needed
-    // if (mappedType === 'BasicLLMNode' || mappedType === 'StructuredOutputLLMNode') {
-    //   initialData = { ...initialData, config: {} };
-    // } else if (mappedType === 'PythonFuncNode') {
-    //   initialData = { ...initialData, config: { code: '', input_schema: {}, output_schema: {} } };
-    // }
-
-    const newNode = {
-      id,
-      type: mappedType,
-      position: reactFlowInstance.project({ x: 250, y: 5 }),
-      data: initialData,
-    };
-
-    dispatch(addNode({ node: newNode }));
-    reactFlowInstance.addNodes(newNode);
-    setVisible(false);
-  };
-
-  const setHoveredNode = (id) => {
-    dispatch({ type: 'SET_HOVERED_NODE', payload: { id } });
-  };
+  const { visible, setVisible, handleSelectNode } = useNodeSelector();
 
   return (
     <Card className='h-12 flex items-center justify-center'>
