@@ -1,25 +1,26 @@
 # inspired by https://github.com/google-deepmind/gemma/blob/main/colabs/gsm8k_eval.ipynb
-import re
-from typing import Optional, List, Dict, Any
 import asyncio
-from datasets import load_dataset, Dataset
+import os
+import re
+from typing import Any, Callable, Dict, List, Optional
+import importlib.util
+import pandas as pd
+import yaml
+from app.evals.common import (
+    EQUALITY_TEMPLATE,
+    MULTILINGUAL_ANSWER_PATTERN_TEMPLATE,
+    MULTILINGUAL_ANSWER_REGEXES,
+    QUERY_TEMPLATE_MULTICHOICE,
+    extract_answer_with_regex,
+    normalize_extracted_answer,
+)
 from app.nodes.llm.string_output_llm import (
     StringOutputLLMNode,
     StringOutputLLMNodeConfig,
     StringOutputLLMNodeInput,
 )
-import yaml
-import os
+from datasets import Dataset, load_dataset
 from jinja2 import Template
-import pandas as pd
-
-from app.evals.common import (
-    MULTILINGUAL_ANSWER_REGEXES,
-    MULTILINGUAL_ANSWER_PATTERN_TEMPLATE,
-    normalize_extracted_answer,
-    extract_answer_with_regex,
-    EQUALITY_TEMPLATE,
-)
 
 
 def find_numbers(x: str) -> List[str]:
@@ -68,6 +69,7 @@ def load_dataset_by_name(
     dataset_name: str,
     split: Optional[str] = "test",
     subset: Optional[str] = None,
+    process_docs: Optional[Callable[[Dataset], Dataset]] = None,
 ) -> Dataset:
     """Loads a dataset by name or from a CSV file and returns the specified split."""
     if dataset_name.endswith(".csv"):
@@ -84,19 +86,87 @@ def load_dataset_by_name(
             dataset = load_dataset(dataset_name, cache_dir="/tmp")
         if split:
             dataset = dataset[split]
+    if process_docs is not None:
+        dataset = process_docs(dataset)
     return dataset
 
 
-def load_prompts_from_yaml(yaml_file_path: str) -> dict:
-    with open(yaml_file_path, "r") as file:
-        data = yaml.safe_load(file)
-    return data  # Return the entire data dict
+# https://github.com/EleutherAI/lm-evaluation-harness/blob/1185e89a044618b5adc6f0b9363b629a19fffdc4/lm_eval/utils.py#L402
+def ignore_constructor(loader, node):
+    return node
 
 
-def generate_full_prompt(problem, doc_to_text, preamble, prompt):
-    """Generates the full prompt for the model."""
+# https://github.com/EleutherAI/lm-evaluation-harness/blob/1185e89a044618b5adc6f0b9363b629a19fffdc4/lm_eval/utils.py#L406
+def import_function(loader, node):
+    function_name = loader.construct_scalar(node)
+    yaml_path = os.path.dirname(loader.name)
+
+    *module_name, function_name = function_name.split(".")
+    if isinstance(module_name, list):
+        module_name = ".".join(module_name)
+    module_path = os.path.normpath(os.path.join(yaml_path, "{}.py".format(module_name)))
+
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    function = getattr(module, function_name)
+    return function
+
+
+# https://github.com/EleutherAI/lm-evaluation-harness/blob/1185e89a044618b5adc6f0b9363b629a19fffdc4/lm_eval/utils.py#L423
+def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full"):
+    if mode == "simple":
+        constructor_fn = ignore_constructor
+    elif mode == "full":
+        constructor_fn = import_function
+
+    # Add the import_function constructor to the YAML loader
+    yaml.add_constructor("!function", constructor_fn)
+    if yaml_config is None:
+        with open(yaml_path, "rb") as file:
+            yaml_config = yaml.full_load(file)
+
+    if yaml_dir is None:
+        yaml_dir = os.path.dirname(yaml_path)
+
+    assert yaml_dir is not None
+
+    if "include" in yaml_config:
+        include_path = yaml_config["include"]
+        del yaml_config["include"]
+
+        if isinstance(include_path, str):
+            include_path = [include_path]
+
+        # Load from the last one first
+        include_path.reverse()
+        final_yaml_config = {}
+        for path in include_path:
+            # Assumes that path is a full path.
+            # If not found, assume the included yaml
+            # is in the same dir as the original yaml
+            if not os.path.isfile(path):
+                path = os.path.join(yaml_dir, path)
+
+            try:
+                included_yaml_config = load_yaml_config(yaml_path=path, mode=mode)
+                final_yaml_config.update(included_yaml_config)
+            except Exception as ex:
+                # If failed to load, ignore
+                raise ex
+
+        final_yaml_config.update(yaml_config)
+        return final_yaml_config
+    return yaml_config
+
+
+def generate_input_prompt(problem, doc_to_text, preamble, prompt):
+    """Generates the input prompt for the model."""
+
     doc_to_text_template = Template(doc_to_text)
     question_text = doc_to_text_template.render(**problem)
+
     full_prompt = f"{preamble}\n\n{prompt}\n{question_text}"
     return full_prompt.strip()
 
@@ -135,6 +205,10 @@ async def call_model(full_prompt):
     # Call the node to get the output
     basic_output = await basic_llm_node(basic_input)
     return basic_output.assistant_message
+
+
+def format_multichoice_question(choices_dict):
+    return QUERY_TEMPLATE_MULTICHOICE.format(**choices_dict)
 
 
 def extract_answer(response_text, answer_extraction: Dict[str, Any]):
@@ -233,7 +307,7 @@ async def evaluate_on_dataset(
         ]
         print(f"Processing batch starting at task_id {task_id}")
         full_prompts = [
-            generate_full_prompt(problem, doc_to_text, preamble, prompt)
+            generate_input_prompt(problem, doc_to_text, preamble, prompt)
             for problem in transformed_batch
         ]
         # Call the model on all prompts in the batch concurrently
@@ -306,6 +380,7 @@ async def evaluate_model_on_dataset(
     dataset_split = task_config.get("dataset_split", "test")
     dataset_subsets = task_config.get("dataset_subsets", None)
     subject_category_mapping = task_config.get("subject_category_mapping", None)
+    process_docs = task_config.get("process_docs", None)
 
     # Ensure dataset_name is provided
     if not dataset_name:
@@ -331,7 +406,9 @@ async def evaluate_model_on_dataset(
         for subset in dataset_subsets:
             print(f"Evaluating subset: {subset}")
             # Load the dataset for the current subset
-            dataset = load_dataset_by_name(dataset_name, dataset_split, subset)
+            dataset = load_dataset_by_name(
+                dataset_name, dataset_split, subset, process_docs
+            )
             metrics = await evaluate_on_dataset(
                 dataset,
                 task_config,
@@ -367,7 +444,9 @@ async def evaluate_model_on_dataset(
     else:
         # Handle the case where dataset_subsets is a single subset or None
         # Load the dataset
-        dataset = load_dataset_by_name(dataset_name, dataset_split, dataset_subsets)
+        dataset = load_dataset_by_name(
+            dataset_name, dataset_split, dataset_subsets, process_docs
+        )
         metrics = await evaluate_on_dataset(
             dataset,
             task_config,
@@ -388,13 +467,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task_config_path",
         type=str,
-        default=os.path.join(os.path.dirname(__file__), "tasks", "math.yaml"),
+        default=os.path.join(os.path.dirname(__file__), "tasks", "gpqa.yaml"),
         help="Path to the task configuration YAML file.",
     )
     args = parser.parse_args()
 
     # Load task configuration from YAML file
-    task_config = load_prompts_from_yaml(args.task_config_path)
+    task_config = load_yaml_config(args.task_config_path)
     # Run the evaluation
     results = asyncio.run(evaluate_model_on_dataset(task_config))
 
