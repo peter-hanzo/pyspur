@@ -74,11 +74,11 @@ const Header = () => {
       <NavbarContent justify="end">
 
         <NavbarItem>
-          <Button auto flat css={{ marginRight: '20px' }}>
+          <Button auto flat>
             <RiPlayFill />
             Run
           </Button>
-          <Button auto flat css={{ marginRight: '20px' }}>
+          <Button auto flat>
             <RiShareFill />
             Share
           </Button>
