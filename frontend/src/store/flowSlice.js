@@ -33,7 +33,7 @@ const flowSlice = createSlice({
       //     prompt: node.data?.prompt || '', // Ensure prompt is initialized
       //   };
       // }
-
+      console.log(node);
       state.nodes.push(node);
     },
     updateNodeData: (state, action) => {
@@ -42,6 +42,7 @@ const flowSlice = createSlice({
       if (node) {
         node.data = { ...node.data, ...data };
       }
+      console.log(node);
     },
     setHoveredNode: (state, action) => {
       state.hoveredNode = action.payload.nodeId; // Correct the payload key here

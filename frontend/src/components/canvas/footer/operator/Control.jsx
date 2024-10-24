@@ -34,7 +34,7 @@ const Control = () => {
     };
 
     const mappedType = nodeTypeMapping[nodeType] || nodeType;
-    let initialData = { label: `Node ${id}`, nodeType: nodeType };
+    let initialData = { label: `Node ${id}` };
 
     // You might want to add specific initialData for new node types if needed
     // if (mappedType === 'BasicLLMNode' || mappedType === 'StructuredOutputLLMNode') {
