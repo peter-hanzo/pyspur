@@ -1,25 +1,26 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
-} from 'reactflow';
+  useReactFlow, // Add this import
+} from 'reactflow'; // Import useReactFlow from reactflow
 import 'reactflow/dist/style.css';
-import { useSelector, useDispatch } from 'react-redux'; // Add this line
+import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';
-import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
+import Operator from './footer/operator/Operator';
 import {
   nodesChange,
   edgesChange,
   connect,
   updateNodeData,
-  setHoveredNode, // Import the setHoveredNode action
-  setSelectedNode, // Import the setSelectedNode action
-} from '../../store/flowSlice'; // Updated import path
-import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
-import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails component
-import { Card, Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react'; // Import NextUI components
-import { getBezierPath } from 'reactflow'; // Import helper for custom edge
+  setHoveredNode,
+  setSelectedNode,
+} from '../../store/flowSlice';
+import Spreadsheet from '../table/Table';
+import NodeDetails from '../nodes/NodeDetails';
+import { Card, Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
+import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
-import DynamicNode from '../nodes/DynamicNode'; // Import the new DynamicNode component
+import DynamicNode from '../nodes/DynamicNode';
 import { useNodeSelector } from '../../hooks/useNodeSelector';
 
 const nodeTypes = {
@@ -41,6 +42,8 @@ const CustomEdge = ({
   style = {},
   data,
   markerEnd,
+  source, // Add source node ID
+  target, // Add target node ID
 }) => {
   const { visible, setVisible, handleSelectNode } = useNodeSelector(); // Initialize the hook here
 
@@ -52,6 +55,13 @@ const CustomEdge = ({
     targetY,
     targetPosition,
   });
+
+
+
+  // Get the source and target nodes from the reactFlowInstance
+  const reactFlowInstance = useReactFlow();
+  const sourceNode = reactFlowInstance.getNode(source);
+  const targetNode = reactFlowInstance.getNode(target);
 
   return (
     <>
@@ -104,12 +114,12 @@ const CustomEdge = ({
                 <div className='p-4 flex flex-col space-y-2'>
                   <div className='flex flex-col space-y-2'>
                     <h3 className='text-sm font-semibold'>Blocks</h3>
-                    <Button auto light onClick={() => handleSelectNode('BasicLLMNode')}>Basic LLM Node</Button>
-                    <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode')}>Structured Output LLM Node</Button>
-                    <Button auto light onClick={() => handleSelectNode('PythonFuncNode')}>Python Function Node</Button>
-                    <Button auto light onClick={() => handleSelectNode('LLM')}>LLM</Button>
-                    <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval')}>Knowledge Retrieval</Button>
-                    <Button auto light onClick={() => handleSelectNode('End')}>End</Button>
+                    <Button auto light onClick={() => handleSelectNode('BasicLLMNode', sourceNode, targetNode)}>Basic LLM Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode', sourceNode, targetNode)}>Structured Output LLM Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('PythonFuncNode', sourceNode, targetNode)}>Python Function Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('LLM', sourceNode, targetNode)}>LLM</Button>
+                    <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval', sourceNode, targetNode)}>Knowledge Retrieval</Button>
+                    <Button auto light onClick={() => handleSelectNode('End', sourceNode, targetNode)}>End</Button>
                   </div>
                 </div>
               </PopoverContent>

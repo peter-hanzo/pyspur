@@ -8,7 +8,7 @@ export const useNodeSelector = () => {
   const [visible, setVisible] = useState(false);
   const dispatch = useDispatch();
 
-  const handleSelectNode = (nodeType) => {
+  const handleSelectNode = (nodeType, sourceNode = null, targetNode = null) => {
     const id = `${reactFlowInstance.getNodes().length + 1}`;
 
     const nodeTypeMapping = {
@@ -41,6 +41,32 @@ export const useNodeSelector = () => {
 
     dispatch(addNode({ node: newNode }));
     reactFlowInstance.addNodes(newNode);
+
+    // If sourceNode and targetNode are provided, update the edges
+    if (sourceNode && targetNode) {
+      const newEdge1 = {
+        id: `e${sourceNode.id}-${newNode.id}`,
+        source: sourceNode.id,
+        target: newNode.id,
+        type: 'custom',
+      };
+
+      const newEdge2 = {
+        id: `e${newNode.id}-${targetNode.id}`,
+        source: newNode.id,
+        target: targetNode.id,
+        type: 'custom',
+      };
+
+      // Remove the original edge between sourceNode and targetNode
+      reactFlowInstance.setEdges((eds) =>
+        eds.filter((edge) => !(edge.source === sourceNode.id && edge.target === targetNode.id))
+      );
+
+      // Add the new edges
+      reactFlowInstance.addEdges([newEdge1, newEdge2]);
+    }
+
     setVisible(false);
   };
 
