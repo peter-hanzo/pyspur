@@ -1,16 +1,20 @@
 preamble: |
   Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
 prompt: |
-doc_to_text: |
-  {{question}}
-  A) {{choices[0]}}
-  B) {{choices[1]}}
-  C) {{choices[2]}}
-  D) {{choices[3]}}
-  Answer: Let's think step by step.
-doc_to_target: |
-  {% set index_to_letter = ['A', 'B', 'C', 'D'] %}
-  Answer: {{ index_to_letter[answer] }}
+doc_to_text:
+  method: None
+  template: |
+    {{question}}
+    A) {{choices[0]}}
+    B) {{choices[1]}}
+    C) {{choices[2]}}
+    D) {{choices[3]}}
+    Answer: Let's think step by step.
+doc_to_target:
+  method: None
+  template: |
+    {% set index_to_letter = ['A', 'B', 'C', 'D'] %}
+    Answer: {{ index_to_letter[answer] }}
 answer_extraction:
   method: mcq
 dataset_name: "cais/mmlu"
