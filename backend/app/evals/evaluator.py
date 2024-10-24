@@ -353,6 +353,45 @@ async def evaluate_on_dataset(
     return metrics
 
 
+def calculate_metrics(
+    total_correct: int,
+    total_samples: int,
+    category_correct: Optional[Dict[str, int]] = None,
+    category_total: Optional[Dict[str, int]] = None,
+) -> Dict[str, Any]:
+    """
+    Calculate overall and category-wise metrics.
+
+    Args:
+        total_correct (int): Total number of correct predictions.
+        total_samples (int): Total number of samples evaluated.
+        category_correct (Optional[Dict[str, int]]): Correct predictions per category.
+        category_total (Optional[Dict[str, int]]): Total samples per category.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing overall accuracy and category-wise accuracy.
+    """
+    overall_accuracy = total_correct / total_samples if total_samples > 0 else 0
+    metrics = {
+        "total_samples": total_samples,
+        "correct_predictions": total_correct,
+        "accuracy": overall_accuracy,
+    }
+
+    if category_correct and category_total:
+        category_accuracy = {
+            category: (
+                category_correct[category] / category_total[category]
+                if category_total[category] > 0
+                else 0
+            )
+            for category in category_correct
+        }
+        metrics["category_accuracy"] = category_accuracy
+
+    return metrics
+
+
 async def evaluate_model_on_dataset(
     task_config: Dict[str, Any],
     batch_size: int = 10,
@@ -401,23 +440,11 @@ async def evaluate_model_on_dataset(
             total_correct += metrics["correct_predictions"]
             total_samples += metrics["total_samples"]
 
-        overall_accuracy = total_correct / total_samples if total_samples > 0 else 0
-        results = {
-            "total_samples": total_samples,
-            "correct_predictions": total_correct,
-            "accuracy": overall_accuracy,
-            "subset_metrics": subset_metrics,
-        }
-        if subject_category_mapping:
-            category_accuracy = {
-                category: (
-                    category_correct[category] / category_total[category]
-                    if category_total[category] > 0
-                    else 0
-                )
-                for category in category_correct
-            }
-            results["category_accuracy"] = category_accuracy
+        # Use the new calculate_metrics function
+        results = calculate_metrics(
+            total_correct, total_samples, category_correct, category_total
+        )
+        results["subset_metrics"] = subset_metrics
         return results
     else:
         dataset = load_dataset_by_name(
@@ -434,9 +461,15 @@ async def evaluate_model_on_dataset(
             subject=dataset_subsets,
             subject_category_mapping=subject_category_mapping,
         )
-        if subject_category_mapping:
-            metrics["category_accuracy"] = metrics.get("category_accuracy", {})
-        return metrics
+        # Use the new calculate_metrics function
+        results = calculate_metrics(
+            metrics["correct_predictions"],
+            metrics["total_samples"],
+            category_correct,
+            category_total,
+        )
+        results.update(metrics)
+        return results
 
 
 if __name__ == "__main__":
@@ -444,7 +477,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task_config_path",
         type=str,
-        default=os.path.join(os.path.dirname(__file__), "tasks", "math.yaml"),
+        default=os.path.join(os.path.dirname(__file__), "tasks", "mmlu.yaml"),
         help="Path to the task configuration YAML file.",
     )
     parser.add_argument(

@@ -29,7 +29,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     borderColor: isHovered ? '#4CAF50' : style.borderColor || '#ccc',
     borderWidth: isHovered ? '2px' : style.borderWidth || '1px',
     borderStyle: 'solid',
-    transition: 'border-color 0.2s, border-width 0.2s',
+    transition: 'border-color 0.1s, border-width 0.02s',
     position: 'relative', // Add this to ensure proper positioning of handles
   };
 

@@ -9,12 +9,13 @@ import Wrapper from '../textEditor/Wrapper';
 import JsonEditor from '../JsonEditor';
 import CodeEditor from '../CodeEditor';
 import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
+import { Button } from '@nextui-org/react'; // Import NextUI Button
 
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
 
-    
+
 
     // Initialize configData dynamically based on the selected node type
     const initializeConfigData = (configSchema) => {
@@ -56,8 +57,8 @@ const NodeDetails = ({ nodeID }) => {
 
     const handleJsonChange = (updatedJson) => {
         dispatch(updateNodeData({ nodeId, data: updatedJson }));
-      };
-      const jsonOptions = ['option1', 'option2', 'option3'];
+    };
+    const jsonOptions = ['option1', 'option2', 'option3'];
 
 
     useEffect(() => {
@@ -70,10 +71,10 @@ const NodeDetails = ({ nodeID }) => {
     }, [nodeID, node, nodeSchema]);
 
     // useEffect(() => {
-        
+
     //     console.log('Node ID:', nodeID, 'Node Type:', nodeType);
     //     console.log('Node Schema:', nodeSchema);
-        
+
     //     // Fetch node data from the redux store and update the local state
     //     // setConfigData(node?.data?.config);
     //     console.log(node?.data?.config);
@@ -122,11 +123,11 @@ const NodeDetails = ({ nodeID }) => {
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config) return null;
         const properties = nodeSchema.config.properties;
-    
+
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = configData[key];
-    
+
             if (field.$ref) {
                 // Handle enums using $ref
                 const refPath = field.$ref.replace('#/$defs/', '');
@@ -135,7 +136,7 @@ const NodeDetails = ({ nodeID }) => {
                     return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
                 }
             }
-    
+
             switch (field.type) {
                 case 'string':
                     if (key === 'system_prompt') {
@@ -210,7 +211,7 @@ const NodeDetails = ({ nodeID }) => {
             }
         });
     };
-    
+
 
     return (
         <div className="p-4">
@@ -223,26 +224,29 @@ const NodeDetails = ({ nodeID }) => {
             <div className="mt-4">
                 {isEditing ? (
                     <>
-                        <button
-                            className="px-2 py-1 bg-purple-600 text-white rounded mr-2"
+                        <Button
+                            color="primary"
+                            auto
                             onClick={handleSave}
                         >
                             Save
-                        </button>
-                        <button
-                            className="px-2 py-1 bg-gray-600 text-white rounded"
+                        </Button>
+                        <Button
+                            color="default"
+                            auto
                             onClick={() => setIsEditing(false)}
                         >
                             Cancel
-                        </button>
+                        </Button>
                     </>
                 ) : (
-                    <button
-                        className="px-2 py-1 bg-purple-600 text-white rounded"
+                    <Button
+                        color="primary"
+                        auto
                         onClick={() => setIsEditing(true)}
                     >
                         Edit Config
-                    </button>
+                    </Button>
                 )}
             </div>
         </div>
