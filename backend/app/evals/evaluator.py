@@ -91,10 +91,12 @@ def load_dataset_by_name(
     return dataset
 
 
+# https://github.com/EleutherAI/lm-evaluation-harness/blob/1185e89a044618b5adc6f0b9363b629a19fffdc4/lm_eval/utils.py#L402
 def ignore_constructor(loader, node):
     return node
 
 
+# https://github.com/EleutherAI/lm-evaluation-harness/blob/1185e89a044618b5adc6f0b9363b629a19fffdc4/lm_eval/utils.py#L406
 def import_function(loader, node):
     function_name = loader.construct_scalar(node)
     yaml_path = os.path.dirname(loader.name)
@@ -112,6 +114,7 @@ def import_function(loader, node):
     return function
 
 
+# https://github.com/EleutherAI/lm-evaluation-harness/blob/1185e89a044618b5adc6f0b9363b629a19fffdc4/lm_eval/utils.py#L423
 def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full"):
     if mode == "simple":
         constructor_fn = ignore_constructor
