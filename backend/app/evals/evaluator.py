@@ -225,7 +225,7 @@ def extract_answer(response_text, answer_extraction: Dict[str, Any]):
             if match:
                 extracted_answer = normalize_extracted_answer(match.group(1))
                 return extracted_answer
-        return ""  # Return empty if no match is found
+        return response_text  # Return empty if no match is found
     elif extraction_method == "math":
         extracted_answer = extract_answer_with_regex(response_text)
         return extracted_answer
@@ -305,7 +305,6 @@ async def evaluate_on_dataset(
         transformed_batch = [
             dict(zip(batch.keys(), values)) for values in zip(*batch.values())
         ]
-        print(f"Processing batch starting at task_id {task_id}")
         full_prompts = [
             generate_input_prompt(problem, doc_to_text, preamble, prompt)
             for problem in transformed_batch
@@ -319,10 +318,7 @@ async def evaluate_on_dataset(
             all_responses[task_id] = response_text
             predicted_answer = extract_answer(response_text, answer_extraction)
             short_responses[task_id] = predicted_answer
-            ground_truth_answer_raw = get_ground_truth_answer(problem, doc_to_target)
-            ground_truth_answer = extract_answer(
-                ground_truth_answer_raw, answer_extraction
-            )
+            ground_truth_answer = get_ground_truth_answer(problem, doc_to_target)
             is_correct = await evaluate_answer(
                 predicted_answer, ground_truth_answer, evaluation
             )
@@ -373,6 +369,7 @@ async def evaluate_on_dataset(
 async def evaluate_model_on_dataset(
     task_config: dict,
     batch_size: int = 10,
+    num_samples: Optional[int] = None,  # Added `num_samples` parameter
 ) -> dict:
     """Evaluates the model on the specified dataset and returns evaluation metrics."""
     # Extract configurations from task_config
@@ -409,6 +406,11 @@ async def evaluate_model_on_dataset(
             dataset = load_dataset_by_name(
                 dataset_name, dataset_split, subset, process_docs
             )
+            # Subsample the dataset if num_samples is specified
+            if num_samples is not None:
+                dataset = dataset.shuffle(seed=42).select(
+                    range(min(num_samples, len(dataset)))
+                )
             metrics = await evaluate_on_dataset(
                 dataset,
                 task_config,
@@ -447,6 +449,11 @@ async def evaluate_model_on_dataset(
         dataset = load_dataset_by_name(
             dataset_name, dataset_split, dataset_subsets, process_docs
         )
+        # Subsample the dataset if num_samples is specified
+        if num_samples is not None:
+            dataset = dataset.shuffle(seed=42).select(
+                range(min(num_samples, len(dataset)))
+            )
         metrics = await evaluate_on_dataset(
             dataset,
             task_config,
@@ -470,12 +477,20 @@ if __name__ == "__main__":
         default=os.path.join(os.path.dirname(__file__), "tasks", "gpqa.yaml"),
         help="Path to the task configuration YAML file.",
     )
+    parser.add_argument(
+        "--num_samples",  # Added argument for number of samples
+        type=int,
+        default=20,
+        help="Number of samples to evaluate from the dataset.",
+    )
     args = parser.parse_args()
 
     # Load task configuration from YAML file
     task_config = load_yaml_config(args.task_config_path)
-    # Run the evaluation
-    results = asyncio.run(evaluate_model_on_dataset(task_config))
+    # Run the evaluation with `num_samples` parameter
+    results = asyncio.run(
+        evaluate_model_on_dataset(task_config, num_samples=args.num_samples)
+    )
 
     # Print the results
     print("Overall Accuracy:", results.get("accuracy", 0))
