@@ -5,14 +5,13 @@ dataset_subsets: None
 process_docs: !function gpqa.process_docs
 
 preamble: |
-  Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
-prompt: ''
+  Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD, nothing else. Think step by step before answering.
 doc_to_text: "What is the correct answer to this question:{{Question}}\nChoices:\n(A) {{choice1}}\n(B) {{choice2}}\n(C) {{choice3}}\n(D) {{choice4}}\nAnswer:"
 doc_to_target: "{{answer}}"
-doc_to_choice: ["(A)", "(B)", "(C)", "(D)"]
 
-answer_extraction:
-  method: 'mcq'
+predicted_answer_extraction:
+  regexes:
+    - "(?i)Answer\\s*:\\s*([A-D])"
 
 evaluation:
-  method: 'mcq'
+  method: mcq

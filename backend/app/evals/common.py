@@ -4,12 +4,12 @@ from multiprocessing.pool import ThreadPool
 from typing import Any
 import re
 
-import jinja2
 import numpy as np
 from tqdm import tqdm
 
 from .types import EvalResult, Message, SingleEvalResult
 
+from typing import Optional
 
 QUERY_TEMPLATE_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
@@ -23,54 +23,6 @@ D) {D}
 """.strip()
 
 ANSWER_PATTERN_MULTICHOICE = r"(?i)Answer\s*:\s*([A-D])"
-ANSWER_PATTERN = r"(?i)Answer\s*:\s*([^\n]+)"
-MULTILINGUAL_ANSWER_PATTERN_TEMPLATE = (
-    "(?i){}\s*([A-D]|[أ-د]|[অ]|[ব]|[ড]|[ঢ]|[Ａ]|[Ｂ]|[Ｃ]|[Ｄ])"
-)
-# All the different ways "Answer" is written in different languages
-MULTILINGUAL_ANSWER_REGEXES = [
-    "Answer\s*:",
-    "Answer\s*:​​​​​​",  # Korean invisible character
-    "উত্তর\s*:",
-    "उत्तर\s*:",
-    "উত্তরঃ",
-    "উত্তর\s*:",
-    "Antwort\s*:",
-    "답변\s*:",
-    "정답\s*:",
-    "답\s*:",
-    "答案\s*：",
-    "答案\s*:",
-    "答\s*：",
-    "答\s*:",
-    "答复\s*：",
-    "答曰\s*：",
-    "الإجابة:",
-    "الجواب:",
-    "إجابة:",
-    "الإجابة النهائية:",
-    "الإجابة الصحيحة:",
-    "الإجابة الصحيحة هي:",
-    "الإجابة هي:",
-    "Respuesta\s*:",
-    "Risposta\s*:",
-    "答え\s*:",
-    "答え\s*：",
-    "回答\s*:",
-    "回答\s*：",
-    "解答\s*:",
-    "Jawaban\s*:",
-    "Réponse\s*:",
-    "Resposta\s*:",
-    "Jibu\s*:",
-    "Idahun\s*:",
-    "Ìdáhùn\s*:",
-    "Idáhùn\s*:",
-    "Àmọ̀nà\s*:",
-    "Àdáhùn\s*:",
-    "Ànúgọ\s*:",
-    "Àṣàyàn\s*:",
-]
 
 
 EQUALITY_TEMPLATE = r"""
@@ -134,20 +86,6 @@ Respond with only "Yes" or "No" (without quotes). Do not include a rationale.
 """.strip()
 
 
-HTML_JINJA = """
-<h3>Prompt conversation</h3>
-{% for message in prompt_messages %}
-{{ message_to_html(message) | safe }}
-{% endfor %}
-<h3>Sampled message</h3>
-{{ message_to_html(next_message) | safe }}
-<h3>Results</h3>
-<p>Correct Answer: {{ correct_answer }}</p>
-<p>Extracted Answer: {{ extracted_answer }}</p>
-<p>Score: {{ score }}</p>
-"""
-
-
 def format_multichoice_question(row):
     return QUERY_TEMPLATE_MULTICHOICE.format(**row)
 
@@ -209,124 +147,6 @@ def map_with_progress(f: callable, xs: list[Any], num_threads: int = 50):
             return list(tqdm(pool.imap(f, xs), total=len(xs)))
 
 
-jinja_env = jinja2.Environment(
-    loader=jinja2.BaseLoader(),
-    undefined=jinja2.StrictUndefined,
-    autoescape=jinja2.select_autoescape(["html", "xml"]),
-)
-_message_template = """
-<div class="message {{ role }}">
-    <div class="role">
-    {{ role }}
-    {% if variant %}<span class="variant">({{ variant }})</span>{% endif %}
-    </div>
-    <div class="content">
-    <pre>{{ content }}</pre>
-    </div>
-</div>
-"""
-
-
-def message_to_html(message: Message) -> str:
-    """
-    Generate HTML snippet (inside a <div>) for a message.
-    """
-    return jinja_env.from_string(_message_template).render(
-        role=message["role"],
-        content=message["content"],
-        variant=message.get("variant", None),
-    )
-
-
-jinja_env.globals["message_to_html"] = message_to_html
-
-
-_report_template = """<!DOCTYPE html>
-<html>
-    <head>
-        <style>
-            .message {
-                padding: 8px 16px;
-                margin-bottom: 8px;
-                border-radius: 4px;
-            }
-            .message.user {
-                background-color: #B2DFDB;
-                color: #00695C;
-            }
-            .message.assistant {
-                background-color: #B39DDB;
-                color: #4527A0;
-            }
-            .message.system {
-                background-color: #EEEEEE;
-                color: #212121;
-            }
-            .role {
-                font-weight: bold;
-                margin-bottom: 4px;
-            }
-            .variant {
-                color: #795548;
-            }
-            table, th, td {
-                border: 1px solid black;
-            }
-            pre {
-                white-space: pre-wrap;
-            }
-        </style>
-    </head>
-    <body>
-    {% if metrics %}
-    <h1>Metrics</h1>
-    <table>
-    <tr>
-        <th>Metric</th>
-        <th>Value</th>
-    </tr>
-    <tr>
-        <td><b>Score</b></td>
-        <td>{{ score | float | round(3) }}</td>
-    </tr>
-    {% for name, value in metrics.items() %}
-    <tr>
-        <td>{{ name }}</td>
-        <td>{{ value }}</td>
-    </tr>
-    {% endfor %}
-    </table>
-    {% endif %}
-    <h1>Examples</h1>
-    {% for html in htmls %}
-    {{ html | safe }}
-    <hr>
-    {% endfor %}
-    </body>
-</html>
-"""
-
-
-def make_report(eval_result: EvalResult) -> str:
-    """
-    Create a standalone HTML report from an EvalResult.
-    """
-    return jinja_env.from_string(_report_template).render(
-        score=eval_result.score,
-        metrics=eval_result.metrics,
-        htmls=eval_result.htmls,
-    )
-
-
-def make_report_from_example_htmls(htmls: list[str]):
-    """
-    Create a standalone HTML report from a list of example htmls
-    """
-    return jinja_env.from_string(_report_template).render(
-        score=None, metrics={}, htmls=htmls
-    )
-
-
 def normalize_response(response: str) -> str:
     """
     Normalize the response by removing markdown and LaTeX formatting that may prevent a match.
@@ -370,10 +190,14 @@ def normalize_extracted_answer(extracted_answer: str) -> str:
     )
 
 
-def extract_answer_with_regex(response_text: str) -> str:
+def extract_answer_with_regex(text: str, regexes: Optional[list[str]] = None) -> str:
     """
-    Extracts the answer from the response text using a regex search.
+    Extracts the answer from the text using a regex search.
     """
-    match = re.search(ANSWER_PATTERN, response_text)
-    extracted_answer = match.group(1) if match else response_text
-    return extracted_answer
+    regexes = regexes or []
+    for regex in regexes:
+        match = re.search(regex, text)
+        if match:
+            extracted_answer = match.group(1)
+            return extracted_answer
+    return text

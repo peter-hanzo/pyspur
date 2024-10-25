@@ -13,6 +13,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
   const dispatch = useDispatch();
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
+  const selectedNodeId = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from Redux
 
   const handleMouseEnter = () => {
     dispatch(setHoveredNode({ nodeId: id }));
@@ -23,14 +24,15 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
   };
 
   const isHovered = String(id) === String(hoveredNodeId);
+  const isSelected = String(id) === String(selectedNodeId); // Check if the node is selected
 
   const cardStyle = {
     ...style,
-    borderColor: isHovered ? '#4CAF50' : style.borderColor || '#ccc',
-    borderWidth: isHovered ? '2px' : style.borderWidth || '1px',
+    borderColor: isSelected ? '#FF9800' : isHovered ? '#4CAF50' : style.borderColor || '#ccc', // Highlight selected node with orange
+    borderWidth: isSelected ? '3px' : isHovered ? '2px' : style.borderWidth || '1px', // Thicker border for selected node
     borderStyle: 'solid',
-    transition: 'border-color 0.2s, border-width 0.2s',
-    position: 'relative', // Add this to ensure proper positioning of handles
+    transition: 'border-color 0.1s, border-width 0.02s',
+    position: 'relative', // Ensure proper positioning of handles
   };
 
   return (

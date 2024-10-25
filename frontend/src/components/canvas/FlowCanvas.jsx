@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
-} from 'reactflow';
+  useReactFlow, // Add this import
+} from 'reactflow'; // Import useReactFlow from reactflow
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';
@@ -16,7 +17,7 @@ import {
 } from '../../store/flowSlice';
 import Spreadsheet from '../table/Table';
 import NodeDetails from '../nodes/NodeDetails';
-import { Card, Button } from '@nextui-org/react';
+import { Card, Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
@@ -43,7 +44,11 @@ const CustomEdge = ({
   style = {},
   data,
   markerEnd,
+  source, // Add source node ID
+  target, // Add target node ID
 }) => {
+  const { visible, setVisible, handleSelectNode } = useNodeSelector(); // Initialize the hook here
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -52,6 +57,13 @@ const CustomEdge = ({
     targetY,
     targetPosition,
   });
+
+
+
+  // Get the source and target nodes from the reactFlowInstance
+  const reactFlowInstance = useReactFlow();
+  const sourceNode = reactFlowInstance.getNode(source);
+  const targetNode = reactFlowInstance.getNode(target);
 
   return (
     <>
@@ -89,13 +101,29 @@ const CustomEdge = ({
               height: '100%',
             }}
           >
-            <Button
-              auto
-              onClick={() => console.log('Plus button clicked')}
-              style={{ padding: 0, minWidth: 'auto' }}
-            >
-              <RiAddCircleFill size={20} />
-            </Button>
+            <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
+              <PopoverTrigger>
+                <Button
+                  auto
+                  style={{ padding: 0, minWidth: 'auto' }}
+                >
+                  <RiAddCircleFill size={20} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <div className='p-4 flex flex-col space-y-2'>
+                  <div className='flex flex-col space-y-2'>
+                    <h3 className='text-sm font-semibold'>Blocks</h3>
+                    <Button auto light onClick={() => handleSelectNode('BasicLLMNode', sourceNode, targetNode)}>Basic LLM Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode', sourceNode, targetNode)}>Structured Output LLM Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('PythonFuncNode', sourceNode, targetNode)}>Python Function Node</Button>
+                    <Button auto light onClick={() => handleSelectNode('LLM', sourceNode, targetNode)}>LLM</Button>
+                    <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval', sourceNode, targetNode)}>Knowledge Retrieval</Button>
+                    <Button auto light onClick={() => handleSelectNode('End', sourceNode, targetNode)}>End</Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </foreignObject>
       )}

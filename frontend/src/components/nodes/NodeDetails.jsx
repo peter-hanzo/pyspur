@@ -145,9 +145,11 @@ const NodeDetails = ({ nodeID }) => {
         if (!nodeSchema || !nodeSchema.config) return null;
         const properties = nodeSchema.config.properties;
 
+
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = configData[key];
+
 
             if (field.$ref) {
                 const refPath = field.$ref.replace('#/$defs/', '');
@@ -156,6 +158,7 @@ const NodeDetails = ({ nodeID }) => {
                     return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
                 }
             }
+
 
             switch (field.type) {
                 case 'string':
@@ -320,26 +323,29 @@ const NodeDetails = ({ nodeID }) => {
             <div className="mt-4">
                 {isEditing ? (
                     <>
-                        <button
-                            className="px-2 py-1 bg-purple-600 text-white rounded mr-2"
+                        <Button
+                            color="primary"
+                            auto
                             onClick={handleSave}
                         >
                             Save
-                        </button>
-                        <button
-                            className="px-2 py-1 bg-gray-600 text-white rounded"
+                        </Button>
+                        <Button
+                            color="default"
+                            auto
                             onClick={() => setIsEditing(false)}
                         >
                             Cancel
-                        </button>
+                        </Button>
                     </>
                 ) : (
-                    <button
-                        className="px-2 py-1 bg-purple-600 text-white rounded"
+                    <Button
+                        color="primary"
+                        auto
                         onClick={() => setIsEditing(true)}
                     >
                         Edit Config
-                    </button>
+                    </Button>
                 )}
             </div>
         </div>

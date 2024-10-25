@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
-import { useReactFlow } from 'reactflow';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addNode } from '../../../../store/flowSlice';
