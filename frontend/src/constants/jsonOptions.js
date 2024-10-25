@@ -1,1 +1,1 @@
-export const jsonOptions = ['string', 'number', 'boolean'];
+export const jsonOptions = ['str', 'float', 'int'];

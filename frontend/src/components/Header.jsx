@@ -39,10 +39,17 @@ const Header = () => {
         },
         initial_inputs: {
           "1": {
-            "user_message": "okay, give it to me", "city": "Jabalpur", "units": "celsius"
-          }}
+            "user_message": "okay, give it to me", "city": "Jabalpur"
+          },
+          // "2": {},
+          // "3": {
+          //   "user_message": "please enlighten me", "city": "Jabalpur", "units": "celsius"
+          // },
+          // "4": { "user_message": "Why do politicians and actors not like to ride shotgun?" },
+          // "5": { "user_message": "Complete this joke like Jimmy Carr: Why do politicians and actors not like to ride shotgun?" }
+        }
       };
-      
+
 
       // console.log('Data passed to API:', formattedData);
       // const nodeTypes = await getNodeTypes();

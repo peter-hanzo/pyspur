@@ -33,7 +33,7 @@ const DynamicNode = ({ id, type }) => {
       <>
         {Object.entries(inputSchema).length > 0 ? (
           Object.entries(inputSchema).map(([key, value], index) => (
-            <div key={`input-${index}`} className={styles.inputHandleWrapper} style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}>
+            <div key={`${index}`} className={styles.inputHandleWrapper} style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}>
               <Handle
                 type="target"
                 position="left"
@@ -47,7 +47,7 @@ const DynamicNode = ({ id, type }) => {
           <Handle
             type="target"
             position="left"
-            id="input-default"
+            id="assistant_message"
             className={`${styles.handle} ${styles.handleLeft}`}
             style={{ top: '50%' }}
           />
@@ -60,7 +60,7 @@ const DynamicNode = ({ id, type }) => {
               <Handle
                 type="source"
                 position="right"
-                id={`output-${key}`}
+                id={`${key}`}
                 className={`${styles.handle} ${styles.handleRight}`}
               />
             </div>
@@ -69,7 +69,7 @@ const DynamicNode = ({ id, type }) => {
           <Handle
             type="source"
             position="right"
-            id="output-default"
+            id="assistant_message"
             className={`${styles.handle} ${styles.handleRight}`}
             style={{ top: '50%' }}
           />

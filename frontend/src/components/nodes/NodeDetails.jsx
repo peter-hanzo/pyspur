@@ -75,7 +75,7 @@ const NodeDetails = ({ nodeID }) => {
                 }
             }
         });
-        console.log("config", config);
+        // console.log("config", config);
         return config;
     };
 
