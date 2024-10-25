@@ -4,12 +4,12 @@ import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-o
 import { useSelector, useDispatch } from 'react-redux';
 import { addNode } from '../../../../store/flowSlice';
 import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
-import { useReactFlow } from 'reactflow';
+import { useNodeSelector } from '../../../../hooks/useNodeSelector';
 
 
 const Control = () => {
   const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Retrieve reactFlowInstance from the store
-  // const { visible, setVisible, handleSelectNode } = useNodeSelector(reactFlowInstance);
+  const { visible, setVisible } = useNodeSelector(reactFlowInstance);
   const [selectedCategory, setSelectedCategory] = useState(null); // Track selected category
   const dispatch = useDispatch();
   const hoveredNode = useSelector((state) => state.hoveredNode);
