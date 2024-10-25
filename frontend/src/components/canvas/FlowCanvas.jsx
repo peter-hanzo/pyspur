@@ -297,33 +297,31 @@ const FlowCanvas = () => {
             zIndex: 1,
           }}
         >
-          {activeTab === 'sheet1' ? (
-            <ReactFlow
-              nodes={nodes}
-              edges={styledEdges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              fitView
-              onInit={onInit}
-              onNodeMouseEnter={onNodeMouseEnter}
-              onNodeMouseLeave={onNodeMouseLeave}
-              snapToGrid={true}
-              snapGrid={[15, 15]}
-              onPaneClick={onPaneClick}
-              onNodeClick={onNodeClick}
-              onEdgeMouseEnter={onEdgeMouseEnter}
-              onEdgeMouseLeave={onEdgeMouseLeave}
-              onNodesDelete={onNodesDelete} // Add the onNodesDelete callback
-            >
-              <Background />
-              <Operator />
-            </ReactFlow>
-          ) : (
-            <Spreadsheet initialData={spreadsheetData} onDataUpdate={setSpreadsheetData} />
-          )}
+
+          <ReactFlow
+            nodes={nodes}
+            edges={styledEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            fitView
+            onInit={onInit}
+            onNodeMouseEnter={onNodeMouseEnter}
+            onNodeMouseLeave={onNodeMouseLeave}
+            snapToGrid={true}
+            snapGrid={[15, 15]}
+            onPaneClick={onPaneClick}
+            onNodeClick={onNodeClick}
+            onEdgeMouseEnter={onEdgeMouseEnter}
+            onEdgeMouseLeave={onEdgeMouseLeave}
+            onNodesDelete={onNodesDelete} // Add the onNodesDelete callback
+          >
+            <Background />
+            <Operator />
+          </ReactFlow>
+
         </div>
         {activeTab === 'sheet1' && selectedNodeID && (
           <div
@@ -333,9 +331,7 @@ const FlowCanvas = () => {
             <NodeDetails nodeID={selectedNodeID} />
           </div>
         )}
-        <div style={{ height: `${footerHeight}px` }}>
-          <TabbedFooter activeTab={activeTab} setActiveTab={setActiveTab} />
-        </div>
+
       </div>
     </div>
   );
