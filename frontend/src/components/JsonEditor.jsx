@@ -29,19 +29,18 @@ const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
 
   return (
     <div className="json-editor">
-      <label className="font-semibold mb-2 block">JSON Editor</label>
       <div className="mb-4">
         <input
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
           placeholder="Enter new key"
-          className="mr-2 p-2 border rounded"
+          className="mr-2 p-1 border rounded"
           disabled={disabled} // Disable when not editing
         />
         <button
           onClick={handleAddKey}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-2 py-1 rounded disabled:opacity-50 disabled:bg-gray-400"
           disabled={disabled} // Disable when not editing
         >
           Add Key

@@ -70,7 +70,7 @@ const Header = () => {
           <p className="font-bold text-inherit">PySpur</p>
         </NavbarBrand>
       </NavbarContent>
-      <NavbarContent className="hidden sm:flex" justify="center">
+      {/* <NavbarContent className="hidden sm:flex" justify="center">
         <NavbarItem>
           <Input
             defaultValue="Paper Summarizer"
@@ -79,20 +79,20 @@ const Header = () => {
             radius="lg"
           />
         </NavbarItem>
-      </NavbarContent>
+      </NavbarContent> */}
 
 
       <NavbarContent justify="end">
-        <NavbarItem>
-          <Button auto flat css={{ marginRight: '20px' }} onClick={handleRunWorkflow}>
+        <NavbarItem >
+          <Button auto flat onClick={handleRunWorkflow} className="mx-1">
             <RiPlayFill />
             Run Test
           </Button>
-          <Button auto flat>
+          <Button auto flat className="mx-1">
             <RiShareFill />
             Share
           </Button>
-          <Button auto flat>
+          <Button auto flat className="mx-1">
             <RiUploadCloud2Line />
             Publish
           </Button>

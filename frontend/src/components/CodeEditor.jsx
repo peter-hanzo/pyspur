@@ -19,7 +19,7 @@ const CodeEditor = ({ code, onChange, disabled }) => {
 
   return (
     <div className="code-editor">
-      <label className="font-semibold mb-2 block">Code Editor</label>
+      <label className="text-sm font-semibold mb-2 block">Code Editor</label>
       <CodeMirror
         value={value}
         height="200px"

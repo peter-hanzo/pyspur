@@ -129,11 +129,11 @@ const NodeDetails = ({ nodeID }) => {
 
     const renderEnumSelect = (key, label, enumValues) => (
         <div key={key}>
-            <label className="font-semibold mb-2 block">{label}</label>
+            <label className="text-sm font-semibold mb-2 block">{label}</label>
             <select
                 value={configData[key] || ''}
                 onChange={(e) => handleInputChange(key, e.target.value)}
-                className="border p-2 w-full"
+                className="border p-1 w-full"
                 disabled={!isEditing}
             >
                 {enumValues.map((option) => (
@@ -165,7 +165,7 @@ const NodeDetails = ({ nodeID }) => {
                 case 'string':
                     if (key === 'system_prompt') {
                         return (
-                            <div key={key} className="my-4">
+                            <div key={key} className="my-2">
                                 {isPromptEditing && (
                                     <PromptEditor
                                         nodeID={nodeID}
@@ -176,10 +176,10 @@ const NodeDetails = ({ nodeID }) => {
 
                                 {!isPromptEditing && (
                                     <div>
-                                        <h3 className="my-4 font-semibold">Prompt</h3>
+                                        <h3 className="my-2 text-sm font-semibold">Prompt</h3>
                                         <Wrapper editor={promptEditor} isEditable={false} />
 
-                                        <div className="mb-10">
+                                        <div className="mb-4">
                                             {isEditing && (<button
                                                 className="px-2 py-1 bg-purple-600 text-white rounded mr-2"
                                                 onClick={() => setIsPromptEditing(true)}
@@ -189,7 +189,8 @@ const NodeDetails = ({ nodeID }) => {
                                             )}
                                         </div>
                                     </div>
-                                )}</div>
+                                )}
+                            </div>
                         );
                     }
                     return (
@@ -252,14 +253,16 @@ const NodeDetails = ({ nodeID }) => {
                 case 'object':
                     if (key === 'output_schema' || key === 'input_schema') {
                         return (
-                            <div key={key} className="my-4">
-                                <label className="font-semibold mb-2 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
+                            <div key={key} className="my-2">
+                                <hr className="my-2" />
+                                <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
                                 <JsonEditor
                                     jsonValue={value}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
                                     options={jsonOptions}
                                     disabled={!isEditing}
                                 />
+                                <hr className="my-2" />
                             </div>
                         );
                     }
@@ -295,10 +298,10 @@ const NodeDetails = ({ nodeID }) => {
                                     />
                                 )}
 
-                                <h3 className="my-6 font-semibold">Few Shot Examples</h3>
+                                <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
                                 <ul>
                                     {node?.data?.config?.few_shot_examples?.map((example, index) => (
-                                        <li key={index} className="flex items-center justify-between mb-2">
+                                        <li key={index} className="flex items-center justify-between mb-1">
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
                                                 {isEditing && (<button
@@ -320,9 +323,9 @@ const NodeDetails = ({ nodeID }) => {
                                     ))}
                                 </ul>
 
-                                <div className="mt-4">
+                                <div className="mt-2">
                                     {isEditing && (<button
-                                        className="mt-2 px-2 py-1 bg-purple-600 text-white rounded"
+                                        className="mt-1 px-2 py-1 bg-purple-600 text-white rounded"
                                         onClick={handleAddNewExample}
                                         disabled={!isEditing}
                                     >
@@ -334,45 +337,50 @@ const NodeDetails = ({ nodeID }) => {
                         );
                     }
             }
-        });
+        }).concat(<hr key="divider" className="my-2" />);
     };
 
     return (
-        <div className="p-4">
-            <h2 className="text-lg font-bold mb-2">Node Details: {nodeType}</h2>
-            <p><strong>ID:</strong> {nodeID}</p>
+        <div className="px-4 py-1 overflow-auto max-h-screen" id="node-details">
+            <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
+            <h2 className="text-sm font-semibold">{nodeType}</h2>
+            <hr className="my-4" />
 
-            <h3 className="my-4 font-semibold">Configuration</h3>
-            {renderConfigFields()}
-
-            <div className="mt-4">
-                {isEditing ? (
-                    <>
+            <div className="mb-4 flex justify-between">
+                <div className='flex items-center'>
+                    <h3 className="text-lg font-semibold">Node Config</h3>
+                </div>
+                <div>
+                    {isEditing ? (
+                        <>
+                            <Button
+                                className="bg-blue-500 text-white px-2 py-1 rounded mr-2"
+                                auto
+                                onClick={handleSave}
+                            >
+                                Save
+                            </Button>
+                            <Button
+                                className="bg-red-500 text-white px-2 py-1 rounded"
+                                auto
+                                onClick={() => setIsEditing(false)}
+                            >
+                                Cancel
+                            </Button>
+                        </>
+                    ) : (
                         <Button
-                            color="primary"
+                            className="bg-blue-500 text-white px-2 py-1 rounded"
                             auto
-                            onClick={handleSave}
+                            onClick={() => setIsEditing(true)}
                         >
-                            Save
+                            Edit Config
                         </Button>
-                        <Button
-                            color="default"
-                            auto
-                            onClick={() => setIsEditing(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </>
-                ) : (
-                    <Button
-                        color="primary"
-                        auto
-                        onClick={() => setIsEditing(true)}
-                    >
-                        Edit Config
-                    </Button>
-                )}
+                    )}
+                </div>
             </div>
+            {renderConfigFields()}
+            <hr className="my-2" />
         </div>
     );
 };
