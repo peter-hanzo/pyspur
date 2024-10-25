@@ -13,6 +13,7 @@ import { jsonOptions } from '../../constants/jsonOptions';
 import FewShotEditor from './LLMNode/Utils/FewShotEditor';
 import PromptEditor from './LLMNode/Utils/PromptEditor';
 import Editor from '../textEditor/Editor';
+import { Button } from '@nextui-org/react';
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();

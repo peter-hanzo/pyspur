@@ -23,6 +23,7 @@ import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
+import { useNodeSelector } from '../../hooks/useNodeSelector';
 
 // Create a mapping of node types for ReactFlow
 const nodeTypes = {};
