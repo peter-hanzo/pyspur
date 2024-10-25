@@ -238,3 +238,80 @@ if __name__ == "__main__":
 
     output = asyncio.run(node(input_data))
     print(output)
+    print("-" * 50)
+    # Example usage of the SubworkflowNode for generating high-quality ad copy
+    workflow_json = """
+{
+    "nodes": [
+        {
+            "id": "1",
+            "node_type": "BranchSolveMergeNode",
+            "config": {
+                "llm_name": "gpt-4o",
+                "max_tokens": 100,
+                "temperature": 0.7,
+                "system_prompt": "You are an expert copywriter. Break down the task of creating an ad header into sub-tasks and solve them.",
+                "input_schema": {
+                    "product_description": "str"
+                },
+                "output_schema": {
+                    "header": "str"
+                }
+            }
+        },
+        {
+            "id": "2",
+            "node_type": "BranchSolveMergeNode",
+            "config": {
+                "llm_name": "gpt-4o",
+                "max_tokens": 150,
+                "temperature": 0.7,
+                "system_prompt": "You are an expert copywriter. Break down the task of creating an ad sub-header into sub-tasks and solve them.",
+                "input_schema": {
+                    "product_description": "str",
+                    "header": "str"
+                },
+                "output_schema": {
+                    "sub_header": "str"
+                }
+            }
+        },
+        {
+            "id": "3",
+            "node_type": "MCTSNode",
+            "config": {
+                "llm_name": "gpt-4o",
+                "max_tokens": 50,
+                "temperature": 0.7,
+                "system_prompt": "You are a creative director reviewing ad headers. Generate variations and select the best one that doesn't overuse 'Elevate' or 'Delve'.",
+                "num_simulations": 5,
+                "simulation_depth": 3
+            }
+        }
+    ],
+    "links": [
+        {
+            "source_id": "1",
+            "source_output_key": "header",
+            "target_id": "2",
+            "target_input_key": "header"
+        },
+        {
+            "source_id": "1",
+            "source_output_key": "header",
+            "target_id": "3",
+            "target_input_key": "user_message"
+        }
+    ]
+}"""
+
+    input_data = {
+        "1__product_description": 'Dash Sparkling Water is a refreshing beverage made by infusing naturally flavored fruits and vegetables with sparkling water. It\'s free from sugars, sweeteners, and artificial additives, making it a clean and healthy choice for hydration. Dash prides itself on using "wonky" or imperfect produce, reducing food waste while providing a light and subtle flavor. Popular flavors include cucumber, lemon, raspberry, and peach, offering a crisp, refreshing taste. The minimalist ingredients and eco-conscious approach make Dash a go-to choice for those seeking a guilt-free, delicious alternative to sugary soft drinks or overly sweet sparkling waters.',
+        "2__product_description": 'Dash Sparkling Water is a refreshing beverage made by infusing naturally flavored fruits and vegetables with sparkling water. It\'s free from sugars, sweeteners, and artificial additives, making it a clean and healthy choice for hydration. Dash prides itself on using "wonky" or imperfect produce, reducing food waste while providing a light and subtle flavor. Popular flavors include cucumber, lemon, raspberry, and peach, offering a crisp, refreshing taste. The minimalist ingredients and eco-conscious approach make Dash a go-to choice for those seeking a guilt-free, delicious alternative to sugary soft drinks or overly sweet sparkling waters.',
+    }
+
+    node = SubworkflowNode(config=SubworkflowNodeConfig(workflow_json=workflow_json))
+    import asyncio
+
+    output = asyncio.run(node(input_data))
+    print(json.dumps(output.model_dump(), indent=2))
