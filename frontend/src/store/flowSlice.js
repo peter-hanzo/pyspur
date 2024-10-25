@@ -54,6 +54,10 @@ const flowSlice = createSlice({
     setReactFlowInstance: (state, action) => {
       state.reactFlowInstance = action.payload.instance; // Set the reactFlowInstance
     },
+    deleteNode: (state, action) => {
+      const nodeId = action.payload.nodeId;
+      state.nodes = state.nodes.filter((node) => node.id !== nodeId); // Remove the node by ID
+    },
   },
 });
 
@@ -67,6 +71,7 @@ export const {
   setHoveredNode,
   setSelectedNode,
   setReactFlowInstance, // Export the action for setting reactFlowInstance
+  deleteNode, // Export the action for deleting a node
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

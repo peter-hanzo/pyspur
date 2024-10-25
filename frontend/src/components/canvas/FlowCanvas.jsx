@@ -15,6 +15,7 @@ import {
   setHoveredNode,
   setSelectedNode,
   setReactFlowInstance, // Import the action
+  deleteNode, // Import the deleteNode action
 } from '../../store/flowSlice';
 import Spreadsheet from '../table/Table';
 import NodeDetails from '../nodes/NodeDetails';
@@ -25,8 +26,9 @@ import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
 import { useNodeSelector } from '../../hooks/useNodeSelector';
+import NodePopoverContent from './footer/operator/NodePopoverContent'; // Import the new component
+import { addNodeBetweenNodes } from './footer/operator/NodePopoverContent';
 
-// Create a mapping of node types for ReactFlow
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {
   nodeTypesConfig[category].forEach(node => {
@@ -34,7 +36,6 @@ Object.keys(nodeTypesConfig).forEach(category => {
   });
 });
 
-// Custom edge component
 const CustomEdge = ({
   id,
   sourceX,
@@ -161,7 +162,7 @@ const FlowCanvas = () => {
     [dispatch]
   );
 
-  const { visible, setVisible, handleSelectNode } = useNodeSelector(reactFlowInstance); // Use reactFlowInstance from Redux
+  const { visible, setVisible } = useNodeSelector(reactFlowInstance); // Use reactFlowInstance from Redux
 
   // Adding new state to manage active tab and spreadsheet data
   const [activeTab, setActiveTab] = useState('sheet1'); // Manage active tab state
@@ -172,6 +173,7 @@ const FlowCanvas = () => {
   // State to manage the visibility of the PopoverContent and the selected edge
   const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
   const [selectedEdge, setSelectedEdge] = useState(null); // Track the selected edge
+
 
   // Function to handle the visibility of the PopoverContent
   const handlePopoverOpen = useCallback(({ sourceNode, targetNode }) => {
@@ -250,6 +252,22 @@ const FlowCanvas = () => {
 
   const footerHeight = 100;
 
+  const handleSelectNode = (nodeType, sourceNode, targetNode) => {
+    // Logic to handle node selection in FlowCanvas
+    console.log(`Selected node type: ${nodeType}, source: ${sourceNode.id}, target: ${targetNode.id}`);
+    setPopoverContentVisible(false);
+  };
+
+  // Handle node deletion from React Flow
+  const onNodesDelete = useCallback(
+    (deletedNodes) => {
+      deletedNodes.forEach((node) => {
+        dispatch(deleteNode({ nodeId: node.id })); // Dispatch deleteNode for each deleted node
+      });
+    },
+    [dispatch]
+  );
+
   return (
     <div style={{ position: 'relative' }}>
       {/* Popover component moved here */}
@@ -261,17 +279,11 @@ const FlowCanvas = () => {
           onOpenChange={setPopoverContentVisible}
         >
           <PopoverContent>
-            <div className='p-4 flex flex-col space-y-2'>
-              <div className='flex flex-col space-y-2'>
-                <h3 className='text-sm font-semibold'>Blocks</h3>
-                <Button auto light onClick={() => handleSelectNode('BasicLLMNode', selectedEdge.sourceNode, selectedEdge.targetNode)}>Basic LLM Node</Button>
-                <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode', selectedEdge.sourceNode, selectedEdge.targetNode)}>Structured Output LLM Node</Button>
-                <Button auto light onClick={() => handleSelectNode('PythonFuncNode', selectedEdge.sourceNode, selectedEdge.targetNode)}>Python Function Node</Button>
-                <Button auto light onClick={() => handleSelectNode('LLM', selectedEdge.sourceNode, selectedEdge.targetNode)}>LLM</Button>
-                <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval', selectedEdge.sourceNode, selectedEdge.targetNode)}>Knowledge Retrieval</Button>
-                <Button auto light onClick={() => handleSelectNode('End', selectedEdge.sourceNode, selectedEdge.targetNode)}>End</Button>
-              </div>
-            </div>
+            <NodePopoverContent
+              handleSelectNode={(nodeType) =>
+                addNodeBetweenNodes(nodeType, selectedEdge.sourceNode, selectedEdge.targetNode, reactFlowInstance, dispatch, setVisible)
+              }
+            />
           </PopoverContent>
         </Popover>
       )}
@@ -295,7 +307,7 @@ const FlowCanvas = () => {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               fitView
-              onInit={onInit} // Pass the onInit function
+              onInit={onInit}
               onNodeMouseEnter={onNodeMouseEnter}
               onNodeMouseLeave={onNodeMouseLeave}
               snapToGrid={true}
@@ -304,6 +316,7 @@ const FlowCanvas = () => {
               onNodeClick={onNodeClick}
               onEdgeMouseEnter={onEdgeMouseEnter}
               onEdgeMouseLeave={onEdgeMouseLeave}
+              onNodesDelete={onNodesDelete} // Add the onNodesDelete callback
             >
               <Background />
               <Operator />

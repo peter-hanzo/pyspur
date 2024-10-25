@@ -2,35 +2,15 @@ import React, { useState } from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addNode } from '../../../../store/flowSlice';
-import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
+
 import { useNodeSelector } from '../../../../hooks/useNodeSelector';
+import NodePopoverContent, { addNodeWithoutConnection } from './NodePopoverContent'; // Import the refactored function
 
 
 const Control = () => {
   const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Retrieve reactFlowInstance from the store
   const { visible, setVisible } = useNodeSelector(reactFlowInstance);
-  const [selectedCategory, setSelectedCategory] = useState(null); // Track selected category
   const dispatch = useDispatch();
-  const hoveredNode = useSelector((state) => state.hoveredNode);
-
-  const handleSelectNode = (nodeType) => {
-    const id = `${reactFlowInstance.getNodes().length + 1}`;
-    const newNode = {
-      id,
-      type: nodeType,
-      position: reactFlowInstance.project({ x: 250, y: 5 }),
-      data: { label: `Node ${id}` },
-    };
-
-    dispatch(addNode({ node: newNode }));
-    setVisible(false);
-    setSelectedCategory(null); // Reset category selection
-  };
-
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-  };
 
   return (
     <Card className='h-12 flex items-center justify-center'>
@@ -42,26 +22,9 @@ const Control = () => {
             </Button>
           </PopoverTrigger>
           <PopoverContent>
-            <div className='p-4 flex flex-col space-y-2'>
-              {!selectedCategory ? (
-                // Display categories
-                Object.keys(nodeTypes).map((category) => (
-                  <Button key={category} auto light onClick={() => handleCategorySelect(category)}>
-                    {category}
-                  </Button>
-                ))
-              ) : (
-                // Display nodes within the selected category
-                <div className='flex flex-col space-y-2'>
-                  <Button auto light onClick={() => setSelectedCategory(null)}>Back to Categories</Button>
-                  {nodeTypes[selectedCategory].map((node) => (
-                    <Button key={node.name} auto light onClick={() => handleSelectNode(node.name)}>
-                      {node.name}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <NodePopoverContent
+              handleSelectNode={(nodeType) => addNodeWithoutConnection(nodeType, reactFlowInstance, dispatch, setVisible)}
+            />
           </PopoverContent>
         </Popover>
       </div>

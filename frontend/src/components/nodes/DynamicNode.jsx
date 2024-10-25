@@ -10,7 +10,7 @@ const DynamicNode = ({ id, type }) => {
   const [nodeWidth, setNodeWidth] = useState('auto');
 
   useEffect(() => {
-    if (nodeRef.current) {
+    if (nodeRef.current && node) { // Ensure node exists before accessing its properties
       const inputLabels = Object.keys(node.data?.config?.input_schema || {});
       const outputLabels = Object.keys(node.data?.config?.output_schema || {});
       const maxLabelLength = Math.max(
@@ -23,9 +23,11 @@ const DynamicNode = ({ id, type }) => {
   }, [node]);
 
   const renderHandles = () => {
+    if (!node) return null; // Return early if node is undefined
+
     const inputSchema = node.data?.config?.input_schema || {};
     const outputSchema = node.data?.config?.output_schema || {};
-    
+
     const inputs = Object.keys(inputSchema).length || 1;
     const outputs = Object.keys(outputSchema).length || 1;
 
@@ -52,7 +54,7 @@ const DynamicNode = ({ id, type }) => {
             style={{ top: '50%' }}
           />
         )}
-        
+
         {Object.entries(outputSchema).length > 0 ? (
           Object.entries(outputSchema).map(([key, value], index) => (
             <div key={`output-${index}`} className={styles.outputHandleWrapper} style={{ top: `${(index + 1) * 100 / (outputs + 1)}%` }}>
@@ -77,6 +79,10 @@ const DynamicNode = ({ id, type }) => {
       </>
     );
   };
+
+  if (!node) {
+    return null; // Return null if the node is not found (i.e., it has been deleted)
+  }
 
   return (
     <BaseNode id={id}>
