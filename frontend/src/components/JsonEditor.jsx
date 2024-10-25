@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const JsonEditor = ({ jsonValue = {}, onChange, options }) => {
+const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
   const [newKey, setNewKey] = useState('');
 
   const handleAddKey = () => {
@@ -37,10 +37,12 @@ const JsonEditor = ({ jsonValue = {}, onChange, options }) => {
           onChange={(e) => setNewKey(e.target.value)}
           placeholder="Enter new key"
           className="mr-2 p-2 border rounded"
+          disabled={disabled} // Disable when not editing
         />
         <button
           onClick={handleAddKey}
           className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={disabled} // Disable when not editing
         >
           Add Key
         </button>
@@ -52,6 +54,7 @@ const JsonEditor = ({ jsonValue = {}, onChange, options }) => {
             value={value}
             onChange={(e) => handleValueChange(key, e.target.value)}
             className="mr-2 p-2 border rounded"
+            disabled={disabled} // Disable when not editing
           >
             {options.map((option) => (
               <option key={option} value={option}>
@@ -62,6 +65,7 @@ const JsonEditor = ({ jsonValue = {}, onChange, options }) => {
           <button
             onClick={() => handleRemoveKey(key)}
             className="bg-red-500 text-white px-2 py-1 rounded"
+            disabled={disabled} // Disable when not editing
           >
             Remove
           </button>

@@ -22,14 +22,17 @@ import { Card, Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-o
 import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
+import { v4 as uuidv4 } from 'uuid';
+import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
 import { useNodeSelector } from '../../hooks/useNodeSelector';
 
-const nodeTypes = {
-  BasicLLMNode: (props) => <DynamicNode {...props} type="BasicLLMNode" />,
-  StructuredOutputLLMNode: (props) => <DynamicNode {...props} type="StructuredOutputLLMNode" />,
-  PythonFuncNode: (props) => <DynamicNode {...props} type="PythonFuncNode" />,
-  // Add other node types here as needed
-};
+// Create a mapping of node types for ReactFlow
+const nodeTypes = {};
+Object.keys(nodeTypesConfig).forEach(category => {
+  nodeTypesConfig[category].forEach(node => {
+    nodeTypes[node.name] = (props) => <DynamicNode {...props} type={node.name} />;
+  });
+});
 
 // Custom edge component
 const CustomEdge = ({
@@ -64,7 +67,6 @@ const CustomEdge = ({
 
   return (
     <>
-      {/* Visible edge path */}
       <path
         id={id}
         style={style}
@@ -73,7 +75,6 @@ const CustomEdge = ({
         markerEnd={markerEnd}
         fill="none"
       />
-      {/* Invisible path to increase hover area */}
       <path
         d={edgePath}
         fill="none"
@@ -145,7 +146,14 @@ const FlowCanvas = () => {
     [dispatch]
   );
   const onConnect = useCallback(
-    (connection) => dispatch(connect({ connection })),
+    (connection) => {
+      const newEdge = {
+        ...connection,
+        id: uuidv4(),
+        key: uuidv4(),
+      };
+      dispatch(connect({ connection: newEdge }));
+    },
     [dispatch]
   );
   const onUpdateNodeData = useCallback(
@@ -193,33 +201,33 @@ const FlowCanvas = () => {
         data: {
           ...edge.data,
           showPlusButton: isHovered,
-          onPopoverOpen: handlePopoverOpen, // Pass the function here
+          onPopoverOpen: handlePopoverOpen,
         },
+        key: edge.id,
       };
     });
   }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
 
-  // Define edge hover event handlers
   const onEdgeMouseEnter = useCallback(
     (event, edge) => {
-      setHoveredEdge(edge.id); // Set hovered edge
+      setHoveredEdge(edge.id);
     },
     []
   );
 
   const onEdgeMouseLeave = useCallback(() => {
-    setHoveredEdge(null); // Clear hovered edge
+    setHoveredEdge(null);
   }, []);
 
   const onNodeMouseEnter = useCallback(
     (event, node) => {
-      dispatch(setHoveredNode({ nodeId: node.id })); // Set hovered node in Redux
+      dispatch(setHoveredNode({ nodeId: node.id }));
     },
     [dispatch]
   );
 
   const onNodeMouseLeave = useCallback(() => {
-    dispatch(setHoveredNode({ nodeId: null })); // Clear hovered node in Redux
+    dispatch(setHoveredNode({ nodeId: null }));
   }, [dispatch]);
 
   // Function to handle the initialization of ReactFlow instance
@@ -227,21 +235,20 @@ const FlowCanvas = () => {
     dispatch(setReactFlowInstance({ instance })); // Dispatch the instance to Redux
   }, [dispatch]);
 
-  // Handle node click to open text editor
   const onNodeClick = useCallback(
     (event, node) => {
-      dispatch(setSelectedNode({ nodeId: node.id })); // Set the clicked node in Redux
+      dispatch(setSelectedNode({ nodeId: node.id }));
     },
     [dispatch]
   );
 
   const onPaneClick = useCallback(() => {
     if (selectedNodeID) {
-      dispatch(setSelectedNode({ nodeId: null })); // Clear selected node in Redux
+      dispatch(setSelectedNode({ nodeId: null }));
     }
   }, [dispatch, selectedNodeID]);
 
-  const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
+  const footerHeight = 100;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -286,7 +293,7 @@ const FlowCanvas = () => {
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes} // Add edgeTypes to ReactFlow
+              edgeTypes={edgeTypes}
               fitView
               onInit={onInit} // Pass the onInit function
               onNodeMouseEnter={onNodeMouseEnter}

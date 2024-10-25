@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from typing import List, Dict, Any
 from ..schemas.workflow import WorkflowNode, Workflow
 from ..execution.dask_cluster_manager import DaskClusterManager
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -20,6 +21,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Update with your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/node_types/")

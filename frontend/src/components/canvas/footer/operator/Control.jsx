@@ -1,13 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
-import { useNodeSelector } from '../../../../hooks/useNodeSelector';
-import { useSelector } from 'react-redux'; // Import useSelector to access the Redux store
+import { useSelector, useDispatch } from 'react-redux';
+import { addNode } from '../../../../store/flowSlice';
+import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
+import { useReactFlow } from 'reactflow';
+
 
 const Control = () => {
   const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Retrieve reactFlowInstance from the store
+  // const { visible, setVisible, handleSelectNode } = useNodeSelector(reactFlowInstance);
+  const [selectedCategory, setSelectedCategory] = useState(null); // Track selected category
+  const dispatch = useDispatch();
+  const hoveredNode = useSelector((state) => state.hoveredNode);
 
-  const { visible, setVisible, handleSelectNode } = useNodeSelector(reactFlowInstance); // Pass reactFlowInstance to useNodeSelector
+  const handleSelectNode = (nodeType) => {
+    const id = `${reactFlowInstance.getNodes().length + 1}`;
+    const newNode = {
+      id,
+      type: nodeType,
+      position: reactFlowInstance.project({ x: 250, y: 5 }),
+      data: { label: `Node ${id}` },
+    };
+
+    dispatch(addNode({ node: newNode }));
+    setVisible(false);
+    setSelectedCategory(null); // Reset category selection
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+  };
 
   return (
     <Card className='h-12 flex items-center justify-center'>
@@ -20,15 +43,24 @@ const Control = () => {
           </PopoverTrigger>
           <PopoverContent>
             <div className='p-4 flex flex-col space-y-2'>
-              <div className='flex flex-col space-y-2'>
-                <h3 className='text-sm font-semibold'>Blocks</h3>
-                <Button auto light onClick={() => handleSelectNode('BasicLLMNode')}>Basic LLM Node</Button>
-                <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode')}>Structured Output LLM Node</Button>
-                <Button auto light onClick={() => handleSelectNode('PythonFuncNode')}>Python Function Node</Button>
-                <Button auto light onClick={() => handleSelectNode('LLM')}>LLM</Button>
-                <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval')}>Knowledge Retrieval</Button>
-                <Button auto light onClick={() => handleSelectNode('End')}>End</Button>
-              </div>
+              {!selectedCategory ? (
+                // Display categories
+                Object.keys(nodeTypes).map((category) => (
+                  <Button key={category} auto light onClick={() => handleCategorySelect(category)}>
+                    {category}
+                  </Button>
+                ))
+              ) : (
+                // Display nodes within the selected category
+                <div className='flex flex-col space-y-2'>
+                  <Button auto light onClick={() => setSelectedCategory(null)}>Back to Categories</Button>
+                  {nodeTypes[selectedCategory].map((node) => (
+                    <Button key={node.name} auto light onClick={() => handleSelectNode(node.name)}>
+                      {node.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
           </PopoverContent>
         </Popover>
