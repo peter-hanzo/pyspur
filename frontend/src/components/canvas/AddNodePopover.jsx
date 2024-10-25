@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
-import { addNode, connect } from '../../../../store/flowSlice';
+import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
+import { addNode, connect } from '../../store/flowSlice';
 
 // Refactored handleSelectNode function
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch, setVisible) => {

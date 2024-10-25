@@ -14,6 +14,9 @@ import FewShotEditor from './LLMNode/Utils/FewShotEditor';
 import PromptEditor from './LLMNode/Utils/PromptEditor';
 import Editor from '../textEditor/Editor';
 import { Button } from '@nextui-org/react';
+import { Slider } from '@nextui-org/react'; // Import Slider component
+import { Switch } from '@nextui-org/react'; // Import Switch component
+import { Textarea } from '@nextui-org/react'; // Import Textarea component
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -38,7 +41,7 @@ const NodeDetails = ({ nodeID }) => {
 
         Object.keys(configSchema.properties).forEach((key) => {
             const field = configSchema.properties[key];
-            
+
             if (field.default !== undefined) {
                 config[key] = field.default;
             } else if (field.$ref) {
@@ -146,11 +149,9 @@ const NodeDetails = ({ nodeID }) => {
         if (!nodeSchema || !nodeSchema.config) return null;
         const properties = nodeSchema.config.properties;
 
-
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = configData[key];
-
 
             if (field.$ref) {
                 const refPath = field.$ref.replace('#/$defs/', '');
@@ -159,7 +160,6 @@ const NodeDetails = ({ nodeID }) => {
                     return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
                 }
             }
-
 
             switch (field.type) {
                 case 'string':
@@ -193,16 +193,37 @@ const NodeDetails = ({ nodeID }) => {
                         );
                     }
                     return (
-                        <TextInput
+                        <Textarea
                             key={key}
                             label={field.title || key}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             disabled={!isEditing}
+                            placeholder="Enter your input"
+                            className="max-w-xs" // Add any additional classes as needed
                         />
                     );
                 case 'integer':
                 case 'number':
+                    // Check if the field has a range (minimum and maximum)
+                    if (field.minimum !== undefined && field.maximum !== undefined) {
+                        return (
+                            <div key={key} className="my-4">
+                                <label className="font-semibold mb-2 block">{field.title || key}</label>
+                                <Slider
+                                    step={field.step || 0.01} // Use step if defined, otherwise default to 0.01
+                                    maxValue={field.maximum}
+                                    minValue={field.minimum}
+                                    defaultValue={value || field.default || field.minimum}
+                                    onChange={(newValue) => handleInputChange(key, newValue)}
+                                    className="max-w-md"
+                                    disabled={!isEditing}
+                                />
+                            </div>
+                        );
+                    }
+
+                    // Fallback to NumberInput if no range is defined
                     return (
                         <NumberInput
                             key={key}
@@ -217,13 +238,16 @@ const NodeDetails = ({ nodeID }) => {
                     );
                 case 'boolean':
                     return (
-                        <BooleanInput
-                            key={key}
-                            label={field.title || key}
-                            value={value}
-                            onChange={(e) => handleInputChange(key, e.target.checked)}
-                            disabled={!isEditing}
-                        />
+                        <div key={key} className="my-4">
+                            <div className="flex justify-between items-center">
+                                <label className="font-semibold">{field.title || key}</label>
+                                <Switch
+                                    checked={value}
+                                    onChange={(e) => handleInputChange(key, e.target.checked)}
+                                    disabled={!isEditing}
+                                />
+                            </div>
+                        </div>
                     );
                 case 'object':
                     if (key === 'output_schema' || key === 'input_schema') {

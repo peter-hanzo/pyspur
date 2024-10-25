@@ -26,8 +26,8 @@ import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
 import { useNodeSelector } from '../../hooks/useNodeSelector';
-import NodePopoverContent from './footer/operator/NodePopoverContent'; // Import the new component
-import { addNodeBetweenNodes } from './footer/operator/NodePopoverContent';
+import NodePopoverContent from './AddNodePopover'; // Import the new component
+import { addNodeBetweenNodes } from './AddNodePopover';
 
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {

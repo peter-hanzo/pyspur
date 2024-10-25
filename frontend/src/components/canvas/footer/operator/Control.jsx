@@ -4,7 +4,7 @@ import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-o
 import { useSelector, useDispatch } from 'react-redux';
 
 import { useNodeSelector } from '../../../../hooks/useNodeSelector';
-import NodePopoverContent, { addNodeWithoutConnection } from './NodePopoverContent'; // Import the refactored function
+import NodePopoverContent, { addNodeWithoutConnection } from '../../AddNodePopover'; // Import the refactored function
 
 
 const Control = () => {

@@ -2,6 +2,16 @@
 
 PySpur is an intuitive AI dev tool that simplifies building LLM workflows. Developers can visually drag, drop, and link nodes on a 2D canvas, enabling quick assembly of LLM pipelines. Workflows can be exported as API endpoints or raw Python code for seamless integration.
 
+
+# Core Features
+1. Inference-Time Compute Algorithms
+2. Visual IDE
+3. Batch Inference
+4. Python-based
+5. Caching
+6. Session persistence
+7.
+
 ## Prerequisites
 
 - Node.js (v20 or higher)
