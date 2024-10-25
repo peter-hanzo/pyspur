@@ -7,6 +7,7 @@ const initialState = {
   edges: [],
   hoveredNode: null,
   selectedNode: null, // Add this to track the selected node
+  reactFlowInstance: null, // Add reactFlowInstance to the initial state
 };
 
 // Create the flow slice
@@ -49,6 +50,9 @@ const flowSlice = createSlice({
     setSelectedNode: (state, action) => {
       state.selectedNode = action.payload.nodeId; // Track the selected node
     },
+    setReactFlowInstance: (state, action) => {
+      state.reactFlowInstance = action.payload.instance; // Set the reactFlowInstance
+    },
   },
 });
 
@@ -60,7 +64,8 @@ export const {
   addNode,
   updateNodeData,
   setHoveredNode,
-  setSelectedNode, // Export the action for setting selected node
+  setSelectedNode,
+  setReactFlowInstance, // Export the action for setting reactFlowInstance
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

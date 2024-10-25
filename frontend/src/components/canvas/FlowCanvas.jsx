@@ -14,6 +14,7 @@ import {
   updateNodeData,
   setHoveredNode,
   setSelectedNode,
+  setReactFlowInstance, // Import the action
 } from '../../store/flowSlice';
 import Spreadsheet from '../table/Table';
 import NodeDetails from '../nodes/NodeDetails';
@@ -42,10 +43,15 @@ const CustomEdge = ({
   style = {},
   data,
   markerEnd,
-  source, // Add source node ID
-  target, // Add target node ID
+  source,
+  target,
 }) => {
-  const { visible, setVisible, handleSelectNode } = useNodeSelector(); // Initialize the hook here
+
+  const { onPopoverOpen, showPlusButton } = data; // Destructure from data
+  const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Use reactFlowInstance from Redux
+
+  const sourceNode = reactFlowInstance.getNode(source);
+  const targetNode = reactFlowInstance.getNode(target);
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -55,13 +61,6 @@ const CustomEdge = ({
     targetY,
     targetPosition,
   });
-
-
-
-  // Get the source and target nodes from the reactFlowInstance
-  const reactFlowInstance = useReactFlow();
-  const sourceNode = reactFlowInstance.getNode(source);
-  const targetNode = reactFlowInstance.getNode(target);
 
   return (
     <>
@@ -79,11 +78,11 @@ const CustomEdge = ({
         d={edgePath}
         fill="none"
         stroke="transparent"
-        strokeWidth={30} // Increased strokeWidth for better sensitivity
+        strokeWidth={30}
         style={{ pointerEvents: 'stroke' }}
         className="react-flow__edge-hover"
       />
-      {data.showPlusButton && (
+      {showPlusButton && (
         <foreignObject
           width={30}
           height={30}
@@ -101,29 +100,21 @@ const CustomEdge = ({
               height: '100%',
             }}
           >
-            <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
-              <PopoverTrigger>
-                <Button
-                  auto
-                  style={{ padding: 0, minWidth: 'auto' }}
-                >
-                  <RiAddCircleFill size={20} />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <div className='p-4 flex flex-col space-y-2'>
-                  <div className='flex flex-col space-y-2'>
-                    <h3 className='text-sm font-semibold'>Blocks</h3>
-                    <Button auto light onClick={() => handleSelectNode('BasicLLMNode', sourceNode, targetNode)}>Basic LLM Node</Button>
-                    <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode', sourceNode, targetNode)}>Structured Output LLM Node</Button>
-                    <Button auto light onClick={() => handleSelectNode('PythonFuncNode', sourceNode, targetNode)}>Python Function Node</Button>
-                    <Button auto light onClick={() => handleSelectNode('LLM', sourceNode, targetNode)}>LLM</Button>
-                    <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval', sourceNode, targetNode)}>Knowledge Retrieval</Button>
-                    <Button auto light onClick={() => handleSelectNode('End', sourceNode, targetNode)}>End</Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Button
+              auto
+              style={{
+                padding: 0,
+                minWidth: 'auto',
+                backgroundColor: 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+              }}
+              onClick={() => {
+                onPopoverOpen({ sourceNode, targetNode }); // Now this works!
+              }}
+            >
+              <RiAddCircleFill size={20} />
+            </Button>
           </div>
         </foreignObject>
       )}
@@ -143,6 +134,7 @@ const FlowCanvas = () => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
   const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
+  const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Get reactFlowInstance from Redux
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -161,7 +153,7 @@ const FlowCanvas = () => {
     [dispatch]
   );
 
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const { visible, setVisible, handleSelectNode } = useNodeSelector(reactFlowInstance); // Use reactFlowInstance from Redux
 
   // Adding new state to manage active tab and spreadsheet data
   const [activeTab, setActiveTab] = useState('sheet1'); // Manage active tab state
@@ -169,23 +161,43 @@ const FlowCanvas = () => {
 
   const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
 
+  // State to manage the visibility of the PopoverContent and the selected edge
+  const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
+  const [selectedEdge, setSelectedEdge] = useState(null); // Track the selected edge
+
+  // Function to handle the visibility of the PopoverContent
+  const handlePopoverOpen = useCallback(({ sourceNode, targetNode }) => {
+    setSelectedEdge({ sourceNode, targetNode });
+    setPopoverContentVisible(true);
+  }, []);
+
+  // Ensure handlePopoverOpen is defined before styledEdges
   const styledEdges = useMemo(() => {
     return edges.map((edge) => {
       const isHovered = edge.id === hoveredEdge;
       return {
         ...edge,
-        type: 'custom', // Use custom edge type
+        type: 'custom',
         style: {
-          stroke: isHovered ? 'blue' : edge.source === hoveredNode || edge.target === hoveredNode ? 'red' : undefined,
-          strokeWidth: isHovered ? 3 : edge.source === hoveredNode || edge.target === hoveredNode ? 2 : undefined,
+          stroke: isHovered
+            ? 'blue'
+            : edge.source === hoveredNode || edge.target === hoveredNode
+              ? 'red'
+              : undefined,
+          strokeWidth: isHovered
+            ? 3
+            : edge.source === hoveredNode || edge.target === hoveredNode
+              ? 2
+              : undefined,
         },
         data: {
           ...edge.data,
-          showPlusButton: isHovered, // Add flag to show + button
+          showPlusButton: isHovered,
+          onPopoverOpen: handlePopoverOpen, // Pass the function here
         },
       };
     });
-  }, [edges, hoveredNode, hoveredEdge]);
+  }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
 
   // Define edge hover event handlers
   const onEdgeMouseEnter = useCallback(
@@ -210,9 +222,10 @@ const FlowCanvas = () => {
     dispatch(setHoveredNode({ nodeId: null })); // Clear hovered node in Redux
   }, [dispatch]);
 
+  // Function to handle the initialization of ReactFlow instance
   const onInit = useCallback((instance) => {
-    setReactFlowInstance(instance);
-  }, []);
+    dispatch(setReactFlowInstance({ instance })); // Dispatch the instance to Redux
+  }, [dispatch]);
 
   // Handle node click to open text editor
   const onNodeClick = useCallback(
@@ -230,9 +243,32 @@ const FlowCanvas = () => {
 
   const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
 
-
   return (
     <div style={{ position: 'relative' }}>
+      {/* Popover component moved here */}
+      {isPopoverContentVisible && selectedEdge && (
+        <Popover
+          placement="bottom"
+          showArrow={true}
+          isOpen={isPopoverContentVisible}
+          onOpenChange={setPopoverContentVisible}
+        >
+          <PopoverContent>
+            <div className='p-4 flex flex-col space-y-2'>
+              <div className='flex flex-col space-y-2'>
+                <h3 className='text-sm font-semibold'>Blocks</h3>
+                <Button auto light onClick={() => handleSelectNode('BasicLLMNode', selectedEdge.sourceNode, selectedEdge.targetNode)}>Basic LLM Node</Button>
+                <Button auto light onClick={() => handleSelectNode('StructuredOutputLLMNode', selectedEdge.sourceNode, selectedEdge.targetNode)}>Structured Output LLM Node</Button>
+                <Button auto light onClick={() => handleSelectNode('PythonFuncNode', selectedEdge.sourceNode, selectedEdge.targetNode)}>Python Function Node</Button>
+                <Button auto light onClick={() => handleSelectNode('LLM', selectedEdge.sourceNode, selectedEdge.targetNode)}>LLM</Button>
+                <Button auto light onClick={() => handleSelectNode('Knowledge Retrieval', selectedEdge.sourceNode, selectedEdge.targetNode)}>Knowledge Retrieval</Button>
+                <Button auto light onClick={() => handleSelectNode('End', selectedEdge.sourceNode, selectedEdge.targetNode)}>End</Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
       <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
         <div
           style={{
@@ -252,7 +288,7 @@ const FlowCanvas = () => {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes} // Add edgeTypes to ReactFlow
               fitView
-              onInit={onInit}
+              onInit={onInit} // Pass the onInit function
               onNodeMouseEnter={onNodeMouseEnter}
               onNodeMouseLeave={onNodeMouseLeave}
               snapToGrid={true}

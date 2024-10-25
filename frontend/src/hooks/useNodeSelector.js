@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useReactFlow } from 'reactflow';
 import { addNode } from '../store/flowSlice';
 
-export const useNodeSelector = () => {
-  const reactFlowInstance = useReactFlow();
+export const useNodeSelector = (reactFlowInstance) => {
   const [visible, setVisible] = useState(false);
   const dispatch = useDispatch();
 

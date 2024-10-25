@@ -2,9 +2,12 @@ import React from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { useNodeSelector } from '../../../../hooks/useNodeSelector';
+import { useSelector } from 'react-redux'; // Import useSelector to access the Redux store
 
 const Control = () => {
-  const { visible, setVisible, handleSelectNode } = useNodeSelector();
+  const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Retrieve reactFlowInstance from the store
+
+  const { visible, setVisible, handleSelectNode } = useNodeSelector(reactFlowInstance); // Pass reactFlowInstance to useNodeSelector
 
   return (
     <Card className='h-12 flex items-center justify-center'>
