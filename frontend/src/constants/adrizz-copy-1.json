@@ -1,4 +1,4 @@
-const testInput = {
+{
     "nodes": [
         {
             "id": "1",
@@ -67,5 +67,3 @@ const testInput = {
         }
     ]
 }
-
-export default testInput;

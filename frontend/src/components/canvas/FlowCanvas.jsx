@@ -3,31 +3,33 @@ import ReactFlow, {
   Background,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useSelector, useDispatch } from 'react-redux'; // Add this line
+import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';
-import Operator from './footer/operator/Operator'; // Adjust the path based on your file structure
+import Operator from './footer/operator/Operator';
 import {
   nodesChange,
   edgesChange,
   connect,
   updateNodeData,
-  setHoveredNode, // Import the setHoveredNode action
-  setSelectedNode, // Import the setSelectedNode action
-} from '../../store/flowSlice'; // Updated import path
-import Spreadsheet from '../table/Table'; // Import the Spreadsheet component
-import NodeDetails from '../nodes/NodeDetails'; // Import the NodeDetails component
-import { Card, Button } from '@nextui-org/react'; // Import NextUI components
-import { getBezierPath } from 'reactflow'; // Import helper for custom edge
+  setHoveredNode,
+  setSelectedNode,
+} from '../../store/flowSlice';
+import Spreadsheet from '../table/Table';
+import NodeDetails from '../nodes/NodeDetails';
+import { Card, Button } from '@nextui-org/react';
+import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
-import DynamicNode from '../nodes/DynamicNode'; // Import the new DynamicNode component
-import { v4 as uuidv4 } from 'uuid'; // Import UUID library for unique IDs
+import DynamicNode from '../nodes/DynamicNode';
+import { v4 as uuidv4 } from 'uuid';
+import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
 
-const nodeTypes = {
-  BasicLLMNode: (props) => <DynamicNode {...props} type="BasicLLMNode" />,
-  StructuredOutputLLMNode: (props) => <DynamicNode {...props} type="StructuredOutputLLMNode" />,
-  PythonFuncNode: (props) => <DynamicNode {...props} type="PythonFuncNode" />,
-  // Add other node types here as needed
-};
+// Create a mapping of node types for ReactFlow
+const nodeTypes = {};
+Object.keys(nodeTypesConfig).forEach(category => {
+  nodeTypesConfig[category].forEach(node => {
+    nodeTypes[node.name] = (props) => <DynamicNode {...props} type={node.name} />;
+  });
+});
 
 // Custom edge component
 const CustomEdge = ({
@@ -53,7 +55,6 @@ const CustomEdge = ({
 
   return (
     <>
-      {/* Visible edge path */}
       <path
         id={id}
         style={style}
@@ -62,12 +63,11 @@ const CustomEdge = ({
         markerEnd={markerEnd}
         fill="none"
       />
-      {/* Invisible path to increase hover area */}
       <path
         d={edgePath}
         fill="none"
         stroke="transparent"
-        strokeWidth={30} // Increased strokeWidth for better sensitivity
+        strokeWidth={30}
         style={{ pointerEvents: 'stroke' }}
         className="react-flow__edge-hover"
       />
@@ -113,8 +113,8 @@ const FlowCanvas = () => {
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
-  const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
-  const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
+  const hoveredNode = useSelector((state) => state.flow.hoveredNode);
+  const selectedNodeID = useSelector((state) => state.flow.selectedNode);
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -128,8 +128,8 @@ const FlowCanvas = () => {
     (connection) => {
       const newEdge = {
         ...connection,
-        id: uuidv4(), // Generate a unique ID for the new edge
-        key: uuidv4(), // Use the same unique ID for the key
+        id: uuidv4(),
+        key: uuidv4(),
       };
       dispatch(connect({ connection: newEdge }));
     },
@@ -142,73 +142,70 @@ const FlowCanvas = () => {
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
-  // Adding new state to manage active tab and spreadsheet data
-  const [activeTab, setActiveTab] = useState('sheet1'); // Manage active tab state
-  const [spreadsheetData, setSpreadsheetData] = useState([[""]]); // Store spreadsheet data
+  const [activeTab, setActiveTab] = useState('sheet1');
+  const [spreadsheetData, setSpreadsheetData] = useState([[""]]);
 
-  const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
+  const [hoveredEdge, setHoveredEdge] = useState(null);
 
   const styledEdges = useMemo(() => {
     return edges.map((edge) => {
       const isHovered = edge.id === hoveredEdge;
       return {
         ...edge,
-        type: 'custom', // Use custom edge type
+        type: 'custom',
         style: {
           stroke: isHovered ? 'blue' : edge.source === hoveredNode || edge.target === hoveredNode ? 'red' : undefined,
           strokeWidth: isHovered ? 3 : edge.source === hoveredNode || edge.target === hoveredNode ? 2 : undefined,
         },
         data: {
           ...edge.data,
-          showPlusButton: isHovered, // Add flag to show + button
+          showPlusButton: isHovered,
         },
-        key: edge.id, // Ensure key is set to the unique edge ID
+        key: edge.id,
       };
     });
   }, [edges, hoveredNode, hoveredEdge]);
 
-  // Define edge hover event handlers
   const onEdgeMouseEnter = useCallback(
     (event, edge) => {
-      setHoveredEdge(edge.id); // Set hovered edge
+      setHoveredEdge(edge.id);
     },
     []
   );
 
   const onEdgeMouseLeave = useCallback(() => {
-    setHoveredEdge(null); // Clear hovered edge
+    setHoveredEdge(null);
   }, []);
 
   const onNodeMouseEnter = useCallback(
     (event, node) => {
-      dispatch(setHoveredNode({ nodeId: node.id })); // Set hovered node in Redux
+      dispatch(setHoveredNode({ nodeId: node.id }));
     },
     [dispatch]
   );
 
   const onNodeMouseLeave = useCallback(() => {
-    dispatch(setHoveredNode({ nodeId: null })); // Clear hovered node in Redux
+    dispatch(setHoveredNode({ nodeId: null }));
   }, [dispatch]);
 
   const onInit = useCallback((instance) => {
     setReactFlowInstance(instance);
   }, []);
 
-  // Handle node click to open text editor
   const onNodeClick = useCallback(
     (event, node) => {
-      dispatch(setSelectedNode({ nodeId: node.id })); // Set the clicked node in Redux
+      dispatch(setSelectedNode({ nodeId: node.id }));
     },
     [dispatch]
   );
 
   const onPaneClick = useCallback(() => {
     if (selectedNodeID) {
-      dispatch(setSelectedNode({ nodeId: null })); // Clear selected node in Redux
+      dispatch(setSelectedNode({ nodeId: null }));
     }
   }, [dispatch, selectedNodeID]);
 
-  const footerHeight = 100; // Adjust this value to match your TabbedFooter's height
+  const footerHeight = 100;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -229,7 +226,7 @@ const FlowCanvas = () => {
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes} // Add edgeTypes to ReactFlow
+              edgeTypes={edgeTypes}
               fitView
               onInit={onInit}
               onNodeMouseEnter={onNodeMouseEnter}

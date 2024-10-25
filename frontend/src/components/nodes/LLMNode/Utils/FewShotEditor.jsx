@@ -10,25 +10,25 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
     const [activeTab, setActiveTab] = useState('input'); // Track active tab (input or output)
 
-    const [inputContent, setInputContent] = useState(node?.data?.config?.fewShotExamples?.[exampleIndex]?.input || '');
-    const [outputContent, setOutputContent] = useState(node?.data?.config?.fewShotExamples?.[exampleIndex]?.output || '');
+    const [inputContent, setInputContent] = useState(node?.data?.config?.few_shot_examples?.[exampleIndex]?.input || '');
+    const [outputContent, setOutputContent] = useState(node?.data?.config?.few_shot_examples?.[exampleIndex]?.output || '');
 
     const inputEditor = Editor(inputContent, setInputContent, true);
     const outputEditor = Editor(outputContent, setOutputContent, true);
 
     useEffect(() => {
         if (inputEditor) {
-            inputEditor.commands.setContent(node?.data?.config?.fewShotExamples?.[exampleIndex]?.input || '');
+            inputEditor.commands.setContent(node?.data?.config?.few_shot_examples?.[exampleIndex]?.input || '');
         }
         if (outputEditor) {
-            outputEditor.commands.setContent(node?.data?.config?.fewShotExamples?.[exampleIndex]?.output || '');
+            outputEditor.commands.setContent(node?.data?.config?.few_shot_examples?.[exampleIndex]?.output || '');
         }
     }, [nodeID, exampleIndex, inputEditor, outputEditor]);
 
     const handleSave = () => {
-        const updatedExamples = [...(node?.data?.config?.fewShotExamples || [])];
+        const updatedExamples = [...(node?.data?.config?.few_shot_examples || [])];
         updatedExamples[exampleIndex] = { input: inputContent, output: outputContent };
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node?.data?.config, fewShotExamples: updatedExamples } } }));
+        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node?.data?.config, few_shot_examples: updatedExamples } } }));
         onSave();
     };
 

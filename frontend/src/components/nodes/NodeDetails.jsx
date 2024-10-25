@@ -4,23 +4,32 @@ import { updateNodeData } from '../../store/flowSlice';
 import TextInput from '../TextInput';
 import NumberInput from '../NumberInput';
 import BooleanInput from '../BooleanInput';
-import TextEditor from '../textEditor/Editor'; // Import existing text editor
+import TextEditor from '../textEditor/Editor';
 import Wrapper from '../textEditor/Wrapper';
 import JsonEditor from '../JsonEditor';
 import CodeEditor from '../CodeEditor';
 import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
 import { jsonOptions } from '../../constants/jsonOptions';
-import FewShotEditor from './LLMNode/Utils/FewShotEditor'; // Import FewShotEditor
-import PromptEditor from './LLMNode/Utils/PromptEditor'; // Import PromptEditor
+import FewShotEditor from './LLMNode/Utils/FewShotEditor';
+import PromptEditor from './LLMNode/Utils/PromptEditor';
 import Editor from '../textEditor/Editor';
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
 
-    const [fewShotIndex, setFewShotIndex] = useState(null); // Track which few-shot example is being edited
-    const [isPromptEditing, setIsPromptEditing] = useState(false); // Track if prompt is being edited
-    // Initialize configData dynamically based on the selected node type
+    const [fewShotIndex, setFewShotIndex] = useState(null);
+    const [isPromptEditing, setIsPromptEditing] = useState(false);
+
+    // Function to find the node schema based on the new structure
+    const findNodeSchema = (nodeType) => {
+        for (const category in nodeTypes) {
+            const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
+            if (nodeSchema) return nodeSchema;
+        }
+        return null;
+    };
+
     const initializeConfigData = (nodeSchema) => {
         const configSchema = nodeSchema?.config;
         const config = {};
@@ -70,25 +79,22 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     useEffect(() => {
-        const schema = nodeTypes.find((n) => n.name === node?.type);
+        const schema = findNodeSchema(node?.type);
         setNodeSchema(schema);
         if (node?.data?.config) {
             setConfigData(node.data.config);
-            // console.log("node.data.config", node.data.config);
         } else {
             setConfigData(initializeConfigData(schema));
-            // console.log("initializeConfigData(nodeSchema)", initializeConfigData(nodeSchema));
         }
-        if (promptEditor && node?.data?.config?.prompt !== promptEditor.getHTML()) {
-            promptEditor.commands.setContent(node?.data?.config?.prompt || '');
+        if (promptEditor && node?.data?.config?.system_prompt !== promptEditor.getHTML()) {
+            promptEditor.commands.setContent(node?.data?.config?.system_prompt || '');
         }
     }, [nodeID, node]);
 
-    const promptEditor = Editor(node?.data?.config?.prompt || '', null, false);
+    const promptEditor = Editor(node?.data?.config?.system_prompt || '', null, false);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
-    const [nodeSchema, setNodeSchema] = useState(nodeTypes.find((n) => n.name === node?.type));
-    // const nodeSchema = nodeTypes.find((n) => n.name === nodeType);
+    const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
 
     const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
     const [isEditing, setIsEditing] = useState(false);
@@ -101,23 +107,20 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     const handleSave = () => {
-        dispatch(updateNodeData({ id: nodeID, data: { config: configData } }));
-        console.log(node);
-        // console.log(nodes);
-        // console.log(nodeType);
-        // console.log(nodeSchema);
+        dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: configData } }));
         setIsEditing(false);
+        console.log(node.data.config);
     };
 
     const handleAddNewExample = () => {
-        const updatedExamples = [...(node?.data?.config?.fewShotExamples || []), { input: '', output: '' }];
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, fewShotExamples: updatedExamples } } }));
+        const updatedExamples = [...(node?.data?.config?.few_shot_examples || []), { input: '', output: '' }];
+        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, few_shot_examples: updatedExamples } } }));
     };
 
     const handleDeleteExample = (index) => {
-        const updatedExamples = [...(node?.data?.config?.fewShotExamples || [])];
+        const updatedExamples = [...(node?.data?.config?.few_shot_examples || [])];
         updatedExamples.splice(index, 1);
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, fewShotExamples: updatedExamples } } }));
+        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, few_shot_examples: updatedExamples } } }));
     };
 
     const renderEnumSelect = (key, label, enumValues) => (
@@ -127,7 +130,7 @@ const NodeDetails = ({ nodeID }) => {
                 value={configData[key] || ''}
                 onChange={(e) => handleInputChange(key, e.target.value)}
                 className="border p-2 w-full"
-                disabled={!isEditing} // Disable when not editing
+                disabled={!isEditing}
             >
                 {enumValues.map((option) => (
                     <option key={option} value={option}>
@@ -147,7 +150,6 @@ const NodeDetails = ({ nodeID }) => {
             const value = configData[key];
 
             if (field.$ref) {
-                // Handle enums using $ref
                 const refPath = field.$ref.replace('#/$defs/', '');
                 const enumDef = nodeSchema.config.$defs[refPath];
                 if (enumDef && enumDef.enum) {
@@ -158,7 +160,6 @@ const NodeDetails = ({ nodeID }) => {
             switch (field.type) {
                 case 'string':
                     if (key === 'system_prompt') {
-                        // Use TextEditor for system_prompt
                         return (
                             <div key={key} className="my-4">
                                 {isPromptEditing && (
@@ -193,7 +194,7 @@ const NodeDetails = ({ nodeID }) => {
                             label={field.title || key}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
-                            disabled={!isEditing} // Disable when not editing
+                            disabled={!isEditing}
                         />
                     );
                 case 'integer':
@@ -207,7 +208,7 @@ const NodeDetails = ({ nodeID }) => {
                                 const newValue = parseFloat(e.target.value);
                                 handleInputChange(key, isNaN(newValue) ? 0 : newValue);
                             }}
-                            disabled={!isEditing} // Disable when not editing
+                            disabled={!isEditing}
                         />
                     );
                 case 'boolean':
@@ -217,12 +218,11 @@ const NodeDetails = ({ nodeID }) => {
                             label={field.title || key}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.checked)}
-                            disabled={!isEditing} // Disable when not editing
+                            disabled={!isEditing}
                         />
                     );
                 case 'object':
                     if (key === 'output_schema' || key === 'input_schema') {
-                        // Use JsonEditor for output_schema and input_schema with correct labels
                         return (
                             <div key={key} className="my-4">
                                 <label className="font-semibold mb-2 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
@@ -230,7 +230,7 @@ const NodeDetails = ({ nodeID }) => {
                                     jsonValue={value}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
                                     options={jsonOptions}
-                                    disabled={!isEditing} // Disable when not editing
+                                    disabled={!isEditing}
                                 />
                             </div>
                         );
@@ -242,7 +242,7 @@ const NodeDetails = ({ nodeID }) => {
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter key-value pairs as JSON"
-                            disabled={!isEditing} // Disable when not editing
+                            disabled={!isEditing}
                         />
                     );
                 case 'code':
@@ -251,10 +251,10 @@ const NodeDetails = ({ nodeID }) => {
                             key={key}
                             code={value}
                             onChange={(newValue) => handleInputChange(key, newValue)}
-                            disabled={!isEditing} // Disable when not editing
+                            disabled={!isEditing}
                         />
                     );
-                default: //TODO: Add support for other types
+                default:
                     if (key === 'few_shot_examples') {
                         return (
                             <div>
@@ -269,7 +269,7 @@ const NodeDetails = ({ nodeID }) => {
 
                                 <h3 className="my-6 font-semibold">Few Shot Examples</h3>
                                 <ul>
-                                    {node?.data?.config?.fewShotExamples?.map((example, index) => (
+                                    {node?.data?.config?.few_shot_examples?.map((example, index) => (
                                         <li key={index} className="flex items-center justify-between mb-2">
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
@@ -305,19 +305,14 @@ const NodeDetails = ({ nodeID }) => {
                             </div>
                         );
                     }
-                // default:
-                //     return null;
             }
         });
     };
-
-
 
     return (
         <div className="p-4">
             <h2 className="text-lg font-bold mb-2">Node Details: {nodeType}</h2>
             <p><strong>ID:</strong> {nodeID}</p>
-
 
             <h3 className="my-4 font-semibold">Configuration</h3>
             {renderConfigFields()}

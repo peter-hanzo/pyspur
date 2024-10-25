@@ -26,14 +26,14 @@ const flowSlice = createSlice({
     addNode: (state, action) => {
       const node = action.payload.node;
 
-      // Initialize the prompt field for LLMNode types
+      // Initialize the system_prompt field for LLMNode types
       // if (node.type === 'LLMNode') {
       //   node.data = {
       //     ...node.data,
-      //     prompt: node.data?.prompt || '', // Ensure prompt is initialized
+      //     system_prompt: node.data?.system_prompt || '', // Ensure system_prompt is initialized
       //   };
       // }
-      console.log(node);
+      // console.log(node);
       state.nodes.push(node);
     },
     updateNodeData: (state, action) => {
@@ -42,7 +42,7 @@ const flowSlice = createSlice({
       if (node) {
         node.data = { ...node.data, ...data };
       }
-      console.log(node);
+      // console.log(node);
     },
     setHoveredNode: (state, action) => {
       state.hoveredNode = action.payload.nodeId; // Correct the payload key here

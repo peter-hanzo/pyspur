@@ -7,18 +7,18 @@ import { updateNodeData } from '../../../../store/flowSlice';
 const PromptEditor = ({ nodeID, onSave, onDiscard }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
-    const [prompt, setPrompt] = useState(node?.data?.config?.prompt || '');
+    const [system_prompt, setPrompt] = useState(node?.data?.config?.system_prompt || '');
 
-    const editor = Editor(prompt, setPrompt, true);
+    const editor = Editor(system_prompt, setPrompt, true);
 
     useEffect(() => {
         if (editor) {
-            editor.commands.setContent(node?.data?.config?.prompt || '');
+            editor.commands.setContent(node?.data?.config?.system_prompt || '');
         }
-    }, [nodeID, node?.data?.config?.prompt, editor]);
+    }, [nodeID, node?.data?.config?.system_prompt, editor]);
 
     const handleSave = () => {
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, prompt } } }));
+        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, system_prompt } } }));
         onSave();
     };
 

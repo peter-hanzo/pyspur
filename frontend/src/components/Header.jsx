@@ -14,7 +14,7 @@ import {
 } from "@nextui-org/react";
 import { Button } from '@nextui-org/react';
 import { RiPlayFill, RiShareFill, RiUploadCloud2Line } from '@remixicon/react';
-import { runWorkflow } from '../utils/api';
+import { runWorkflow, getNodeTypes } from '../utils/api';
 
 const Header = () => {
   // Access nodes and edges from Redux state
@@ -28,7 +28,7 @@ const Header = () => {
           nodes: nodes.map(node => ({
             config: node.data?.config || {},
             id: node.id,
-            type: node.type
+            node_type: node.type
           })), // Pass only the first half of the nodes array with selected attributes
           links: edges.map(edge => ({
             source_id: edge.source,
@@ -42,8 +42,11 @@ const Header = () => {
             "user_message": "okay, give it to me", "city": "Jabalpur", "units": "celsius"
           }}
       };
+      
 
-      console.log('Data passed to API:', formattedData);
+      // console.log('Data passed to API:', formattedData);
+      // const nodeTypes = await getNodeTypes();
+      // console.log('Node types:', nodeTypes);
       const result = await runWorkflow(formattedData);
       console.log('Workflow result:', result);
       // Handle the result as needed (e.g., update state, show a notification)
