@@ -26,8 +26,8 @@ import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
 import { useNodeSelector } from '../../hooks/useNodeSelector';
-import NodePopoverContent from './AddNodePopover'; // Import the new component
-import { addNodeBetweenNodes } from './AddNodePopover';
+import AddNodePopoverCanvasContent from './AddNodePopoverCanvas'; // Import the new component
+import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {
@@ -112,7 +112,7 @@ const CustomEdge = ({
                 boxShadow: 'none',
               }}
               onClick={() => {
-                onPopoverOpen({ sourceNode, targetNode }); // Now this works!
+                onPopoverOpen({ sourceNode, targetNode, edgeId: id }); // Pass the edgeId to onPopoverOpen
               }}
             >
               <RiAddCircleFill size={20} />
@@ -134,7 +134,7 @@ const FlowCanvas = () => {
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
-  const hoveredNode = useSelector((state) => state.flow.hoveredNode); // Get hoveredNode from state
+  const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
   const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Get reactFlowInstance from Redux
 
@@ -174,10 +174,9 @@ const FlowCanvas = () => {
   const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
   const [selectedEdge, setSelectedEdge] = useState(null); // Track the selected edge
 
-
   // Function to handle the visibility of the PopoverContent
-  const handlePopoverOpen = useCallback(({ sourceNode, targetNode }) => {
-    setSelectedEdge({ sourceNode, targetNode });
+  const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }) => {
+    setSelectedEdge({ sourceNode, targetNode, edgeId }); // Track the edgeId along with source and target nodes
     setPopoverContentVisible(true);
   }, []);
 
@@ -252,12 +251,6 @@ const FlowCanvas = () => {
 
   const footerHeight = 100;
 
-  const handleSelectNode = (nodeType, sourceNode, targetNode) => {
-    // Logic to handle node selection in FlowCanvas
-    console.log(`Selected node type: ${nodeType}, source: ${sourceNode.id}, target: ${targetNode.id}`);
-    setPopoverContentVisible(false);
-  };
-
   // Handle node deletion from React Flow
   const onNodesDelete = useCallback(
     (deletedNodes) => {
@@ -279,9 +272,9 @@ const FlowCanvas = () => {
           onOpenChange={setPopoverContentVisible}
         >
           <PopoverContent>
-            <NodePopoverContent
+            <AddNodePopoverCanvasContent
               handleSelectNode={(nodeType) =>
-                addNodeBetweenNodes(nodeType, selectedEdge.sourceNode, selectedEdge.targetNode, reactFlowInstance, dispatch, setVisible)
+                addNodeBetweenNodes(nodeType, selectedEdge.sourceNode, selectedEdge.targetNode, selectedEdge.edgeId, reactFlowInstance, dispatch, setVisible)
               }
             />
           </PopoverContent>

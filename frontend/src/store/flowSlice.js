@@ -26,15 +26,6 @@ const flowSlice = createSlice({
     },
     addNode: (state, action) => {
       const node = action.payload.node;
-
-      // Initialize the system_prompt field for LLMNode types
-      // if (node.type === 'LLMNode') {
-      //   node.data = {
-      //     ...node.data,
-      //     system_prompt: node.data?.system_prompt || '', // Ensure system_prompt is initialized
-      //   };
-      // }
-      // console.log(node);
       state.nodes.push(node);
     },
     updateNodeData: (state, action) => {
@@ -58,6 +49,10 @@ const flowSlice = createSlice({
       const nodeId = action.payload.nodeId;
       state.nodes = state.nodes.filter((node) => node.id !== nodeId); // Remove the node by ID
     },
+    deleteEdge: (state, action) => {
+      const edgeId = action.payload.edgeId; // Get the edge ID from the action payload
+      state.edges = state.edges.filter((edge) => edge.id !== edgeId); // Remove the edge by ID
+    },
   },
 });
 
@@ -72,6 +67,7 @@ export const {
   setSelectedNode,
   setReactFlowInstance, // Export the action for setting reactFlowInstance
   deleteNode, // Export the action for deleting a node
+  deleteEdge, // Export the action for deleting an edge
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

@@ -4,10 +4,10 @@ import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-o
 import { useSelector, useDispatch } from 'react-redux';
 
 import { useNodeSelector } from '../../../../hooks/useNodeSelector';
-import NodePopoverContent, { addNodeWithoutConnection } from '../../AddNodePopover'; // Import the refactored function
+import AddNodePopoverCanvasContent, { addNodeWithoutConnection } from '../../AddNodePopoverCanvas'; // Import the refactored function
 
 
-const Control = () => {
+const AddNodePopoverFooter = () => {
   const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Retrieve reactFlowInstance from the store
   const { visible, setVisible } = useNodeSelector(reactFlowInstance);
   const dispatch = useDispatch();
@@ -17,12 +17,12 @@ const Control = () => {
       <div className='flex items-center text-gray-500'>
         <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
           <PopoverTrigger>
-            <Button auto light>
+            <Button color='white'>
               <RiAddCircleFill />
             </Button>
           </PopoverTrigger>
           <PopoverContent>
-            <NodePopoverContent
+            <AddNodePopoverCanvasContent
               handleSelectNode={(nodeType) => addNodeWithoutConnection(nodeType, reactFlowInstance, dispatch, setVisible)}
             />
           </PopoverContent>
@@ -32,4 +32,4 @@ const Control = () => {
   );
 };
 
-export default Control;
+export default AddNodePopoverFooter;

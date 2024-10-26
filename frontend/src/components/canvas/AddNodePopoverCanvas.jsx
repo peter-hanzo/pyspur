@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
-import { addNode, connect } from '../../store/flowSlice';
+import { addNode, connect, deleteEdge } from '../../store/flowSlice';
 
 // Refactored handleSelectNode function
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch, setVisible) => {
@@ -17,8 +17,8 @@ export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch, 
   setVisible(false);
 };
 
-// Function to add a node between two existing nodes
-export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, reactFlowInstance, dispatch, setVisible) => {
+// Function to add a node between two existing nodes and delete the existing edge
+export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, edgeId, reactFlowInstance, dispatch, setVisible) => {
   const id = `${reactFlowInstance.getNodes().length + 1}`;
 
   // Calculate the position between the source and target nodes
@@ -34,6 +34,9 @@ export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, reactFlowI
     data: { label: `Node ${id}` },
   };
 
+  // Delete the specific edge by its ID
+  dispatch(deleteEdge({ edgeId }));
+
   // Dispatch the action to add the new node
   dispatch(addNode({ node: newNode }));
 
@@ -44,7 +47,7 @@ export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, reactFlowI
   setVisible(false);
 };
 
-const NodePopoverContent = ({ handleSelectNode }) => {
+const AddNodePopoverCanvasContent = ({ handleSelectNode }) => {
   const [selectedCategory, setSelectedCategory] = useState(null); // Track selected category
 
   const handleCategorySelect = (category) => {
@@ -78,4 +81,4 @@ const NodePopoverContent = ({ handleSelectNode }) => {
   );
 };
 
-export default NodePopoverContent;
+export default AddNodePopoverCanvasContent;
