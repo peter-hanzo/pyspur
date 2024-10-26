@@ -4,7 +4,7 @@ import Wrapper from '../../../textEditor/Wrapper';
 import Editor from '../../../textEditor/Editor';
 import { updateNodeData } from '../../../../store/flowSlice';
 
-const PromptEditor = ({ nodeID, onSave, onDiscard }) => {
+const PromptEditor = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
     const [system_prompt, setPrompt] = useState(node?.data?.config?.system_prompt || '');
@@ -17,22 +17,16 @@ const PromptEditor = ({ nodeID, onSave, onDiscard }) => {
         }
     }, [nodeID, node?.data?.config?.system_prompt, editor]);
 
-    const handleSave = () => {
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, system_prompt } } }));
-        onSave();
-    };
+    // Automatically dispatch changes to the store whenever system_prompt changes
+    useEffect(() => {
+        if (system_prompt !== node?.data?.config?.system_prompt) {
+            dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, system_prompt } } }));
+        }
+    }, [system_prompt, node?.data?.config?.system_prompt, dispatch, nodeID]);
 
     return (
         <div className="w-full px-4 py-10 my-10">
             <Wrapper editor={editor} isEditable={true} />
-            <div className="mt-4">
-                <button className="px-4 py-2 bg-purple-600 text-white rounded mr-2" onClick={handleSave}>
-                    Save
-                </button>
-                <button className="px-4 py-2 bg-purple-600 text-white rounded" onClick={onDiscard}>
-                    Discard
-                </button>
-            </div>
         </div>
     );
 };

@@ -17,6 +17,7 @@ import { Button } from '@nextui-org/react';
 import { Slider } from '@nextui-org/react'; // Import Slider component
 import { Switch } from '@nextui-org/react'; // Import Switch component
 import { Textarea } from '@nextui-org/react'; // Import Textarea component
+import { useDebouncedCallback } from 'use-debounce'; // Import debounce utility
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -82,14 +83,31 @@ const NodeDetails = ({ nodeID }) => {
         return config;
     };
 
+    // Debounce the handleInputChange function to prevent too many updates
+    const debouncedHandleInputChange = useDebouncedCallback((key, value) => {
+        setConfigData((prevConfig) => {
+            const updatedConfig = {
+                ...prevConfig,
+                [key]: value,
+            };
+            // Automatically save the updated config
+            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: updatedConfig } }));
+            return updatedConfig;
+        });
+    }, 300); // 300ms debounce delay
+
+    // Modify the useEffect to avoid unnecessary updates
     useEffect(() => {
         const schema = findNodeSchema(node?.type);
         setNodeSchema(schema);
-        if (node?.data?.config) {
+
+        // Only update configData if it's not already set or if the node's config has changed
+        if (node?.data?.config && JSON.stringify(node.data.config) !== JSON.stringify(configData)) {
             setConfigData(node.data.config);
         } else {
             setConfigData(initializeConfigData(schema));
         }
+
         if (promptEditor && node?.data?.config?.system_prompt !== promptEditor.getHTML()) {
             promptEditor.commands.setContent(node?.data?.config?.system_prompt || '');
         }
@@ -101,19 +119,10 @@ const NodeDetails = ({ nodeID }) => {
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
 
     const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
-    const [isEditing, setIsEditing] = useState(false);
 
+    // Update the input change handler to use the debounced version
     const handleInputChange = (key, value) => {
-        setConfigData((prevConfig) => ({
-            ...prevConfig,
-            [key]: value,
-        }));
-    };
-
-    const handleSave = () => {
-        dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: configData } }));
-        setIsEditing(false);
-        console.log(node.data.config);
+        debouncedHandleInputChange(key, value);
     };
 
     const handleAddNewExample = () => {
@@ -134,7 +143,7 @@ const NodeDetails = ({ nodeID }) => {
                 value={configData[key] || ''}
                 onChange={(e) => handleInputChange(key, e.target.value)}
                 className="border p-1 w-full"
-                disabled={!isEditing}
+
             >
                 {enumValues.map((option) => (
                     <option key={option} value={option}>
@@ -153,43 +162,13 @@ const NodeDetails = ({ nodeID }) => {
             const field = properties[key];
             const value = configData[key];
 
-            if (field.$ref) {
-                const refPath = field.$ref.replace('#/$defs/', '');
-                const enumDef = nodeSchema.config.$defs[refPath];
-                if (enumDef && enumDef.enum) {
-                    return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
-                }
-            }
-
             switch (field.type) {
                 case 'string':
                     if (key === 'system_prompt') {
                         return (
                             <div key={key} className="my-2">
-                                {isPromptEditing && (
-                                    <PromptEditor
-                                        nodeID={nodeID}
-                                        onSave={() => setIsPromptEditing(false)}
-                                        onDiscard={() => setIsPromptEditing(false)}
-                                    />
-                                )}
-
-                                {!isPromptEditing && (
-                                    <div>
-                                        <h3 className="my-2 text-sm font-semibold">Prompt</h3>
-                                        <Wrapper editor={promptEditor} isEditable={false} />
-
-                                        <div className="mb-4">
-                                            {isEditing && (<button
-                                                className="px-2 py-1 bg-purple-600 text-white rounded mr-2"
-                                                onClick={() => setIsPromptEditing(true)}
-                                            >
-                                                Edit Prompt
-                                            </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                <h3 className="my-2 text-sm font-semibold">Prompt</h3>
+                                <PromptEditor nodeID={nodeID} /> {/* Directly render PromptEditor */}
                             </div>
                         );
                     }
@@ -199,9 +178,8 @@ const NodeDetails = ({ nodeID }) => {
                             label={field.title || key}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
-                            disabled={!isEditing}
                             placeholder="Enter your input"
-                            className="max-w-xs" // Add any additional classes as needed
+                            className="max-w-xs"
                         />
                     );
                 case 'integer':
@@ -218,7 +196,6 @@ const NodeDetails = ({ nodeID }) => {
                                     defaultValue={value || field.default || field.minimum}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
                                     className="max-w-md"
-                                    disabled={!isEditing}
                                 />
                             </div>
                         );
@@ -234,7 +211,6 @@ const NodeDetails = ({ nodeID }) => {
                                 const newValue = parseFloat(e.target.value);
                                 handleInputChange(key, isNaN(newValue) ? 0 : newValue);
                             }}
-                            disabled={!isEditing}
                         />
                     );
                 case 'boolean':
@@ -245,7 +221,6 @@ const NodeDetails = ({ nodeID }) => {
                                 <Switch
                                     checked={value}
                                     onChange={(e) => handleInputChange(key, e.target.checked)}
-                                    disabled={!isEditing}
                                 />
                             </div>
                         </div>
@@ -260,7 +235,6 @@ const NodeDetails = ({ nodeID }) => {
                                     jsonValue={value}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
                                     options={jsonOptions}
-                                    disabled={!isEditing}
                                 />
                                 <hr className="my-2" />
                             </div>
@@ -273,7 +247,6 @@ const NodeDetails = ({ nodeID }) => {
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter key-value pairs as JSON"
-                            disabled={!isEditing}
                         />
                     );
                 case 'code':
@@ -282,7 +255,6 @@ const NodeDetails = ({ nodeID }) => {
                             key={key}
                             code={value}
                             onChange={(newValue) => handleInputChange(key, newValue)}
-                            disabled={!isEditing}
                         />
                     );
                 default:
@@ -304,34 +276,30 @@ const NodeDetails = ({ nodeID }) => {
                                         <li key={index} className="flex items-center justify-between mb-1">
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
-                                                {isEditing && (<button
+                                                <button
                                                     className="px-2 py-1 bg-purple-600 text-white rounded mr-2"
                                                     onClick={() => setFewShotIndex(index)}
                                                 >
                                                     Edit
                                                 </button>
-                                                )}
-                                                {isEditing && (<button
+                                                <button
                                                     className="px-2 py-1 bg-purple-600 text-white rounded"
                                                     onClick={() => handleDeleteExample(index)}
                                                 >
                                                     Delete
                                                 </button>
-                                                )}
                                             </div>
                                         </li>
                                     ))}
                                 </ul>
 
                                 <div className="mt-2">
-                                    {isEditing && (<button
+                                    <button
                                         className="mt-1 px-2 py-1 bg-purple-600 text-white rounded"
                                         onClick={handleAddNewExample}
-                                        disabled={!isEditing}
                                     >
                                         Add Example
                                     </button>
-                                    )}
                                 </div>
                             </div>
                         );
@@ -350,36 +318,10 @@ const NodeDetails = ({ nodeID }) => {
                 <div className='flex items-center'>
                     <h3 className="text-lg font-semibold">Node Config</h3>
                 </div>
-                <div>
-                    {isEditing ? (
-                        <>
-                            <Button
-                                className="bg-blue-500 text-white px-2 py-1 rounded mr-2"
-                                auto
-                                onClick={handleSave}
-                            >
-                                Save
-                            </Button>
-                            <Button
-                                className="bg-red-500 text-white px-2 py-1 rounded"
-                                auto
-                                onClick={() => setIsEditing(false)}
-                            >
-                                Cancel
-                            </Button>
-                        </>
-                    ) : (
-                        <Button
-                            className="bg-blue-500 text-white px-2 py-1 rounded"
-                            auto
-                            onClick={() => setIsEditing(true)}
-                        >
-                            Edit Config
-                        </Button>
-                    )}
-                </div>
             </div>
+
             {renderConfigFields()}
+
             <hr className="my-2" />
         </div>
     );

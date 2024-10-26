@@ -13,6 +13,7 @@ import {
     Redo,
     Code,
 } from "lucide-react";
+import { Button } from "@nextui-org/react";
 
 const Toolbar = ({ editor }) => {
     if (!editor) {
@@ -24,8 +25,8 @@ const Toolbar = ({ editor }) => {
     gap-5 w-full flex-wrap border border-gray-700"
         >
             <div className="flex justify-start items-center gap-3 w-full lg:w-10/12 flex-wrap ">
-                <button
-                    onClick={() => {
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleBold().run();
                     }}
                     disabled={
@@ -35,16 +36,14 @@ const Toolbar = ({ editor }) => {
                             .toggleBold()
                             .run()
                     }
-                    className={
-                        editor.isActive("bold")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    }
+                    color="primary"
+                    variant={editor.isActive("bold") ? "solid" : "flat"}
+                    auto
                 >
                     <Bold className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleItalic().run();
                     }}
                     disabled={
@@ -54,16 +53,14 @@ const Toolbar = ({ editor }) => {
                             .toggleItalic()
                             .run()
                     }
-                    className={
-                        editor.isActive("italic")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    }
+                    color="primary"
+                    variant={editor.isActive("italic") ? "solid" : "flat"}
+                    auto
                 >
                     <Italic className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleUnderline().run();
                     }}
                     disabled={
@@ -73,16 +70,14 @@ const Toolbar = ({ editor }) => {
                             .toggleUnderline()
                             .run()
                     }
-                    className={
-                        editor.isActive("underline")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    }
+                    color="primary"
+                    variant={editor.isActive("underline") ? "solid" : "flat"}
+                    auto
                 >
                     <Underline className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleStrike().run();
                     }}
                     disabled={
@@ -92,149 +87,157 @@ const Toolbar = ({ editor }) => {
                             .toggleStrike()
                             .run()
                     }
-                    className={
-                        editor.isActive("strike")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    }
+                    color="primary"
+                    variant={editor.isActive("strike") ? "solid" : "flat"}
+                    auto
                 >
                     <Strikethrough className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().setCode().run();
                     }}
                     disabled={
                         !editor.can()
-                          .chain()
-                          .focus()
-                          .toggleCode()
-                          .run()
-                      }
-                    className={
-                        editor.isActive("code")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                            .chain()
+                            .focus()
+                            .toggleCode()
+                            .run()
                     }
+                    color="primary"
+                    variant={editor.isActive("code") ? "solid" : "flat"}
+                    auto
                 >
                     <Code className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().unsetAllMarks().run()}
-                    className="bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().unsetAllMarks().run()}
+                    color="primary"
+                    variant="flat"
+                    auto
                 >
                     Clear marks
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().clearNodes().run()}
-                    className="bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().clearNodes().run()}
+                    color="primary"
+                    variant="flat"
+                    auto
                 >
                     Clear nodes
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().setParagraph().run()}
-                    className={editor.isActive('paragraph') ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().setParagraph().run()}
+                    color="primary"
+                    variant={editor.isActive('paragraph') ? "solid" : "flat"}
+                    auto
                 >
                     Paragraph
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                    className={editor.isActive('heading', { level: 1 }) ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                    color="primary"
+                    variant={editor.isActive('heading', { level: 1 }) ? "solid" : "flat"}
+                    auto
                 >
                     H1
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                    className={editor.isActive('heading', { level: 2 }) ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    color="primary"
+                    variant={editor.isActive('heading', { level: 2 }) ? "solid" : "flat"}
+                    auto
                 >
                     H2
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                    className={editor.isActive('heading', { level: 3 }) ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                    color="primary"
+                    variant={editor.isActive('heading', { level: 3 }) ? "solid" : "flat"}
+                    auto
                 >
                     H3
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
-                    className={editor.isActive('heading', { level: 4 }) ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                    color="primary"
+                    variant={editor.isActive('heading', { level: 4 }) ? "solid" : "flat"}
+                    auto
                 >
                     H4
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}
-                    className={editor.isActive('heading', { level: 5 }) ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}
+                    color="primary"
+                    variant={editor.isActive('heading', { level: 5 }) ? "solid" : "flat"}
+                    auto
                 >
                     H5
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 6 }).run()}
-                    className={editor.isActive('heading', { level: 6 }) ? 'bg-purple-600 text-white px-2 py-1 rounded-lg' : 'bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out'}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleHeading({ level: 6 }).run()}
+                    color="primary"
+                    variant={editor.isActive('heading', { level: 6 }) ? "solid" : "flat"}
+                    auto
                 >
                     H6
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleBulletList().run();
                     }}
-                    className={
-                        editor.isActive("bulletList")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
-                    }
+                    color="primary"
+                    variant={editor.isActive("bulletList") ? "solid" : "flat"}
+                    auto
                 >
                     <List className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleOrderedList().run();
                     }}
-                    className={
-                        editor.isActive("orderedList")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
-                    }
+                    color="primary"
+                    variant={editor.isActive("orderedList") ? "solid" : "flat"}
+                    auto
                 >
                     <ListOrdered className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().toggleBlockquote().run();
                     }}
-                    className={
-                        editor.isActive("blockquote")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
-                    }
+                    color="primary"
+                    variant={editor.isActive("blockquote") ? "solid" : "flat"}
+                    auto
                 >
                     <Quote className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                    className={editor.isActive('codeBlock')
-                        ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                        : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"}
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().toggleCodeBlock().run()}
+                    color="primary"
+                    variant={editor.isActive('codeBlock') ? "solid" : "flat"}
+                    auto
                 >
                     Code block
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                    className="bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().setHorizontalRule().run()}
+                    color="primary"
+                    variant="flat"
+                    auto
                 >
                     Horizontal rule
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().setHardBreak().run()}
-                    className={
-                        editor.isActive("bulletList")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"
-                    }
+                </Button>
+                <Button
+                    onPress={() => editor.chain().focus().setHardBreak().run()}
+                    color="primary"
+                    variant="flat"
+                    auto
                 >
                     Hard break
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().undo().run();
                     }}
                     disabled={
@@ -244,16 +247,14 @@ const Toolbar = ({ editor }) => {
                             .undo()
                             .run()
                     }
-                    className={
-                        editor.isActive("undo")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    }
+                    color="primary"
+                    variant="flat"
+                    auto
                 >
                     <Undo className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => {
+                </Button>
+                <Button
+                    onPress={() => {
                         editor.chain().focus().redo().run();
                     }}
                     disabled={
@@ -263,22 +264,12 @@ const Toolbar = ({ editor }) => {
                             .redo()
                             .run()
                     }
-                    className={
-                        editor.isActive("redo")
-                            ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                            : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    }
+                    color="primary"
+                    variant="flat"
+                    auto
                 >
                     <Redo className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => editor.chain().focus().setColor('#958DF1').run()}
-                    className={editor.isActive('textStyle', { color: '#958DF1' })
-                        ? "bg-purple-600 text-white px-2 py-1 rounded-lg"
-                        : "bg-gray-300 px-2 py-1 rounded-lg hover:bg-gray-400 transition duration-100 ease-in-out"}
-                >
-                    Purple
-                </button>
+                </Button>
             </div>
         </div>
     );
