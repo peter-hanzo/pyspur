@@ -2,6 +2,8 @@ export const nodeTypes = {
   "primitives": [
     {
       "name": "ConstantValueNode",
+      "acronym": "CVN",
+      "color": "#FFDDC1",
       "input": {
         "properties": {},
         "title": "ConstantValueNodeInput",
@@ -30,6 +32,8 @@ export const nodeTypes = {
   "llm": [
     {
       "name": "StringOutputLLMNode",
+      "acronym": "SOLN",
+      "color": "#C1E1FF",
       "input": {
         "properties": {
           "user_message": {
@@ -81,8 +85,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -124,6 +128,8 @@ export const nodeTypes = {
     },
     {
       "name": "StructuredOutputNode",
+      "acronym": "SON",
+      "color": "#D1FFC1",
       "input": {
         "properties": {
           "user_message": {
@@ -167,8 +173,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -213,6 +219,8 @@ export const nodeTypes = {
     },
     {
       "name": "AdvancedLLMNode",
+      "acronym": "ALN",
+      "color": "#FFC1C1",
       "input": {
         "properties": {},
         "title": "AdvancedNodeInput",
@@ -248,8 +256,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -304,6 +312,8 @@ export const nodeTypes = {
     },
     {
       "name": "MCTSNode",
+      "acronym": "MCTS",
+      "color": "#C1C1FF",
       "input": {
         "properties": {
           "user_message": {
@@ -357,8 +367,8 @@ export const nodeTypes = {
             "default": 1,
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -408,6 +418,8 @@ export const nodeTypes = {
     },
     {
       "name": "BestOfNNode",
+      "acronym": "BoN",
+      "color": "#FFD1C1",
       "input": {},
       "output": {},
       "config": {
@@ -435,8 +447,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -511,6 +523,8 @@ export const nodeTypes = {
     },
     {
       "name": "BranchSolveMergeNode",
+      "acronym": "BSM",
+      "color": "#C1FFD1",
       "input": {},
       "output": {},
       "config": {
@@ -538,8 +552,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "default": "",
@@ -609,6 +623,8 @@ export const nodeTypes = {
     },
     {
       "name": "MixtureOfAgentsNode",
+      "acronym": "MoA",
+      "color": "#E4D4F4",
       "input": {
         "properties": {
           "user_message": {
@@ -660,8 +676,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -718,6 +734,8 @@ export const nodeTypes = {
     },
     {
       "name": "SampleLLMNode",
+      "acronym": "SLN",
+      "color": "#F4E4D4",
       "input": {},
       "output": {},
       "config": {
@@ -745,8 +763,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -806,6 +824,8 @@ export const nodeTypes = {
     },
     {
       "name": "SelfConsistencyNode",
+      "acronym": "SCN",
+      "color": "#D4F4E4",
       "input": {
         "properties": {
           "user_message": {
@@ -857,8 +877,8 @@ export const nodeTypes = {
           "temperature": {
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -910,6 +930,8 @@ export const nodeTypes = {
     },
     {
       "name": "TreeOfThoughtsNode",
+      "acronym": "ToT",
+      "color": "#F4D4E4",
       "input": {
         "properties": {
           "user_message": {
@@ -962,8 +984,8 @@ export const nodeTypes = {
             "default": 0.7,
             "title": "Temperature",
             "type": "number",
-            "minimum": 0.0,  // Added minimum value
-            "maximum": 2.0   // Added maximum value
+            "minimum": 0.0,
+            "maximum": 2.0
           },
           "system_prompt": {
             "title": "System Prompt",
@@ -1059,6 +1081,8 @@ export const nodeTypes = {
   "python": [
     {
       "name": "PythonFuncNode",
+      "acronym": "PFN",
+      "color": "#D4E4F4",
       "input": {
         "properties": {},
         "title": "PythonFuncNodeInput",
@@ -1103,6 +1127,8 @@ export const nodeTypes = {
   "subworkflow": [
     {
       "name": "SubworkflowNode",
+      "acronym": "SWN",
+      "color": "#F4D4C1",
       "input": {},
       "output": {},
       "config": {

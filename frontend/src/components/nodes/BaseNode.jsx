@@ -35,9 +35,19 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     position: 'relative', // Ensure proper positioning of handles
   };
 
-  useEffect(() => {
-    console.log("data.title has changed:", data.title);
-  }, [data.title]); // Log whenever data.title changes
+  // Extract acronym and color from data
+  const acronym = data.acronym || 'N/A'; // Default to 'N/A' if acronym is not provided
+  const color = data.color || '#ccc'; // Default to grey if color is not provided
+
+  const tagStyle = {
+    backgroundColor: color,
+    color: '#fff',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '0.75rem',
+    display: 'inline-block',
+    marginBottom: '8px',
+  };
 
   return (
     <Card
@@ -45,20 +55,21 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
       style={cardStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      isHoverable
     >
       {data && data.title && (
-        <CardHeader>
-          <p className="text-md">{data.title}</p>
+        <CardHeader style={{ position: 'relative' }}>
+          <h3 className="text-lg font-semibold text-center">{data.title}</h3>
+          {/* Display the acronym tag in the top-right corner */}
+          <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
+            {acronym}
+          </div>
         </CardHeader>
       )}
 
-      <CardBody>{children}</CardBody>
+      {/* <CardBody>{children}</CardBody> */}
 
-      {data.footer && (
-        <CardFooter>
-          <Link href={data.footerLink}>{data.footer}</Link>
-        </CardFooter>
-      )}
+
     </Card>
   );
 };

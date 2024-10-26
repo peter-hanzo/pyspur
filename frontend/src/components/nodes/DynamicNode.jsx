@@ -85,13 +85,9 @@ const DynamicNode = ({ id, type }) => {
   }
 
   return (
-    <BaseNode id={id}>
-      <div className={styles.nodeWrapper} ref={nodeRef} style={{ width: nodeWidth }}>
+    <BaseNode id={id} data={node.data} style={{ width: nodeWidth }}>  {/* Pass node.data as the data prop */}
+      <div className={styles.nodeWrapper} ref={nodeRef}>
         {renderHandles()}
-        <div className="p-2">
-          <h3 className="text-lg font-semibold text-center">{type}</h3>
-          <p className="text-sm text-gray-500 text-center">ID: {id}</p>
-        </div>
       </div>
     </BaseNode>
   );

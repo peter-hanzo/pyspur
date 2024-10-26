@@ -161,7 +161,6 @@ const NodeDetails = ({ nodeID }) => {
 
     const handleTitleChange = (e) => {
         const newTitle = e.target.value;
-        console.log(node.data);
         dispatch(updateNodeData({ id: nodeID, data: { ...node.data, title: newTitle } }));
     };
 
@@ -288,13 +287,12 @@ const NodeDetails = ({ nodeID }) => {
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
                                                 <Button
-                                                    color="primary"
                                                     onClick={() => setFewShotIndex(index)}
                                                 >
                                                     Edit
                                                 </Button>
                                                 <Button
-                                                    color="primary"
+
                                                     onClick={() => handleDeleteExample(index)}
                                                 >
                                                     Delete
@@ -306,7 +304,6 @@ const NodeDetails = ({ nodeID }) => {
 
                                 <div className="mt-2">
                                     <Button
-                                        color="primary"
                                         onClick={handleAddNewExample}
                                     >
                                         Add Example
