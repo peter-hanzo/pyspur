@@ -1,13 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { applyNodeChanges, applyEdgeChanges } from 'reactflow';
+import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
 
 // Define initial state
 const initialState = {
   nodes: [],
   edges: [],
   hoveredNode: null,
-  selectedNode: null, // Add this to track the selected node
-  reactFlowInstance: null, // Add reactFlowInstance to the initial state
+  selectedNode: null, // Keep selectedNode
 };
 
 // Create the flow slice
@@ -22,11 +21,17 @@ const flowSlice = createSlice({
       state.edges = applyEdgeChanges(action.payload.changes, state.edges);
     },
     connect: (state, action) => {
-      state.edges.push(action.payload.connection);
+      state.edges = addEdge(action.payload.connection, state.edges); // Use addEdge to add the connection
     },
     addNode: (state, action) => {
       const node = action.payload.node;
       state.nodes.push(node);
+    },
+    setNodes: (state, action) => {
+      state.nodes = action.payload.nodes; // Directly set nodes
+    },
+    setEdges: (state, action) => {
+      state.edges = action.payload.edges; // Directly set edges
     },
     updateNodeData: (state, action) => {
       const { id, data } = action.payload;
@@ -34,24 +39,20 @@ const flowSlice = createSlice({
       if (node) {
         node.data = { ...node.data, ...data };
       }
-      // console.log(node);
     },
     setHoveredNode: (state, action) => {
-      state.hoveredNode = action.payload.nodeId; // Correct the payload key here
+      state.hoveredNode = action.payload.nodeId;
     },
     setSelectedNode: (state, action) => {
-      state.selectedNode = action.payload.nodeId; // Track the selected node
-    },
-    setReactFlowInstance: (state, action) => {
-      state.reactFlowInstance = action.payload.instance; // Set the reactFlowInstance
+      state.selectedNode = action.payload.nodeId;
     },
     deleteNode: (state, action) => {
       const nodeId = action.payload.nodeId;
-      state.nodes = state.nodes.filter((node) => node.id !== nodeId); // Remove the node by ID
+      state.nodes = state.nodes.filter((node) => node.id !== nodeId);
     },
     deleteEdge: (state, action) => {
-      const edgeId = action.payload.edgeId; // Get the edge ID from the action payload
-      state.edges = state.edges.filter((edge) => edge.id !== edgeId); // Remove the edge by ID
+      const edgeId = action.payload.edgeId;
+      state.edges = state.edges.filter((edge) => edge.id !== edgeId);
     },
   },
 });
@@ -62,12 +63,13 @@ export const {
   edgesChange,
   connect,
   addNode,
+  setNodes,
+  setEdges,
   updateNodeData,
   setHoveredNode,
   setSelectedNode,
-  setReactFlowInstance, // Export the action for setting reactFlowInstance
-  deleteNode, // Export the action for deleting a node
-  deleteEdge, // Export the action for deleting an edge
+  deleteNode,
+  deleteEdge,
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

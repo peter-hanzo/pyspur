@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setHoveredNode } from '../../store/flowSlice';
 import {
@@ -34,6 +34,10 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     transition: 'border-color 0.1s, border-width 0.02s',
     position: 'relative', // Ensure proper positioning of handles
   };
+
+  useEffect(() => {
+    console.log("data.title has changed:", data.title);
+  }, [data.title]); // Log whenever data.title changes
 
   return (
     <Card

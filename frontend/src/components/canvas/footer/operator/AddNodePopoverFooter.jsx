@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RiAddCircleFill } from '@remixicon/react';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
-
 import { useNodeSelector } from '../../../../hooks/useNodeSelector';
-import AddNodePopoverCanvasContent, { addNodeWithoutConnection } from '../../AddNodePopoverCanvas'; // Import the refactored function
-
+import AddNodePopoverCanvasContent, { addNodeWithoutConnection } from '../../AddNodePopoverCanvas';
+import { useReactFlow } from 'reactflow';
 
 const AddNodePopoverFooter = () => {
-  const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Retrieve reactFlowInstance from the store
-  const { visible, setVisible } = useNodeSelector(reactFlowInstance);
+  const reactFlowInstance = useReactFlow();
+
+
   const dispatch = useDispatch();
 
   return (
     <Card className='h-12 flex items-center justify-center'>
       <div className='flex items-center text-gray-500'>
-        <Popover placement="bottom" showArrow={true} isOpen={visible} onOpenChange={setVisible}>
+        <Popover placement="bottom" showArrow={true}>
           <PopoverTrigger>
             <Button color='white'>
               <RiAddCircleFill />
@@ -23,7 +23,7 @@ const AddNodePopoverFooter = () => {
           </PopoverTrigger>
           <PopoverContent>
             <AddNodePopoverCanvasContent
-              handleSelectNode={(nodeType) => addNodeWithoutConnection(nodeType, reactFlowInstance, dispatch, setVisible)}
+              handleSelectNode={(nodeType) => addNodeWithoutConnection(nodeType, reactFlowInstance, dispatch)}
             />
           </PopoverContent>
         </Popover>

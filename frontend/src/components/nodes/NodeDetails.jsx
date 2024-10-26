@@ -24,7 +24,6 @@ const NodeDetails = ({ nodeID }) => {
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
 
     const [fewShotIndex, setFewShotIndex] = useState(null);
-    const [isPromptEditing, setIsPromptEditing] = useState(false);
 
     // Function to find the node schema based on the new structure
     const findNodeSchema = (nodeType) => {
@@ -101,16 +100,22 @@ const NodeDetails = ({ nodeID }) => {
         const schema = findNodeSchema(node?.type);
         setNodeSchema(schema);
 
-        // Only update configData if it's not already set or if the node's config has changed
+        // Initialize configData and ensure the title is set
         if (node?.data?.config && JSON.stringify(node.data.config) !== JSON.stringify(configData)) {
             setConfigData(node.data.config);
         } else {
-            setConfigData(initializeConfigData(schema));
+            const initialConfig = initializeConfigData(schema);
+            setConfigData({
+                ...initialConfig,
+                title: node?.data?.title || '', // Ensure title is initialized
+            });
         }
 
         if (promptEditor && node?.data?.config?.system_prompt !== promptEditor.getHTML()) {
             promptEditor.commands.setContent(node?.data?.config?.system_prompt || '');
         }
+
+
     }, [nodeID, node]);
 
     const promptEditor = Editor(node?.data?.config?.system_prompt || '', null, false);
@@ -153,6 +158,12 @@ const NodeDetails = ({ nodeID }) => {
             </select>
         </div>
     );
+
+    const handleTitleChange = (e) => {
+        const newTitle = e.target.value;
+        console.log(node.data);
+        dispatch(updateNodeData({ id: nodeID, data: { ...node.data, title: newTitle } }));
+    };
 
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config) return null;
@@ -276,30 +287,30 @@ const NodeDetails = ({ nodeID }) => {
                                         <li key={index} className="flex items-center justify-between mb-1">
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
-                                                <button
-                                                    className="px-2 py-1 bg-purple-600 text-white rounded mr-2"
+                                                <Button
+                                                    color="primary"
                                                     onClick={() => setFewShotIndex(index)}
                                                 >
                                                     Edit
-                                                </button>
-                                                <button
-                                                    className="px-2 py-1 bg-purple-600 text-white rounded"
+                                                </Button>
+                                                <Button
+                                                    color="primary"
                                                     onClick={() => handleDeleteExample(index)}
                                                 >
                                                     Delete
-                                                </button>
+                                                </Button>
                                             </div>
                                         </li>
                                     ))}
                                 </ul>
 
                                 <div className="mt-2">
-                                    <button
-                                        className="mt-1 px-2 py-1 bg-purple-600 text-white rounded"
+                                    <Button
+                                        color="primary"
                                         onClick={handleAddNewExample}
                                     >
                                         Add Example
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         );
@@ -318,6 +329,18 @@ const NodeDetails = ({ nodeID }) => {
                 <div className='flex items-center'>
                     <h3 className="text-lg font-semibold">Node Config</h3>
                 </div>
+            </div>
+
+            {/* Add an input field for the node title */}
+            <div className="my-4">
+                <label className="text-sm font-semibold mb-2 block">Node Title</label>
+                <input
+                    type="text"
+                    value={node?.data?.title || ''}
+                    onChange={handleTitleChange}
+                    className="border p-1 w-full"
+                    placeholder="Enter node title"
+                />
             </div>
 
             {renderConfigFields()}

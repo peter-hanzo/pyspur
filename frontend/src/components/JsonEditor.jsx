@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { Button } from '@nextui-org/react';
 const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
   const [newKey, setNewKey] = useState('');
 
@@ -38,13 +38,14 @@ const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
           className="mr-2 p-1 border rounded"
           disabled={disabled} // Disable when not editing
         />
-        <button
+        <Button
           onClick={handleAddKey}
-          className="bg-blue-500 text-white px-2 py-1 rounded disabled:opacity-50 disabled:bg-gray-400"
+          color="primary"
           disabled={disabled} // Disable when not editing
+          auto
         >
           Add Key
-        </button>
+        </Button>
       </div>
       {Object.entries(jsonValue).map(([key, value]) => (
         <div key={key} className="mb-2 flex items-center">
@@ -61,13 +62,14 @@ const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
               </option>
             ))}
           </select>
-          <button
+          <Button
             onClick={() => handleRemoveKey(key)}
-            className="bg-red-500 text-white px-2 py-1 rounded"
+            color="primary"
             disabled={disabled} // Disable when not editing
+            auto
           >
             Remove
-          </button>
+          </Button>
         </div>
       ))}
     </div>

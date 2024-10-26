@@ -1,8 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import ReactFlow, {
-  Background,
-  useReactFlow, // Add this import
-} from 'reactflow'; // Import useReactFlow from reactflow
+import ReactFlow, { Background, useReactFlow } from 'reactflow'; // Remove useReactFlow import
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';
@@ -14,19 +11,18 @@ import {
   updateNodeData,
   setHoveredNode,
   setSelectedNode,
-  setReactFlowInstance, // Import the action
-  deleteNode, // Import the deleteNode action
+  deleteNode,
 } from '../../store/flowSlice';
 import Spreadsheet from '../table/Table';
 import NodeDetails from '../nodes/NodeDetails';
-import { Card, Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
+import { Card, Button, Popover, PopoverContent } from '@nextui-org/react';
 import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
-import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes'; // Import nodeTypes
+import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { useNodeSelector } from '../../hooks/useNodeSelector';
-import AddNodePopoverCanvasContent from './AddNodePopoverCanvas'; // Import the new component
+import AddNodePopoverCanvasContent from './AddNodePopoverCanvas';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 
 const nodeTypes = {};
@@ -52,8 +48,7 @@ const CustomEdge = ({
 }) => {
 
   const { onPopoverOpen, showPlusButton } = data; // Destructure from data
-  const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Use reactFlowInstance from Redux
-
+  const reactFlowInstance = useReactFlow();
   const sourceNode = reactFlowInstance.getNode(source);
   const targetNode = reactFlowInstance.getNode(target);
 
@@ -135,8 +130,10 @@ const FlowCanvas = () => {
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode);
-  const selectedNodeID = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from state
-  const reactFlowInstance = useSelector((state) => state.flow.reactFlowInstance); // Get reactFlowInstance from Redux
+  const selectedNodeID = useSelector((state) => state.flow.selectedNode);
+
+  // Manage reactFlowInstance locally
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
   const onNodesChange = useCallback(
     (changes) => dispatch(nodesChange({ changes })),
@@ -157,30 +154,20 @@ const FlowCanvas = () => {
     },
     [dispatch]
   );
-  const onUpdateNodeData = useCallback(
-    (id, data) => dispatch(updateNodeData({ id, data })),
-    [dispatch]
-  );
 
-  const { visible, setVisible } = useNodeSelector(reactFlowInstance); // Use reactFlowInstance from Redux
-
-  // Adding new state to manage active tab and spreadsheet data
-  const [activeTab, setActiveTab] = useState('sheet1'); // Manage active tab state
-  const [spreadsheetData, setSpreadsheetData] = useState([[""]]); // Store spreadsheet data
+  const { visible, setVisible } = useNodeSelector(reactFlowInstance);
 
   const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
 
   // State to manage the visibility of the PopoverContent and the selected edge
   const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
-  const [selectedEdge, setSelectedEdge] = useState(null); // Track the selected edge
+  const [selectedEdge, setSelectedEdge] = useState(null);
 
-  // Function to handle the visibility of the PopoverContent
   const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }) => {
-    setSelectedEdge({ sourceNode, targetNode, edgeId }); // Track the edgeId along with source and target nodes
+    setSelectedEdge({ sourceNode, targetNode, edgeId });
     setPopoverContentVisible(true);
   }, []);
 
-  // Ensure handlePopoverOpen is defined before styledEdges
   const styledEdges = useMemo(() => {
     return edges.map((edge) => {
       const isHovered = edge.id === hoveredEdge;
@@ -231,10 +218,9 @@ const FlowCanvas = () => {
     dispatch(setHoveredNode({ nodeId: null }));
   }, [dispatch]);
 
-  // Function to handle the initialization of ReactFlow instance
   const onInit = useCallback((instance) => {
-    dispatch(setReactFlowInstance({ instance })); // Dispatch the instance to Redux
-  }, [dispatch]);
+    setReactFlowInstance(instance); // Set the instance locally
+  }, []);
 
   const onNodeClick = useCallback(
     (event, node) => {
@@ -251,11 +237,10 @@ const FlowCanvas = () => {
 
   const footerHeight = 100;
 
-  // Handle node deletion from React Flow
   const onNodesDelete = useCallback(
     (deletedNodes) => {
       deletedNodes.forEach((node) => {
-        dispatch(deleteNode({ nodeId: node.id })); // Dispatch deleteNode for each deleted node
+        dispatch(deleteNode({ nodeId: node.id }));
       });
     },
     [dispatch]
@@ -263,7 +248,6 @@ const FlowCanvas = () => {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Popover component moved here */}
       {isPopoverContentVisible && selectedEdge && (
         <Popover
           placement="bottom"
@@ -290,7 +274,6 @@ const FlowCanvas = () => {
             zIndex: 1,
           }}
         >
-
           <ReactFlow
             nodes={nodes}
             edges={styledEdges}
@@ -309,14 +292,13 @@ const FlowCanvas = () => {
             onNodeClick={onNodeClick}
             onEdgeMouseEnter={onEdgeMouseEnter}
             onEdgeMouseLeave={onEdgeMouseLeave}
-            onNodesDelete={onNodesDelete} // Add the onNodesDelete callback
+            onNodesDelete={onNodesDelete}
           >
             <Background />
             <Operator />
           </ReactFlow>
-
         </div>
-        {activeTab === 'sheet1' && selectedNodeID && (
+        {selectedNodeID && (
           <div
             className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
@@ -324,7 +306,6 @@ const FlowCanvas = () => {
             <NodeDetails nodeID={selectedNodeID} />
           </div>
         )}
-
       </div>
     </div>
   );
