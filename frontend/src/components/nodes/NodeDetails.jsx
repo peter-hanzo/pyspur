@@ -210,9 +210,9 @@ const NodeDetails = ({ nodeID }) => {
                     if (field.minimum !== undefined && field.maximum !== undefined) {
                         return (
                             <div key={key} className="my-4">
-                                <label className="font-semibold mb-2 block">{field.title || key}</label>
                                 <Slider
-                                    step={field.step || 0.01} // Use step if defined, otherwise default to 0.01
+                                    label={field.title || key}
+                                    step={field.step || 0.1} // Use step if defined, otherwise default to 0.01
                                     maxValue={field.maximum}
                                     minValue={field.minimum}
                                     defaultValue={value || field.default || field.minimum}
