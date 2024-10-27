@@ -11,8 +11,12 @@ const DynamicNode = ({ id, type }) => {
 
   useEffect(() => {
     if (nodeRef.current && node) { // Ensure node exists before accessing its properties
-      const inputLabels = Object.keys(node.data?.config?.input_schema || {});
-      const outputLabels = Object.keys(node.data?.config?.output_schema || {});
+      const inputSchema = node.data?.config?.input_schema || node.data?.input?.properties || {};
+      const outputSchema = node.data?.config?.output_schema || node.data?.output?.properties || {};
+      
+      const inputLabels = Object.keys(inputSchema);
+      const outputLabels = Object.keys(outputSchema);
+      
       const maxLabelLength = Math.max(
         ...inputLabels.map(label => label.length),
         ...outputLabels.map(label => label.length)
@@ -25,15 +29,15 @@ const DynamicNode = ({ id, type }) => {
   const renderHandles = () => {
     if (!node) return null; // Return early if node is undefined
 
-    const inputSchema = node.data?.config?.input_schema || {};
-    const outputSchema = node.data?.config?.output_schema || {};
+    const inputSchema = node.data?.config?.input_schema || node.data?.input?.properties || {};
+    const outputSchema = node.data?.config?.output_schema || node.data?.output?.properties || {};
 
-    const inputs = Object.keys(inputSchema).length || 1;
-    const outputs = Object.keys(outputSchema).length || 1;
+    const inputs = Object.keys(inputSchema).length;
+    const outputs = Object.keys(outputSchema).length;
 
     return (
       <>
-        {Object.entries(inputSchema).length > 0 ? (
+        {inputs > 0 ? (
           Object.entries(inputSchema).map(([key, value], index) => (
             <div key={`${index}`} className={styles.inputHandleWrapper} style={{ top: `${(index + 1) * 100 / (inputs + 1)}%` }}>
               <Handle
@@ -45,17 +49,9 @@ const DynamicNode = ({ id, type }) => {
               <span className={styles.handleLabel}>{key}</span>
             </div>
           ))
-        ) : (
-          <Handle
-            type="target"
-            position="left"
-            id="assistant_message"
-            className={`${styles.handle} ${styles.handleLeft}`}
-            style={{ top: '50%' }}
-          />
-        )}
+        ) : null}
 
-        {Object.entries(outputSchema).length > 0 ? (
+        {outputs > 0 ? (
           Object.entries(outputSchema).map(([key, value], index) => (
             <div key={`output-${index}`} className={styles.outputHandleWrapper} style={{ top: `${(index + 1) * 100 / (outputs + 1)}%` }}>
               <span className={styles.handleLabel}>{key}</span>
@@ -67,15 +63,7 @@ const DynamicNode = ({ id, type }) => {
               />
             </div>
           ))
-        ) : (
-          <Handle
-            type="source"
-            position="right"
-            id="assistant_message"
-            className={`${styles.handle} ${styles.handleRight}`}
-            style={{ top: '50%' }}
-          />
-        )}
+        ) : null}
       </>
     );
   };
