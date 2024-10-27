@@ -113,6 +113,38 @@ const NodeDetails = ({ nodeID }) => {
 
     const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
 
+    // const [userInputs, setUserInputs] = useState({});
+
+    // const handleUserInputChange = (key, value) => {
+    //     setUserInputs((prevInputs) => ({
+    //         ...prevInputs,
+    //         [key]: value,
+    //     }));
+    //     handleInputChange(key, value); // Update the node data
+    // };
+
+    // const renderUserInputFields = () => {
+    //     if (!nodeSchema || !nodeSchema.config) return null;
+    //     const properties = nodeSchema.config.properties;
+
+    //     return Object.keys(properties).map((key) => {
+    //         const field = properties[key];
+    //         const value = userInputs[key] || '';
+
+    //         return (
+    //             <div key={key} className="my-2">
+    //                 <label className="text-sm font-semibold mb-2 block">{field.title || key}</label>
+    //                 <input
+    //                     type="text"
+    //                     value={value}
+    //                     onChange={(e) => handleUserInputChange(key, e.target.value)}
+    //                     className="border p-1 w-full"
+    //                     placeholder={`Enter ${field.title || key}`}
+    //                 />
+    //             </div>
+    //         );
+    //     });
+    // };
 
     const handleAddNewExample = () => {
         const updatedExamples = [...(node?.data?.config?.few_shot_examples || []), { input: '', output: '' }];
@@ -219,28 +251,17 @@ const NodeDetails = ({ nodeID }) => {
                         </div>
                     );
                 case 'object':
-                    if (key === 'output_schema' || key === 'input_schema') {
-                        return (
-                            <div key={key} className="my-2">
-                                <hr className="my-2" />
-                                <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
-                                <JsonEditor
-                                    jsonValue={value}
-                                    onChange={(newValue) => handleInputChange(key, newValue)}
-                                    options={jsonOptions}
-                                />
-                                <hr className="my-2" />
-                            </div>
-                        );
-                    }
                     return (
-                        <TextInput
-                            key={key}
-                            label={field.title || key}
-                            value={value}
-                            onChange={(e) => handleInputChange(key, e.target.value)}
-                            placeholder="Enter key-value pairs as JSON"
-                        />
+                        <div key={key} className="my-2">
+                            <hr className="my-2" />
+                            <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
+                            <JsonEditor
+                                jsonValue={value}
+                                onChange={(newValue) => handleInputChange(key, newValue)}
+                                options={jsonOptions}
+                            />
+                            <hr className="my-2" />
+                        </div>
                     );
                 case 'code':
                     return (
@@ -322,6 +343,9 @@ const NodeDetails = ({ nodeID }) => {
                     placeholder="Enter node title"
                 />
             </div>
+
+            {/* <h3 className="text-lg font-semibold">User Inputs</h3>
+            {renderUserInputFields()} */}
 
             {renderConfigFields()}
 
