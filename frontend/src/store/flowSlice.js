@@ -73,3 +73,8 @@ export const {
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
+
+// Selector to get a node by ID
+export const selectNodeById = (state, nodeId) => {
+  return state.flow.nodes.find((node) => node.id === nodeId);
+};

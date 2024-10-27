@@ -86,7 +86,7 @@ const Header = () => {
         <NavbarItem >
           <Button auto flat onClick={handleRunWorkflow} className="mx-1">
             <RiPlayFill />
-            Run Test
+            Run
           </Button>
           <Button auto flat className="mx-1">
             <RiShareFill />

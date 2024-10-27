@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateNodeData } from '../store/flowSlice';
+import { updateNodeData, selectNodeById } from '../store/flowSlice';
 
 /**
  * Custom hook to manage a specific field in a node's config.
@@ -9,15 +9,26 @@ import { updateNodeData } from '../store/flowSlice';
  * @returns {object} - The field value and a setter function to update it.
  */
 export const useNodeField = (nodeID, fieldName) => {
-    const dispatch = useDispatch();
-    const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
-    const [fieldValue, setFieldValue] = useState(node?.data?.config?.[fieldName] || '');
+  const dispatch = useDispatch();
+  const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
+  const [fieldValue, setFieldValue] = useState(node?.data?.config?.properties?.[fieldName] || ''); // Read from config.properties
 
-    useEffect(() => {
-        if (fieldValue !== node?.data?.config?.[fieldName]) {
-            dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, [fieldName]: fieldValue } } }));
-        }
-    }, [fieldValue, node?.data?.config?.[fieldName], dispatch, nodeID, fieldName]);
+  useEffect(() => {
+    if (fieldValue !== node?.data?.config?.properties?.[fieldName]) { // Compare with config.properties
+      dispatch(updateNodeData({
+        id: nodeID,
+        data: {
+          config: {
+            ...node.data.config,
+            properties: {
+              ...node.data.config.properties,
+              [fieldName]: fieldValue, // Write to config.properties
+            },
+          },
+        },
+      }));
+    }
+  }, [fieldValue, node?.data?.config?.properties?.[fieldName], dispatch, nodeID, fieldName]);
 
-    return { fieldValue, setFieldValue };
+  return { fieldValue, setFieldValue };
 };
