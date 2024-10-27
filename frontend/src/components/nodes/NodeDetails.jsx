@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData } from '../../store/flowSlice';
+import { updateNodeData, selectNodeById } from '../../store/flowSlice';
 import TextInput from '../TextInput';
 import NumberInput from '../NumberInput';
 import JsonEditor from '../JsonEditor';
@@ -17,8 +17,8 @@ import { useDebouncedCallback } from 'use-debounce'; // Import debounce utility
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
-    const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
-
+    const node = useSelector((state) => selectNodeById(state, nodeID));
+    console.log('this is the current node', node);
     const [fewShotIndex, setFewShotIndex] = useState(null);
 
     // Function to find the node schema based on the new structure
@@ -32,63 +32,64 @@ const NodeDetails = ({ nodeID }) => {
 
     const initializeConfigData = (nodeSchema) => {
         const configSchema = nodeSchema?.config;
-        const config = {};
+        const config = { properties: {} }; // Store values inside config.properties
         if (!configSchema) return config;
 
         Object.keys(configSchema.properties).forEach((key) => {
             const field = configSchema.properties[key];
 
             if (field.default !== undefined) {
-                config[key] = field.default;
+                config.properties[key] = field.default; // Store in config.properties
             } else if (field.$ref) {
                 const refPath = field.$ref.replace('#/$defs/', '');
                 const enumDef = configSchema.$defs[refPath];
                 if (enumDef && enumDef.enum) {
-                    config[key] = enumDef.enum[0];
+                    config.properties[key] = enumDef.enum[0]; // Store in config.properties
                 }
             } else {
                 switch (field.type) {
                     case 'string':
-                        config[key] = '';
+                        config.properties[key] = ''; // Store in config.properties
                         break;
                     case 'integer':
-                        config[key] = 0;
-                        break;
                     case 'number':
-                        config[key] = 0;
+                        config.properties[key] = 0; // Store in config.properties
                         break;
                     case 'boolean':
-                        config[key] = false;
+                        config.properties[key] = false; // Store in config.properties
                         break;
                     case 'array':
-                        config[key] = [];
+                        config.properties[key] = []; // Store in config.properties
                         break;
                     case 'object':
-                        config[key] = {};
+                        config.properties[key] = {}; // Store in config.properties
                         break;
                     case 'code':
-                        config[key] = '';
+                        config.properties[key] = ''; // Store in config.properties
                         break;
                     default:
-                        config[key] = null;
+                        config.properties[key] = null; // Store in config.properties
                 }
             }
         });
         return config;
     };
 
-    // Debounce the handleInputChange function to prevent too many updates
-    const debouncedHandleInputChange = useDebouncedCallback((key, value) => {
+    // Update the input change handler to directly dispatch the action
+    const handleInputChange = (key, value) => {
         setConfigData((prevConfig) => {
             const updatedConfig = {
                 ...prevConfig,
-                [key]: value,
+                properties: {
+                    ...prevConfig.properties,
+                    [key]: value, // Update inside config.properties
+                },
             };
             // Automatically save the updated config
             dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: updatedConfig } }));
             return updatedConfig;
         });
-    }, 300); // 300ms debounce delay
+    };
 
     // Modify the useEffect to avoid unnecessary updates
     useEffect(() => {
@@ -112,10 +113,6 @@ const NodeDetails = ({ nodeID }) => {
 
     const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
 
-    // Update the input change handler to use the debounced version
-    const handleInputChange = (key, value) => {
-        debouncedHandleInputChange(key, value);
-    };
 
     const handleAddNewExample = () => {
         const updatedExamples = [...(node?.data?.config?.few_shot_examples || []), { input: '', output: '' }];
@@ -164,7 +161,7 @@ const NodeDetails = ({ nodeID }) => {
                         return (
                             <div key={key} className="my-2">
                                 <h3 className="my-2 text-sm font-semibold">Prompt</h3>
-                                <NodeFieldEditor nodeID={nodeID} fieldName="system_prompt" /> {/* Use NodeFieldEditor */}
+                                <NodeFieldEditor nodeID={nodeID} fieldName="system_prompt" />
                             </div>
                         );
                     }

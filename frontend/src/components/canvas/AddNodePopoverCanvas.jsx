@@ -8,7 +8,7 @@ import { createNode } from '../nodes/nodeFactory'; // Import createNode
 // Refactored handleSelectNode function
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) => {
   const id = `${reactFlowInstance.getNodes().length + 1}`;
-  const position = reactFlowInstance.project({ x: 250, y: 5 });
+  const position = reactFlowInstance.screenToFlowPosition({ x: 250, y: 5 });
 
   // Use createNode from nodeFactory.js
   const newNode = createNode(nodeType, id, position);
@@ -19,7 +19,7 @@ export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) 
 // Function to add a node between two existing nodes and delete the existing edge
 export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, edgeId, reactFlowInstance, dispatch, setVisible) => {
   const id = `${reactFlowInstance.getNodes().length + 1}`;
-  const newPosition = reactFlowInstance.project({
+  const newPosition = reactFlowInstance.screenToFlowPosition({
     x: (sourceNode.position.x + targetNode.position.x) / 2,
     y: (sourceNode.position.y + targetNode.position.y) / 2,
   });
