@@ -3,15 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData } from '../../store/flowSlice';
 import TextInput from '../TextInput';
 import NumberInput from '../NumberInput';
-import BooleanInput from '../BooleanInput';
-import TextEditor from '../textEditor/Editor';
-import Wrapper from '../textEditor/Wrapper';
 import JsonEditor from '../JsonEditor';
 import CodeEditor from '../CodeEditor';
 import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
 import { jsonOptions } from '../../constants/jsonOptions';
 import FewShotEditor from './LLMNode/Utils/FewShotEditor';
-import PromptEditor from './LLMNode/Utils/PromptEditor';
+import NodeFieldEditor from './LLMNode/Utils/NodeFieldEditor';
 import Editor from '../textEditor/Editor';
 import { Button } from '@nextui-org/react';
 import { Slider } from '@nextui-org/react'; // Import Slider component
@@ -178,7 +175,7 @@ const NodeDetails = ({ nodeID }) => {
                         return (
                             <div key={key} className="my-2">
                                 <h3 className="my-2 text-sm font-semibold">Prompt</h3>
-                                <PromptEditor nodeID={nodeID} /> {/* Directly render PromptEditor */}
+                                <NodeFieldEditor nodeID={nodeID} fieldName="system_prompt" /> {/* Use generic NodeFieldEditor */}
                             </div>
                         );
                     }

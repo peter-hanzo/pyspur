@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import ReactFlow, { Background } from 'reactflow'; // Removed useReactFlow
+import ReactFlow, { Background } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';
@@ -12,7 +12,7 @@ import {
   setHoveredNode,
   setSelectedNode,
   deleteNode,
-  addNode, // Import addNode action for pasting
+  addNode,
 } from '../../store/flowSlice';
 import Spreadsheet from '../table/Table';
 import NodeDetails from '../nodes/NodeDetails';
@@ -25,6 +25,7 @@ import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { useNodeSelector } from '../../hooks/useNodeSelector';
 import AddNodePopoverCanvasContent from './AddNodePopoverCanvas';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
 
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {
@@ -132,8 +133,6 @@ const FlowCanvas = () => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
-
-  const [copiedNode, setCopiedNode] = useState(null); // State to store the copied node
 
   // Manage reactFlowInstance locally
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -249,49 +248,8 @@ const FlowCanvas = () => {
     [dispatch]
   );
 
-  // Handle keyboard shortcuts
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.metaKey || event.ctrlKey) {
-        switch (event.key) {
-          case 'c': // CMD + C or CTRL + C
-            if (selectedNodeID) {
-              const nodeToCopy = nodes.find((node) => node.id === selectedNodeID);
-              if (nodeToCopy) {
-                setCopiedNode(nodeToCopy);
-              }
-            }
-            break;
-          case 'v': // CMD + V or CTRL + V
-            if (copiedNode) {
-              const newNode = {
-                ...copiedNode,
-                id: uuidv4(), // Generate a new unique ID for the pasted node
-                position: {
-                  x: copiedNode.position.x + 20, // Offset the position slightly
-                  y: copiedNode.position.y + 20,
-                },
-              };
-              dispatch(addNode({ node: newNode })); // Dispatch action to add the new node
-            }
-            break;
-          default:
-            break;
-        }
-      }
-    },
-    [selectedNodeID, copiedNode, nodes, dispatch]
-  );
-
-  useEffect(() => {
-    // Add event listener for keydown
-    window.addEventListener('keydown', handleKeyDown);
-
-    // Cleanup event listener on unmount
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleKeyDown]);
+  // Use the custom hook for keyboard shortcuts
+  useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
 
   return (
     <div style={{ position: 'relative' }}>
