@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import ReactFlow, { Background } from 'reactflow';
+import ReactFlow, { Background, useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';

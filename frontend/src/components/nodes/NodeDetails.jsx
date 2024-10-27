@@ -9,7 +9,6 @@ import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
 import { jsonOptions } from '../../constants/jsonOptions';
 import FewShotEditor from './LLMNode/Utils/FewShotEditor';
 import NodeFieldEditor from './LLMNode/Utils/NodeFieldEditor';
-import Editor from '../textEditor/Editor';
 import { Button } from '@nextui-org/react';
 import { Slider } from '@nextui-org/react'; // Import Slider component
 import { Switch } from '@nextui-org/react'; // Import Switch component
@@ -75,7 +74,6 @@ const NodeDetails = ({ nodeID }) => {
                 }
             }
         });
-        // console.log("config", config);
         return config;
     };
 
@@ -107,15 +105,7 @@ const NodeDetails = ({ nodeID }) => {
                 title: node?.data?.title || '', // Ensure title is initialized
             });
         }
-
-        if (promptEditor && node?.data?.config?.system_prompt !== promptEditor.getHTML()) {
-            promptEditor.commands.setContent(node?.data?.config?.system_prompt || '');
-        }
-
-
     }, [nodeID, node]);
-
-    const promptEditor = Editor(node?.data?.config?.system_prompt || '', null, false);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
@@ -145,7 +135,6 @@ const NodeDetails = ({ nodeID }) => {
                 value={configData[key] || ''}
                 onChange={(e) => handleInputChange(key, e.target.value)}
                 className="border p-1 w-full"
-
             >
                 {enumValues.map((option) => (
                     <option key={option} value={option}>
@@ -175,7 +164,7 @@ const NodeDetails = ({ nodeID }) => {
                         return (
                             <div key={key} className="my-2">
                                 <h3 className="my-2 text-sm font-semibold">Prompt</h3>
-                                <NodeFieldEditor nodeID={nodeID} fieldName="system_prompt" /> {/* Use generic NodeFieldEditor */}
+                                <NodeFieldEditor nodeID={nodeID} fieldName="system_prompt" /> {/* Use NodeFieldEditor */}
                             </div>
                         );
                     }

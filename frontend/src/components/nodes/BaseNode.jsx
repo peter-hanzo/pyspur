@@ -67,7 +67,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
         </CardHeader>
       )}
 
-      {/* <CardBody>{children}</CardBody> */}
+      <CardBody>{children}</CardBody>
 
 
     </Card>
