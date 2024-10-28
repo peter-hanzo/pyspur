@@ -147,6 +147,25 @@ const FlowCanvas = () => {
   );
   const onConnect = useCallback(
     (connection) => {
+      // Check if the target (input handle) already has a connection
+      const isTargetConnected = edges.some(edge => edge.target === connection.target);
+      // const targetNode = nodes.find(node => node.id === connection.target);
+      // const targetField = connection.targetHandle;
+
+      if (isTargetConnected) {
+        // Prevent the connection and optionally show a message
+        console.log("This input handle already has a connection.");
+        return;
+      }
+
+      // Check if the target field has a user-provided input
+      // const isFieldUserProvided = targetNode?.data?.config?.properties[targetField] !== undefined;
+
+      // if (isFieldUserProvided) {
+      //   console.log(`Connection to ${targetField} is disabled because it has a user-provided input.`);
+      //   return;
+      // }
+
       const newEdge = {
         ...connection,
         id: uuidv4(),
@@ -154,7 +173,7 @@ const FlowCanvas = () => {
       };
       dispatch(connect({ connection: newEdge }));
     },
-    [dispatch]
+    [dispatch, nodes, edges] // Add nodes to the dependency array
   );
 
   const { visible, setVisible } = useNodeSelector(reactFlowInstance);
