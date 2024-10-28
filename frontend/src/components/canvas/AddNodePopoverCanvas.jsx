@@ -3,6 +3,7 @@ import { Button } from '@nextui-org/react';
 import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
 import { addNode, connect, deleteEdge } from '../../store/flowSlice';
 import { createNode } from '../nodes/nodeFactory'; // Import createNode
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 
 
 // Refactored handleSelectNode function
