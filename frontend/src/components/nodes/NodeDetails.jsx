@@ -22,8 +22,7 @@ const NodeDetails = ({ nodeID }) => {
     const node = useSelector((state) => selectNodeById(state, nodeID));
     console.log('NodeDetails', nodeID, node);
 
-    const [fewShotIndex, setFewShotIndex] = useState(null);
-    // Function to find the node schema based on the new structure
+    const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const findNodeSchema = (nodeType) => {
         for (const category in nodeTypes) {
             const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
@@ -31,6 +30,13 @@ const NodeDetails = ({ nodeID }) => {
         }
         return null;
     };
+    const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
+    const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
+
+
+    const [fewShotIndex, setFewShotIndex] = useState(null);
+    // Function to find the node schema based on the new structure
+
 
     const initializeConfigData = (nodeSchema) => {
         const configSchema = nodeSchema?.config;
@@ -79,13 +85,13 @@ const NodeDetails = ({ nodeID }) => {
 
     // Update the input change handler to directly dispatch the action
     const handleInputChange = (key, value) => {
-        setUserConfigData((prevUserConfig) => {
-            const updatedUserConfig = {
-                ...prevUserConfig,
+        setConfigData((prevConfig) => {
+            const updatedConfig = {
+                ...prevConfig,
                 [key]: value,
             };
-            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, userconfig: updatedUserConfig } }));
-            return updatedUserConfig;
+            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: updatedConfig } }));
+            return updatedConfig;
         });
     };
 
@@ -97,14 +103,9 @@ const NodeDetails = ({ nodeID }) => {
         if (node?.data?.config && JSON.stringify(node.data.config) !== JSON.stringify(configData)) {
             setConfigData(node.data.config);
         } else {
-            setUserConfigData(initializeConfigData(schema));
+            setConfigData(initializeConfigData(schema));
         }
     }, [nodeID, node]);
-
-    const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
-    const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-    const [userConfigData, setUserConfigData] = useState(node?.data?.userconfig || initializeConfigData(nodeSchema?.config));
-
 
     const handleAddNewExample = () => {
         const updatedExamples = [...(node?.data?.config?.few_shot_examples || []), { input: '', output: '' }];
@@ -253,7 +254,7 @@ const NodeDetails = ({ nodeID }) => {
 
                                 <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
                                 <ul>
-                                    {node?.data?.userconfig?.few_shot_examples?.map((example, index) => (
+                                    {node?.data?.config?.few_shot_examples?.map((example, index) => (
                                         <li key={index} className="flex items-center justify-between mb-1">
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
