@@ -22,7 +22,6 @@ import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
-import { useNodeSelector } from '../../hooks/useNodeSelector';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
 
@@ -126,6 +125,8 @@ const edgeTypes = {
 };
 
 const FlowCanvas = () => {
+  console.log('FlowCanvas re-rendered');
+
   const dispatch = useDispatch();
 
   const nodes = useSelector((state) => state.flow.nodes);
@@ -175,7 +176,7 @@ const FlowCanvas = () => {
     [dispatch, nodes, edges] // Add nodes to the dependency array
   );
 
-  const { visible, setVisible } = useNodeSelector(reactFlowInstance);
+
 
   const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
 
@@ -239,7 +240,7 @@ const FlowCanvas = () => {
   }, [dispatch]);
 
   const onInit = useCallback((instance) => {
-    setReactFlowInstance(instance); // Set the instance locally
+    setReactFlowInstance(instance);
   }, []);
 
   const onNodeClick = useCallback(

@@ -29,8 +29,8 @@ const DynamicNode = ({ id, type }) => {
   const renderHandles = () => {
     if (!node) return null; // Return early if node is undefined
 
-    const inputSchema = node.data?.config?.input_schema || node.data?.input?.properties || {};
-    const outputSchema = node.data?.config?.output_schema || node.data?.output?.properties || {};
+    const inputSchema = node.data?.userconfig?.input_schema || node.data?.input?.properties || {};
+    const outputSchema = node.data?.userconfig?.output_schema || node.data?.output?.properties || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;

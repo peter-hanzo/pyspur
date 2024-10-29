@@ -3,7 +3,6 @@ import { RiAddCircleFill } from '@remixicon/react';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
 import { useDispatch } from 'react-redux';
-import { useNodeSelector } from '../../../../hooks/useNodeSelector';
 import { addNodeWithoutConnection } from '../../AddNodePopoverCanvas';
 import { useReactFlow } from 'reactflow';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';

@@ -20,6 +20,8 @@ import { Select, SelectSection, SelectItem } from '@nextui-org/react'; // Import
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
+    console.log('NodeDetails', nodeID, node);
+
     const [fewShotIndex, setFewShotIndex] = useState(null);
     // Function to find the node schema based on the new structure
     const findNodeSchema = (nodeType) => {
@@ -112,38 +114,6 @@ const NodeDetails = ({ nodeID }) => {
 
     const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
 
-    // const [userInputs, setUserInputs] = useState({});
-
-    // const handleUserInputChange = (key, value) => {
-    //     setUserInputs((prevInputs) => ({
-    //         ...prevInputs,
-    //         [key]: value,
-    //     }));
-    //     handleInputChange(key, value); // Update the node data
-    // };
-
-    // const renderUserInputFields = () => {
-    //     if (!nodeSchema || !nodeSchema.config) return null;
-    //     const properties = nodeSchema.config.properties;
-
-    //     return Object.keys(properties).map((key) => {
-    //         const field = properties[key];
-    //         const value = userInputs[key] || '';
-
-    //         return (
-    //             <div key={key} className="my-2">
-    //                 <label className="text-sm font-semibold mb-2 block">{field.title || key}</label>
-    //                 <input
-    //                     type="text"
-    //                     value={value}
-    //                     onChange={(e) => handleUserInputChange(key, e.target.value)}
-    //                     className="border p-1 w-full"
-    //                     placeholder={`Enter ${field.title || key}`}
-    //                 />
-    //             </div>
-    //         );
-    //     });
-    // };
 
     const handleAddNewExample = () => {
         const updatedExamples = [...(node?.data?.config?.few_shot_examples || []), { input: '', output: '' }];
@@ -161,7 +131,7 @@ const NodeDetails = ({ nodeID }) => {
             <label className="text-sm font-semibold mb-2 block">{label}</label>
             <Select
                 label={label}
-                selectedKeys={configData[key] ? [configData[key]] : []}
+                selectedKeys={configData.properties[key]?.value ? [configData.properties[key].value] : []} // Access value from config.properties
                 onSelectionChange={(selected) => handleInputChange(key, Array.from(selected)[0])}
             >
                 <SelectSection title="Options">
@@ -184,7 +154,7 @@ const NodeDetails = ({ nodeID }) => {
 
         return Object.keys(properties).map((key) => {
             const field = properties[key];
-            const value = configData[key];
+            const value = configData.properties[key]?.value; // Access value from config.properties
 
             // Check if the field references the ModelName enum
             if (field.$ref && field.$ref.includes('ModelName')) {
@@ -292,7 +262,7 @@ const NodeDetails = ({ nodeID }) => {
 
                                 <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
                                 <ul>
-                                    {node?.data?.config?.few_shot_examples?.map((example, index) => (
+                                    {node?.data?.userconfig?.few_shot_examples?.map((example, index) => (
                                         <li key={index} className="flex items-center justify-between mb-1">
                                             <div>Example {index + 1}</div>
                                             <div className="ml-2">
