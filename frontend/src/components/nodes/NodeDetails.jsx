@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData, selectNodeById } from '../../store/flowSlice';
+import DynamicModel from '../../utils/DynamicModel'; // Import DynamicModel
 import TextInput from '../TextInput';
 import NumberInput from '../NumberInput';
 import JsonEditor from '../JsonEditor';
 import CodeEditor from '../CodeEditor';
-import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
+import { nodeTypes } from '../../constants/nodeTypes';
 import { jsonOptions } from '../../constants/jsonOptions';
 import FewShotEditor from './LLMNode/Utils/FewShotEditor';
 import NodeFieldEditor from './LLMNode/Utils/NodeFieldEditor';
 import { Button } from '@nextui-org/react';
-import { Slider } from '@nextui-org/react'; // Import Slider component
-import { Switch } from '@nextui-org/react'; // Import Switch component
-import { Textarea } from '@nextui-org/react'; // Import Textarea component
-import { Select, SelectSection, SelectItem } from '@nextui-org/react'; // Import Select component
-
+import { Slider } from '@nextui-org/react';
+import { Switch } from '@nextui-org/react';
+import { Textarea } from '@nextui-org/react';
+import { Select, SelectSection, SelectItem } from '@nextui-org/react';
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -29,140 +29,60 @@ const NodeDetails = ({ nodeID }) => {
         }
         return null;
     };
+
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-    const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
+    const [dynamicModel, setDynamicModel] = useState(null);
+    const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
 
+    // Initialize DynamicModel when nodeSchema is available
+    useEffect(() => {
+        if (nodeSchema) {
+            const model = new DynamicModel(nodeSchema.config);
+            setDynamicModel(model);
+        }
+    }, [nodeSchema]);
 
-    const [fewShotIndex, setFewShotIndex] = useState(null);
-    // Function to find the node schema based on the new structure
-
-
-    const initializeConfigData = (nodeSchema) => {
-        const configSchema = nodeSchema?.config;
-        const config = { properties: {} }; // Store values inside config.properties.value
-        if (!configSchema) return config;
-
-        Object.keys(configSchema.properties).forEach((key) => {
-            const field = configSchema.properties[key];
-
-            if (field.value !== undefined) {
-                config.properties[key] = { value: field.value }; // Store in config.properties.value
-            } else if (field.$ref) {
-                const refPath = field.$ref.replace('#/$defs/', '');
-                const enumDef = configSchema.$defs[refPath];
-                if (enumDef && enumDef.enum) {
-                    config.properties[key] = { value: enumDef.enum[0] }; // Store in config.properties.value
-                }
-            } else {
-                switch (field.type) {
-                    case 'string':
-                        config.properties[key] = { value: '' }; // Store in config.properties.value
-                        break;
-                    case 'integer':
-                    case 'number':
-                        config.properties[key] = { value: 0 }; // Store in config.properties.value
-                        break;
-                    case 'boolean':
-                        config.properties[key] = { value: false }; // Store in config.properties.value
-                        break;
-                    case 'array':
-                        config.properties[key] = { value: [] }; // Store in config.properties.value
-                        break;
-                    case 'object':
-                        config.properties[key] = { value: {} }; // Store in config.properties.value
-                        break;
-                    case 'code':
-                        config.properties[key] = { value: '' }; // Store in config.properties.value
-                        break;
-                    default:
-                        config.properties[key] = { value: null }; // Store in config.properties.value
-                }
-            }
-        });
-        return config;
-    };
-
-    // Update the input change handler to directly dispatch the action
+    // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
-        setConfigData((prevConfig) => {
-            const updatedConfig = {
-                ...prevConfig,
-                [key]: value,
-            };
-            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: updatedConfig } }));
-            return updatedConfig;
-        });
+        if (dynamicModel) {
+            dynamicModel[key] = value; // Update the DynamicModel instance
+            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: dynamicModel } }));
+        }
     };
 
     // Modify the useEffect to avoid unnecessary updates
     useEffect(() => {
         const schema = findNodeSchema(node?.type);
         setNodeSchema(schema);
-        // Initialize configData and ensure the title is set
-        if (node?.data?.config && JSON.stringify(node.data.config) !== JSON.stringify(configData)) {
-            setConfigData(node.data.config);
-        } else {
-            setConfigData(initializeConfigData(schema));
+        if (schema) {
+            const model = new DynamicModel(schema.config);
+            setDynamicModel(model);
         }
     }, [nodeID, node]);
 
+    // Handle adding a new few-shot example
     const handleAddNewExample = () => {
-        const updatedExamples = [...(node?.data?.config?.few_shot_examples || []), { input: '', output: '' }];
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, few_shot_examples: updatedExamples } } }));
+        const updatedExamples = [...(dynamicModel?.few_shot_examples || []), { input: '', output: '' }];
+        handleInputChange('few_shot_examples', updatedExamples);
     };
 
+    // Handle deleting a few-shot example
     const handleDeleteExample = (index) => {
-        const updatedExamples = [...(node?.data?.config?.few_shot_examples || [])];
+        const updatedExamples = [...(dynamicModel?.few_shot_examples || [])];
         updatedExamples.splice(index, 1);
-        dispatch(updateNodeData({ id: nodeID, data: { config: { ...node.data.config, few_shot_examples: updatedExamples } } }));
-    };
-
-    const renderEnumSelect = (key, label, enumValues) => (
-        <div key={key}>
-            <label className="text-sm font-semibold mb-2 block">{label}</label>
-            <Select
-                label={label}
-                selectedKeys={configData.properties[key]?.value ? [configData.properties[key].value] : []} // Access value from config.properties
-                onSelectionChange={(selected) => handleInputChange(key, Array.from(selected)[0])}
-            >
-                <SelectSection title="Options">
-                    {enumValues.map((option) => (
-                        <SelectItem key={option}>{option}</SelectItem>
-                    ))}
-                </SelectSection>
-            </Select>
-        </div>
-    );
-
-    const handleTitleChange = (e) => {
-        const newTitle = e.target.value;
-        dispatch(updateNodeData({ id: nodeID, data: { ...node.data, title: newTitle } }));
+        handleInputChange('few_shot_examples', updatedExamples);
     };
 
     const renderConfigFields = () => {
-        if (!nodeSchema || !nodeSchema.config) return null;
+        if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config.properties;
 
         return Object.keys(properties).map((key) => {
             const field = properties[key];
-            const value = configData.properties[key]?.value; // Access value from config.properties
-
-            // Check if the field references the ModelName enum
-            if (field.$ref && field.$ref.includes('ModelName')) {
-                const enumValues = nodeSchema.config.$defs.ModelName.enum;
-                return renderEnumSelect(key, field.title || key, enumValues);
-            }
+            const value = dynamicModel[key]; // Access value from DynamicModel
 
             switch (field.type) {
                 case 'string':
-                    if (key === 'system_prompt') {
-                        return (
-                            <div key={key} className="my-2">
-                                <h3 className="my-2 text-sm font-semibold">Prompt</h3>
-                                <NodeFieldEditor nodeID={nodeID} fieldName="system_prompt" />
-                            </div>
-                        );
-                    }
                     return (
                         <Textarea
                             fullWidth
@@ -176,13 +96,12 @@ const NodeDetails = ({ nodeID }) => {
                     );
                 case 'integer':
                 case 'number':
-                    // Check if the field has a range (minimum and maximum)
                     if (field.minimum !== undefined && field.maximum !== undefined) {
                         return (
                             <div key={key} className="my-4">
                                 <Slider
                                     label={field.title || key}
-                                    step={field.step || 0.1} // Use step if defined, otherwise default to 0.01
+                                    step={field.step || 0.1}
                                     maxValue={field.maximum}
                                     minValue={field.minimum}
                                     defaultValue={value || field.value || field.minimum}
@@ -192,8 +111,6 @@ const NodeDetails = ({ nodeID }) => {
                             </div>
                         );
                     }
-
-                    // Fallback to NumberInput if no range is defined
                     return (
                         <NumberInput
                             key={key}
@@ -239,52 +156,43 @@ const NodeDetails = ({ nodeID }) => {
                         />
                     );
                 default:
-                    if (key === 'few_shot_examples') {
-                        return (
-                            <div>
-                                {fewShotIndex !== null && (
-                                    <FewShotEditor
-                                        nodeID={nodeID}
-                                        exampleIndex={fewShotIndex}
-                                        onSave={() => setFewShotIndex(null)}
-                                        onDiscard={() => setFewShotIndex(null)}
-                                    />
-                                )}
-
-                                <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
-                                <ul>
-                                    {node?.data?.config?.few_shot_examples?.map((example, index) => (
-                                        <li key={index} className="flex items-center justify-between mb-1">
-                                            <div>Example {index + 1}</div>
-                                            <div className="ml-2">
-                                                <Button
-                                                    onClick={() => setFewShotIndex(index)}
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <Button
-
-                                                    onClick={() => handleDeleteExample(index)}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <div className="mt-2">
-                                    <Button
-                                        onClick={handleAddNewExample}
-                                    >
-                                        Add Example
-                                    </Button>
-                                </div>
-                            </div>
-                        );
-                    }
+                    return null;
             }
         }).concat(<hr key="divider" className="my-2" />);
+    };
+
+    const renderFewShotExamples = () => {
+        const fewShotExamples = dynamicModel?.few_shot_examples || [];
+
+        return (
+            <div>
+                {fewShotIndex !== null && (
+                    <FewShotEditor
+                        nodeID={nodeID}
+                        exampleIndex={fewShotIndex}
+                        onSave={() => setFewShotIndex(null)}
+                        onDiscard={() => setFewShotIndex(null)}
+                    />
+                )}
+
+                <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
+                <ul>
+                    {fewShotExamples.map((example, index) => (
+                        <li key={index} className="flex items-center justify-between mb-1">
+                            <div>Example {index + 1}</div>
+                            <div className="ml-2">
+                                <Button onClick={() => setFewShotIndex(index)}>Edit</Button>
+                                <Button onClick={() => handleDeleteExample(index)}>Delete</Button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+
+                <div className="mt-2">
+                    <Button onClick={handleAddNewExample}>Add Example</Button>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -304,16 +212,16 @@ const NodeDetails = ({ nodeID }) => {
                 <label className="text-sm font-semibold mb-2 block">Node Title</label>
                 <Textarea
                     value={node?.data?.title || ''}
-                    onChange={handleTitleChange}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="Enter node title"
                     maxRows={1}
                 />
             </div>
 
-            {/* <h3 className="text-lg font-semibold">User Inputs</h3>
-            {renderUserInputFields()} */}
-
             {renderConfigFields()}
+
+            {/* Render Few Shot Examples */}
+            {renderFewShotExamples()}
 
             <hr className="my-2" />
         </div>

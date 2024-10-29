@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
+
+const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled }) => {
   const [newKey, setNewKey] = useState('');
+  const [newValue, setNewValue] = useState('');
 
   const handleAddKey = () => {
     if (newKey && !jsonValue.hasOwnProperty(newKey)) {
       const updatedJson = {
         ...jsonValue,
-        [newKey]: options[0] // Set the first option as default value
+        [newKey]: newValue || options[0] || '' // Set the first option or empty string as default value
       };
       onChange(updatedJson);
       setNewKey('');
+      setNewValue('');
     }
   };
 
@@ -29,7 +32,7 @@ const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
 
   return (
     <div className="json-editor">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center">
         <input
           type="text"
           value={newKey}
@@ -38,40 +41,64 @@ const JsonEditor = ({ jsonValue = {}, onChange, options, disabled }) => {
           className="mr-2 p-1 border rounded"
           disabled={disabled} // Disable when not editing
         />
+        <input
+          type="text"
+          value={newValue}
+          onChange={(e) => setNewValue(e.target.value)}
+          placeholder="Enter new value"
+          className="mr-2 p-1 border rounded"
+          disabled={disabled} // Disable when not editing
+        />
         <Button
           onClick={handleAddKey}
           color="primary"
-          disabled={disabled} // Disable when not editing
+          disabled={disabled || !newKey} // Disable when not editing or if no key is entered
           auto
         >
           Add Key
         </Button>
       </div>
-      {Object.entries(jsonValue).map(([key, value]) => (
-        <div key={key} className="mb-2 flex items-center">
-          <span className="mr-2">{key}:</span>
-          <select
-            value={value}
-            onChange={(e) => handleValueChange(key, e.target.value)}
-            className="mr-2 p-2 border rounded"
-            disabled={disabled} // Disable when not editing
-          >
-            {options.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <Button
-            onClick={() => handleRemoveKey(key)}
-            color="primary"
-            disabled={disabled} // Disable when not editing
-            auto
-          >
-            Remove
-          </Button>
-        </div>
-      ))}
+      
+      {/* Ensure jsonValue is a valid object before calling Object.entries */}
+      {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) ? (
+        Object.entries(jsonValue).map(([key, value]) => (
+          <div key={key} className="mb-2 flex items-center">
+            <span className="mr-2">{key}:</span>
+            {Array.isArray(options) && options.length > 0 ? (
+              <select
+                value={value}
+                onChange={(e) => handleValueChange(key, e.target.value)}
+                className="mr-2 p-2 border rounded"
+                disabled={disabled} // Disable when not editing
+              >
+                {options.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => handleValueChange(key, e.target.value)}
+                className="mr-2 p-1 border rounded"
+                disabled={disabled} // Disable when not editing
+              />
+            )}
+            <Button
+              onClick={() => handleRemoveKey(key)}
+              color="primary"
+              disabled={disabled} // Disable when not editing
+              auto
+            >
+              Remove
+            </Button>
+          </div>
+        ))
+      ) : (
+        <p>No valid JSON data available.</p>
+      )}
     </div>
   );
 };

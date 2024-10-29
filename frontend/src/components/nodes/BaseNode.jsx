@@ -5,8 +5,6 @@ import {
   Card,
   CardHeader,
   CardBody,
-  CardFooter,
-  Link,
 } from "@nextui-org/react";
 
 const BaseNode = ({ id, data = {}, children, style = {} }) => {
