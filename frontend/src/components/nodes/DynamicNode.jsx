@@ -13,10 +13,10 @@ const DynamicNode = ({ id, type }) => {
     if (nodeRef.current && node) { // Ensure node exists before accessing its properties
       const inputSchema = node.data?.config?.input_schema || node.data?.input?.properties || {};
       const outputSchema = node.data?.config?.output_schema || node.data?.output?.properties || {};
-      
+
       const inputLabels = Object.keys(inputSchema);
       const outputLabels = Object.keys(outputSchema);
-      
+
       const maxLabelLength = Math.max(
         ...inputLabels.map(label => label.length),
         ...outputLabels.map(label => label.length)

@@ -10,20 +10,20 @@ import { useNodeField } from '../../../../hooks/useNodeField';
  * @returns {JSX.Element} - The editor component.
  */
 const NodeFieldEditor = ({ nodeID, fieldName }) => {
-    const { fieldValue, setFieldValue } = useNodeField(nodeID, fieldName);
-    const editor = Editor(fieldValue, setFieldValue, true);
+  const { fieldValue, setFieldValue } = useNodeField(nodeID, fieldName);
+  const editor = Editor(fieldValue, setFieldValue, true);
 
-    useEffect(() => {
-        if (editor) {
-            editor.commands.setContent(fieldValue);
-        }
-    }, [fieldValue, editor]);
+  useEffect(() => {
+    if (editor) {
+      editor.commands.setContent(fieldValue);
+    }
+  }, [fieldValue, editor]);
 
-    return (
-        <div className="w-full px-4 py-10 my-10">
-            <Wrapper editor={editor} isEditable={true} />
-        </div>
-    );
+  return (
+    <div className="w-full">
+      <Wrapper editor={editor} isEditable={true} />
+    </div>
+  );
 };
 
 export default NodeFieldEditor;

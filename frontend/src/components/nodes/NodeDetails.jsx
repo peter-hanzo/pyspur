@@ -16,12 +16,11 @@ import { Textarea } from '@nextui-org/react'; // Import Textarea component
 import { useDebouncedCallback } from 'use-debounce'; // Import debounce utility
 import { Select, SelectSection, SelectItem } from '@nextui-org/react'; // Import Select component
 
+
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
-    console.log('this is the current node', node);
     const [fewShotIndex, setFewShotIndex] = useState(null);
-
     // Function to find the node schema based on the new structure
     const findNodeSchema = (nodeType) => {
         for (const category in nodeTypes) {
@@ -33,43 +32,43 @@ const NodeDetails = ({ nodeID }) => {
 
     const initializeConfigData = (nodeSchema) => {
         const configSchema = nodeSchema?.config;
-        const config = { properties: {} }; // Store values inside config.properties
+        const config = { properties: {} }; // Store values inside config.properties.value
         if (!configSchema) return config;
 
         Object.keys(configSchema.properties).forEach((key) => {
             const field = configSchema.properties[key];
 
-            if (field.default !== undefined) {
-                config.properties[key] = field.default; // Store in config.properties
+            if (field.value !== undefined) {
+                config.properties[key] = { value: field.value }; // Store in config.properties.value
             } else if (field.$ref) {
                 const refPath = field.$ref.replace('#/$defs/', '');
                 const enumDef = configSchema.$defs[refPath];
                 if (enumDef && enumDef.enum) {
-                    config.properties[key] = enumDef.enum[0]; // Store in config.properties
+                    config.properties[key] = { value: enumDef.enum[0] }; // Store in config.properties.value
                 }
             } else {
                 switch (field.type) {
                     case 'string':
-                        config.properties[key] = ''; // Store in config.properties
+                        config.properties[key] = { value: '' }; // Store in config.properties.value
                         break;
                     case 'integer':
                     case 'number':
-                        config.properties[key] = 0; // Store in config.properties
+                        config.properties[key] = { value: 0 }; // Store in config.properties.value
                         break;
                     case 'boolean':
-                        config.properties[key] = false; // Store in config.properties
+                        config.properties[key] = { value: false }; // Store in config.properties.value
                         break;
                     case 'array':
-                        config.properties[key] = []; // Store in config.properties
+                        config.properties[key] = { value: [] }; // Store in config.properties.value
                         break;
                     case 'object':
-                        config.properties[key] = {}; // Store in config.properties
+                        config.properties[key] = { value: {} }; // Store in config.properties.value
                         break;
                     case 'code':
-                        config.properties[key] = ''; // Store in config.properties
+                        config.properties[key] = { value: '' }; // Store in config.properties.value
                         break;
                     default:
-                        config.properties[key] = null; // Store in config.properties
+                        config.properties[key] = { value: null }; // Store in config.properties.value
                 }
             }
         });
@@ -96,7 +95,6 @@ const NodeDetails = ({ nodeID }) => {
     useEffect(() => {
         const schema = findNodeSchema(node?.type);
         setNodeSchema(schema);
-
         // Initialize configData and ensure the title is set
         if (node?.data?.config && JSON.stringify(node.data.config) !== JSON.stringify(configData)) {
             setConfigData(node.data.config);
@@ -226,7 +224,7 @@ const NodeDetails = ({ nodeID }) => {
                                     step={field.step || 0.1} // Use step if defined, otherwise default to 0.01
                                     maxValue={field.maximum}
                                     minValue={field.minimum}
-                                    defaultValue={value || field.default || field.minimum}
+                                    defaultValue={value || field.value || field.minimum}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
                                     className="max-w-md"
                                 />

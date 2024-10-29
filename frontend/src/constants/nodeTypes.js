@@ -38,7 +38,8 @@ export const nodeTypes = {
         "properties": {
           "user_message": {
             "title": "User Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -51,7 +52,8 @@ export const nodeTypes = {
         "properties": {
           "assistant_message": {
             "title": "Assistant Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -76,21 +78,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "json_mode": {
             "default": false,
@@ -112,7 +118,7 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           }
         },
@@ -134,7 +140,8 @@ export const nodeTypes = {
         "properties": {
           "user_message": {
             "title": "User Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -164,21 +171,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "output_schema": {
             "additionalProperties": {
@@ -202,7 +213,7 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           }
         },
@@ -247,21 +258,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "output_schema": {
             "additionalProperties": {
@@ -295,7 +310,7 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           }
         },
@@ -318,7 +333,8 @@ export const nodeTypes = {
         "properties": {
           "user_message": {
             "title": "User Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -331,7 +347,8 @@ export const nodeTypes = {
         "properties": {
           "assistant_message": {
             "title": "Assistant Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -356,38 +373,40 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
-            "default": 1024,
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
-            "default": 1,
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "num_simulations": {
-            "default": 10,
             "title": "Num Simulations",
-            "type": "integer"
+            "type": "integer",
+            "value": 10
           },
           "simulation_depth": {
-            "default": 5,
             "title": "Simulation Depth",
-            "type": "integer"
+            "type": "integer",
+            "value": 5
           },
           "exploration_weight": {
-            "default": 1.4,
             "title": "Exploration Weight",
-            "type": "number"
+            "type": "number",
+            "value": 1.4
           },
           "few_shot_examples": {
             "anyOf": [
@@ -404,7 +423,7 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           }
         },
@@ -438,21 +457,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "output_schema": {
             "additionalProperties": {
@@ -486,28 +509,28 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           },
           "samples": {
-            "default": 3,
             "title": "Samples",
-            "type": "integer"
+            "type": "integer",
+            "value": 3
           },
           "rating_prompt": {
-            "default": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
             "title": "Rating Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number."
           },
           "rating_temperature": {
-            "default": 0.1,
             "title": "Rating Temperature",
-            "type": "number"
+            "type": "number",
+            "value": 0.1
           },
           "rating_max_tokens": {
-            "default": 16,
             "title": "Rating Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 16
           }
         },
         "required": [
@@ -543,22 +566,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
-            "default": "",
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "output_schema": {
             "additionalProperties": {
@@ -592,23 +618,23 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           },
           "branch_prompt": {
-            "default": "Please decompose the following task into multiple subtasks.",
             "title": "Branch Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "Please decompose the following task into multiple subtasks."
           },
           "solve_prompt": {
-            "default": "Please provide a detailed solution for the following subtask:",
             "title": "Solve Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "Please provide a detailed solution for the following subtask:"
           },
           "merge_prompt": {
-            "default": "Please combine the following solutions into a coherent and comprehensive final answer.",
             "title": "Merge Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "Please combine the following solutions into a coherent and comprehensive final answer."
           }
         },
         "required": [
@@ -629,7 +655,8 @@ export const nodeTypes = {
         "properties": {
           "user_message": {
             "title": "User Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -642,7 +669,8 @@ export const nodeTypes = {
         "properties": {
           "assistant_message": {
             "title": "Assistant Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -667,21 +695,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "json_mode": {
             "default": false,
@@ -703,23 +735,23 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           },
           "samples": {
-            "default": 3,
             "title": "Samples",
-            "type": "integer"
+            "type": "integer",
+            "value": 3
           },
           "critique_prompt_template": {
-            "default": "Original query: {initial_query}\n\nI will present you with {num_candidates} candidate responses to the original query. Please analyze and critique each response, discussing their strengths and weaknesses. Provide your analysis for each candidate separately.\n\n{candidates_section}Please provide your critique for each candidate:",
             "title": "Critique Prompt Template",
-            "type": "string"
+            "type": "string",
+            "value": "Original query: {initial_query}\n\nI will present you with {num_candidates} candidate responses to the original query. Please analyze and critique each response, discussing their strengths and weaknesses. Provide your analysis for each candidate separately.\n\n{candidates_section}Please provide your critique for each candidate:"
           },
           "final_prompt_template": {
-            "default": "Original query: {initial_query}\n\nBased on the following candidate responses and their critiques, generate a final response to the original query.\n\n{candidates_section}Critiques of all candidates:\n{critiques}\n\nPlease provide a final, optimized response to the original query:",
             "title": "Final Prompt Template",
-            "type": "string"
+            "type": "string",
+            "value": "Original query: {initial_query}\n\nBased on the following candidate responses and their critiques, generate a final response to the original query.\n\n{candidates_section}Critiques of all candidates:\n{critiques}\n\nPlease provide a final, optimized response to the original query:"
           }
         },
         "required": [
@@ -754,21 +786,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "output_schema": {
             "additionalProperties": {
@@ -802,13 +838,13 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           },
           "samples": {
-            "default": 1,
             "title": "Samples",
-            "type": "integer"
+            "type": "integer",
+            "value": 1
           }
         },
         "required": [
@@ -830,7 +866,8 @@ export const nodeTypes = {
         "properties": {
           "user_message": {
             "title": "User Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -843,7 +880,8 @@ export const nodeTypes = {
         "properties": {
           "assistant_message": {
             "title": "Assistant Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -868,21 +906,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 1.0
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "json_mode": {
             "default": false,
@@ -904,18 +946,18 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           },
           "samples": {
-            "default": 5,
             "title": "Samples",
-            "type": "integer"
+            "type": "integer",
+            "value": 5
           },
           "similarity_threshold": {
-            "default": 0.8,
             "title": "Similarity Threshold",
-            "type": "number"
+            "type": "number",
+            "value": 0.8
           }
         },
         "required": [
@@ -936,7 +978,8 @@ export const nodeTypes = {
         "properties": {
           "user_message": {
             "title": "User Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -949,7 +992,8 @@ export const nodeTypes = {
         "properties": {
           "assistant_message": {
             "title": "Assistant Message",
-            "type": "string"
+            "type": "string",
+            "value": ""
           }
         },
         "required": [
@@ -974,22 +1018,25 @@ export const nodeTypes = {
         },
         "properties": {
           "llm_name": {
-            "$ref": "#/$defs/ModelName"
+            "$ref": "#/$defs/ModelName",
+            "value": "gpt-4o"
           },
           "max_tokens": {
             "title": "Max Tokens",
-            "type": "integer"
+            "type": "integer",
+            "value": 1024
           },
           "temperature": {
-            "default": 0.7,
             "title": "Temperature",
             "type": "number",
             "minimum": 0.0,
-            "maximum": 2.0
+            "maximum": 2.0,
+            "value": 0.7
           },
           "system_prompt": {
             "title": "System Prompt",
-            "type": "string"
+            "type": "string",
+            "value": "You are a helpful assistant."
           },
           "json_mode": {
             "default": false,
@@ -1011,61 +1058,60 @@ export const nodeTypes = {
                 "type": "null"
               }
             ],
-            "default": null,
+            "value": null,
             "title": "Few Shot Examples"
           },
           "steps": {
-            "default": 3,
             "title": "Steps",
-            "type": "integer"
+            "type": "integer",
+            "value": 3
           },
           "n_generate_sample": {
-            "default": 1,
             "title": "N Generate Sample",
-            "type": "integer"
+            "type": "integer",
+            "value": 1
           },
           "n_evaluate_sample": {
-            "default": 1,
             "title": "N Evaluate Sample",
-            "type": "integer"
+            "type": "integer",
+            "value": 1
           },
           "n_select_sample": {
-            "default": 1,
             "title": "N Select Sample",
-            "type": "integer"
+            "type": "integer",
+            "value": 1
           },
           "method_generate": {
-            "default": "sample",
             "title": "Method Generate",
-            "type": "string"
+            "type": "string",
+            "value": "sample"
           },
           "method_evaluate": {
-            "default": "value",
             "title": "Method Evaluate",
-            "type": "string"
+            "type": "string",
+            "value": "value"
           },
           "method_select": {
-            "default": "greedy",
             "title": "Method Select",
-            "type": "string"
+            "type": "string",
+            "value": "greedy"
           },
           "prompt_sample": {
-            "default": "standard",
             "title": "Prompt Sample",
-            "type": "string"
+            "type": "string",
+            "value": "standard"
           },
           "stops": {
-            "default": [],
+            "title": "Stops",
+            "type": "array",
             "items": {
               "type": "string"
-            },
-            "title": "Stops",
-            "type": "array"
+            }
           },
           "search_method": {
-            "default": "bfs",
             "title": "Search Method",
-            "type": "string"
+            "type": "string",
+            "value": "bfs"
           }
         },
         "required": [
