@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 export const NodeTargetHandle = memo(({ id, data, handleId, handleClassName, nodeSelectorClassName }) => {
 
@@ -8,13 +8,10 @@ export const NodeTargetHandle = memo(({ id, data, handleId, handleClassName, nod
       type="target"
       position={Position.Left}
       className={handleClassName}
-      isConnectable={true} // Update based on your logic
-      style={{ width: '10px', height: '10px' }} // {{ edit_1 }} Adjust thickness here
-      onClick={() => {
-        // Handle click event
-      }}
+      isConnectable={true}
+      style={{ width: '10px', height: '10px' }}
     >
-      {/* Additional content or components if needed */}
+
     </Handle>
   );
 });
@@ -27,10 +24,8 @@ export const NodeSourceHandle = memo(({ id, data, handleId, handleClassName, nod
       type="source"
       position={Position.Right}
       className={handleClassName}
-      isConnectable={true} // Update based on your logic
-      style={{ width: '10px', height: '10px' }} // {{ edit_2 }} Adjust thickness here
-      onClick={() => {
-      }}
+      isConnectable={true}
+      style={{ width: '10px', height: '10px' }}
     >
     </Handle>
   );

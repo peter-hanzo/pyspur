@@ -1,23 +1,19 @@
 import React from 'react';
-import { useSelector } from 'react-redux'; // Import useSelector to access Redux state
+import { useSelector } from 'react-redux';
 import {
   Navbar,
   NavbarBrand,
   NavbarContent,
   NavbarItem,
   Link,
-  DropdownItem,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
+  Button,
   Input
 } from "@nextui-org/react";
-import { Button } from '@nextui-org/react';
-import { RiPlayFill, RiShareFill, RiUploadCloud2Line } from '@remixicon/react';
-import { runWorkflow, getNodeTypes } from '../utils/api';
+import { Icon } from "@iconify/react";
+import { RiPlayFill, RiDownloadCloud2Line, RiUploadCloud2Line } from '@remixicon/react';
+import { runWorkflow } from '../utils/api';
 
 const Header = () => {
-  // Access nodes and edges from Redux state
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
 
@@ -29,7 +25,7 @@ const Header = () => {
             config: node.data?.config || {},
             id: node.id,
             node_type: node.type
-          })), // Pass only the first half of the nodes array with selected attributes
+          })),
           links: edges.map(edge => ({
             source_id: edge.source,
             source_output_key: edge.sourceHandle,
@@ -40,61 +36,76 @@ const Header = () => {
         initial_inputs: {
           "1": {
             "user_message": "okay, give it to me", "city": "Jabalpur"
-          },
-          // "2": {},
-          // "3": {
-          //   "user_message": "please enlighten me", "city": "Jabalpur", "units": "celsius"
-          // },
-          // "4": { "user_message": "Why do politicians and actors not like to ride shotgun?" },
-          // "5": { "user_message": "Complete this joke like Jimmy Carr: Why do politicians and actors not like to ride shotgun?" }
+          }
         }
       };
 
-
-      // console.log('Data passed to API:', formattedData);
-      // const nodeTypes = await getNodeTypes();
-      // console.log('Node types:', nodeTypes);
       const result = await runWorkflow(formattedData);
       console.log('Workflow result:', result);
-      // Handle the result as needed (e.g., update state, show a notification)
     } catch (error) {
       console.error('Error running workflow:', error);
-      // Handle the error (e.g., show an error message to the user)
     }
   };
 
   return (
-    <Navbar isBordered>
-      <NavbarContent justify="start">
-        <NavbarBrand>
-          <p className="font-bold text-inherit">PySpur</p>
-        </NavbarBrand>
+    <Navbar
+      classNames={{
+        base: "lg:bg-transparent lg:backdrop-filter-none",
+        item: "data-[active=true]:text-primary",
+        wrapper: "px-4 sm:px-6",
+      }}
+      height="60px"
+    >
+      <NavbarBrand>
+        <p className="font-bold text-inherit">PySpur</p>
+      </NavbarBrand>
+
+      {/* New NavbarContent for project title input */}
+      <NavbarContent
+        className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full bg-content2 px-4 dark:bg-content1 sm:flex"
+        justify="start"
+      >
+        <Input
+          type="text"
+
+          placeholder="Project Name"
+          className="w-full"
+        />
       </NavbarContent>
-      {/* <NavbarContent className="hidden sm:flex" justify="center">
-        <NavbarItem>
-          <Input
-            defaultValue="Paper Summarizer"
-            color="primary"
-            type="text"
-            radius="lg"
-          />
+
+      <NavbarContent
+        className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full bg-content2 px-4 dark:bg-content1 sm:flex"
+        justify="start"
+      >
+        <NavbarItem isActive>
+          <Link className="flex gap-2 text-inherit" href="#">
+            Canvas
+          </Link>
         </NavbarItem>
-      </NavbarContent> */}
-
-
-      <NavbarContent justify="end">
         <NavbarItem >
-          <Button auto flat onClick={handleRunWorkflow} className="mx-1">
-            <RiPlayFill />
-            Run
+          <Link aria-current="page" className="flex gap-2 text-inherit" href="#">
+            Batch Mode
+          </Link>
+        </NavbarItem>
+      </NavbarContent>
+
+      <NavbarContent
+        className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+        justify="end"
+      >
+        <NavbarItem className="hidden sm:flex">
+          <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
+            <Icon className="text-default-500" icon="solar:play-linear" width={22} />
           </Button>
-          <Button auto flat className="mx-1">
-            <RiShareFill />
-            Share
+        </NavbarItem>
+        <NavbarItem className="hidden sm:flex">
+          <Button isIconOnly radius="full" variant="light">
+            <Icon className="text-default-500" icon="solar:download-linear" width={24} />
           </Button>
-          <Button auto flat className="mx-1">
-            <RiUploadCloud2Line />
-            Publish
+        </NavbarItem>
+        <NavbarItem className="hidden sm:flex">
+          <Button isIconOnly radius="full" variant="light">
+            <Icon className="text-default-500" icon="solar:settings-linear" width={24} />
           </Button>
         </NavbarItem>
       </NavbarContent>

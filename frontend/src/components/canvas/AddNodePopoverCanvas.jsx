@@ -3,11 +3,11 @@ import { Button } from '@nextui-org/react';
 import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
 import { addNode, connect, deleteEdge } from '../../store/flowSlice';
 import { createNode } from '../nodes/nodeFactory'; // Import createNode
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
-
+import { DropdownSection, DropdownItem } from '@nextui-org/react';
 
 // Refactored handleSelectNode function
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) => {
+  console.log('addNodeWithoutConnection', nodeType, reactFlowInstance, dispatch);
   const id = `${reactFlowInstance.getNodes().length + 1}`;
   const position = reactFlowInstance.screenToFlowPosition({ x: 250, y: 5 });
 
@@ -35,39 +35,3 @@ export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, edgeId, re
 
   setVisible(false);
 };
-
-const AddNodePopoverCanvasContent = ({ handleSelectNode }) => {
-  const [selectedCategory, setSelectedCategory] = useState(null); // Track selected category
-
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-  };
-
-  return (
-    <div className='p-4 flex flex-col space-y-2'>
-      <div className='flex flex-col space-y-2'>
-        <h3 className='text-sm font-semibold'>Blocks</h3>
-        {!selectedCategory ? (
-          // Display categories
-          Object.keys(nodeTypes).map((category) => (
-            <Button key={category} auto light onClick={() => handleCategorySelect(category)}>
-              {category}
-            </Button>
-          ))
-        ) : (
-          // Display nodes within the selected category
-          <div className='flex flex-col space-y-2'>
-            <Button auto light onClick={() => setSelectedCategory(null)}>Back to Categories</Button>
-            {nodeTypes[selectedCategory].map((node) => (
-              <Button key={node.name} auto light onClick={() => handleSelectNode(node.name)}>
-                {node.name}
-              </Button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default AddNodePopoverCanvasContent;

@@ -14,6 +14,7 @@ import { Slider } from '@nextui-org/react'; // Import Slider component
 import { Switch } from '@nextui-org/react'; // Import Switch component
 import { Textarea } from '@nextui-org/react'; // Import Textarea component
 import { useDebouncedCallback } from 'use-debounce'; // Import debounce utility
+import { Select, SelectSection, SelectItem } from '@nextui-org/react'; // Import Select component
 
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -150,17 +151,17 @@ const NodeDetails = ({ nodeID }) => {
     const renderEnumSelect = (key, label, enumValues) => (
         <div key={key}>
             <label className="text-sm font-semibold mb-2 block">{label}</label>
-            <select
-                value={userConfigData[key] || ''}
-                onChange={(e) => handleInputChange(key, e.target.value)}
-                className="border p-1 w-full"
+            <Select
+                label={label}
+                selectedKeys={configData[key] ? [configData[key]] : []}
+                onSelectionChange={(selected) => handleInputChange(key, Array.from(selected)[0])}
             >
-                {enumValues.map((option) => (
-                    <option key={option} value={option}>
-                        {option}
-                    </option>
-                ))}
-            </select>
+                <SelectSection title="Options">
+                    {enumValues.map((option) => (
+                        <SelectItem key={option}>{option}</SelectItem>
+                    ))}
+                </SelectSection>
+            </Select>
         </div>
     );
 
@@ -175,7 +176,13 @@ const NodeDetails = ({ nodeID }) => {
 
         return Object.keys(properties).map((key) => {
             const field = properties[key];
-            const value = userConfigData[key];
+            const value = configData[key];
+
+            // Check if the field references the ModelName enum
+            if (field.$ref && field.$ref.includes('ModelName')) {
+                const enumValues = nodeSchema.config.$defs.ModelName.enum;
+                return renderEnumSelect(key, field.title || key, enumValues);
+            }
 
             switch (field.type) {
                 case 'string':
@@ -189,6 +196,7 @@ const NodeDetails = ({ nodeID }) => {
                     }
                     return (
                         <Textarea
+                            fullWidth
                             key={key}
                             label={field.title || key}
                             value={value}
@@ -325,12 +333,11 @@ const NodeDetails = ({ nodeID }) => {
             {/* Add an input field for the node title */}
             <div className="my-4">
                 <label className="text-sm font-semibold mb-2 block">Node Title</label>
-                <input
-                    type="text"
+                <Textarea
                     value={node?.data?.title || ''}
                     onChange={handleTitleChange}
-                    className="border p-1 w-full"
                     placeholder="Enter node title"
+                    maxRows={1}
                 />
             </div>
 

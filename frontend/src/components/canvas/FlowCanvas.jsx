@@ -16,14 +16,13 @@ import {
 } from '../../store/flowSlice';
 import Spreadsheet from '../table/Table';
 import NodeDetails from '../nodes/NodeDetails';
-import { Card, Button, Popover, PopoverContent } from '@nextui-org/react';
+import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { useNodeSelector } from '../../hooks/useNodeSelector';
-import AddNodePopoverCanvasContent from './AddNodePopoverCanvas';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
 
@@ -273,20 +272,36 @@ const FlowCanvas = () => {
   return (
     <div style={{ position: 'relative' }}>
       {isPopoverContentVisible && selectedEdge && (
-        <Popover
-          placement="bottom"
-          showArrow={true}
+        <Dropdown
           isOpen={isPopoverContentVisible}
           onOpenChange={setPopoverContentVisible}
+          placement="bottom"
         >
-          <PopoverContent>
-            <AddNodePopoverCanvasContent
-              handleSelectNode={(nodeType) =>
-                addNodeBetweenNodes(nodeType, selectedEdge.sourceNode, selectedEdge.targetNode, selectedEdge.edgeId, reactFlowInstance, dispatch, setVisible)
-              }
-            />
-          </PopoverContent>
-        </Popover>
+          <DropdownMenu>
+            {Object.keys(nodeTypesConfig).map((category) => (
+              <DropdownSection key={category} title={category} showDivider>
+                {nodeTypesConfig[category].map((node) => (
+                  <DropdownItem
+                    key={node.name}
+                    onClick={() =>
+                      addNodeBetweenNodes(
+                        node.name,
+                        selectedEdge.sourceNode,
+                        selectedEdge.targetNode,
+                        selectedEdge.edgeId,
+                        reactFlowInstance,
+                        dispatch,
+                        setVisible
+                      )
+                    }
+                  >
+                    {node.name}
+                  </DropdownItem>
+                ))}
+              </DropdownSection>
+            ))}
+          </DropdownMenu>
+        </Dropdown>
       )}
 
       <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>

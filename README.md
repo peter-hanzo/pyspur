@@ -1,16 +1,32 @@
-# PySpur
+# PySpur - LLM Reasoning via Inference-Time Compute
 
-PySpur is an intuitive AI dev tool that simplifies building LLM workflows. Developers can visually drag, drop, and link nodes on a 2D canvas, enabling quick assembly of LLM pipelines. Workflows can be exported as API endpoints or raw Python code for seamless integration.
+PySpur is a library for building LLM reasoning pipelines involving inference-time compute methods.
 
+*Insert GIF here*
 
-# Core Features
-1. Inference-Time Compute Algorithms
-2. Visual IDE
-3. Batch Inference
-4. Python-based
-5. Caching
-6. Session persistence
-7.
+# Why PySpur?
+
+*Insert Results and templates here*
+
+* Inference-time compute is the next paradigm...
+    * O1 has shown this
+* Iterating on ITC workflows is much easier visually
+* Evals are essential
+    * errors compound
+    * debugging every step is essential for **robustness**
+* Open-Source: ...
+
+# Core Components
+1. **Inference-Time Compute Algorithms**: MCTS, Tree of Thoughts, Self-Consistency...
+2. **Visual IDE**
+3. **Batch Inference**: Evals
+
+# Quick start
+
+```bash
+npm start
+```
+
 
 ## Prerequisites
 
