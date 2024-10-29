@@ -95,14 +95,13 @@ const NodeDetails = ({ nodeID }) => {
         if (node?.data?.userconfig && JSON.stringify(node.data.userconfig) !== JSON.stringify(userConfigData)) {
             setUserConfigData(node.data.userconfig);
         } else {
-            setUserConfigData({});
+            setUserConfigData(initializeConfigData(schema));
         }
     }, [nodeID, node]);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-
-    const [userConfigData, setUserConfigData] = useState(node?.data?.userconfig || {});
+    const [userConfigData, setUserConfigData] = useState(node?.data?.userconfig || initializeConfigData(nodeSchema?.config));
 
     // const [userInputs, setUserInputs] = useState({});
 
