@@ -1,8 +1,10 @@
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
+
 from ..nodes.base import BaseNode
 from ..nodes.factory import NodeFactory
-from ..schemas.workflow import WorkflowNode, WorkflowLink
+from ..schemas.workflow import WorkflowLink, WorkflowNode
 
 
 class NodeExecutorDask:

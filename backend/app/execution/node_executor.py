@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional
+
 from pydantic import BaseModel
+
 from ..nodes.base import BaseNode
 from ..nodes.factory import NodeFactory
 from ..schemas.workflow import WorkflowNode

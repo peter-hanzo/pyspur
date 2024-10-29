@@ -1,8 +1,10 @@
 import asyncio
 from typing import Any, Awaitable, Dict, List
+
 from pydantic import BaseModel, create_model
+
 from ..base import BaseNode
-from .subworkflow_node import SubworkflowNodeConfig, SubworkflowNode
+from .subworkflow_node import SubworkflowNode, SubworkflowNodeConfig
 
 
 class VectorizeSubworkflowNodeConfig(SubworkflowNodeConfig):

@@ -1,11 +1,13 @@
 import json
-from typing import Any, Dict, Tuple, Set
+from typing import Any, Dict, Set, Tuple
+
 from pydantic import BaseModel
-from ..base import BaseNode
+
+from ...execution.node_executor import NodeExecutor
 from ...execution.workflow_executor import WorkflowExecutor
 from ...execution.workflow_executor_dask import WorkflowExecutorDask
-from ...execution.node_executor import NodeExecutor
 from ...schemas.workflow import Workflow, WorkflowNode
+from ..base import BaseNode
 
 
 class SubworkflowNodeConfig(BaseModel):

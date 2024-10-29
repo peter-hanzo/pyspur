@@ -12,11 +12,9 @@ from datasets import Dataset, load_dataset
 from jinja2 import Template
 
 from app.evals.common import EQUALITY_TEMPLATE, normalize_extracted_answer
-from app.nodes.llm.string_output_llm import (
-    StringOutputLLMNode,
-    StringOutputLLMNodeConfig,
-    StringOutputLLMNodeInput,
-)
+from app.nodes.llm.string_output_llm import (StringOutputLLMNode,
+                                             StringOutputLLMNodeConfig,
+                                             StringOutputLLMNodeInput)
 
 # Precompiled regular expressions
 NUMBER_REGEX = re.compile(r"-?[\d,]*\.?\d+", re.MULTILINE | re.DOTALL | re.IGNORECASE)

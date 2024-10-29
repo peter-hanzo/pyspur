@@ -1,8 +1,8 @@
 # modified from https://www.kaggle.com/code/gregkamradt/arc-prize-scoring
-import json
-from typing import Tuple
 import argparse
+import json
 import sys
+from typing import Tuple
 
 
 def score_submission(submission, solutions, include_task_scores=False) -> dict:

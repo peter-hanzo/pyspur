@@ -1,11 +1,9 @@
-from .string_output_llm import (
-    StringOutputLLMNode,
-    StringOutputLLMNodeConfig,
-    StringOutputLLMNodeInput,
-    StringOutputLLMNodeOutput,
-)
 import asyncio
 from typing import List
+
+from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
+                                StringOutputLLMNodeInput,
+                                StringOutputLLMNodeOutput)
 
 
 class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):

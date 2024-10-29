@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 import importlib
+
+from pydantic import BaseModel
 
 
 class NodeType(BaseModel):

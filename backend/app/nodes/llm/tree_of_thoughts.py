@@ -1,30 +1,49 @@
 # Original paper: https://arxiv.org/abs/2305.10601
 # Original code: https://github.com/princeton-nlp/tree-of-thought-llm/tree/master
-from ..base import BaseNode
-from .string_output_llm import (
-    StringOutputLLMNode,
-    StringOutputLLMNodeConfig,
-    StringOutputLLMNodeInput,
-    StringOutputLLMNodeOutput,
-)
-from .advanced import AdvancedNode, AdvancedNodeConfig
-from typing import Any, List
 import asyncio
+from typing import Any, List
+
 import numpy as np
+from pydantic import Field
+
+from ..base import BaseNode
+from .advanced import AdvancedNode, AdvancedNodeConfig
+from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
+                                StringOutputLLMNodeInput,
+                                StringOutputLLMNodeOutput)
 
 
 class TreeOfThoughtsNodeConfig(StringOutputLLMNodeConfig):
-    steps: int = 3
-    n_generate_sample: int = 1
-    n_evaluate_sample: int = 1
-    n_select_sample: int = 1
-    method_generate: str = "sample"  # 'sample' or 'propose'
-    method_evaluate: str = "value"  # 'value' or 'vote'
-    method_select: str = "greedy"  # 'greedy' or 'sample'
-    prompt_sample: str = "standard"  # 'standard' or 'cot'
-    temperature: float = 0.7
+    steps: int = Field(3, ge=1, le=10, description="Number of steps to run")
+    n_generate_sample: int = Field(
+        1, ge=1, le=10, description="Number of samples to generate"
+    )
+    n_evaluate_sample: int = Field(
+        1, ge=1, le=10, description="Number of samples to evaluate"
+    )
+    n_select_sample: int = Field(
+        1, ge=1, le=10, description="Number of samples to select"
+    )
+    method_generate: str = Field(
+        "sample", description="Generation method"
+    )  # 'sample' or 'propose'
+    method_evaluate: str = Field(
+        "value", description="Evaluation method"
+    )  # 'value' or 'vote'
+    method_select: str = Field(
+        "greedy", description="Selection method"
+    )  # 'greedy' or 'sample'
+    prompt_sample: str = Field(
+        "standard", description="Prompt sample"
+    )  # 'standard' or 'cot'
+    temperature: float = Field(
+        0.7,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for randomness, between 0.0 and 2.0",
+    )
     stops: List[str] = []  # Stop tokens for generation
-    search_method: str = "bfs"  # "bfs" or "dfs"
+    search_method: str = Field("bfs", description="Search method")  # "bfs" or "dfs"
 
 
 class TreeOfThoughtsNode(BaseNode):

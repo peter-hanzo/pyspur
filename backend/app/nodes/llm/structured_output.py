@@ -1,17 +1,29 @@
 import json
 from typing import Dict, List, Optional
-from pydantic import BaseModel
-from .llm_utils import create_messages, generate_text
+
+from pydantic import BaseModel, Field
+
 from ..base import BaseNode
-from pydantic import BaseModel
+from .llm_utils import create_messages, generate_text
 from .string_output_llm import ModelName
 
 
 class StructuredOutputNodeConfig(BaseModel):
-    llm_name: ModelName
-    max_tokens: int
-    temperature: float
-    system_prompt: str
+    llm_name: ModelName = Field(
+        ModelName.GPT_4O, description="The default LLM model to use"
+    )
+    max_tokens: int = Field(
+        32, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
+    )
+    temperature: float = Field(
+        0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for randomness, between 0.0 and 1.0",
+    )
+    system_prompt: str = Field(
+        "You are a helpful assistant.", description="The system prompt for the LLM"
+    )
     output_schema: Dict[str, str]
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 

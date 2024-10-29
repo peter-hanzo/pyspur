@@ -1,16 +1,23 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 from ..base import BaseNode
-from .advanced import (
-    AdvancedNode,
-    AdvancedNodeConfig,
-)
+from .advanced import AdvancedNode, AdvancedNodeConfig
 
 
 class BranchSolveMergeNodeConfig(AdvancedNodeConfig):
-    system_prompt: str = ""
-    branch_prompt: str = "Please decompose the following task into multiple subtasks."
-    solve_prompt: str = "Please provide a detailed solution for the following subtask:"
-    merge_prompt: str = (
+    system_prompt: str = Field(
+        "You are a helpful assistant.",
+        description="The system prompt for the LLM",
+    )
+    branch_prompt: str = Field(
+        "Please decompose the following task into multiple subtasks.",
+        description="The prompt for the branch LLM",
+    )
+    solve_prompt: str = Field(
+        "Please provide a detailed solution for the following subtask:",
+        description="The prompt for the solve LLM",
+    )
+    merge_prompt: str = Field(
         "Please combine the following solutions into a coherent and comprehensive final answer."
     )
 

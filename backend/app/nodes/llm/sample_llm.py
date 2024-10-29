@@ -1,15 +1,13 @@
 import asyncio
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
-from .advanced import (
-    AdvancedNode,
-    AdvancedNodeConfig,
-)
+from .advanced import AdvancedNode, AdvancedNodeConfig
 
 
 class SampleLLMNodeConfig(AdvancedNodeConfig):
-    samples: int = 1
+    samples: int = Field(1, ge=1, le=10, description="Number of samples to generate")
 
 
 class SampleLLMNode(DynamicSchemaNode):

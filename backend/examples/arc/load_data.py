@@ -1,8 +1,7 @@
-import os
-import json
-from typing import Dict, List, Tuple
 import argparse
-
+import json
+import os
+from typing import Dict, List, Tuple
 
 task_sets = {
     "training": {

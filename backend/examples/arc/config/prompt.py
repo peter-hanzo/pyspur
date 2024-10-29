@@ -1,5 +1,6 @@
 import argparse
 
+
 def add_prompt_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--name", type=str, default="default", help="Set the name for PromptArgs."

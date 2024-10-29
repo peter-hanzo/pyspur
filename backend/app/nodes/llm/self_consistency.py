@@ -1,18 +1,20 @@
-from ..base import BaseNode
-from .string_output_llm import (
-    StringOutputLLMNode,
-    StringOutputLLMNodeInput,
-    StringOutputLLMNodeOutput,
-    StringOutputLLMNodeConfig,
-)
-from typing import List
-from difflib import SequenceMatcher
 import asyncio
+from difflib import SequenceMatcher
+from typing import List
+
+from pydantic import Field
+
+from ..base import BaseNode
+from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
+                                StringOutputLLMNodeInput,
+                                StringOutputLLMNodeOutput)
 
 
 class SelfConsistencyNodeConfig(StringOutputLLMNodeConfig):
-    samples: int = 5
-    similarity_threshold: float = 0.8
+    samples: int = Field(5, ge=1, le=10, description="Number of samples to generate")
+    similarity_threshold: float = Field(
+        0.8, ge=0.0, le=1.0, description="Similarity threshold"
+    )
 
 
 class SelfConsistencyNode(BaseNode):

@@ -1,11 +1,11 @@
 import asyncio
 import logging
 import random
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
-import numpy as np
 import networkx as nx
-from pydantic import BaseModel
+import numpy as np
+from pydantic import BaseModel, Field
 
 from ..base import BaseNode
 from .llm_utils import create_messages, generate_text
@@ -44,12 +44,23 @@ class MCTSTreeNode:
 
 class MCTSNodeConfig(BaseModel):
     llm_name: ModelName
-    max_tokens: int = 1024
-    temperature: float = 1.0
+    max_tokens: int = Field(
+        1024, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
+    )
+    temperature: float = Field(
+        1.0,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for randomness, between 0.0 and 2.0",
+    )
     system_prompt: str
-    num_simulations: int = 10
-    simulation_depth: int = 5
-    exploration_weight: float = 1.4
+    num_simulations: int = Field(
+        10, ge=1, le=100, description="Number of simulations to run"
+    )
+    simulation_depth: int = Field(5, ge=1, le=10, description="Simulation depth")
+    exploration_weight: float = Field(
+        1.4, ge=0.0, le=2.0, description="Exploration weight"
+    )
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 

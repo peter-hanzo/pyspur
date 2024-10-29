@@ -1,9 +1,8 @@
 import importlib
 from typing import Any, Dict, List
 
-
-from .base import BaseNode
 from ..schemas.node_type import NodeType
+from .base import BaseNode
 
 
 class NodeFactory:

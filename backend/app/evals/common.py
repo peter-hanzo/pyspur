@@ -1,15 +1,13 @@
 import os
+import re
 from collections import defaultdict
 from multiprocessing.pool import ThreadPool
-from typing import Any
-import re
+from typing import Any, Optional
 
 import numpy as np
 from tqdm import tqdm
 
 from .types import EvalResult, Message, SingleEvalResult
-
-from typing import Optional
 
 QUERY_TEMPLATE_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.

@@ -2,9 +2,11 @@
 import os
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
-from ..base import MonitoringProvider
-from ..models import Event, Error
+
 from langfuse import Langfuse
+
+from ..base import MonitoringProvider
+from ..models import Error, Event
 
 
 class LangfuseProvider(MonitoringProvider):

@@ -1,21 +1,28 @@
-from pydantic import BaseModel
-from ..dynamic_schema import DynamicSchemaNode
-from .advanced import (
-    AdvancedNode,
-    AdvancedNodeConfig,
-)
-from typing import Tuple
 import asyncio
+from typing import Tuple
+
+from pydantic import BaseModel, Field
+
+from ..dynamic_schema import DynamicSchemaNode
+from .advanced import AdvancedNode, AdvancedNodeConfig
 
 
 class BestOfNNodeConfig(AdvancedNodeConfig):
-    samples: int = 3
-    rating_prompt: str = (
+    samples: int = Field(3, ge=1, le=10, description="Number of samples to generate")
+    rating_prompt: str = Field(
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
-        "Consider factors such as relevance, coherence, and helpfulness. Respond with only a number."
+        "Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
+        description="The prompt for the rating LLM",
     )
-    rating_temperature: float = 0.1
-    rating_max_tokens: int = 16
+    rating_temperature: float = Field(
+        0.1,
+        ge=0.0,
+        le=2.0,
+        description="Temperature for randomness, between 0.0 and 1.0",
+    )
+    rating_max_tokens: int = Field(
+        16, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
+    )
 
 
 class BestOfNNode(DynamicSchemaNode):

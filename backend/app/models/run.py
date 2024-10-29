@@ -1,9 +1,11 @@
 from datetime import datetime
+from enum import Enum as PyEnum
 from logging import config
 from tracemalloc import start
-from sqlalchemy import Column, String, Integer, JSON, DateTime
-from sqlalchemy.orm import relationship, sessionmaker, declarative_base
-from enum import Enum as PyEnum
+
+from sqlalchemy import JSON, Column, DateTime, Integer, String
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
 from .task import TaskStatus
 
 Base = declarative_base()

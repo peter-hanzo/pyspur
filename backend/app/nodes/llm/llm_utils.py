@@ -5,7 +5,7 @@ import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, wraps
-from typing import Awaitable, Callable, Optional, List, Dict, Any, cast
+from typing import Any, Awaitable, Callable, Dict, List, Optional, cast
 from urllib import response
 
 import numpy as np
@@ -14,7 +14,6 @@ from litellm import acompletion
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.utils import resample
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
-from dotenv import load_dotenv
 
 load_dotenv()
 

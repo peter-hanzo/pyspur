@@ -1,6 +1,8 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Enum, JSON, DateTime
-from sqlalchemy.orm import relationship, declarative_base
 from enum import Enum as PyEnum
+
+from sqlalchemy import (JSON, Column, DateTime, Enum, ForeignKey, Integer,
+                        String)
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 

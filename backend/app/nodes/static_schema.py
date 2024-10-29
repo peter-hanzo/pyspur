@@ -1,7 +1,9 @@
 from abc import ABC
-from .base import BaseNode
-from pydantic import BaseModel
 from typing import Type
+
+from pydantic import BaseModel
+
+from .base import BaseNode
 
 
 class StaticSchemaNode(BaseNode, ABC):

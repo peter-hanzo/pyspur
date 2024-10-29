@@ -1,7 +1,8 @@
+import hashlib
 import itertools
 import json
+
 import numpy as np
-import hashlib
 
 
 def permutation_list(n: int):

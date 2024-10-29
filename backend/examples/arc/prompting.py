@@ -1,54 +1,43 @@
-from collections import Counter, defaultdict
+import asyncio
+import base64
+import contextlib
+import hashlib
+import io
+import itertools
 import json
 import math
-import hashlib
-from functools import cache
 import os
-import io
-import contextlib
-from typing import Any, Callable, Optional, TypeVar, Union, Literal
-import base64
-import asyncio
-import itertools
+from collections import Counter, defaultdict
 from enum import Enum, auto
+from functools import cache
+from typing import Any, Callable, Dict, Literal, Optional, TypeVar, Union
 
-from scipy.ndimage import label, generate_binary_structure
 import attrs
+import nest_asyncio
 import numpy as np
 import openai
-import nest_asyncio
-import tiktoken
-from typing import Dict
-from permutations import ALL_PERMUTATION_INDICES
 import rrutils.optional as op
+import tiktoken
+from permutations import ALL_PERMUTATION_INDICES
+from scipy.ndimage import generate_binary_structure, label
 
 nest_asyncio.apply()
 
-from feature_engineering import (
-    RenderArgs,
-    grid_to_base64_png_oai_content,
-    color_scheme_name,
-    alt_color_scheme_name,
-    alt_color_scheme_consts_name,
-    color_scheme_consts_name,
-    display_single_grid_alt,
-    display_wrong_output_alt,
-    display_example_alt,
-)
-from arc_solve.run_programs import (
-    KeyNameS,
-    RunOutput,
-    RunOutputHashable,
-    StdoutStderr,
-    evaluate_funcs_with_timeout_cache,
-)
+from arc_solve.run_programs import (KeyNameS, RunOutput, RunOutputHashable,
+                                    StdoutStderr,
+                                    evaluate_funcs_with_timeout_cache)
+from feature_engineering import (DisplayArgs, RenderArgs,
+                                 alt_color_scheme_consts_name,
+                                 alt_color_scheme_name,
+                                 color_scheme_consts_name, color_scheme_name,
+                                 display_example_alt, display_single_grid_alt,
+                                 display_wrong_output_alt,
+                                 grid_to_base64_png_oai_content)
 
 from examples.arc.reasoning_examples import (
-    reasoning_labeled_items_alt_color,
-    reasoning_labeled_items_full_spreadsheet_alt_color,
     reasoning_labeled_change_prompt_alt_color_add_swap,
-)
-from feature_engineering import DisplayArgs
+    reasoning_labeled_items_alt_color,
+    reasoning_labeled_items_full_spreadsheet_alt_color)
 
 
 class ContextLengthExceeded(Exception):

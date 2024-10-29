@@ -1,10 +1,10 @@
 from enum import Enum
 from typing import Dict, List, Optional
-from pydantic import BaseModel
-from .llm_utils import create_messages, generate_text
+
+from pydantic import BaseModel, Field
+
 from ..base import BaseNode
-from pydantic import BaseModel
-from enum import Enum
+from .llm_utils import create_messages, generate_text
 
 
 class ModelName(str, Enum):
@@ -16,11 +16,22 @@ class ModelName(str, Enum):
 
 
 class StringOutputLLMNodeConfig(BaseModel):
-    llm_name: ModelName
-    max_tokens: int
-    temperature: float
-    system_prompt: str
-    json_mode: bool = False
+    llm_name: ModelName = Field(
+        ModelName.GPT_4O, description="The default LLM model to use"
+    )
+    max_tokens: int = Field(
+        32, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
+    )
+    temperature: float = Field(
+        0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for randomness, between 0.0 and 1.0",
+    )
+    system_prompt: str = Field(
+        "You are a helpful assistant.", description="The system prompt for the LLM"
+    )
+    json_mode: bool = Field(False, description="Whether to use JSON mode for the LLM")
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
@@ -45,7 +56,9 @@ class StringOutputLLMNode(BaseNode):
     def setup(self) -> None:
         pass
 
-    async def run(self, input_data: StringOutputLLMNodeInput) -> StringOutputLLMNodeOutput:
+    async def run(
+        self, input_data: StringOutputLLMNodeInput
+    ) -> StringOutputLLMNodeOutput:
         system_message = self.config.system_prompt
         messages = create_messages(
             system_message=system_message,
@@ -62,6 +75,7 @@ class StringOutputLLMNode(BaseNode):
 
 
 if __name__ == "__main__":
+
     async def test_llm_nodes():
         string_output_llm_node = StringOutputLLMNode(
             config=StringOutputLLMNodeConfig(
