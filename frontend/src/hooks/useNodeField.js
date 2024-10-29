@@ -11,24 +11,21 @@ import { updateNodeData, selectNodeById } from '../store/flowSlice';
 export const useNodeField = (nodeID, fieldName) => {
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
-  const [fieldValue, setFieldValue] = useState(node?.data?.config?.properties?.[fieldName] || ''); // Read from config.properties
+  const [fieldValue, setFieldValue] = useState(node?.data?.userconfig?.[fieldName] || ''); // Read from userconfig
 
   useEffect(() => {
-    if (fieldValue !== node?.data?.config?.properties?.[fieldName]) { // Compare with config.properties
+    if (fieldValue !== node?.data?.userconfig?.[fieldName]) { // Compare with userconfig
       dispatch(updateNodeData({
         id: nodeID,
         data: {
-          config: {
-            ...node.data.config,
-            properties: {
-              ...node.data.config.properties,
-              [fieldName]: fieldValue, // Write to config.properties
-            },
+          userconfig: {
+            ...node.data.userconfig,
+            [fieldName]: fieldValue, // Write to userconfig
           },
         },
       }));
     }
-  }, [fieldValue, node?.data?.config?.properties?.[fieldName], dispatch, nodeID, fieldName]);
+  }, [fieldValue, node?.data?.userconfig?.[fieldName], dispatch, nodeID, fieldName]);
 
   return { fieldValue, setFieldValue };
 };

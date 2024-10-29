@@ -78,17 +78,13 @@ const NodeDetails = ({ nodeID }) => {
 
     // Update the input change handler to directly dispatch the action
     const handleInputChange = (key, value) => {
-        setConfigData((prevConfig) => {
-            const updatedConfig = {
-                ...prevConfig,
-                properties: {
-                    ...prevConfig.properties,
-                    [key]: value, // Update inside config.properties
-                },
+        setUserConfigData((prevUserConfig) => {
+            const updatedUserConfig = {
+                ...prevUserConfig,
+                [key]: value,
             };
-            // Automatically save the updated config
-            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: updatedConfig } }));
-            return updatedConfig;
+            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, userconfig: updatedUserConfig } }));
+            return updatedUserConfig;
         });
     };
 
@@ -97,22 +93,16 @@ const NodeDetails = ({ nodeID }) => {
         const schema = findNodeSchema(node?.type);
         setNodeSchema(schema);
 
-        // Initialize configData and ensure the title is set
-        if (node?.data?.config && JSON.stringify(node.data.config) !== JSON.stringify(configData)) {
-            setConfigData(node.data.config);
+        if (node?.data?.userconfig && JSON.stringify(node.data.userconfig) !== JSON.stringify(userConfigData)) {
+            setUserConfigData(node.data.userconfig);
         } else {
-            const initialConfig = initializeConfigData(schema);
-            setConfigData({
-                ...initialConfig,
-                title: node?.data?.title || '', // Ensure title is initialized
-            });
+            setUserConfigData(initializeConfigData(schema));
         }
     }, [nodeID, node]);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-
-    const [configData, setConfigData] = useState(node?.data?.config || initializeConfigData(nodeSchema?.config));
+    const [userConfigData, setUserConfigData] = useState(node?.data?.userconfig || initializeConfigData(nodeSchema?.config));
 
     // const [userInputs, setUserInputs] = useState({});
 
