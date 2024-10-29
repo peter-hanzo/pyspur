@@ -4,6 +4,7 @@ import Wrapper from '../../../textEditor/Wrapper';
 import Editor from '../../../textEditor/Editor';
 import { updateNodeData } from '../../../../store/flowSlice';
 import Tabs from './Tabs';
+import { Button } from "@nextui-org/react";
 
 const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const dispatch = useDispatch();
@@ -43,12 +44,22 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
             )}
 
             <div className="mt-4">
-                <button className="px-4 py-2 bg-purple-600 text-white rounded mr-2" onClick={handleSave}>
+                <Button
+                    onPress={handleSave}
+                    color="primary"
+                    variant="solid"
+                    auto
+                >
                     Save
-                </button>
-                <button className="px-4 py-2 bg-purple-600 text-white rounded" onClick={onDiscard}>
+                </Button>
+                <Button
+                    onPress={onDiscard}
+                    color="primary"
+                    variant="flat"
+                    auto
+                >
                     Discard
-                </button>
+                </Button>
             </div>
         </div>
     );
