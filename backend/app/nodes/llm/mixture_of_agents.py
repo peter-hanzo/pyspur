@@ -1,9 +1,12 @@
 import asyncio
 from typing import List
 
-from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
-                                StringOutputLLMNodeInput,
-                                StringOutputLLMNodeOutput)
+from .string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
+    StringOutputLLMNodeOutput,
+)
 
 
 class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
@@ -47,6 +50,7 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
             max_tokens=512,
             temperature=0.1,
             system_prompt=config.system_prompt,
+            json_mode=config.json_mode,
         )
         self._critique_llm_node = StringOutputLLMNode(critique_llm_config)
 
@@ -56,6 +60,7 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
             max_tokens=8192,
             temperature=0.1,
             system_prompt=config.system_prompt,
+            json_mode=config.json_mode,
         )
         self._final_llm_node = StringOutputLLMNode(final_llm_config)
 

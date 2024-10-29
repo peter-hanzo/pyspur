@@ -8,9 +8,12 @@ from pydantic import Field
 
 from ..base import BaseNode
 from .advanced import AdvancedNode, AdvancedNodeConfig
-from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
-                                StringOutputLLMNodeInput,
-                                StringOutputLLMNodeOutput)
+from .string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
+    StringOutputLLMNodeOutput,
+)
 
 
 class TreeOfThoughtsNodeConfig(StringOutputLLMNodeConfig):
@@ -91,7 +94,7 @@ class TreeOfThoughtsNode(BaseNode):
             for _ in range(self.config.n_generate_sample)
         ]
         responses = await asyncio.gather(*tasks)
-        return [response.assitant_message for response in responses]
+        return [response.assistant_message for response in responses]
 
     def _standard_prompt_wrap(self, x: str, y: str) -> str:
         return f"{x}\n{y}"
