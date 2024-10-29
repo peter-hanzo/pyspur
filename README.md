@@ -27,7 +27,6 @@ PySpur is a library for building LLM reasoning pipelines involving inference-tim
 npm start
 ```
 
-
 ## Prerequisites
 
 - Node.js (v20 or higher)

@@ -5,9 +5,8 @@ import React from "react";
 import { Card, Tabs, Tab, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
-import AccountDetails from "./account-details";
-import NotificationsSettings from "./notifications-settings";
-import SecuritySettings from "./security-settings";
+import APIKeys from "./api-keys";
+import AdvancedSettings from "./advanced";
 
 export default function SettingsCard(props: CardProps) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -35,47 +34,37 @@ export default function SettingsCard(props: CardProps) {
                     size="lg"
                   >
                     <Tab
-                      key="account-settings"
-                      textValue="Account Settings"
+                      key="api-keys"
+                      textValue="API Keys"
                       title={
                         <div className="flex items-center gap-1.5">
                           <Icon icon="solar:user-id-bold" width={20} />
-                          <p>Account</p>
+                          <p>API Keys</p>
                         </div>
                       }
                     >
-                      <AccountDetails className="p-2 shadow-none" />
+                      <APIKeys className="p-2 shadow-none" />
                     </Tab>
                     <Tab
-                      key="notifications-settings"
-                      textValue="Notification Settings"
-                      title={
-                        <div className="flex items-center gap-1.5">
-                          <Icon icon="solar:bell-bold" width={20} />
-                          <p>Notifications</p>
-                        </div>
-                      }
-                    >
-                      <NotificationsSettings className="p-2 shadow-none" />
-                    </Tab>
-                    <Tab
-                      key="security-settings"
-                      textValue="Security Settings"
+                      key="advanced-settings"
+                      textValue="Advanced Settings"
                       title={
                         <div className="flex items-center gap-1.5">
                           <Icon icon="solar:shield-keyhole-bold" width={20} />
-                          <p>Security</p>
+                          <p>Advanced</p>
                         </div>
                       }
                     >
-                      <SecuritySettings className="p-2 shadow-none" />
+                      <AdvancedSettings className="p-2 shadow-none" />
                     </Tab>
                   </Tabs>
                 </Card>
               </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
+              <ModalFooter><Button radius="full" variant="bordered">
+                Cancel
+              </Button>
+                <Button color="primary" radius="full">
+                  Save
                 </Button>
               </ModalFooter>
             </>
