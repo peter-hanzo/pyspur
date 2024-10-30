@@ -76,6 +76,23 @@ const NodeDetails = ({ nodeID }) => {
     //     }
     // }, [nodeID, node]);
 
+    const renderEnumSelect = (key, label, enumValues) => (
+        <div key={key}>
+            <label className="font-semibold mb-2 block">{label}</label>
+            <select
+                value={dynamicModel[key] || ''}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                className="border p-2 w-full"
+            >
+                {enumValues.map((option) => (
+                    <option key={option} value={option}>
+                        {option}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+
     useEffect(() => {
         setDynamicModel(node.data.userconfig);
     }, [node]);
@@ -100,6 +117,15 @@ const NodeDetails = ({ nodeID }) => {
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
+
+            if (field.$ref) {
+                // Handle enums using $ref
+                const refPath = field.$ref.replace('#/$defs/', '');
+                const enumDef = nodeSchema.config.$defs[refPath];
+                if (enumDef && enumDef.enum) {
+                    return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
+                }
+            }
 
             switch (field.type) {
                 case 'string':
