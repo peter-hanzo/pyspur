@@ -96,6 +96,10 @@ const BatchMode = () => {
     }
   };
 
+  const handleNewWorkflowClick = () => {
+    router.push('/workflow');
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="w-3/4 mx-auto p-5">
@@ -111,6 +115,7 @@ const BatchMode = () => {
             startContent={
               <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
             }
+            onClick={handleNewWorkflowClick}
           >
             New Workflow
           </Button>
