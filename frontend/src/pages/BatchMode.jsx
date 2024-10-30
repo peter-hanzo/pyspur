@@ -39,6 +39,19 @@ const BatchMode = () => {
     { key: "action", label: "ACTION" },
   ];
 
+  const activeWorkflows = [
+    { key: "1", name: 'Run 1', workflow: 'Workflow 1', dataset: 'dataset1.csv', progress: 30 },
+    { key: "2", name: 'Run 2', workflow: 'Workflow 2', dataset: 'dataset2.jsonl', progress: 60 },
+    { key: "3", name: 'Run 3', workflow: 'Workflow 3', dataset: 'dataset3.csv', progress: 90 },
+  ];
+
+  const activeColumns = [
+    { key: "name", label: "RUN NAME" },
+    { key: "workflow", label: "WORKFLOW" },
+    { key: "dataset", label: "DATASET" },
+    { key: "progress", label: "PROGRESS" },
+  ];
+
   const handleRunClick = (workflow) => {
     setSelectedWorkflow(workflow);
     onOpen();
@@ -90,6 +103,28 @@ const BatchMode = () => {
                   <TableCell>
                     {columnKey === "action" ? (
                       <Button onPress={() => handleRunClick(workflow)}>Run</Button>
+                    ) : (
+                      getKeyValue(workflow, columnKey)
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        <h3 className="text-xl font-semibold mt-8 mb-4">Active Workflow Jobs</h3>
+        <Table aria-label="Active Workflows" isHeaderSticky>
+          <TableHeader columns={activeColumns}>
+            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+          </TableHeader>
+          <TableBody items={activeWorkflows}>
+            {(workflow) => (
+              <TableRow key={workflow.key}>
+                {(columnKey) => (
+                  <TableCell>
+                    {columnKey === "progress" ? (
+                      <Progress value={workflow.progress} />
                     ) : (
                       getKeyValue(workflow, columnKey)
                     )}
