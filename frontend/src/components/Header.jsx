@@ -8,6 +8,10 @@ import {
   NavbarItem,
   Link,
   Button,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { runWorkflow } from '../utils/api';
@@ -99,9 +103,27 @@ const Header = () => {
             </Button>
           </NavbarItem>
           <NavbarItem className="hidden sm:flex">
-            <Button isIconOnly radius="full" variant="light">
-              <Icon className="text-default-500" icon="solar:download-linear" width={24} />
-            </Button>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button isIconOnly radius="full" variant="light">
+                  <Icon className="text-default-500" icon="solar:download-linear" width={24} />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu aria-label="Export Options">
+                <DropdownItem
+                  key="export-json"
+                  startContent={<Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" icon="carbon:json" />}
+                >
+                  Export JSON
+                </DropdownItem>
+                <DropdownItem
+                  key="export-code"
+                  startContent={<Icon className="text-xl text-default-500 pointer-events-none flex-shrink-0" icon="carbon:code" />}
+                >
+                  Export Code
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
           </NavbarItem>
           <NavbarItem className="hidden sm:flex">
             {/* Directly render the SettingsCard component */}
