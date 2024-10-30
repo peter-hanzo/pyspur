@@ -28,13 +28,14 @@ const BatchMode = () => {
   const [progress, setProgress] = useState(0);
 
   const workflows = [
-    { key: "1", name: 'Workflow 1' },
-    { key: "2", name: 'Workflow 2' },
-    { key: "3", name: 'Workflow 3' },
+    { key: "1", name: 'Workflow 1', lastModified: '2024-10-01' },
+    { key: "2", name: 'Workflow 2', lastModified: '2024-09-30' },
+    { key: "3", name: 'Workflow 3', lastModified: '2024-09-25' },
   ];
 
   const columns = [
-    { key: "name", label: "WORKFLOW NAME" },
+    { key: "name", label: "NAME" },
+    { key: "lastModified", label: "LAST MODIFIED" },
     { key: "action", label: "ACTION" },
   ];
 
@@ -74,29 +75,31 @@ const BatchMode = () => {
   };
 
   return (
-    <div>
+    <div className="flex flex-col gap-2">
       <Header activePage="batch" />
-      <h1>Batch Mode</h1>
-      <Table aria-label="Saved Workflows">
-        <TableHeader columns={columns}>
-          {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-        </TableHeader>
-        <TableBody items={workflows}>
-          {(workflow) => (
-            <TableRow key={workflow.key}>
-              {(columnKey) => (
-                <TableCell>
-                  {columnKey === "action" ? (
-                    <Button onPress={() => handleRunClick(workflow)}>Run</Button>
-                  ) : (
-                    getKeyValue(workflow, columnKey)
-                  )}
-                </TableCell>
-              )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <div className="w-3/4 mx-auto p-5">
+        <h3 className="text-xl font-semibold mb-4">Recent Workflows</h3>
+        <Table aria-label="Saved Workflows" isHeaderSticky>
+          <TableHeader columns={columns}>
+            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+          </TableHeader>
+          <TableBody items={workflows}>
+            {(workflow) => (
+              <TableRow key={workflow.key}>
+                {(columnKey) => (
+                  <TableCell>
+                    {columnKey === "action" ? (
+                      <Button onPress={() => handleRunClick(workflow)}>Run</Button>
+                    ) : (
+                      getKeyValue(workflow, columnKey)
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
