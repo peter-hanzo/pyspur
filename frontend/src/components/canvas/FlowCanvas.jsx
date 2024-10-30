@@ -14,7 +14,7 @@ import {
   deleteNode,
   addNode,
 } from '../../store/flowSlice';
-import Spreadsheet from '../table/Table';
+
 import NodeDetails from '../nodes/NodeDetails';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { getBezierPath } from 'reactflow';
@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
+import Header from '../Header';
 
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {
@@ -312,6 +313,7 @@ const FlowCanvas = () => {
             overflow: 'auto',
             position: 'relative',
             zIndex: 1,
+            paddingTop: '60px', // Adjust for the height of the header
           }}
         >
           <ReactFlow

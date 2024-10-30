@@ -19,13 +19,15 @@ import {
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { runWorkflow } from '../utils/api';
-import Header from '../components/Header';
+import Header from './Header';
+import { useRouter } from 'next/router';
 
 const BatchMode = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [file, setFile] = useState(null);
   const [progress, setProgress] = useState(0);
+  const router = useRouter();
 
   const workflows = [
     { key: "1", name: 'Workflow 1', lastModified: '2024-10-01' },
@@ -55,6 +57,13 @@ const BatchMode = () => {
   const handleRunClick = (workflow) => {
     setSelectedWorkflow(workflow);
     onOpen();
+  };
+
+  const handleEditClick = (workflow) => {
+    router.push({
+      pathname: '/workflow',
+      query: { workflowId: workflow.key },
+    });
   };
 
   const handleFileChange = (e) => {
@@ -89,7 +98,6 @@ const BatchMode = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <Header activePage="batch" />
       <div className="w-3/4 mx-auto p-5">
         <h3 className="text-xl font-semibold mb-4">Recent Workflows</h3>
         <Table aria-label="Saved Workflows" isHeaderSticky>
@@ -102,7 +110,22 @@ const BatchMode = () => {
                 {(columnKey) => (
                   <TableCell>
                     {columnKey === "action" ? (
-                      <Button onPress={() => handleRunClick(workflow)}>Run</Button>
+                      <div className="flex items-center gap-2">
+                        <Icon
+                          icon="solar:play-bold"
+                          className="cursor-pointer text-default-400"
+                          height={18}
+                          width={18}
+                          onClick={() => handleRunClick(workflow)}
+                        />
+                        <Icon
+                          icon="solar:pen-bold"
+                          className="cursor-pointer text-default-400"
+                          height={18}
+                          width={18}
+                          onClick={() => handleEditClick(workflow)}
+                        />
+                      </div>
                     ) : (
                       getKeyValue(workflow, columnKey)
                     )}
