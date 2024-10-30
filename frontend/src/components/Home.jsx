@@ -99,6 +99,23 @@ const BatchMode = () => {
   return (
     <div className="flex flex-col gap-2">
       <div className="w-3/4 mx-auto p-5">
+
+        {/* Dashboard Header */}
+        <header className="mb-6 flex w-full items-center justify-between">
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
+            <p className="text-small text-default-400 lg:text-medium">Manage your workflows</p>
+          </div>
+          <Button
+            className="bg-foreground text-background"
+            startContent={
+              <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
+            }
+          >
+            New Workflow
+          </Button>
+        </header>
+
         <h3 className="text-xl font-semibold mb-4">Recent Workflows</h3>
         <Table aria-label="Saved Workflows" isHeaderSticky>
           <TableHeader columns={columns}>
