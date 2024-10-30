@@ -82,12 +82,12 @@ const Header = () => {
           justify="start"
         >
           <NavbarItem isActive>
-            <Link className="flex gap-2 text-inherit" href="#">
+            <Link className="flex gap-2 text-inherit" href="/">
               Canvas
             </Link>
           </NavbarItem>
-          <NavbarItem >
-            <Link aria-current="page" className="flex gap-2 text-inherit" href="#">
+          <NavbarItem>
+            <Link aria-current="page" className="flex gap-2 text-inherit" href="/BatchMode">
               Batch Mode
             </Link>
           </NavbarItem>
