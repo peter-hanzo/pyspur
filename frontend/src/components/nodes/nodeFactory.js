@@ -1,4 +1,5 @@
 import { nodeTypes } from '../../constants/nodeTypes';
+import DynamicModel from '../../utils/DynamicModel';
 
 // Function to create a node based on its type
 export const createNode = (type, id, position, additionalData = {}) => {
@@ -9,6 +10,10 @@ export const createNode = (type, id, position, additionalData = {}) => {
     throw new Error(`Node type ${type} not found in nodeTypes.js`);
   }
 
+  const dynamicModel = new DynamicModel(nodeType.config);
+  console.log('dynamicModel', dynamicModel);
+
+
   // Create the node data, including acronym and color
   const nodeData = {
     ...additionalData,
@@ -18,6 +23,7 @@ export const createNode = (type, id, position, additionalData = {}) => {
     config: nodeType.config,
     input: nodeType.input,
     output: nodeType.output,
+    userconfig: {...dynamicModel},
   };
 
   return {

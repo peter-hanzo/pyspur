@@ -125,7 +125,7 @@ const edgeTypes = {
 };
 
 const FlowCanvas = () => {
-  console.log('FlowCanvas re-rendered');
+  // console.log('FlowCanvas re-rendered');
 
   const dispatch = useDispatch();
 
