@@ -7,7 +7,7 @@ import { DropdownSection, DropdownItem } from '@nextui-org/react';
 
 // Refactored handleSelectNode function
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) => {
-  console.log('addNodeWithoutConnection', nodeType, reactFlowInstance, dispatch);
+  // console.log('addNodeWithoutConnection', nodeType, reactFlowInstance, dispatch);
   const id = `${reactFlowInstance.getNodes().length + 1}`;
   const position = reactFlowInstance.screenToFlowPosition({ x: 250, y: 5 });
 

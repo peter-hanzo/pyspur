@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
 
-const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled }) => {
+const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
   const handleAddKey = () => {
-    if (newKey && !jsonValue.hasOwnProperty(newKey)) {
+    if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
+      console.log(jsonValue);
       const updatedJson = {
         ...jsonValue,
         [newKey]: newValue || options[0] || '' // Set the first option or empty string as default value
       };
+      console.log(updatedJson);
       onChange(updatedJson);
       setNewKey('');
       setNewValue('');

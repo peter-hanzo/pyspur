@@ -19,7 +19,7 @@ import { Select, SelectSection, SelectItem } from '@nextui-org/react';
 const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
-    console.log('NodeDetails', nodeID, node);
+    // console.log('NodeDetails', nodeID, node);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const findNodeSchema = (nodeType) => {
@@ -31,34 +31,71 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-    const [dynamicModel, setDynamicModel] = useState(null);
+    const [dynamicModel, setDynamicModel] = useState(node.data.userconfig);
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
 
     // Initialize DynamicModel when nodeSchema is available
-    useEffect(() => {
-        if (nodeSchema) {
-            const model = new DynamicModel(nodeSchema.config);
-            setDynamicModel(model);
-        }
-    }, [nodeSchema]);
+    // useEffect(() => {
+    //     console.log('node', node);
+    //     if (node?.data?.userconfig) {
+    //         setDynamicModel(node.data.userconfig);
+    //     } else if (nodeSchema) {
+    //         const model = new DynamicModel(nodeSchema.config);
+    //         console.log('DynamicModel', model);
+    //         setDynamicModel(model);
+    //     }
+    // }, [nodeSchema, node]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
         if (dynamicModel) {
-            dynamicModel[key] = value; // Update the DynamicModel instance
-            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, config: dynamicModel } }));
+            console.log('dynamicModel', dynamicModel);
+
+            // Create a new object with updated key-value
+            const updatedModel = { ...dynamicModel, [key]: value };
+
+            console.log('updatedModel', updatedModel);
+            console.log(updatedModel[key], value);
+
+            // Convert updatedModel to a plain object
+            const plainObject = { ...updatedModel };
+
+            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, userconfig: { ...node.data.userconfig, ...plainObject } } }));
+            console.log('updated node', node);
         }
     };
 
     // Modify the useEffect to avoid unnecessary updates
+    // useEffect(() => {
+    //     const schema = findNodeSchema(node?.type);
+    //     setNodeSchema(schema);
+    //     console.log('schema', schema);
+    //     if (schema) {
+    //         const model = new DynamicModel(schema.config);
+    //         setDynamicModel(model);
+    //     }
+    // }, [nodeID, node]);
+
+    const renderEnumSelect = (key, label, enumValues) => (
+        <div key={key}>
+            <label className="font-semibold mb-2 block">{label}</label>
+            <select
+                value={dynamicModel[key] || ''}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                className="border p-2 w-full"
+            >
+                {enumValues.map((option) => (
+                    <option key={option} value={option}>
+                        {option}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+
     useEffect(() => {
-        const schema = findNodeSchema(node?.type);
-        setNodeSchema(schema);
-        if (schema) {
-            const model = new DynamicModel(schema.config);
-            setDynamicModel(model);
-        }
-    }, [nodeID, node]);
+        setDynamicModel(node.data.userconfig);
+    }, [node]);
 
     // Handle adding a new few-shot example
     const handleAddNewExample = () => {
@@ -80,6 +117,15 @@ const NodeDetails = ({ nodeID }) => {
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
+
+            if (field.$ref) {
+                // Handle enums using $ref
+                const refPath = field.$ref.replace('#/$defs/', '');
+                const enumDef = nodeSchema.config.$defs[refPath];
+                if (enumDef && enumDef.enum) {
+                    return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
+                }
+            }
 
             switch (field.type) {
                 case 'string':
