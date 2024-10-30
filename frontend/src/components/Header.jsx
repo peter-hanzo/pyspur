@@ -17,7 +17,7 @@ import { Icon } from "@iconify/react";
 import { runWorkflow } from '../utils/api';
 import SettingsCard from './settings/Settings'; // Import the updated SettingsCard component
 
-const Header = () => {
+const Header = ({ activePage }) => {
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
 
@@ -81,12 +81,12 @@ const Header = () => {
           className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full bg-content2 px-4 dark:bg-content1 sm:flex"
           justify="start"
         >
-          <NavbarItem isActive>
+          <NavbarItem isActive={activePage === 'canvas'}>
             <Link className="flex gap-2 text-inherit" href="/">
               Canvas
             </Link>
           </NavbarItem>
-          <NavbarItem>
+          <NavbarItem isActive={activePage === 'batch'}>
             <Link aria-current="page" className="flex gap-2 text-inherit" href="/BatchMode">
               Batch Mode
             </Link>

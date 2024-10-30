@@ -18,7 +18,8 @@ import {
   useDisclosure
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { runWorkflow } from '../utils/api'; // Assuming this API call can be reused
+import { runWorkflow } from '../utils/api';
+import Header from '../components/Header';
 
 const BatchMode = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -74,6 +75,7 @@ const BatchMode = () => {
 
   return (
     <div>
+      <Header activePage="batch" />
       <h1>Batch Mode</h1>
       <Table aria-label="Saved Workflows">
         <TableHeader columns={columns}>
