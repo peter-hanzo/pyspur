@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
 from .advanced import AdvancedNode, AdvancedNodeConfig
+from .llm_utils import LLMModelRegistry, ModelInfo
 
 
 class BestOfNNodeConfig(AdvancedNodeConfig):
@@ -23,6 +24,9 @@ class BestOfNNodeConfig(AdvancedNodeConfig):
     rating_max_tokens: int = Field(
         16, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
     )
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+    )
 
 
 class BestOfNNode(DynamicSchemaNode):
@@ -40,7 +44,7 @@ class BestOfNNode(DynamicSchemaNode):
 
         # Initialize the LLM node for rating responses
         rating_llm_config = AdvancedNodeConfig(
-            llm_name=self.config.llm_name,
+            llm_info=self.config.llm_info,
             max_tokens=self.config.rating_max_tokens,
             temperature=self.config.rating_temperature,
             system_prompt=self.config.rating_prompt,

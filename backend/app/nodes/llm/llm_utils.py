@@ -2,17 +2,14 @@
 import asyncio
 import base64
 import logging
-import os
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial, wraps
-from typing import Any, Awaitable, Callable, Dict, List, Optional, cast
-from urllib import response
+
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import numpy as np
 from dotenv import load_dotenv
 from litellm import acompletion
+from pydantic import BaseModel, Field
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.utils import resample
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
 load_dotenv()
@@ -20,7 +17,65 @@ load_dotenv()
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
-GPT_MODEL = "gpt-4o-mini"
+
+
+class ModelInfo(BaseModel):
+    name: str
+    max_tokens: int = Field(
+        ..., ge=1, description="Maximum number of tokens the model can generate"
+    )
+    temperature: float = Field(
+        0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for randomness, between 0.0 and 1.0",
+    )
+    top_p: float = Field(
+        1.0, ge=0.0, le=1.0, description="Top-p sampling value, between 0.0 and 1.0"
+    )
+
+
+class LLMModelRegistry:
+    GPT_4O_MINI = ModelInfo(
+        name="gpt-4o-mini",
+        max_tokens=16384,
+        temperature=0.7,
+        top_p=1.0,
+    )
+    GPT_4O = ModelInfo(
+        name="gpt-4o",
+        max_tokens=16384,
+        temperature=0.7,
+        top_p=1.0,
+    )
+    O1_PREVIEW = ModelInfo(
+        name="o1-preview",
+        max_tokens=32768,
+        temperature=0.7,
+        top_p=1.0,
+    )
+    O1_MINI = ModelInfo(
+        name="o1-mini",
+        max_tokens=65536,
+        temperature=0.7,
+        top_p=1.0,
+    )
+    GPT_4_TURBO = ModelInfo(
+        name="gpt-4-turbo",
+        max_tokens=16384,
+        temperature=0.7,
+        top_p=1.0,
+    )
+    CHATGPT_4O_LATEST = ModelInfo(
+        name="chatgpt-4o-latest",
+        max_tokens=16384,
+        temperature=0.7,
+        top_p=1.0,
+    )
+
+    @classmethod
+    def get_model_info(cls, model_name: str) -> Optional[ModelInfo]:
+        return getattr(cls, model_name.upper(), None)
 
 
 def create_messages(
@@ -140,32 +195,6 @@ async def generate_text(
         kwargs["response_format"] = {"type": "json_object"}
     response = await completion_with_backoff(**kwargs)
     return cast(str, response)
-
-
-async def generate_texts_in_parallel(
-    list_of_messages: List[List[str]],
-    temperature: float,
-    semaphore_value: int = 2,
-    model_name: str = GPT_MODEL,
-) -> List[str]:
-    semaphore = asyncio.Semaphore(semaphore_value)
-
-    async def fetch(messages: List[str]):
-        async with semaphore:
-            return await loop.run_in_executor(
-                None,
-                partial(
-                    completion_with_backoff,
-                    messages=messages,
-                    model=model_name,
-                    temperature=temperature,
-                ),
-            )
-
-    with ThreadPoolExecutor() as executor:
-        loop = asyncio.get_running_loop()
-        futures = [fetch(messages) for messages in list_of_messages]
-        return await asyncio.gather(*futures)
 
 
 def encode_image(image_path: str) -> str:

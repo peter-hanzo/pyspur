@@ -5,12 +5,16 @@ from typing import List
 from pydantic import Field
 
 from ..base import BaseNode
+from .llm_utils import LLMModelRegistry, ModelInfo
 from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
                                 StringOutputLLMNodeInput,
                                 StringOutputLLMNodeOutput)
 
 
 class SelfConsistencyNodeConfig(StringOutputLLMNodeConfig):
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+    )
     samples: int = Field(5, ge=1, le=10, description="Number of samples to generate")
     similarity_threshold: float = Field(
         0.8, ge=0.0, le=1.0, description="Similarity threshold"

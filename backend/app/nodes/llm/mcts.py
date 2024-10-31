@@ -8,8 +8,8 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode
-from .llm_utils import create_messages, generate_text
-from .string_output_llm import ModelName
+from .llm_utils import (LLMModelRegistry, ModelInfo, create_messages,
+                        generate_text)
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +43,8 @@ class MCTSTreeNode:
 
 
 class MCTSNodeConfig(BaseModel):
-    llm_name: ModelName
-    max_tokens: int = Field(
-        1024, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
-    )
-    temperature: float = Field(
-        1.0,
-        ge=0.0,
-        le=2.0,
-        description="Temperature for randomness, between 0.0 and 2.0",
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
     )
     system_prompt: str
     num_simulations: int = Field(
@@ -173,9 +166,9 @@ class MCTSNode(BaseNode):
         )
         assistant_message = await generate_text(
             messages=messages,
-            model_name=self.config.llm_name,
-            temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens,
+            model_name=self.config.llm_info.name,
+            temperature=self.config.llm_info.temperature,
+            max_tokens=self.config.llm_info.max_tokens,
         )
         return [assistant_message]
 
@@ -195,8 +188,8 @@ class MCTSNode(BaseNode):
         )
         next_query = await generate_text(
             messages=messages,
-            model_name=self.config.llm_name,
-            temperature=self.config.temperature,
+            model_name=self.config.llm_info.name,
+            temperature=self.config.llm_info.temperature,
             max_tokens=1024,
         )
         return next_query
@@ -216,7 +209,7 @@ class MCTSNode(BaseNode):
         )
         evaluation = await generate_text(
             messages=messages,
-            model_name=self.config.llm_name,
+            model_name=self.config.llm_info.name,
             temperature=0.1,
             max_tokens=10,
         )

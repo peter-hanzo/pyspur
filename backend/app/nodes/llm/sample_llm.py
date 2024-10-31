@@ -4,9 +4,13 @@ from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
 from .advanced import AdvancedNode, AdvancedNodeConfig
+from .llm_utils import LLMModelRegistry, ModelInfo
 
 
 class SampleLLMNodeConfig(AdvancedNodeConfig):
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+    )
     samples: int = Field(1, ge=1, le=10, description="Number of samples to generate")
 
 

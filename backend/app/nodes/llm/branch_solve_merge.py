@@ -2,9 +2,13 @@ from pydantic import BaseModel, Field
 
 from ..base import BaseNode
 from .advanced import AdvancedNode, AdvancedNodeConfig
+from .llm_utils import LLMModelRegistry, ModelInfo
 
 
 class BranchSolveMergeNodeConfig(AdvancedNodeConfig):
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+    )
     system_prompt: str = Field(
         "You are a helpful assistant.",
         description="The system prompt for the LLM",

@@ -4,22 +4,12 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
-from .llm_utils import create_messages, generate_text
-from .string_output_llm import ModelName
+from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
 
 
 class AdvancedNodeConfig(BaseModel):
-    llm_name: ModelName = Field(
-        ModelName.GPT_4O, description="The default LLM model to use"
-    )
-    max_tokens: int = Field(
-        32, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
-    )
-    temperature: float = Field(
-        0.7,
-        ge=0.0,
-        le=1.0,
-        description="Temperature for randomness, between 0.0 and 1.0",
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
     )
     system_prompt: str = Field(
         "You are a helpful assistant.", description="The system prompt for the LLM"
@@ -59,17 +49,16 @@ class AdvancedNode(DynamicSchemaNode):
             f"\nMake sure the output follows this JSON schema: {output_schema}"
         )
         user_message = json.dumps(input_data_dict)
-        # TODO: parameterize few_shot_examples
 
         messages = create_messages(
             system_message=system_message,
             user_message=user_message,
-            few_shot_examples=self.config.few_shot_examples,  # Pass examples here
+            few_shot_examples=self.config.few_shot_examples,
         )
         assistant_message = await generate_text(
             messages=messages,
-            model_name=self.config.llm_name,
-            temperature=self.config.temperature,
+            model_name=self.config.llm_info.name,
+            temperature=self.config.llm_info.temperature,
             json_mode=True,
         )
         assistant_message = json.loads(assistant_message)
@@ -82,9 +71,7 @@ if __name__ == "__main__":
     async def test_llm_nodes():
         advanced_llm_node = AdvancedNode(
             config=AdvancedNodeConfig(
-                llm_name=ModelName.GPT_4O_MINI,
-                max_tokens=32,
-                temperature=0.1,
+                llm_info=ModelInfo(name="gpt-4o-mini", temperature=0.1),
                 system_prompt="This is a test prompt.",
                 output_schema={"response": "str", "your_name": "str"},
                 input_schema={"user_message": "str", "your_name": "str"},

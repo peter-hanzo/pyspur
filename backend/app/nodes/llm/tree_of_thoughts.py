@@ -8,6 +8,7 @@ from pydantic import Field
 
 from ..base import BaseNode
 from .advanced import AdvancedNode, AdvancedNodeConfig
+from .llm_utils import LLMModelRegistry, ModelInfo
 from .string_output_llm import (
     StringOutputLLMNode,
     StringOutputLLMNodeConfig,
@@ -17,6 +18,9 @@ from .string_output_llm import (
 
 
 class TreeOfThoughtsNodeConfig(StringOutputLLMNodeConfig):
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+    )
     steps: int = Field(3, ge=1, le=10, description="Number of steps to run")
     n_generate_sample: int = Field(
         1, ge=1, le=10, description="Number of samples to generate"
@@ -39,12 +43,6 @@ class TreeOfThoughtsNodeConfig(StringOutputLLMNodeConfig):
     prompt_sample: str = Field(
         "standard", description="Prompt sample"
     )  # 'standard' or 'cot'
-    temperature: float = Field(
-        0.7,
-        ge=0.0,
-        le=2.0,
-        description="Temperature for randomness, between 0.0 and 2.0",
-    )
     stops: List[str] = []  # Stop tokens for generation
     search_method: str = Field("bfs", description="Search method")  # "bfs" or "dfs"
 
@@ -66,7 +64,7 @@ class TreeOfThoughtsNode(BaseNode):
 
         # evaluation node is an advanced LLM node
         evaluation_config = AdvancedNodeConfig(
-            llm_name=config.llm_name,
+            llm_info=config.llm_info,
             max_tokens=16,
             temperature=0.1,
             system_prompt=config.system_prompt,

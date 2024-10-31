@@ -1,32 +1,14 @@
-from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode
-from .llm_utils import create_messages, generate_text
-
-
-class ModelName(str, Enum):
-    GPT_4O_MINI = "gpt-4o-mini"
-    GPT_4O = "gpt-4o"
-    O1_PREVIEW = "o1-preview"
-    O1_MINI = "o1-mini"
-    GPT_4_TURBO = "gpt-4-turbo"
+from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
 
 
 class StringOutputLLMNodeConfig(BaseModel):
-    llm_name: ModelName = Field(
-        ModelName.GPT_4O, description="The default LLM model to use"
-    )
-    max_tokens: int = Field(
-        32, ge=1, le=4096, description="Number of tokens, between 1 and 4096"
-    )
-    temperature: float = Field(
-        0.7,
-        ge=0.0,
-        le=1.0,
-        description="Temperature for randomness, between 0.0 and 1.0",
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O_MINI, description="The default LLM model to use"
     )
     system_prompt: str = Field(
         "You are a helpful assistant.", description="The system prompt for the LLM"
@@ -67,7 +49,7 @@ class StringOutputLLMNode(BaseNode):
         )
         assistant_message = await generate_text(
             messages=messages,
-            model_name=self.config.llm_name,
+            model_name=self.config.llm_name.name,
             temperature=self.config.temperature,
             json_mode=self.config.json_mode,
         )
@@ -79,7 +61,7 @@ if __name__ == "__main__":
     async def test_llm_nodes():
         string_output_llm_node = StringOutputLLMNode(
             config=StringOutputLLMNodeConfig(
-                llm_name=ModelName.GPT_4O_MINI,
+                llm_name=LLMModelRegistry.GPT_4O_MINI,
                 max_tokens=32,
                 temperature=0.1,
                 json_mode=False,

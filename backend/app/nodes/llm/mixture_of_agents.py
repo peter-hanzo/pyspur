@@ -1,15 +1,20 @@
 import asyncio
 from typing import List
 
+from .llm_utils import LLMModelRegistry, ModelInfo
 from .string_output_llm import (
     StringOutputLLMNode,
     StringOutputLLMNodeConfig,
     StringOutputLLMNodeInput,
     StringOutputLLMNodeOutput,
 )
+from pydantic import Field
 
 
 class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
+    llm_info: ModelInfo = Field(
+        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+    )
     samples: int = 3
     critique_prompt_template: str = (
         "Original query: {initial_query}\n\n"
@@ -46,7 +51,7 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
 
         # Initialize the LLM node for critiquing responses
         critique_llm_config = StringOutputLLMNodeConfig(
-            llm_name=config.llm_name,
+            llm_info=config.llm_info,
             max_tokens=512,
             temperature=0.1,
             system_prompt=config.system_prompt,
@@ -56,7 +61,7 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
 
         # Initialize the LLM node for generating final response
         final_llm_config = StringOutputLLMNodeConfig(
-            llm_name=config.llm_name,
+            llm_info=config.llm_info,
             max_tokens=8192,
             temperature=0.1,
             system_prompt=config.system_prompt,
