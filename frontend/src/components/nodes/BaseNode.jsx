@@ -5,6 +5,7 @@ import {
   Card,
   CardHeader,
   CardBody,
+  Divider,
 } from "@nextui-org/react";
 
 const BaseNode = ({ id, data = {}, children, style = {} }) => {
@@ -64,6 +65,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
           </div>
         </CardHeader>
       )}
+      <Divider />
 
       <CardBody>{children}</CardBody>
 

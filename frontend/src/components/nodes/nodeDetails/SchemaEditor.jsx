@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input } from '@nextui-org/react';
 
-const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
+const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
@@ -105,4 +105,4 @@ const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }
   );
 };
 
-export default JsonEditor;
+export default SchemaEditor;

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData, selectNodeById } from '../../store/flowSlice';
-import DynamicModel from '../../utils/DynamicModel'; // Import DynamicModel
-import TextInput from '../TextInput';
-import NumberInput from '../NumberInput';
-import JsonEditor from '../JsonEditor';
-import CodeEditor from '../CodeEditor';
-import { nodeTypes } from '../../constants/nodeTypes';
-import { jsonOptions } from '../../constants/jsonOptions';
-import FewShotEditor from './LLMNode/Utils/FewShotEditor';
-import NodeFieldEditor from './LLMNode/Utils/NodeFieldEditor';
+import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
+import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
+import TextInput from '../../TextInput';
+import NumberInput from '../../NumberInput';
+import SchemaEditor from './SchemaEditor';
+import CodeEditor from '../../CodeEditor';
+import { nodeTypes } from '../../../constants/nodeTypes';
+import { jsonOptions } from '../../../constants/jsonOptions';
+import FewShotEditor from '../LLMNode/Utils/FewShotEditor';
+import NodeFieldEditor from '../LLMNode/Utils/NodeFieldEditor';
 import { Button } from '@nextui-org/react';
 import { Slider } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
@@ -178,7 +178,7 @@ const NodeDetails = ({ nodeID }) => {
                         <div key={key} className="my-2">
                             <hr className="my-2" />
                             <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
-                            <JsonEditor
+                            <SchemaEditor
                                 jsonValue={value}
                                 onChange={(newValue) => handleInputChange(key, newValue)}
                                 options={jsonOptions}
