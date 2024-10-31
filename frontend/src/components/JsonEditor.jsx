@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '@nextui-org/react';
+import { Button, Input } from '@nextui-org/react';
 
 const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
   const [newKey, setNewKey] = useState('');
@@ -35,7 +35,7 @@ const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }
   return (
     <div className="json-editor">
       <div className="mb-4 flex items-center">
-        <input
+        <Input
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
@@ -43,7 +43,7 @@ const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }
           className="mr-2 p-1 border rounded"
           disabled={disabled} // Disable when not editing
         />
-        <input
+        <Input
           type="text"
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
@@ -60,7 +60,7 @@ const JsonEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }
           Add Key
         </Button>
       </div>
-      
+
       {/* Ensure jsonValue is a valid object before calling Object.entries */}
       {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) ? (
         Object.entries(jsonValue).map(([key, value]) => (
