@@ -57,7 +57,7 @@ const NodeDetails = ({ nodeID }) => {
             // Convert updatedModel to a plain object
             const plainObject = { ...updatedModel };
 
-            dispatch(updateNodeData({ id: nodeID, data: { ...node.data, userconfig: { ...node.data.userconfig, ...plainObject } } }));
+            dispatch(updateNodeData({ id: nodeID, data: { userconfig: { ...node.data.userconfig, ...plainObject } } }));
             console.log('updated node', node);
         }
     };
@@ -205,7 +205,7 @@ const NodeDetails = ({ nodeID }) => {
                     <div>
                         <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
                         <ul>
-                            {node?.data?.userconfig?.few_shot_examples?.map((example, index) => (
+                            {fewShotExamples.map((example, index) => (
                                 <li key={index} className="flex items-center justify-between mb-1">
                                     <div>Example {index + 1}</div>
                                     <div className="ml-2">
