@@ -34,17 +34,14 @@ const NodeDetails = ({ nodeID }) => {
     const [dynamicModel, setDynamicModel] = useState(node.data.userconfig);
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
 
-    // Initialize DynamicModel when nodeSchema is available
-    // useEffect(() => {
-    //     console.log('node', node);
-    //     if (node?.data?.userconfig) {
-    //         setDynamicModel(node.data.userconfig);
-    //     } else if (nodeSchema) {
-    //         const model = new DynamicModel(nodeSchema.config);
-    //         console.log('DynamicModel', model);
-    //         setDynamicModel(model);
-    //     }
-    // }, [nodeSchema, node]);
+    // Update dynamicModel when nodeID changes
+    useEffect(() => {
+        if (node) {
+            setNodeType(node.type || 'ExampleNode');
+            setNodeSchema(findNodeSchema(node.type));
+            setDynamicModel(node.data.userconfig);
+        }
+    }, [nodeID, node]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
@@ -65,17 +62,6 @@ const NodeDetails = ({ nodeID }) => {
         }
     };
 
-    // Modify the useEffect to avoid unnecessary updates
-    // useEffect(() => {
-    //     const schema = findNodeSchema(node?.type);
-    //     setNodeSchema(schema);
-    //     console.log('schema', schema);
-    //     if (schema) {
-    //         const model = new DynamicModel(schema.config);
-    //         setDynamicModel(model);
-    //     }
-    // }, [nodeID, node]);
-
     const renderEnumSelect = (key, label, enumValues) => (
         <div key={key}>
             <label className="font-semibold mb-2 block">{label}</label>
@@ -92,10 +78,6 @@ const NodeDetails = ({ nodeID }) => {
             </select>
         </div>
     );
-
-    useEffect(() => {
-        setDynamicModel(node.data.userconfig);
-    }, [node]);
 
     // Handle adding a new few-shot example
     const handleAddNewExample = () => {
@@ -150,7 +132,7 @@ const NodeDetails = ({ nodeID }) => {
                                     step={field.step || 0.1}
                                     maxValue={field.maximum}
                                     minValue={field.minimum}
-                                    defaultValue={value || field.value || field.minimum}
+                                    value={value || field.value || field.minimum}
                                     onChange={(newValue) => handleInputChange(key, newValue)}
                                     className="max-w-md"
                                 />
@@ -208,7 +190,7 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     const renderFewShotExamples = () => {
-        const fewShotExamples = dynamicModel?.few_shot_examples || [];
+        const fewShotExamples = node?.data?.userconfig?.few_shot_examples || [];
 
         return (
             <div>
@@ -257,7 +239,7 @@ const NodeDetails = ({ nodeID }) => {
             <div className="my-4">
                 <label className="text-sm font-semibold mb-2 block">Node Title</label>
                 <Textarea
-                    value={node?.data?.title || ''}
+                    value={node?.data?.userconfig?.title || ''}
                     onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="Enter node title"
                     maxRows={1}
