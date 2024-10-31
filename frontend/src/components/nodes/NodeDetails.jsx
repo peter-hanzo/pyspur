@@ -123,6 +123,17 @@ const NodeDetails = ({ nodeID }) => {
                         />
                     );
                 case 'integer':
+                    return (
+                        <NumberInput
+                            key={key}
+                            label={field.title || key}
+                            value={value}
+                            onChange={(e) => {
+                                const newValue = parseFloat(e.target.value);
+                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
+                            }}
+                        />
+                    );
                 case 'number':
                     if (field.minimum !== undefined && field.maximum !== undefined) {
                         return (
