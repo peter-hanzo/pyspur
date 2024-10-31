@@ -194,31 +194,33 @@ const NodeDetails = ({ nodeID }) => {
 
         return (
             <div>
-                {fewShotIndex !== null && (
+                {fewShotIndex !== null ? (
                     <FewShotEditor
                         nodeID={nodeID}
                         exampleIndex={fewShotIndex}
                         onSave={() => setFewShotIndex(null)}
                         onDiscard={() => setFewShotIndex(null)}
                     />
+                ) : (
+                    <div>
+                        <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
+                        <ul>
+                            {node?.data?.userconfig?.few_shot_examples?.map((example, index) => (
+                                <li key={index} className="flex items-center justify-between mb-1">
+                                    <div>Example {index + 1}</div>
+                                    <div className="ml-2">
+                                        <Button onClick={() => setFewShotIndex(index)}>Edit</Button>
+                                        <Button onClick={() => handleDeleteExample(index)}>Delete</Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <div className="mt-2">
+                            <Button onClick={handleAddNewExample}>Add Example</Button>
+                        </div>
+                    </div>
                 )}
-
-                <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
-                <ul>
-                    {fewShotExamples.map((example, index) => (
-                        <li key={index} className="flex items-center justify-between mb-1">
-                            <div>Example {index + 1}</div>
-                            <div className="ml-2">
-                                <Button onClick={() => setFewShotIndex(index)}>Edit</Button>
-                                <Button onClick={() => handleDeleteExample(index)}>Delete</Button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-
-                <div className="mt-2">
-                    <Button onClick={handleAddNewExample}>Add Example</Button>
-                </div>
             </div>
         );
     };
