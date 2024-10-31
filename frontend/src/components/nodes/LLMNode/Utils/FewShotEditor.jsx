@@ -30,7 +30,6 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
         const updatedExamples = [...(node?.data?.userconfig?.few_shot_examples || [])];
         updatedExamples[exampleIndex] = { input: inputContent, output: outputContent };
         dispatch(updateNodeData({ id: nodeID, data: { userconfig: { ...node?.data?.userconfig, few_shot_examples: updatedExamples } } }));
-        console.log('updated examples', updatedExamples);
         onSave();
     };
 
