@@ -7,7 +7,6 @@ import {
     Italic,
     List,
     ListOrdered,
-    Underline,
     Quote,
     Undo,
     Redo,
@@ -61,23 +60,6 @@ const Toolbar = ({ editor }) => {
                 </Button>
                 <Button
                     onPress={() => {
-                        editor.chain().focus().toggleUnderline().run();
-                    }}
-                    disabled={
-                        !editor.can()
-                            .chain()
-                            .focus()
-                            .toggleUnderline()
-                            .run()
-                    }
-                    color="primary"
-                    variant={editor.isActive("underline") ? "solid" : "flat"}
-                    auto
-                >
-                    <Underline className="w-5 h-5" />
-                </Button>
-                <Button
-                    onPress={() => {
                         editor.chain().focus().toggleStrike().run();
                     }}
                     disabled={
@@ -92,39 +74,6 @@ const Toolbar = ({ editor }) => {
                     auto
                 >
                     <Strikethrough className="w-5 h-5" />
-                </Button>
-                <Button
-                    onPress={() => {
-                        editor.chain().focus().setCode().run();
-                    }}
-                    disabled={
-                        !editor.can()
-                            .chain()
-                            .focus()
-                            .toggleCode()
-                            .run()
-                    }
-                    color="primary"
-                    variant={editor.isActive("code") ? "solid" : "flat"}
-                    auto
-                >
-                    <Code className="w-5 h-5" />
-                </Button>
-                <Button
-                    onPress={() => editor.chain().focus().unsetAllMarks().run()}
-                    color="primary"
-                    variant="flat"
-                    auto
-                >
-                    Clear marks
-                </Button>
-                <Button
-                    onPress={() => editor.chain().focus().clearNodes().run()}
-                    color="primary"
-                    variant="flat"
-                    auto
-                >
-                    Clear nodes
                 </Button>
                 <Button
                     onPress={() => editor.chain().focus().setParagraph().run()}
@@ -157,30 +106,6 @@ const Toolbar = ({ editor }) => {
                     auto
                 >
                     H3
-                </Button>
-                <Button
-                    onPress={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
-                    color="primary"
-                    variant={editor.isActive('heading', { level: 4 }) ? "solid" : "flat"}
-                    auto
-                >
-                    H4
-                </Button>
-                <Button
-                    onPress={() => editor.chain().focus().toggleHeading({ level: 5 }).run()}
-                    color="primary"
-                    variant={editor.isActive('heading', { level: 5 }) ? "solid" : "flat"}
-                    auto
-                >
-                    H5
-                </Button>
-                <Button
-                    onPress={() => editor.chain().focus().toggleHeading({ level: 6 }).run()}
-                    color="primary"
-                    variant={editor.isActive('heading', { level: 6 }) ? "solid" : "flat"}
-                    auto
-                >
-                    H6
                 </Button>
                 <Button
                     onPress={() => {
@@ -227,14 +152,6 @@ const Toolbar = ({ editor }) => {
                     auto
                 >
                     Horizontal rule
-                </Button>
-                <Button
-                    onPress={() => editor.chain().focus().setHardBreak().run()}
-                    color="primary"
-                    variant="flat"
-                    auto
-                >
-                    Hard break
                 </Button>
                 <Button
                     onPress={() => {

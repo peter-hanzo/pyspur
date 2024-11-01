@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import Wrapper from '../../../textEditor/Wrapper';
-import Editor from '../../../textEditor/Editor';
+import TextEditor from '../../../textEditor/TextEditor';
 import { updateNodeData } from '../../../../store/flowSlice';
 import Tabs from './Tabs';
 import { Button } from "@nextui-org/react";
@@ -14,17 +13,10 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const [inputContent, setInputContent] = useState(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.input || '');
     const [outputContent, setOutputContent] = useState(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.output || '');
 
-    const inputEditor = Editor(inputContent, setInputContent, true);
-    const outputEditor = Editor(outputContent, setOutputContent, true);
-
     useEffect(() => {
-        if (inputEditor) {
-            inputEditor.commands.setContent(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.input || '');
-        }
-        if (outputEditor) {
-            outputEditor.commands.setContent(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.output || '');
-        }
-    }, [nodeID, exampleIndex, inputEditor, outputEditor]);
+        setInputContent(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.input || '');
+        setOutputContent(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.output || '');
+    }, [nodeID, exampleIndex]);
 
     const handleSave = () => {
         const updatedExamples = [...(node?.data?.userconfig?.few_shot_examples || [])];
@@ -38,9 +30,9 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
             <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
             {activeTab === 'input' ? (
-                <Wrapper editor={inputEditor} isEditable={true} />
+                <TextEditor content={inputContent} setContent={setInputContent} isEditable={true} />
             ) : (
-                <Wrapper editor={outputEditor} isEditable={true} />
+                <TextEditor content={outputContent} setContent={setOutputContent} isEditable={true} />
             )}
 
             <div className="mt-4">

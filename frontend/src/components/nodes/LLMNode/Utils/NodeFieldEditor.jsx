@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import Wrapper from '../../../textEditor/Wrapper';
-import Editor from '../../../textEditor/Editor';
+import TextEditor from '../../../textEditor/TextEditor';
 import { updateNodeData, selectNodeById } from '../../../../store/flowSlice';
 
 /**
@@ -36,17 +35,9 @@ const NodeFieldEditor = ({ nodeID, fieldName }) => {
     }
   }, [fieldValue, node?.data?.config?.properties?.[fieldName]?.value, dispatch, nodeID, fieldName]);
 
-  const editor = Editor(fieldValue, setFieldValue, true);
-
-  useEffect(() => {
-    if (editor) {
-      editor.commands.setContent(fieldValue);
-    }
-  }, [fieldValue, editor]);
-
   return (
     <div className="w-full">
-      <Wrapper editor={editor} isEditable={true} />
+      <TextEditor content={fieldValue} setContent={setFieldValue} isEditable={true} />
     </div>
   );
 };
