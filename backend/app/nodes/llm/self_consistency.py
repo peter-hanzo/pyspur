@@ -4,11 +4,14 @@ from typing import List
 
 from pydantic import Field
 
-from ..base import BaseNode
+from ..base import BaseNode, VisualTag
 from .llm_utils import LLMModelRegistry, ModelInfo
-from .string_output_llm import (StringOutputLLMNode, StringOutputLLMNodeConfig,
-                                StringOutputLLMNodeInput,
-                                StringOutputLLMNodeOutput)
+from .string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
+    StringOutputLLMNodeOutput,
+)
 
 
 class SelfConsistencyNodeConfig(StringOutputLLMNodeConfig):
@@ -26,6 +29,7 @@ class SelfConsistencyNode(BaseNode):
     config_model = SelfConsistencyNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput
+    visual_tag = VisualTag(acronym="SCN", color="#D4F4E4")
 
     def setup(self) -> None:
         config = self.config

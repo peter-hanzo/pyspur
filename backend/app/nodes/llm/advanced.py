@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
 from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
+from ..base import VisualTag
 
 
 class AdvancedNodeConfig(BaseModel):
@@ -36,6 +37,7 @@ class AdvancedNode(DynamicSchemaNode):
     config_model = AdvancedNodeConfig
     input_model = AdvancedNodeInput
     output_model = AdvancedNodeOutput
+    visual_tag = VisualTag(acronym="ALN", color="#FFC1C1")
 
     async def run(self, input_data: BaseModel) -> BaseModel:
         system_message = self.config.system_prompt

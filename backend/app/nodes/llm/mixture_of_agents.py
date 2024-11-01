@@ -9,6 +9,7 @@ from .string_output_llm import (
     StringOutputLLMNodeOutput,
 )
 from pydantic import Field
+from ..base import VisualTag
 
 
 class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
@@ -38,6 +39,7 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
     config_model = MixtureOfAgentsNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput
+    visual_tag = VisualTag(acronym="MoA", color="#E4D4F4")
 
     def setup(self) -> None:
         super().setup()

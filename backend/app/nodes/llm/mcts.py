@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 from pydantic import BaseModel, Field
 
-from ..base import BaseNode
+from ..base import BaseNode, VisualTag
 from .llm_utils import (LLMModelRegistry, ModelInfo, create_messages,
                         generate_text)
 
@@ -70,6 +70,7 @@ class MCTSNode(BaseNode):
     config_model = MCTSNodeConfig
     input_model = MCTSNodeInput
     output_model = MCTSNodeOutput
+    visual_tag = VisualTag(acronym="MCTS", color="#C1C1FF")
 
     def setup(self) -> None:
         self.graph = nx.Graph()

@@ -3,9 +3,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..base import BaseNode
-from .llm_utils import (LLMModelRegistry, ModelInfo, create_messages,
-                        generate_text)
+from ..base import BaseNode, VisualTag
+from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
 from .string_output_llm import ModelInfo
 
 
@@ -37,6 +36,7 @@ class StructuredOutputNode(BaseNode):
     config_model = StructuredOutputNodeConfig
     input_model = StructuredOutputNodeInput
     output_model = StructuredOutputNodeOutput
+    visual_tag = VisualTag(acronym="SON", color="#D1FFC1")  # Added visual tag
 
     def setup(self) -> None:
         self.input_model = StructuredOutputNodeInput

@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..base import BaseNode
+from ..base import BaseNode, VisualTag
 from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
 
 
@@ -34,6 +34,7 @@ class StringOutputLLMNode(BaseNode):
     config_model = StringOutputLLMNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput
+    visual_tag = VisualTag(acronym="SOLN", color="#C1E1FF")
 
     def setup(self) -> None:
         pass

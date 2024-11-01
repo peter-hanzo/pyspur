@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from ..base import BaseNode
+from ..base import BaseNode, VisualTag
 from .advanced import AdvancedNode, AdvancedNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 
@@ -31,6 +31,7 @@ class BranchSolveMergeNode(BaseNode):
     config_model = BranchSolveMergeNodeConfig
     input_model = BaseModel
     output_model = BaseModel
+    visual_tag = VisualTag(acronym="BSM", color="#C1FFD1")
 
     def setup(self) -> None:
         config = self.config

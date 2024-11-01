@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from ..dynamic_schema import DynamicSchemaNode
 from .advanced import AdvancedNode, AdvancedNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
+from ..base import VisualTag
 
 
 class SampleLLMNodeConfig(AdvancedNodeConfig):
@@ -20,6 +21,7 @@ class SampleLLMNode(DynamicSchemaNode):
     config_model = SampleLLMNodeConfig
     input_model = BaseModel
     output_model = BaseModel
+    visual_tag = VisualTag(acronym="SLN", color="#F4E4D4")
 
     def setup(self) -> None:
         super().setup()

@@ -19,6 +19,7 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
 
 
+
 class ModelInfo(BaseModel):
     name: str
     max_tokens: int = Field(

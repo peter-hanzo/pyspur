@@ -6,7 +6,7 @@ from typing import Any, List
 import numpy as np
 from pydantic import Field
 
-from ..base import BaseNode
+from ..base import BaseNode, VisualTag
 from .advanced import AdvancedNode, AdvancedNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 from .string_output_llm import (
@@ -52,6 +52,7 @@ class TreeOfThoughtsNode(BaseNode):
     config_model = TreeOfThoughtsNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput
+    visual_tag = VisualTag(acronym="ToT", color="#F4D4E4")  # Added visual tag
 
     def setup(self) -> None:
         config = self.config

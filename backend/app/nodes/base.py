@@ -1,12 +1,24 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Type, Union
+from re import Pattern
 
-from pydantic import BaseModel, ValidationError, create_model
+from pydantic import BaseModel, Field, ValidationError, create_model, constr
 
 DynamicSchemaValueType = str
 TSchemaValue = Type[
     Union[int, float, str, bool, List[Any], Dict[Any, Any], Tuple[Any, ...]]
 ]
+
+
+class VisualTag(BaseModel):
+    """
+    Pydantic model for visual tag properties.
+    """
+
+    acronym: str = Field(...)
+    color: str = Field(
+        ..., pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$"
+    )  # Hex color code validation using regex
 
 
 class BaseNode(ABC):
@@ -21,9 +33,11 @@ class BaseNode(ABC):
     output_model: Type[BaseModel]
 
     _config: Any
+    visual_tag: VisualTag
 
-    def __init__(self, config: Any) -> None:
+    def __init__(self, config: Any, visual_tag: Dict[str, str]) -> None:
         self._config = config
+        self.visual_tag = VisualTag(**visual_tag)
         self.setup()
 
     @abstractmethod
