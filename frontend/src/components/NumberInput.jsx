@@ -1,14 +1,15 @@
 import React from 'react';
+import { Input } from "@nextui-org/react";
 
 const NumberInput = ({ label, value, onChange, disabled }) => (
   <div className="my-4">
-    <label className="text-sm font-semibold mb-2 block">{label}</label>
-    <input
+    <Input
       type="number"
+      label={label}
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border rounded"
       disabled={disabled} // Disable when not editing
+      fullWidth
     />
   </div>
 );

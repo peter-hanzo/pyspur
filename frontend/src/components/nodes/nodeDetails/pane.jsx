@@ -70,6 +70,7 @@ const NodeDetails = ({ nodeID }) => {
                 value={dynamicModel[key] || ''}
                 onChange={(e) => handleInputChange(key, e)}
                 className="max-w-xs"
+                fullWidth
             >
                 {enumValues.map((option) => (
                     <SelectItem key={option} value={option}>
@@ -173,6 +174,7 @@ const NodeDetails = ({ nodeID }) => {
                         return (
                             <div key={key} className="my-4">
                                 <Slider
+                                    fullWidth
                                     label={field.title || key}
                                     step={field.step || 0.1}
                                     maxValue={field.maximum}
@@ -186,6 +188,7 @@ const NodeDetails = ({ nodeID }) => {
                     }
                     return (
                         <NumberInput
+                            fullWidth
                             key={key}
                             label={field.title || key}
                             value={value}
