@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import TextEditor from '../../../textEditor/TextEditor';
-import { updateNodeData } from '../../../../store/flowSlice';
+import TextEditor from '../../textEditor/TextEditor';
+import { updateNodeData } from '../../../store/flowSlice';
 import Tabs from './Tabs';
 import { Button } from "@nextui-org/react";
 
