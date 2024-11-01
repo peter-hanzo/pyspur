@@ -263,9 +263,13 @@ const FlowCanvas = () => {
     (deletedNodes) => {
       deletedNodes.forEach((node) => {
         dispatch(deleteNode({ nodeId: node.id }));
+
+        if (selectedNodeID === node.id) {
+          dispatch(setSelectedNode({ nodeId: null }));
+        }
       });
     },
-    [dispatch]
+    [dispatch, selectedNodeID]
   );
 
   // Use the custom hook for keyboard shortcuts

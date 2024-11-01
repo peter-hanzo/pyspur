@@ -32,7 +32,7 @@ const NodeDetails = ({ nodeID }) => {
     };
 
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-    const [dynamicModel, setDynamicModel] = useState(node.data.userconfig);
+    const [dynamicModel, setDynamicModel] = useState(node?.data?.userconfig || {});
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
 
     // Update dynamicModel when nodeID changes
@@ -40,7 +40,7 @@ const NodeDetails = ({ nodeID }) => {
         if (node) {
             setNodeType(node.type || 'ExampleNode');
             setNodeSchema(findNodeSchema(node.type));
-            setDynamicModel(node.data.userconfig);
+            setDynamicModel(node.data.userconfig || {});
         }
     }, [nodeID, node]);
 
