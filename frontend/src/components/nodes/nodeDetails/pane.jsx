@@ -8,8 +8,8 @@ import SchemaEditor from './SchemaEditor';
 import CodeEditor from '../../CodeEditor';
 import { nodeTypes } from '../../../constants/nodeTypes';
 import { jsonOptions } from '../../../constants/jsonOptions';
-import FewShotEditor from '../LLMNode/Utils/FewShotEditor';
-import NodeFieldEditor from '../LLMNode/Utils/NodeFieldEditor';
+import FewShotEditor from '../LLMNode/utils/FewShotEditor';
+import NodeFieldEditor from '../LLMNode/utils/NodeFieldEditor';
 import { Button } from '@nextui-org/react';
 import { Slider } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
@@ -111,6 +111,7 @@ const NodeDetails = ({ nodeID }) => {
 
             switch (field.type) {
                 case 'string':
+                    console.log('string', key, value);
                     return (
                         <Textarea
                             fullWidth

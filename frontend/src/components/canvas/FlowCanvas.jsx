@@ -15,7 +15,7 @@ import {
   addNode,
 } from '../../store/flowSlice';
 
-import NodeDetails from '../nodes/nodeDetails/pane';
+import NodeDetails from '../nodes/nodeDetails/Pane';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';

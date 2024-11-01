@@ -58,7 +58,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     >
       {data && data.title && (
         <CardHeader style={{ position: 'relative' }}>
-          <h3 className="text-lg font-semibold text-center">{data.title}</h3>
+          <h3 className="text-lg font-semibold text-center">{data.userconfig.title || data.title}</h3>
           {/* Display the acronym tag in the top-right corner */}
           <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
             {acronym}
