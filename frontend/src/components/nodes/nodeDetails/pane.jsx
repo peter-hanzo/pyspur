@@ -64,18 +64,18 @@ const NodeDetails = ({ nodeID }) => {
 
     const renderEnumSelect = (key, label, enumValues) => (
         <div key={key}>
-            <label className="font-semibold mb-2 block">{label}</label>
-            <select
+            <Select
+                label={label}
                 value={dynamicModel[key] || ''}
-                onChange={(e) => handleInputChange(key, e.target.value)}
-                className="border p-2 w-full"
+                onChange={(e) => handleInputChange(key, e)}
+                className="max-w-xs"
             >
                 {enumValues.map((option) => (
-                    <option key={option} value={option}>
+                    <SelectItem key={option} value={option}>
                         {option}
-                    </option>
+                    </SelectItem>
                 ))}
-            </select>
+            </Select>
         </div>
     );
 
