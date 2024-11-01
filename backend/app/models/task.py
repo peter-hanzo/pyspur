@@ -1,8 +1,15 @@
+from sqlalchemy import (
+    Column,
+    Computed,
+    Integer,
+    ForeignKey,
+    Enum,
+    String,
+    JSON,
+    DateTime,
+)
+from sqlalchemy.orm import relationship, declarative_base
 from enum import Enum as PyEnum
-
-from sqlalchemy import (JSON, Column, DateTime, Enum, ForeignKey, Integer,
-                        String)
-from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -18,11 +25,15 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True)
-    run_id = Column(Integer, ForeignKey("runs.id"))
-    node_id = Column(String)  # id of the node in the workflow
-    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
-    config = Column(JSON)  # Store task configuration as JSON data
-    inputs = Column(JSON)  # Store inputs as JSON data
-    outputs = Column(JSON)  # Store outputs as JSON data
+    prefid = Column(String, Computed("T || id"), nullable=False, index=True)
+    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
+    node_id = Column(String, nullable=False)
+    parent_task_id = Column(Integer, ForeignKey("tasks.id"))
+    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False)
+    inputs = Column(JSON)
+    outputs = Column(JSON)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
+
+    run = relationship("Run", back_populates="tasks")
+    parent_task = relationship("Task", remote_side=[id], backref="subtasks")
