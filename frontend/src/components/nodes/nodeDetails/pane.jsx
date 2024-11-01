@@ -4,7 +4,8 @@ import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
 import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
 import TextInput from '../../TextInput';
 import NumberInput from '../../NumberInput';
-import SchemaEditor from './SchemaEditor';
+import OutputSchemaEditor from './OutputSchemaEditor';
+import InputSchemaEditor from './InputSchemaEditor';
 import CodeEditor from '../../CodeEditor';
 import { nodeTypes } from '../../../constants/nodeTypes';
 import { jsonOptions } from '../../../constants/jsonOptions';
@@ -109,6 +110,38 @@ const NodeDetails = ({ nodeID }) => {
                 }
             }
 
+            // Check if the field has "additionalProperties" and render SchemaEditor
+            if (field.title === 'Output Schema') {
+                return (
+                    <div key={key} className="my-2">
+                        <hr className="my-2" />
+                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <OutputSchemaEditor
+                            jsonValue={value}
+                            onChange={(newValue) => handleInputChange(key, newValue)}
+                            options={jsonOptions}
+                        />
+                        <hr className="my-2" />
+                    </div>
+                );
+            }
+            else if (field.title === 'Input Schema') {
+                return (
+                    <div key={key} className="my-2">
+                        <hr className="my-2" />
+                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <InputSchemaEditor
+                            jsonValue={value}
+                            onChange={(newValue) => handleInputChange(key, newValue)}
+                            options={jsonOptions}
+                        />
+                        <hr className="my-2" />
+                    </div>
+
+                )
+            }
+
+
             switch (field.type) {
                 case 'string':
                     console.log('string', key, value);
@@ -179,7 +212,7 @@ const NodeDetails = ({ nodeID }) => {
                         <div key={key} className="my-2">
                             <hr className="my-2" />
                             <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
-                            <SchemaEditor
+                            <OutputSchemaEditor
                                 jsonValue={value}
                                 onChange={(newValue) => handleInputChange(key, newValue)}
                                 options={jsonOptions}
