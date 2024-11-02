@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Computed, Integer, String, DateTime, JSON
-from sqlalchemy.orm import declarative_base
 from datetime import datetime, timezone
-
-Base = declarative_base()
+from .base import Base
 
 
 class Workflow(Base):

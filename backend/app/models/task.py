@@ -8,10 +8,9 @@ from sqlalchemy import (
     JSON,
     DateTime,
 )
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
-
-Base = declarative_base()
+from .base import Base
 
 
 class TaskStatus(PyEnum):

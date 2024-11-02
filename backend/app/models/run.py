@@ -8,8 +8,9 @@ from sqlalchemy import (
     DateTime,
     String,
 )
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
+from .base import Base
 
 
 class RunStatus(PyEnum):
@@ -17,9 +18,6 @@ class RunStatus(PyEnum):
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
-
-
-Base = declarative_base()
 
 
 class Run(Base):

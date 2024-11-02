@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Computed, Integer, String, DateTime
-from sqlalchemy.orm import declarative_base
 from datetime import datetime, timezone
-
-Base = declarative_base()
+from .base import Base
 
 
 class Dataset(Base):

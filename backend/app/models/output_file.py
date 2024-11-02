@@ -1,8 +1,7 @@
 from sqlalchemy import Column, Computed, Integer, ForeignKey, String, DateTime
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
-
-Base = declarative_base()
+from .base import Base
 
 
 class OutputFile(Base):
