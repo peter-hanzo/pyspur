@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
+import { Icon } from '@iconify/react'; // Import Icon component
 
-const OutputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
+const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('string'); // Default to 'string'
 
@@ -38,13 +39,11 @@ const OutputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled =
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
           placeholder="Enter new key"
-          className="mr-2 p-1 border rounded"
           disabled={disabled} // Disable when not editing
         />
         <Select
           value={newType}
           onChange={(e) => setNewType(e.target.value)}
-          className="mr-2 p-2 border rounded"
           disabled={disabled} // Disable when not editing
           label="Select Type"
         >
@@ -54,12 +53,15 @@ const OutputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled =
           <SelectItem value="string">string</SelectItem>
         </Select>
         <Button
+          isIconOnly
+          radius="full"
+          variant="light"
           onClick={handleAddKey}
           color="primary"
           disabled={disabled || !newKey} // Disable when not editing or if no key is entered
           auto
         >
-          Add Key
+          <Icon icon="solar:add-square-linear" width={22} />
         </Button>
       </div>
 
@@ -81,12 +83,15 @@ const OutputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled =
               <SelectItem value="string">string</SelectItem>
             </Select>
             <Button
+              isIconOnly
+              radius="full"
+              variant="light"
               onClick={() => handleRemoveKey(key)}
               color="primary"
               disabled={disabled} // Disable when not editing
               auto
             >
-              Remove
+              <Icon icon="solar:minus-square-linear" width={22} />
             </Button>
           </div>
         ))
@@ -95,4 +100,4 @@ const OutputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled =
   );
 };
 
-export default OutputSchemaEditor;
+export default SchemaEditor;

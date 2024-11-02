@@ -15,7 +15,7 @@ import {
   addNode,
 } from '../../store/flowSlice';
 
-import NodeDetails from '../nodes/nodeDetails/Pane';
+import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { getBezierPath } from 'reactflow';
 import { RiAddCircleFill } from '@remixicon/react';
@@ -345,10 +345,10 @@ const FlowCanvas = () => {
         </div>
         {selectedNodeID && (
           <div
-            className="absolute top-0 right-0 h-full w-1/3 bg-white border-l border-gray-200"
+            className="absolute top-0 right-0 h-full w-1/4 bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            <NodeDetails nodeID={selectedNodeID} />
+            <NodeSidebar nodeID={selectedNodeID} />
           </div>
         )}
       </div>

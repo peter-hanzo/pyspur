@@ -45,8 +45,12 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
           placeholder="Enter new key"
-          className="mr-2 p-1 border rounded"
           disabled={disabled}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !disabled && newKey) {
+              handleAddKey();
+            }
+          }}
         />
         <Button
           onClick={handleAddKey}
@@ -66,7 +70,6 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
                 <Textarea
                   value={editedKey}
                   onChange={(e) => setEditedKey(e.target.value)}
-                  className="mr-2 p-1 border rounded"
                   disabled={disabled}
                   autoFocus
                 />

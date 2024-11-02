@@ -17,7 +17,7 @@ import { Switch } from '@nextui-org/react';
 import { Textarea } from '@nextui-org/react';
 import { Select, SelectSection, SelectItem } from '@nextui-org/react';
 
-const NodeDetails = ({ nodeID }) => {
+const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
     // console.log('NodeDetails', nodeID, node);
@@ -69,7 +69,6 @@ const NodeDetails = ({ nodeID }) => {
                 label={label}
                 value={dynamicModel[key] || ''}
                 onChange={(e) => handleInputChange(key, e)}
-                className="max-w-xs"
                 fullWidth
             >
                 {enumValues.map((option) => (
@@ -154,7 +153,7 @@ const NodeDetails = ({ nodeID }) => {
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter your input"
-                            className="max-w-xs"
+
                         />
                     );
                 case 'integer':
@@ -172,18 +171,18 @@ const NodeDetails = ({ nodeID }) => {
                 case 'number':
                     if (field.minimum !== undefined && field.maximum !== undefined) {
                         return (
-                            <div key={key} className="my-4">
-                                <Slider
-                                    fullWidth
-                                    label={field.title || key}
-                                    step={field.step || 0.1}
-                                    maxValue={field.maximum}
-                                    minValue={field.minimum}
-                                    value={value || field.value || field.minimum}
-                                    onChange={(newValue) => handleInputChange(key, newValue)}
-                                    className="max-w-md"
-                                />
-                            </div>
+
+                            <Slider
+                                fullWidth
+                                label={field.title || key}
+                                step={field.step || 0.1}
+                                maxValue={field.maximum}
+                                minValue={field.minimum}
+                                value={value || field.value || field.minimum}
+                                onChange={(newValue) => handleInputChange(key, newValue)}
+                                className="my-4"
+                            />
+
                         );
                     }
                     return (
@@ -287,12 +286,13 @@ const NodeDetails = ({ nodeID }) => {
 
             {/* Add an input field for the node title */}
             <div className="my-4">
-                <label className="text-sm font-semibold mb-2 block">Node Title</label>
                 <Textarea
                     value={node?.data?.userconfig?.title || ''}
                     onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="Enter node title"
                     maxRows={1}
+                    label="Node Title"
+                    fullWidth
                 />
             </div>
 
@@ -306,4 +306,4 @@ const NodeDetails = ({ nodeID }) => {
     );
 };
 
-export default NodeDetails;
+export default NodeSidebar;
