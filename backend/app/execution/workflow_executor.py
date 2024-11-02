@@ -4,7 +4,11 @@ from typing import Any, Dict, Set
 from pydantic import BaseModel
 
 from ..execution.node_executor import NodeExecutor
-from ..schemas.workflow import Workflow, WorkflowLink, WorkflowNode
+from ..schemas.workflow import (
+    WorkflowDefinitionSchema,
+    WorkflowLinkSchema,
+    WorkflowNodeSchema,
+)
 
 
 class WorkflowExecutor:
@@ -12,9 +16,9 @@ class WorkflowExecutor:
     Handles the execution of a workflow.
     """
 
-    def __init__(self, workflow: Workflow):
+    def __init__(self, workflow: WorkflowDefinitionSchema):
         self.workflow = workflow
-        self._node_dict: Dict[str, WorkflowNode] = {}
+        self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[None]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
@@ -31,7 +35,7 @@ class WorkflowExecutor:
             if not self._are_link_types_compatible(link):
                 raise ValueError(f"Link {link} is not compatible with the node types.")
 
-    def _are_link_types_compatible(self, link: WorkflowLink) -> bool:
+    def _are_link_types_compatible(self, link: WorkflowLinkSchema) -> bool:
         source_node = self._node_dict.get(link.source_id)
         target_node = self._node_dict.get(link.target_id)
         if source_node is None or target_node is None:

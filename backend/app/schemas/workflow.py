@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, List
 
 from pydantic import BaseModel, field_validator
@@ -5,7 +6,7 @@ from pydantic import BaseModel, field_validator
 from ..nodes.factory import NodeFactory
 
 
-class WorkflowNode(BaseModel):
+class WorkflowNodeSchema(BaseModel):
     """
     A node represents a single step in a workflow.
     """
@@ -21,7 +22,7 @@ class WorkflowNode(BaseModel):
         return v
 
 
-class WorkflowLink(BaseModel):
+class WorkflowLinkSchema(BaseModel):
     """
     A link connects an output key of a source node to an input key of a target node.
     """
@@ -32,10 +33,33 @@ class WorkflowLink(BaseModel):
     target_input_key: str
 
 
-class Workflow(BaseModel):
+class WorkflowDefinitionSchema(BaseModel):
     """
     A workflow is a DAG of nodes.
     """
 
-    nodes: List[WorkflowNode]
-    links: List[WorkflowLink]
+    nodes: List[WorkflowNodeSchema]
+    links: List[WorkflowLinkSchema]
+
+
+class WorkflowCreateRequestSchema(BaseModel):
+    """
+    A request to create a new workflow.
+    """
+
+    name: str
+    description: str = ""
+    definition: WorkflowDefinitionSchema
+
+
+class WorkflowResponseSchema(BaseModel):
+    """
+    A response containing the details of a workflow.
+    """
+
+    prefid: str
+    name: str
+    description: str
+    definition: WorkflowDefinitionSchema
+    created_at: datetime
+    updated_at: datetime

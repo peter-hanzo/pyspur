@@ -3,7 +3,11 @@ from typing import Any, Awaitable, Callable, Dict, Iterator, List, Set, Tuple
 
 from pydantic import BaseModel
 
-from ..schemas.workflow import Workflow, WorkflowLink, WorkflowNode
+from ..schemas.workflow import (
+    WorkflowDefinitionSchema,
+    WorkflowLinkSchema,
+    WorkflowNodeSchema,
+)
 from .dask_cluster_manager import DaskClusterManager
 from .node_executor_dask import NodeExecutorDask
 
@@ -13,9 +17,9 @@ class WorkflowExecutorDask:
     Handles the execution of a workflow using Dask for parallel execution.
     """
 
-    def __init__(self, workflow: Workflow):
+    def __init__(self, workflow: WorkflowDefinitionSchema):
         self.workflow = workflow
-        self._node_dict: Dict[str, WorkflowNode] = {}
+        self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
         self._outputs: Dict[str, BaseModel] = {}
@@ -34,7 +38,7 @@ class WorkflowExecutorDask:
             if not self._are_link_types_compatible(link):
                 raise ValueError(f"Link {link} is not compatible with the node types.")
 
-    def _are_link_types_compatible(self, link: WorkflowLink) -> bool:
+    def _are_link_types_compatible(self, link: WorkflowLinkSchema) -> bool:
         source_node = self._node_dict.get(link.source_id)
         target_node = self._node_dict.get(link.target_id)
         if source_node is None or target_node is None:

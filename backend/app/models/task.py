@@ -10,7 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
-from .base import Base
+from .base import BaseModel
 
 
 class TaskStatus(PyEnum):
@@ -20,7 +20,7 @@ class TaskStatus(PyEnum):
     FAILED = "FAILED"
 
 
-class Task(Base):
+class TaskModel(BaseModel):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True)

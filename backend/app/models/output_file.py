@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Computed, Integer, ForeignKey, String, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
-from .base import Base
+from .base import BaseModel
 
 
-class OutputFile(Base):
+class OutputFileModel(BaseModel):
     __tablename__ = "output_files"
 
     id = Column(Integer, primary_key=True)

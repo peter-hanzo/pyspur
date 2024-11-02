@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Computed, Integer, String, DateTime, JSON
 from datetime import datetime, timezone
-from .base import Base
+from .base import BaseModel
 
 
-class Workflow(Base):
+class WorkflowModel(BaseModel):
     __tablename__ = "workflows"
 
     id = Column(Integer, primary_key=True)

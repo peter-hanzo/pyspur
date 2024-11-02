@@ -7,12 +7,12 @@ from alembic import context
 
 
 # Import models
-from app.models.workflow import Workflow  # type: ignore
-from app.models.run import Run  # type: ignore
-from app.models.task import Task  # type: ignore
-from app.models.output_file import OutputFile  # type: ignore
-from app.models.dataset import Dataset  # type: ignore
-from app.models.base import Base
+from app.models.workflow import WorkflowModel  # type: ignore
+from app.models.run import RunModel  # type: ignore
+from app.models.task import TaskModel  # type: ignore
+from app.models.output_file import OutputFileModel  # type: ignore
+from app.models.dataset import DatasetModel  # type: ignore
+from app.models.base import BaseModel
 
 # Import database URL
 from app.database import DATABASE_URL
@@ -30,7 +30,7 @@ if config.config_file_name is not None:
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # add your model's MetaData object here
-target_metadata = Base.metadata
+target_metadata = BaseModel.metadata
 
 
 def run_migrations_offline() -> None:

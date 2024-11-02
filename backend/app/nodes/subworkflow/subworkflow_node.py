@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from ...execution.node_executor import NodeExecutor
 from ...execution.workflow_executor import WorkflowExecutor
 from ...execution.workflow_executor_dask import WorkflowExecutorDask
-from ...schemas.workflow import Workflow, WorkflowNode
+from ...schemas.workflow import WorkflowDefinitionSchema, WorkflowNodeSchema
 from ..base import BaseNode
 
 
@@ -21,8 +21,10 @@ class SubworkflowNode(BaseNode):
 
     def setup(self) -> None:
         config = self.config
-        self.workflow: Workflow = self._parse_workflow_json(config.workflow_json)
-        self._node_dict: Dict[str, WorkflowNode] = {
+        self.workflow: WorkflowDefinitionSchema = self._parse_workflow_json(
+            config.workflow_json
+        )
+        self._node_dict: Dict[str, WorkflowNodeSchema] = {
             node.id: node for node in self.workflow.nodes
         }
         self._dependencies: Dict[str, Set[str]] = self._build_dependencies()
@@ -38,10 +40,10 @@ class SubworkflowNode(BaseNode):
             output_schema, f"{self.name}Output"
         )
 
-    def _parse_workflow_json(self, workflow_json_str: str) -> Workflow:
+    def _parse_workflow_json(self, workflow_json_str: str) -> WorkflowDefinitionSchema:
         # Parse the JSON string into a Workflow object
         workflow_dict = json.loads(workflow_json_str)
-        return Workflow.model_validate(workflow_dict)
+        return WorkflowDefinitionSchema.model_validate(workflow_dict)
 
     def _build_dependencies(self) -> Dict[str, Set[str]]:
         dependencies: Dict[str, Set[str]] = {

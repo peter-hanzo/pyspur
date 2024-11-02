@@ -1,7 +1,7 @@
 import importlib
 from typing import Any, Dict, List
 
-from ..schemas.node_type import NodeType
+from ..schemas.node_type import NodeTypeSchema
 from .base import BaseNode
 
 
@@ -112,15 +112,15 @@ class NodeFactory:
     }
 
     @staticmethod
-    def get_all_node_types() -> Dict[str, List[NodeType]]:
+    def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
         """
         Returns a list of all available node types.
         """
-        node_type_groups: Dict[str, List[NodeType]] = {}
+        node_type_groups: Dict[str, List[NodeTypeSchema]] = {}
         for group_name, node_types in NodeFactory._SUPPORTED_NODE_TYPES.items():
             node_type_groups[group_name] = []
             for node_type_dict in node_types:
-                node_type = NodeType.model_validate(node_type_dict)
+                node_type = NodeTypeSchema.model_validate(node_type_dict)
                 node_type_groups[group_name].append(node_type)
         return node_type_groups
 

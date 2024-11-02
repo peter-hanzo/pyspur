@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from ..nodes.base import BaseNode
 from ..nodes.factory import NodeFactory
-from ..schemas.workflow import WorkflowLink, WorkflowNode
+from ..schemas.workflow import WorkflowLinkSchema, WorkflowNodeSchema
 
 
 class NodeExecutorDask:
@@ -12,7 +12,7 @@ class NodeExecutorDask:
     Handles the execution of a workflow node using Dask.
     """
 
-    def __init__(self, workflow_node: WorkflowNode):
+    def __init__(self, workflow_node: WorkflowNodeSchema):
         self.workflow_node = workflow_node
         self._node_instance: Optional[BaseNode] = None
 
@@ -33,8 +33,8 @@ class NodeExecutorDask:
     async def execute_with_dependencies(
         self,
         dependency_outputs: List[tuple[str, BaseModel]],
-        links: List[WorkflowLink],
-        node_dict: Dict[str, WorkflowNode],
+        links: List[WorkflowLinkSchema],
+        node_dict: Dict[str, WorkflowNodeSchema],
         initial_input: Dict[str, Any],
     ) -> BaseModel:
         """

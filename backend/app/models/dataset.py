@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Computed, Integer, String, DateTime
 from datetime import datetime, timezone
-from .base import Base
+from .base import BaseModel
 
 
-class Dataset(Base):
+class DatasetModel(BaseModel):
     __tablename__ = "datasets"
 
     id = Column(Integer, primary_key=True)

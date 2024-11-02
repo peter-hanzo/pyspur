@@ -10,7 +10,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
-from .base import Base
+from .base import BaseModel
 
 
 class RunStatus(PyEnum):
@@ -20,7 +20,7 @@ class RunStatus(PyEnum):
     FAILED = "FAILED"
 
 
-class Run(Base):
+class RunModel(BaseModel):
     __tablename__ = "runs"
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
