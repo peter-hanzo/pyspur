@@ -276,7 +276,7 @@ const FlowCanvas = () => {
   useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', height: '100%' }}>
       {isPopoverContentVisible && selectedEdge && (
         <Dropdown
           isOpen={isPopoverContentVisible}
@@ -310,14 +310,13 @@ const FlowCanvas = () => {
         </Dropdown>
       )}
 
-      <div style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <div
           style={{
-            height: `calc(100% - ${footerHeight}px)`,
+            height: `100%`,
             overflow: 'auto',
             position: 'relative',
             zIndex: 1,
-            paddingTop: '60px', // Adjust for the height of the header
           }}
         >
           <ReactFlow

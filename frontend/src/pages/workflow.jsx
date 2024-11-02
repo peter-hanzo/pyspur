@@ -6,9 +6,11 @@ import { persistor } from '../store/store';
 const WorkflowPage = () => {
   return (
     <PersistGate loading={null} persistor={persistor}>
-      <div>
-        <Header activePage="workflow" />
-        <FlowCanvas />
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Header activePage="workflow" style={{ position: 'sticky', top: 0, zIndex: 10 }} />
+        <div style={{ flexGrow: 1 }}>
+          <FlowCanvas />
+        </div>
       </div>
     </PersistGate>
   );
