@@ -5,16 +5,17 @@ from sqlalchemy import pool
 
 from alembic import context
 
+
 # Import models
-from ...workflow import Workflow  # type: ignore
-from ...run import Run  # type: ignore
-from ...task import Task  # type: ignore
-from ...output_file import OutputFile  # type: ignore
-from ...dataset import Dataset  # type: ignore
-from ...base import Base
+from app.models.workflow import Workflow  # type: ignore
+from app.models.run import Run  # type: ignore
+from app.models.task import Task  # type: ignore
+from app.models.output_file import OutputFile  # type: ignore
+from app.models.dataset import Dataset  # type: ignore
+from app.models.base import Base
 
 # Import database URL
-from ....database import DATABASE_URL
+from app.database import DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
