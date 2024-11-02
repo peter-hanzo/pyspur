@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
 import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
@@ -34,6 +34,43 @@ const NodeSidebar = ({ nodeID }) => {
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
     const [dynamicModel, setDynamicModel] = useState(node?.data?.userconfig || {});
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
+
+    // Add new state for width
+    const [width, setWidth] = useState(400); // Initial width in pixels
+    const [isResizing, setIsResizing] = useState(false);
+
+    // Add resize handler
+    const handleMouseDown = useCallback((e) => {
+        setIsResizing(true);
+        e.preventDefault();
+    }, []);
+
+    // Add mouse move and mouse up handlers
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (!isResizing) return;
+
+            // Calculate new width based on mouse position
+            const newWidth = window.innerWidth - e.clientX;
+            // Set minimum and maximum width constraints
+            const constrainedWidth = Math.min(Math.max(newWidth, 300), 800);
+            setWidth(constrainedWidth);
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+        };
+
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing]);
 
     // Update dynamicModel when nodeID changes
     useEffect(() => {
@@ -273,35 +310,55 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
     return (
-        <div className="px-4 py-1 overflow-auto max-h-screen" id="node-details">
-            <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
-            <h2 className="text-sm font-semibold">{nodeType}</h2>
-            <hr className="my-4" />
+        <div
+            className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 flex"
+            style={{
+                width: `${width}px`,
+                zIndex: 2,
+                userSelect: isResizing ? 'none' : 'auto'
+            }}
+        >
+            {/* Add resize handle */}
+            <div
+                className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 hover:opacity-100 opacity-0 transition-opacity"
+                onMouseDown={handleMouseDown}
+                style={{
+                    backgroundColor: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
+                    opacity: isResizing ? '1' : undefined
+                }}
+            />
 
-            <div className="mb-4 flex justify-between">
-                <div className='flex items-center'>
-                    <h3 className="text-lg font-semibold">Node Config</h3>
+            {/* Existing sidebar content wrapped in a div */}
+            <div className="flex-1 px-4 py-1 overflow-auto max-h-screen" id="node-details">
+                <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
+                <h2 className="text-sm font-semibold">{nodeType}</h2>
+                <hr className="my-4" />
+
+                <div className="mb-4 flex justify-between">
+                    <div className='flex items-center'>
+                        <h3 className="text-lg font-semibold">Node Config</h3>
+                    </div>
                 </div>
+
+                {/* Add an input field for the node title */}
+                <div className="my-4">
+                    <Textarea
+                        value={node?.data?.userconfig?.title || ''}
+                        onChange={(e) => handleInputChange('title', e.target.value)}
+                        placeholder="Enter node title"
+                        maxRows={1}
+                        label="Node Title"
+                        fullWidth
+                    />
+                </div>
+
+                {renderConfigFields()}
+
+                {/* Render Few Shot Examples */}
+                {renderFewShotExamples()}
+
+                <hr className="my-2" />
             </div>
-
-            {/* Add an input field for the node title */}
-            <div className="my-4">
-                <Textarea
-                    value={node?.data?.userconfig?.title || ''}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    placeholder="Enter node title"
-                    maxRows={1}
-                    label="Node Title"
-                    fullWidth
-                />
-            </div>
-
-            {renderConfigFields()}
-
-            {/* Render Few Shot Examples */}
-            {renderFewShotExamples()}
-
-            <hr className="my-2" />
         </div>
     );
 };

@@ -345,7 +345,7 @@ const FlowCanvas = () => {
         </div>
         {selectedNodeID && (
           <div
-            className="absolute top-0 right-0 h-full w-1/4 bg-white border-l border-gray-200"
+            className="absolute top-0 right-0 h-full bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
             <NodeSidebar nodeID={selectedNodeID} />
