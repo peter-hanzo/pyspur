@@ -9,7 +9,11 @@ from ..execution.dask_cluster_manager import DaskClusterManager
 from ..execution.node_executor import NodeExecutor
 from ..execution.workflow_executor_dask import WorkflowExecutorDask
 from ..nodes.factory import NodeFactory
-from ..schemas.workflow import Workflow, WorkflowNode
+from ..schemas.workflow import WorkflowDefinitionSchema, WorkflowNodeSchema
+
+from .workflows import router as workflows_router
+from .workflow_execution import router as workflow_execution_router
+from .datasets import router as datasets_router
 
 load_dotenv()
 
@@ -31,6 +35,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(workflows_router)
+app.include_router(workflow_execution_router)
+app.include_router(datasets_router)
 
 
 @app.get("/node_types/")
@@ -67,7 +75,9 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
 
 
 @app.post("/run_node/")
-async def run_node(node: WorkflowNode, input_data: Dict[str, Any]) -> Dict[str, Any]:
+async def run_node(
+    node: WorkflowNodeSchema, input_data: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     Runs a node with the given name, configuration, and input data.
     """
@@ -79,7 +89,7 @@ async def run_node(node: WorkflowNode, input_data: Dict[str, Any]) -> Dict[str, 
 
 @app.post("/run_workflow/")
 async def run_workflow(
-    workflow: Workflow, initial_inputs: Dict[str, Any] = {}
+    workflow: WorkflowDefinitionSchema, initial_inputs: Dict[str, Any] = {}
 ) -> Dict[str, Any]:
     """
     Runs a workflow with the given nodes and edges.
