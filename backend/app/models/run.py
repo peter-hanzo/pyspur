@@ -60,3 +60,27 @@ class RunModel(BaseModel):
     output_file: Mapped["OutputFileModel"] = relationship(
         "OutputFile", back_populates="run"
     )
+
+    @property
+    def percentage_complete(self) -> Optional[float]:
+        if self.status == RunStatus.PENDING:
+            return 0.0
+        elif self.status == RunStatus.COMPLETED:
+            return 1.0
+        elif self.status == RunStatus.FAILED:
+            return 0.0
+        elif self.initial_inputs:
+            return 0.5
+        elif self.input_dataset_id:
+            # return percentage of subruns completed
+            return (
+                1.0
+                * len(
+                    [
+                        subrun
+                        for subrun in self.subruns
+                        if subrun.status == RunStatus.COMPLETED
+                    ]
+                )
+                / (1.0 * len(self.subruns))
+            )
