@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -59,7 +59,15 @@ class WorkflowResponseSchema(BaseModel):
 
     prefid: str
     name: str
-    description: str
+    description: Optional[str]
     definition: WorkflowDefinitionSchema
     created_at: datetime
     updated_at: datetime
+
+
+class WorkflowsListResponseSchema(BaseModel):
+    """
+    A response containing a list of workflows.
+    """
+
+    workflows: List[WorkflowResponseSchema]
