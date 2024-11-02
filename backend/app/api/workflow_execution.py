@@ -50,9 +50,7 @@ def run_workflow_non_blocking(
     initial_inputs: Dict[str, Dict[str, Any]] = {},
     db: Session = Depends(get_db),
 ) -> RunResponseSchema:
-    workflow = (
-        db.query(WorkflowModel).filter(WorkflowModel.prefid == workflow_id).first()
-    )
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     new_run = RunModel(
@@ -103,9 +101,7 @@ def run_workflow_non_blocking(
 async def run_partial_workflow(
     workflow_id: str, request: PartialRunRequestSchema, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    workflow = (
-        db.query(WorkflowModel).filter(WorkflowModel.prefid == workflow_id).first()
-    )
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
@@ -124,7 +120,7 @@ async def run_partial_workflow(
 
 @router.get("/runs/{run_id}/status/", response_model=RunStatusResponseSchema)
 def get_run_status(run_id: str, db: Session = Depends(get_db)):
-    run = db.query(RunModel).filter(RunModel.prefid == run_id).first()
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     return RunStatusResponseSchema(
@@ -135,3 +131,11 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
         outputs=run.outputs,
         output_file_id=run.output_file_id,
     )
+
+
+@router.get("/runs/{run_id}/outputs/", response_model=Dict[str, Any])
+def get_run_outputs(run_id: str, db: Session = Depends(get_db)):
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return run.outputs
