@@ -29,7 +29,7 @@ def create_workflow(
     db.commit()
     db.refresh(new_workflow)
     return WorkflowResponseSchema(
-        prefid=new_workflow.prefid,
+        id=new_workflow.id,
         name=new_workflow.name,
         description=new_workflow.description,
         definition=WorkflowDefinitionSchema.model_validate(new_workflow.definition),
@@ -54,7 +54,7 @@ def update_workflow(
     db.commit()
     db.refresh(workflow)
     return WorkflowResponseSchema(
-        prefid=workflow.prefid,
+        id=workflow.id,
         name=workflow.name,
         description=workflow.description,
         definition=workflow.definition,
@@ -68,7 +68,7 @@ def list_workflows(db: Session = Depends(get_db)) -> WorkflowsListResponseSchema
     workflows = db.query(WorkflowModel).all()
     workflow_list = [
         WorkflowResponseSchema(
-            prefid=wf.prefid,
+            id=wf.id,
             name=wf.name,
             description=wf.description,
             definition=wf.definition,

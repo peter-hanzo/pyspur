@@ -29,14 +29,14 @@ class TaskStatus(PyEnum):
 class TaskModel(BaseModel):
     __tablename__ = "tasks"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    prefid: Mapped[str] = mapped_column(
-        String, Computed("'T' || id"), nullable=False, index=True
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String, Computed("'T' || _intid"), nullable=False, index=True
     )
-    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
+    run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     node_id: Mapped[str] = mapped_column(String, nullable=False)
-    parent_task_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("tasks.id")
+    parent_task_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("tasks.id")
     )
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False

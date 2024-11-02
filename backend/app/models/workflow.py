@@ -1,16 +1,21 @@
 from sqlalchemy import Computed, Integer, String, DateTime, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import List, Optional, Any
 from .base import BaseModel
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .run import RunModel
 
 
 class WorkflowModel(BaseModel):
     __tablename__ = "workflows"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    prefid: Mapped[str] = mapped_column(
-        String, Computed("'W' || id"), nullable=False, index=True
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String, Computed("'W' || _intid"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
@@ -22,4 +27,8 @@ class WorkflowModel(BaseModel):
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
+    )
+
+    runs: Mapped[Optional[List["RunModel"]]] = relationship(
+        "Run", back_populates="workflow"
     )

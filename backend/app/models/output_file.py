@@ -7,11 +7,11 @@ from .base import BaseModel
 class OutputFileModel(BaseModel):
     __tablename__ = "output_files"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    prefid: Mapped[str] = mapped_column(
-        String, Computed("'OF' || id"), nullable=False, index=True
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String, Computed("'OF' || _intid"), nullable=False, index=True
     )
-    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
+    run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     file_name: Mapped[str] = mapped_column(String, nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -57,7 +57,7 @@ class WorkflowResponseSchema(BaseModel):
     A response containing the details of a workflow.
     """
 
-    prefid: str
+    id: str
     name: str
     description: Optional[str]
     definition: WorkflowDefinitionSchema

@@ -21,15 +21,15 @@ class RunStatus(PyEnum):
 class RunModel(BaseModel):
     __tablename__ = "runs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
-    prefid: Mapped[str] = mapped_column(
-        String, Computed("'R' || id"), nullable=False, index=True
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
+    id: Mapped[str] = mapped_column(
+        String, Computed("'R' || _intid"), nullable=False, index=True
     )
-    workflow_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("workflows.id"), nullable=False, index=True
+    workflow_id: Mapped[str] = mapped_column(
+        String, ForeignKey("workflows.id"), nullable=False, index=True
     )
-    parent_run_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("runs.id"), nullable=True, index=True
+    parent_run_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("runs.id"), nullable=True, index=True
     )
     status: Mapped[RunStatus] = mapped_column(
         Enum(RunStatus), default=RunStatus.PENDING, nullable=False
