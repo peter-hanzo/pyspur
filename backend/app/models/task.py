@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    Column,
     Computed,
     Integer,
     ForeignKey,
@@ -8,9 +7,16 @@ from sqlalchemy import (
     JSON,
     DateTime,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from enum import Enum as PyEnum
+from datetime import datetime
+from typing import Optional, Any
 from .base import BaseModel
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .run import RunModel
 
 
 class TaskStatus(PyEnum):
@@ -23,16 +29,24 @@ class TaskStatus(PyEnum):
 class TaskModel(BaseModel):
     __tablename__ = "tasks"
 
-    id = Column(Integer, primary_key=True)
-    prefid = Column(String, Computed("'T' || id"), nullable=False, index=True)
-    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
-    node_id = Column(String, nullable=False)
-    parent_task_id = Column(Integer, ForeignKey("tasks.id"))
-    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False)
-    inputs = Column(JSON)
-    outputs = Column(JSON)
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    prefid: Mapped[str] = mapped_column(
+        String, Computed("'T' || id"), nullable=False, index=True
+    )
+    run_id: Mapped[int] = mapped_column(Integer, ForeignKey("runs.id"), nullable=False)
+    node_id: Mapped[str] = mapped_column(String, nullable=False)
+    parent_task_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tasks.id")
+    )
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False
+    )
+    inputs: Mapped[Any] = mapped_column(JSON)
+    outputs: Mapped[Any] = mapped_column(JSON)
+    start_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    end_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    run = relationship("Run", back_populates="tasks")
-    parent_task = relationship("Task", remote_side=[id], backref="subtasks")
+    run: Mapped["RunModel"] = relationship("Run", back_populates="tasks")
+    parent_task: Mapped[Optional["TaskModel"]] = relationship(
+        "Task", remote_side=[id], backref="subtasks"
+    )
