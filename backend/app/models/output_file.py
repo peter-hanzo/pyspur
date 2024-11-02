@@ -9,7 +9,7 @@ class OutputFile(Base):
     __tablename__ = "output_files"
 
     id = Column(Integer, primary_key=True)
-    prefid = Column(String, Computed("OF || id"), nullable=False, index=True)
+    prefid = Column(String, Computed("'OF' || id"), nullable=False, index=True)
     run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
     file_name = Column(String, nullable=False)
     file_path = Column(String, nullable=False)

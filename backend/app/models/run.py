@@ -26,7 +26,7 @@ class Run(Base):
     __tablename__ = "runs"
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
-    prefid = Column(String, Computed("R || id"), nullable=False, index=True)
+    prefid = Column(String, Computed("'R' || id"), nullable=False, index=True)
     workflow_id = Column(
         Integer, ForeignKey("workflows.id"), nullable=False, index=True
     )

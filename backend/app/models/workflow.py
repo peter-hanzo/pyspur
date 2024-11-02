@@ -9,7 +9,7 @@ class Workflow(Base):
     __tablename__ = "workflows"
 
     id = Column(Integer, primary_key=True)
-    prefid = Column(String, Computed("W || id"), nullable=False, index=True)
+    prefid = Column(String, Computed("'W' || id"), nullable=False, index=True)
     name = Column(String, unique=True, nullable=False)
     description = Column(String)
     definition = Column(JSON, nullable=False)

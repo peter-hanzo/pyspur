@@ -9,7 +9,7 @@ class Dataset(Base):
     __tablename__ = "datasets"
 
     id = Column(Integer, primary_key=True)
-    prefid = Column(String, Computed("DS || id"), nullable=False, index=True)
+    prefid = Column(String, Computed("'DS' || id"), nullable=False, index=True)
     name = Column(String, unique=True, nullable=False)
     description = Column(String)
     file_path = Column(String, nullable=False)
