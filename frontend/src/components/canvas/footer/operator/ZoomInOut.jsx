@@ -1,7 +1,7 @@
 import React from 'react';
 import { RiZoomInLine, RiZoomOutLine } from '@remixicon/react';
 import { useReactFlow, useViewport } from 'reactflow';
-import { Card } from '@nextui-org/react'; // Add this import
+import { Card, Button } from '@nextui-org/react'; // Add this import
 
 const ZoomInOut = () => {
   const { zoomIn, zoomOut } = useReactFlow();
@@ -10,13 +10,13 @@ const ZoomInOut = () => {
   return (
     <Card className='h-12 flex items-center justify-center'>  {/* Added flex properties */}
       <div className="zoom-controls">
-        <button onClick={zoomOut}>
+        <Button isIconOnly color='white' onClick={zoomOut}>
           <RiZoomOutLine />
-        </button>
+        </Button>
         <span>{(zoom * 100).toFixed(0)}%</span>
-        <button onClick={zoomIn}>
+        <Button isIconOnly color='white' onClick={zoomIn}>
           <RiZoomInLine />
-        </button>
+        </Button>
       </div>
     </Card>
   );

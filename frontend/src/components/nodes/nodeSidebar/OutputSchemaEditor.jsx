@@ -40,17 +40,23 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           onChange={(e) => setNewKey(e.target.value)}
           placeholder="Enter new key"
           disabled={disabled} // Disable when not editing
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !disabled && newKey) {
+              handleAddKey();
+            }
+          }} // Add keyboard shortcut for Enter
         />
         <Select
           value={newType}
           onChange={(e) => setNewType(e.target.value)}
           disabled={disabled} // Disable when not editing
           label="Select Type"
+          defaultSelectedKeys={['string']}
         >
+          <SelectItem value="string">string</SelectItem>
           <SelectItem value="boolean">boolean</SelectItem>
           <SelectItem value="int">int</SelectItem>
           <SelectItem value="float">float</SelectItem>
-          <SelectItem value="string">string</SelectItem>
         </Select>
         <Button
           isIconOnly
@@ -70,18 +76,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
         Object.entries(jsonValue).map(([key, type]) => (
           <div key={key} className="mb-2 flex items-center">
             <span className="mr-2">{key}:</span>
-            <Select
-              value={type}
-              onChange={(e) => handleTypeChange(key, e.target.value)}
-              className="mr-2 p-2 border rounded"
-              disabled={disabled} // Disable when not editing
-              label="Select Type"
-            >
-              <SelectItem value="boolean">boolean</SelectItem>
-              <SelectItem value="int">int</SelectItem>
-              <SelectItem value="float">float</SelectItem>
-              <SelectItem value="string">string</SelectItem>
-            </Select>
+            <span className="mr-2 p-1 border rounded bg-gray-200">{type}</span>
             <Button
               isIconOnly
               radius="full"

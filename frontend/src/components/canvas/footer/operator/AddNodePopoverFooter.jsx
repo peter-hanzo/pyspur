@@ -1,5 +1,5 @@
 import React from 'react';
-import { RiAddCircleFill } from '@remixicon/react';
+import { Icon } from '@iconify/react';
 import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
 import { useDispatch } from 'react-redux';
@@ -16,8 +16,8 @@ const AddNodePopoverFooter = () => {
       <div className='flex items-center text-gray-500'>
         <Dropdown>
           <DropdownTrigger>
-            <Button color='white'>
-              <RiAddCircleFill />
+            <Button isIconOnly color='white'>
+              <Icon icon="solar:add-circle-bold" width={24} />
             </Button>
           </DropdownTrigger>
           <DropdownMenu>
