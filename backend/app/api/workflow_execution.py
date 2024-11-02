@@ -145,7 +145,7 @@ async def batch_run_workflow_non_blocking(
     workflow_id: str,
     request: BatchRunRequestSchema,
     background_tasks: BackgroundTasks,
-    db: Session,
+    db: Session = Depends(get_db),
 ) -> RunResponseSchema:
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:

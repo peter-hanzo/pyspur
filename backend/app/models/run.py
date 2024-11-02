@@ -45,7 +45,7 @@ class RunModel(BaseModel):
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
     outputs: Mapped[Optional[Any]] = mapped_column(JSON)
     output_file_id: Mapped[Optional[str]] = mapped_column(
-        String, ForeignKey("files.id"), nullable=True, index=True
+        String, ForeignKey("output_files.id"), nullable=True, index=True
     )
 
     workflow: Mapped["WorkflowModel"] = relationship("Workflow", back_populates="runs")
