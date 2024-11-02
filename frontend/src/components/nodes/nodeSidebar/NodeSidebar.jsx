@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
+import { updateNodeData, selectNodeById, setSidebarWidth } from '../../../store/flowSlice';
 import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
 import TextInput from '../../TextInput';
 import NumberInput from '../../NumberInput';
@@ -20,7 +20,12 @@ import { Select, SelectSection, SelectItem } from '@nextui-org/react';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
-    // console.log('NodeDetails', nodeID, node);
+    // Get the width from Redux store
+    const storedWidth = useSelector((state) => state.flow.sidebarWidth);
+
+    // Initialize width state with the stored value
+    const [width, setWidth] = useState(storedWidth);
+    const [isResizing, setIsResizing] = useState(false);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const findNodeSchema = (nodeType) => {
@@ -34,43 +39,6 @@ const NodeSidebar = ({ nodeID }) => {
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
     const [dynamicModel, setDynamicModel] = useState(node?.data?.userconfig || {});
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
-
-    // Add new state for width
-    const [width, setWidth] = useState(400); // Initial width in pixels
-    const [isResizing, setIsResizing] = useState(false);
-
-    // Add resize handler
-    const handleMouseDown = useCallback((e) => {
-        setIsResizing(true);
-        e.preventDefault();
-    }, []);
-
-    // Add mouse move and mouse up handlers
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isResizing) return;
-
-            // Calculate new width based on mouse position
-            const newWidth = window.innerWidth - e.clientX;
-            // Set minimum and maximum width constraints
-            const constrainedWidth = Math.min(Math.max(newWidth, 300), 800);
-            setWidth(constrainedWidth);
-        };
-
-        const handleMouseUp = () => {
-            setIsResizing(false);
-        };
-
-        if (isResizing) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
-
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isResizing]);
 
     // Update dynamicModel when nodeID changes
     useEffect(() => {
@@ -308,6 +276,41 @@ const NodeSidebar = ({ nodeID }) => {
             </div>
         );
     };
+
+    // Add resize handler
+    const handleMouseDown = useCallback((e) => {
+        setIsResizing(true);
+        e.preventDefault();
+    }, []);
+
+    // Add mouse move and mouse up handlers
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (!isResizing) return;
+
+            // Calculate new width based on mouse position
+            const newWidth = window.innerWidth - e.clientX;
+            // Set minimum and maximum width constraints
+            const constrainedWidth = Math.min(Math.max(newWidth, 300), 800);
+            setWidth(constrainedWidth);
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+            // Persist the final width to Redux when mouse is released
+            dispatch(setSidebarWidth(width));
+        };
+
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing, dispatch, width]);
 
     return (
         <div

@@ -6,6 +6,7 @@ const initialState = {
   edges: [],
   hoveredNode: null,
   selectedNode: null,
+  sidebarWidth: 400,
 };
 
 const flowSlice = createSlice({
@@ -57,6 +58,9 @@ const flowSlice = createSlice({
       const edgeId = action.payload.edgeId;
       state.edges = state.edges.filter((edge) => edge.id !== edgeId);
     },
+    setSidebarWidth: (state, action) => {
+      state.sidebarWidth = action.payload;
+    },
   },
 });
 
@@ -72,6 +76,7 @@ export const {
   setSelectedNode,
   deleteNode,
   deleteEdge,
+  setSidebarWidth,
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
