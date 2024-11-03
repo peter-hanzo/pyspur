@@ -11,7 +11,7 @@ from ..schemas.run_schemas import (
     BatchRunRequestSchema,
 )
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
-from ..models.base_model import get_db
+from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..models.run_model import RunModel as RunModel, RunStatus
 from ..models.dataset_model import DatasetModel

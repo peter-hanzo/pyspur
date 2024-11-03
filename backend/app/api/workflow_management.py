@@ -8,7 +8,7 @@ from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowsListResponseSchema,
 )
-from ..models.base_model import get_db
+from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 
 router = APIRouter()

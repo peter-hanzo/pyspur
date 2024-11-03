@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..schemas.run_schemas import RunStatusResponseSchema
-from ..models.base_model import get_db
+from ..database import get_db
 from ..models.run_model import RunModel, RunStatus
 from ..models.output_file_model import OutputFileModel
 

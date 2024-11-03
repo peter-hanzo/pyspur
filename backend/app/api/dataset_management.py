@@ -2,7 +2,7 @@ from typing import List
 from fastapi import Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from ..models.base_model import get_db
+from ..database import get_db
 from ..models.dataset_model import DatasetModel
 from ..models.run_model import RunModel
 from ..schemas.dataset_schemas import DatasetResponseSchema
