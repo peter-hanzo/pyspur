@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData, selectNodeById, setSidebarWidth } from '../../../store/flowSlice';
+import { updateNodeData, selectNodeById, setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
 import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
 import TextInput from '../../TextInput';
 import NumberInput from '../../NumberInput';
@@ -16,6 +16,7 @@ import { Slider } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
 import { Textarea } from '@nextui-org/react';
 import { Select, SelectSection, SelectItem } from '@nextui-org/react';
+import { Icon } from "@iconify/react";
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -333,8 +334,24 @@ const NodeSidebar = ({ nodeID }) => {
 
             {/* Existing sidebar content wrapped in a div */}
             <div className="flex-1 px-4 py-1 overflow-auto max-h-screen" id="node-details">
-                <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
-                <h2 className="text-sm font-semibold">{nodeType}</h2>
+                <div className="flex justify-between items-center mb-2">
+                    <div>
+                        <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
+                        <h2 className="text-sm font-semibold">{nodeType}</h2>
+                    </div>
+                    <Button
+                        isIconOnly
+                        radius="full"
+                        variant="light"
+                        onClick={() => dispatch(setSelectedNode({ nodeId: null }))}
+                    >
+                        <Icon
+                            className="text-default-500"
+                            icon="solar:close-circle-linear"
+                            width={24}
+                        />
+                    </Button>
+                </div>
                 <hr className="my-4" />
 
                 <div className="mb-4 flex justify-between">
