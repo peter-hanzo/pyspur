@@ -69,6 +69,7 @@ async def run_workflow_non_blocking(
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
     initial_inputs = start_run_request.initial_inputs or {}
     new_run = RunModel(
         workflow_id=workflow.id,
@@ -82,30 +83,29 @@ async def run_workflow_non_blocking(
     db.commit()
     db.refresh(new_run)
 
-    async def run_workflow_task(run_id: str, session: Session):
-        run = session.query(RunModel).filter(RunModel.id == run_id).first()
-        if not run:
-            session.close()
-            return
-        run.status = RunStatus.RUNNING
-        session.commit()
-        workflow_definition = WorkflowDefinitionSchema.model_validate(
-            workflow.definition
-        )
-        executor = WorkflowExecutor(workflow_definition)
-        try:
-            assert run.initial_inputs
-            outputs = await executor(run.initial_inputs)
-            run.outputs = {k: v.model_dump() for k, v in outputs.items()}
-            run.status = RunStatus.COMPLETED
-            run.end_time = datetime.now(timezone.utc)
-        except:
-            run.status = RunStatus.FAILED
-            run.end_time = datetime.now(timezone.utc)
-        session.commit()
-        session.close()
+    async def run_workflow_task(
+        run_id: str, workflow_definition: WorkflowDefinitionSchema
+    ):
+        with next(get_db()) as session:
+            run = session.query(RunModel).filter(RunModel.id == run_id).first()
+            if not run:
+                session.close()
+                return
+            run.status = RunStatus.RUNNING
+            session.commit()
+            executor = WorkflowExecutor(workflow_definition)
+            try:
+                assert run.initial_inputs
+                outputs = await executor(run.initial_inputs)
+                run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+                run.status = RunStatus.COMPLETED
+                run.end_time = datetime.now(timezone.utc)
+            except:
+                run.status = RunStatus.FAILED
+                run.end_time = datetime.now(timezone.utc)
+            session.commit()
 
-    background_tasks.add_task(run_workflow_task, new_run.id, db)
+    background_tasks.add_task(run_workflow_task, new_run.id, workflow_definition)
 
     return new_run
 
