@@ -3,7 +3,7 @@ from typing import Any, Awaitable, Callable, Dict, Iterator, List, Set, Tuple
 
 from pydantic import BaseModel
 
-from ..schemas.workflow import (
+from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowLinkSchema,
     WorkflowNodeSchema,

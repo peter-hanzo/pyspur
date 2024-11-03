@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import Computed, Integer, String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
-from .base import BaseModel
+from .base_model import BaseModel
 
 
 class DatasetModel(BaseModel):

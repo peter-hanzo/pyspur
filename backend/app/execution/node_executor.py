@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from ..nodes.base import BaseNode
 from ..nodes.factory import NodeFactory
-from ..schemas.workflow import WorkflowNodeSchema
+from ..schemas.workflow_schemas import WorkflowNodeSchema
 
 
 class NodeExecutor:

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from ...execution.node_executor import NodeExecutor
 from ...execution.workflow_executor import WorkflowExecutor
 from ...execution.workflow_executor_dask import WorkflowExecutorDask
-from ...schemas.workflow import WorkflowDefinitionSchema, WorkflowNodeSchema
+from ...schemas.workflow_schemas import WorkflowDefinitionSchema, WorkflowNodeSchema
 from ..base import BaseNode
 
 

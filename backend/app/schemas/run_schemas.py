@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
-from ..models.run import RunStatus
+from ..models.run_model import RunStatus
 
 
 class StartRunRequestSchema(BaseModel):
@@ -13,6 +13,7 @@ class RunResponseSchema(BaseModel):
     id: str
     workflow_id: str
     status: RunStatus
+    run_type: str
     start_time: Optional[datetime]
     end_time: Optional[datetime]
 

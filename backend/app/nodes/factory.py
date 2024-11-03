@@ -1,7 +1,7 @@
 import importlib
 from typing import Any, Dict, List
 
-from ..schemas.node_type import NodeTypeSchema
+from ..schemas.node_type_schemas import NodeTypeSchema
 from .base import BaseNode
 
 

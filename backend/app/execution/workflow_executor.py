@@ -4,7 +4,7 @@ from typing import Any, Dict, Set
 from pydantic import BaseModel
 
 from ..execution.node_executor import NodeExecutor
-from ..schemas.workflow import (
+from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowLinkSchema,
     WorkflowNodeSchema,

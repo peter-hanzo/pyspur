@@ -1,7 +1,7 @@
-from sqlalchemy import Computed, Integer, ForeignKey, String, DateTime
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy import Computed, ForeignKey, Integer, String, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
-from .base import BaseModel
+from .base_model import BaseModel
 
 
 class OutputFileModel(BaseModel):
@@ -11,11 +11,16 @@ class OutputFileModel(BaseModel):
     id: Mapped[str] = mapped_column(
         String, Computed("'OF' || _intid"), nullable=False, index=True
     )
-    run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     file_name: Mapped[str] = mapped_column(String, nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
+    run_id: Mapped[str] = mapped_column(
+        String, ForeignKey("runs.id"), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc)
     )
-
-    run = relationship("Run", back_populates="output_files")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+    )

@@ -2,12 +2,8 @@ from sqlalchemy import Computed, Integer, String, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from typing import List, Optional, Any
-from .base import BaseModel
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .run import RunModel
+from .base_model import BaseModel
+from .run_model import RunModel
 
 
 class WorkflowModel(BaseModel):
@@ -29,6 +25,4 @@ class WorkflowModel(BaseModel):
         onupdate=datetime.now(timezone.utc),
     )
 
-    runs: Mapped[Optional[List["RunModel"]]] = relationship(
-        "Run", back_populates="workflow"
-    )
+    runs: Mapped[Optional[List["RunModel"]]] = relationship("RunModel")

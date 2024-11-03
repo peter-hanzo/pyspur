@@ -11,12 +11,12 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from enum import Enum as PyEnum
 from datetime import datetime
 from typing import Optional, Any
-from .base import BaseModel
+from .base_model import BaseModel
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .run import RunModel
+    from .run_model import RunModel
 
 
 class TaskStatus(PyEnum):

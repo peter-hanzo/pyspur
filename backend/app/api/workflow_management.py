@@ -2,19 +2,21 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
-from ..schemas.workflow import (
+from ..schemas.workflow_schemas import (
     WorkflowCreateRequestSchema,
     WorkflowResponseSchema,
     WorkflowDefinitionSchema,
     WorkflowsListResponseSchema,
 )
-from ..models.base import get_db
-from ..models.workflow import WorkflowModel as WorkflowModel
+from ..models.base_model import get_db
+from ..models.workflow_model import WorkflowModel as WorkflowModel
 
 router = APIRouter()
 
 
-@router.post("/workflows/", response_model=WorkflowResponseSchema)
+@router.post(
+    "/", response_model=WorkflowResponseSchema, description="Create a new workflow"
+)
 def create_workflow(
     workflow_request: WorkflowCreateRequestSchema, db: Session = Depends(get_db)
 ) -> WorkflowResponseSchema:
@@ -38,18 +40,20 @@ def create_workflow(
     )
 
 
-@router.put("/workflows/{workflow_id}/", response_model=WorkflowResponseSchema)
+@router.put(
+    "/{workflow_id}/",
+    response_model=WorkflowResponseSchema,
+    description="Update a workflow",
+)
 def update_workflow(
     workflow_id: str,
     workflow_def: WorkflowDefinitionSchema,
     db: Session = Depends(get_db),
 ) -> WorkflowResponseSchema:
-    workflow = (
-        db.query(WorkflowModel).filter(WorkflowModel.prefid == workflow_id).first()
-    )
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    workflow.definition = workflow_def
+    workflow.definition = workflow_def.model_dump()
     workflow.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(workflow)
@@ -57,13 +61,15 @@ def update_workflow(
         id=workflow.id,
         name=workflow.name,
         description=workflow.description,
-        definition=workflow.definition,
+        definition=workflow_def,
         created_at=workflow.created_at,
         updated_at=workflow.updated_at,
     )
 
 
-@router.get("/workflows/", response_model=WorkflowsListResponseSchema)
+@router.get(
+    "/", response_model=WorkflowsListResponseSchema, description="List all workflows"
+)
 def list_workflows(db: Session = Depends(get_db)) -> WorkflowsListResponseSchema:
     workflows = db.query(WorkflowModel).all()
     workflow_list = [
