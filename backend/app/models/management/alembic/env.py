@@ -7,12 +7,12 @@ from alembic import context
 
 
 # Import models
-from backend.app.models.workflow_model import WorkflowModel  # type: ignore
-from backend.app.models.run_model import RunModel  # type: ignore
-from backend.app.models.task_model import TaskModel  # type: ignore
-from backend.app.models.output_file_model import OutputFileModel  # type: ignore
-from backend.app.models.dataset_model import DatasetModel  # type: ignore
-from backend.app.models.base_model import BaseModel
+from app.models.workflow_model import WorkflowModel  # type: ignore
+from app.models.run_model import RunModel  # type: ignore
+from app.models.task_model import TaskModel  # type: ignore
+from app.models.output_file_model import OutputFileModel  # type: ignore
+from app.models.dataset_model import DatasetModel  # type: ignore
+from app.models.base_model import BaseModel
 
 # Import database URL
 from app.database import DATABASE_URL
