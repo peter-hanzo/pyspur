@@ -67,7 +67,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           disabled={disabled || !newKey} // Disable when not editing or if no key is entered
           auto
         >
-          <Icon icon="solar:add-square-linear" width={22} />
+          <Icon icon="solar:add-circle-linear" width={22} />
         </Button>
       </div>
 
@@ -86,7 +86,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
               disabled={disabled} // Disable when not editing
               auto
             >
-              <Icon icon="solar:minus-square-linear" width={22} />
+              <Icon icon="solar:minus-circle-linear" width={22} />
             </Button>
           </div>
         ))
