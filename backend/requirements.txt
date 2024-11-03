@@ -38,3 +38,5 @@ datasets
 jinja2
 blobfile
 litellm
+alembic
+python-multipart

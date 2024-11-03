@@ -3,7 +3,7 @@ version: '3.8'
 services:
   api:
     build: ./backend
-    command: uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
+    command: bash /app/entrypoint.sh
     volumes:
       - ./backend:/app
     ports:

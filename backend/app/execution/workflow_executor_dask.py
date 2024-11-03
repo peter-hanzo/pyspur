@@ -3,7 +3,11 @@ from typing import Any, Awaitable, Callable, Dict, Iterator, List, Set, Tuple
 
 from pydantic import BaseModel
 
-from ..schemas.workflow import Workflow, WorkflowLink, WorkflowNode
+from ..schemas.workflow_schemas import (
+    WorkflowDefinitionSchema,
+    WorkflowLinkSchema,
+    WorkflowNodeSchema,
+)
 from .dask_cluster_manager import DaskClusterManager
 from .node_executor_dask import NodeExecutorDask
 
@@ -13,9 +17,9 @@ class WorkflowExecutorDask:
     Handles the execution of a workflow using Dask for parallel execution.
     """
 
-    def __init__(self, workflow: Workflow):
+    def __init__(self, workflow: WorkflowDefinitionSchema):
         self.workflow = workflow
-        self._node_dict: Dict[str, WorkflowNode] = {}
+        self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
         self._outputs: Dict[str, BaseModel] = {}
@@ -34,7 +38,7 @@ class WorkflowExecutorDask:
             if not self._are_link_types_compatible(link):
                 raise ValueError(f"Link {link} is not compatible with the node types.")
 
-    def _are_link_types_compatible(self, link: WorkflowLink) -> bool:
+    def _are_link_types_compatible(self, link: WorkflowLinkSchema) -> bool:
         source_node = self._node_dict.get(link.source_id)
         target_node = self._node_dict.get(link.target_id)
         if source_node is None or target_node is None:
@@ -112,6 +116,44 @@ class WorkflowExecutorDask:
 
     async def __call__(self, initial_inputs: Dict[str, Dict[str, Any]] = {}):
         return await self.run(initial_inputs)
+
+    async def run_partial(
+        self,
+        node_id: str,
+        rerun_predecessors: bool = False,
+        initial_inputs: Dict[str, Dict[str, Any]] = {},
+        partial_outputs: Dict[str, Dict[str, Any]] = {},
+    ) -> Dict[str, BaseModel]:
+        if node_id not in self._node_dict:
+            raise ValueError(f"Node {node_id} not found in the workflow.")
+
+        if initial_inputs:
+            self._initial_inputs = initial_inputs
+
+        if partial_outputs:
+            self._outputs = {
+                node_id: NodeExecutorDask(
+                    self._node_dict[node_id]
+                ).node_instance.output_model.model_validate(partial_outputs[node_id])
+                for node_id in partial_outputs.keys()
+            }
+
+        if rerun_predecessors:
+            predecessor_ids = self._dependencies.get(node_id, set())
+            for predecessor_id in predecessor_ids:
+                self._outputs.pop(predecessor_id, None)
+                self._futures.pop(predecessor_id, None)
+
+            nodes_to_be_run = predecessor_ids | {node_id}
+        else:
+            nodes_to_be_run = {node_id}
+
+        for node_id in nodes_to_be_run:
+            self._submit_node(node_id)
+
+        await asyncio.gather(*[self._futures[node_id] for node_id in nodes_to_be_run])
+
+        return self._outputs
 
     async def run_batch(
         self, input_iterator: Iterator[Dict[str, Any]], batch_size: int = 100

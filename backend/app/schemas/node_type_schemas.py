@@ -3,7 +3,7 @@ import importlib
 from pydantic import BaseModel
 
 
-class NodeType(BaseModel):
+class NodeTypeSchema(BaseModel):
     node_type_name: str
     class_name: str
     module: str
@@ -18,5 +18,5 @@ class NodeType(BaseModel):
         return self.node_class.input_model
 
 
-class MinimumNodeConfig(BaseModel):
-    node_type: NodeType
+class MinimumNodeConfigSchema(BaseModel):
+    node_type: NodeTypeSchema
