@@ -21,8 +21,9 @@ import { Icon } from '@iconify/react';
 import { runWorkflow } from '../utils/api';
 import Header from './Header';
 import { useRouter } from 'next/router';
+import TemplateCard from './TemplateCard';
 
-const BatchMode = () => {
+const Dashboard = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [file, setFile] = useState(null);
@@ -52,6 +53,39 @@ const BatchMode = () => {
     { key: "workflow", label: "WORKFLOW" },
     { key: "dataset", label: "DATASET" },
     { key: "progress", label: "PROGRESS" },
+  ];
+
+  const templates = [
+    {
+      id: 1,
+      title: "Data Processing",
+      description: "Template for basic data processing workflows",
+      features: [
+        "CSV/JSON handling",
+        "Data cleaning",
+        "Format conversion"
+      ]
+    },
+    {
+      id: 2,
+      title: "Text Analysis",
+      description: "NLP workflow template for text analysis",
+      features: [
+        "Sentiment analysis",
+        "Entity extraction",
+        "Text classification"
+      ]
+    },
+    {
+      id: 3,
+      title: "API Integration",
+      description: "Template for API-based workflows",
+      features: [
+        "REST API endpoints",
+        "Data transformation",
+        "Error handling"
+      ]
+    }
   ];
 
   const handleRunClick = (workflow) => {
@@ -100,6 +134,13 @@ const BatchMode = () => {
     router.push('/workflow');
   };
 
+  const handleUseTemplate = (templateId) => {
+    router.push({
+      pathname: '/workflow',
+      query: { templateId },
+    });
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="w-3/4 mx-auto p-5">
@@ -120,6 +161,20 @@ const BatchMode = () => {
             New Workflow
           </Button>
         </header>
+
+        {/* New Templates Section */}
+        <h3 className="text-xl font-semibold mb-4">Templates</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {templates.map((template) => (
+            <TemplateCard
+              key={template.id}
+              title={template.title}
+              description={template.description}
+              features={template.features}
+              onUse={() => handleUseTemplate(template.id)}
+            />
+          ))}
+        </div>
 
         <h3 className="text-xl font-semibold mb-4">Recent Workflows</h3>
         <Table aria-label="Saved Workflows" isHeaderSticky>
@@ -217,4 +272,4 @@ const BatchMode = () => {
   );
 };
 
-export default BatchMode;
+export default Dashboard;
