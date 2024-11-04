@@ -58,7 +58,7 @@ const Dashboard = () => {
   const templates = [
     {
       id: 1,
-      title: "Data Processing",
+      title: "AI Trader",
       description: "Template for basic data processing workflows",
       features: [
         "CSV/JSON handling",
@@ -68,7 +68,7 @@ const Dashboard = () => {
     },
     {
       id: 2,
-      title: "Text Analysis",
+      title: "AI Researcher",
       description: "NLP workflow template for text analysis",
       features: [
         "Sentiment analysis",
@@ -78,7 +78,7 @@ const Dashboard = () => {
     },
     {
       id: 3,
-      title: "API Integration",
+      title: "AI Podcaster",
       description: "Template for API-based workflows",
       features: [
         "REST API endpoints",
@@ -164,7 +164,7 @@ const Dashboard = () => {
 
         {/* New Templates Section */}
         <h3 className="text-xl font-semibold mb-4">Templates</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
           {templates.map((template) => (
             <TemplateCard
               key={template.id}

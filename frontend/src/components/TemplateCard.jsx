@@ -4,10 +4,10 @@ import { Icon } from "@iconify/react";
 
 export default function TemplateCard({ title, description, features, onUse }) {
   return (
-    <Card className="relative w-full max-w-[300px]">
-      <CardBody className="relative min-h-[200px] bg-gradient-to-br from-content1 to-default-100/50 p-8">
+    <Card className="relative w-full">
+      <CardBody className="relative min-h-[180px] bg-gradient-to-br from-content1 to-default-100/50 p-6">
         <h2 className="text-xl font-semibold mb-2">{title}</h2>
-        <p className="text-default-500 text-sm mb-4">{description}</p>
+        <p className="text-default-500 text-sm mb-3">{description}</p>
         <ul>
           {features.map((feature, index) => (
             <li key={index} className="flex items-center gap-1 mb-1">
@@ -17,7 +17,7 @@ export default function TemplateCard({ title, description, features, onUse }) {
           ))}
         </ul>
       </CardBody>
-      <CardFooter className="border-t-1 border-default-100 justify-end">
+      <CardFooter className="border-t-1 border-default-100 justify-end py-2 px-4">
         <Button
           color="primary"
           variant="flat"
