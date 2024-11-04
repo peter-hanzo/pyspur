@@ -20,12 +20,11 @@ export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) 
 // Function to add a node between two existing nodes and delete the existing edge
 export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, edgeId, reactFlowInstance, dispatch, setVisible) => {
   const id = `${reactFlowInstance.getNodes().length + 1}`;
-  const newPosition = reactFlowInstance.screenToFlowPosition({
+  const newPosition = {
     x: (sourceNode.position.x + targetNode.position.x) / 2,
     y: (sourceNode.position.y + targetNode.position.y) / 2,
-  });
+  };
 
-  // Use createNode from nodeFactory.js
   const newNode = createNode(nodeType, id, newPosition);
 
   dispatch(deleteEdge({ edgeId }));
