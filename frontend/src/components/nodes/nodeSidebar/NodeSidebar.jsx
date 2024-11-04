@@ -75,7 +75,7 @@ const NodeSidebar = ({ nodeID }) => {
             <Select
                 label={label}
                 value={dynamicModel[key] || ''}
-                onChange={(e) => handleInputChange(key, e)}
+                onChange={(e) => handleInputChange(key, e.target.value)}
                 fullWidth
             >
                 {enumValues.map((option) => (
