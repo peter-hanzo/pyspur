@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import ReactFlow, { Background, useReactFlow } from 'reactflow';
-import 'reactflow/dist/style.css';
+import { ReactFlow, Background, useReactFlow, Panel } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator';
@@ -24,6 +24,9 @@ import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
 import Header from '../Header';
 import CustomEdge from './edges/CustomEdge';
+import { getHelperLines } from '../../utils/helperLines';
+import HelperLinesRenderer from '../HelperLines';
+import useCopyPaste from '../../utils/useCopyPaste';
 
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {
@@ -49,10 +52,37 @@ const FlowCanvas = () => {
   // Manage reactFlowInstance locally
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
+  const [helperLines, setHelperLines] = useState({ horizontal: null, vertical: null });
+
   const onNodesChange = useCallback(
-    (changes) => dispatch(nodesChange({ changes })),
-    [dispatch]
+    (changes) => {
+      if (!changes.some((c) => c.type === 'position')) {
+        setHelperLines({ horizontal: null, vertical: null });
+        dispatch(nodesChange({ changes }));
+        return;
+      }
+
+      const positionChange = changes.find(
+        (c) => c.type === 'position' && c.position
+      );
+
+      if (positionChange) {
+        const { horizontal, vertical } = getHelperLines(positionChange, nodes);
+        setHelperLines({ horizontal, vertical });
+
+        if (horizontal || vertical) {
+          const snapPosition = { x: positionChange.position.x, y: positionChange.position.y };
+          if (horizontal) snapPosition.y = horizontal;
+          if (vertical) snapPosition.x = vertical;
+          positionChange.position = snapPosition;
+        }
+      }
+
+      dispatch(nodesChange({ changes }));
+    },
+    [dispatch, nodes]
   );
+
   const onEdgesChange = useCallback(
     (changes) => dispatch(edgesChange({ changes })),
     [dispatch]
@@ -102,31 +132,28 @@ const FlowCanvas = () => {
   }, []);
 
   const styledEdges = useMemo(() => {
-    return edges.map((edge) => {
-      const isHovered = edge.id === hoveredEdge;
-      return {
-        ...edge,
-        type: 'custom',
-        style: {
-          stroke: isHovered
-            ? 'blue'
-            : edge.source === hoveredNode || edge.target === hoveredNode
-              ? 'red'
-              : undefined,
-          strokeWidth: isHovered
-            ? 3
-            : edge.source === hoveredNode || edge.target === hoveredNode
-              ? 2
-              : undefined,
-        },
-        data: {
-          ...edge.data,
-          showPlusButton: isHovered,
-          onPopoverOpen: handlePopoverOpen,
-        },
-        key: edge.id,
-      };
-    });
+    return edges.map((edge) => ({
+      ...edge,
+      type: 'custom',
+      style: {
+        stroke: edge.id === hoveredEdge
+          ? 'blue'
+          : edge.source === hoveredNode || edge.target === hoveredNode
+            ? 'red'
+            : undefined,
+        strokeWidth: edge.id === hoveredEdge
+          ? 3
+          : edge.source === hoveredNode || edge.target === hoveredNode
+            ? 2
+            : undefined,
+      },
+      data: {
+        ...edge.data,
+        showPlusButton: edge.id === hoveredEdge,
+        onPopoverOpen: handlePopoverOpen,
+      },
+      key: edge.id,
+    }));
   }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
 
   const onEdgeMouseEnter = useCallback(
@@ -185,6 +212,19 @@ const FlowCanvas = () => {
 
   // Use the custom hook for keyboard shortcuts
   useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
+
+  const { cut, copy, paste, bufferedNodes } = useCopyPaste();
+
+  const canCopy = nodes.some(({ selected }) => selected);
+  const canPaste = bufferedNodes.length > 0;
+
+  // Add this hook - it will handle the keyboard shortcuts automatically
+  useCopyPaste();
+
+  // Add proOptions configuration
+  const proOptions = {
+    hideAttribution: true
+  };
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
@@ -249,8 +289,13 @@ const FlowCanvas = () => {
             onEdgeMouseEnter={onEdgeMouseEnter}
             onEdgeMouseLeave={onEdgeMouseLeave}
             onNodesDelete={onNodesDelete}
+            proOptions={proOptions}
           >
             <Background />
+            <HelperLinesRenderer
+              horizontal={helperLines.horizontal}
+              vertical={helperLines.vertical}
+            />
             <Operator />
           </ReactFlow>
         </div>

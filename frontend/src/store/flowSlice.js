@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
+import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 
 const initialState = {
   nodes: [],
@@ -15,10 +15,12 @@ const flowSlice = createSlice({
   initialState,
   reducers: {
     nodesChange: (state, action) => {
-      state.nodes = applyNodeChanges(action.payload.changes, state.nodes);
+      const changes = action.payload.changes;
+      state.nodes = applyNodeChanges(changes, state.nodes);
     },
     edgesChange: (state, action) => {
-      state.edges = applyEdgeChanges(action.payload.changes, state.edges);
+      const changes = action.payload.changes;
+      state.edges = applyEdgeChanges(changes, state.edges);
     },
     connect: (state, action) => {
       state.edges = addEdge(action.payload.connection, state.edges);

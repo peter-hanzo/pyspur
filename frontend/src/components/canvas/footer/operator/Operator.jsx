@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import ZoomInOut from './ZoomInOut';
 import AddNodePopoverFooter from './AddNodePopoverFooter';
-import { MiniMap } from 'reactflow';
+import { MiniMap } from '@xyflow/react';
 import UndoRedo from '../../../UndoRedo';
 
 function Operator() {
