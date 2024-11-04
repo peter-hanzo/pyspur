@@ -88,7 +88,6 @@ const CustomEdge = ({
             <Button
               isIconOnly
               auto
-              color="danger"
               onClick={handleDeleteEdge}
             >
               <Icon icon="solar:trash-bin-trash-bold" width={20} />

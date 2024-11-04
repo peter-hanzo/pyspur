@@ -208,7 +208,7 @@ const FlowCanvas = () => {
                         selectedEdge.edgeId,
                         reactFlowInstance,
                         dispatch,
-                        setVisible
+                        setPopoverContentVisible
                       )
                     }
                   >
