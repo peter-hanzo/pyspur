@@ -3,19 +3,18 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..dynamic_schema import DynamicSchemaNode
+from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
 from ..base import VisualTag
 
 
-class AdvancedNodeConfig(BaseModel):
+class AdvancedNodeConfig(DynamicSchemaNodeConfig):
     llm_info: ModelInfo = Field(
         LLMModelRegistry.GPT_4O, description="The default LLM model to use"
     )
     system_prompt: str = Field(
         "You are a helpful assistant.", description="The system prompt for the LLM"
     )
-    output_schema: Dict[str, str]
     input_schema: Dict[str, str] = {"user_message": "str"}
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
@@ -73,7 +72,7 @@ if __name__ == "__main__":
     async def test_llm_nodes():
         advanced_llm_node = AdvancedNode(
             config=AdvancedNodeConfig(
-                llm_info=ModelInfo(name="gpt-4o-mini", temperature=0.1),
+                llm_info=ModelInfo(name="gpt-4o-mini", temperature=0.1, max_tokens=100),
                 system_prompt="This is a test prompt.",
                 output_schema={"response": "str", "your_name": "str"},
                 input_schema={"user_message": "str", "your_name": "str"},

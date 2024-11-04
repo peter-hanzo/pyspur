@@ -39,7 +39,11 @@ class SelfConsistencyNode(BaseNode):
         self, input_data: StringOutputLLMNodeInput
     ) -> List[StringOutputLLMNodeOutput]:
         tasks = [self._llm_node(input_data) for _ in range(self.config.samples)]
-        return await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*tasks)
+        return [
+            StringOutputLLMNodeOutput.model_validate(response.model_dump())
+            for response in responses
+        ]
 
     def _calculate_similarity(self, a: str, b: str) -> float:
         return SequenceMatcher(None, a, b).ratio()

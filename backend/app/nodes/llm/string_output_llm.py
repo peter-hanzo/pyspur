@@ -62,11 +62,9 @@ if __name__ == "__main__":
     async def test_llm_nodes():
         string_output_llm_node = StringOutputLLMNode(
             config=StringOutputLLMNodeConfig(
-                llm_name=LLMModelRegistry.GPT_4O_MINI,
-                max_tokens=32,
-                temperature=0.1,
-                json_mode=False,
+                llm_info=LLMModelRegistry.GPT_4O_MINI,
                 system_prompt="This is a test prompt.",
+                json_mode=False,
             )
         )
         basic_input = StringOutputLLMNodeInput(user_message="This is a test message.")
