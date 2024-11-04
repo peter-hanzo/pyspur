@@ -1,11 +1,8 @@
 .nodeWrapper {
     position: relative;
-    padding: 20px;
-    min-height: 150px;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch; /* Allow children to stretch */
-    width: auto; /* Allow width to adjust based on content */
+    width: 100%;
+    min-height: 50px;
+    padding: 0 20px;
 }
 
 .inputHandleWrapper,
@@ -15,42 +12,50 @@
     align-items: center;
     white-space: nowrap;
     z-index: 1000;
-    top: 50%; /* Center the handles vertically */
-    transform: translateY(-50%); /* Adjust for centering */
+    top: 50%;
+    /* Center the handles vertically */
+    transform: translateY(-50%);
+    /* Adjust for centering */
 }
 
 .inputHandleWrapper {
     left: -8px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
 }
 
 .outputHandleWrapper {
     right: -8px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
 }
 
 .handleLabel {
-    font-size: 0.75rem;
-    padding: 0 4px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 4px;
-    pointer-events: none;
-    white-space: nowrap; /* Prevent text from wrapping */
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+    display: inline-block;
+
+    position: relative;
+    z-index: 1000;
 }
 
 .handle {
     width: 10px !important;
     height: 10px !important;
-    background-color: #555;
-    border: 2px solid #fff;
-    border-radius: 50%;
+    background: #555 !important;
+    position: relative;
+    z-index: 1001 !important;
 }
 
 .handle:hover {
     background-color: #777;
-}
-.handleLeft {
-    left: -5px;
-}
-
-.handleRight {
-    right: -5px;
 }

@@ -17,14 +17,13 @@ import {
 
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
-import { getBezierPath } from 'reactflow';
-import { RiAddCircleFill } from '@remixicon/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
 import Header from '../Header';
+import CustomEdge from './edges/CustomEdge';
 
 const nodeTypes = {};
 Object.keys(nodeTypesConfig).forEach(category => {
@@ -33,94 +32,6 @@ Object.keys(nodeTypesConfig).forEach(category => {
   });
 });
 
-const CustomEdge = ({
-  id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  style = {},
-  data,
-  markerEnd,
-  source,
-  target,
-}) => {
-
-  const { onPopoverOpen, showPlusButton } = data; // Destructure from data
-  const reactFlowInstance = useReactFlow();
-  const sourceNode = reactFlowInstance.getNode(source);
-  const targetNode = reactFlowInstance.getNode(target);
-
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
-
-  return (
-    <>
-      <path
-        id={id}
-        style={style}
-        className="react-flow__edge-path"
-        d={edgePath}
-        markerEnd={markerEnd}
-        fill="none"
-      />
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={30}
-        style={{ pointerEvents: 'stroke' }}
-        className="react-flow__edge-hover"
-      />
-      {showPlusButton && (
-        <foreignObject
-          width={30}
-          height={30}
-          x={labelX - 15}
-          y={labelY - 15}
-          style={{ pointerEvents: 'none' }}
-        >
-          <div
-            style={{
-              pointerEvents: 'all',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '100%',
-              height: '100%',
-            }}
-          >
-            <Button
-              auto
-              style={{
-                padding: 0,
-                minWidth: 'auto',
-                backgroundColor: 'transparent',
-                border: 'none',
-                boxShadow: 'none',
-              }}
-              onClick={() => {
-                onPopoverOpen({ sourceNode, targetNode, edgeId: id }); // Pass the edgeId to onPopoverOpen
-              }}
-            >
-              <RiAddCircleFill size={20} />
-            </Button>
-          </div>
-        </foreignObject>
-      )}
-    </>
-  );
-};
-
-// Update nodeTypes to include the custom edge
 const edgeTypes = {
   custom: CustomEdge,
 };

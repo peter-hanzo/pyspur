@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setHoveredNode } from '../../store/flowSlice';
 import {
@@ -6,9 +6,11 @@ import {
   CardHeader,
   CardBody,
   Divider,
+  Button,
 } from "@nextui-org/react";
 
 const BaseNode = ({ id, data = {}, children, style = {} }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const dispatch = useDispatch();
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
@@ -48,6 +50,16 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
     marginBottom: '8px',
   };
 
+  const collapseButtonStyle = {
+    position: 'absolute',
+    right: '8px',
+    bottom: '4px',
+    minWidth: 'auto',
+    height: '20px',
+    padding: '0 8px',
+    fontSize: '0.7rem',
+  };
+
   return (
     <Card
       className="base-node"
@@ -57,19 +69,26 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
       isHoverable
     >
       {data && data.title && (
-        <CardHeader style={{ position: 'relative' }}>
+        <CardHeader style={{ position: 'relative', paddingBottom: '28px' }}>
           <h3 className="text-lg font-semibold text-center">{data.userconfig.title || data.title}</h3>
-          {/* Display the acronym tag in the top-right corner */}
+          {/* Acronym tag */}
           <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
             {acronym}
           </div>
+          {/* Collapse button */}
+          <Button
+            size="sm"
+            variant="flat"
+            style={collapseButtonStyle}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            {isCollapsed ? '▼' : '▲'}
+          </Button>
         </CardHeader>
       )}
       <Divider />
 
-      <CardBody>{children}</CardBody>
-
-
+      {!isCollapsed && <CardBody>{children}</CardBody>}
     </Card>
   );
 };
