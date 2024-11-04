@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   Input,
   Navbar,
@@ -16,10 +16,13 @@ import {
 import { Icon } from "@iconify/react";
 import { runWorkflow } from '../utils/api';
 import SettingsCard from './settings/Settings'; // Import the updated SettingsCard component
+import { setProjectName } from '../store/flowSlice';
 
 const Header = ({ activePage }) => {
+  const dispatch = useDispatch();
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
+  const projectName = useSelector((state) => state.flow.projectName);
 
   const handleRunWorkflow = async () => {
     try {
@@ -51,6 +54,10 @@ const Header = ({ activePage }) => {
     }
   };
 
+  const handleProjectNameChange = (e) => {
+    dispatch(setProjectName(e.target.value));
+  };
+
   return (
     <>
       <Navbar
@@ -66,7 +73,6 @@ const Header = ({ activePage }) => {
         </NavbarBrand>
 
         {activePage === "workflow" && (
-
           <NavbarContent
             className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full bg-content2 px-4 dark:bg-content1 sm:flex"
             justify="center"
@@ -75,6 +81,8 @@ const Header = ({ activePage }) => {
               type="text"
               placeholder="Project Name"
               className="w-full"
+              value={projectName}
+              onChange={handleProjectNameChange}
             />
           </NavbarContent>
         )}

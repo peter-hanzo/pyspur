@@ -7,6 +7,7 @@ const initialState = {
   hoveredNode: null,
   selectedNode: null,
   sidebarWidth: 400,
+  projectName: 'Untitled Project',
 };
 
 const flowSlice = createSlice({
@@ -61,6 +62,9 @@ const flowSlice = createSlice({
     setSidebarWidth: (state, action) => {
       state.sidebarWidth = action.payload;
     },
+    setProjectName: (state, action) => {
+      state.projectName = action.payload;
+    },
   },
 });
 
@@ -77,6 +81,7 @@ export const {
   deleteNode,
   deleteEdge,
   setSidebarWidth,
+  setProjectName,
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

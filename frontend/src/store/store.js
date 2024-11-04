@@ -6,7 +6,7 @@ import flowReducer from './flowSlice';
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['nodes', 'edges'],
+  whitelist: ['nodes', 'edges', 'projectName'],
 };
 
 const persistedReducer = persistReducer(persistConfig, flowReducer);
