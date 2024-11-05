@@ -5,13 +5,11 @@ import { MiniMap } from '@xyflow/react';
 import UndoRedo from '../../../UndoRedo';
 import { Button, ButtonGroup } from '@nextui-org/react';
 import { useSelector } from 'react-redux';
-import { useGroupNodes } from '../../../../hooks/useGroupNodes';
-import { Icon } from "@iconify/react";
 import { useModeStore } from '../../../../store/modeStore';
+import { Icon } from "@iconify/react";
 
 function Operator() {
   const nodes = useSelector(state => state.flow.nodes);
-  const { onGroup } = useGroupNodes();
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
 
@@ -25,16 +23,17 @@ function Operator() {
         className='!absolute !left-4 !bottom-14 z-[9] !m-0 !w-[102px] !h-[72px] !border-[0.5px] !border-black/8 !rounded-lg !shadow-lg'
       />
       <div className='flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9]'>
+        <ZoomInOut />
         <ButtonGroup>
           <Button
             size="sm"
             isIconOnly
             onClick={() => setMode('pointer')}
-            className={mode === 'pointer' ? 'bg-default-100' : ''}
+            className={mode === 'pointer' ? 'bg-default-200' : 'bg-white'}
           >
             <Icon
-              className="text-default-500"
-              icon="solar:cursor-bold"
+              className={`${mode === 'pointer' ? 'text-default-800' : 'text-default-500'}`}
+              icon={mode === 'pointer' ? "solar:cursor-bold" : "solar:cursor-linear"}
               width={16}
             />
           </Button>
@@ -42,26 +41,17 @@ function Operator() {
             size="sm"
             isIconOnly
             onClick={() => setMode('hand')}
-            className={mode === 'hand' ? 'bg-default-100' : ''}
+            className={mode === 'hand' ? 'bg-default-200' : 'bg-white'}
           >
             <Icon
-              className="text-default-500"
-              icon="solar:hand-shake-linear"
+              className={`${mode === 'hand' ? 'text-default-800' : 'text-default-500'}`}
+              icon={mode === 'hand' ? "solar:hand-shake-bold" : "solar:hand-shake-linear"}
               width={16}
             />
           </Button>
+          <UndoRedo handleUndo={null} handleRedo={null} />
+          <AddNodePopoverFooter />
         </ButtonGroup>
-        <ZoomInOut />
-        <UndoRedo handleUndo={null} handleRedo={null} />
-        <AddNodePopoverFooter />
-        <Button
-          size="sm"
-          onClick={onGroup}
-          disabled={nodes.filter(node => node.selected && !node.parentId).length <= 1}
-          className="bg-default-100 min-w-unit-16"
-        >
-          Group
-        </Button>
       </div>
     </>
   );

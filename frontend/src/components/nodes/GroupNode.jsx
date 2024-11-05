@@ -1,115 +1,105 @@
 import React, { memo } from 'react';
-import { NodeResizer, NodeToolbar } from '@xyflow/react';
+import { NodeResizer } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { deleteNode, detachNodes } from '../../store/flowSlice';
+import { Button } from '@nextui-org/react';
+import DynamicNode from './DynamicNode';
 
-const GroupNode = ({ id, selected, data }) => {
+const GroupNode = ({ id, selected }) => {
   const dispatch = useDispatch();
   const nodes = useSelector(state => state.flow.nodes);
-
-  // Get child nodes (nodes that have this group as their parent)
-  const childNodes = nodes.filter(n => n.parentId === id);
-  const hasChildNodes = childNodes.length > 0;
+  const childNodes = nodes.filter(n => n.parentNode === id);
 
   const onDelete = () => {
     dispatch(deleteNode({ nodeId: id }));
   };
 
-  const onDetach = () => {
+  const onUngroup = () => {
     const childNodeIds = childNodes.map(n => n.id);
     dispatch(detachNodes({ nodeIds: childNodeIds, groupId: id }));
   };
 
   return (
-    <div
-      className="group-node"
-      style={{
-        background: 'rgba(240, 240, 240, 0.8)',
-        border: selected ? '2px solid #FF9800' : '1px solid #ccc',
-        borderRadius: '8px',
-        padding: '20px',
-        position: 'relative',
-        minWidth: '200px',
-        minHeight: '200px',
-        transition: 'border-color 0.1s, border-width 0.02s',
-      }}
-    >
+    <>
       <div
-        className="group-header"
         style={{
-          position: 'absolute',
-          top: '8px',
-          left: '8px',
-          right: '8px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '4px 8px',
-          background: 'rgba(255, 255, 255, 0.9)',
-          borderRadius: '4px',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-          zIndex: 1
+          width: '100%',
+          height: '100%',
+          background: 'rgba(240, 240, 240, 0.2)',
+          borderRadius: '8px',
+          border: selected ? '2px solid #0072F5' : '1px solid #ccc',
+          position: 'relative',
+          padding: '4px',
+          zIndex: 0
         }}
       >
-        <span style={{ fontWeight: 'bold', color: '#666' }}>
-          {data?.label || 'Group'}
-        </span>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderTopLeftRadius: '8px',
+            borderTopRightRadius: '8px',
+            borderBottom: '1px solid #eee',
+            zIndex: 1
+          }}
+        >
+          <span style={{ fontWeight: 500, color: '#666' }}>Group</span>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <Button
+              size="sm"
+              variant="flat"
+              color="default"
+              onClick={onUngroup}
+            >
+              Ungroup
+            </Button>
+            <Button
+              size="sm"
+              variant="flat"
+              color="danger"
+              onClick={onDelete}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
 
-        <div className="group-actions">
-          <button
-            onClick={onDetach}
-            style={{
-              marginRight: '4px',
-              padding: '2px 8px',
-              background: '#fff',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              cursor: hasChildNodes ? 'pointer' : 'not-allowed',
-              opacity: hasChildNodes ? 1 : 0.5
-            }}
-            disabled={!hasChildNodes}
-          >
-            Ungroup
-          </button>
-          <button
-            onClick={onDelete}
-            style={{
-              padding: '2px 8px',
-              background: '#fff',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Delete
-          </button>
+        {/* Container for child nodes */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          paddingTop: '40px', // Space for the header
+          zIndex: 0
+        }}>
+          {childNodes.map(node => (
+            <DynamicNode
+              key={node.id}
+              id={node.id}
+              type={node.type}
+              xPos={node.position.x}
+              yPos={node.position.y}
+              selected={node.selected}
+              parentNode={id}
+            />
+          ))}
         </div>
       </div>
-
       <NodeResizer
-        minWidth={200}
-        minHeight={200}
+        minWidth={100}
+        minHeight={100}
         isVisible={selected}
-        lineStyle={{
-          borderWidth: 1,
-          borderColor: selected ? '#FF9800' : '#ccc'
-        }}
+        lineStyle={{ borderWidth: 1 }}
       />
-
-      {/* This div ensures child nodes are rendered properly */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        zIndex: 0
-      }}>
-        {childNodes.map(node => (
-          <div key={node.id} style={{ position: 'absolute' }}>
-            {node.data}
-          </div>
-        ))}
-      </div>
-    </div>
+    </>
   );
 };
 

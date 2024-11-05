@@ -151,7 +151,7 @@ const Header = ({ activePage }) => {
             </NavbarItem>
             <NavbarItem className="hidden sm:flex">
               <Button isIconOnly radius="full" variant="light" onClick={handleClearCanvas}>
-                <Icon className="text-default-500" icon="material-symbols:delete-outline" width={22} />
+                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
               </Button>
             </NavbarItem>
             <NavbarItem className="hidden sm:flex">

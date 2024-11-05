@@ -4,15 +4,24 @@ import { useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
 
-const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
-  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === props.id));
+const DynamicNode = ({ id, type, data, position, ...props }) => {
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
 
+  const node = useSelector((state) =>
+    state.flow.nodes.find((n) => n.id === id)
+  );
+
+  const nodeData = data || (node && node.data);
+
+  if (!nodeData) {
+    return null;
+  }
+
   useEffect(() => {
-    if (nodeRef.current && node) {
-      const inputSchema = node.data?.userconfig?.input_schema || node.data?.input?.properties || {};
-      const outputSchema = node.data?.userconfig?.output_schema || node.data?.output?.properties || {};
+    if (nodeRef.current && nodeData) {
+      const inputSchema = nodeData?.userconfig?.input_schema || nodeData?.input?.properties || {};
+      const outputSchema = nodeData?.userconfig?.output_schema || nodeData?.output?.properties || {};
 
       const inputLabels = Object.keys(inputSchema);
       const outputLabels = Object.keys(outputSchema);
@@ -20,22 +29,21 @@ const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
       const maxLabelLength = Math.max(
         ...inputLabels.map(label => label.length),
         ...outputLabels.map(label => label.length),
-        (node.data?.title || '').length / 1.5
+        (nodeData?.title || '').length / 1.5
       );
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
-
       const finalWidth = Math.min(calculatedWidth, 600);
 
       setNodeWidth(`${finalWidth}px`);
     }
-  }, [node, node?.data?.userconfig]);
+  }, [nodeData]);
 
   const renderHandles = () => {
-    if (!node) return null;
+    if (!nodeData) return null;
 
-    const inputSchema = node.data?.userconfig?.input_schema || node.data?.input?.properties || {};
-    const outputSchema = node.data?.userconfig?.output_schema || node.data?.output?.properties || {};
+    const inputSchema = nodeData?.userconfig?.input_schema || nodeData?.input?.properties || {};
+    const outputSchema = nodeData?.userconfig?.output_schema || nodeData?.output?.properties || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
@@ -49,7 +57,7 @@ const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
               className={styles.inputHandleWrapper}
               style={{
                 top: `${(index + 1) * 100 / (inputs + 1)}%`,
-                transform: 'translateY(-50%)'  // Center vertically
+                transform: 'translateY(-50%)'
               }}
             >
               <Handle
@@ -57,6 +65,7 @@ const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
                 position="left"
                 id={`input-${key}`}
                 className={`${styles.handle} ${styles.handleLeft}`}
+                isConnectable={true}
               />
               <span className={styles.handleLabel}>{key}</span>
             </div>
@@ -70,7 +79,7 @@ const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
               className={styles.outputHandleWrapper}
               style={{
                 top: `${(index + 1) * 100 / (outputs + 1)}%`,
-                transform: 'translateY(-50%)'  // Center vertically
+                transform: 'translateY(-50%)'
               }}
             >
               <span className={styles.handleLabel}>{key}</span>
@@ -79,6 +88,7 @@ const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
                 position="right"
                 id={`${key}`}
                 className={`${styles.handle} ${styles.handleRight}`}
+                isConnectable={true}
               />
             </div>
           ))
@@ -87,16 +97,22 @@ const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
     );
   };
 
-  if (!node) {
-    return null;
-  }
-
   return (
-    <BaseNode id={props.id} data={node.data} style={{ width: nodeWidth }}>
-      <div className={styles.nodeWrapper} ref={nodeRef}>
-        {renderHandles()}
-      </div>
-    </BaseNode>
+    <div style={{
+      position: 'relative',
+      zIndex: props.parentNode ? 1 : 0
+    }}>
+      <BaseNode
+        id={id}
+        data={nodeData}
+        style={{ width: nodeWidth }}
+        selected={props.selected}
+      >
+        <div className={styles.nodeWrapper} ref={nodeRef}>
+          {renderHandles()}
+        </div>
+      </BaseNode>
+    </div>
   );
 };
 

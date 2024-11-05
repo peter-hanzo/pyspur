@@ -26,8 +26,9 @@ const flowSlice = createSlice({
       state.edges = addEdge(action.payload.connection, state.edges);
     },
     addNode: (state, action) => {
-      const node = action.payload.node;
-      state.nodes.push(node);
+      if (action.payload.node) {
+        state.nodes = [...state.nodes, action.payload.node];
+      }
     },
     setNodes: (state, action) => {
       state.nodes = action.payload.nodes;

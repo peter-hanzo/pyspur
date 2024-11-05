@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { ReactFlow, Background, useReactFlow, Panel } from '@xyflow/react';
+import { ReactFlow, Background, useReactFlow, Panel, ReactFlowProvider, useViewport } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/operator/Operator';
@@ -13,7 +13,7 @@ import {
   deleteNode,
   addNode,
 } from '../../store/flowSlice';
-
+import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
@@ -29,22 +29,32 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import GroupNode from '../nodes/GroupNode';
 import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
+import { Icon } from "@iconify/react";
+
+console.log('Available nodeTypes:', nodeTypesConfig);
 
 const nodeTypes = {
   group: GroupNode,
   ...Object.keys(nodeTypesConfig).reduce((acc, category) => {
     nodeTypesConfig[category].forEach(node => {
-      acc[node.name] = (props) => <DynamicNode {...props} type={node.name} />;
+      console.log(`Registering node type: ${node.name}`);
+      acc[node.name] = (props) => {
+        console.log('Rendering node with props:', props);
+        return <DynamicNode {...props} type={node.name} />;
+      };
     });
     return acc;
   }, {})
 };
 
+console.log('Registered node types:', nodeTypes);
+
 const edgeTypes = {
   custom: CustomEdge,
 };
 
-const FlowCanvas = () => {
+// Create a wrapper component that includes ReactFlow logic
+const FlowCanvasContent = () => {
   // console.log('FlowCanvas re-rendered');
 
   const dispatch = useDispatch();
@@ -232,30 +242,52 @@ const FlowCanvas = () => {
   };
 
   const { onGroup } = useGroupNodes();
-
-  // Add keyboard shortcut for grouping
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'g') {
-        event.preventDefault();
-        onGroup();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onGroup]);
-
-  // Get both mode and setMode from the store
   const mode = useModeStore((state) => state.mode);
-  const setMode = useModeStore((state) => state.setMode);
 
-  // Create a memoized version of nodes with draggable property based on mode
+  const viewport = useViewport();
+
+  // Update the getGroupButtonPosition function
+  const getGroupButtonPosition = useCallback(() => {
+    const selectedNodes = nodes.filter(node => node.selected && !node.parentId);
+    if (selectedNodes.length <= 1) return null;
+
+    // Calculate the bounding box of selected nodes
+    const bounds = selectedNodes.reduce(
+      (acc, node) => {
+        const nodeWidth = node.width || 150;
+        const nodeHeight = node.height || 40;
+
+        return {
+          minX: Math.min(acc.minX, node.position.x),
+          maxX: Math.max(acc.maxX, node.position.x + nodeWidth),
+          minY: Math.min(acc.minY, node.position.y),
+          maxY: Math.max(acc.maxY, node.position.y + nodeHeight),
+        };
+      },
+      {
+        minX: Infinity,
+        maxX: -Infinity,
+        minY: Infinity,
+        maxY: -Infinity,
+      }
+    );
+
+    // Apply viewport transform to get the correct screen position
+    return {
+      x: (bounds.maxX + 20) * viewport.zoom + viewport.x,
+      y: (bounds.minY - 20) * viewport.zoom + viewport.y,
+    };
+  }, [nodes, viewport]);
+
+  // Add this memoized nodes with mode
   const nodesWithMode = useMemo(() => {
     return nodes.map(node => ({
       ...node,
-      draggable: mode === 'pointer',
+      draggable: true,
       selectable: mode === 'pointer',
+      position: node.position,
+      type: node.type,
+      data: node.data,
     }));
   }, [nodes, mode]);
 
@@ -323,22 +355,49 @@ const FlowCanvas = () => {
             onEdgeMouseLeave={onEdgeMouseLeave}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
-            panOnDrag={mode === 'hand'}
+            panOnDrag={mode === 'hand' && !nodes.some(n => n.selected)}
             panOnScroll={true}
             zoomOnScroll={true}
+            minZoom={0.1}
+            maxZoom={2}
             selectionMode={mode === 'pointer' ? 1 : 0}
             selectNodesOnDrag={mode === 'pointer'}
             selectionOnDrag={mode === 'pointer'}
             selectionKeyCode={mode === 'pointer' ? null : false}
             multiSelectionKeyCode={mode === 'pointer' ? null : false}
             deleteKeyCode="Delete"
-            nodesConnectable={mode === 'pointer'}
+            nodesConnectable={true}
+            connectionMode="loose"
           >
             <Background />
             <HelperLinesRenderer
               horizontal={helperLines.horizontal}
               vertical={helperLines.vertical}
             />
+
+            {mode === 'pointer' && getGroupButtonPosition() && (
+              <Panel
+                className="absolute"
+                style={{
+                  left: getGroupButtonPosition().x,
+                  top: getGroupButtonPosition().y,
+                  transform: 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  pointerEvents: 'all'
+                }}
+              >
+                <Button
+                  size="sm"
+                  onClick={onGroup}
+                  className="bg-white hover:bg-default-100 border-1 shadow-lg"
+                  startContent={<Icon icon="solar:box-bold" />}
+                  disabled={nodes.filter(node => node.selected && !node.parentId).length <= 1}
+                >
+                  Group
+                </Button>
+              </Panel>
+            )}
 
             <Operator />
           </ReactFlow>
@@ -353,6 +412,15 @@ const FlowCanvas = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// Main component that provides the ReactFlow context
+const FlowCanvas = () => {
+  return (
+    <ReactFlowProvider>
+      <FlowCanvasContent />
+    </ReactFlowProvider>
   );
 };
 

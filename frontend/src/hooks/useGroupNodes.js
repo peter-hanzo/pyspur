@@ -1,77 +1,83 @@
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { nodesChange } from '../store/flowSlice';
 import { v4 as uuidv4 } from 'uuid';
+import { setNodes } from '../store/flowSlice';
 
 export const useGroupNodes = () => {
   const dispatch = useDispatch();
   const nodes = useSelector(state => state.flow.nodes);
 
   const onGroup = useCallback(() => {
-    const selectedNodes = nodes.filter(node => node.selected && !node.parentId);
-    if (selectedNodes.length <= 1) return;
+    const selectedNodes = nodes.filter(node => node.selected);
 
-    // Calculate bounds of selected nodes
-    const bounds = selectedNodes.reduce((acc, node) => ({
-      minX: Math.min(acc.minX, node.position.x),
-      minY: Math.min(acc.minY, node.position.y),
-      maxX: Math.max(acc.maxX, node.position.x + (node.width || 0)),
-      maxY: Math.max(acc.maxY, node.position.y + (node.height || 0))
-    }), {
-      minX: Infinity,
-      minY: Infinity,
-      maxX: -Infinity,
-      maxY: -Infinity
-    });
+    if (selectedNodes.length < 2) return;
 
+    // Calculate the bounding box of selected nodes
+    const bounds = selectedNodes.reduce(
+      (acc, node) => {
+        const nodeLeft = node.position.x;
+        const nodeRight = nodeLeft + (node.width || 150);
+        const nodeTop = node.position.y;
+        const nodeBottom = nodeTop + (node.height || 40);
+
+        return {
+          left: Math.min(acc.left, nodeLeft),
+          right: Math.max(acc.right, nodeRight),
+          top: Math.min(acc.top, nodeTop),
+          bottom: Math.max(acc.bottom, nodeBottom),
+        };
+      },
+      {
+        left: Infinity,
+        right: -Infinity,
+        top: Infinity,
+        bottom: -Infinity,
+      }
+    );
+
+    // Create group node with padding
     const padding = 50;
     const groupId = uuidv4();
-
-    // Create group node
     const groupNode = {
       id: groupId,
       type: 'group',
       position: {
-        x: bounds.minX - padding,
-        y: bounds.minY - padding
+        x: bounds.left - padding,
+        y: bounds.top - padding,
       },
       style: {
-        width: bounds.maxX - bounds.minX + padding * 2,
-        height: bounds.maxY - bounds.minY + padding * 2,
-        zIndex: -1
+        width: bounds.right - bounds.left + padding * 2,
+        height: bounds.bottom - bounds.top + padding * 2,
       },
       data: {
-        label: `Group ${nodes.filter(n => n.type === 'group').length + 1}`
+        label: 'Group'
       },
-      draggable: true,
-      selectable: true
+      zIndex: -1 // Ensure group is behind other nodes
     };
 
-    // Update selected nodes to be children of the group
+    // Create updated nodes array with the new group and updated child nodes
     const updatedNodes = nodes.map(node => {
-      if (node.selected && !node.parentId) {
+      if (node.selected) {
         return {
           ...node,
-          selected: false, // Deselect nodes when grouping
-          position: {
-            x: node.position.x - bounds.minX + padding,
-            y: node.position.y - bounds.minY + padding
-          },
-          parentId: groupId,
+          parentNode: groupId,
           extent: 'parent',
-          draggable: true,
-          zIndex: 1
+          position: {
+            x: node.position.x - bounds.left + padding,
+            y: node.position.y - bounds.top + padding,
+          },
+          selected: false,
+          zIndex: 1 // Ensure child nodes are above the group
         };
       }
       return node;
     });
 
-    dispatch(nodesChange({
-      changes: [
-        { item: groupNode, type: 'add' },
-        ...updatedNodes.map(node => ({ item: node, type: 'reset' }))
-      ]
+    // Add the group node first, then the other nodes
+    dispatch(setNodes({
+      nodes: [groupNode, ...updatedNodes]
     }));
+
   }, [nodes, dispatch]);
 
   return { onGroup };

@@ -1,25 +1,28 @@
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { nodeTypes } from '../../constants/nodeTypes'; // Import nodeTypes
+import { nodeTypes } from '../../constants/nodeTypes';
 import { addNode, connect, deleteEdge } from '../../store/flowSlice';
-import { createNode } from '../nodes/nodeFactory'; // Import createNode
+import { createNode } from '../nodes/nodeFactory';
 import { DropdownSection, DropdownItem } from '@nextui-org/react';
 
-// Refactored handleSelectNode function
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) => {
-  // console.log('addNodeWithoutConnection', nodeType, reactFlowInstance, dispatch);
-  const id = `${reactFlowInstance.getNodes().length + 1}`;
-  const position = reactFlowInstance.screenToFlowPosition({ x: 250, y: 5 });
+  const id = `node_${Date.now()}`;
+  const center = reactFlowInstance.screenToFlowPosition({
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+  });
 
-  // Use createNode from nodeFactory.js
+  const position = {
+    x: center.x,
+    y: center.y,
+  };
+
   const newNode = createNode(nodeType, id, position);
-
   dispatch(addNode({ node: newNode }));
 };
 
-// Function to add a node between two existing nodes and delete the existing edge
 export const addNodeBetweenNodes = (nodeType, sourceNode, targetNode, edgeId, reactFlowInstance, dispatch, setVisible) => {
-  const id = `${reactFlowInstance.getNodes().length + 1}`;
+  const id = `node_${Date.now()}`;
   const newPosition = {
     x: (sourceNode.position.x + targetNode.position.x) / 2,
     y: (sourceNode.position.y + targetNode.position.y) / 2,
