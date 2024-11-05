@@ -66,8 +66,6 @@ class TreeOfThoughtsNode(BaseNode):
         # evaluation node is an advanced LLM node
         evaluation_config = AdvancedNodeConfig(
             llm_info=config.llm_info,
-            max_tokens=16,
-            temperature=0.1,
             system_prompt=config.system_prompt,
             input_schema={"prompt": "str"},
             output_schema={"value": "float"},
@@ -93,6 +91,10 @@ class TreeOfThoughtsNode(BaseNode):
             for _ in range(self.config.n_generate_sample)
         ]
         responses = await asyncio.gather(*tasks)
+        responses = [
+            StringOutputLLMNodeOutput.model_validate(response.model_dump())
+            for response in responses
+        ]
         return [response.assistant_message for response in responses]
 
     def _standard_prompt_wrap(self, x: str, y: str) -> str:

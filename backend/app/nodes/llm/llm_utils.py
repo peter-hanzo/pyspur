@@ -19,20 +19,22 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
 
 
-
 class ModelInfo(BaseModel):
     name: str
-    max_tokens: int = Field(
+    max_tokens: Optional[int] = Field(
         ..., ge=1, description="Maximum number of tokens the model can generate"
     )
-    temperature: float = Field(
-        0.7,
+    temperature: Optional[float] = Field(
+        default=0.7,
         ge=0.0,
         le=1.0,
         description="Temperature for randomness, between 0.0 and 1.0",
     )
-    top_p: float = Field(
-        1.0, ge=0.0, le=1.0, description="Top-p sampling value, between 0.0 and 1.0"
+    top_p: Optional[float] = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Top-p sampling value, between 0.0 and 1.0",
     )
 
 

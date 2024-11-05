@@ -31,5 +31,5 @@ class SampleLLMNode(DynamicSchemaNode):
         tasks = [self._llm_node(input_data) for _ in range(self.config.samples)]
         responses = await asyncio.gather(*tasks)
         return self.output_model.model_validate(
-            [response.dict() for response in responses]
+            [response.model_dump() for response in responses]
         )

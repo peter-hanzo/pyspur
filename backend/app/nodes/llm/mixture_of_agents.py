@@ -54,8 +54,6 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
         # Initialize the LLM node for critiquing responses
         critique_llm_config = StringOutputLLMNodeConfig(
             llm_info=config.llm_info,
-            max_tokens=512,
-            temperature=0.1,
             system_prompt=config.system_prompt,
             json_mode=config.json_mode,
         )
@@ -64,8 +62,6 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
         # Initialize the LLM node for generating final response
         final_llm_config = StringOutputLLMNodeConfig(
             llm_info=config.llm_info,
-            max_tokens=8192,
-            temperature=0.1,
             system_prompt=config.system_prompt,
             json_mode=config.json_mode,
         )
@@ -76,7 +72,10 @@ class MixtureOfAgentsNode(StringOutputLLMNode):
     ) -> List[StringOutputLLMNodeOutput]:
         tasks = [self.initial_llm_node(input_data) for _ in range(self.config.samples)]
         responses = await asyncio.gather(*tasks)
-        return responses
+        return [
+            StringOutputLLMNodeOutput.model_validate(response.model_dump())
+            for response in responses
+        ]
 
     async def run(
         self, input_data: StringOutputLLMNodeInput

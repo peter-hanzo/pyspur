@@ -47,8 +47,6 @@ class BestOfNNode(DynamicSchemaNode):
         # Initialize the LLM node for rating responses
         rating_llm_config = AdvancedNodeConfig(
             llm_info=self.config.llm_info,
-            max_tokens=self.config.rating_max_tokens,
-            temperature=self.config.rating_temperature,
             system_prompt=self.config.rating_prompt,
             input_schema=self.config.output_schema,
             output_schema={"rating": "float"},
