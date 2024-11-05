@@ -338,6 +338,8 @@ const FlowCanvas = () => {
             panOnDrag={mode === 'hand' && !nodes.some(n => n.selected)}
             panOnScroll={true}
             zoomOnScroll={true}
+            minZoom={0.1}
+            maxZoom={2}
             selectionMode={mode === 'pointer' ? 1 : 0}
             selectNodesOnDrag={mode === 'pointer'}
             selectionOnDrag={mode === 'pointer'}
