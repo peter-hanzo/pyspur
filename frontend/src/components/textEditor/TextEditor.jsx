@@ -12,6 +12,7 @@ import {
   Bold, Strikethrough, Italic, List, ListOrdered, Quote, Undo, Redo, Code, SeparatorHorizontal
 } from "lucide-react";
 import styles from "./TextEditor.module.css";
+import { Icon } from "@iconify/react";
 
 const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
   const editor = useEditor({
@@ -284,7 +285,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
 
       {!fullScreen && (
         <>
-          <Button onPress={onOpen} className="mt-4">Open Full-Screen Editor</Button>
+          <Button onPress={onOpen} isIconOnly className="mt-4">
+            <Icon icon="solar:maximize-square-linear" className="w-4 h-4" />
+          </Button>
 
           <Modal
             isOpen={isOpen}

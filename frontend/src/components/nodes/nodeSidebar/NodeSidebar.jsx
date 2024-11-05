@@ -149,11 +149,18 @@ const NodeSidebar = ({ nodeID }) => {
             }
             else if (field.title && field.title.toLowerCase().includes('prompt')) {
                 return (
-                    <PromptEditor
-                        key={key}
-                        nodeID={nodeID}
-                        fieldName={key}
-                    />
+                    <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
+                        <label className="text-sm font-semibold mb-3 block text-gray-700">
+                            {field.title}
+                        </label>
+                        <div className="border rounded-lg bg-white shadow-sm">
+                            <PromptEditor
+                                key={key}
+                                nodeID={nodeID}
+                                fieldName={key}
+                            />
+                        </div>
+                    </div>
                 );
             }
 
