@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from typing import Any, Dict, Optional, Set
 
 from pydantic import BaseModel
@@ -107,14 +108,26 @@ class WorkflowExecutor:
 
         # Update task recorder
         if self.task_recorder:
-            self.task_recorder.update_task(TaskStatus.RUNNING, inputs=input_data_dict)
+            self.task_recorder.update_task(
+                node_id=node_id, status=TaskStatus.RUNNING, inputs=input_data_dict
+            )
         # Execute node
-        output = await node_executor(node_input_data)
+        try:
+            output = await node_executor(node_input_data)
+        except Exception as e:
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id, status=TaskStatus.FAILED, end_time=datetime.now()
+                )
+            raise e
 
         # Update task recorder
         if self.task_recorder:
             self.task_recorder.update_task(
-                TaskStatus.COMPLETED, outputs=output.model_dump()
+                node_id=node_id,
+                status=TaskStatus.COMPLETED,
+                outputs=output.model_dump(),
+                end_time=datetime.now(),
             )
         # Store output
         self._outputs[node_id] = output
