@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Iterator, List, Optional, Set
 
 from pydantic import BaseModel
 
@@ -212,3 +212,21 @@ class WorkflowExecutor:
         )
 
         return self._outputs
+
+    async def run_batch(
+        self, input_iterator: Iterator[Dict[str, Any]], batch_size: int = 100
+    ) -> List[Dict[str, BaseModel]]:
+        """
+        Run the workflow on a batch of inputs.
+        """
+        results: List[Dict[str, BaseModel]] = []
+        batch_tasks: List[asyncio.Task[Dict[str, BaseModel]]] = []
+        for input_data in input_iterator:
+            batch_tasks.append(asyncio.create_task(self.run(input_data)))
+            if len(batch_tasks) == batch_size:
+                results.extend(await asyncio.gather(*batch_tasks))
+                batch_tasks = []
+        if batch_tasks:
+            results.extend(await asyncio.gather(*batch_tasks))
+
+        return results
