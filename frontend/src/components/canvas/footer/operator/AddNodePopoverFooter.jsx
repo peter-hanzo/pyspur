@@ -11,6 +11,12 @@ const AddNodePopoverFooter = () => {
   const reactFlowInstance = useReactFlow();
   const dispatch = useDispatch();
 
+  const handleAddNode = (nodeName) => {
+    if (reactFlowInstance) {
+      addNodeWithoutConnection(nodeName, reactFlowInstance, dispatch);
+    }
+  };
+
   return (
     <Card className='h-12 flex items-center justify-center'>
       <div className='flex items-center text-gray-500'>
@@ -24,7 +30,10 @@ const AddNodePopoverFooter = () => {
             {Object.keys(nodeTypes).map((category) => (
               <DropdownSection key={category} title={category} showDivider>
                 {nodeTypes[category].map((node) => (
-                  <DropdownItem key={node.name} onClick={() => addNodeWithoutConnection(node.name, reactFlowInstance, dispatch)}>
+                  <DropdownItem
+                    key={node.name}
+                    onClick={() => handleAddNode(node.name)}
+                  >
                     {node.name}
                   </DropdownItem>
                 ))}

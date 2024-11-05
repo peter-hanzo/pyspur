@@ -3,33 +3,39 @@ import DynamicModel from '../../utils/DynamicModel';
 
 // Function to create a node based on its type
 export const createNode = (type, id, position, additionalData = {}) => {
-  // Find the node type definition from nodeTypes.js
-  const nodeType = Object.values(nodeTypes).flat().find(node => node.name === type);
-
-  if (!nodeType) {
-    throw new Error(`Node type ${type} not found in nodeTypes.js`);
+  let nodeType = null;
+  for (const category in nodeTypes) {
+    const found = nodeTypes[category].find(node => node.name === type);
+    if (found) {
+      nodeType = found;
+      break;
+    }
   }
 
-  const dynamicModel = new DynamicModel(nodeType.config);
-  console.log('dynamicModel', dynamicModel);
+  if (!nodeType) {
+    return null;
+  }
 
-
-  // Create the node data, including acronym and color
-  const nodeData = {
-    ...additionalData,
+  const userConfigData = {
+    schema: nodeType.config?.schema || {},
+    input_schema: nodeType.input?.properties || {},
+    output_schema: nodeType.output?.properties || {},
     title: nodeType.name,
-    acronym: nodeType.acronym,
-    color: nodeType.color,
-    config: nodeType.config,
-    input: nodeType.input,
-    output: nodeType.output,
-    userconfig: {...dynamicModel},
   };
 
   return {
     id,
-    type,
-    data: nodeData,
+    type: nodeType.name,
     position,
+    data: {
+      ...additionalData,
+      title: nodeType.name,
+      acronym: nodeType.acronym,
+      color: nodeType.color,
+      config: nodeType.config,
+      input: nodeType.input,
+      output: nodeType.output,
+      userconfig: userConfigData,
+    },
   };
 };

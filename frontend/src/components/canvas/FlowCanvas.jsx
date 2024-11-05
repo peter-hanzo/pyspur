@@ -30,15 +30,23 @@ import GroupNode from '../nodes/GroupNode';
 import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
 
+console.log('Available nodeTypes:', nodeTypesConfig);
+
 const nodeTypes = {
   group: GroupNode,
   ...Object.keys(nodeTypesConfig).reduce((acc, category) => {
     nodeTypesConfig[category].forEach(node => {
-      acc[node.name] = (props) => <DynamicNode {...props} type={node.name} />;
+      console.log(`Registering node type: ${node.name}`);
+      acc[node.name] = (props) => {
+        console.log('Rendering node with props:', props);
+        return <DynamicNode {...props} type={node.name} />;
+      };
     });
     return acc;
   }, {})
 };
+
+console.log('Registered node types:', nodeTypes);
 
 const edgeTypes = {
   custom: CustomEdge,
@@ -252,10 +260,14 @@ const FlowCanvas = () => {
 
   // Create a memoized version of nodes with draggable property based on mode
   const nodesWithMode = useMemo(() => {
+    console.log('Creating nodesWithMode with nodes:', nodes);
     return nodes.map(node => ({
       ...node,
-      draggable: mode === 'pointer',
+      draggable: true,
       selectable: mode === 'pointer',
+      position: node.position,
+      type: node.type,
+      data: node.data,
     }));
   }, [nodes, mode]);
 
@@ -323,7 +335,7 @@ const FlowCanvas = () => {
             onEdgeMouseLeave={onEdgeMouseLeave}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
-            panOnDrag={mode === 'hand'}
+            panOnDrag={mode === 'hand' && !nodes.some(n => n.selected)}
             panOnScroll={true}
             zoomOnScroll={true}
             selectionMode={mode === 'pointer' ? 1 : 0}
