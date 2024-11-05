@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -23,7 +24,7 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
         if output_file:
             output_file_id = output_file.id
     tasks = run.tasks
-    tasks = [
+    tasks_meta = [
         {
             "node_id": task.node_id,
             "status": task.status,
@@ -33,12 +34,15 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
         }
         for task in tasks
     ]
+    combined_task_outputs: Dict[str, Any] = {}
+    for task in tasks:
+        combined_task_outputs[task.node_id] = task.outputs
     return RunStatusResponseSchema(
         id=run.id,
         status=run.status,
         start_time=run.start_time,
         end_time=run.end_time,
-        outputs=run.outputs,
-        tasks=tasks,
+        outputs=combined_task_outputs,
+        tasks=tasks_meta,
         output_file_id=output_file_id,
     )
