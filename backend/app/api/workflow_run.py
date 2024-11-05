@@ -138,7 +138,7 @@ async def run_partial_workflow(
 
 
 @router.get(
-    "/workflow/{run_id}/run_batch/",
+    "/workflow/{run_id}/start_batch_run/",
     response_model=RunResponseSchema,
     description="Start a batch run of a workflow over a dataset and return the run details",
 )
