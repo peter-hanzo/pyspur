@@ -1,5 +1,5 @@
 import React from 'react';
-import { useReactFlow, getBezierPath } from 'reactflow';
+import { useReactFlow, getBezierPath } from '@xyflow/react';
 import { Button } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { useDispatch } from 'react-redux';
@@ -88,7 +88,6 @@ const CustomEdge = ({
             <Button
               isIconOnly
               auto
-              color="danger"
               onClick={handleDeleteEdge}
             >
               <Icon icon="solar:trash-bin-trash-bold" width={20} />

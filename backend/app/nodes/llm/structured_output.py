@@ -15,7 +15,7 @@ class StructuredOutputNodeConfig(BaseModel):
     system_prompt: str = Field(
         "You are a helpful assistant.", description="The system prompt for the LLM"
     )
-    output_schema: Dict[str, str]
+    output_schema: Dict[str, str] = {"response": "str"}
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     async def test_llm_nodes():
         structured_output_llm_node = StructuredOutputNode(
             config=StructuredOutputNodeConfig(
-                llm_info=ModelInfo(LLMModelRegistry.GPT_4O_MINI),
+                llm_info=LLMModelRegistry.GPT_4O_MINI,
                 system_prompt="This is a test prompt.",
                 output_schema={"response": "str"},
             )

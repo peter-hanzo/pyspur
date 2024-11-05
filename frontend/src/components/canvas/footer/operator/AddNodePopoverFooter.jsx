@@ -4,7 +4,7 @@ import { Card, Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-o
 import { nodeTypes } from '../../../../constants/nodeTypes'; // Import nodeTypes
 import { useDispatch } from 'react-redux';
 import { addNodeWithoutConnection } from '../../AddNodePopoverCanvas';
-import { useReactFlow } from 'reactflow';
+import { useReactFlow } from '@xyflow/react';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 
 const AddNodePopoverFooter = () => {

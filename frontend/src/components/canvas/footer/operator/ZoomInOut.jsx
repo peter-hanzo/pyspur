@@ -1,5 +1,5 @@
 import React from 'react';
-import { useReactFlow, useViewport } from 'reactflow';
+import { useReactFlow, useViewport } from '@xyflow/react';
 import { Card, Button } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 

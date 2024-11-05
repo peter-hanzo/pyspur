@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Handle } from 'reactflow';
+import { Handle } from '@xyflow/react';
 import { useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
 
-const DynamicNode = ({ id, type }) => {
-  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
+const DynamicNode = ({ positionAbsoluteX, positionAbsoluteY, ...props }) => {
+  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === props.id));
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
 
@@ -92,7 +92,7 @@ const DynamicNode = ({ id, type }) => {
   }
 
   return (
-    <BaseNode id={id} data={node.data} style={{ width: nodeWidth }}>
+    <BaseNode id={props.id} data={node.data} style={{ width: nodeWidth }}>
       <div className={styles.nodeWrapper} ref={nodeRef}>
         {renderHandles()}
       </div>

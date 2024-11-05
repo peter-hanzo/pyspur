@@ -1,5 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
+import { createSlice, createAction } from '@reduxjs/toolkit';
+import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 
 const initialState = {
   nodes: [],
@@ -7,6 +7,7 @@ const initialState = {
   hoveredNode: null,
   selectedNode: null,
   sidebarWidth: 400,
+  projectName: 'Untitled Project',
 };
 
 const flowSlice = createSlice({
@@ -14,10 +15,12 @@ const flowSlice = createSlice({
   initialState,
   reducers: {
     nodesChange: (state, action) => {
-      state.nodes = applyNodeChanges(action.payload.changes, state.nodes);
+      const changes = action.payload.changes;
+      state.nodes = applyNodeChanges(changes, state.nodes);
     },
     edgesChange: (state, action) => {
-      state.edges = applyEdgeChanges(action.payload.changes, state.edges);
+      const changes = action.payload.changes;
+      state.edges = applyEdgeChanges(changes, state.edges);
     },
     connect: (state, action) => {
       state.edges = addEdge(action.payload.connection, state.edges);
@@ -61,6 +64,32 @@ const flowSlice = createSlice({
     setSidebarWidth: (state, action) => {
       state.sidebarWidth = action.payload;
     },
+    setProjectName: (state, action) => {
+      state.projectName = action.payload;
+    },
+    detachNodes: (state, action) => {
+      const { nodeIds, groupId } = action.payload;
+      const groupNode = state.nodes.find(n => n.id === groupId);
+
+      state.nodes = state.nodes.map(node => {
+        if (nodeIds.includes(node.id)) {
+          return {
+            ...node,
+            position: {
+              x: node.position.x + groupNode.position.x,
+              y: node.position.y + groupNode.position.y
+            },
+            parentId: undefined,
+            extent: undefined
+          };
+        }
+        return node;
+      }).filter(node => node.id !== groupId);
+    },
+    clearCanvas: (state) => {
+      state.nodes = [];
+      state.edges = [];
+    },
   },
 });
 
@@ -77,6 +106,9 @@ export const {
   deleteNode,
   deleteEdge,
   setSidebarWidth,
+  setProjectName,
+  detachNodes,
+  clearCanvas
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

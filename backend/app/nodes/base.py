@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Type, Union
-from re import Pattern
 
-from pydantic import BaseModel, Field, ValidationError, create_model, constr
+from pydantic import BaseModel, Field, ValidationError, create_model
 
 DynamicSchemaValueType = str
 TSchemaValue = Type[
@@ -35,9 +34,11 @@ class BaseNode(ABC):
     _config: Any
     visual_tag: VisualTag
 
-    def __init__(self, config: Any, visual_tag: Dict[str, str]) -> None:
+    def __init__(self, config: Any) -> None:
         self._config = config
-        self.visual_tag = VisualTag(**visual_tag)
+        # if visual tag is not set by the node, set a default visual tag
+        if not hasattr(self, "visual_tag"):
+            self.set_default_visual_tag()
         self.setup()
 
     @abstractmethod
@@ -82,7 +83,7 @@ class BaseNode(ABC):
         Return the node's configuration.
         """
         if type(self._config) == dict:
-            return self.config_model.model_validate(self._config)
+            return self.config_model.model_validate(self._config)  # type: ignore
         return self.config_model.model_validate(self._config.model_dump())
 
     @staticmethod
@@ -171,3 +172,29 @@ class BaseNode(ABC):
         """
         schema = {k: type(v).__name__ for k, v in values.items()}
         return cls.get_model_for_schema_dict(schema, schema_name, base_model)
+
+    def set_default_visual_tag(self) -> None:
+        """
+        Set a default visual tag for the node.
+        """
+        # default acronym is the first letter of each word in the node name
+        acronym = "".join([word[0] for word in self.name.split("_")]).upper()
+
+        # default color is randomly picked from a list of pastel colors
+        colors = [
+            "#FFC1C1",
+            "#FFD3C1",
+            "#FFF2C1",
+            "#E8FFC1",
+            "#C1FFD1",
+            "#C1FFEC",
+            "#C1F4FF",
+            "#C1D6FF",
+            "#C1C1FF",
+            "#D6C1FF",
+            "#F4C1FF",
+            "#FFC1EC",
+        ]
+        color = colors[hash(self.name) % len(colors)]
+
+        self.visual_tag = VisualTag(acronym=acronym, color=color)
