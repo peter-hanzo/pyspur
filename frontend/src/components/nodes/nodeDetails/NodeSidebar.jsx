@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData, selectNodeById, setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
+import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
 import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
 import TextInput from '../../TextInput';
 import NumberInput from '../../NumberInput';
@@ -16,18 +16,11 @@ import { Slider } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
 import { Textarea } from '@nextui-org/react';
 import { Select, SelectSection, SelectItem } from '@nextui-org/react';
-import { Icon } from "@iconify/react";
-import { Accordion, AccordionItem } from "@nextui-org/react";
 
-const NodeSidebar = ({ nodeID }) => {
+const NodeDetails = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
-    // Get the width from Redux store
-    const storedWidth = useSelector((state) => state.flow.sidebarWidth);
-
-    // Initialize width state with the stored value
-    const [width, setWidth] = useState(storedWidth);
-    const [isResizing, setIsResizing] = useState(false);
+    // console.log('NodeDetails', nodeID, node);
 
     const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
     const findNodeSchema = (nodeType) => {
@@ -146,15 +139,6 @@ const NodeSidebar = ({ nodeID }) => {
                     </div>
 
                 )
-            }
-            else if (field.title && field.title.toLowerCase().includes('prompt')) {
-                return (
-                    <PromptEditor
-                        key={key}
-                        nodeID={nodeID}
-                        fieldName={key}
-                    />
-                );
             }
 
 
@@ -288,106 +272,38 @@ const NodeSidebar = ({ nodeID }) => {
         );
     };
 
-    // Add resize handler
-    const handleMouseDown = useCallback((e) => {
-        setIsResizing(true);
-        e.preventDefault();
-    }, []);
-
-    // Add mouse move and mouse up handlers
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isResizing) return;
-
-            // Calculate new width based on mouse position
-            const newWidth = window.innerWidth - e.clientX;
-            // Set minimum and maximum width constraints
-            const constrainedWidth = Math.min(Math.max(newWidth, 300), 800);
-            setWidth(constrainedWidth);
-        };
-
-        const handleMouseUp = () => {
-            setIsResizing(false);
-            // Persist the final width to Redux when mouse is released
-            dispatch(setSidebarWidth(width));
-        };
-
-        if (isResizing) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
-
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isResizing, dispatch, width]);
-
     return (
-        <div
-            className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 flex"
-            style={{
-                width: `${width}px`,
-                zIndex: 2,
-                userSelect: isResizing ? 'none' : 'auto'
-            }}
-        >
-            {/* Add resize handle */}
-            <div
-                className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 hover:opacity-100 opacity-0 transition-opacity"
-                onMouseDown={handleMouseDown}
-                style={{
-                    backgroundColor: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
-                    opacity: isResizing ? '1' : undefined
-                }}
-            />
+        <div className="px-4 py-1 overflow-auto max-h-screen" id="node-details">
+            <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
+            <h2 className="text-sm font-semibold">{nodeType}</h2>
+            <hr className="my-4" />
 
-            {/* Updated sidebar content */}
-            <div className="flex-1 px-4 py-1 overflow-auto max-h-screen" id="node-details">
-                <div className="flex justify-between items-center mb-2">
-                    <div>
-                        <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
-                        <h2 className="text-sm font-semibold">{nodeType}</h2>
-                    </div>
-                    <Button
-                        isIconOnly
-                        radius="full"
-                        variant="light"
-                        onClick={() => dispatch(setSelectedNode({ nodeId: null }))}
-                    >
-                        <Icon
-                            className="text-default-500"
-                            icon="solar:close-circle-linear"
-                            width={24}
-                        />
-                    </Button>
+            <div className="mb-4 flex justify-between">
+                <div className='flex items-center'>
+                    <h3 className="text-lg font-semibold">Node Config</h3>
                 </div>
-
-                <Accordion selectionMode="multiple" defaultExpandedKeys={["title", "config", "examples"]}>
-                    <AccordionItem key="title" aria-label="Node Title" title="Node Title">
-                        <Textarea
-                            value={node?.data?.userconfig?.title || ''}
-                            onChange={(e) => handleInputChange('title', e.target.value)}
-                            placeholder="Enter node title"
-                            maxRows={1}
-                            label="Node Title"
-                            fullWidth
-                        />
-                    </AccordionItem>
-
-                    <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
-                        {renderConfigFields()}
-                    </AccordionItem>
-
-                    {nodeSchema?.config?.properties?.few_shot_examples && (
-                        <AccordionItem key="examples" aria-label="Few Shot Examples" title="Few Shot Examples">
-                            {renderFewShotExamples()}
-                        </AccordionItem>
-                    )}
-                </Accordion>
             </div>
+
+            {/* Add an input field for the node title */}
+            <div className="my-4">
+                <Textarea
+                    value={node?.data?.userconfig?.title || ''}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="Enter node title"
+                    maxRows={1}
+                    label="Node Title"
+                    fullWidth
+                />
+            </div>
+
+            {renderConfigFields()}
+
+            {/* Render Few Shot Examples */}
+            {renderFewShotExamples()}
+
+            <hr className="my-2" />
         </div>
     );
 };
 
-export default NodeSidebar;
+export default NodeDetails;

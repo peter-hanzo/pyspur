@@ -26,7 +26,7 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
     content: content,
     editorProps: {
       attributes: {
-        class: `flex flex-col px-4 py-3 justify-start border-b border-x border-gray-700 items-start w-full gap-3 font-medium pt-4 rounded-b-md outline-none ${isEditable ? "" : "rounded-md border-t"} ${fullScreen ? styles.fullScreenEditor : ""}`,
+        class: `w-full bg-content2 hover:bg-content3 transition-colors min-h-[40px] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500 ${isEditable ? "" : "rounded-medium"} ${fullScreen ? styles.fullScreenEditor : ""}`,
       },
     },
     onUpdate: ({ editor }) => {
@@ -43,129 +43,165 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
   const renderToolbar = () => {
     if (!editor) return null;
 
+    // Add size classes based on fullScreen prop
+    const buttonSize = fullScreen ? "sm" : "md";
+    const buttonClassName = fullScreen ? "w-4 h-4" : "w-3 h-3";
+    const toolbarClassName = fullScreen
+      ? "px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider"
+      : "px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider";
+
     return (
-      <div
-        className="px-4 py-3 rounded-tl-md rounded-tr-md flex justify-between items-start
-        gap-5 w-full flex-wrap border border-gray-700"
-      >
-        <div className="flex justify-start items-center gap-3 w-full lg:w-10/12 flex-wrap ">
+      <div className={toolbarClassName}>
+        <div className="flex justify-start items-center gap-1 w-full lg:w-10/12 flex-wrap">
           <Button
             onPress={() => editor.chain().focus().toggleBold().run()}
             disabled={!editor.can().chain().focus().toggleBold().run()}
             color="primary"
             variant={editor.isActive("bold") ? "solid" : "flat"}
+            size={buttonSize}
             auto
+            isIconOnly
           >
-            <Bold className="w-5 h-5" />
+            <Bold className={buttonClassName} />
           </Button>
           <Button
             onPress={() => editor.chain().focus().toggleItalic().run()}
             disabled={!editor.can().chain().focus().toggleItalic().run()}
             color="primary"
             variant={editor.isActive("italic") ? "solid" : "flat"}
+            size={buttonSize}
             auto
+            isIconOnly
           >
-            <Italic className="w-5 h-5" />
+            <Italic className={buttonClassName} />
           </Button>
           <Button
             onPress={() => editor.chain().focus().toggleStrike().run()}
             disabled={!editor.can().chain().focus().toggleStrike().run()}
             color="primary"
             variant={editor.isActive("strike") ? "solid" : "flat"}
+            size={buttonSize}
             auto
+            isIconOnly
           >
-            <Strikethrough className="w-5 h-5" />
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().setParagraph().run()}
-            color="primary"
-            variant={editor.isActive('paragraph') ? "solid" : "flat"}
-            auto
-          >
-            Paragraph
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            color="primary"
-            variant={editor.isActive('heading', { level: 1 }) ? "solid" : "flat"}
-            auto
-          >
-            H1
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            color="primary"
-            variant={editor.isActive('heading', { level: 2 }) ? "solid" : "flat"}
-            auto
-          >
-            H2
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            color="primary"
-            variant={editor.isActive('heading', { level: 3 }) ? "solid" : "flat"}
-            auto
-          >
-            H3
+            <Strikethrough className={buttonClassName} />
           </Button>
           <Button
             onPress={() => editor.chain().focus().toggleBulletList().run()}
             color="primary"
             variant={editor.isActive("bulletList") ? "solid" : "flat"}
+            size={buttonSize}
             auto
+            isIconOnly
           >
-            <List className="w-5 h-5" />
+            <List className={buttonClassName} />
           </Button>
           <Button
             onPress={() => editor.chain().focus().toggleOrderedList().run()}
             color="primary"
             variant={editor.isActive("orderedList") ? "solid" : "flat"}
+            size={buttonSize}
             auto
+            isIconOnly
           >
-            <ListOrdered className="w-5 h-5" />
+            <ListOrdered className={buttonClassName} />
           </Button>
-          <Button
-            onPress={() => editor.chain().focus().toggleBlockquote().run()}
-            color="primary"
-            variant={editor.isActive("blockquote") ? "solid" : "flat"}
-            auto
-          >
-            <Quote className="w-5 h-5" />
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().toggleCodeBlock().run()}
-            color="primary"
-            variant={editor.isActive('codeBlock') ? "solid" : "flat"}
-            auto
-          >
-            <Code className="w-5 h-5" />
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().setHorizontalRule().run()}
-            color="primary"
-            variant="flat"
-            auto
-          >
-            <SeparatorHorizontal className="w-5 h-5" />
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().chain().focus().undo().run()}
-            color="primary"
-            variant="flat"
-            auto
-          >
-            <Undo className="w-5 h-5" />
-          </Button>
-          <Button
-            onPress={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().chain().focus().redo().run()}
-            color="primary"
-            variant="flat"
-            auto
-          >
-            <Redo className="w-5 h-5" />
-          </Button>
+          {fullScreen && (
+            <>
+              <Button
+                onPress={() => editor.chain().focus().setParagraph().run()}
+                color="primary"
+                variant={editor.isActive('paragraph') ? "solid" : "flat"}
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                P
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                color="primary"
+                variant={editor.isActive('heading', { level: 1 }) ? "solid" : "flat"}
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                H1
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                color="primary"
+                variant={editor.isActive('heading', { level: 2 }) ? "solid" : "flat"}
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                H2
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                color="primary"
+                variant={editor.isActive('heading', { level: 3 }) ? "solid" : "flat"}
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                H3
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().toggleBlockquote().run()}
+                color="primary"
+                variant={editor.isActive("blockquote") ? "solid" : "flat"}
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                <Quote className={buttonClassName} />
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().toggleCodeBlock().run()}
+                color="primary"
+                variant={editor.isActive('codeBlock') ? "solid" : "flat"}
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                <Code className={buttonClassName} />
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().setHorizontalRule().run()}
+                color="primary"
+                variant="flat"
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                <SeparatorHorizontal className={buttonClassName} />
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().undo().run()}
+                disabled={!editor.can().chain().focus().undo().run()}
+                color="primary"
+                variant="flat"
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                <Undo className={buttonClassName} />
+              </Button>
+              <Button
+                onPress={() => editor.chain().focus().redo().run()}
+                disabled={!editor.can().chain().focus().redo().run()}
+                color="primary"
+                variant="flat"
+                size={buttonSize}
+                auto
+                isIconOnly
+              >
+                <Redo className={buttonClassName} />
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );

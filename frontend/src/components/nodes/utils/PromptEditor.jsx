@@ -9,7 +9,7 @@ import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
  * @param {string} fieldName - The name of the field in the node's config to edit.
  * @returns {JSX.Element} - The editor component.
  */
-const NodeFieldEditor = ({ nodeID, fieldName }) => {
+const PromptEditor = ({ nodeID, fieldName }) => {
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
   const [fieldValue, setFieldValue] = useState(node?.data?.config?.properties?.[fieldName]?.value || ''); // Read from config
@@ -42,4 +42,4 @@ const NodeFieldEditor = ({ nodeID, fieldName }) => {
   );
 };
 
-export default NodeFieldEditor;
+export default PromptEditor;
