@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from datetime import datetime
 from ..models.run_model import RunStatus
@@ -30,6 +30,7 @@ class RunStatusResponseSchema(BaseModel):
     status: RunStatus
     start_time: Optional[datetime]
     end_time: Optional[datetime]
+    tasks: List[Dict[str, Any]]
     outputs: Optional[Dict[str, Any]]
     output_file_id: Optional[str]
 
