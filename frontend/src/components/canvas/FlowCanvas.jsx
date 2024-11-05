@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { ReactFlow, Background, useReactFlow, Panel } from '@xyflow/react';
+import { ReactFlow, Background, useReactFlow, Panel, ReactFlowProvider, useViewport } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/operator/Operator';
@@ -29,6 +29,7 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import GroupNode from '../nodes/GroupNode';
 import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
+import { Icon } from "@iconify/react";
 
 console.log('Available nodeTypes:', nodeTypesConfig);
 
@@ -52,7 +53,8 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-const FlowCanvas = () => {
+// Create a wrapper component that includes ReactFlow logic
+const FlowCanvasContent = () => {
   // console.log('FlowCanvas re-rendered');
 
   const dispatch = useDispatch();
@@ -240,27 +242,45 @@ const FlowCanvas = () => {
   };
 
   const { onGroup } = useGroupNodes();
-
-  // Add keyboard shortcut for grouping
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'g') {
-        event.preventDefault();
-        onGroup();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onGroup]);
-
-  // Get both mode and setMode from the store
   const mode = useModeStore((state) => state.mode);
-  const setMode = useModeStore((state) => state.setMode);
 
-  // Create a memoized version of nodes with draggable property based on mode
+  const viewport = useViewport();
+
+  // Update the getGroupButtonPosition function
+  const getGroupButtonPosition = useCallback(() => {
+    const selectedNodes = nodes.filter(node => node.selected && !node.parentId);
+    if (selectedNodes.length <= 1) return null;
+
+    // Calculate the bounding box of selected nodes
+    const bounds = selectedNodes.reduce(
+      (acc, node) => {
+        const nodeWidth = node.width || 150;
+        const nodeHeight = node.height || 40;
+
+        return {
+          minX: Math.min(acc.minX, node.position.x),
+          maxX: Math.max(acc.maxX, node.position.x + nodeWidth),
+          minY: Math.min(acc.minY, node.position.y),
+          maxY: Math.max(acc.maxY, node.position.y + nodeHeight),
+        };
+      },
+      {
+        minX: Infinity,
+        maxX: -Infinity,
+        minY: Infinity,
+        maxY: -Infinity,
+      }
+    );
+
+    // Apply viewport transform to get the correct screen position
+    return {
+      x: (bounds.maxX + 20) * viewport.zoom + viewport.x,
+      y: (bounds.minY - 20) * viewport.zoom + viewport.y,
+    };
+  }, [nodes, viewport]);
+
+  // Add this memoized nodes with mode
   const nodesWithMode = useMemo(() => {
-    console.log('Creating nodesWithMode with nodes:', nodes);
     return nodes.map(node => ({
       ...node,
       draggable: true,
@@ -354,6 +374,30 @@ const FlowCanvas = () => {
               vertical={helperLines.vertical}
             />
 
+            {mode === 'pointer' && getGroupButtonPosition() && (
+              <Panel
+                className="absolute"
+                style={{
+                  left: getGroupButtonPosition().x,
+                  top: getGroupButtonPosition().y,
+                  transform: 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  pointerEvents: 'all'
+                }}
+              >
+                <Button
+                  size="sm"
+                  onClick={onGroup}
+                  className="bg-white hover:bg-default-100 border-1 shadow-lg"
+                  startContent={<Icon icon="solar:box-bold" />}
+                  disabled={nodes.filter(node => node.selected && !node.parentId).length <= 1}
+                >
+                  Group
+                </Button>
+              </Panel>
+            )}
+
             <Operator />
           </ReactFlow>
         </div>
@@ -367,6 +411,15 @@ const FlowCanvas = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// Main component that provides the ReactFlow context
+const FlowCanvas = () => {
+  return (
+    <ReactFlowProvider>
+      <FlowCanvasContent />
+    </ReactFlowProvider>
   );
 };
 
