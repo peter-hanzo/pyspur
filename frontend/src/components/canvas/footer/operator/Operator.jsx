@@ -7,6 +7,7 @@ import { Button, ButtonGroup } from '@nextui-org/react';
 import { useSelector } from 'react-redux';
 import { useModeStore } from '../../../../store/modeStore';
 import { Icon } from "@iconify/react";
+import TipPopup from '../../../TipPopUp';
 
 function Operator() {
   const nodes = useSelector(state => state.flow.nodes);
@@ -25,30 +26,34 @@ function Operator() {
       <div className='flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9]'>
         <ZoomInOut />
         <ButtonGroup>
-          <Button
-            size="sm"
-            isIconOnly
-            onClick={() => setMode('pointer')}
-            className={mode === 'pointer' ? 'bg-default-200' : 'bg-white'}
-          >
-            <Icon
-              className={`${mode === 'pointer' ? 'text-default-800' : 'text-default-500'}`}
-              icon={mode === 'pointer' ? "solar:cursor-bold" : "solar:cursor-linear"}
-              width={16}
-            />
-          </Button>
-          <Button
-            size="sm"
-            isIconOnly
-            onClick={() => setMode('hand')}
-            className={mode === 'hand' ? 'bg-default-200' : 'bg-white'}
-          >
-            <Icon
-              className={`${mode === 'hand' ? 'text-default-800' : 'text-default-500'}`}
-              icon={mode === 'hand' ? "solar:hand-shake-bold" : "solar:hand-shake-linear"}
-              width={16}
-            />
-          </Button>
+          <TipPopup title='Select' shortcuts={['v']}>
+            <Button
+              size="sm"
+              isIconOnly
+              onClick={() => setMode('pointer')}
+              className={mode === 'pointer' ? 'bg-default-200' : 'bg-white'}
+            >
+              <Icon
+                className={`${mode === 'pointer' ? 'text-default-800' : 'text-default-500'}`}
+                icon={mode === 'pointer' ? "solar:cursor-bold" : "solar:cursor-linear"}
+                width={16}
+              />
+            </Button>
+          </TipPopup>
+          <TipPopup title='Pan' shortcuts={['space']}>
+            <Button
+              size="sm"
+              isIconOnly
+              onClick={() => setMode('hand')}
+              className={mode === 'hand' ? 'bg-default-200' : 'bg-white'}
+            >
+              <Icon
+                className={`${mode === 'hand' ? 'text-default-800' : 'text-default-500'}`}
+                icon={mode === 'hand' ? "solar:hand-shake-bold" : "solar:hand-shake-linear"}
+                width={16}
+              />
+            </Button>
+          </TipPopup>
           <UndoRedo handleUndo={null} handleRedo={null} />
           <AddNodePopoverFooter />
         </ButtonGroup>

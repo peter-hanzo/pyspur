@@ -5,6 +5,7 @@ import { nodeTypes } from '../../../../constants/nodeTypes';
 import { useDispatch } from 'react-redux';
 import { addNodeWithoutConnection } from '../../AddNodePopoverCanvas';
 import { useReactFlow } from '@xyflow/react';
+import TipPopup from '../../../TipPopUp';
 
 const AddNodePopoverFooter = () => {
   const reactFlowInstance = useReactFlow();
@@ -17,31 +18,33 @@ const AddNodePopoverFooter = () => {
   };
 
   return (
-    <Dropdown>
-      <DropdownTrigger>
-        <Button
-          isIconOnly
-          size="sm"
-          className="bg-white"
-        >
-          <Icon icon="solar:add-circle-bold" width={16} className="text-default-500" />
-        </Button>
-      </DropdownTrigger>
-      <DropdownMenu>
-        {Object.keys(nodeTypes).map((category) => (
-          <DropdownSection key={category} title={category} showDivider>
-            {nodeTypes[category].map((node) => (
-              <DropdownItem
-                key={node.name}
-                onClick={() => handleAddNode(node.name)}
-              >
-                {node.name}
-              </DropdownItem>
-            ))}
-          </DropdownSection>
-        ))}
-      </DropdownMenu>
-    </Dropdown>
+    <TipPopup title='Add Node' shortcuts={['shift', 'a']}>
+      <Dropdown>
+        <DropdownTrigger>
+          <Button
+            isIconOnly
+            size="sm"
+            className="bg-white"
+          >
+            <Icon icon="solar:add-circle-bold" width={16} className="text-default-500" />
+          </Button>
+        </DropdownTrigger>
+        <DropdownMenu aria-label="Add Node Options">
+          {Object.keys(nodeTypes).map((category) => (
+            <DropdownSection key={category} title={category} showDivider>
+              {nodeTypes[category].map((node) => (
+                <DropdownItem
+                  key={node.name}
+                  onClick={() => handleAddNode(node.name)}
+                >
+                  {node.name}
+                </DropdownItem>
+              ))}
+            </DropdownSection>
+          ))}
+        </DropdownMenu>
+      </Dropdown>
+    </TipPopup>
   );
 };
 
