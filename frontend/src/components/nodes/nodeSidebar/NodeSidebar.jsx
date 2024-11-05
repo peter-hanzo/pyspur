@@ -18,6 +18,7 @@ import { Textarea } from '@nextui-org/react';
 import { Select, SelectSection, SelectItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { Accordion, AccordionItem } from "@nextui-org/react";
+import NodeStatus from "../NodeStatusDisplay";
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -375,6 +376,10 @@ const NodeSidebar = ({ nodeID }) => {
                             {renderFewShotExamples()}
                         </AccordionItem>
                     )}
+
+                    <AccordionItem key="output" aria-label='Output' title="Output">
+                        <NodeStatus node={node} />
+                    </AccordionItem>
                 </Accordion>
             </div>
         </div>

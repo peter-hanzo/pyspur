@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Input,
@@ -14,22 +14,49 @@ import {
   DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { runWorkflow } from '../utils/api';
-import SettingsCard from './settings/Settings'; // Import the updated SettingsCard component
-import { setProjectName, clearCanvas } from '../store/flowSlice';
+import { runWorkflow, getRunStatus } from '../utils/api'; // Ensure getRunStatus is imported
+import SettingsCard from './settings/Settings';
+import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
   const projectName = useSelector((state) => state.flow.projectName);
+  const [isRunning, setIsRunning] = useState(false);
+
+  const updateWorkflowStatus = async (runID) => {
+    const checkStatusInterval = setInterval(async () => {
+      try {
+        const statusResponse = await getRunStatus(runID);
+        const outputs = statusResponse.outputs;
+        console.log('Status Response:', statusResponse);
+
+        // Update nodes based on outputs
+        for (const [nodeId, nodeStatus] of Object.entries(outputs)) {
+          dispatch(updateNodeData({
+            id: nodeId,
+            data: { status: nodeStatus.status, runoutput: nodeStatus.output }
+          }));
+        }
+
+        if (statusResponse.status === 'complete') {
+          setIsRunning(false);
+          clearInterval(checkStatusInterval);
+        }
+      } catch (error) {
+        console.error('Error fetching workflow status:', error);
+        clearInterval(checkStatusInterval);
+      }
+    }, 1000);
+  };
 
   const handleRunWorkflow = async () => {
     try {
       const formattedData = {
         workflow: {
           nodes: nodes.map(node => ({
-            config: node.data?.config || {},
+            config: node.data?.userconfig || {},
             id: node.id,
             node_type: node.type
           })),
@@ -42,13 +69,18 @@ const Header = ({ activePage }) => {
         },
         initial_inputs: {
           "1": {
-            "user_message": "okay, give it to me", "city": "Jabalpur"
+            "user_message": "okay, give it to me"
           }
         }
       };
 
       const result = await runWorkflow(formattedData);
       console.log('Workflow result:', result);
+
+      // Start the status updater function
+      setIsRunning(true);
+      updateWorkflowStatus(result.runID);
+
     } catch (error) {
       console.error('Error running workflow:', error);
     }
@@ -151,8 +183,7 @@ const Header = ({ activePage }) => {
             </NavbarItem>
           </NavbarContent>
         )}
-
-      </Navbar >
+      </Navbar>
     </>
   );
 };
