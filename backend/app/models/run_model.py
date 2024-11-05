@@ -1,9 +1,10 @@
 from sqlalchemy import Computed, Integer, ForeignKey, Enum, JSON, DateTime, String
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from enum import Enum as PyEnum
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from .base_model import BaseModel
+from .task_model import TaskModel
 
 
 class RunStatus(PyEnum):
@@ -36,10 +37,12 @@ class RunModel(BaseModel):
     input_dataset_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("datasets.id"), nullable=True, index=True
     )
-    start_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    start_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc)
+    )
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     outputs: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
-    # tasks: Mapped[List["TaskModel"]] = relationship("TaskModel", back_populates="run")
+    tasks: Mapped[List["TaskModel"]] = relationship("TaskModel")
     parent_run: Mapped[Optional["RunModel"]] = relationship(
         "RunModel", remote_side=[id], back_populates="subruns"
     )
