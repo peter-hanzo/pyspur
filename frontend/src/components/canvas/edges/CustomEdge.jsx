@@ -1,5 +1,10 @@
 import React from 'react';
-import { useReactFlow, getBezierPath } from '@xyflow/react';
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
+  useReactFlow,
+} from '@xyflow/react';
 import { Button } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { useDispatch } from 'react-redux';
@@ -41,59 +46,45 @@ const CustomEdge = ({
 
   return (
     <>
-      <path
-        id={id}
-        style={style}
-        className="react-flow__edge-path"
-        d={edgePath}
-        markerEnd={markerEnd}
-        fill="none"
-      />
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={30}
-        style={{ pointerEvents: 'stroke' }}
-        className="react-flow__edge-hover"
-      />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+
       {showPlusButton && (
-        <foreignObject
-          width={65}
-          height={30}
-          x={labelX - 32}
-          y={labelY - 15}
-          style={{ pointerEvents: 'none' }}
-        >
+        <EdgeLabelRenderer>
           <div
             style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: 'all',
-              display: 'flex',
-              gap: '5px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '100%',
-              height: '100%',
             }}
+            className="nodrag nopan"
           >
-            <Button
-              isIconOnly
-              auto
-              onClick={() => {
-                onPopoverOpen({ sourceNode, targetNode, edgeId: id });
+            <div
+              style={{
+                display: 'flex',
+                gap: '5px',
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
             >
-              <Icon icon="solar:add-circle-bold" width={20} className="text-default-500" />
-            </Button>
-            <Button
-              isIconOnly
-              auto
-              onClick={handleDeleteEdge}
-            >
-              <Icon icon="solar:trash-bin-trash-bold" width={20} />
-            </Button>
+              <Button
+                isIconOnly
+                auto
+                onClick={() => {
+                  onPopoverOpen({ sourceNode, targetNode, edgeId: id });
+                }}
+              >
+                <Icon icon="solar:add-circle-bold" width={20} className="text-default-500" />
+              </Button>
+              <Button
+                isIconOnly
+                auto
+                onClick={handleDeleteEdge}
+              >
+                <Icon icon="solar:trash-bin-trash-bold" width={20} />
+              </Button>
+            </div>
           </div>
-        </foreignObject>
+        </EdgeLabelRenderer>
       )}
     </>
   );

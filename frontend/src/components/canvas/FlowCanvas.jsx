@@ -13,7 +13,7 @@ import {
   deleteNode,
   addNode,
 } from '../../store/flowSlice';
-
+import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
@@ -366,7 +366,8 @@ const FlowCanvasContent = () => {
             selectionKeyCode={mode === 'pointer' ? null : false}
             multiSelectionKeyCode={mode === 'pointer' ? null : false}
             deleteKeyCode="Delete"
-            nodesConnectable={mode === 'pointer'}
+            nodesConnectable={true}
+            connectionMode="loose"
           >
             <Background />
             <HelperLinesRenderer

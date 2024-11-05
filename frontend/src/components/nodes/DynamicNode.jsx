@@ -65,6 +65,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 position="left"
                 id={`input-${key}`}
                 className={`${styles.handle} ${styles.handleLeft}`}
+                isConnectable={true}
               />
               <span className={styles.handleLabel}>{key}</span>
             </div>
@@ -87,6 +88,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 position="right"
                 id={`${key}`}
                 className={`${styles.handle} ${styles.handleRight}`}
+                isConnectable={true}
               />
             </div>
           ))
