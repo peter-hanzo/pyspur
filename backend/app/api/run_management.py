@@ -22,11 +22,23 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
         )
         if output_file:
             output_file_id = output_file.id
+    tasks = run.tasks
+    tasks = [
+        {
+            "node_id": task.node_id,
+            "status": task.status,
+            "inputs": task.inputs,
+            "outputs": task.outputs,
+            "run_time": task.run_time,
+        }
+        for task in tasks
+    ]
     return RunStatusResponseSchema(
         id=run.id,
         status=run.status,
         start_time=run.start_time,
         end_time=run.end_time,
         outputs=run.outputs,
+        tasks=tasks,
         output_file_id=output_file_id,
     )
