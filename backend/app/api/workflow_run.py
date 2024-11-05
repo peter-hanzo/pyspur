@@ -17,6 +17,7 @@ from ..models.run_model import RunModel as RunModel, RunStatus
 from ..models.dataset_model import DatasetModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator
+from ..execution.task_recorder import TaskRecorder
 
 router = APIRouter()
 
@@ -44,8 +45,9 @@ async def run_workflow_blocking(
     db.add(new_run)
     db.commit()
     db.refresh(new_run)
+    task_recorder = TaskRecorder(db, new_run.id)
     workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
-    executor = WorkflowExecutor(workflow_definition)
+    executor = WorkflowExecutor(workflow_definition, task_recorder)
     outputs = await executor(initial_inputs)
     new_run.status = RunStatus.COMPLETED
     new_run.end_time = datetime.now(timezone.utc)
