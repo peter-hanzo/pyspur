@@ -13,11 +13,6 @@ from datetime import datetime
 from typing import Optional, Any
 from .base_model import BaseModel
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .run_model import RunModel
-
 
 class TaskStatus(PyEnum):
     PENDING = "PENDING"
@@ -46,7 +41,6 @@ class TaskModel(BaseModel):
     start_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    run: Mapped["RunModel"] = relationship("Run", back_populates="tasks")
     parent_task: Mapped[Optional["TaskModel"]] = relationship(
-        "Task", remote_side=[id], backref="subtasks"
+        "TaskModel", remote_side=[id], backref="subtasks"
     )
