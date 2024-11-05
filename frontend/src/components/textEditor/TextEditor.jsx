@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -35,29 +36,84 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
     editable: isEditable,
     autofocus: 'end',
     immediatelyRender: false,
+    parseOptions: {
+      preserveWhitespace: 'full',
+    },
   });
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
-  // Merged Toolbar component logic
-  const renderToolbar = () => {
-    if (!editor) return null;
+  const modalEditor = useEditor({
+    extensions: [
+      Color.configure({ types: [TextStyle.name, ListItem.name] }),
+      TextStyle.configure({ types: [ListItem.name] }),
+      StarterKit.configure({
+        bulletList: { keepMarks: true, keepAttributes: false },
+        orderedList: { keepMarks: true, keepAttributes: false },
+      }),
+      Underline,
+    ],
+    content: content || '',
+    editorProps: {
+      attributes: {
+        class: `w-full bg-content2 hover:bg-content3 transition-colors min-h-[40vh] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500`,
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const newContent = editor.getHTML();
+      if (newContent !== content) {
+        setContent(newContent);
+      }
+    },
+    editable: true,
+    autofocus: false,
+    immediatelyRender: false,
+    parseOptions: {
+      preserveWhitespace: 'full',
+    },
+  });
 
-    // Add size classes based on fullScreen prop
-    const buttonSize = fullScreen ? "sm" : "md";
-    const buttonClassName = fullScreen ? "w-4 h-4" : "w-3 h-3";
-    const toolbarClassName = fullScreen
-      ? "px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider"
-      : "px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider";
+  React.useEffect(() => {
+    if (modalEditor && content !== modalEditor.getHTML()) {
+      modalEditor.commands.setContent(content || '');
+    }
+  }, [content, modalEditor]);
+
+  React.useEffect(() => {
+    return () => {
+      if (modalEditor) {
+        modalEditor.destroy();
+      }
+    };
+  }, [modalEditor]);
+
+  const ModalEditor = () => {
+    return (
+      <div>
+        {renderToolbar(modalEditor, true)}
+        <div className={styles.tiptap}>
+          <EditorContent editor={modalEditor} />
+        </div>
+      </div>
+    );
+  };
+
+  // Modified renderToolbar to accept editor instance and fullScreen flag
+  const renderToolbar = (editorInstance, isFullScreen = false) => {
+    if (!editorInstance) return null;
+
+    const buttonSize = isFullScreen ? "sm" : "md";
+    const buttonClassName = isFullScreen ? "w-4 h-4" : "w-3 h-3";
+    const toolbarClassName = `px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider`;
 
     return (
       <div className={toolbarClassName}>
         <div className="flex justify-start items-center gap-1 w-full lg:w-10/12 flex-wrap">
           <Button
-            onPress={() => editor.chain().focus().toggleBold().run()}
-            disabled={!editor.can().chain().focus().toggleBold().run()}
+            onPress={() => editorInstance.chain().focus().toggleBold().run()}
+            disabled={!editorInstance.can().chain().focus().toggleBold().run()}
             color="primary"
-            variant={editor.isActive("bold") ? "solid" : "flat"}
+            variant={editorInstance.isActive("bold") ? "solid" : "flat"}
             size={buttonSize}
             auto
             isIconOnly
@@ -65,10 +121,10 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
             <Bold className={buttonClassName} />
           </Button>
           <Button
-            onPress={() => editor.chain().focus().toggleItalic().run()}
-            disabled={!editor.can().chain().focus().toggleItalic().run()}
+            onPress={() => editorInstance.chain().focus().toggleItalic().run()}
+            disabled={!editorInstance.can().chain().focus().toggleItalic().run()}
             color="primary"
-            variant={editor.isActive("italic") ? "solid" : "flat"}
+            variant={editorInstance.isActive("italic") ? "solid" : "flat"}
             size={buttonSize}
             auto
             isIconOnly
@@ -76,10 +132,10 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
             <Italic className={buttonClassName} />
           </Button>
           <Button
-            onPress={() => editor.chain().focus().toggleStrike().run()}
-            disabled={!editor.can().chain().focus().toggleStrike().run()}
+            onPress={() => editorInstance.chain().focus().toggleStrike().run()}
+            disabled={!editorInstance.can().chain().focus().toggleStrike().run()}
             color="primary"
-            variant={editor.isActive("strike") ? "solid" : "flat"}
+            variant={editorInstance.isActive("strike") ? "solid" : "flat"}
             size={buttonSize}
             auto
             isIconOnly
@@ -87,9 +143,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
             <Strikethrough className={buttonClassName} />
           </Button>
           <Button
-            onPress={() => editor.chain().focus().toggleBulletList().run()}
+            onPress={() => editorInstance.chain().focus().toggleBulletList().run()}
             color="primary"
-            variant={editor.isActive("bulletList") ? "solid" : "flat"}
+            variant={editorInstance.isActive("bulletList") ? "solid" : "flat"}
             size={buttonSize}
             auto
             isIconOnly
@@ -97,21 +153,21 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
             <List className={buttonClassName} />
           </Button>
           <Button
-            onPress={() => editor.chain().focus().toggleOrderedList().run()}
+            onPress={() => editorInstance.chain().focus().toggleOrderedList().run()}
             color="primary"
-            variant={editor.isActive("orderedList") ? "solid" : "flat"}
+            variant={editorInstance.isActive("orderedList") ? "solid" : "flat"}
             size={buttonSize}
             auto
             isIconOnly
           >
             <ListOrdered className={buttonClassName} />
           </Button>
-          {fullScreen && (
+          {isFullScreen && (
             <>
               <Button
-                onPress={() => editor.chain().focus().setParagraph().run()}
+                onPress={() => editorInstance.chain().focus().setParagraph().run()}
                 color="primary"
-                variant={editor.isActive('paragraph') ? "solid" : "flat"}
+                variant={editorInstance.isActive('paragraph') ? "solid" : "flat"}
                 size={buttonSize}
                 auto
                 isIconOnly
@@ -119,9 +175,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 P
               </Button>
               <Button
-                onPress={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 1 }).run()}
                 color="primary"
-                variant={editor.isActive('heading', { level: 1 }) ? "solid" : "flat"}
+                variant={editorInstance.isActive('heading', { level: 1 }) ? "solid" : "flat"}
                 size={buttonSize}
                 auto
                 isIconOnly
@@ -129,9 +185,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 H1
               </Button>
               <Button
-                onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 2 }).run()}
                 color="primary"
-                variant={editor.isActive('heading', { level: 2 }) ? "solid" : "flat"}
+                variant={editorInstance.isActive('heading', { level: 2 }) ? "solid" : "flat"}
                 size={buttonSize}
                 auto
                 isIconOnly
@@ -139,9 +195,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 H2
               </Button>
               <Button
-                onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 3 }).run()}
                 color="primary"
-                variant={editor.isActive('heading', { level: 3 }) ? "solid" : "flat"}
+                variant={editorInstance.isActive('heading', { level: 3 }) ? "solid" : "flat"}
                 size={buttonSize}
                 auto
                 isIconOnly
@@ -149,9 +205,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 H3
               </Button>
               <Button
-                onPress={() => editor.chain().focus().toggleBlockquote().run()}
+                onPress={() => editorInstance.chain().focus().toggleBlockquote().run()}
                 color="primary"
-                variant={editor.isActive("blockquote") ? "solid" : "flat"}
+                variant={editorInstance.isActive("blockquote") ? "solid" : "flat"}
                 size={buttonSize}
                 auto
                 isIconOnly
@@ -159,9 +215,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 <Quote className={buttonClassName} />
               </Button>
               <Button
-                onPress={() => editor.chain().focus().toggleCodeBlock().run()}
+                onPress={() => editorInstance.chain().focus().toggleCodeBlock().run()}
                 color="primary"
-                variant={editor.isActive('codeBlock') ? "solid" : "flat"}
+                variant={editorInstance.isActive('codeBlock') ? "solid" : "flat"}
                 size={buttonSize}
                 auto
                 isIconOnly
@@ -169,7 +225,7 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 <Code className={buttonClassName} />
               </Button>
               <Button
-                onPress={() => editor.chain().focus().setHorizontalRule().run()}
+                onPress={() => editorInstance.chain().focus().setHorizontalRule().run()}
                 color="primary"
                 variant="flat"
                 size={buttonSize}
@@ -179,8 +235,8 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 <SeparatorHorizontal className={buttonClassName} />
               </Button>
               <Button
-                onPress={() => editor.chain().focus().undo().run()}
-                disabled={!editor.can().chain().focus().undo().run()}
+                onPress={() => editorInstance.chain().focus().undo().run()}
+                disabled={!editorInstance.can().chain().focus().undo().run()}
                 color="primary"
                 variant="flat"
                 size={buttonSize}
@@ -190,8 +246,8 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
                 <Undo className={buttonClassName} />
               </Button>
               <Button
-                onPress={() => editor.chain().focus().redo().run()}
-                disabled={!editor.can().chain().focus().redo().run()}
+                onPress={() => editorInstance.chain().focus().redo().run()}
+                disabled={!editorInstance.can().chain().focus().redo().run()}
                 color="primary"
                 variant="flat"
                 size={buttonSize}
@@ -207,36 +263,62 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
     );
   };
 
+  // Add this new function to handle cancellation
+  const handleCancel = (onClose) => {
+    modalEditor.commands.setContent(content || '');
+    onClose();
+  };
+
+  // Add this function to handle saving
+  const handleSave = (onClose) => {
+    setContent(modalEditor.getHTML());
+    onClose();
+  };
+
   return (
     <div>
-      {isEditable && renderToolbar()}
+      {isEditable && renderToolbar(editor)}
       <div className={styles.tiptap}>
         <EditorContent editor={editor} />
       </div>
 
-      {/* Button to open full-screen modal */}
-      <Button onPress={onOpen} className="mt-4">Open Full-Screen Editor</Button>
+      {!fullScreen && (
+        <>
+          <Button onPress={onOpen} className="mt-4">Open Full-Screen Editor</Button>
 
-      {/* Full-Screen Modal using NextUI */}
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-        <ModalContent
-          className="w-[75vw] h-[75vh] flex items-center justify-center"
-        >
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">Full-Screen Editor</ModalHeader>
-              <ModalBody>
-                <TextEditor content={content} setContent={setContent} isEditable={isEditable} fullScreen={true} />
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+          <Modal
+            isOpen={isOpen}
+            onOpenChange={onOpenChange}
+            size="5xl"
+            scrollBehavior="inside"
+            placement="center"
+          >
+            <ModalContent>
+              {(onClose) => (
+                <>
+                  <ModalHeader className="flex flex-col gap-1">Prompt Editor</ModalHeader>
+                  <ModalBody>
+                    <div>
+                      {renderToolbar(modalEditor, true)}
+                      <div className={styles.tiptap}>
+                        <EditorContent editor={modalEditor} />
+                      </div>
+                    </div>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button color="danger" variant="light" onPress={() => handleCancel(onClose)}>
+                      Cancel
+                    </Button>
+                    <Button color="primary" onPress={() => handleSave(onClose)}>
+                      Save
+                    </Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+        </>
+      )}
     </div>
   );
 };
