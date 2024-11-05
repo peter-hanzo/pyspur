@@ -16,7 +16,7 @@ import {
 import { Icon } from "@iconify/react";
 import { runWorkflow } from '../utils/api';
 import SettingsCard from './settings/Settings'; // Import the updated SettingsCard component
-import { setProjectName } from '../store/flowSlice';
+import { setProjectName, clearCanvas } from '../store/flowSlice';
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
@@ -56,6 +56,12 @@ const Header = ({ activePage }) => {
 
   const handleProjectNameChange = (e) => {
     dispatch(setProjectName(e.target.value));
+  };
+
+  const handleClearCanvas = () => {
+    if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
+      dispatch(clearCanvas());
+    }
   };
 
   return (
@@ -109,6 +115,11 @@ const Header = ({ activePage }) => {
             <NavbarItem className="hidden sm:flex">
               <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
                 <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+              </Button>
+            </NavbarItem>
+            <NavbarItem className="hidden sm:flex">
+              <Button isIconOnly radius="full" variant="light" onClick={handleClearCanvas}>
+                <Icon className="text-default-500" icon="material-symbols:delete-outline" width={22} />
               </Button>
             </NavbarItem>
             <NavbarItem className="hidden sm:flex">

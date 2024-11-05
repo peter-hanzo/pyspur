@@ -2,7 +2,6 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { ReactFlow, Background, useReactFlow, Panel } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
-import TabbedFooter from './footer/TabbedFooter';
 import Operator from './footer/operator/Operator';
 import {
   nodesChange,
@@ -27,13 +26,19 @@ import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
+import GroupNode from '../nodes/GroupNode';
+import { useGroupNodes } from '../../hooks/useGroupNodes';
+import { useModeStore } from '../../store/modeStore';
 
-const nodeTypes = {};
-Object.keys(nodeTypesConfig).forEach(category => {
-  nodeTypesConfig[category].forEach(node => {
-    nodeTypes[node.name] = (props) => <DynamicNode {...props} type={node.name} />;
-  });
-});
+const nodeTypes = {
+  group: GroupNode,
+  ...Object.keys(nodeTypesConfig).reduce((acc, category) => {
+    nodeTypesConfig[category].forEach(node => {
+      acc[node.name] = (props) => <DynamicNode {...props} type={node.name} />;
+    });
+    return acc;
+  }, {})
+};
 
 const edgeTypes = {
   custom: CustomEdge,
@@ -226,6 +231,34 @@ const FlowCanvas = () => {
     hideAttribution: true
   };
 
+  const { onGroup } = useGroupNodes();
+
+  // Add keyboard shortcut for grouping
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'g') {
+        event.preventDefault();
+        onGroup();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onGroup]);
+
+  // Get both mode and setMode from the store
+  const mode = useModeStore((state) => state.mode);
+  const setMode = useModeStore((state) => state.setMode);
+
+  // Create a memoized version of nodes with draggable property based on mode
+  const nodesWithMode = useMemo(() => {
+    return nodes.map(node => ({
+      ...node,
+      draggable: mode === 'pointer',
+      selectable: mode === 'pointer',
+    }));
+  }, [nodes, mode]);
+
   return (
     <div style={{ position: 'relative', height: '100%' }}>
       {isPopoverContentVisible && selectedEdge && (
@@ -271,7 +304,7 @@ const FlowCanvas = () => {
           }}
         >
           <ReactFlow
-            nodes={nodes}
+            nodes={nodesWithMode}
             edges={styledEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -290,12 +323,23 @@ const FlowCanvas = () => {
             onEdgeMouseLeave={onEdgeMouseLeave}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
+            panOnDrag={mode === 'hand'}
+            panOnScroll={true}
+            zoomOnScroll={true}
+            selectionMode={mode === 'pointer' ? 1 : 0}
+            selectNodesOnDrag={mode === 'pointer'}
+            selectionOnDrag={mode === 'pointer'}
+            selectionKeyCode={mode === 'pointer' ? null : false}
+            multiSelectionKeyCode={mode === 'pointer' ? null : false}
+            deleteKeyCode="Delete"
+            nodesConnectable={mode === 'pointer'}
           >
             <Background />
             <HelperLinesRenderer
               horizontal={helperLines.horizontal}
               vertical={helperLines.vertical}
             />
+
             <Operator />
           </ReactFlow>
         </div>
