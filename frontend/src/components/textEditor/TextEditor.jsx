@@ -15,7 +15,7 @@ import styles from "./TextEditor.module.css";
 import { Icon } from "@iconify/react";
 
 // Wrap the component with forwardRef
-const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen }, ref) => {
+const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {} }, ref) => {
   const editor = useEditor({
     extensions: [
       Color.configure({ types: [TextStyle.name, ListItem.name] }),
@@ -109,13 +109,38 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen }, 
     );
   };
 
-  // Modified renderToolbar to accept editor instance and fullScreen flag
+  // Add variable button rendering function
+  const renderVariableButtons = (editorInstance) => {
+    if (!inputSchema || Object.keys(inputSchema).length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2 mb-2 px-2">
+        {Object.keys(inputSchema).map((variable) => (
+          <Button
+            key={variable}
+            size="sm"
+            variant="flat"
+            color="primary"
+            onClick={() => {
+              if (editorInstance) {
+                editorInstance.chain().focus().insertContent(`{${variable}}`).run();
+              }
+            }}
+          >
+            {variable}
+          </Button>
+        ))}
+      </div>
+    );
+  };
+
+  // Modified renderToolbar to include variable buttons
   const renderToolbar = (editorInstance, isFullScreen = false) => {
     if (!editorInstance) return null;
 
     const buttonSize = isFullScreen ? "sm" : "md";
     const buttonClassName = isFullScreen ? "w-4 h-4" : "w-3 h-3";
-    const toolbarClassName = `px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider`;
+    const toolbarClassName = `px-2 py-2 rounded-t-medium flex flex-col gap-2 w-full bg-content2 border-b border-divider`;
 
     return (
       <div className={toolbarClassName}>
@@ -174,6 +199,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen }, 
             <ListOrdered className={buttonClassName} />
           </Button>
         </div>
+        {renderVariableButtons(editorInstance)}
       </div>
     );
   };

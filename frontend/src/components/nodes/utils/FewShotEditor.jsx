@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import PromptEditor from './PromptEditor';
 import { updateNodeData } from '../../../store/flowSlice';
@@ -8,20 +8,9 @@ import { Button } from "@nextui-org/react";
 const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => state.flow.nodes.find((n) => n.id === nodeID));
-    const [activeTab, setActiveTab] = useState('input'); // Track active tab (input or output)
-
-    const [inputContent, setInputContent] = useState(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.input || '');
-    const [outputContent, setOutputContent] = useState(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.output || '');
-
-    useEffect(() => {
-        setInputContent(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.input || '');
-        setOutputContent(node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.output || '');
-    }, [nodeID, exampleIndex]);
+    const [activeTab, setActiveTab] = useState('input');
 
     const handleSave = () => {
-        const updatedExamples = [...(node?.data?.userconfig?.few_shot_examples || [])];
-        updatedExamples[exampleIndex] = { input: inputContent, output: outputContent };
-        dispatch(updateNodeData({ id: nodeID, data: { userconfig: { ...node?.data?.userconfig, few_shot_examples: updatedExamples } } }));
         onSave();
     };
 
@@ -31,13 +20,17 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
 
             {activeTab === 'input' ? (
                 <PromptEditor
+                    key={`input-${exampleIndex}`}
                     nodeID={nodeID}
                     fieldName={`few_shot_examples[${exampleIndex}].input`}
+                    value={node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.input}
                 />
             ) : (
                 <PromptEditor
+                    key={`output-${exampleIndex}`}
                     nodeID={nodeID}
                     fieldName={`few_shot_examples[${exampleIndex}].output`}
+                    value={node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.output}
                 />
             )}
 
