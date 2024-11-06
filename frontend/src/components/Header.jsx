@@ -14,7 +14,7 @@ import {
   DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { runWorkflow, getRunStatus } from '../utils/api'; // Ensure getRunStatus is imported
+import { runWorkflow, getRunStatus, startRun } from '../utils/api'; // Ensure getRunStatus is imported
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 
@@ -36,11 +36,10 @@ const Header = ({ activePage }) => {
         for (const [nodeId, nodeStatus] of Object.entries(outputs)) {
           dispatch(updateNodeData({
             id: nodeId,
-            data: { status: nodeStatus.status, runoutput: nodeStatus.output }
+            data: { run: nodeStatus.output }
           }));
         }
-
-        if (statusResponse.status === 'complete') {
+        if (statusResponse.status !== 'PENDING') {
           setIsRunning(false);
           clearInterval(checkStatusInterval);
         }
@@ -48,41 +47,26 @@ const Header = ({ activePage }) => {
         console.error('Error fetching workflow status:', error);
         clearInterval(checkStatusInterval);
       }
-    }, 1000);
+    }, 10000);
   };
 
   const handleRunWorkflow = async () => {
     try {
-      const formattedData = {
-        workflow: {
-          nodes: nodes.map(node => ({
-            config: node.data?.userconfig || {},
-            id: node.id,
-            node_type: node.type
-          })),
-          links: edges.map(edge => ({
-            source_id: edge.source,
-            source_output_key: edge.sourceHandle,
-            target_id: edge.target,
-            target_input_key: edge.targetHandle
-          }))
-        },
-        initial_inputs: {
-          "1": {
-            "user_message": "okay, give it to me"
-          }
-        }
-      };
-
-      const result = await runWorkflow(formattedData);
-      console.log('Workflow result:', result);
-
-      // Start the status updater function
+      // Extract workflowID from the URL
+      const url = new URL(window.location.href);
+      const pathSegments = url.pathname.split('/');
+      const workflowID = pathSegments[pathSegments.indexOf('workflows') + 1];
+  
+      // Start the run using the workflowID
+      const result = await startRun(workflowID);
+      console.log('Start Run result:', result);
+  
+      // Start the status updater function using the returned runID
       setIsRunning(true);
-      updateWorkflowStatus(result.runID);
-
+      updateWorkflowStatus(result.id);
+  
     } catch (error) {
-      console.error('Error running workflow:', error);
+      console.error('Error starting workflow run:', error);
     }
   };
 

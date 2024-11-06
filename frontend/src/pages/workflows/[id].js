@@ -4,7 +4,7 @@ import FlowCanvas from '../../components/canvas/FlowCanvas';
 import Header from '../../components/Header'; // Import the Header component
 import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
 import { persistor } from '../../store/store'; // Import the persistor
-import { getWorkflow } from '../../utils/api';
+import { getWorkflow, startRun } from '../../utils/api';
 
 const WorkflowPage = () => {
 

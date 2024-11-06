@@ -4,12 +4,10 @@ import { selectNodeById } from '../../store/flowSlice';
 
 const NodeStatusDisplay = ({ nodeID }) => {
     const node = useSelector((state) => selectNodeById(state, nodeID));
-    const status = node?.data?.status || 'loading';
-    const output = node?.data?.runoutput;
+    const output = node?.data?.run;
 
     return (
         <div>
-            <div>Status: {status}</div>
             {output && <div>Output: {output}</div>}
         </div>
     );
