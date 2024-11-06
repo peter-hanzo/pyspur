@@ -161,10 +161,7 @@ const Dashboard = () => {
       const newWorkflow = {
         name: uniqueName,
         description: '',
-        definition: {
-          nodes: [],
-          links: []
-        },
+
       };
 
       // Call the API to create the workflow
