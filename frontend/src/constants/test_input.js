@@ -1,4 +1,6 @@
 const testInput = {
+    "name": "Weather and Jokes",
+    "definition": "This workflow will provide the user with the average annual weather for a city and a joke",
     "workflow": {
         "nodes": [
             {

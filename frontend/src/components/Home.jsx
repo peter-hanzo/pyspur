@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -18,7 +18,7 @@ import {
   useDisclosure
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { runWorkflow } from '../utils/api';
+import { runWorkflow, getWorkflows, createWorkflow } from '../utils/api';
 import Header from './Header';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
@@ -30,16 +30,39 @@ const Dashboard = () => {
   const [progress, setProgress] = useState(0);
   const router = useRouter();
 
-  const workflows = [
-    { key: "1", name: 'Workflow 1', lastModified: '2024-10-01' },
-    { key: "2", name: 'Workflow 2', lastModified: '2024-09-30' },
-    { key: "3", name: 'Workflow 3', lastModified: '2024-09-25' },
-  ];
+  const [workflows, setWorkflows] = useState([]);
+
+  useEffect(() => {
+    const fetchWorkflows = async () => {
+      try {
+        const data = await getWorkflows();
+        console.log('Workflows:', data.workflows);
+        setWorkflows(data.workflows);
+      } catch (error) {
+        console.error('Error fetching workflows:', error);
+      }
+    };
+
+    fetchWorkflows();
+  }, []);
+
+  // const workflows = [
+  //   { key: "1", name: 'Workflow 1', lastModified: '2024-10-01' },
+  //   { key: "2", name: 'Workflow 2', lastModified: '2024-09-30' },
+  //   { key: "3", name: 'Workflow 3', lastModified: '2024-09-25' },
+  // ];
+
+  // const columns = [
+  //   { key: "name", label: "NAME" },
+  //   { key: "lastModified", label: "LAST MODIFIED" },
+  //   { key: "action", label: "ACTION" },
+  // ];
 
   const columns = [
-    { key: "name", label: "NAME" },
-    { key: "lastModified", label: "LAST MODIFIED" },
-    { key: "action", label: "ACTION" },
+    { key: "id", label: "ID" },
+    { key: "name", label: "Name" },
+    { key: "description", label: "Description" },
+    { key: "action", label: "Action" },
   ];
 
   const activeWorkflows = [
@@ -95,10 +118,16 @@ const Dashboard = () => {
 
   const handleEditClick = (workflow) => {
     router.push({
-      pathname: '/workflow',
-      query: { workflowId: workflow.key },
+      pathname: `/workflows/${workflow.id}`,
     });
   };
+
+  // const handleEditClick = (workflow) => {
+  //   router.push({
+  //     pathname: '/workflow',
+  //     query: { workflowId: workflow.key },
+  //   });
+  // };
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -130,8 +159,33 @@ const Dashboard = () => {
     }
   };
 
-  const handleNewWorkflowClick = () => {
-    router.push('/workflow');
+  // const handleNewWorkflowClick = () => {
+  //   router.push('/workflow');
+  // };
+
+  const handleNewWorkflowClick = async () => {
+    try {
+      // Generate a unique name for the new workflow
+      const uniqueName = `New Workflow ${Date.now()}`;
+  
+      // Create an empty workflow object
+      const newWorkflow = {
+        name: uniqueName,
+        description: '',
+        definition: {
+          nodes: [],
+          links: []
+        },
+      };
+  
+      // Call the API to create the workflow
+      const createdWorkflow = await createWorkflow(newWorkflow);
+  
+      // Navigate to the new workflow's page using its ID
+      router.push(`/workflows/${createdWorkflow.id}`);
+    } catch (error) {
+      console.error('Error creating new workflow:', error);
+    }
   };
 
   const handleUseTemplate = (templateId) => {

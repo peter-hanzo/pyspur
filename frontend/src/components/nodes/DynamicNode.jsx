@@ -63,7 +63,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
               <Handle
                 type="target"
                 position="left"
-                id={`input-${key}`}
+                id={`${key}`}
                 className={`${styles.handle} ${styles.handleLeft}`}
                 isConnectable={true}
               />

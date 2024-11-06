@@ -21,9 +21,9 @@ const PromptEditor = ({ nodeID, fieldName }) => {
         id: nodeID,
         data: {
           config: {
-            ...node.data.config,
+            ...node.data?.config,
             properties: {
-              ...node.data.config.properties,
+              ...node.data?.config?.properties,
               [fieldName]: {
                 ...node.data.config.properties[fieldName],
                 value: fieldValue, // Write to node.data.config[fieldName].value

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Input,
@@ -14,43 +14,59 @@ import {
   DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { runWorkflow } from '../utils/api';
-import SettingsCard from './settings/Settings'; // Import the updated SettingsCard component
-import { setProjectName, clearCanvas } from '../store/flowSlice';
+import { runWorkflow, getRunStatus, startRun } from '../utils/api'; // Ensure getRunStatus is imported
+import SettingsCard from './settings/Settings';
+import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
   const projectName = useSelector((state) => state.flow.projectName);
+  const [isRunning, setIsRunning] = useState(false);
+
+  const updateWorkflowStatus = async (runID) => {
+    const checkStatusInterval = setInterval(async () => {
+      try {
+        const statusResponse = await getRunStatus(runID);
+        const outputs = statusResponse.outputs;
+        console.log('Status Response:', statusResponse);
+
+        // Update nodes based on outputs
+        for (const [nodeId, nodeStatus] of Object.entries(outputs)) {
+          dispatch(updateNodeData({
+            id: nodeId,
+            data: { run: nodeStatus.output }
+          }));
+        }
+        if (statusResponse.status !== 'PENDING') {
+          setIsRunning(false);
+          clearInterval(checkStatusInterval);
+        }
+      } catch (error) {
+        console.error('Error fetching workflow status:', error);
+        clearInterval(checkStatusInterval);
+      }
+    }, 10000);
+  };
 
   const handleRunWorkflow = async () => {
     try {
-      const formattedData = {
-        workflow: {
-          nodes: nodes.map(node => ({
-            config: node.data?.config || {},
-            id: node.id,
-            node_type: node.type
-          })),
-          links: edges.map(edge => ({
-            source_id: edge.source,
-            source_output_key: edge.sourceHandle,
-            target_id: edge.target,
-            target_input_key: edge.targetHandle
-          }))
-        },
-        initial_inputs: {
-          "1": {
-            "user_message": "okay, give it to me", "city": "Jabalpur"
-          }
-        }
-      };
-
-      const result = await runWorkflow(formattedData);
-      console.log('Workflow result:', result);
+      // Extract workflowID from the URL
+      const url = new URL(window.location.href);
+      const pathSegments = url.pathname.split('/');
+      const workflowID = pathSegments[pathSegments.indexOf('workflows') + 1];
+  
+      // Start the run using the workflowID
+      const result = await startRun(workflowID);
+      console.log('Start Run result:', result);
+  
+      // Start the status updater function using the returned runID
+      setIsRunning(true);
+      updateWorkflowStatus(result.id);
+  
     } catch (error) {
-      console.error('Error running workflow:', error);
+      console.error('Error starting workflow run:', error);
     }
   };
 
@@ -151,8 +167,7 @@ const Header = ({ activePage }) => {
             </NavbarItem>
           </NavbarContent>
         )}
-
-      </Navbar >
+      </Navbar>
     </>
   );
 };
