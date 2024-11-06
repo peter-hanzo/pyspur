@@ -6,6 +6,15 @@ from pydantic import BaseModel, field_validator
 from ..nodes.factory import NodeFactory
 
 
+class WorkflowNodeCoordinatesSchema(BaseModel):
+    """
+    Coordinates for a node in a workflow.
+    """
+
+    x: float
+    y: float
+
+
 class WorkflowNodeSchema(BaseModel):
     """
     A node represents a single step in a workflow.
@@ -14,6 +23,7 @@ class WorkflowNodeSchema(BaseModel):
     id: str  # ID in the workflow
     node_type: str  # Name of the node type
     config: Dict[str, Any] = {}  # Configuration parameters
+    coordinates: WorkflowNodeCoordinatesSchema  # Position of the node in the workflow
 
     @field_validator("node_type")
     def type_must_be_in_factory(cls, v: str):
