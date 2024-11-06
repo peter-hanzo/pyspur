@@ -178,12 +178,64 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen }, 
     );
   };
 
+  // Add this new function to handle cancellation
+  const handleCancel = (onClose) => {
+    modalEditor.commands.setContent(content || '');
+    onClose();
+  };
+
+  // Add this function to handle saving
+  const handleSave = (onClose) => {
+    setContent(modalEditor.getHTML());
+    onClose();
+  };
+
   return (
     <div>
       {isEditable && renderToolbar(editor)}
       <div className={styles.tiptap}>
         <EditorContent editor={editor} />
       </div>
+
+      {!fullScreen && (
+        <>
+          <Button onPress={onOpen} isIconOnly className="mt-4">
+            <Icon icon="solar:maximize-square-linear" className="w-4 h-4" />
+          </Button>
+
+          <Modal
+            isOpen={isOpen}
+            onOpenChange={onOpenChange}
+            size="5xl"
+            scrollBehavior="inside"
+            placement="center"
+          >
+            <ModalContent>
+              {(onClose) => (
+                <>
+                  <ModalHeader className="flex flex-col gap-1">Prompt Editor</ModalHeader>
+                  <ModalBody>
+                    <div>
+                      {renderToolbar(modalEditor, true)}
+                      <div className={styles.tiptap}>
+                        <EditorContent editor={modalEditor} />
+                      </div>
+                    </div>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button color="danger" variant="light" onPress={() => handleCancel(onClose)}>
+                      Cancel
+                    </Button>
+                    <Button color="primary" onPress={() => handleSave(onClose)}>
+                      Save
+                    </Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+        </>
+      )}
     </div>
   );
 });

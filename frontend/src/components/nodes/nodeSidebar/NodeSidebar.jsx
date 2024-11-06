@@ -149,6 +149,9 @@ const NodeSidebar = ({ nodeID }) => {
                                 inputSchema={dynamicModel.input_schema || {}}
                             />
                         </div>
+
+                        {/* Render Few Shot Examples right after the System Prompt */}
+                        {key.toLowerCase().includes('system_prompt') && renderFewShotExamples()}
                     </div>
                 );
             }
@@ -374,12 +377,6 @@ const NodeSidebar = ({ nodeID }) => {
                     <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
                         {renderConfigFields()}
                     </AccordionItem>
-
-                    {nodeSchema?.config?.properties?.few_shot_examples && (
-                        <AccordionItem key="examples" aria-label="Few Shot Examples" title="Few Shot Examples">
-                            {renderFewShotExamples()}
-                        </AccordionItem>
-                    )}
 
                     <AccordionItem key="output" aria-label='Output' title="Output">
                         <NodeStatus node={node} />

@@ -7,10 +7,10 @@ import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
  * A generic editor component for editing any field in a node's config.
  * @param {string} nodeID - The ID of the node.
  * @param {string} fieldName - The name of the field in the node's config to edit.
- * @param {object} inputSchema - The input schema containing variables to be inserted into the text.
+ * @param {object} [inputSchema={}] - The input schema containing variables to be inserted into the text (optional).
  * @returns {JSX.Element} - The editor component.
  */
-const PromptEditor = ({ nodeID, fieldName, inputSchema }) => {
+const PromptEditor = ({ nodeID, fieldName, inputSchema = {} }) => { // Default inputSchema to an empty object
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
   const [fieldValue, setFieldValue] = useState(node?.data?.config?.properties?.[fieldName]?.value || ''); // Read from config
@@ -47,17 +47,20 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema }) => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap gap-2 mb-4">
-        {Object.keys(inputSchema).map((variable) => (
-          <button
-            key={variable}
-            className="px-3 py-1 rounded bg-gray-200"
-            onClick={() => handleVariableClick(variable)}
-          >
-            {variable}
-          </button>
-        ))}
-      </div>
+      {/* Only render variable buttons if inputSchema is provided and has keys */}
+      {Object.keys(inputSchema).length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {Object.keys(inputSchema).map((variable) => (
+            <button
+              key={variable}
+              className="px-3 py-1 rounded bg-gray-200"
+              onClick={() => handleVariableClick(variable)}
+            >
+              {variable}
+            </button>
+          ))}
+        </div>
+      )}
       <TextEditor
         ref={textEditorRef} // Pass the ref to the TextEditor
         content={fieldValue}

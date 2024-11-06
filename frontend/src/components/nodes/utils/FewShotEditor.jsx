@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import TextEditor from '../../textEditor/TextEditor';
+import PromptEditor from './PromptEditor';
 import { updateNodeData } from '../../../store/flowSlice';
 import Tabs from './Tabs';
 import { Button } from "@nextui-org/react";
@@ -30,9 +30,15 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
             <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
             {activeTab === 'input' ? (
-                <TextEditor content={inputContent} setContent={setInputContent} isEditable={true} />
+                <PromptEditor
+                    nodeID={nodeID}
+                    fieldName={`few_shot_examples[${exampleIndex}].input`}
+                />
             ) : (
-                <TextEditor content={outputContent} setContent={setOutputContent} isEditable={true} />
+                <PromptEditor
+                    nodeID={nodeID}
+                    fieldName={`few_shot_examples[${exampleIndex}].output`}
+                />
             )}
 
             <div className="mt-4">
