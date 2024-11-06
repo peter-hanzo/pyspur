@@ -1,9 +1,30 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import PromptEditor from './PromptEditor';
-import { updateNodeData } from '../../../store/flowSlice';
-import Tabs from './Tabs';
-import { Button } from "@nextui-org/react";
+import { updateNodeData } from '../../store/flowSlice';
+
+import { Button, Tabs, Tab } from "@nextui-org/react";
+const Tabs = ({ activeTab, setActiveTab }) => {
+    return (
+        <div className='mb-5'>
+            <div className="flex w-full flex-col items-center">
+                <Tabs
+                    aria-label="Input/Output Options"
+                    selectedKey={activeTab} // Manage active tab state
+                    onSelectionChange={(key) => setActiveTab(key)} // Set active tab on click
+                >
+                    <Tab key="input" title="Input">
+                        {/* Content for Input */}
+                    </Tab>
+                    <Tab key="output" title="Output">
+                        {/* Content for Output */}
+                    </Tab>
+                </Tabs>
+            </div>
+        </div>
+    );
+};
+
 
 const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const dispatch = useDispatch();

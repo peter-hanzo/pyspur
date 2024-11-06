@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import TextEditor from '../../textEditor/TextEditor';
-import { updateNodeData, selectNodeById } from '../../../store/flowSlice';
+import TextEditor from './TextEditor';
+import { updateNodeData, selectNodeById } from '../../store/flowSlice';
 
 /**
  * A generic editor component for editing any field in a node's config.
