@@ -95,7 +95,8 @@ async def run_workflow_non_blocking(
                 return
             run.status = RunStatus.RUNNING
             session.commit()
-            executor = WorkflowExecutor(workflow_definition)
+            task_recorder = TaskRecorder(db, run_id)
+            executor = WorkflowExecutor(workflow_definition, task_recorder)
             try:
                 assert run.initial_inputs
                 outputs = await executor(run.initial_inputs)
