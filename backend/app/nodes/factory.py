@@ -38,9 +38,9 @@ class NodeFactory:
     _SUPPORTED_NODE_TYPES = {
         "primitives": [
             {
-                "node_type_name": "ConstantValueNode",
-                "module": ".nodes.primitives.constant_value",
-                "class_name": "ConstantValueNode",
+                "node_type_name": "StaticValueNode",
+                "module": ".nodes.primitives.static_value",
+                "class_name": "StaticValueNode",
             },
         ],
         "llm": [
@@ -161,9 +161,9 @@ class NodeFactory:
 if __name__ == "__main__":
     print("NodeFactory")
     print(NodeFactory.get_all_node_types())
-    from .primitives.constant_value import ConstantValueNodeConfig
+    from .primitives.static_value import StaticValueNodeConfig
 
-    constant_value_node_config = ConstantValueNodeConfig(values={"foo": "bar"})
+    constant_value_node_config = StaticValueNodeConfig(values={"foo": "bar"})
     cvn = NodeFactory.create_node("ConstantValueNode", constant_value_node_config)
     import asyncio
 
