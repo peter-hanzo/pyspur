@@ -13,28 +13,31 @@ import { updateNodeData, selectNodeById } from '../../store/flowSlice';
 const PromptEditor = ({ nodeID, fieldName, inputSchema = {} }) => { // Default inputSchema to an empty object
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
-  const [fieldValue, setFieldValue] = useState(node?.data?.config?.properties?.[fieldName]?.value || ''); // Read from config
+  const [fieldValue, setFieldValue] = useState(
+    // First try to read from userconfig, fall back to config.properties
+    node?.data?.userconfig?.[fieldName] ||
+    node?.data?.config?.properties?.[fieldName]?.value ||
+    ''
+  );
 
   // Update the node's field value in the Redux store when fieldValue changes
   useEffect(() => {
-    if (fieldValue !== node?.data?.config?.properties?.[fieldName]?.value) { // Compare with config
+    if (!node) return; // Add early return if node is undefined
+
+    // Compare with userconfig instead of config.properties
+    if (fieldValue !== node?.data?.userconfig?.[fieldName]) {
       dispatch(updateNodeData({
         id: nodeID,
         data: {
-          config: {
-            ...node.data?.config,
-            properties: {
-              ...node.data?.config?.properties,
-              [fieldName]: {
-                ...node.data.config.properties[fieldName],
-                value: fieldValue, // Write to node.data.config[fieldName].value
-              },
-            },
+          ...node?.data,
+          userconfig: {
+            ...node?.data?.userconfig || {}, // Add fallback empty object
+            [fieldName]: fieldValue,
           },
         },
       }));
     }
-  }, [fieldValue, node?.data?.config?.properties?.[fieldName]?.value, dispatch, nodeID, fieldName]);
+  }, [fieldValue, node, node?.data?.userconfig?.[fieldName], dispatch, nodeID, fieldName]);
 
   return (
     <div className="w-full">

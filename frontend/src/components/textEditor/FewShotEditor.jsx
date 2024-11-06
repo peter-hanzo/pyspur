@@ -4,7 +4,7 @@ import PromptEditor from './PromptEditor';
 import { updateNodeData } from '../../store/flowSlice';
 
 import { Button, Tabs, Tab } from "@nextui-org/react";
-const Tabs = ({ activeTab, setActiveTab }) => {
+const InputOutputTabs = ({ activeTab, setActiveTab }) => {
     return (
         <div className='mb-5'>
             <div className="flex w-full flex-col items-center">
@@ -37,7 +37,7 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
 
     return (
         <div className="w-full px-4 py-10 my-10">
-            <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <InputOutputTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
             {activeTab === 'input' ? (
                 <PromptEditor
