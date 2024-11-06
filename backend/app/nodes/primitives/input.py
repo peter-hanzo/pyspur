@@ -2,27 +2,27 @@ from pydantic import BaseModel, create_model
 from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 
 
-class DatasetInputNodeConfig(DynamicSchemaNodeConfig):
+class InputNodeConfig(DynamicSchemaNodeConfig):
     pass
 
 
-class DatasetInputNodeInput(BaseModel):
+class InputNodeInput(BaseModel):
     pass
 
 
-class DatasetInputNodeOutput(BaseModel):
+class InputNodeOutput(BaseModel):
     pass
 
 
-class DatasetInputNode(DynamicSchemaNode):
+class InputNode(DynamicSchemaNode):
     """
     Node for defining dataset schema and using the output as input for other nodes.
     """
 
-    name = "input_value_node"
-    config_model = DatasetInputNodeConfig
-    input_model = DatasetInputNodeInput
-    output_model = DatasetInputNodeOutput
+    name = "input_node"
+    config_model = InputNodeConfig
+    input_model = InputNodeInput
+    output_model = InputNodeOutput
 
     def setup(self) -> None:
         self.input_model = create_model(
