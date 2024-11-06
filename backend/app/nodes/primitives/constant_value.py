@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from pydantic import BaseModel
 
-from .base import BaseNode
+from ..base import BaseNode
 
 
 class ConstantValueNodeConfig(BaseModel):

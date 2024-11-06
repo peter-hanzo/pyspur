@@ -2,7 +2,7 @@ from typing import Dict
 
 from pydantic import BaseModel, create_model
 
-from .base import BaseNode
+from ..base import BaseNode
 
 
 class InputValueNodeConfig(BaseModel):
