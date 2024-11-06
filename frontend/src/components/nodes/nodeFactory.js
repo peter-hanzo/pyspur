@@ -28,7 +28,6 @@ export const createNode = (type, id, position, additionalData = {}) => {
     type: nodeType.name,
     position,
     data: {
-      ...additionalData,
       title: nodeType.name,
       acronym: nodeType.acronym,
       color: nodeType.color,
@@ -36,6 +35,7 @@ export const createNode = (type, id, position, additionalData = {}) => {
       input: nodeType.input,
       output: nodeType.output,
       userconfig: userConfigData,
+      ...additionalData,
     },
   };
 };

@@ -84,3 +84,21 @@ def list_workflows(db: Session = Depends(get_db)) -> WorkflowsListResponseSchema
         for wf in workflows
     ]
     return WorkflowsListResponseSchema(workflows=workflow_list)
+
+@router.get(
+    "/{workflow_id}/",
+    response_model=WorkflowResponseSchema,
+    description="Get a workflow by ID",
+)
+def get_workflow(workflow_id: str, db: Session = Depends(get_db)) -> WorkflowResponseSchema:
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    return WorkflowResponseSchema(
+        id=workflow.id,
+        name=workflow.name,
+        description=workflow.description,
+        definition=workflow.definition,
+        created_at=workflow.created_at,
+        updated_at=workflow.updated_at,
+    )

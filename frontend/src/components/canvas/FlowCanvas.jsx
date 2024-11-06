@@ -13,7 +13,7 @@ import {
   deleteNode,
   addNode,
 } from '../../store/flowSlice';
-import ConnectionLine from './ConnectionLine';
+// import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
@@ -30,6 +30,7 @@ import GroupNode from '../nodes/GroupNode';
 import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
 import { Icon } from "@iconify/react";
+import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 
 console.log('Available nodeTypes:', nodeTypesConfig);
 
@@ -54,10 +55,18 @@ const edgeTypes = {
 };
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent = () => {
+const FlowCanvasContent = ({workflowData}) => {
   // console.log('FlowCanvas re-rendered');
 
   const dispatch = useDispatch();
+
+  // Dispatch an action to initialize the flow state with workflowData
+  useEffect(() => {
+    if (workflowData) {
+      console.log('Initializing flow with workflow data:', workflowData);
+      dispatch(initializeFlow(workflowData));
+    }
+  }, []);
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
@@ -416,10 +425,10 @@ const FlowCanvasContent = () => {
 };
 
 // Main component that provides the ReactFlow context
-const FlowCanvas = () => {
+const FlowCanvas = ({workflowData}) => {
   return (
     <ReactFlowProvider>
-      <FlowCanvasContent />
+      <FlowCanvasContent workflowData={workflowData} />
     </ReactFlowProvider>
   );
 };

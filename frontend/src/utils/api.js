@@ -50,3 +50,53 @@ export const getRunStatus = async (runID) => {
     throw error;
   }
 };
+
+export const getWorkflows = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/wf/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting workflows:', error);
+    throw error;
+  }
+}
+
+export const createWorkflow = async (workflowData) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/wf/`, workflowData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating workflow:', error);
+    throw error;
+  }
+}
+
+export const updateWorkflow = async (workflowData) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/wf/${workflowData.id}/`, workflowData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating workflow:', error);
+    throw error;
+  }
+}
+
+export const startRun = async (workflowID) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_run/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error starting run:', error);
+    throw error;
+  }
+}
+
+export const getWorkflow = async (workflowID) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting workflow:', error);
+    throw error;
+  }
+}
