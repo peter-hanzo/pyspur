@@ -55,7 +55,7 @@ const edgeTypes = {
 };
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent = ({workflowData}) => {
+const FlowCanvasContent = ({ workflowData }) => {
   // console.log('FlowCanvas re-rendered');
 
   const dispatch = useDispatch();
@@ -204,6 +204,7 @@ const FlowCanvasContent = ({workflowData}) => {
 
   const onInit = useCallback((instance) => {
     setReactFlowInstance(instance);
+    instance.setViewport({ x: 0, y: 0, zoom: 0.8 }); // Set zoom to 100%
   }, []);
 
   const onNodeClick = useCallback(
@@ -425,7 +426,7 @@ const FlowCanvasContent = ({workflowData}) => {
 };
 
 // Main component that provides the ReactFlow context
-const FlowCanvas = ({workflowData}) => {
+const FlowCanvas = ({ workflowData }) => {
   return (
     <ReactFlowProvider>
       <FlowCanvasContent workflowData={workflowData} />
