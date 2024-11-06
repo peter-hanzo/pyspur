@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from ..schemas.workflow_schemas import (
+    WorkflowNodeCoordinatesSchema,
     WorkflowCreateRequestSchema,
+    WorkflowNodeSchema,
     WorkflowResponseSchema,
     WorkflowDefinitionSchema,
     WorkflowsListResponseSchema,
@@ -14,12 +16,28 @@ from ..models.workflow_model import WorkflowModel as WorkflowModel
 router = APIRouter()
 
 
+def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
+    return WorkflowDefinitionSchema(
+        nodes=[
+            WorkflowNodeSchema(
+                id="input_node",
+                node_type="InputNode",
+                coordinates=WorkflowNodeCoordinatesSchema(x=100, y=100),
+                config={},
+            )
+        ],
+        links=[],
+    )
+
+
 @router.post(
     "/", response_model=WorkflowResponseSchema, description="Create a new workflow"
 )
 def create_workflow(
     workflow_request: WorkflowCreateRequestSchema, db: Session = Depends(get_db)
 ) -> WorkflowResponseSchema:
+    if not workflow_request.definition:
+        workflow_request.definition = create_a_new_workflow_definition()
     new_workflow = WorkflowModel(
         name=workflow_request.name or "Untitled Workflow",
         description=workflow_request.description,
@@ -85,12 +103,15 @@ def list_workflows(db: Session = Depends(get_db)) -> WorkflowsListResponseSchema
     ]
     return WorkflowsListResponseSchema(workflows=workflow_list)
 
+
 @router.get(
     "/{workflow_id}/",
     response_model=WorkflowResponseSchema,
     description="Get a workflow by ID",
 )
-def get_workflow(workflow_id: str, db: Session = Depends(get_db)) -> WorkflowResponseSchema:
+def get_workflow(
+    workflow_id: str, db: Session = Depends(get_db)
+) -> WorkflowResponseSchema:
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")

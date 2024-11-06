@@ -53,6 +53,20 @@ class WorkflowDefinitionSchema(BaseModel):
     nodes: List[WorkflowNodeSchema]
     links: List[WorkflowLinkSchema]
 
+    @field_validator("nodes")
+    def nodes_must_have_unique_ids(cls, v: List[WorkflowNodeSchema]):
+        node_ids = [node.id for node in v]
+        if len(node_ids) != len(set(node_ids)):
+            raise ValueError("Node IDs must be unique.")
+        return v
+
+    @field_validator("nodes")
+    def must_have_one_and_only_one_input_node(cls, v: List[WorkflowNodeSchema]):
+        input_nodes = [node for node in v if node.node_type == "InputNode"]
+        if len(input_nodes) != 1:
+            raise ValueError("Workflow must have exactly one input node.")
+        return v
+
 
 class WorkflowCreateRequestSchema(BaseModel):
     """
@@ -61,7 +75,7 @@ class WorkflowCreateRequestSchema(BaseModel):
 
     name: str
     description: str = ""
-    definition: WorkflowDefinitionSchema
+    definition: Optional[WorkflowDefinitionSchema] = None
 
 
 class WorkflowResponseSchema(BaseModel):
