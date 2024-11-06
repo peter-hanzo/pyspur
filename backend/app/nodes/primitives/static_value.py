@@ -2,33 +2,33 @@ from typing import Any, Dict
 
 from pydantic import BaseModel
 
-from .base import BaseNode
+from ..base import BaseNode
 
 
-class ConstantValueNodeConfig(BaseModel):
+class StaticValueNodeConfig(BaseModel):
     values: Dict[str, Any]
 
 
-class ConstantValueNodeInput(BaseModel):
+class StaticValueNodeInput(BaseModel):
     pass
 
 
-class ConstantValueNodeOutput(BaseModel):
+class StaticValueNodeOutput(BaseModel):
     pass
 
 
-class ConstantValueNode(BaseNode):
+class StaticValueNode(BaseNode):
     """
     Node type for producing constant values declared in the config.
     """
 
     name = "constant_value_node"
-    config_model = ConstantValueNodeConfig
-    input_model = ConstantValueNodeInput
-    output_model = ConstantValueNodeOutput
+    config_model = StaticValueNodeConfig
+    input_model = StaticValueNodeInput
+    output_model = StaticValueNodeOutput
 
     def setup(self) -> None:
-        self.input_model = ConstantValueNodeInput
+        self.input_model = StaticValueNodeInput
         self.output_model = self.get_model_for_value_dict(
             self.config.values, "ConstantValueNodeOutput"
         )
@@ -40,8 +40,8 @@ class ConstantValueNode(BaseNode):
 if __name__ == "__main__":
     import asyncio
 
-    constant_value_node = ConstantValueNode(
-        ConstantValueNodeConfig(values={"key": "value"})
+    constant_value_node = StaticValueNode(
+        StaticValueNodeConfig(values={"key": "value"})
     )
     output = asyncio.run(constant_value_node(BaseModel()))
     print(output)

@@ -14,6 +14,7 @@ class RunResponseSchema(BaseModel):
     workflow_id: str
     status: RunStatus
     run_type: str
+    outputs: Optional[Dict[str, Any]]
     start_time: Optional[datetime]
     end_time: Optional[datetime]
 
