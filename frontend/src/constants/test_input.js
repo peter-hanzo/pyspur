@@ -1,6 +1,8 @@
 const testInput = {
     "name": "Weather and Jokes",
-    "definition": "This workflow will provide the user with the average annual weather for a city and a joke",
+    "definition": {
+        "description": "This workflow will provide the user with the average annual weather for a city and a joke"
+    },
     "workflow": {
         "nodes": [
             {
@@ -81,17 +83,6 @@ const testInput = {
                 "target_input_key": "number"
             }
         ]
-    },
-    "initial_inputs": {
-        "1": {
-            "user_message": "okay, give it to me", "city": "Jabalpur", "units": "celsius"
-        },
-        "2": {},
-        "3": {
-            "user_message": "please enlighten me", "city": "Jabalpur", "units": "celsius"
-        },
-        "4": { "user_message": "Why do politicians and actors not like to ride shotgun?" },
-        "5": { "user_message": "Complete this joke like Jimmy Carr: Why do politicians and actors not like to ride shotgun?" }
     }
 }
 

@@ -39,7 +39,7 @@ const Header = ({ activePage }) => {
             data: { run: nodeStatus.output }
           }));
         }
-        if (statusResponse.status !== 'PENDING') {
+        if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
           clearInterval(checkStatusInterval);
         }
