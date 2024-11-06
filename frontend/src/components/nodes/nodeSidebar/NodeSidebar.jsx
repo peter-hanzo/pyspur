@@ -54,21 +54,8 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
-        if (dynamicModel) {
-            console.log('dynamicModel', dynamicModel);
-
-            // Create a new object with updated key-value
-            const updatedModel = { ...dynamicModel, [key]: value };
-
-            console.log('updatedModel', updatedModel);
-            console.log(updatedModel[key], value);
-
-            // Convert updatedModel to a plain object
-            const plainObject = { ...updatedModel };
-
-            dispatch(updateNodeData({ id: nodeID, data: { userconfig: { ...node.data.userconfig, ...plainObject } } }));
-            console.log('updated node', node);
-        }
+        const updatedModel = { ...dynamicModel, [key]: value };
+        dispatch(updateNodeData({ id: nodeID, data: { userconfig: updatedModel } }));
     };
 
     const renderEnumSelect = (key, label, enumValues) => (
@@ -159,6 +146,7 @@ const NodeSidebar = ({ nodeID }) => {
                                 key={key}
                                 nodeID={nodeID}
                                 fieldName={key}
+                                inputSchema={dynamicModel.input_schema || {}}
                             />
                         </div>
                     </div>

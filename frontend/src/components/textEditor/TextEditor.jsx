@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -14,7 +14,8 @@ import {
 import styles from "./TextEditor.module.css";
 import { Icon } from "@iconify/react";
 
-const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
+// Wrap the component with forwardRef
+const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen }, ref) => {
   const editor = useEditor({
     extensions: [
       Color.configure({ types: [TextStyle.name, ListItem.name] }),
@@ -41,6 +42,15 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
       preserveWhitespace: 'full',
     },
   });
+
+  // Expose the insertAtCursor method to the parent component via ref
+  useImperativeHandle(ref, () => ({
+    insertAtCursor: (text) => {
+      if (editor) {
+        editor.chain().focus().insertContent(text).run();
+      }
+    },
+  }));
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -163,117 +173,9 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
           >
             <ListOrdered className={buttonClassName} />
           </Button>
-          {isFullScreen && (
-            <>
-              <Button
-                onPress={() => editorInstance.chain().focus().setParagraph().run()}
-                color="primary"
-                variant={editorInstance.isActive('paragraph') ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                P
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 1 }).run()}
-                color="primary"
-                variant={editorInstance.isActive('heading', { level: 1 }) ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                H1
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 2 }).run()}
-                color="primary"
-                variant={editorInstance.isActive('heading', { level: 2 }) ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                H2
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 3 }).run()}
-                color="primary"
-                variant={editorInstance.isActive('heading', { level: 3 }) ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                H3
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleBlockquote().run()}
-                color="primary"
-                variant={editorInstance.isActive("blockquote") ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Quote className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleCodeBlock().run()}
-                color="primary"
-                variant={editorInstance.isActive('codeBlock') ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Code className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().setHorizontalRule().run()}
-                color="primary"
-                variant="flat"
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <SeparatorHorizontal className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().undo().run()}
-                disabled={!editorInstance.can().chain().focus().undo().run()}
-                color="primary"
-                variant="flat"
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Undo className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().redo().run()}
-                disabled={!editorInstance.can().chain().focus().redo().run()}
-                color="primary"
-                variant="flat"
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Redo className={buttonClassName} />
-              </Button>
-            </>
-          )}
         </div>
       </div>
     );
-  };
-
-  // Add this new function to handle cancellation
-  const handleCancel = (onClose) => {
-    modalEditor.commands.setContent(content || '');
-    onClose();
-  };
-
-  // Add this function to handle saving
-  const handleSave = (onClose) => {
-    setContent(modalEditor.getHTML());
-    onClose();
   };
 
   return (
@@ -282,48 +184,8 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
       <div className={styles.tiptap}>
         <EditorContent editor={editor} />
       </div>
-
-      {!fullScreen && (
-        <>
-          <Button onPress={onOpen} isIconOnly className="mt-4">
-            <Icon icon="solar:maximize-square-linear" className="w-4 h-4" />
-          </Button>
-
-          <Modal
-            isOpen={isOpen}
-            onOpenChange={onOpenChange}
-            size="5xl"
-            scrollBehavior="inside"
-            placement="center"
-          >
-            <ModalContent>
-              {(onClose) => (
-                <>
-                  <ModalHeader className="flex flex-col gap-1">Prompt Editor</ModalHeader>
-                  <ModalBody>
-                    <div>
-                      {renderToolbar(modalEditor, true)}
-                      <div className={styles.tiptap}>
-                        <EditorContent editor={modalEditor} />
-                      </div>
-                    </div>
-                  </ModalBody>
-                  <ModalFooter>
-                    <Button color="danger" variant="light" onPress={() => handleCancel(onClose)}>
-                      Cancel
-                    </Button>
-                    <Button color="primary" onPress={() => handleSave(onClose)}>
-                      Save
-                    </Button>
-                  </ModalFooter>
-                </>
-              )}
-            </ModalContent>
-          </Modal>
-        </>
-      )}
     </div>
   );
-};
+});
 
 export default TextEditor;
