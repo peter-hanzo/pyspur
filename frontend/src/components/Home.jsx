@@ -19,7 +19,6 @@ import {
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { runWorkflow, getWorkflows, createWorkflow } from '../utils/api';
-import Header from './Header';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
 
@@ -46,17 +45,6 @@ const Dashboard = () => {
     fetchWorkflows();
   }, []);
 
-  // const workflows = [
-  //   { key: "1", name: 'Workflow 1', lastModified: '2024-10-01' },
-  //   { key: "2", name: 'Workflow 2', lastModified: '2024-09-30' },
-  //   { key: "3", name: 'Workflow 3', lastModified: '2024-09-25' },
-  // ];
-
-  // const columns = [
-  //   { key: "name", label: "NAME" },
-  //   { key: "lastModified", label: "LAST MODIFIED" },
-  //   { key: "action", label: "ACTION" },
-  // ];
 
   const columns = [
     { key: "id", label: "ID" },
@@ -65,9 +53,9 @@ const Dashboard = () => {
     { key: "action", label: "Action" },
   ];
 
-  const activeWorkflows = [
+  const workflowJobs = [
     { key: "1", name: 'Run 1', workflow: 'Workflow 1', dataset: 'dataset1.csv', progress: 30 },
-    { key: "2", name: 'Run 2', workflow: 'Workflow 2', dataset: 'dataset2.jsonl', progress: 60 },
+    { key: "2", name: 'Run 2', workflow: 'Workflow 2', dataset: 'dataset2.jsonl', progress: 100 },
     { key: "3", name: 'Run 3', workflow: 'Workflow 3', dataset: 'dataset3.csv', progress: 90 },
   ];
 
@@ -75,7 +63,8 @@ const Dashboard = () => {
     { key: "name", label: "RUN NAME" },
     { key: "workflow", label: "WORKFLOW" },
     { key: "dataset", label: "DATASET" },
-    { key: "progress", label: "PROGRESS" },
+    { key: "progress", label: "STATUS" },
+    { key: "download", label: "DOWNLOAD" },
   ];
 
   const templates = [
@@ -167,7 +156,7 @@ const Dashboard = () => {
     try {
       // Generate a unique name for the new workflow
       const uniqueName = `New Workflow ${Date.now()}`;
-  
+
       // Create an empty workflow object
       const newWorkflow = {
         name: uniqueName,
@@ -177,10 +166,10 @@ const Dashboard = () => {
           links: []
         },
       };
-  
+
       // Call the API to create the workflow
       const createdWorkflow = await createWorkflow(newWorkflow);
-  
+
       // Navigate to the new workflow's page using its ID
       router.push(`/workflows/${createdWorkflow.id}`);
     } catch (error) {
@@ -193,6 +182,11 @@ const Dashboard = () => {
       pathname: '/workflow',
       query: { templateId },
     });
+  };
+
+  const handleDownload = (workflow) => {
+    // Implement download logic here
+    console.log('Downloading results for:', workflow.name);
   };
 
   return (
@@ -267,18 +261,37 @@ const Dashboard = () => {
           </TableBody>
         </Table>
 
-        <h3 className="text-xl font-semibold mt-8 mb-4">Active Workflow Jobs</h3>
-        <Table aria-label="Active Workflows" isHeaderSticky>
+        <h3 className="text-xl font-semibold mt-8 mb-4">Workflow Jobs</h3>
+        <Table aria-label="Workflow Jobs" isHeaderSticky>
           <TableHeader columns={activeColumns}>
             {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
           </TableHeader>
-          <TableBody items={activeWorkflows}>
+          <TableBody items={workflowJobs}>
             {(workflow) => (
               <TableRow key={workflow.key}>
                 {(columnKey) => (
                   <TableCell>
                     {columnKey === "progress" ? (
-                      <Progress value={workflow.progress} />
+                      workflow.progress === 100 ? (
+                        <span className="text-success">Finished</span>
+                      ) : (
+                        <Progress value={workflow.progress} />
+                      )
+                    ) : columnKey === "download" ? (
+                      workflow.progress === 100 ? (
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          onClick={() => handleDownload(workflow)}
+                        >
+                          <Icon
+                            icon="solar:download-linear"
+                            className="text-default-400"
+                            width={20}
+                          />
+                        </Button>
+                      ) : null
                     ) : (
                       getKeyValue(workflow, columnKey)
                     )}
