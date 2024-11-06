@@ -9,14 +9,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from enum import Enum as PyEnum
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Any
 from .base_model import BaseModel
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .run_model import RunModel
 
 
 class TaskStatus(PyEnum):
@@ -36,17 +31,28 @@ class TaskModel(BaseModel):
     run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     node_id: Mapped[str] = mapped_column(String, nullable=False)
     parent_task_id: Mapped[Optional[str]] = mapped_column(
-        String, ForeignKey("tasks.id")
+        String, ForeignKey("tasks.id"), nullable=True
     )
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False
     )
-    inputs: Mapped[Any] = mapped_column(JSON)
-    outputs: Mapped[Any] = mapped_column(JSON)
-    start_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    end_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
-
-    run: Mapped["RunModel"] = relationship("Run", back_populates="tasks")
-    parent_task: Mapped[Optional["TaskModel"]] = relationship(
-        "Task", remote_side=[id], backref="subtasks"
+    inputs: Mapped[Any] = mapped_column(JSON, nullable=True)
+    outputs: Mapped[Any] = mapped_column(JSON, nullable=True)
+    start_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc)
     )
+    end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    parent_task: Mapped[Optional["TaskModel"]] = relationship(
+        "TaskModel", remote_side=[id], backref="subtasks"
+    )
+
+    @property
+    def run_time(self) -> Optional[float]:
+        print("computing run time")
+        if self.start_time and self.end_time:
+            return (self.end_time - self.start_time).total_seconds()
+        elif self.start_time:
+            return (datetime.now() - self.start_time).total_seconds()
+        else:
+            return None

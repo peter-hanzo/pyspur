@@ -5,8 +5,12 @@
     background: transparent;
     border-radius: 0 0 5px 5px;
     margin-bottom: 1rem;
-    caret-color: #0070f3; /* NextUI primary color */
-    font-family: 'Inter', sans-serif; /* NextUI font */
+    caret-color: #0070f3;
+    /* NextUI primary color */
+    font-family: 'Inter', sans-serif;
+    /* NextUI font */
+    position: relative;
+    width: 100%;
 }
 
 .tiptap>*+* {
@@ -29,21 +33,25 @@
 .tiptap h4,
 .tiptap h5,
 .tiptap h6 {
-    font-weight: 600; /* NextUI heading font weight */
+    font-weight: 600;
+    /* NextUI heading font weight */
     line-height: 1.2;
     margin-bottom: 1rem;
 }
 
 .tiptap h1 {
-    font-size: 2.5rem; /* NextUI h1 size */
+    font-size: 2.5rem;
+    /* NextUI h1 size */
 }
 
 .tiptap h2 {
-    font-size: 2rem; /* NextUI h2 size */
+    font-size: 2rem;
+    /* NextUI h2 size */
 }
 
 .tiptap h3 {
-    font-size: 1.75rem; /* NextUI h3 size */
+    font-size: 1.75rem;
+    /* NextUI h3 size */
 }
 
 .tiptap h4,
@@ -65,15 +73,18 @@
 }
 
 .tiptap code {
-    background-color: #f5f5f5; /* NextUI code block background */
+    background-color: #f5f5f5;
+    /* NextUI code block background */
     border-radius: 0.25rem;
-    color: #0070f3; /* NextUI primary color */
+    color: #0070f3;
+    /* NextUI primary color */
     font-size: 0.875rem;
     padding: 0.2rem 0.4rem;
 }
 
 .tiptap pre {
-    background: #f5f5f5; /* NextUI pre block background */
+    background: #f5f5f5;
+    /* NextUI pre block background */
     color: #333;
     font-family: 'JetBrainsMono', monospace;
     padding: 1rem;
@@ -90,7 +101,8 @@
 
 .tiptap blockquote {
     padding-left: 1rem;
-    border-left: 4px solid #0070f3; /* NextUI blockquote border */
+    border-left: 4px solid #0070f3;
+    /* NextUI blockquote border */
     color: #333;
     font-style: italic;
 }
@@ -113,4 +125,20 @@
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
+    min-height: 60vh;
+}
+
+/* Add styles for the editor content */
+.tiptap :global(.ProseMirror) {
+    outline: none;
+    width: 100%;
+}
+
+.tiptap :global(.ProseMirror p) {
+    margin: 0;
+}
+
+/* Add some basic spacing for content */
+.tiptap :global(.ProseMirror)>*+* {
+    margin-top: 0.75em;
 }

@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any, Dict, Set
+from datetime import datetime
+from typing import Any, Dict, Iterator, List, Optional, Set
 
 from pydantic import BaseModel
 
@@ -9,6 +10,7 @@ from ..schemas.workflow_schemas import (
     WorkflowLinkSchema,
     WorkflowNodeSchema,
 )
+from ..execution.task_recorder import TaskRecorder, TaskStatus
 
 
 class WorkflowExecutor:
@@ -16,8 +18,13 @@ class WorkflowExecutor:
     Handles the execution of a workflow.
     """
 
-    def __init__(self, workflow: WorkflowDefinitionSchema):
+    def __init__(
+        self,
+        workflow: WorkflowDefinitionSchema,
+        task_recorder: Optional[TaskRecorder] = None,
+    ):
         self.workflow = workflow
+        self.task_recorder = task_recorder
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[None]] = {}
@@ -73,8 +80,13 @@ class WorkflowExecutor:
     def _get_node_task(self, node_id: str) -> asyncio.Task[None]:
         if node_id in self._node_tasks:
             return self._node_tasks[node_id]
+        # Start task for the node
         task = asyncio.create_task(self._execute_node(node_id))
         self._node_tasks[node_id] = task
+
+        # Record task
+        if self.task_recorder:
+            self.task_recorder.create_task(node_id, {})
         return task
 
     async def _execute_node(self, node_id: str):
@@ -93,9 +105,30 @@ class WorkflowExecutor:
         node_input_data = node_executor.node_instance.input_model.model_validate(
             input_data_dict
         )
-        # Execute node
-        output = await node_executor(node_input_data)
 
+        # Update task recorder
+        if self.task_recorder:
+            self.task_recorder.update_task(
+                node_id=node_id, status=TaskStatus.RUNNING, inputs=input_data_dict
+            )
+        # Execute node
+        try:
+            output = await node_executor(node_input_data)
+        except Exception as e:
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id, status=TaskStatus.FAILED, end_time=datetime.now()
+                )
+            raise e
+
+        # Update task recorder
+        if self.task_recorder:
+            self.task_recorder.update_task(
+                node_id=node_id,
+                status=TaskStatus.COMPLETED,
+                outputs=output.model_dump(),
+                end_time=datetime.now(),
+            )
         # Store output
         self._outputs[node_id] = output
 
@@ -179,3 +212,21 @@ class WorkflowExecutor:
         )
 
         return self._outputs
+
+    async def run_batch(
+        self, input_iterator: Iterator[Dict[str, Any]], batch_size: int = 100
+    ) -> List[Dict[str, BaseModel]]:
+        """
+        Run the workflow on a batch of inputs.
+        """
+        results: List[Dict[str, BaseModel]] = []
+        batch_tasks: List[asyncio.Task[Dict[str, BaseModel]]] = []
+        for input_data in input_iterator:
+            batch_tasks.append(asyncio.create_task(self.run(input_data)))
+            if len(batch_tasks) == batch_size:
+                results.extend(await asyncio.gather(*batch_tasks))
+                batch_tasks = []
+        if batch_tasks:
+            results.extend(await asyncio.gather(*batch_tasks))
+
+        return results
