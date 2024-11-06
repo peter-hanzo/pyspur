@@ -56,15 +56,15 @@ const Header = ({ activePage }) => {
       const url = new URL(window.location.href);
       const pathSegments = url.pathname.split('/');
       const workflowID = pathSegments[pathSegments.indexOf('workflows') + 1];
-  
+
       // Start the run using the workflowID
       const result = await startRun(workflowID);
       console.log('Start Run result:', result);
-  
+
       // Start the status updater function using the returned runID
       setIsRunning(true);
       updateWorkflowStatus(result.id);
-  
+
     } catch (error) {
       console.error('Error starting workflow run:', error);
     }
@@ -91,7 +91,13 @@ const Header = ({ activePage }) => {
         height="60px"
       >
         <NavbarBrand>
-          <p className="font-bold text-inherit">PySpur</p>
+          {activePage === "home" ? (
+            <p className="font-bold text-inherit cursor-pointer">PySpur</p>
+          ) : (
+            <Link href="/" className="cursor-pointer">
+              <p className="font-bold text-inherit">PySpur</p>
+            </Link>
+          )}
         </NavbarBrand>
 
         {activePage === "workflow" && (
