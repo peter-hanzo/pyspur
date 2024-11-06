@@ -23,7 +23,9 @@ class WorkflowNodeSchema(BaseModel):
     id: str  # ID in the workflow
     node_type: str  # Name of the node type
     config: Dict[str, Any] = {}  # Configuration parameters
-    coordinates: WorkflowNodeCoordinatesSchema  # Position of the node in the workflow
+    coordinates: Optional[WorkflowNodeCoordinatesSchema] = (
+        None  # Position of the node in the workflow
+    )
 
     @field_validator("node_type")
     def type_must_be_in_factory(cls, v: str):
