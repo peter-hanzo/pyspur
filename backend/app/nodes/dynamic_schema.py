@@ -8,7 +8,7 @@ from pydantic import BaseModel
 class DynamicSchemaNodeConfig(BaseModel):
     """Configuration for nodes with dynamic input/output schemas."""
 
-    input_schema: Dict[str, str] = {}
+    input_schema: Dict[str, str]
     output_schema: Dict[str, str] = {"response": "str"}
 
 
