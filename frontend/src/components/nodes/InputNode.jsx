@@ -11,7 +11,7 @@ const InputNode = ({ id, data, ...props }) => {
   const nodeData = data || {};
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
-
+  console.log('------ nodeData', nodeData);
   // Get input schema from node data
   const inputSchema = nodeData?.userconfig?.input_schema || {};
 
@@ -47,6 +47,7 @@ const InputNode = ({ id, data, ...props }) => {
   };
 
   const renderInputFields = () => {
+    console.log('------ inputSchema', inputSchema);
     return Object.entries(inputSchema).map(([key, value], index) => (
       <div key={key} className="relative w-full px-4 py-2">
         <Input

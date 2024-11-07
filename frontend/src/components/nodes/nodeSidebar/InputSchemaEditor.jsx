@@ -39,7 +39,7 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
 
   return (
     <div className="json-editor">
-      <div className="mb-4 flex items-center">
+      <div className="mb-4 flex items-center gap-2">
         <Input
           type="text"
           value={newKey}
@@ -53,56 +53,61 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
           }}
         />
         <Button
+          isIconOnly
+          radius="full"
+          variant="light"
           onClick={handleAddKey}
           color="primary"
           disabled={disabled || !newKey}
-          auto
         >
-          Add Key
+          <Icon icon="solar:add-circle-linear" width={22} />
         </Button>
       </div>
 
       {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) && (
-        <div className="flex flex-wrap">
+        <div className="flex flex-wrap gap-2">
           {Object.keys(jsonValue).map((key) => (
-            <div key={key} className="mb-2 flex items-center mr-4">
+            <div key={key} className="flex items-center">
               {editingKey === key ? (
-                <Textarea
-                  value={editedKey}
-                  onChange={(e) => setEditedKey(e.target.value)}
-                  disabled={disabled}
-                  autoFocus
-                />
+                <>
+                  <Input
+                    size="sm"
+                    value={editedKey}
+                    onChange={(e) => setEditedKey(e.target.value)}
+                    disabled={disabled}
+                    autoFocus
+                  />
+                  <Button
+                    isIconOnly
+                    radius="full"
+                    variant="light"
+                    onClick={() => handleSaveEditedKey(key)}
+                    color="primary"
+                    disabled={disabled || !editedKey}
+                    className="ml-2"
+                  >
+                    <Icon icon="solar:check-circle-linear" width={22} />
+                  </Button>
+                </>
               ) : (
-                <Tooltip
-                  content={
-                    <Button
-                      onClick={() => handleRemoveKey(key)}
-                      color="transparent"
-                      disabled={disabled}
-                      auto
-                    >
-                      <Icon icon="solar:trash-bin-minimalistic-linear" width={20} />
-                    </Button>
-                  }
-                >
+                <div className="flex items-center gap-2">
                   <span
-                    className="mr-2 p-1 border rounded bg-gray-200 cursor-pointer"
+                    className="p-1 px-2 border rounded bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors"
                     onClick={() => handleEditKey(key)}
                   >
                     {key}
                   </span>
-                </Tooltip>
-              )}
-              {editingKey === key && (
-                <Button
-                  onClick={() => handleSaveEditedKey(key)}
-                  color="primary"
-                  disabled={disabled || !editedKey}
-                  auto
-                >
-                  Save
-                </Button>
+                  <Button
+                    isIconOnly
+                    radius="full"
+                    variant="light"
+                    onClick={() => handleRemoveKey(key)}
+                    color="danger"
+                    disabled={disabled}
+                  >
+                    <Icon icon="solar:trash-bin-minimalistic-linear" width={20} />
+                  </Button>
+                </div>
               )}
             </div>
           ))}

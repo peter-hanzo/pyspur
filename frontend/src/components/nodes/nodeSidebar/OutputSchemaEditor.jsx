@@ -47,16 +47,17 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           }} // Add keyboard shortcut for Enter
         />
         <Select
-          value={newType}
+          selectedValue={newType}
           onChange={(e) => setNewType(e.target.value)}
-          disabled={disabled} // Disable when not editing
+          disabled={disabled}
           label="Select Type"
-          defaultSelectedKeys={['string']}
+          defaultSelectedKeys={["string"]}
+          className="max-w-xs"
         >
-          <SelectItem value="string">string</SelectItem>
-          <SelectItem value="boolean">boolean</SelectItem>
-          <SelectItem value="int">int</SelectItem>
-          <SelectItem value="float">float</SelectItem>
+          <SelectItem key="string" value="string">string</SelectItem>
+          <SelectItem key="boolean" value="boolean">boolean</SelectItem>
+          <SelectItem key="int" value="int">int</SelectItem>
+          <SelectItem key="float" value="float">float</SelectItem>
         </Select>
         <Button
           isIconOnly
