@@ -21,18 +21,10 @@ const flowSlice = createSlice({
       const { definition } = action.payload;
       const { nodes, links } = definition;
 
-      // Check if there's already an input node in the workflow data
-      const hasInputNode = nodes.some(node => node.node_type === 'input');
-
       // Map nodes to the expected format
       let mappedNodes = nodes.map(node =>
         createNode(node.node_type, node.id, { x: 0, y: 0 }, { userconfig: node.config })
       );
-
-      // If no input node exists, add the default one
-      if (!hasInputNode) {
-        mappedNodes = [createDefaultInputNode(), ...mappedNodes];
-      }
 
       state.nodes = mappedNodes;
 

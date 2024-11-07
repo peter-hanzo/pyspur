@@ -21,17 +21,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
-import Header from '../Header';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
-import { Icon } from "@iconify/react";
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import { updateWorkflow } from '../../utils/api'; // Import the new API function
 import InputNode from '../nodes/InputNode';
-import { createDefaultInputNode } from '../../utils/defaultNodes';
 
 console.log('Available nodeTypes:', nodeTypesConfig);
 
@@ -61,15 +58,10 @@ const FlowCanvasContent = ({ workflowData }) => {
 
   const dispatch = useDispatch();
 
-  // Update the initialization effect
   useEffect(() => {
     if (workflowData) {
       console.log('Initializing flow with workflow data:', workflowData);
       dispatch(initializeFlow(workflowData));
-    } else {
-      // If no workflow data, initialize with default input node
-      const defaultInputNode = createDefaultInputNode();
-      dispatch(addNode({ node: defaultInputNode }));
     }
   }, [dispatch, workflowData]);
 
