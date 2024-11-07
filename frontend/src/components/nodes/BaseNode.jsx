@@ -106,7 +106,12 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
       {(showControls || isSelected) && (
         <Tooltip
           placement="top-end"
-          content="Run From Here"
+          content={
+            <div className="flex gap-2">
+              <span>Run From Here</span>
+              <span>Delete Node</span>
+            </div>
+          }
           color="secondary"
         >
           <Card
@@ -131,13 +136,22 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <Button
-              isIconOnly
-              radius="full"
-              variant="light"
-            >
-              <Icon className="text-default-500" icon="solar:play-linear" width={22} />
-            </Button>
+            <div className="flex flex-row gap-1"> {/* Added container div with flex */}
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+              >
+                <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+              </Button>
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+              >
+                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
+              </Button>
+            </div>
           </Card>
         </Tooltip>
       )}
