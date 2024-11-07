@@ -48,10 +48,7 @@ const useNodeTypes = () => {
         }, {});
 
         setNodeTypes({
-          ...dynamicNodeTypes,
-          input: (props) => {
-            return <InputNode {...props} type="input" />;
-          }
+          ...dynamicNodeTypes
         });
       } catch (error) {
         console.error('Error fetching node types:', error);
