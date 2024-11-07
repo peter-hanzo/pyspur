@@ -1,3 +1,4 @@
+import os
 from typing import List
 from fastapi import Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
@@ -14,15 +15,17 @@ router = APIRouter()
 
 
 def save_file(file: UploadFile) -> str:
-    file_location = f"datasets/{file.filename}"
+    filename = file.filename
+    assert filename is not None
+    file_location = os.path.join(
+        os.path.dirname(__file__), "..", "..", "datasets", filename
+    )
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
     return file_location
 
 
-@router.post(
-    "/", response_model=DatasetResponseSchema, description="Upload a new dataset"
-)
+@router.post("/", description="Upload a new dataset")
 def upload_dataset(
     name: str,
     description: str = "",
@@ -39,7 +42,14 @@ def upload_dataset(
     db.add(new_dataset)
     db.commit()
     db.refresh(new_dataset)
-    return new_dataset
+    return DatasetResponseSchema(
+        id=new_dataset.id,
+        name=new_dataset.name,
+        description=new_dataset.description,
+        filename=new_dataset.file_path,
+        created_at=new_dataset.uploaded_at,
+        updated_at=new_dataset.uploaded_at,
+    )
 
 
 @router.get(
@@ -72,7 +82,14 @@ def get_dataset(
     dataset = db.query(DatasetModel).filter(DatasetModel.id == dataset_id).first()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    return dataset
+    return DatasetResponseSchema(
+        id=dataset.id,
+        name=dataset.name,
+        description=dataset.description,
+        filename=dataset.file_path,
+        created_at=dataset.uploaded_at,
+        updated_at=dataset.uploaded_at,
+    )
 
 
 @router.delete(

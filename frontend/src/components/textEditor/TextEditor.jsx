@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -14,7 +14,8 @@ import {
 import styles from "./TextEditor.module.css";
 import { Icon } from "@iconify/react";
 
-const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
+// Wrap the component with forwardRef
+const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {} }, ref) => {
   const editor = useEditor({
     extensions: [
       Color.configure({ types: [TextStyle.name, ListItem.name] }),
@@ -41,6 +42,15 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
       preserveWhitespace: 'full',
     },
   });
+
+  // Expose the insertAtCursor method to the parent component via ref
+  useImperativeHandle(ref, () => ({
+    insertAtCursor: (text) => {
+      if (editor) {
+        editor.chain().focus().insertContent(text).run();
+      }
+    },
+  }));
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -99,13 +109,38 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
     );
   };
 
-  // Modified renderToolbar to accept editor instance and fullScreen flag
+  // Add variable button rendering function
+  const renderVariableButtons = (editorInstance) => {
+    if (!inputSchema || Object.keys(inputSchema).length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2 mb-2 px-2">
+        {Object.keys(inputSchema).map((variable) => (
+          <Button
+            key={variable}
+            size="sm"
+            variant="flat"
+            color="primary"
+            onClick={() => {
+              if (editorInstance) {
+                editorInstance.chain().focus().insertContent(`{${variable}}`).run();
+              }
+            }}
+          >
+            {variable}
+          </Button>
+        ))}
+      </div>
+    );
+  };
+
+  // Modified renderToolbar to include variable buttons
   const renderToolbar = (editorInstance, isFullScreen = false) => {
     if (!editorInstance) return null;
 
     const buttonSize = isFullScreen ? "sm" : "md";
     const buttonClassName = isFullScreen ? "w-4 h-4" : "w-3 h-3";
-    const toolbarClassName = `px-2 py-2 rounded-t-medium flex justify-between items-start gap-1 w-full flex-wrap bg-content2 border-b border-divider`;
+    const toolbarClassName = `px-2 py-2 rounded-t-medium flex flex-col gap-2 w-full bg-content2 border-b border-divider`;
 
     return (
       <div className={toolbarClassName}>
@@ -163,103 +198,8 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
           >
             <ListOrdered className={buttonClassName} />
           </Button>
-          {isFullScreen && (
-            <>
-              <Button
-                onPress={() => editorInstance.chain().focus().setParagraph().run()}
-                color="primary"
-                variant={editorInstance.isActive('paragraph') ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                P
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 1 }).run()}
-                color="primary"
-                variant={editorInstance.isActive('heading', { level: 1 }) ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                H1
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 2 }).run()}
-                color="primary"
-                variant={editorInstance.isActive('heading', { level: 2 }) ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                H2
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleHeading({ level: 3 }).run()}
-                color="primary"
-                variant={editorInstance.isActive('heading', { level: 3 }) ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                H3
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleBlockquote().run()}
-                color="primary"
-                variant={editorInstance.isActive("blockquote") ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Quote className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().toggleCodeBlock().run()}
-                color="primary"
-                variant={editorInstance.isActive('codeBlock') ? "solid" : "flat"}
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Code className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().setHorizontalRule().run()}
-                color="primary"
-                variant="flat"
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <SeparatorHorizontal className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().undo().run()}
-                disabled={!editorInstance.can().chain().focus().undo().run()}
-                color="primary"
-                variant="flat"
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Undo className={buttonClassName} />
-              </Button>
-              <Button
-                onPress={() => editorInstance.chain().focus().redo().run()}
-                disabled={!editorInstance.can().chain().focus().redo().run()}
-                color="primary"
-                variant="flat"
-                size={buttonSize}
-                auto
-                isIconOnly
-              >
-                <Redo className={buttonClassName} />
-              </Button>
-            </>
-          )}
         </div>
+        {renderVariableButtons(editorInstance)}
       </div>
     );
   };
@@ -324,6 +264,6 @@ const TextEditor = ({ content, setContent, isEditable, fullScreen }) => {
       )}
     </div>
   );
-};
+});
 
 export default TextEditor;

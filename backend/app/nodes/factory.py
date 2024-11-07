@@ -38,6 +38,11 @@ class NodeFactory:
     _SUPPORTED_NODE_TYPES = {
         "primitives": [
             {
+                "node_type_name": "InputNode",
+                "module": ".nodes.primitives.input",
+                "class_name": "InputNode",
+            },
+            {
                 "node_type_name": "StaticValueNode",
                 "module": ".nodes.primitives.static_value",
                 "class_name": "StaticValueNode",

@@ -25,4 +25,6 @@ class WorkflowModel(BaseModel):
         onupdate=datetime.now(timezone.utc),
     )
 
-    runs: Mapped[Optional[List["RunModel"]]] = relationship("RunModel")
+    runs: Mapped[Optional[List["RunModel"]]] = relationship(
+        "RunModel", backref="workflow"
+    )

@@ -19,9 +19,9 @@ import {
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { runWorkflow, getWorkflows, createWorkflow } from '../utils/api';
-import Header from './Header';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
+import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
 
 const Dashboard = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -35,9 +35,9 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
-        const data = await getWorkflows();
-        console.log('Workflows:', data.workflows);
-        setWorkflows(data.workflows);
+        const workflows = await getWorkflows();
+        console.log('Workflows:', workflows);
+        setWorkflows(workflows);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -46,17 +46,6 @@ const Dashboard = () => {
     fetchWorkflows();
   }, []);
 
-  // const workflows = [
-  //   { key: "1", name: 'Workflow 1', lastModified: '2024-10-01' },
-  //   { key: "2", name: 'Workflow 2', lastModified: '2024-09-30' },
-  //   { key: "3", name: 'Workflow 3', lastModified: '2024-09-25' },
-  // ];
-
-  // const columns = [
-  //   { key: "name", label: "NAME" },
-  //   { key: "lastModified", label: "LAST MODIFIED" },
-  //   { key: "action", label: "ACTION" },
-  // ];
 
   const columns = [
     { key: "id", label: "ID" },
@@ -65,18 +54,6 @@ const Dashboard = () => {
     { key: "action", label: "Action" },
   ];
 
-  const activeWorkflows = [
-    { key: "1", name: 'Run 1', workflow: 'Workflow 1', dataset: 'dataset1.csv', progress: 30 },
-    { key: "2", name: 'Run 2', workflow: 'Workflow 2', dataset: 'dataset2.jsonl', progress: 60 },
-    { key: "3", name: 'Run 3', workflow: 'Workflow 3', dataset: 'dataset3.csv', progress: 90 },
-  ];
-
-  const activeColumns = [
-    { key: "name", label: "RUN NAME" },
-    { key: "workflow", label: "WORKFLOW" },
-    { key: "dataset", label: "DATASET" },
-    { key: "progress", label: "PROGRESS" },
-  ];
 
   const templates = [
     {
@@ -167,20 +144,17 @@ const Dashboard = () => {
     try {
       // Generate a unique name for the new workflow
       const uniqueName = `New Workflow ${Date.now()}`;
-  
+
       // Create an empty workflow object
       const newWorkflow = {
         name: uniqueName,
         description: '',
-        definition: {
-          nodes: [],
-          links: []
-        },
+
       };
-  
+
       // Call the API to create the workflow
       const createdWorkflow = await createWorkflow(newWorkflow);
-  
+
       // Navigate to the new workflow's page using its ID
       router.push(`/workflows/${createdWorkflow.id}`);
     } catch (error) {
@@ -194,6 +168,7 @@ const Dashboard = () => {
       query: { templateId },
     });
   };
+
 
   return (
     <div className="flex flex-col gap-2">
@@ -267,27 +242,7 @@ const Dashboard = () => {
           </TableBody>
         </Table>
 
-        <h3 className="text-xl font-semibold mt-8 mb-4">Active Workflow Jobs</h3>
-        <Table aria-label="Active Workflows" isHeaderSticky>
-          <TableHeader columns={activeColumns}>
-            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-          </TableHeader>
-          <TableBody items={activeWorkflows}>
-            {(workflow) => (
-              <TableRow key={workflow.key}>
-                {(columnKey) => (
-                  <TableCell>
-                    {columnKey === "progress" ? (
-                      <Progress value={workflow.progress} />
-                    ) : (
-                      getKeyValue(workflow, columnKey)
-                    )}
-                  </TableCell>
-                )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <WorkflowBatchRunsTable/>
       </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
