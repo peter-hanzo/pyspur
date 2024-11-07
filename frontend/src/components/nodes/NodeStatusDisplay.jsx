@@ -5,6 +5,7 @@ import { selectNodeById } from '../../store/flowSlice';
 const NodeStatusDisplay = ({ nodeID }) => {
     const node = useSelector((state) => selectNodeById(state, nodeID));
     const output = node?.data?.run;
+    console.log('NodeStatusDisplay:', nodeID, output);
 
     return (
         <div>

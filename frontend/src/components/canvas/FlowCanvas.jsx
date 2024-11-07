@@ -31,6 +31,7 @@ import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
 import { Icon } from "@iconify/react";
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
+import { updateWorkflow } from '../../utils/api'; // Import the new API function
 
 console.log('Available nodeTypes:', nodeTypesConfig);
 
@@ -55,7 +56,7 @@ const edgeTypes = {
 };
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent = ({workflowData}) => {
+const FlowCanvasContent = ({ workflowData }) => {
   // console.log('FlowCanvas re-rendered');
 
   const dispatch = useDispatch();
@@ -72,6 +73,39 @@ const FlowCanvasContent = ({workflowData}) => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
+
+  const saveWorkflow = useCallback(async () => {
+    try {
+      const url = window.location.href;
+      const workflowID = url.split('/').pop();
+
+      const updatedWorkflow = {
+        nodes: nodes.map(node => ({
+          id: node.id,
+          node_type: node.type,
+          config: node.data.userconfig,
+          coordinates: node.position,
+        })),
+        links: edges.map(edge => ({
+          source_id: edge.source,
+          source_output_key: edge.sourceHandle,
+          target_id: edge.target,
+          target_input_key: edge.targetHandle,
+        })),
+      };
+
+      await updateWorkflow(workflowID, updatedWorkflow);
+      console.log('Workflow updated successfully');
+    } catch (error) {
+      console.error('Error updating workflow:', error);
+    }
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      saveWorkflow();
+    }
+  }, [nodes, edges, saveWorkflow]);
 
   // Manage reactFlowInstance locally
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -425,7 +459,7 @@ const FlowCanvasContent = ({workflowData}) => {
 };
 
 // Main component that provides the ReactFlow context
-const FlowCanvas = ({workflowData}) => {
+const FlowCanvas = ({ workflowData }) => {
   return (
     <ReactFlowProvider>
       <FlowCanvasContent workflowData={workflowData} />
