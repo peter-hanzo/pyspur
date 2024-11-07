@@ -1,8 +1,8 @@
-import { user } from '@nextui-org/theme';
 import { createSlice, createAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
-import  { createNode } from '../components/nodes/nodeFactory';
+import { createNode } from '../components/nodes/nodeFactory';
+import { createDefaultInputNode } from '../utils/defaultNodes';
 
 const initialState = {
   nodes: [],
@@ -20,17 +20,27 @@ const flowSlice = createSlice({
     initializeFlow: (state, action) => {
       const { definition } = action.payload;
       const { nodes, links } = definition;
-    
+
+      // Check if there's already an input node in the workflow data
+      const hasInputNode = nodes.some(node => node.node_type === 'input');
+
       // Map nodes to the expected format
-      state.nodes = nodes.map(node => 
+      let mappedNodes = nodes.map(node =>
         createNode(node.node_type, node.id, { x: 0, y: 0 }, { userconfig: node.config })
       );
-    
+
+      // If no input node exists, add the default one
+      if (!hasInputNode) {
+        mappedNodes = [createDefaultInputNode(), ...mappedNodes];
+      }
+
+      state.nodes = mappedNodes;
+
       // Map links to the expected edge format
       state.edges = links.map(link => ({
-        id: uuidv4(), 
+        id: uuidv4(),
         key: uuidv4(),
-        selected: link.selected || false, // Default to false if not provided
+        selected: link.selected || false,
         source: link.source_id,
         target: link.target_id,
         sourceHandle: link.source_output_key,
@@ -91,27 +101,11 @@ const flowSlice = createSlice({
     setProjectName: (state, action) => {
       state.projectName = action.payload;
     },
-    detachNodes: (state, action) => {
-      const { nodeIds, groupId } = action.payload;
-      const groupNode = state.nodes.find(n => n.id === groupId);
 
-      state.nodes = state.nodes.map(node => {
-        if (nodeIds.includes(node.id)) {
-          return {
-            ...node,
-            position: {
-              x: node.position.x + groupNode.position.x,
-              y: node.position.y + groupNode.position.y
-            },
-            parentId: undefined,
-            extent: undefined
-          };
-        }
-        return node;
-      }).filter(node => node.id !== groupId);
-    },
     clearCanvas: (state) => {
-      state.nodes = [];
+      // Update clearCanvas to maintain at least the input node
+      const defaultInputNode = createDefaultInputNode();
+      state.nodes = [defaultInputNode];
       state.edges = [];
     },
   },
@@ -132,7 +126,6 @@ export const {
   deleteEdge,
   setSidebarWidth,
   setProjectName,
-  detachNodes,
   clearCanvas
 } = flowSlice.actions;
 

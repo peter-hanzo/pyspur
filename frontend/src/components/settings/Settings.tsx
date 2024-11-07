@@ -45,7 +45,7 @@ export default function SettingsCard(props: CardProps) {
                     >
                       <APIKeys className="p-2 shadow-none" />
                     </Tab>
-                    <Tab
+                    {/* <Tab
                       key="advanced-settings"
                       textValue="Advanced Settings"
                       title={
@@ -56,17 +56,18 @@ export default function SettingsCard(props: CardProps) {
                       }
                     >
                       <AdvancedSettings className="p-2 shadow-none" />
-                    </Tab>
+                    </Tab> */}
                   </Tabs>
                 </Card>
               </ModalBody>
-              <ModalFooter><Button radius="full" variant="bordered">
+              {/* <ModalFooter>
+              <Button radius="full" variant="bordered">
                 Cancel
               </Button>
                 <Button color="primary" radius="full">
                   Save
                 </Button>
-              </ModalFooter>
+              </ModalFooter> */}
             </>
           )}
         </ModalContent>

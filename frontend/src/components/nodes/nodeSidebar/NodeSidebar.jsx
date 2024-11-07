@@ -363,6 +363,10 @@ const NodeSidebar = ({ nodeID }) => {
                 </div>
 
                 <Accordion selectionMode="multiple" defaultExpandedKeys={["title", "config", "examples"]}>
+                    <AccordionItem key="output" aria-label='Output' title="Outputs">
+                        <NodeStatus node={node} />
+                    </AccordionItem>
+
                     <AccordionItem key="title" aria-label="Node Title" title="Node Title">
                         <Textarea
                             value={node?.data?.userconfig?.title || ''}
@@ -378,9 +382,7 @@ const NodeSidebar = ({ nodeID }) => {
                         {renderConfigFields()}
                     </AccordionItem>
 
-                    <AccordionItem key="output" aria-label='Output' title="Output">
-                        <NodeStatus node={node} />
-                    </AccordionItem>
+
                 </Accordion>
             </div>
         </div>

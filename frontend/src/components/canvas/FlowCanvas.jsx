@@ -26,27 +26,27 @@ import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
-import GroupNode from '../nodes/GroupNode';
-import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
 import { Icon } from "@iconify/react";
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import { updateWorkflow } from '../../utils/api'; // Import the new API function
+import InputNode from '../nodes/InputNode';
+import { createDefaultInputNode } from '../../utils/defaultNodes';
 
 console.log('Available nodeTypes:', nodeTypesConfig);
 
 const nodeTypes = {
-  group: GroupNode,
   ...Object.keys(nodeTypesConfig).reduce((acc, category) => {
     nodeTypesConfig[category].forEach(node => {
-      console.log(`Registering node type: ${node.name}`);
       acc[node.name] = (props) => {
-        console.log('Rendering node with props:', props);
         return <DynamicNode {...props} type={node.name} />;
       };
     });
     return acc;
-  }, {})
+  }, {}),
+  input: (props) => {
+    return <InputNode {...props} type="input" />;
+  }
 };
 
 console.log('Registered node types:', nodeTypes);
@@ -61,13 +61,17 @@ const FlowCanvasContent = ({ workflowData }) => {
 
   const dispatch = useDispatch();
 
-  // Dispatch an action to initialize the flow state with workflowData
+  // Update the initialization effect
   useEffect(() => {
     if (workflowData) {
       console.log('Initializing flow with workflow data:', workflowData);
       dispatch(initializeFlow(workflowData));
+    } else {
+      // If no workflow data, initialize with default input node
+      const defaultInputNode = createDefaultInputNode();
+      dispatch(addNode({ node: defaultInputNode }));
     }
-  }, []);
+  }, [dispatch, workflowData]);
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
@@ -269,6 +273,27 @@ const FlowCanvasContent = ({ workflowData }) => {
     [dispatch, selectedNodeID]
   );
 
+  // Add this new keyboard handler
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const selectedNodes = nodes.filter(node => node.selected);
+        if (selectedNodes.length > 0) {
+          onNodesDelete(selectedNodes);
+        }
+      }
+    },
+    [nodes, onNodesDelete]
+  );
+
+  // Add effect to handle keyboard events
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   // Use the custom hook for keyboard shortcuts
   useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
 
@@ -285,43 +310,10 @@ const FlowCanvasContent = ({ workflowData }) => {
     hideAttribution: true
   };
 
-  const { onGroup } = useGroupNodes();
+
   const mode = useModeStore((state) => state.mode);
 
   const viewport = useViewport();
-
-  // Update the getGroupButtonPosition function
-  const getGroupButtonPosition = useCallback(() => {
-    const selectedNodes = nodes.filter(node => node.selected && !node.parentId);
-    if (selectedNodes.length <= 1) return null;
-
-    // Calculate the bounding box of selected nodes
-    const bounds = selectedNodes.reduce(
-      (acc, node) => {
-        const nodeWidth = node.width || 150;
-        const nodeHeight = node.height || 40;
-
-        return {
-          minX: Math.min(acc.minX, node.position.x),
-          maxX: Math.max(acc.maxX, node.position.x + nodeWidth),
-          minY: Math.min(acc.minY, node.position.y),
-          maxY: Math.max(acc.maxY, node.position.y + nodeHeight),
-        };
-      },
-      {
-        minX: Infinity,
-        maxX: -Infinity,
-        minY: Infinity,
-        maxY: -Infinity,
-      }
-    );
-
-    // Apply viewport transform to get the correct screen position
-    return {
-      x: (bounds.maxX + 20) * viewport.zoom + viewport.x,
-      y: (bounds.minY - 20) * viewport.zoom + viewport.y,
-    };
-  }, [nodes, viewport]);
 
   // Add this memoized nodes with mode
   const nodesWithMode = useMemo(() => {
@@ -426,29 +418,7 @@ const FlowCanvasContent = ({ workflowData }) => {
               />
             )}
 
-            {mode === 'pointer' && getGroupButtonPosition() && (
-              <Panel
-                className="absolute"
-                style={{
-                  left: getGroupButtonPosition().x,
-                  top: getGroupButtonPosition().y,
-                  transform: 'none',
-                  background: 'transparent',
-                  border: 'none',
-                  pointerEvents: 'all'
-                }}
-              >
-                <Button
-                  size="sm"
-                  onClick={onGroup}
-                  className="bg-white hover:bg-default-100 border-1 shadow-lg"
-                  startContent={<Icon icon="solar:box-bold" />}
-                  disabled={nodes.filter(node => node.selected && !node.parentId).length <= 1}
-                >
-                  Group
-                </Button>
-              </Panel>
-            )}
+
 
             <Operator />
           </ReactFlow>
