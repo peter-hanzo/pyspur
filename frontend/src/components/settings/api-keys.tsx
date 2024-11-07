@@ -74,7 +74,11 @@ export default function Component(props: CardProps) {
             placeholder={`Enter value`}
             name={name}
             value={value}
-            onFocus={() => handleInputChange({ target: { name, value: '' } })}
+            onFocus={() => setKeys((prevKeys) =>
+              prevKeys.map((key) =>
+                key.name === name ? { ...key, value: '' } : key
+              )
+            )}
             onChange={handleInputChange}
           />
         ))}
