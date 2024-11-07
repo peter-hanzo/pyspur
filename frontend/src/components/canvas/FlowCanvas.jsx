@@ -90,7 +90,7 @@ const FlowCanvasContent = ({ workflowData }) => {
         (c) => c.type === 'position' && c.position
       );
 
-      if (positionChange) {
+      if (positionChange && showHelperLines) {
         const { horizontal, vertical } = getHelperLines(positionChange, nodes);
         setHelperLines({ horizontal, vertical });
 
@@ -104,7 +104,7 @@ const FlowCanvasContent = ({ workflowData }) => {
 
       dispatch(nodesChange({ changes }));
     },
-    [dispatch, nodes]
+    [dispatch, nodes, showHelperLines]
   );
 
   const onEdgesChange = useCallback(
@@ -301,6 +301,9 @@ const FlowCanvasContent = ({ workflowData }) => {
     }));
   }, [nodes, mode]);
 
+  // Add a flag to control the visibility of helper lines
+  const showHelperLines = false; // Set to false for now
+
   return (
     <div style={{ position: 'relative', height: '100%' }}>
       {isPopoverContentVisible && selectedEdge && (
@@ -380,10 +383,14 @@ const FlowCanvasContent = ({ workflowData }) => {
             connectionMode="loose"
           >
             <Background />
-            <HelperLinesRenderer
-              horizontal={helperLines.horizontal}
-              vertical={helperLines.vertical}
-            />
+
+            {/* Conditionally render HelperLinesRenderer based on the flag */}
+            {showHelperLines && (
+              <HelperLinesRenderer
+                horizontal={helperLines.horizontal}
+                vertical={helperLines.vertical}
+              />
+            )}
 
             {mode === 'pointer' && getGroupButtonPosition() && (
               <Panel
