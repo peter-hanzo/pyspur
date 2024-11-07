@@ -31,11 +31,14 @@ import { useGroupNodes } from '../../hooks/useGroupNodes';
 import { useModeStore } from '../../store/modeStore';
 import { Icon } from "@iconify/react";
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
+import InputNode from '../nodes/InputNode';
+import { createDefaultInputNode } from '../../utils/defaultNodes';
 
 console.log('Available nodeTypes:', nodeTypesConfig);
 
 const nodeTypes = {
   group: GroupNode,
+  input: InputNode,
   ...Object.keys(nodeTypesConfig).reduce((acc, category) => {
     nodeTypesConfig[category].forEach(node => {
       console.log(`Registering node type: ${node.name}`);
@@ -60,13 +63,17 @@ const FlowCanvasContent = ({ workflowData }) => {
 
   const dispatch = useDispatch();
 
-  // Dispatch an action to initialize the flow state with workflowData
+  // Update the initialization effect
   useEffect(() => {
     if (workflowData) {
       console.log('Initializing flow with workflow data:', workflowData);
       dispatch(initializeFlow(workflowData));
+    } else {
+      // If no workflow data, initialize with default input node
+      const defaultInputNode = createDefaultInputNode();
+      dispatch(addNode({ node: defaultInputNode }));
     }
-  }, []);
+  }, [dispatch, workflowData]);
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);

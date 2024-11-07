@@ -106,7 +106,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
       {(showControls || isSelected) && (
         <Tooltip
           placement="top-end"
-          content="Run Node"
+          content="Run From Here"
           color="secondary"
         >
           <Card
