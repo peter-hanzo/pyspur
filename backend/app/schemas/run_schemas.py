@@ -15,6 +15,7 @@ class RunResponseSchema(BaseModel):
     status: RunStatus
     run_type: str
     outputs: Optional[Dict[str, Any]]
+    output_file_id: Optional[str]
     start_time: Optional[datetime]
     end_time: Optional[datetime]
 

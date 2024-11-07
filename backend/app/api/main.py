@@ -15,6 +15,7 @@ from .workflow_management import router as workflow_management_router
 from .workflow_run import router as workflow_run_router
 from .dataset_management import router as dataset_management_router
 from .run_management import router as run_management_router
+from .output_file_management import router as output_file_management_router
 
 load_dotenv()
 
@@ -42,6 +43,7 @@ app.include_router(workflow_management_router, prefix="/wf")
 app.include_router(workflow_run_router, prefix="/wf")
 app.include_router(dataset_management_router, prefix="/ds")
 app.include_router(run_management_router, prefix="/run")
+app.include_router(output_file_management_router, prefix="/of")
 
 
 @app.post("/run_node/")

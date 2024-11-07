@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from .base_model import BaseModel
 from .task_model import TaskModel
+from .output_file_model import OutputFileModel
 
 
 class RunStatus(PyEnum):
@@ -42,12 +43,18 @@ class RunModel(BaseModel):
     )
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     outputs: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+    output_file_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("output_files.id"), nullable=True
+    )
     tasks: Mapped[List["TaskModel"]] = relationship("TaskModel")
     parent_run: Mapped[Optional["RunModel"]] = relationship(
         "RunModel", remote_side=[id], back_populates="subruns"
     )
     subruns: Mapped[List["RunModel"]] = relationship(
         "RunModel", back_populates="parent_run"
+    )
+    output_file: Mapped[Optional["OutputFileModel"]] = relationship(
+        "OutputFileModel", backref="run"
     )
 
     @property
