@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -8,7 +9,6 @@ from ..schemas.workflow_schemas import (
     WorkflowNodeSchema,
     WorkflowResponseSchema,
     WorkflowDefinitionSchema,
-    WorkflowsListResponseSchema,
 )
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
@@ -48,14 +48,7 @@ def create_workflow(
     db.add(new_workflow)
     db.commit()
     db.refresh(new_workflow)
-    return WorkflowResponseSchema(
-        id=new_workflow.id,
-        name=new_workflow.name,
-        description=new_workflow.description,
-        definition=WorkflowDefinitionSchema.model_validate(new_workflow.definition),
-        created_at=new_workflow.created_at,
-        updated_at=new_workflow.updated_at,
-    )
+    return new_workflow
 
 
 @router.put(
@@ -75,33 +68,15 @@ def update_workflow(
     workflow.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(workflow)
-    return WorkflowResponseSchema(
-        id=workflow.id,
-        name=workflow.name,
-        description=workflow.description,
-        definition=workflow_def,
-        created_at=workflow.created_at,
-        updated_at=workflow.updated_at,
-    )
+    return workflow
 
 
 @router.get(
-    "/", response_model=WorkflowsListResponseSchema, description="List all workflows"
+    "/", response_model=List[WorkflowResponseSchema], description="List all workflows"
 )
-def list_workflows(db: Session = Depends(get_db)) -> WorkflowsListResponseSchema:
+def list_workflows(db: Session = Depends(get_db)):
     workflows = db.query(WorkflowModel).all()
-    workflow_list = [
-        WorkflowResponseSchema(
-            id=wf.id,
-            name=wf.name,
-            description=wf.description,
-            definition=wf.definition,
-            created_at=wf.created_at,
-            updated_at=wf.updated_at,
-        )
-        for wf in workflows
-    ]
-    return WorkflowsListResponseSchema(workflows=workflow_list)
+    return workflows
 
 
 @router.get(
@@ -115,11 +90,4 @@ def get_workflow(
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return WorkflowResponseSchema(
-        id=workflow.id,
-        name=workflow.name,
-        description=workflow.description,
-        definition=workflow.definition,
-        created_at=workflow.created_at,
-        updated_at=workflow.updated_at,
-    )
+    return workflow

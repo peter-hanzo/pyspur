@@ -20,7 +20,7 @@ def list_runs(
     parent_only: bool = True,
     run_type: Optional[str] = None,
     db: Session = Depends(get_db),
-) -> List[RunResponseSchema]:
+):
     query = db.query(RunModel)
 
     if parent_only:
@@ -28,21 +28,7 @@ def list_runs(
     if run_type:
         query = query.filter(RunModel.run_type == run_type)
     runs = query.order_by(RunModel.start_time.desc()).limit(last_k).all()
-
-    run_list = [
-        RunResponseSchema(
-            id=run.id,
-            status=run.status,
-            start_time=run.start_time,
-            end_time=run.end_time,
-            workflow_id=run.workflow_id,
-            run_type=run.run_type,
-            outputs=run.outputs,
-            output_file_id=run.output_file_id,
-        )
-        for run in runs
-    ]
-    return run_list
+    return runs
 
 
 @router.get("/{run_id}/status/", response_model=RunStatusResponseSchema)
