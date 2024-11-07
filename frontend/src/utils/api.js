@@ -4,6 +4,17 @@ import { Workflow } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8000';
 
+export const getNodeTypes = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/node/supported_types/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting node types:', error);
+    throw error;
+  }
+};
+
+
 export const runWorkflow = async (workflowData) => {
   try {
     console.log('Workflow Data:', workflowData); // Log the workflowData for debugging
@@ -27,16 +38,6 @@ export const runWorkflow = async (workflowData) => {
     return response.data;
   } catch (error) {
     console.error('Error running workflow:', error);
-    throw error;
-  }
-};
-
-export const getNodeTypes = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/node_types/`);
-    return response.data;
-  } catch (error) {
-    console.error('Error getting node types:', error);
     throw error;
   }
 };
