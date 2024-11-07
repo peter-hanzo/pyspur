@@ -13,6 +13,8 @@ import { Icon } from "@iconify/react";
 
 const BaseNode = ({ id, data = {}, children, style = {} }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const dispatch = useDispatch();
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
@@ -20,10 +22,17 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
 
   const handleMouseEnter = () => {
     dispatch(setHoveredNode({ nodeId: id }));
+    setShowControls(true);
   };
 
   const handleMouseLeave = () => {
     dispatch(setHoveredNode({ nodeId: null }));
+    // Only start the hide timer if tooltip isn't being hovered
+    if (!isTooltipHovered) {
+      setTimeout(() => {
+        setShowControls(false);
+      }, 200);
+    }
   };
 
   const isHovered = String(id) === String(hoveredNodeId);
@@ -94,14 +103,25 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
         {!isCollapsed && <CardBody>{children}</CardBody>}
       </Card>
 
-      {/* Tooltip with Play Button outside the node */}
-      {(isHovered || isSelected) && (
+      {(showControls || isSelected) && (
         <Tooltip
           placement="top-end"
           content="Run Node"
           color="secondary"
         >
           <Card
+            onMouseEnter={() => {
+              setShowControls(true);
+              setIsTooltipHovered(true);
+            }}
+            onMouseLeave={() => {
+              setIsTooltipHovered(false);
+              setTimeout(() => {
+                if (!isHovered) {
+                  setShowControls(false);
+                }
+              }, 300);
+            }}
             style={{
               position: 'absolute',
               top: '-50px',
