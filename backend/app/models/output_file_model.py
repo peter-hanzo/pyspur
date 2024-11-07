@@ -1,4 +1,4 @@
-from sqlalchemy import Computed, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Computed, Integer, String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
 from .base_model import BaseModel
@@ -13,9 +13,6 @@ class OutputFileModel(BaseModel):
     )
     file_name: Mapped[str] = mapped_column(String, nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
-    run_id: Mapped[str] = mapped_column(
-        String, ForeignKey("runs.id"), nullable=False, index=True
-    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc)
     )

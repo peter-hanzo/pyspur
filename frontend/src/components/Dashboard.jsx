@@ -21,6 +21,7 @@ import { Icon } from '@iconify/react';
 import { runWorkflow, getWorkflows, createWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
+import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
 
 const Dashboard = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -34,9 +35,9 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
-        const data = await getWorkflows();
-        console.log('Workflows:', data.workflows);
-        setWorkflows(data.workflows);
+        const workflows = await getWorkflows();
+        console.log('Workflows:', workflows);
+        setWorkflows(workflows);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -53,19 +54,6 @@ const Dashboard = () => {
     { key: "action", label: "Action" },
   ];
 
-  const workflowJobs = [
-    { key: "1", name: 'Run 1', workflow: 'Workflow 1', dataset: 'dataset1.csv', progress: 30 },
-    { key: "2", name: 'Run 2', workflow: 'Workflow 2', dataset: 'dataset2.jsonl', progress: 100 },
-    { key: "3", name: 'Run 3', workflow: 'Workflow 3', dataset: 'dataset3.csv', progress: 90 },
-  ];
-
-  const activeColumns = [
-    { key: "name", label: "RUN NAME" },
-    { key: "workflow", label: "WORKFLOW" },
-    { key: "dataset", label: "DATASET" },
-    { key: "progress", label: "STATUS" },
-    { key: "download", label: "DOWNLOAD" },
-  ];
 
   const templates = [
     {
@@ -181,10 +169,6 @@ const Dashboard = () => {
     });
   };
 
-  const handleDownload = (workflow) => {
-    // Implement download logic here
-    console.log('Downloading results for:', workflow.name);
-  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -258,46 +242,7 @@ const Dashboard = () => {
           </TableBody>
         </Table>
 
-        <h3 className="text-xl font-semibold mt-8 mb-4">Workflow Jobs</h3>
-        <Table aria-label="Workflow Jobs" isHeaderSticky>
-          <TableHeader columns={activeColumns}>
-            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-          </TableHeader>
-          <TableBody items={workflowJobs}>
-            {(workflow) => (
-              <TableRow key={workflow.key}>
-                {(columnKey) => (
-                  <TableCell>
-                    {columnKey === "progress" ? (
-                      workflow.progress === 100 ? (
-                        <span className="text-success">Finished</span>
-                      ) : (
-                        <Progress value={workflow.progress} />
-                      )
-                    ) : columnKey === "download" ? (
-                      workflow.progress === 100 ? (
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          onClick={() => handleDownload(workflow)}
-                        >
-                          <Icon
-                            icon="solar:download-linear"
-                            className="text-default-400"
-                            width={20}
-                          />
-                        </Button>
-                      ) : null
-                    ) : (
-                      getKeyValue(workflow, columnKey)
-                    )}
-                  </TableCell>
-                )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <WorkflowBatchRunsTable/>
       </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>

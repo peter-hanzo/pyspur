@@ -67,6 +67,9 @@ class WorkflowDefinitionSchema(BaseModel):
             raise ValueError("Workflow must have exactly one input node.")
         return v
 
+    class Config:
+        from_attributes = True
+
 
 class WorkflowCreateRequestSchema(BaseModel):
     """
@@ -90,10 +93,5 @@ class WorkflowResponseSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-
-class WorkflowsListResponseSchema(BaseModel):
-    """
-    A response containing a list of workflows.
-    """
-
-    workflows: List[WorkflowResponseSchema]
+    class Config:
+        from_attributes = True

@@ -84,7 +84,7 @@ const Header = ({ activePage }) => {
     <>
       <Navbar
         classNames={{
-          base: "lg:bg-transparent lg:backdrop-filter-none",
+          base: "lg:bg-background lg:backdrop-filter-none",
           item: "data-[active=true]:text-primary",
           wrapper: "px-4 sm:px-6",
         }}

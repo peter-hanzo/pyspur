@@ -109,3 +109,46 @@ export const getWorkflow = async (workflowID) => {
     throw error;
   }
 }
+
+export const getAllRuns = async (lastK = 10, parentOnly = true, runType = "batch") => {
+  try {
+    const params = {
+      last_k: lastK,
+      parent_only: parentOnly,
+      run_type: runType
+    };
+    const response = await axios.get(`${API_BASE_URL}/run/`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching runs:', error);
+    throw error;
+  }
+}
+
+export const downloadOutputFile = async (outputFileID) => {
+  try {
+    // First, get the output file details to find the original filename
+    const fileInfoResponse = await axios.get(`${API_BASE_URL}/of/${outputFileID}/`);
+    const fileName = fileInfoResponse.data.file_name;
+
+    // Then, download the file
+    const response = await axios.get(`${API_BASE_URL}/of/${outputFileID}/download/`, {
+      responseType: 'blob',
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Use the filename obtained from the output file details
+    link.setAttribute('download', fileName);
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading output file:', error);
+    throw error;
+  }
+}
