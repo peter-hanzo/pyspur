@@ -1,8 +1,44 @@
-import React from 'react';
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress } from '@nextui-org/react';
+import React, { useState, useEffect } from 'react';
+import { getKeyValue, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
+import { getAllRuns, downloadOutputFile } from '../utils/api';
 
-const WorkflowBatchRunsTable = ({ activeColumns, workflowJobs, handleDownload, getKeyValue }) => {
+const WorkflowBatchRunsTable = () => {
+  const [workflowBatchRuns, setWorkflowBatchRuns] = useState([]);
+
+  useEffect(() => {
+    const fetchRuns = async () => {
+      try {
+        const runs = await getAllRuns();
+        const formattedRuns = runs.map(run => ({
+          key: run.id,
+          id: run.id,
+          workflow_name: run.workflow.name, // Assuming workflow_id is the name or you can map it to the actual name
+          dataset: run.input_dataset_id || 'N/A', // Assuming input_dataset_id is the dataset name or you can map it to the actual name
+          progress: run.status === 'COMPLETED' ? 100 : run.status === 'FAILED' ? 0 : 50, // Simplified logic for progress
+          output_file_id: run.output_file_id, // Assuming output_file_id is the file id or you can map it to the actual name
+        }));
+        setWorkflowBatchRuns(formattedRuns);
+      } catch (error) {
+        console.error('Error fetching runs:', error);
+      }
+    };
+
+    fetchRuns();
+  }, []);
+
+  const activeColumns = [
+    { key: "id", label: "RUN ID" },
+    { key: "workflow_name", label: "WORKFLOW" },
+    { key: "dataset", label: "DATASET" },
+    { key: "progress", label: "STATUS" },
+    { key: "download", label: "DOWNLOAD" },
+  ];
+
+  const handleDownload = (batch_run) => {
+    downloadOutputFile(batch_run.output_file_id);
+  };
+
   return (
     <>
       <h3 className="text-xl font-semibold mt-8 mb-4">Workflow Jobs</h3>
@@ -10,24 +46,24 @@ const WorkflowBatchRunsTable = ({ activeColumns, workflowJobs, handleDownload, g
         <TableHeader columns={activeColumns}>
           {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
         </TableHeader>
-        <TableBody items={workflowJobs}>
-          {(workflow) => (
-            <TableRow key={workflow.key}>
+        <TableBody items={workflowBatchRuns}>
+          {(batch_run) => (
+            <TableRow key={batch_run.key}>
               {(columnKey) => (
                 <TableCell>
                   {columnKey === "progress" ? (
-                    workflow.progress === 100 ? (
+                    batch_run.progress === 100 ? (
                       <span className="text-success">Finished</span>
                     ) : (
-                      <Progress value={workflow.progress} />
+                      <Progress value={batch_run.progress} />
                     )
                   ) : columnKey === "download" ? (
-                    workflow.progress === 100 ? (
+                    batch_run.progress === 100 ? (
                       <Button
                         isIconOnly
                         size="sm"
                         variant="light"
-                        onClick={() => handleDownload(workflow)}
+                        onClick={() => handleDownload(batch_run)}
                       >
                         <Icon
                           icon="solar:download-linear"
@@ -37,7 +73,7 @@ const WorkflowBatchRunsTable = ({ activeColumns, workflowJobs, handleDownload, g
                       </Button>
                     ) : null
                   ) : (
-                    getKeyValue(workflow, columnKey)
+                    getKeyValue(batch_run, columnKey)
                   )}
                 </TableCell>
               )}

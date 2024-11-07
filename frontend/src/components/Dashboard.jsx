@@ -54,19 +54,6 @@ const Dashboard = () => {
     { key: "action", label: "Action" },
   ];
 
-  const workflowJobs = [
-    { key: "1", name: 'Run 1', workflow: 'Workflow 1', dataset: 'dataset1.csv', progress: 30 },
-    { key: "2", name: 'Run 2', workflow: 'Workflow 2', dataset: 'dataset2.jsonl', progress: 100 },
-    { key: "3", name: 'Run 3', workflow: 'Workflow 3', dataset: 'dataset3.csv', progress: 90 },
-  ];
-
-  const activeColumns = [
-    { key: "name", label: "RUN NAME" },
-    { key: "workflow", label: "WORKFLOW" },
-    { key: "dataset", label: "DATASET" },
-    { key: "progress", label: "STATUS" },
-    { key: "download", label: "DOWNLOAD" },
-  ];
 
   const templates = [
     {
@@ -182,10 +169,6 @@ const Dashboard = () => {
     });
   };
 
-  const handleDownload = (workflow) => {
-    // Implement download logic here
-    console.log('Downloading results for:', workflow.name);
-  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -259,12 +242,7 @@ const Dashboard = () => {
           </TableBody>
         </Table>
 
-        <WorkflowBatchRunsTable
-          activeColumns={activeColumns}
-          workflowJobs={workflowJobs}
-          handleDownload={handleDownload}
-          getKeyValue={getKeyValue}
-        ></WorkflowBatchRunsTable>
+        <WorkflowBatchRunsTable/>
       </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
