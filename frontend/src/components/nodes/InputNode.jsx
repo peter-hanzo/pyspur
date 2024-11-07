@@ -96,9 +96,9 @@ const InputNode = ({ id, data, ...props }) => {
         style={{ width: nodeWidth }}
         {...props}
       >
-        {/* <div className={styles.nodeWrapper} ref={nodeRef}>
+        <div className={styles.nodeWrapper} ref={nodeRef}>
           {renderInputFields()}
-        </div> */}
+        </div>
       </BaseNode>
     </div>
   );

@@ -66,11 +66,15 @@ const FlowCanvasContent = ({ workflowData }) => {
       console.log('Initializing flow with workflow data:', workflowData);
       dispatch(initializeFlow(workflowData));
     } else {
-      // If no workflow data, initialize with default input node
-      const defaultInputNode = createDefaultInputNode();
-      dispatch(addNode({ node: defaultInputNode }));
+      // Check if there are any nodes in the Redux state
+      const hasNodes = nodes.length > 0;
+      if (!hasNodes) {
+        // Only create default input node if there are no existing nodes
+        const defaultInputNode = createDefaultInputNode();
+        dispatch(addNode({ node: defaultInputNode }));
+      }
     }
-  }, [dispatch, workflowData]);
+  }, [dispatch, workflowData, nodes]);
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
