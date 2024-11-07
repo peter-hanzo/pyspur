@@ -38,8 +38,8 @@ const WorkflowBatchRunsTable = () => {
     { key: "download", label: "DOWNLOAD" },
   ];
 
-  const handleDownload = (batch_run) => {
-    downloadOutputFile(batch_run.output_file_id);
+  const handleDownload = (batchRun) => {
+    downloadOutputFile(batchRun.output_file_id);
   };
 
   return (
@@ -50,23 +50,23 @@ const WorkflowBatchRunsTable = () => {
           {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
         </TableHeader>
         <TableBody items={workflowBatchRuns}>
-          {(batch_run) => (
-            <TableRow key={batch_run.key}>
+          {(batchRun) => (
+            <TableRow key={batchRun.key}>
               {(columnKey) => (
                 <TableCell>
                   {columnKey === "progress" ? (
-                    batch_run.progress === 100 ? (
+                    batchRun.progress === 100 ? (
                       <span className="text-success">Finished</span>
                     ) : (
-                      <Progress value={batch_run.progress} />
+                      <Progress value={batchRun.progress} />
                     )
                   ) : columnKey === "download" ? (
-                    batch_run.progress === 100 ? (
+                    batchRun.progress === 100 ? (
                       <Button
                         isIconOnly
                         size="sm"
                         variant="light"
-                        onClick={() => handleDownload(batch_run)}
+                        onClick={() => handleDownload(batchRun)}
                       >
                         <Icon
                           icon="solar:download-linear"
@@ -76,7 +76,7 @@ const WorkflowBatchRunsTable = () => {
                       </Button>
                     ) : null
                   ) : (
-                    getKeyValue(batch_run, columnKey)
+                    getKeyValue(batchRun, columnKey)
                   )}
                 </TableCell>
               )}
