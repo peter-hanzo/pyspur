@@ -69,9 +69,22 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+    # use render_as_batch=True for SQLite
+    url = config.get_main_option("sqlalchemy.url")
+    if url is not None and url.startswith("sqlite"):
+        render_as_batch = True
+    else:
+        render_as_batch = False
+    print("#" * 50)
+    print(f"Using render_as_batch={render_as_batch}, url={url}")
+    print("#" * 50)
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=render_as_batch,
+        )
 
         with context.begin_transaction():
             context.run_migrations()
