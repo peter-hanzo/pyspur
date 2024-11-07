@@ -13,10 +13,10 @@ const WorkflowBatchRunsTable = () => {
         const formattedRuns = runs.map(run => ({
           key: run.id,
           id: run.id,
-          workflow_name: run.workflow.name, // Assuming workflow_id is the name or you can map it to the actual name
-          dataset: run.input_dataset_id || 'N/A', // Assuming input_dataset_id is the dataset name or you can map it to the actual name
-          progress: run.status === 'COMPLETED' ? 100 : run.status === 'FAILED' ? 0 : 50, // Simplified logic for progress
-          output_file_id: run.output_file_id, // Assuming output_file_id is the file id or you can map it to the actual name
+          workflow_name: run.workflow.name,
+          dataset: run.input_dataset_id || 'N/A',
+          progress: run.status === 'COMPLETED' ? 100 : run.status === 'FAILED' ? 0 : 50,
+          output_file_id: run.output_file_id,
         }));
         setWorkflowBatchRuns(formattedRuns);
       } catch (error) {
@@ -25,6 +25,9 @@ const WorkflowBatchRunsTable = () => {
     };
 
     fetchRuns();
+    const intervalId = setInterval(fetchRuns, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
   }, []);
 
   const activeColumns = [
