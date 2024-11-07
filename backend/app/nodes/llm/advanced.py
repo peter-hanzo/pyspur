@@ -20,11 +20,13 @@ class AdvancedNodeConfig(DynamicSchemaNodeConfig):
 
 
 class AdvancedNodeInput(BaseModel):
-    pass
+    user_message: str
+    # pass
 
 
 class AdvancedNodeOutput(BaseModel):
-    pass
+    response: str
+    # pass
 
 
 class AdvancedNode(DynamicSchemaNode):
