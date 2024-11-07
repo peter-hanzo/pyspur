@@ -17,6 +17,8 @@ class RunResponseSchema(BaseModel):
     workflow: WorkflowResponseSchema
     status: RunStatus
     run_type: str
+    initial_inputs: Optional[Dict[str, Dict[str, Any]]]
+    input_dataset_id: Optional[str]
     outputs: Optional[Dict[str, Any]]
     output_file_id: Optional[str]
     start_time: Optional[datetime]
