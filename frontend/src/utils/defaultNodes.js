@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const createDefaultInputNode = () => ({
   id: 'input-' + uuidv4(),
-  type: 'input',
-  position: { x: 100, y: 100 },
+  type: 'InputNode',
+  position: { x: 100, y: 0 },
   data: {
     title: 'Input Variables',
     userconfig: {

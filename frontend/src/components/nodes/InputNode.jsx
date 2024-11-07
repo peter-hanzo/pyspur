@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import { updateNodeData } from '../../store/flowSlice';
 import { Input } from "@nextui-org/react";
+import styles from './DynamicNode.module.css';
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
@@ -25,6 +26,7 @@ const InputNode = ({ id, data, ...props }) => {
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
       const finalWidth = Math.min(calculatedWidth, 600);
+      console.log('finalWidth', finalWidth);
       setNodeWidth(`${finalWidth}px`);
     }
   }, [nodeData, inputSchema]);
@@ -79,20 +81,26 @@ const InputNode = ({ id, data, ...props }) => {
   };
 
   return (
-    <BaseNode
-      id={id}
-      data={{
-        ...nodeData,
-        acronym: 'IN',
-        color: '#2196F3', // Blue color for input nodes
-      }}
-      style={{ width: nodeWidth }}
-      {...props}
-    >
-      <div ref={nodeRef} className="py-2">
-        {renderInputFields()}
-      </div>
-    </BaseNode>
+    <div style={{
+      position: 'relative',
+    }}>
+      <BaseNode
+        id={id}
+        type="InputNode"
+        data={{
+          ...nodeData,
+          acronym: 'IN',
+          color: '#2196F3',
+          // Blue color for input nodes
+        }}
+        style={{ width: nodeWidth }}
+        {...props}
+      >
+        {/* <div className={styles.nodeWrapper} ref={nodeRef}>
+          {renderInputFields()}
+        </div> */}
+      </BaseNode>
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-import { user } from '@nextui-org/theme';
 import { createSlice, createAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
@@ -102,25 +101,7 @@ const flowSlice = createSlice({
     setProjectName: (state, action) => {
       state.projectName = action.payload;
     },
-    detachNodes: (state, action) => {
-      const { nodeIds, groupId } = action.payload;
-      const groupNode = state.nodes.find(n => n.id === groupId);
 
-      state.nodes = state.nodes.map(node => {
-        if (nodeIds.includes(node.id)) {
-          return {
-            ...node,
-            position: {
-              x: node.position.x + groupNode.position.x,
-              y: node.position.y + groupNode.position.y
-            },
-            parentId: undefined,
-            extent: undefined
-          };
-        }
-        return node;
-      }).filter(node => node.id !== groupId);
-    },
     clearCanvas: (state) => {
       // Update clearCanvas to maintain at least the input node
       const defaultInputNode = createDefaultInputNode();
@@ -145,7 +126,6 @@ export const {
   deleteEdge,
   setSidebarWidth,
   setProjectName,
-  detachNodes,
   clearCanvas
 } = flowSlice.actions;
 
