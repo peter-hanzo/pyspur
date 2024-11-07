@@ -78,8 +78,23 @@ def download_output_file(output_file_id: str, db: Session = Depends(get_db)):
     if not output_file:
         raise HTTPException(status_code=404, detail="Output file not found")
 
+    # get the appropriate media type based on the file extension
+    media_type = "application/octet-stream"
+    if output_file.file_name.endswith(".csv"):
+        media_type = "text/csv"
+    elif output_file.file_name.endswith(".json"):
+        media_type = "application/json"
+    elif output_file.file_name.endswith(".txt"):
+        media_type = "text/plain"
+    elif output_file.file_name.endswith(".jsonl"):
+        media_type = "application/x-ndjson"
+
     return FileResponse(
         output_file.file_path,
-        media_type="application/octet-stream",
+        media_type=media_type,
         filename=output_file.file_name,
+        headers={
+            "Content-Disposition": f"attachment; filename={output_file.file_name}"
+        },
+        content_disposition_type="attachment",
     )
