@@ -1,4 +1,12 @@
-from sqlalchemy import Computed, Integer, ForeignKey, Enum, JSON, DateTime, String
+from sqlalchemy import (
+    Computed,
+    Integer,
+    ForeignKey,
+    Enum,
+    JSON,
+    DateTime,
+    String,
+)
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from enum import Enum as PyEnum
 from datetime import datetime, timezone
