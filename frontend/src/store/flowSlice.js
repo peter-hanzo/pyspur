@@ -2,7 +2,7 @@ import { createSlice, createAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../components/nodes/nodeFactory';
-import { createDefaultInputNode } from '../utils/defaultNodes';
+
 
 const initialState = {
   nodes: [],
@@ -96,8 +96,7 @@ const flowSlice = createSlice({
 
     clearCanvas: (state) => {
       // Update clearCanvas to maintain at least the input node
-      const defaultInputNode = createDefaultInputNode();
-      state.nodes = [defaultInputNode];
+      state.nodes = [];
       state.edges = [];
     },
   },
