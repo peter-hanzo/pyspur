@@ -235,6 +235,27 @@ const FlowCanvasContent = ({ workflowData }) => {
     [dispatch, selectedNodeID]
   );
 
+  // Add this new keyboard handler
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const selectedNodes = nodes.filter(node => node.selected);
+        if (selectedNodes.length > 0) {
+          onNodesDelete(selectedNodes);
+        }
+      }
+    },
+    [nodes, onNodesDelete]
+  );
+
+  // Add effect to handle keyboard events
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   // Use the custom hook for keyboard shortcuts
   useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
 

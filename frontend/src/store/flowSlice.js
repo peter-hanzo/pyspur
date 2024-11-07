@@ -20,15 +20,15 @@ const flowSlice = createSlice({
     initializeFlow: (state, action) => {
       const { definition } = action.payload;
       const { nodes, links } = definition;
-    
+
       // Map nodes to the expected format
-      state.nodes = nodes.map(node => 
+      state.nodes = nodes.map(node =>
         createNode(node.node_type, node.id, { x: 0, y: 0 }, { userconfig: node.config })
       );
-    
+
       // Map links to the expected edge format
       state.edges = links.map(link => ({
-        id: uuidv4(), 
+        id: uuidv4(),
         key: uuidv4(),
         selected: link.selected || false, // Default to false if not provided
         source: link.source_id,
