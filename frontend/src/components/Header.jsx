@@ -33,12 +33,15 @@ const Header = ({ activePage }) => {
         console.log('Status Response:', statusResponse);
 
         // Update nodes based on outputs
-        for (const [nodeId, nodeStatus] of Object.entries(outputs)) {
-          dispatch(updateNodeData({
-            id: nodeId,
-            data: { run: nodeStatus.output }
-          }));
+        if (outputs) {
+          Object.entries(outputs).forEach(([nodeId, data]) => {
+            const node = nodes.find((node) => node.id === nodeId);
+            if (data) {
+              dispatch(updateNodeData({ id: nodeId, data: { run: {...node.data.run, data} } }));
+            }
+          });
         }
+
         if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
           clearInterval(checkStatusInterval);
