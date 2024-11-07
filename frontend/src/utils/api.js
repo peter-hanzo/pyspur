@@ -152,3 +152,44 @@ export const downloadOutputFile = async (outputFileID) => {
     throw error;
   }
 }
+
+
+export const listApiKeys = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/env-mgmt/`);
+    return response.data.keys;
+  } catch (error) {
+    console.error('Error listing API keys:', error);
+    throw error;
+  }
+}
+
+export const getApiKey = async (name) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/env-mgmt/${name}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error getting API key for ${name}:`, error);
+    throw error;
+  }
+}
+
+export const setApiKey = async (name, value) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/env-mgmt/`, { name, value });
+    return response.data;
+  } catch (error) {
+    console.error(`Error setting API key for ${name}:`, error);
+    throw error;
+  }
+}
+
+export const deleteApiKey = async (name) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/env-mgmt/${name}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting API key for ${name}:`, error);
+    throw error;
+  }
+}

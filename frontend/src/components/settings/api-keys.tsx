@@ -2,59 +2,99 @@
 
 import type { CardProps } from "@nextui-org/react";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
-  CardHeader,
   CardBody,
   Button,
   Input,
   CardFooter,
 } from "@nextui-org/react";
-
-const apiProviders = {
-  openai: "OpenAI API Key",
-  azure: "Azure API Key",
-  anthropic: "Anthropic API Key",
-  cohere: "Cohere API Key",
-  huggingface: "HuggingFace API Key",
-  google: "Google AI API Key",
-  together: "Together API Key",
-};
+import { listApiKeys, setApiKey, getApiKey } from "../../utils/api";
 
 export default function Component(props: CardProps) {
-  const [apiKeys, setApiKeys] = useState(
-    Object.keys(apiProviders).reduce((acc, key) => {
-      acc[key] = "";
-      return acc;
-    }, {} as Record<string, string>)
-  );
+  const [keys, setKeys] = useState<{ name: string; value: string }[]>([]);
+  const [originalKeys, setOriginalKeys] = useState<{ name: string; value: string }[]>([]);
+
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      try {
+        const keys = await listApiKeys();
+        const keyValues = await Promise.all(
+          keys.map(async (key: string) => {
+            const value = await getApiKey(key);
+            return { name: value.name, value: value.value };
+          })
+        );
+
+        setKeys(keyValues);
+        setOriginalKeys(keyValues);
+
+      } catch (error) {
+        console.error("Error fetching API keys:", error);
+      }
+    };
+
+    fetchApiKeys();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setApiKeys({ ...apiKeys, [name]: value });
+    setKeys((prevKeys) =>
+      prevKeys.map((key) =>
+        key.name === name ? { ...key, value: value } : key
+      )
+    );
   };
 
-  const saveApiKeys = () => {
-    // Implement save logic here, e.g., localStorage or API call
-    console.log("API Keys saved:", apiKeys);
+  const saveApiKeys = async () => {
+    try {
+      await Promise.all(
+        keys.map(({ name, value }) => setApiKey(name, value))
+      );
+      setOriginalKeys(keys);
+      console.log("API Keys saved:", keys);
+    } catch (error) {
+      console.error("Error saving API keys:", error);
+    }
+  };
+
+  const hasChanges = () => {
+    return keys.some((key, index) => key.value !== originalKeys[index].value);
   };
 
   return (
     <Card className="max-w-xl p-2" {...props}>
       <CardBody className="grid grid-cols-1 gap-4">
-        {Object.entries(apiProviders).map(([key, label]) => (
+        {keys.map(({ name, value }) => (
           <Input
-            key={key}
-            label={label}
+            key={name}
+            label={name}
             labelPlacement="outside"
-            placeholder={`Enter ${label}`}
-            name={key}
-            value={apiKeys[key]}
+            placeholder={`Enter value`}
+            name={name}
+            value={value}
+            onFocus={() => handleInputChange({ target: { name, value: '' } })}
             onChange={handleInputChange}
           />
         ))}
       </CardBody>
+      {hasChanges() && (
+        <CardFooter className="flex justify-between">
+          <Button 
+            onPress={saveApiKeys}
+            className="bg-primary text-white"
+          >
+            Save API Keys
+          </Button>
+          <Button
+            onPress={() => setKeys(originalKeys)}
+            className="bg-secondary text-primary"
+          >
+            Cancel
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }

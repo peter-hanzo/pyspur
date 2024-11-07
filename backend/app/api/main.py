@@ -45,7 +45,7 @@ app.include_router(workflow_run_router, prefix="/wf")
 app.include_router(dataset_management_router, prefix="/ds")
 app.include_router(run_management_router, prefix="/run")
 app.include_router(output_file_management_router, prefix="/of")
-app.include_router(key_management_router, prefix="/key")
+app.include_router(key_management_router, prefix="/env-mgmt")
 
 
 @app.post("/run_node/")
