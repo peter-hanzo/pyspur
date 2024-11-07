@@ -307,18 +307,21 @@ const NodeSidebar = ({ nodeID }) => {
             <div className="my-2">
                 {Object.keys(testInputs).map((key) => (
                     <div key={key} className="my-2 flex items-center">
-                        <Textarea
-                            fullWidth
-                            label={`Test Input for ${key}`}
-                            value={testInputs[key] || ''}
-                            onChange={(e) => handleTestInputChange(key, e.target.value)}
-                            placeholder={`Enter test input for ${key}`}
-                        />
+                        <div className="flex-1">
+                            <label className="text-sm mb-1 block">{`Test Input for ${key}`}</label>
+                            <div className="border rounded-lg bg-white shadow-sm">
+                                <PromptEditor
+                                    nodeID={nodeID}
+                                    fieldName={`testInputs.${key}`}
+                                    inputSchema={dynamicModel.input_schema || {}}
+                                />
+                            </div>
+                        </div>
                         <Button
                             isIconOnly
                             variant="light"
                             onClick={() => handleTestInputChange(key, '')}
-                            className="ml-2"
+                            className="ml-2 h-10"
                         >
                             <Icon icon="mdi:delete" />
                         </Button>
