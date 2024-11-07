@@ -29,24 +29,40 @@ import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import { updateWorkflow } from '../../utils/api'; // Import the new API function
 import InputNode from '../nodes/InputNode';
+import { getNodeTypes } from '../../utils/api';
 
-console.log('Available nodeTypes:', nodeTypesConfig);
+const useNodeTypes = () => {
+  const [nodeTypes, setNodeTypes] = useState({});
 
-const nodeTypes = {
-  ...Object.keys(nodeTypesConfig).reduce((acc, category) => {
-    nodeTypesConfig[category].forEach(node => {
-      acc[node.name] = (props) => {
-        return <DynamicNode {...props} type={node.name} />;
-      };
-    });
-    return acc;
-  }, {}),
-  input: (props) => {
-    return <InputNode {...props} type="input" />;
-  }
+  useEffect(() => {
+    const fetchNodeTypes = async () => {
+      try {
+        const nodeTypesConfig = await getNodeTypes();
+        const dynamicNodeTypes = Object.keys(nodeTypesConfig).reduce((acc, category) => {
+          nodeTypesConfig[category].forEach(node => {
+            acc[node.name] = (props) => {
+              return <DynamicNode {...props} type={node.name} />;
+            };
+          });
+          return acc;
+        }, {});
+
+        setNodeTypes({
+          ...dynamicNodeTypes,
+          input: (props) => {
+            return <InputNode {...props} type="input" />;
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching node types:', error);
+      }
+    };
+
+    fetchNodeTypes();
+  }, []);
+
+  return nodeTypes;
 };
-
-console.log('Registered node types:', nodeTypes);
 
 const edgeTypes = {
   custom: CustomEdge,
@@ -64,6 +80,8 @@ const FlowCanvasContent = ({ workflowData }) => {
       dispatch(initializeFlow(workflowData));
     }
   }, [dispatch, workflowData, nodes]);
+
+  const nodeTypes = useNodeTypes();
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
