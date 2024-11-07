@@ -7,7 +7,9 @@ import {
   CardBody,
   Divider,
   Button,
+  Tooltip,
 } from "@nextui-org/react";
+import { Icon } from "@iconify/react";
 
 const BaseNode = ({ id, data = {}, children, style = {} }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -61,35 +63,65 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
   };
 
   return (
-    <Card
-      className="base-node"
-      style={cardStyle}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      isHoverable
-    >
-      {data && data.title && (
-        <CardHeader style={{ position: 'relative', paddingBottom: '28px' }}>
-          <h3 className="text-lg font-semibold text-center">{data.userconfig.title || data.title}</h3>
-          {/* Acronym tag */}
-          <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
-            {acronym}
-          </div>
-          {/* Collapse button */}
-          <Button
-            size="sm"
-            variant="flat"
-            style={collapseButtonStyle}
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            {isCollapsed ? '▼' : '▲'}
-          </Button>
-        </CardHeader>
-      )}
-      <Divider />
+    <div style={{ position: 'relative' }}> {/* Wrap the node in a div with relative positioning */}
+      <Card
+        className="base-node"
+        style={cardStyle}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        isHoverable
+      >
+        {data && data.title && (
+          <CardHeader style={{ position: 'relative', paddingBottom: '28px' }}>
+            <h3 className="text-lg font-semibold text-center">{data.userconfig.title || data.title}</h3>
+            {/* Acronym tag */}
+            <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
+              {acronym}
+            </div>
+            {/* Collapse button */}
+            <Button
+              size="sm"
+              variant="flat"
+              style={collapseButtonStyle}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? '▼' : '▲'}
+            </Button>
+          </CardHeader>
+        )}
+        <Divider />
 
-      {!isCollapsed && <CardBody>{children}</CardBody>}
-    </Card>
+        {!isCollapsed && <CardBody>{children}</CardBody>}
+      </Card>
+
+      {/* Tooltip with Play Button outside the node */}
+      {(isHovered || isSelected) && (
+        <Tooltip
+          placement="top-end"
+          content="Run Node"
+          color="secondary"
+        >
+          <Card
+            style={{
+              position: 'absolute',
+              top: '-50px',
+              right: '0px',
+              padding: '4px',
+              backgroundColor: 'white',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <Button
+              isIconOnly
+              radius="full"
+              variant="light"
+            >
+              <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+            </Button>
+          </Card>
+        </Tooltip>
+      )}
+    </div>
   );
 };
 
