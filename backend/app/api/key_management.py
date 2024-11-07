@@ -10,6 +10,13 @@ load_dotenv(".env")
 router = APIRouter()
 
 
+DEFAULT_KEYS = [
+    {"name": "OPENAI_API_KEY", "value": ""},
+    {"name": "ANTHROPIC_API_KEY", "value": ""},
+    {"name": "GEMINI_API_KEY", "value": ""},
+]
+
+
 class APIKey(BaseModel):
     name: str
     value: Optional[str] = None
@@ -60,7 +67,8 @@ async def list_api_keys():
     Returns a list of all environment variable names without revealing their values.
     """
     env_vars = get_all_env_variables()
-    return {"keys": list(env_vars.keys())}
+    all_keys = set([k["name"] for k in DEFAULT_KEYS]) | set(env_vars.keys())
+    return {"keys": list(all_keys)}
 
 
 @router.get(
@@ -73,7 +81,10 @@ async def get_api_key(name: str):
     """
     value = get_env_variable(name)
     if value is None:
-        raise HTTPException(status_code=404, detail="Key not found")
+        if name not in [k["name"] for k in DEFAULT_KEYS]:
+            raise HTTPException(status_code=404, detail="Key not found")
+        else:
+            value = ""
     masked_value = mask_key_value(value)
     return APIKey(name=name, value=masked_value)
 
