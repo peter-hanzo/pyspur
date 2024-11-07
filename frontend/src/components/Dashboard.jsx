@@ -35,9 +35,9 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
-        const data = await getWorkflows();
-        console.log('Workflows:', data.workflows);
-        setWorkflows(data.workflows);
+        const workflows = await getWorkflows();
+        console.log('Workflows:', workflows);
+        setWorkflows(workflows);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
