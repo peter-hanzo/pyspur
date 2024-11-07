@@ -63,7 +63,7 @@ const FlowCanvasContent = ({ workflowData }) => {
       console.log('Initializing flow with workflow data:', workflowData);
       dispatch(initializeFlow(workflowData));
     }
-  }, [dispatch, workflowData]);
+  }, [dispatch, workflowData, nodes]);
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
