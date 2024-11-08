@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+// frontend/src/components/Header.jsx
+import React from 'react';
+import { useSelector } from 'react-redux';
 import {
     Input,
     Navbar,
@@ -8,114 +9,20 @@ import {
     NavbarItem,
     Link,
     Button,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { getRunStatus, startRun, getWorkflow } from '../utils/api'; // Ensure getRunStatus and getWorkflow are imported
 import SettingsCard from './settings/Settings';
-import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
+import useWorkflow from '../hooks/useWorkflow';
 
 const Header = ({ activePage }) => {
-    const dispatch = useDispatch();
-    const nodes = useSelector((state) => state.flow.nodes);
-    const edges = useSelector((state) => state.flow.edges);
+    const {
+        handleRunWorkflow,
+        handleDownloadWorkflow,
+        handleClearCanvas,
+        handleProjectNameChange
+    } = useWorkflow();
+
     const projectName = useSelector((state) => state.flow.projectName);
-    const [isRunning, setIsRunning] = useState(false);
-
-    const updateWorkflowStatus = async (runID) => {
-        const checkStatusInterval = setInterval(async () => {
-            try {
-                const statusResponse = await getRunStatus(runID);
-                const outputs = statusResponse.outputs;
-                console.log('Status Response:', statusResponse);
-
-                // Update nodes based on outputs
-                if (outputs) {
-                    Object.entries(outputs).forEach(([nodeId, data]) => {
-                        const node = nodes.find((node) => node.id === nodeId);
-                        if (data) {
-                            dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...data } } }));
-                        } 
-                        // else {
-                        //     dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, "test_output": "To check the display", "test_output_2": "To see the list in action" } } }));
-                        // }
-                    });
-                }
-
-                if (statusResponse.status !== 'RUNNING') {
-                    setIsRunning(false);
-                    clearInterval(checkStatusInterval);
-                }
-            } catch (error) {
-                console.error('Error fetching workflow status:', error);
-                clearInterval(checkStatusInterval);
-            }
-        }, 10000);
-    };
-
-    const workflowID = useSelector((state) => state.flow.workflowID);
-
-    const inputNodeValues = useSelector((state) => state.flow.inputNodeValues);
-
-    const handleRunWorkflow = async () => {
-        try {
-            console.log('Input Node Values:', inputNodeValues);
-            const test_inputs = {
-              "initial_inputs": {
-                "node_1731066766087": { "user_message": "Give me weather in London" }
-              }
-            };
-            const result = await startRun(workflowID, test_inputs, null, 'interactive');
-
-            setIsRunning(true);
-            updateWorkflowStatus(result.id);
-
-        } catch (error) {
-            console.error('Error starting workflow run:', error);
-        }
-    };
-
-    const handleProjectNameChange = (e) => {
-        dispatch(setProjectName(e.target.value));
-    };
-
-    const handleClearCanvas = () => {
-        if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
-            dispatch(clearCanvas());
-        }
-    };
-
-    const handleDownloadWorkflow = async () => {
-        try {
-            // Get the current workflow using the workflowID from Redux state
-            const workflow = await getWorkflow(workflowID);
-
-            // Create a JSON blob from the workflow data
-            const blob = new Blob([JSON.stringify(workflow, null, 2)], {
-                type: 'application/json'
-            });
-
-            // Create download link
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${projectName.replace(/\s+/g, '_')}.json`; // Use project name for the file
-
-            // Trigger download
-            document.body.appendChild(a);
-            a.click();
-
-            // Cleanup
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error downloading workflow:', error);
-            // You might want to add some user feedback here
-        }
-    };
 
     return (
         <>
@@ -162,7 +69,6 @@ const Header = ({ activePage }) => {
                     </NavbarItem>
                     {activePage !== "home" && (
                         <NavbarItem isActive={activePage === "workflow"}>
-
                             Editor
                         </NavbarItem>
                     )}
@@ -197,7 +103,6 @@ const Header = ({ activePage }) => {
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            {/* Directly render the SettingsCard component */}
                             <SettingsCard />
                         </NavbarItem>
                     </NavbarContent>
