@@ -70,39 +70,8 @@ const InputNode = ({ id, data, ...props }) => {
     setEditingField(null);
   };
 
-  const renderEmptyState = () => (
-    <div className="relative w-full px-4 py-2">
-      <Input
-        label="Configuration"
-        labelPlacement="outside"
-        placeholder="No input schema defined. Configure the node to add input fields."
-        isReadOnly
-        size="sm"
-        variant="faded"
-        radius="lg"
-        classNames={{
-          label: "text-sm font-medium text-default-600",
-          input: "bg-default-100",
-          inputWrapper: "shadow-none",
-        }}
-      />
-      <div className={styles.outputHandleWrapper} style={{ right: handlePosition }}>
-        <Handle
-          type="source"
-          position="right"
-          id="default"
-          className={`${styles.handle} ${styles.handleRight}`}
-          isConnectable={true}
-        />
-      </div>
-    </div>
-  );
 
   const renderInputFields = () => {
-    if (!hasInputFields) {
-      return renderEmptyState();
-    }
-
     return inputFields.map((key, index) => (
       <div key={key} className="relative w-full px-4 py-2">
         <div className="flex items-center gap-2">
