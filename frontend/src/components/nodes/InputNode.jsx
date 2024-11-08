@@ -12,6 +12,8 @@ const InputNode = ({ id, data, ...props }) => {
   const [inputNodeValues, setInputNodeValues] = useState({});
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
+  const [editingField, setEditingField] = useState(null);
+  const [newFieldValue, setNewFieldValue] = useState('');
 
   // Get the latest node data from Redux store
   const currentNode = useSelector(state =>
@@ -57,14 +59,15 @@ const InputNode = ({ id, data, ...props }) => {
   };
 
   const handleAddField = () => {
-    // Find the highest existing field number
-    const existingFields = Object.keys(inputSchema)
-      .filter(key => key.startsWith('field_'))
-      .map(key => parseInt(key.replace('field_', '')))
-      .filter(num => !isNaN(num));
+    if (!newFieldValue.trim()) return;
 
-    const highestNumber = Math.max(0, ...existingFields);
-    const newFieldName = `field_${highestNumber + 1}`;
+    const newFieldName = newFieldValue.trim();
+
+    // Check if field already exists
+    if (inputSchema[newFieldName]) {
+      // Could add error handling here
+      return;
+    }
 
     const updatedSchema = {
       ...inputSchema,
@@ -95,6 +98,9 @@ const InputNode = ({ id, data, ...props }) => {
     dispatch(setInputNodeValue({
       [id]: updatedValues
     }));
+
+    // Clear the input
+    setNewFieldValue('');
   };
 
   const handleDeleteField = (keyToDelete) => {
@@ -117,6 +123,46 @@ const InputNode = ({ id, data, ...props }) => {
     dispatch(setInputNodeValue({
       [id]: updatedValues
     }));
+  };
+
+  const handleLabelEdit = (key, newLabel) => {
+    if (newLabel === key || !newLabel.trim()) {
+      setEditingField(null);
+      return;
+    }
+
+    // Create new schema with updated key
+    const updatedSchema = Object.entries(inputSchema).reduce((acc, [k, v]) => {
+      if (k === key) {
+        acc[newLabel] = v;
+      } else {
+        acc[k] = v;
+      }
+      return acc;
+    }, {});
+
+    // Update node data with new schema
+    dispatch(updateNodeData({
+      id,
+      data: {
+        ...nodeData,
+        userconfig: {
+          ...nodeData.userconfig,
+          input_schema: updatedSchema
+        }
+      }
+    }));
+
+    // Update input values with new key
+    const updatedValues = { ...inputNodeValues };
+    updatedValues[newLabel] = updatedValues[key];
+    delete updatedValues[key];
+    setInputNodeValues(updatedValues);
+    dispatch(setInputNodeValue({
+      [id]: updatedValues
+    }));
+
+    setEditingField(null);
   };
 
   const renderEmptyState = () => (
@@ -155,32 +201,47 @@ const InputNode = ({ id, data, ...props }) => {
     return Object.entries(inputSchema).map(([key, value], index) => (
       <div key={key} className="relative w-full px-4 py-2">
         <div className="flex items-center gap-2">
-          <Input
-            key={key}
-            label={key}
-            labelPlacement="outside"
-            placeholder={`Enter ${key}`}
-            value={inputNodeValues[key] || ''}
-            onChange={(e) => handleInputChange(key, e.target.value)}
-            size="sm"
-            variant="faded"
-            radius="lg"
-            classNames={{
-              label: "text-sm font-medium text-default-600",
-              input: "bg-default-100",
-              inputWrapper: "shadow-none",
-            }}
-          />
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            color="danger"
-            onClick={() => handleDeleteField(key)}
-            className="self-end mb-[2px]"
-          >
-            <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
-          </Button>
+          {editingField === key ? (
+            <Input
+              autoFocus
+              defaultValue={key}
+              size="sm"
+              variant="faded"
+              radius="lg"
+              onBlur={(e) => handleLabelEdit(key, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleLabelEdit(key, e.target.value);
+                } else if (e.key === 'Escape') {
+                  setEditingField(null);
+                }
+              }}
+              classNames={{
+                input: "bg-default-100",
+                inputWrapper: "shadow-none",
+              }}
+            />
+          ) : (
+            <div className="flex flex-col w-full gap-1">
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-sm font-medium text-default-600 cursor-pointer hover:text-primary"
+                  onClick={() => setEditingField(key)}
+                >
+                  {key}
+                </span>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  color="danger"
+                  onClick={() => handleDeleteField(key)}
+                >
+                  <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <div className={styles.outputHandleWrapper} style={{ right: handlePosition }}>
           <Handle
@@ -195,10 +256,41 @@ const InputNode = ({ id, data, ...props }) => {
     ));
   };
 
+  const renderAddField = () => (
+    <div className="flex items-center gap-2 px-4 py-2">
+      <Input
+        placeholder="Enter new field name"
+        value={newFieldValue}
+        onChange={(e) => setNewFieldValue(e.target.value)}
+        size="sm"
+        variant="faded"
+        radius="lg"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleAddField();
+          }
+        }}
+        classNames={{
+          input: "bg-default-100",
+          inputWrapper: "shadow-none",
+        }}
+        endContent={
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onClick={handleAddField}
+            className="text-default-400 hover:text-default-500"
+          >
+            <Icon icon="solar:add-circle-bold" width={16} className="text-default-500" />
+          </Button>
+        }
+      />
+    </div>
+  );
+
   return (
-    <div style={{
-      position: 'relative',
-    }}>
+    <div style={{ position: 'relative' }}>
       <BaseNode
         id={id}
         type="input"
@@ -206,24 +298,13 @@ const InputNode = ({ id, data, ...props }) => {
           ...nodeData,
           acronym: 'IN',
           color: '#2196F3',
-          // Blue color for input nodes
         }}
         style={{ width: nodeWidth }}
         {...props}
       >
         <div className={styles.nodeWrapper} ref={nodeRef}>
           {renderInputFields()}
-          <div className="flex justify-center p-2">
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              onClick={handleAddField}
-              className="text-default-400 hover:text-default-500"
-            >
-              <Icon icon="solar:add-circle-bold" width={16} className="text-default-500" />
-            </Button>
-          </div>
+          {renderAddField()}
         </div>
       </BaseNode>
     </div>
