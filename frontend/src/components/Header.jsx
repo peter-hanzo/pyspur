@@ -12,7 +12,8 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
-import useWorkflow from '../hooks/useWorkflow';
+import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
+import DebugModal from './DebugModal';
 
 const Header = ({ activePage }) => {
     const {
@@ -23,6 +24,85 @@ const Header = ({ activePage }) => {
     } = useWorkflow();
 
     const projectName = useSelector((state) => state.flow.projectName);
+    const [isRunning, setIsRunning] = useState(false);
+    const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
+
+    const updateWorkflowStatus = async (runID) => {
+        const checkStatusInterval = setInterval(async () => {
+            try {
+                const statusResponse = await getRunStatus(runID);
+                const outputs = statusResponse.outputs;
+                console.log('Status Response:', statusResponse);
+
+                // Update nodes based on outputs
+                if (outputs) {
+                    Object.entries(outputs).forEach(([nodeId, data]) => {
+                        const node = nodes.find((node) => node.id === nodeId);
+                        if (data) {
+                            dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, data } } }));
+                        }
+                    });
+                }
+
+                if (statusResponse.status !== 'RUNNING') {
+                    setIsRunning(false);
+                    clearInterval(checkStatusInterval);
+                }
+            } catch (error) {
+                console.error('Error fetching workflow status:', error);
+                clearInterval(checkStatusInterval);
+            }
+        }, 10000);
+    };
+
+    const workflowID = useSelector((state) => state.flow.workflowID);
+
+    const inputNodeValues = useSelector((state) => state.flow.inputNodeValues);
+
+    const handleRunWorkflow = async () => {
+        try {
+            const result = await startRun(workflowID, inputNodeValues, null, 'interactive');
+
+            setIsRunning(true);
+            updateWorkflowStatus(result.id);
+
+        } catch (error) {
+            console.error('Error starting workflow run:', error);
+        }
+    };
+
+    const handleProjectNameChange = (e) => {
+        dispatch(setProjectName(e.target.value));
+    };
+
+    const handleDownloadWorkflow = async () => {
+        try {
+            // Get the current workflow using the workflowID from Redux state
+            const workflow = await getWorkflow(workflowID);
+
+            // Create a JSON blob from the workflow data
+            const blob = new Blob([JSON.stringify(workflow, null, 2)], {
+                type: 'application/json'
+            });
+
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${projectName.replace(/\s+/g, '_')}.json`; // Use project name for the file
+
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading workflow:', error);
+            // You might want to add some user feedback here
+        }
+    };
 
     return (
         <>
@@ -84,8 +164,13 @@ const Header = ({ activePage }) => {
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onClick={handleClearCanvas}>
-                                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onClick={() => setIsDebugModalOpen(true)}
+                            >
+                                <Icon className="text-default-500" icon="solar:bug-linear" width={22} />
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
@@ -108,6 +193,7 @@ const Header = ({ activePage }) => {
                     </NavbarContent>
                 )}
             </Navbar>
+            <DebugModal isOpen={isDebugModalOpen} onOpenChange={setIsDebugModalOpen} />
         </>
     );
 };

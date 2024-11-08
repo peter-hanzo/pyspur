@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { ReactFlow, Background, useReactFlow, Panel, ReactFlowProvider, useViewport } from '@xyflow/react';
+import { ReactFlow, Background, ReactFlowProvider, useViewport } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/operator/Operator';
@@ -7,15 +7,13 @@ import {
   nodesChange,
   edgesChange,
   connect,
-  updateNodeData,
   setHoveredNode,
   setSelectedNode,
   deleteNode,
-  addNode,
 } from '../../store/flowSlice';
 // import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
-import { Card, Button, Dropdown, DropdownMenu, DropdownTrigger, DropdownSection, DropdownItem } from '@nextui-org/react';
+import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
@@ -137,6 +135,9 @@ const FlowCanvasContent = ({ workflowData }) => {
 
   const [helperLines, setHelperLines] = useState({ horizontal: null, vertical: null });
 
+  // Add a flag to control the visibility of helper lines
+  const showHelperLines = false; // Set to false for now
+  
   const onNodesChange = useCallback(
     (changes) => {
       if (!changes.some((c) => c.type === 'position')) {
@@ -327,8 +328,6 @@ const FlowCanvasContent = ({ workflowData }) => {
     }));
   }, [nodes, mode]);
 
-  // Add a flag to control the visibility of helper lines
-  const showHelperLines = false; // Set to false for now
 
   if (isLoading) {
     return <LoadingCanvas />;

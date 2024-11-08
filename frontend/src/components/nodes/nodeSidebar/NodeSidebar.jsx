@@ -58,11 +58,6 @@ const NodeSidebar = ({ nodeID }) => {
         dispatch(updateNodeData({ id: nodeID, data: { userconfig: updatedModel } }));
     };
 
-    // New handler for test inputs
-    const handleTestInputChange = (key, value) => {
-        const updatedTestInputs = { ...dynamicModel.testInputs, [key]: value };
-        handleInputChange('testInputs', updatedTestInputs);
-    };
 
     const renderEnumSelect = (key, label, enumValues) => (
         <div key={key}>
@@ -300,39 +295,6 @@ const NodeSidebar = ({ nodeID }) => {
         handleInputChange('testInputs', newTestInputs);
     };
 
-    const renderTestInputs = () => {
-        const testInputs = dynamicModel.testInputs || {};
-
-        return (
-            <div className="my-2">
-                {Object.keys(testInputs).map((key) => (
-                    <div key={key} className="my-2 flex items-center">
-                        <div className="flex-1">
-                            <label className="text-sm mb-1 block">{`Test Input for ${key}`}</label>
-                            <div className="border rounded-lg bg-white shadow-sm">
-                                <PromptEditor
-                                    nodeID={nodeID}
-                                    fieldName={`testInputs.${key}`}
-                                    inputSchema={dynamicModel.input_schema || {}}
-                                />
-                            </div>
-                        </div>
-                        <Button
-                            isIconOnly
-                            variant="light"
-                            onClick={() => handleTestInputChange(key, '')}
-                            className="ml-2 h-10"
-                        >
-                            <Icon icon="mdi:delete" />
-                        </Button>
-                    </div>
-                ))}
-                <Button onClick={handleAddTestInput} className="mt-2">
-                    <Icon icon="mdi:plus" /> Add Test Input
-                </Button>
-            </div>
-        );
-    };
 
     // Add resize handler
     const handleMouseDown = useCallback((e) => {
@@ -410,10 +372,10 @@ const NodeSidebar = ({ nodeID }) => {
                 </div>
 
                 <Accordion selectionMode="multiple" defaultExpandedKeys={["title", "config", "examples", "testInputs"]}>
-                    {/* Conditionally render the Test Inputs accordion item for InputNode */}
-                    {nodeType === 'InputNode' && (
-                        <AccordionItem key="testInputs" aria-label="Test Inputs" title="Test Inputs">
-                            {renderTestInputs()}
+
+                    {nodeType !== 'InputNode' && (
+                        <AccordionItem key="output" aria-label='Output' title="Outputs">
+                            <NodeStatus node={node} />
                         </AccordionItem>
                     )}
 

@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode, VisualTag
-from .advanced import AdvancedNode, AdvancedNodeConfig
+from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 
 
-class BranchSolveMergeNodeConfig(AdvancedNodeConfig):
+class BranchSolveMergeNodeConfig(SingleLLMCallNodeConfig):
     llm_info: ModelInfo = Field(
         LLMModelRegistry.GPT_4O, description="The default LLM model to use"
     )
@@ -37,23 +37,23 @@ class BranchSolveMergeNode(BaseNode):
         config = self.config
 
         # Initialize the LLM node for the branch module
-        branch_node_config = AdvancedNodeConfig.model_validate(config.model_dump())
+        branch_node_config = SingleLLMCallNodeConfig.model_validate(config.model_dump())
         branch_node_config.output_schema = {"subtasks": "list[str]"}
         branch_node_config.system_prompt = config.branch_prompt
-        self._branch_node = AdvancedNode(branch_node_config)
+        self._branch_node = SingleLLMCallNode(branch_node_config)
 
         # Initialize the LLM node for the solve module
-        solve_config = AdvancedNodeConfig.model_validate(config.model_dump())
+        solve_config = SingleLLMCallNodeConfig.model_validate(config.model_dump())
         solve_config.system_prompt = config.solve_prompt
         solve_config.input_schema = branch_node_config.output_schema
         solve_config.output_schema = {"subtask_solutions": "list[str]"}
-        self._solve_node = AdvancedNode(solve_config)
+        self._solve_node = SingleLLMCallNode(solve_config)
 
         # Initialize the LLM node for the merge module
-        merge_config = AdvancedNodeConfig.model_validate(config.model_dump())
+        merge_config = SingleLLMCallNodeConfig.model_validate(config.model_dump())
         merge_config.system_prompt = config.merge_prompt
         merge_config.input_schema = solve_config.output_schema
-        self._merge_node = AdvancedNode(merge_config)
+        self._merge_node = SingleLLMCallNode(merge_config)
 
         # Set input and output types
         self.input_model = self._branch_node.input_model
