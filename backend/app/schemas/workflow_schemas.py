@@ -21,6 +21,7 @@ class WorkflowNodeSchema(BaseModel):
     """
 
     id: str  # ID in the workflow
+    title: Optional[str] = ""  # Display name
     node_type: str  # Name of the node type
     config: Dict[str, Any] = {}  # Configuration parameters
     coordinates: Optional[WorkflowNodeCoordinatesSchema] = (
