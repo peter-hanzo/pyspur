@@ -97,6 +97,21 @@ export const startRun = async (workflowID, initialInputs = {}, parentRunId = nul
   }
 }
 
+export const startBatchRun = async (workflowID, datasetID, miniBatchSize = 10) => {
+  try {
+    const requestBody = {
+      dataset_id: datasetID,
+      mini_batch_size: miniBatchSize
+    };
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_batch_run/`, requestBody);
+    return response.data;
+  } catch (error) {
+    console.error('Error starting batch run:', error);
+    throw error;
+  }
+}
+
+
 export const getWorkflow = async (workflowID) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/`);
@@ -190,3 +205,62 @@ export const deleteApiKey = async (name) => {
     throw error;
   }
 }
+
+
+export const uploadDataset = async (name, description, file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(`${API_BASE_URL}/ds/?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading dataset:', error);
+    throw error;
+  }
+}
+
+export const listDatasets = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/ds/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error listing datasets:', error);
+    throw error;
+  }
+}
+
+export const getDataset = async (datasetId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/ds/${datasetId}/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error getting dataset with ID ${datasetId}:`, error);
+    throw error;
+  }
+}
+
+export const deleteDataset = async (datasetId) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/ds/${datasetId}/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting dataset with ID ${datasetId}:`, error);
+    throw error;
+  }
+}
+
+export const listDatasetRuns = async (datasetId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/ds/${datasetId}/list_runs/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error listing runs for dataset with ID ${datasetId}:`, error);
+    throw error;
+  }
+}
+
