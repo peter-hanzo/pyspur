@@ -29,6 +29,7 @@ import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import { updateWorkflow } from '../../utils/api'; // Import the new API function
 import { getNodeTypes } from '../../utils/api';
+import InputNode from '../nodes/InputNode';
 
 const useNodeTypes = () => {
   const [nodeTypes, setNodeTypes] = useState({});
@@ -41,9 +42,13 @@ const useNodeTypes = () => {
         const nodeTypesConfig = await getNodeTypes();
         const dynamicNodeTypes = Object.keys(nodeTypesConfig).reduce((acc, category) => {
           nodeTypesConfig[category].forEach(node => {
-            acc[node.name] = (props) => {
-              return <DynamicNode {...props} type={node.name} />;
-            };
+            if (node.name === 'InputNode') {
+              acc[node.name] = InputNode;
+            } else {
+              acc[node.name] = (props) => {
+                return <DynamicNode {...props} type={node.name} />;
+              };
+            }
           });
           return acc;
         }, {});
