@@ -86,25 +86,22 @@ const FlowCanvasContent = ({ workflowData }) => {
 
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    if (workflowData) {
-      console.log('Initializing flow with workflow data:', workflowData);
-      dispatch(initializeFlow(workflowData));
-    }
-  }, [dispatch, workflowData, nodes]);
-
   const { nodeTypes, isLoading } = useNodeTypes();
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
+  const workflowID = useSelector((state) => state.flow.workflowID);
+
+  useEffect(() => {
+    if (workflowData) {
+      dispatch(initializeFlow(workflowData));
+    }
+  }, [dispatch, workflowData]);
 
   const saveWorkflow = useCallback(async () => {
     try {
-      const url = window.location.href;
-      const workflowID = url.split('/').pop();
-
       const updatedWorkflow = {
         nodes: nodes.map(node => ({
           id: node.id,
@@ -121,16 +118,18 @@ const FlowCanvasContent = ({ workflowData }) => {
       };
 
       await updateWorkflow(workflowID, updatedWorkflow);
-      console.log('Workflow updated successfully');
     } catch (error) {
-      console.error('Error updating workflow:', error);
     }
-  }, [nodes, edges]);
+  }, [workflowID,nodes, edges]);
 
   useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
-      saveWorkflow();
-    }
+    const handle = setTimeout(() => {
+      if (nodes.length > 0 || edges.length > 0) {
+        saveWorkflow();
+      }
+    }, 10000); // 10 seconds delay
+
+    return () => clearTimeout(handle);
   }, [nodes, edges, saveWorkflow]);
 
   // Manage reactFlowInstance locally
@@ -173,25 +172,6 @@ const FlowCanvasContent = ({ workflowData }) => {
   );
   const onConnect = useCallback(
     (connection) => {
-      // Check if the target (input handle) already has a connection
-      const isTargetConnected = edges.some(edge => edge.target === connection.target);
-      // const targetNode = nodes.find(node => node.id === connection.target);
-      // const targetField = connection.targetHandle;
-
-      if (isTargetConnected) {
-        // Prevent the connection and optionally show a message
-        console.log("This input handle already has a connection.");
-        return;
-      }
-
-      // Check if the target field has a user-provided input
-      // const isFieldUserProvided = targetNode?.data?.config?.properties[targetField] !== undefined;
-
-      // if (isFieldUserProvided) {
-      //   console.log(`Connection to ${targetField} is disabled because it has a user-provided input.`);
-      //   return;
-      // }
-
       const newEdge = {
         ...connection,
         id: uuidv4(),
@@ -199,7 +179,7 @@ const FlowCanvasContent = ({ workflowData }) => {
       };
       dispatch(connect({ connection: newEdge }));
     },
-    [dispatch, nodes, edges] // Add nodes to the dependency array
+    [dispatch] // Add nodes to the dependency array
   );
 
 
