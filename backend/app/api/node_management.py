@@ -34,6 +34,7 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 "input": input_schema,
                 "output": output_schema,
                 "config": node_class.config_model.model_json_schema(),
+                "visual_tag": node_class.get_default_visual_tag().model_dump(),
             }
             node_schemas.append(node_schema)
         response[group_name] = node_schemas

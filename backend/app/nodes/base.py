@@ -38,7 +38,7 @@ class BaseNode(ABC):
         self._config = config
         # if visual tag is not set by the node, set a default visual tag
         if not hasattr(self, "visual_tag"):
-            self.set_default_visual_tag()
+            self.visual_tag = self.get_default_visual_tag()
         self.setup()
 
     @abstractmethod
@@ -173,12 +173,13 @@ class BaseNode(ABC):
         schema = {k: type(v).__name__ for k, v in values.items()}
         return cls.get_model_for_schema_dict(schema, schema_name, base_model)
 
-    def set_default_visual_tag(self) -> None:
+    @classmethod
+    def get_default_visual_tag(cls) -> VisualTag:
         """
         Set a default visual tag for the node.
         """
         # default acronym is the first letter of each word in the node name
-        acronym = "".join([word[0] for word in self.name.split("_")]).upper()
+        acronym = "".join([word[0] for word in cls.name.split("_")]).upper()
 
         # default color is randomly picked from a list of pastel colors
         colors = [
@@ -195,6 +196,6 @@ class BaseNode(ABC):
             "#F4C1FF",
             "#FFC1EC",
         ]
-        color = colors[hash(self.name) % len(colors)]
+        color = colors[hash(cls.name) % len(colors)]
 
-        self.visual_tag = VisualTag(acronym=acronym, color=color)
+        return VisualTag(acronym=acronym, color=color)
