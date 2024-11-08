@@ -79,10 +79,16 @@ const LoadingCanvas = () => (
 );
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent = ({ workflowData }) => {
-  // console.log('FlowCanvas re-rendered');
+const FlowCanvasContent = ({ workflowData, workflowID }) => {
+
+  console.log('workflowData:', workflowData);
 
   const dispatch = useDispatch();
+  useEffect(() => {
+    if (workflowData) {
+      dispatch(initializeFlow(workflowData));
+    }
+  }, [dispatch, workflowData]);
 
   const { nodeTypes, isLoading } = useNodeTypes();
 
@@ -90,13 +96,6 @@ const FlowCanvasContent = ({ workflowData }) => {
   const edges = useSelector((state) => state.flow.edges);
   const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
-  const workflowID = useSelector((state) => state.flow.workflowID);
-
-  useEffect(() => {
-    if (workflowData) {
-      dispatch(initializeFlow(workflowData));
-    }
-  }, [dispatch, workflowData]);
 
   const saveWorkflow = useCallback(async () => {
     try {
@@ -440,10 +439,10 @@ const FlowCanvasContent = ({ workflowData }) => {
 };
 
 // Main component that provides the ReactFlow context
-const FlowCanvas = ({ workflowData }) => {
+const FlowCanvas = ({ workflowData, workflowID }) => {
   return (
     <ReactFlowProvider>
-      <FlowCanvasContent workflowData={workflowData} />
+      <FlowCanvasContent workflowData={workflowData} workflowID={workflowID} />
     </ReactFlowProvider>
   );
 };

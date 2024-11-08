@@ -5,8 +5,6 @@ import Header from '../../components/Header'; // Import the Header component
 import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
 import { persistor } from '../../store/store'; // Import the persistor
 import { getWorkflow } from '../../utils/api';
-import { setWorkflowID } from '../../store/flowSlice';
-import { useDispatch } from 'react-redux';
 
 const WorkflowPage = () => {
 
@@ -14,10 +12,6 @@ const WorkflowPage = () => {
     const { id } = router.query; // Access the dynamic route parameter
     const [workflowData, setWorkflowData] = useState(null);
 
-    const dispatch = useDispatch();
-    useEffect(() => {
-        dispatch(setWorkflowID(id));
-    }, [id, dispatch]);
 
     useEffect(() => {
         const fetchWorkflow = async () => {
@@ -44,7 +38,7 @@ const WorkflowPage = () => {
             <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
                 <Header activePage="workflow" style={{ position: 'sticky', top: 0, zIndex: 10 }} />
                 <div style={{ flexGrow: 1 }}>
-                    <FlowCanvas workflowData={workflowData} />
+                    <FlowCanvas workflowData={workflowData} workflowID={id} />
                 </div>
             </div>
         </PersistGate>
