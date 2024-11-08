@@ -3,12 +3,12 @@ import asyncio
 from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
-from .advanced import AdvancedNode, AdvancedNodeConfig
+from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 from ..base import VisualTag
 
 
-class SampleLLMNodeConfig(AdvancedNodeConfig):
+class SampleLLMNodeConfig(SingleLLMCallNodeConfig):
     llm_info: ModelInfo = Field(
         LLMModelRegistry.GPT_4O, description="The default LLM model to use"
     )
@@ -17,7 +17,7 @@ class SampleLLMNodeConfig(AdvancedNodeConfig):
 
 class SampleLLMNode(DynamicSchemaNode):
     name = "sample_llm_node"
-    _llm_node: AdvancedNode
+    _llm_node: SingleLLMCallNode
     config_model = SampleLLMNodeConfig
     input_model = BaseModel
     output_model = BaseModel
