@@ -379,10 +379,6 @@ const NodeSidebar = ({ nodeID }) => {
                         </AccordionItem>
                     )}
 
-                    <AccordionItem key="output" aria-label='Output' title="Outputs">
-                        <NodeStatus nodeID={nodeID} />
-                    </AccordionItem>
-
                     <AccordionItem key="title" aria-label="Node Title" title="Node Title">
                         <Textarea
                             value={node?.data?.userconfig?.title || ''}

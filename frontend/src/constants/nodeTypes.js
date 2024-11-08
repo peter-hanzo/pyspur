@@ -37,6 +37,10 @@ export const nodeTypes = {
         ],
         "title": "InputNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "IN",
+        "color": "#F4C1FF"
       }
     },
     {
@@ -63,12 +67,16 @@ export const nodeTypes = {
         ],
         "title": "StaticValueNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "CVN",
+        "color": "#E8FFC1"
       }
     }
   ],
   "llm": [
     {
-      "name": "StringOutputLLMNode",
+      "name": "SingleLLMCallNode",
       "input": {
         "properties": {
           "user_message": {
@@ -79,268 +87,20 @@ export const nodeTypes = {
         "required": [
           "user_message"
         ],
-        "title": "StringOutputLLMNodeInput",
+        "title": "SingleLLMCallNodeInput",
         "type": "object"
       },
       "output": {
         "properties": {
-          "assistant_message": {
-            "title": "Assistant Message",
+          "response": {
+            "title": "Response",
             "type": "string"
           }
         },
         "required": [
-          "assistant_message"
+          "response"
         ],
-        "title": "StringOutputLLMNodeOutput",
-        "type": "object"
-      },
-      "config": {
-        "$defs": {
-          "ModelInfo": {
-            "properties": {
-              "name": {
-                "title": "Name",
-                "type": "string"
-              },
-              "max_tokens": {
-                "anyOf": [
-                  {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Maximum number of tokens the model can generate",
-                "title": "Max Tokens"
-              },
-              "temperature": {
-                "anyOf": [
-                  {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": 0.7,
-                "description": "Temperature for randomness, between 0.0 and 1.0",
-                "title": "Temperature"
-              },
-              "top_p": {
-                "anyOf": [
-                  {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": 1,
-                "description": "Top-p sampling value, between 0.0 and 1.0",
-                "title": "Top P"
-              }
-            },
-            "required": [
-              "name",
-              "max_tokens"
-            ],
-            "title": "ModelInfo",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "llm_info": {
-            "$ref": "#/$defs/ModelInfo",
-            "default": {
-              "name": "gpt-4o-mini",
-              "max_tokens": 16384,
-              "temperature": 0.7,
-              "top_p": 1
-            },
-            "description": "The default LLM model to use"
-          },
-          "system_prompt": {
-            "default": "You are a helpful assistant.",
-            "description": "The system prompt for the LLM",
-            "title": "System Prompt",
-            "type": "string"
-          },
-          "json_mode": {
-            "default": false,
-            "description": "Whether to use JSON mode for the LLM",
-            "title": "Json Mode",
-            "type": "boolean"
-          },
-          "few_shot_examples": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Few Shot Examples"
-          }
-        },
-        "title": "StringOutputLLMNodeConfig",
-        "type": "object"
-      }
-    },
-    {
-      "name": "StructuredOutputNode",
-      "input": {
-        "properties": {
-          "user_message": {
-            "title": "User Message",
-            "type": "string"
-          }
-        },
-        "required": [
-          "user_message"
-        ],
-        "title": "StructuredOutputNodeInput",
-        "type": "object"
-      },
-      "output": {
-        "properties": {},
-        "title": "StructuredOutputNodeOutput",
-        "type": "object"
-      },
-      "config": {
-        "$defs": {
-          "ModelInfo": {
-            "properties": {
-              "name": {
-                "title": "Name",
-                "type": "string"
-              },
-              "max_tokens": {
-                "anyOf": [
-                  {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Maximum number of tokens the model can generate",
-                "title": "Max Tokens"
-              },
-              "temperature": {
-                "anyOf": [
-                  {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": 0.7,
-                "description": "Temperature for randomness, between 0.0 and 1.0",
-                "title": "Temperature"
-              },
-              "top_p": {
-                "anyOf": [
-                  {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": 1,
-                "description": "Top-p sampling value, between 0.0 and 1.0",
-                "title": "Top P"
-              }
-            },
-            "required": [
-              "name",
-              "max_tokens"
-            ],
-            "title": "ModelInfo",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "llm_info": {
-            "$ref": "#/$defs/ModelInfo",
-            "default": {
-              "name": "gpt-4o",
-              "max_tokens": 16384,
-              "temperature": 0.7,
-              "top_p": 1
-            },
-            "description": "The default LLM model to use"
-          },
-          "system_prompt": {
-            "default": "You are a helpful assistant.",
-            "description": "The system prompt for the LLM",
-            "title": "System Prompt",
-            "type": "string"
-          },
-          "output_schema": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {
-              "response": "str"
-            },
-            "title": "Output Schema",
-            "type": "object"
-          },
-          "few_shot_examples": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Few Shot Examples"
-          }
-        },
-        "title": "StructuredOutputNodeConfig",
-        "type": "object"
-      }
-    },
-    {
-      "name": "AdvancedLLMNode",
-      "input": {
-        "properties": {},
-        "title": "AdvancedNodeInput",
-        "type": "object"
-      },
-      "output": {
-        "properties": {},
-        "title": "AdvancedNodeOutput",
+        "title": "SingleLLMCallNodeOutput",
         "type": "object"
       },
       "config": {
@@ -459,8 +219,12 @@ export const nodeTypes = {
             "title": "Few Shot Examples"
           }
         },
-        "title": "AdvancedNodeConfig",
+        "title": "SingleLLMCallNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "SLCN",
+        "color": "#C1FFEC"
       }
     },
     {
@@ -614,6 +378,10 @@ export const nodeTypes = {
         ],
         "title": "MCTSNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "MN",
+        "color": "#FFD3C1"
       }
     },
     {
@@ -768,6 +536,10 @@ export const nodeTypes = {
         },
         "title": "BestOfNNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "BONN",
+        "color": "#C1C1FF"
       }
     },
     {
@@ -909,6 +681,10 @@ export const nodeTypes = {
         },
         "title": "BranchSolveMergeNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "BSMN",
+        "color": "#C1FFD1"
       }
     },
     {
@@ -1058,138 +834,10 @@ export const nodeTypes = {
         },
         "title": "MixtureOfAgentsNodeConfig",
         "type": "object"
-      }
-    },
-    {
-      "name": "SampleLLMNode",
-      "input": {},
-      "output": {},
-      "config": {
-        "$defs": {
-          "ModelInfo": {
-            "properties": {
-              "name": {
-                "title": "Name",
-                "type": "string"
-              },
-              "max_tokens": {
-                "anyOf": [
-                  {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Maximum number of tokens the model can generate",
-                "title": "Max Tokens"
-              },
-              "temperature": {
-                "anyOf": [
-                  {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": 0.7,
-                "description": "Temperature for randomness, between 0.0 and 1.0",
-                "title": "Temperature"
-              },
-              "top_p": {
-                "anyOf": [
-                  {
-                    "maximum": 1,
-                    "minimum": 0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": 1,
-                "description": "Top-p sampling value, between 0.0 and 1.0",
-                "title": "Top P"
-              }
-            },
-            "required": [
-              "name",
-              "max_tokens"
-            ],
-            "title": "ModelInfo",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "input_schema": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {
-              "user_message": "str"
-            },
-            "title": "Input Schema",
-            "type": "object"
-          },
-          "output_schema": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "default": {
-              "response": "str"
-            },
-            "title": "Output Schema",
-            "type": "object"
-          },
-          "llm_info": {
-            "$ref": "#/$defs/ModelInfo",
-            "default": {
-              "name": "gpt-4o",
-              "max_tokens": 16384,
-              "temperature": 0.7,
-              "top_p": 1
-            },
-            "description": "The default LLM model to use"
-          },
-          "system_prompt": {
-            "default": "You are a helpful assistant.",
-            "description": "The system prompt for the LLM",
-            "title": "System Prompt",
-            "type": "string"
-          },
-          "few_shot_examples": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Few Shot Examples"
-          },
-          "samples": {
-            "default": 1,
-            "description": "Number of samples to generate",
-            "maximum": 10,
-            "minimum": 1,
-            "title": "Samples",
-            "type": "integer"
-          }
-        },
-        "title": "SampleLLMNodeConfig",
-        "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "MOAN",
+        "color": "#C1C1FF"
       }
     },
     {
@@ -1340,6 +988,10 @@ export const nodeTypes = {
         },
         "title": "SelfConsistencyNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "SCN",
+        "color": "#F4C1FF"
       }
     },
     {
@@ -1544,6 +1196,10 @@ export const nodeTypes = {
         },
         "title": "TreeOfThoughtsNodeConfig",
         "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "TOTN",
+        "color": "#E8FFC1"
       }
     }
   ],
@@ -1588,31 +1244,10 @@ export const nodeTypes = {
         ],
         "title": "PythonFuncNodeConfig",
         "type": "object"
-      }
-    }
-  ],
-  "subworkflow": [
-    {
-      "name": "SubworkflowNode",
-      "input": {},
-      "output": {},
-      "config": {
-        "properties": {
-          "workflow_json": {
-            "title": "Workflow Json",
-            "type": "string"
-          },
-          "use_dask": {
-            "default": false,
-            "title": "Use Dask",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "workflow_json"
-        ],
-        "title": "SubworkflowNodeConfig",
-        "type": "object"
+      },
+      "visual_tag": {
+        "acronym": "PFN",
+        "color": "#FFC1EC"
       }
     }
   ]
