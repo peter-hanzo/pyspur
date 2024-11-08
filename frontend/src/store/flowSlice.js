@@ -12,7 +12,7 @@ const initialState = {
   selectedNode: null,
   sidebarWidth: 400,
   projectName: 'Untitled Project',
-  inputNodeValues: {},
+  workflowInputVariables: {},
 };
 
 const flowSlice = createSlice({
@@ -107,19 +107,19 @@ const flowSlice = createSlice({
 
     setInputNodeValue: (state, action) => {
       const { key, value } = action.payload;
-      state.inputNodeValues[key] = value;
+      state.workflowInputVariables[key] = value;
     },
 
     deleteInputNodeValue: (state, action) => {
       const { key } = action.payload;
-      delete state.inputNodeValues[key];
+      delete state.workflowInputVariables[key];
     },
 
     updateInputNodeKey: (state, action) => {
       const { oldKey, newKey } = action.payload;
       if (oldKey !== newKey) {
-        state.inputNodeValues[newKey] = state.inputNodeValues[oldKey];
-        delete state.inputNodeValues[oldKey];
+        state.workflowInputVariables[newKey] = state.workflowInputVariables[oldKey];
+        delete state.workflowInputVariables[oldKey];
       }
     }
   },

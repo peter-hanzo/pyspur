@@ -9,15 +9,15 @@ import styles from './DynamicNode.module.css';
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
-  const inputNodeValues = useSelector(state => state.flow.inputNodeValues);
+  const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
   const [editingField, setEditingField] = useState(null);
   const [newFieldValue, setNewFieldValue] = useState('');
   const [handlePosition, setHandlePosition] = useState('-12px');
 
-  // Get the fields from inputNodeValues instead of schema
-  const inputFields = Object.keys(inputNodeValues);
+  // Get the fields from workflowInputVariables instead of schema
+  const inputFields = Object.keys(workflowInputVariables);
   const hasInputFields = inputFields.length > 0;
 
   // Calculate node width based on content
