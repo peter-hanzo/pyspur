@@ -82,18 +82,14 @@ export const updateWorkflow = async (workflowId, workflowData) => {
   }
 }
 
-export const startRun = async (workflowID, runType = 'interactive', initialInputs = {}) => {
+export const startRun = async (workflowID, initialInputs = {}, parentRunId = null, runType = 'interactive') => {
+  console.log('workflowID', workflowID, 'runType', runType, 'initialInputs', initialInputs, 'parentRunId', parentRunId);
   try {
     const requestBody = {
-      run_type: runType,
-      initial_inputs: {
-        "1": { "user_message": "okay, give it to me", "city": "Jabalpur", "units": "celsius" },
-        "3": { "user_message": "please enlighten me", "city": "Jabalpur", "units": "celsius" },
-        "4": { "user_message": "Why do politicians and actors not like to ride shotgun?" },
-        "5": { "user_message": "Complete this joke like Jimmy Carr: Why do politicians and actors not like to ride shotgun?" }
-      }
+      initial_inputs: initialInputs,
+      parent_run_id: parentRunId
     };
-    const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_run/`, requestBody);
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_run/?run_type=${runType}`, requestBody);
     return response.data;
   } catch (error) {
     console.error('Error starting run:', error);
