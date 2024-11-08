@@ -28,14 +28,15 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import { updateWorkflow } from '../../utils/api'; // Import the new API function
-import InputNode from '../nodes/InputNode';
 import { getNodeTypes } from '../../utils/api';
 
 const useNodeTypes = () => {
   const [nodeTypes, setNodeTypes] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchNodeTypes = async () => {
+      setIsLoading(true);
       try {
         const nodeTypesConfig = await getNodeTypes();
         const dynamicNodeTypes = Object.keys(nodeTypesConfig).reduce((acc, category) => {
@@ -52,18 +53,27 @@ const useNodeTypes = () => {
         });
       } catch (error) {
         console.error('Error fetching node types:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchNodeTypes();
   }, []);
 
-  return nodeTypes;
+  return { nodeTypes, isLoading };
 };
 
 const edgeTypes = {
   custom: CustomEdge,
 };
+
+// Optional: Add a loading component
+const LoadingCanvas = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+  </div>
+);
 
 // Create a wrapper component that includes ReactFlow logic
 const FlowCanvasContent = ({ workflowData }) => {
@@ -78,7 +88,7 @@ const FlowCanvasContent = ({ workflowData }) => {
     }
   }, [dispatch, workflowData, nodes]);
 
-  const nodeTypes = useNodeTypes();
+  const { nodeTypes, isLoading } = useNodeTypes();
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
@@ -336,6 +346,10 @@ const FlowCanvasContent = ({ workflowData }) => {
 
   // Add a flag to control the visibility of helper lines
   const showHelperLines = false; // Set to false for now
+
+  if (isLoading) {
+    return <LoadingCanvas />;
+  }
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
