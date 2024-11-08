@@ -50,19 +50,9 @@ class NodeFactory:
         ],
         "llm": [
             {
-                "node_type_name": "StringOutputLLMNode",
-                "module": ".nodes.llm.string_output_llm",
-                "class_name": "StringOutputLLMNode",
-            },
-            {
-                "node_type_name": "StructuredOutputNode",
-                "module": ".nodes.llm.structured_output",
-                "class_name": "StructuredOutputNode",
-            },
-            {
-                "node_type_name": "AdvancedLLMNode",
-                "module": ".nodes.llm.advanced",
-                "class_name": "AdvancedNode",
+                "node_type_name": "SingleLLMCallNode",
+                "module": ".nodes.llm.single_llm_call",
+                "class_name": "SingleLLMCallNode",
             },
             {
                 "node_type_name": "MCTSNode",
@@ -85,11 +75,6 @@ class NodeFactory:
                 "class_name": "MixtureOfAgentsNode",
             },
             {
-                "node_type_name": "SampleLLMNode",
-                "module": ".nodes.llm.sample_llm",
-                "class_name": "SampleLLMNode",
-            },
-            {
                 "node_type_name": "SelfConsistencyNode",
                 "module": ".nodes.llm.self_consistency",
                 "class_name": "SelfConsistencyNode",
@@ -107,14 +92,35 @@ class NodeFactory:
                 "class_name": "PythonFuncNode",
             },
         ],
-        "subworkflow": [
-            {
-                "node_type_name": "SubworkflowNode",
-                "module": ".nodes.subworkflow.subworkflow_node",
-                "class_name": "SubworkflowNode",
-            },
-        ],
     }
+
+    _DEPRECATED_NODE_TYPES = [
+        {
+            "node_type_name": "StringOutputLLMNode",
+            "module": ".nodes.llm.string_output_llm",
+            "class_name": "StringOutputLLMNode",
+        },
+        {
+            "node_type_name": "StructuredOutputNode",
+            "module": ".nodes.llm.structured_output",
+            "class_name": "StructuredOutputNode",
+        },
+        {
+            "node_type_name": "AdvancedLLMNode",
+            "module": ".nodes.llm.single_llm_call",
+            "class_name": "SingleLLMCallNode",
+        },
+        {
+            "node_type_name": "SampleLLMNode",
+            "module": ".nodes.llm.sample_llm",
+            "class_name": "SampleLLMNode",
+        },
+        {
+            "node_type_name": "SubworkflowNode",
+            "module": ".nodes.subworkflow.subworkflow_node",
+            "class_name": "SubworkflowNode",
+        },
+    ]
 
     @staticmethod
     def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
@@ -160,6 +166,9 @@ class NodeFactory:
             for node_type in node_types:
                 if node_type["node_type_name"] == node_type_name:
                     return True
+        for node_type in NodeFactory._DEPRECATED_NODE_TYPES:
+            if node_type["node_type_name"] == node_type_name:
+                return True
         return False
 
 

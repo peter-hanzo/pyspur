@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import Field
 
 from ..base import BaseNode, VisualTag
-from .advanced import AdvancedNode, AdvancedNodeConfig
+from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 from .string_output_llm import (
     StringOutputLLMNode,
@@ -64,13 +64,13 @@ class TreeOfThoughtsNode(BaseNode):
         self._generation_node = StringOutputLLMNode(generation_config)
 
         # evaluation node is an advanced LLM node
-        evaluation_config = AdvancedNodeConfig(
+        evaluation_config = SingleLLMCallNodeConfig(
             llm_info=config.llm_info,
             system_prompt=config.system_prompt,
             input_schema={"prompt": "str"},
             output_schema={"value": "float"},
         )
-        self._evaluation_llm_node = AdvancedNode(evaluation_config)
+        self._evaluation_llm_node = SingleLLMCallNode(evaluation_config)
         self.input_model = StringOutputLLMNodeInput
         self.output_model = StringOutputLLMNodeOutput
 

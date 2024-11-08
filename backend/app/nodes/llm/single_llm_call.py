@@ -8,7 +8,7 @@ from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_te
 from ..base import VisualTag
 
 
-class AdvancedNodeConfig(DynamicSchemaNodeConfig):
+class SingleLLMCallNodeConfig(DynamicSchemaNodeConfig):
     llm_info: ModelInfo = Field(
         LLMModelRegistry.GPT_4O, description="The default LLM model to use"
     )
@@ -19,26 +19,26 @@ class AdvancedNodeConfig(DynamicSchemaNodeConfig):
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
-class AdvancedNodeInput(BaseModel):
+class SingleLLMCallNodeInput(BaseModel):
     user_message: str
     # pass
 
 
-class AdvancedNodeOutput(BaseModel):
+class SingleLLMCallNodeOutput(BaseModel):
     response: str
     # pass
 
 
-class AdvancedNode(DynamicSchemaNode):
+class SingleLLMCallNode(DynamicSchemaNode):
     """
     Node type for calling an LLM with structured i/o and support for params in system prompt and user_input.
     """
 
-    name = "advanced_llm_node"
-    config_model = AdvancedNodeConfig
-    input_model = AdvancedNodeInput
-    output_model = AdvancedNodeOutput
-    visual_tag = VisualTag(acronym="ALN", color="#FFC1C1")
+    name = "single_llm_call_node"
+    config_model = SingleLLMCallNodeConfig
+    input_model = SingleLLMCallNodeInput
+    output_model = SingleLLMCallNodeOutput
+    visual_tag = VisualTag(acronym="SLC", color="#FFC1C1")
 
     async def run(self, input_data: BaseModel) -> BaseModel:
         system_message = self.config.system_prompt
@@ -72,8 +72,8 @@ class AdvancedNode(DynamicSchemaNode):
 if __name__ == "__main__":
 
     async def test_llm_nodes():
-        advanced_llm_node = AdvancedNode(
-            config=AdvancedNodeConfig(
+        advanced_llm_node = SingleLLMCallNode(
+            config=SingleLLMCallNodeConfig(
                 llm_info=ModelInfo(name="gpt-4o-mini", temperature=0.1, max_tokens=100),
                 system_prompt="This is a test prompt.",
                 output_schema={"response": "str", "your_name": "str"},

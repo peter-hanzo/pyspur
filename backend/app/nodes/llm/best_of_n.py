@@ -4,12 +4,12 @@ from typing import Tuple
 from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode
-from .advanced import AdvancedNode, AdvancedNodeConfig
+from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 from ..base import VisualTag
 
 
-class BestOfNNodeConfig(AdvancedNodeConfig):
+class BestOfNNodeConfig(SingleLLMCallNodeConfig):
     samples: int = Field(3, ge=1, le=10, description="Number of samples to generate")
     rating_prompt: str = Field(
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
@@ -41,17 +41,19 @@ class BestOfNNode(DynamicSchemaNode):
         super().setup()
 
         # Initialize the LLM node for generating samples
-        llm_node_config = AdvancedNodeConfig.model_validate(self.config.model_dump())
-        self._llm_node = AdvancedNode(llm_node_config)
+        llm_node_config = SingleLLMCallNodeConfig.model_validate(
+            self.config.model_dump()
+        )
+        self._llm_node = SingleLLMCallNode(llm_node_config)
 
         # Initialize the LLM node for rating responses
-        rating_llm_config = AdvancedNodeConfig(
+        rating_llm_config = SingleLLMCallNodeConfig(
             llm_info=self.config.llm_info,
             system_prompt=self.config.rating_prompt,
             input_schema=self.config.output_schema,
             output_schema={"rating": "float"},
         )
-        self._rating_llm_node = AdvancedNode(rating_llm_config)
+        self._rating_llm_node = SingleLLMCallNode(rating_llm_config)
 
     async def _generate_response_and_rate_it(
         self, input_data: BaseModel
