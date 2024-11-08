@@ -60,7 +60,7 @@ const Header = ({ activePage }) => {
         try {
             const result = await startRun(workflowID, inputValues, null, 'interactive');
             setIsRunning(true);
-            console.log('Result:', result);
+            // console.log('Result:', result);
             updateWorkflowStatus(result.id);
         } catch (error) {
             console.error('Error starting workflow run:', error);

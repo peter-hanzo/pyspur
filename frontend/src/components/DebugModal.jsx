@@ -89,7 +89,7 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
 
   const getNodeNameById = (nodeId, nodes) => {
     const node = nodes.find(node => node.id === nodeId);
-    console.log('Node:', node);
+    // console.log('Node:', node);
     return node ? node.type : null;
   };
 
@@ -102,7 +102,7 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
   
     // Remove the id field from the test case
     const { id, ...inputValues } = selectedTestCase;
-    console.log('Selected Test Case:', inputValues);
+    // console.log('Selected Test Case:', inputValues);
   
     // Get the edges and nodes from the redux store
   
@@ -113,7 +113,7 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
     edges.forEach(edge => {
       if (getNodeNameById(edge.source, nodes) === 'InputNode') { // Assuming 'inputNode' is the ID of the input node
         const targetNodeId = edge.target;
-        console.log('Target Node ID:', targetNodeId);
+        // console.log('Target Node ID:', targetNodeId);
         const inputKey = edge.sourceHandle;
   
         // Check if the inputKey exists in the selectedTestCase
