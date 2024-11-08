@@ -4,13 +4,20 @@ import FlowCanvas from '../../components/canvas/FlowCanvas';
 import Header from '../../components/Header'; // Import the Header component
 import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
 import { persistor } from '../../store/store'; // Import the persistor
-import { getWorkflow, startRun } from '../../utils/api';
+import { getWorkflow } from '../../utils/api';
+import { setWorkflowID } from '../../store/flowSlice';
+import { useDispatch } from 'react-redux';
 
 const WorkflowPage = () => {
 
     const router = useRouter();
     const { id } = router.query; // Access the dynamic route parameter
     const [workflowData, setWorkflowData] = useState(null);
+
+    const dispatch = useDispatch();
+    useEffect(() => {
+        dispatch(setWorkflowID(id));
+    }, [id, dispatch]);
 
     useEffect(() => {
         const fetchWorkflow = async () => {

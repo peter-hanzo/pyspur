@@ -5,6 +5,7 @@ import { createNode } from '../components/nodes/nodeFactory';
 
 
 const initialState = {
+  workflowID: null,
   nodes: [],
   edges: [],
   hoveredNode: null,
@@ -17,6 +18,9 @@ const flowSlice = createSlice({
   name: 'flow',
   initialState,
   reducers: {
+    setWorkflowID: (state, action) => {
+      state.workflowID = action.payload;
+    },
     initializeFlow: (state, action) => {
       const { definition } = action.payload;
       const { nodes, links } = definition;
@@ -117,7 +121,8 @@ export const {
   deleteEdge,
   setSidebarWidth,
   setProjectName,
-  clearCanvas
+  clearCanvas,
+  setWorkflowID
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

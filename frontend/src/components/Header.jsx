@@ -53,13 +53,10 @@ const Header = ({ activePage }) => {
     }, 10000);
   };
 
+  const workflowID = useSelector((state) => state.flow.workflowID);
+
   const handleRunWorkflow = async () => {
     try {
-      // Extract workflowID from the URL
-      const url = new URL(window.location.href);
-      const pathSegments = url.pathname.split('/');
-      const workflowID = pathSegments[pathSegments.indexOf('workflows') + 1];
-
       // Start the run using the workflowID
       const result = await startRun(workflowID);
       console.log('Start Run result:', result);
