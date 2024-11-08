@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from ..schemas.run_schemas import RunResponseSchema, RunStatusResponseSchema
 from ..database import get_db
 from ..models.run_model import RunModel, RunStatus
-from ..models.output_file_model import OutputFileModel
 
 router = APIRouter()
 
@@ -39,11 +38,10 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
     output_file_id = None
     if run.status == RunStatus.COMPLETED:
         # find output file id
-        output_file = (
-            db.query(OutputFileModel).filter(OutputFileModel.run_id == run.id).first()
-        )
+        output_file = run.output_file
         if output_file:
             output_file_id = output_file.id
+
     tasks = run.tasks
     tasks_meta = [
         {
