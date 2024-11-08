@@ -168,6 +168,7 @@ const InputNode = ({ id, data, ...props }) => {
       <BaseNode
         id={id}
         type="input"
+        isInputNode={true}
         data={{
           ...data,
           acronym: 'IN',

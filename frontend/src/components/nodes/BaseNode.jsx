@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
-const BaseNode = ({ id, data = {}, children, style = {} }) => {
+const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
@@ -143,14 +143,16 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
             >
               <Icon className="text-default-500" icon="solar:play-linear" width={22} />
             </Button>
-            <Button
-              isIconOnly
-              radius="full"
-              variant="light"
-              onPress={handleDelete}
-            >
-              <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
-            </Button>
+            {!isInputNode && (
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                onPress={handleDelete}
+              >
+                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
+              </Button>
+            )}
           </div>
         </Card>
       )}
