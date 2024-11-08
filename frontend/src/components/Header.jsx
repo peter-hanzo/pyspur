@@ -14,7 +14,7 @@ import {
   DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { runWorkflow, getRunStatus, startRun } from '../utils/api'; // Ensure getRunStatus is imported
+import { getRunStatus, startRun } from '../utils/api'; // Ensure getRunStatus is imported
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 
@@ -55,20 +55,19 @@ const Header = ({ activePage }) => {
 
   const workflowID = useSelector((state) => state.flow.workflowID);
 
-  const handleRunWorkflow = async () => {
-    try {
-      // Start the run using the workflowID
-      const result = await startRun(workflowID);
-      console.log('Start Run result:', result);
+const inputNodeValues = useSelector((state) => state.flow.inputNodeValues);
 
-      // Start the status updater function using the returned runID
-      setIsRunning(true);
-      updateWorkflowStatus(result.id);
+const handleRunWorkflow = async () => {
+  try {
+    const result = await startRun(workflowID, inputNodeValues, null, 'interactive');
 
-    } catch (error) {
-      console.error('Error starting workflow run:', error);
-    }
-  };
+    setIsRunning(true);
+    updateWorkflowStatus(result.id);
+
+  } catch (error) {
+    console.error('Error starting workflow run:', error);
+  }
+};
 
   const handleProjectNameChange = (e) => {
     dispatch(setProjectName(e.target.value));

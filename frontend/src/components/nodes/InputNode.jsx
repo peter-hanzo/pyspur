@@ -1,18 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Handle } from '@xyflow/react';
-import { useDispatch } from 'react-redux';
+import { useDispatch} from 'react-redux';
 import BaseNode from './BaseNode';
-import { updateNodeData } from '../../store/flowSlice';
+import { updateNodeData, setInputNodeValue } from '../../store/flowSlice';
 import { Input, Button } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import styles from './DynamicNode.module.css';
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
+  const [inputNodeValues, setInputNodeValues] = useState({});
   const nodeData = data || {};
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
-  console.log('------ nodeData', nodeData);
   // Get input schema from node data
   const inputSchema = nodeData?.userconfig?.input_schema || {};
   const hasInputSchema = Object.keys(inputSchema).length > 0;
@@ -34,16 +34,14 @@ const InputNode = ({ id, data, ...props }) => {
   }, [nodeData, inputSchema]);
 
   const handleInputChange = (key, value) => {
-    const updatedConfig = {
-      ...nodeData.userconfig,
-      [key]: value
-    };
-
-    dispatch(updateNodeData({
-      id,
-      data: {
-        ...nodeData,
-        userconfig: updatedConfig
+    setInputNodeValues({
+        ...inputNodeValues,
+        [key]: value
+    });
+    dispatch(setInputNodeValue({
+      [id] : {
+        ...inputNodeValues,
+        [key]: value
       }
     }));
   };
@@ -109,7 +107,7 @@ const InputNode = ({ id, data, ...props }) => {
           label={key}
           labelPlacement="outside"
           placeholder={`Enter ${key}`}
-          value={nodeData.userconfig[key] || ''}
+          value={inputNodeValues[key] || ''}
           onChange={(e) => handleInputChange(key, e.target.value)}
           size="sm"
           variant="faded"

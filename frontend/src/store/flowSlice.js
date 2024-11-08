@@ -12,6 +12,7 @@ const initialState = {
   selectedNode: null,
   sidebarWidth: 400,
   projectName: 'Untitled Project',
+  inputNodeValues: {},
 };
 
 const flowSlice = createSlice({
@@ -103,6 +104,10 @@ const flowSlice = createSlice({
       state.nodes = [];
       state.edges = [];
     },
+
+    setInputNodeValue: (state, action) => {
+      state.inputNodeValues = action.payload;
+    }
   },
 });
 
@@ -122,7 +127,8 @@ export const {
   setSidebarWidth,
   setProjectName,
   clearCanvas,
-  setWorkflowID
+  setWorkflowID,
+  setInputNodeValue
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
