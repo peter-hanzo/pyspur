@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Handle } from '@xyflow/react';
-import { useDispatch} from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
 import { updateNodeData, setInputNodeValue } from '../../store/flowSlice';
 import { Input, Button } from "@nextui-org/react";
@@ -10,12 +10,17 @@ import styles from './DynamicNode.module.css';
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
   const [inputNodeValues, setInputNodeValues] = useState({});
-  const nodeData = data || {};
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
-  // Get input schema from node data
+
+  // Get the latest node data from Redux store
+  const currentNode = useSelector(state =>
+    state.flow.nodes.find(node => node.id === id)
+  );
+  const nodeData = currentNode?.data || data || {};
   const inputSchema = nodeData?.userconfig?.input_schema || {};
   const hasInputSchema = Object.keys(inputSchema).length > 0;
+  const [handlePosition, setHandlePosition] = useState('-12px');
 
   // Calculate node width based on content
   useEffect(() => {
@@ -28,18 +33,23 @@ const InputNode = ({ id, data, ...props }) => {
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
       const finalWidth = Math.min(calculatedWidth, 600);
-      console.log('finalWidth', finalWidth);
+
+      // Further increase padding to push handles completely to edge
+      const nodePadding = 26; // Increased from 20
+      const borderWidth = 2;
+      setHandlePosition(`-${nodePadding + borderWidth}px`);
+
       setNodeWidth(`${finalWidth}px`);
     }
   }, [nodeData, inputSchema]);
 
   const handleInputChange = (key, value) => {
     setInputNodeValues({
-        ...inputNodeValues,
-        [key]: value
+      ...inputNodeValues,
+      [key]: value
     });
     dispatch(setInputNodeValue({
-      [id] : {
+      [id]: {
         ...inputNodeValues,
         [key]: value
       }
@@ -47,12 +57,48 @@ const InputNode = ({ id, data, ...props }) => {
   };
 
   const handleAddField = () => {
-    // Create a new field in the input schema
-    const newFieldName = `field_${Object.keys(inputSchema).length + 1}`;
+    // Find the highest existing field number
+    const existingFields = Object.keys(inputSchema)
+      .filter(key => key.startsWith('field_'))
+      .map(key => parseInt(key.replace('field_', '')))
+      .filter(num => !isNaN(num));
+
+    const highestNumber = Math.max(0, ...existingFields);
+    const newFieldName = `field_${highestNumber + 1}`;
+
     const updatedSchema = {
       ...inputSchema,
-      [newFieldName]: { type: 'string' } // Default type
+      [newFieldName]: { type: 'string' }
     };
+
+    // Create complete node data update
+    const updatedData = {
+      ...nodeData,
+      userconfig: {
+        ...nodeData.userconfig,
+        input_schema: updatedSchema
+      }
+    };
+
+    // Dispatch update
+    dispatch(updateNodeData({
+      id,
+      data: updatedData
+    }));
+
+    // Initialize the input value for the new field
+    const updatedValues = {
+      ...inputNodeValues,
+      [newFieldName]: ''
+    };
+    setInputNodeValues(updatedValues);
+    dispatch(setInputNodeValue({
+      [id]: updatedValues
+    }));
+  };
+
+  const handleDeleteField = (keyToDelete) => {
+    const { [keyToDelete]: _, ...updatedSchema } = inputSchema;
 
     dispatch(updateNodeData({
       id,
@@ -63,6 +109,13 @@ const InputNode = ({ id, data, ...props }) => {
           input_schema: updatedSchema
         }
       }
+    }));
+
+    // Also clean up the input value for the deleted field
+    const { [keyToDelete]: __, ...updatedValues } = inputNodeValues;
+    setInputNodeValues(updatedValues);
+    dispatch(setInputNodeValue({
+      [id]: updatedValues
     }));
   };
 
@@ -82,13 +135,12 @@ const InputNode = ({ id, data, ...props }) => {
           inputWrapper: "shadow-none",
         }}
       />
-      <div className="absolute right-0 top-1/2 -translate-y-1/2">
+      <div className={styles.outputHandleWrapper} style={{ right: handlePosition }}>
         <Handle
           type="source"
           position="right"
           id="default"
-          className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white"
-          style={{ right: -6 }}
+          className={`${styles.handle} ${styles.handleRight}`}
           isConnectable={true}
         />
       </div>
@@ -102,30 +154,40 @@ const InputNode = ({ id, data, ...props }) => {
 
     return Object.entries(inputSchema).map(([key, value], index) => (
       <div key={key} className="relative w-full px-4 py-2">
-        <Input
-          key={key}
-          label={key}
-          labelPlacement="outside"
-          placeholder={`Enter ${key}`}
-          value={inputNodeValues[key] || ''}
-          onChange={(e) => handleInputChange(key, e.target.value)}
-          size="sm"
-          variant="faded"
-          radius="lg"
-          classNames={{
-            label: "text-sm font-medium text-default-600",
-            input: "bg-default-100",
-            inputWrapper: "shadow-none", // Remove the black contour
-          }}
-        />
-        {/* Position the handle to the right of each input */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2">
+        <div className="flex items-center gap-2">
+          <Input
+            key={key}
+            label={key}
+            labelPlacement="outside"
+            placeholder={`Enter ${key}`}
+            value={inputNodeValues[key] || ''}
+            onChange={(e) => handleInputChange(key, e.target.value)}
+            size="sm"
+            variant="faded"
+            radius="lg"
+            classNames={{
+              label: "text-sm font-medium text-default-600",
+              input: "bg-default-100",
+              inputWrapper: "shadow-none",
+            }}
+          />
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            color="danger"
+            onClick={() => handleDeleteField(key)}
+            className="self-end mb-[2px]"
+          >
+            <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
+          </Button>
+        </div>
+        <div className={styles.outputHandleWrapper} style={{ right: handlePosition }}>
           <Handle
             type="source"
             position="right"
             id={key}
-            className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white"
-            style={{ right: -6 }}
+            className={`${styles.handle} ${styles.handleRight}`}
             isConnectable={true}
           />
         </div>
