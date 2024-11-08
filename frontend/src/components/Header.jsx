@@ -153,9 +153,8 @@ const Header = ({ activePage }) => {
                     </NavbarItem>
                     {activePage !== "home" && (
                         <NavbarItem isActive={activePage === "workflow"}>
-                            <Link aria-current="page" className="flex gap-2 text-inherit" href="/workflow">
-                                Editor
-                            </Link>
+
+                            Editor
                         </NavbarItem>
                     )}
                 </NavbarContent>
