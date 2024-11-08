@@ -4,15 +4,23 @@ import AddNodePopoverFooter from './AddNodePopoverFooter';
 import { MiniMap } from '@xyflow/react';
 import UndoRedo from '../../../UndoRedo';
 import { Button, ButtonGroup } from '@nextui-org/react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useModeStore } from '../../../../store/modeStore';
 import { Icon } from "@iconify/react";
 import TipPopup from '../../../TipPopUp';
+import { clearCanvas } from '../../../../store/flowSlice';
 
 function Operator() {
+  const dispatch = useDispatch();
   const nodes = useSelector(state => state.flow.nodes);
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
+
+  const handleClearCanvas = () => {
+    if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
+      dispatch(clearCanvas());
+    }
+  };
 
   return (
     <>
@@ -55,6 +63,20 @@ function Operator() {
             </Button>
           </TipPopup>
           <UndoRedo handleUndo={null} handleRedo={null} />
+          <TipPopup title='Clear Canvas'>
+            <Button
+              size="sm"
+              isIconOnly
+              onClick={handleClearCanvas}
+              className='bg-white'
+            >
+              <Icon
+                className="text-default-500"
+                icon="solar:trash-bin-trash-linear"
+                width={16}
+              />
+            </Button>
+          </TipPopup>
           <AddNodePopoverFooter />
         </ButtonGroup>
       </div>

@@ -17,6 +17,7 @@ import { Icon } from "@iconify/react";
 import { getRunStatus, startRun, getWorkflow } from '../utils/api'; // Ensure getRunStatus and getWorkflow are imported
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
+import DebugModal from './DebugModal';
 
 const Header = ({ activePage }) => {
     const dispatch = useDispatch();
@@ -24,6 +25,7 @@ const Header = ({ activePage }) => {
     const edges = useSelector((state) => state.flow.edges);
     const projectName = useSelector((state) => state.flow.projectName);
     const [isRunning, setIsRunning] = useState(false);
+    const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
 
     const updateWorkflowStatus = async (runID) => {
         const checkStatusInterval = setInterval(async () => {
@@ -71,12 +73,6 @@ const Header = ({ activePage }) => {
 
     const handleProjectNameChange = (e) => {
         dispatch(setProjectName(e.target.value));
-    };
-
-    const handleClearCanvas = () => {
-        if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
-            dispatch(clearCanvas());
-        }
     };
 
     const handleDownloadWorkflow = async () => {
@@ -169,8 +165,13 @@ const Header = ({ activePage }) => {
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onClick={handleClearCanvas}>
-                                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onClick={() => setIsDebugModalOpen(true)}
+                            >
+                                <Icon className="text-default-500" icon="solar:bug-linear" width={22} />
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
@@ -188,12 +189,12 @@ const Header = ({ activePage }) => {
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            {/* Directly render the SettingsCard component */}
                             <SettingsCard />
                         </NavbarItem>
                     </NavbarContent>
                 )}
             </Navbar>
+            <DebugModal isOpen={isDebugModalOpen} onOpenChange={setIsDebugModalOpen} />
         </>
     );
 };
