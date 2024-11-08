@@ -2,166 +2,71 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Handle } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
-import { updateNodeData, setInputNodeValue } from '../../store/flowSlice';
+import { setInputNodeValue, deleteInputNodeValue, updateInputNodeKey } from '../../store/flowSlice';
 import { Input, Button } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import styles from './DynamicNode.module.css';
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
-  const [inputNodeValues, setInputNodeValues] = useState({});
+  const inputNodeValues = useSelector(state => state.flow.inputNodeValues);
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
   const [editingField, setEditingField] = useState(null);
   const [newFieldValue, setNewFieldValue] = useState('');
-
-  // Get the latest node data from Redux store
-  const currentNode = useSelector(state =>
-    state.flow.nodes.find(node => node.id === id)
-  );
-  const nodeData = currentNode?.data || data || {};
-  const inputSchema = nodeData?.userconfig?.input_schema || {};
-  const hasInputSchema = Object.keys(inputSchema).length > 0;
   const [handlePosition, setHandlePosition] = useState('-12px');
+
+  // Get the fields from inputNodeValues instead of schema
+  const inputFields = Object.keys(inputNodeValues);
+  const hasInputFields = inputFields.length > 0;
 
   // Calculate node width based on content
   useEffect(() => {
     if (nodeRef.current) {
-      const inputLabels = Object.keys(inputSchema);
       const maxLabelLength = Math.max(
-        ...inputLabels.map(label => label.length),
-        (nodeData?.title || '').length / 1.5
+        ...inputFields.map(label => label.length),
+        (data?.title || '').length / 1.5
       );
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
       const finalWidth = Math.min(calculatedWidth, 600);
 
-      // Further increase padding to push handles completely to edge
-      const nodePadding = 26; // Increased from 20
+      const nodePadding = 26;
       const borderWidth = 2;
       setHandlePosition(`-${nodePadding + borderWidth}px`);
 
       setNodeWidth(`${finalWidth}px`);
     }
-  }, [nodeData, inputSchema]);
+  }, [data, inputFields]);
 
   const handleInputChange = (key, value) => {
-    setInputNodeValues({
-      ...inputNodeValues,
-      [key]: value
-    });
-    dispatch(setInputNodeValue({
-      [id]: {
-        ...inputNodeValues,
-        [key]: value
-      }
-    }));
+    dispatch(setInputNodeValue({ key, value }));
   };
 
   const handleAddField = () => {
     if (!newFieldValue.trim()) return;
+    const newKey = newFieldValue.trim();
 
-    const newFieldName = newFieldValue.trim();
-
-    // Check if field already exists
-    if (inputSchema[newFieldName]) {
-      // Could add error handling here
-      return;
-    }
-
-    const updatedSchema = {
-      ...inputSchema,
-      [newFieldName]: { type: 'string' }
-    };
-
-    // Create complete node data update
-    const updatedData = {
-      ...nodeData,
-      userconfig: {
-        ...nodeData.userconfig,
-        input_schema: updatedSchema
-      }
-    };
-
-    // Dispatch update
-    dispatch(updateNodeData({
-      id,
-      data: updatedData
-    }));
-
-    // Initialize the input value for the new field
-    const updatedValues = {
-      ...inputNodeValues,
-      [newFieldName]: ''
-    };
-    setInputNodeValues(updatedValues);
+    // Initialize new field with empty value
     dispatch(setInputNodeValue({
-      [id]: updatedValues
+      key: newKey,
+      value: ''
     }));
 
-    // Clear the input
     setNewFieldValue('');
   };
 
   const handleDeleteField = (keyToDelete) => {
-    const { [keyToDelete]: _, ...updatedSchema } = inputSchema;
-
-    dispatch(updateNodeData({
-      id,
-      data: {
-        ...nodeData,
-        userconfig: {
-          ...nodeData.userconfig,
-          input_schema: updatedSchema
-        }
-      }
-    }));
-
-    // Also clean up the input value for the deleted field
-    const { [keyToDelete]: __, ...updatedValues } = inputNodeValues;
-    setInputNodeValues(updatedValues);
-    dispatch(setInputNodeValue({
-      [id]: updatedValues
-    }));
+    dispatch(deleteInputNodeValue({ key: keyToDelete }));
   };
 
-  const handleLabelEdit = (key, newLabel) => {
-    if (newLabel === key || !newLabel.trim()) {
+  const handleLabelEdit = (oldKey, newKey) => {
+    if (oldKey === newKey || !newKey.trim()) {
       setEditingField(null);
       return;
     }
 
-    // Create new schema with updated key
-    const updatedSchema = Object.entries(inputSchema).reduce((acc, [k, v]) => {
-      if (k === key) {
-        acc[newLabel] = v;
-      } else {
-        acc[k] = v;
-      }
-      return acc;
-    }, {});
-
-    // Update node data with new schema
-    dispatch(updateNodeData({
-      id,
-      data: {
-        ...nodeData,
-        userconfig: {
-          ...nodeData.userconfig,
-          input_schema: updatedSchema
-        }
-      }
-    }));
-
-    // Update input values with new key
-    const updatedValues = { ...inputNodeValues };
-    updatedValues[newLabel] = updatedValues[key];
-    delete updatedValues[key];
-    setInputNodeValues(updatedValues);
-    dispatch(setInputNodeValue({
-      [id]: updatedValues
-    }));
-
+    dispatch(updateInputNodeKey({ oldKey, newKey }));
     setEditingField(null);
   };
 
@@ -194,11 +99,11 @@ const InputNode = ({ id, data, ...props }) => {
   );
 
   const renderInputFields = () => {
-    if (!hasInputSchema) {
+    if (!hasInputFields) {
       return renderEmptyState();
     }
 
-    return Object.entries(inputSchema).map(([key, value], index) => (
+    return inputFields.map((key, index) => (
       <div key={key} className="relative w-full px-4 py-2">
         <div className="flex items-center gap-2">
           {editingField === key ? (
@@ -295,7 +200,7 @@ const InputNode = ({ id, data, ...props }) => {
         id={id}
         type="input"
         data={{
-          ...nodeData,
+          ...data,
           acronym: 'IN',
           color: '#2196F3',
         }}

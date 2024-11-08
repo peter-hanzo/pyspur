@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Modal,
@@ -18,46 +18,24 @@ import {
 import { Icon } from "@iconify/react";
 
 const DebugModal = ({ isOpen, onOpenChange }) => {
-  // Get input nodes and their schemas from Redux state
-  const nodes = useSelector(state => state.flow.nodes);
-  const inputNodes = nodes.filter(node => node.type === 'input');
+  // Get input values directly from Redux state
+  const inputNodeValues = useSelector(state => state.flow.inputNodeValues);
 
-  // Get all unique input fields from all input nodes
-  const inputFields = inputNodes.reduce((fields, node) => {
-    const schema = node.data?.userconfig?.input_schema || {};
-    Object.keys(schema).forEach(key => {
-      if (!fields.includes(key)) {
-        fields.push(key);
-      }
-    });
-    return fields;
-  }, []);
-
-  // Initialize test data with dynamic columns based on input fields
-  const [testData, setTestData] = useState([
-    { id: 1, name: "Test Case 1", ...inputFields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}) },
-    { id: 2, name: "Test Case 2", ...inputFields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}) },
-  ]);
-
-  // Initialize new row with dynamic fields
-  const [newRow, setNewRow] = useState({
-    name: "",
-    ...inputFields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}),
-  });
-
+  // Get all unique input fields from inputNodeValues
+  const inputFields = Object.keys(inputNodeValues || {});
+  const [testData, setTestData] = useState([]);
+  const [newRow, setNewRow] = useState({});
   const [editingCell, setEditingCell] = useState(null);
 
   const handleAddRow = () => {
-    if (newRow.name && Object.values(newRow).every(value => value !== "")) {
-      setTestData([
-        ...testData,
-        {
-          id: testData.length + 1,
-          ...newRow
-        }
-      ]);
-      setNewRow({ name: "", ...inputFields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}) });
-    }
+    setTestData([
+      ...testData,
+      {
+        id: testData.length + 1,
+        ...newRow
+      }
+    ]);
+    setNewRow(inputFields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}));
   };
 
   const handleDeleteRow = (id) => {
@@ -117,7 +95,7 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
                 className="mb-4"
               >
                 <TableHeader>
-                  <TableColumn>NAME</TableColumn>
+                  <TableColumn>#</TableColumn>
                   {inputFields.map(field => (
                     <TableColumn key={field}>{field.toUpperCase()}</TableColumn>
                   ))}
@@ -126,7 +104,7 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
                 <TableBody>
                   {testData.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell>{renderCell(row, 'name')}</TableCell>
+                      <TableCell>{row.id}</TableCell>
                       {inputFields.map(field => (
                         <TableCell key={field}>
                           {renderCell(row, field)}
@@ -148,11 +126,6 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
               </Table>
 
               <div className="flex gap-2">
-                <Input
-                  placeholder="Test case name"
-                  value={newRow.name}
-                  onChange={(e) => setNewRow({ ...newRow, name: e.target.value })}
-                />
                 {inputFields.map(field => (
                   <Input
                     key={field}

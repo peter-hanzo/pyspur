@@ -106,7 +106,21 @@ const flowSlice = createSlice({
     },
 
     setInputNodeValue: (state, action) => {
-      state.inputNodeValues = action.payload;
+      const { key, value } = action.payload;
+      state.inputNodeValues[key] = value;
+    },
+
+    deleteInputNodeValue: (state, action) => {
+      const { key } = action.payload;
+      delete state.inputNodeValues[key];
+    },
+
+    updateInputNodeKey: (state, action) => {
+      const { oldKey, newKey } = action.payload;
+      if (oldKey !== newKey) {
+        state.inputNodeValues[newKey] = state.inputNodeValues[oldKey];
+        delete state.inputNodeValues[oldKey];
+      }
     }
   },
 });
@@ -128,7 +142,9 @@ export const {
   setProjectName,
   clearCanvas,
   setWorkflowID,
-  setInputNodeValue
+  setInputNodeValue,
+  deleteInputNodeValue,
+  updateInputNodeKey
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
