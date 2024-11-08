@@ -54,16 +54,18 @@ const Header = ({ activePage }) => {
 
     const inputNodeValues = useSelector((state) => state.flow.inputNodeValues);
 
-    const handleRunWorkflow = async () => {
+    const executeWorkflow = async (inputValues) => {
         try {
-            const result = await startRun(workflowID, inputNodeValues, null, 'interactive');
-
+            const result = await startRun(workflowID, inputValues, null, 'interactive');
             setIsRunning(true);
             updateWorkflowStatus(result.id);
-
         } catch (error) {
             console.error('Error starting workflow run:', error);
         }
+    };
+
+    const handleRunWorkflow = async () => {
+        setIsDebugModalOpen(true);
     };
 
     const handleProjectNameChange = (e) => {
@@ -163,16 +165,6 @@ const Header = ({ activePage }) => {
                                 isIconOnly
                                 radius="full"
                                 variant="light"
-                                onClick={() => setIsDebugModalOpen(true)}
-                            >
-                                <Icon className="text-default-500" icon="solar:bug-linear" width={22} />
-                            </Button>
-                        </NavbarItem>
-                        <NavbarItem className="hidden sm:flex">
-                            <Button
-                                isIconOnly
-                                radius="full"
-                                variant="light"
                                 onClick={handleDownloadWorkflow}
                             >
                                 <Icon
@@ -188,7 +180,14 @@ const Header = ({ activePage }) => {
                     </NavbarContent>
                 )}
             </Navbar>
-            <DebugModal isOpen={isDebugModalOpen} onOpenChange={setIsDebugModalOpen} />
+            <DebugModal
+                isOpen={isDebugModalOpen}
+                onOpenChange={setIsDebugModalOpen}
+                onRun={async (selectedInputs) => {
+                    await executeWorkflow(selectedInputs);
+                    setIsDebugModalOpen(false);
+                }}
+            />
         </>
     );
 };
