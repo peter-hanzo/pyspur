@@ -1,4 +1,3 @@
-// frontend/src/components/Header.jsx
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
