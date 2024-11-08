@@ -299,8 +299,8 @@ const FlowCanvasContent = ({ workflowData, workflowID }) => {
 
   const { cut, copy, paste, bufferedNodes } = useCopyPaste();
 
-  const canCopy = nodes.some(({ selected }) => selected);
-  const canPaste = bufferedNodes.length > 0;
+  // const canCopy = nodes.some(({ selected }) => selected);
+  // const canPaste = bufferedNodes.length > 0;
 
   // Add this hook - it will handle the keyboard shortcuts automatically
   useCopyPaste();
@@ -321,9 +321,9 @@ const FlowCanvasContent = ({ workflowData, workflowID }) => {
       ...node,
       draggable: true,
       selectable: mode === 'pointer',
-      position: node.position,
-      type: node.type,
-      data: node.data,
+      position: node?.position,
+      type: node?.type,
+      data: node?.data,
     }));
   }, [nodes, mode]);
 
