@@ -13,6 +13,7 @@ import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import DebugModal from './DebugModal';
+import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 
 const Header = ({ activePage }) => {
     const dispatch = useDispatch();
@@ -26,8 +27,8 @@ const Header = ({ activePage }) => {
         const checkStatusInterval = setInterval(async () => {
             try {
                 const statusResponse = await getRunStatus(runID);
-                const outputs = statusResponse.outputs;
                 console.log('Status Response:', statusResponse);
+                const outputs = statusResponse.outputs; 
 
                 // Update nodes based on outputs
                 if (outputs) {
@@ -49,8 +50,9 @@ const Header = ({ activePage }) => {
             }
         }, 10000);
     };
-
-    const workflowID = useSelector((state) => state.flow.workflowID);
+    
+    // get the workflow ID from the URL
+    const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
 
     const inputNodeValues = useSelector((state) => state.flow.inputNodeValues);
 
@@ -58,6 +60,7 @@ const Header = ({ activePage }) => {
         try {
             const result = await startRun(workflowID, inputValues, null, 'interactive');
             setIsRunning(true);
+            console.log('Result:', result);
             updateWorkflowStatus(result.id);
         } catch (error) {
             console.error('Error starting workflow run:', error);

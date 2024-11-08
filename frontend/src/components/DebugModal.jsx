@@ -25,6 +25,8 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
   const [newRow, setNewRow] = useState({});
   const [editingCell, setEditingCell] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
+  const nodes = useSelector(state => state.flow.nodes);
+  const edges = useSelector(state => state.flow.edges);
 
   const handleAddRow = () => {
     setTestData([
@@ -85,18 +87,49 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
     }
   };
 
+  const getNodeNameById = (nodeId, nodes) => {
+    const node = nodes.find(node => node.id === nodeId);
+    console.log('Node:', node);
+    return node ? node.type : null;
+  };
+
   const handleRun = () => {
     if (!selectedRow) return;
-
+  
     // Find the selected test data
-    const selectedTestCase = testData.find(row => row.id === selectedRow);
+    const selectedTestCase = testData.find(row => row.id == selectedRow);
     if (!selectedTestCase) return;
-
+  
     // Remove the id field from the test case
     const { id, ...inputValues } = selectedTestCase;
+    console.log('Selected Test Case:', inputValues);
+  
+    // Get the edges and nodes from the redux store
+  
+    // Initialize the initialInputs structure
+    const initialInputs = { "initial_inputs": {} };
+  
+    // Find all edges with source as inputNode
+    edges.forEach(edge => {
+      if (getNodeNameById(edge.source, nodes) === 'InputNode') { // Assuming 'inputNode' is the ID of the input node
+        const targetNodeId = edge.target;
+        console.log('Target Node ID:', targetNodeId);
+        const inputKey = edge.sourceHandle;
+  
+        // Check if the inputKey exists in the selectedTestCase
+        if (inputValues.hasOwnProperty(inputKey)) {
+          if (!initialInputs.initial_inputs[targetNodeId]) {
+            initialInputs.initial_inputs[targetNodeId] = {};
+          }
+          initialInputs.initial_inputs[targetNodeId][inputKey] = inputValues[inputKey];
+        }
+      }
+    });
 
-    // Call the onRun callback with the selected input values
-    onRun(inputValues);
+    console.log('Initial Inputs:', initialInputs);
+  
+    // Call the onRun callback with the constructed initialInputs
+    onRun(initialInputs);
   };
 
   return (
