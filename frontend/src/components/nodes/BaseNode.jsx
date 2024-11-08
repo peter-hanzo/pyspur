@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setHoveredNode } from '../../store/flowSlice';
+import { setHoveredNode, deleteNode, setSelectedNode } from '../../store/flowSlice';
 import {
   Card,
   CardHeader,
@@ -32,6 +32,13 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
       setTimeout(() => {
         setShowControls(false);
       }, 200);
+    }
+  };
+
+  const handleDelete = () => {
+    dispatch(deleteNode({ nodeId: id }));
+    if (selectedNodeId === id) {
+      dispatch(setSelectedNode({ nodeId: null }));
     }
   };
 
@@ -139,6 +146,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
               isIconOnly
               radius="full"
               variant="light"
+              onPress={handleDelete}
             >
               <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
             </Button>

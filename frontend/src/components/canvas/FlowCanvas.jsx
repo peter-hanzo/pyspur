@@ -280,8 +280,6 @@ const FlowCanvasContent = ({ workflowData }) => {
     }
   }, [dispatch, selectedNodeID]);
 
-  const footerHeight = 100;
-
   const onNodesDelete = useCallback(
     (deletedNodes) => {
       deletedNodes.forEach((node) => {
