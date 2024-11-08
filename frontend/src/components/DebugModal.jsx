@@ -18,14 +18,13 @@ import {
 import { Icon } from "@iconify/react";
 
 const DebugModal = ({ isOpen, onOpenChange }) => {
-  // Get input values directly from Redux state
-  const inputNodeValues = useSelector(state => state.flow.inputNodeValues);
+  const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
 
-  // Get all unique input fields from inputNodeValues
-  const inputFields = Object.keys(inputNodeValues || {});
+  const workflowInputVariableNames = Object.keys(workflowInputVariables || {});
   const [testData, setTestData] = useState([]);
   const [newRow, setNewRow] = useState({});
   const [editingCell, setEditingCell] = useState(null);
+  const [selectedRow, setSelectedRow] = useState(null);
 
   const handleAddRow = () => {
     setTestData([
@@ -35,7 +34,7 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
         ...newRow
       }
     ]);
-    setNewRow(inputFields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}));
+    setNewRow(workflowInputVariableNames.reduce((acc, field) => ({ ...acc, [field]: "" }), {}));
   };
 
   const handleDeleteRow = (id) => {
@@ -78,6 +77,14 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
     );
   };
 
+  const handleKeyDown = (e) => {
+    // Check if any of the input fields have values before allowing row addition
+    const hasValues = Object.values(newRow).some(value => value !== "");
+    if (e.key === 'Enter' && hasValues) {
+      handleAddRow();
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -87,16 +94,20 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="flex flex-col gap-1">Debug Test Cases</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1">Test Inputs: Select The Test Input You Want To Run</ModalHeader>
             <ModalBody>
               <Table
                 aria-label="Test cases table"
-                selectionMode="multiple"
-                className="mb-4"
+                selectionMode="single"
+                selectedKeys={selectedRow ? [selectedRow] : new Set()}
+                onSelectionChange={(selection) => {
+                  const selectedKey = Array.from(selection)[0];
+                  setSelectedRow(selectedKey);
+                }}
               >
                 <TableHeader>
                   <TableColumn>#</TableColumn>
-                  {inputFields.map(field => (
+                  {workflowInputVariableNames.map(field => (
                     <TableColumn key={field}>{field.toUpperCase()}</TableColumn>
                   ))}
                   <TableColumn>ACTIONS</TableColumn>
@@ -105,7 +116,7 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
                   {testData.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>{row.id}</TableCell>
-                      {inputFields.map(field => (
+                      {workflowInputVariableNames.map(field => (
                         <TableCell key={field}>
                           {renderCell(row, field)}
                         </TableCell>
@@ -126,12 +137,13 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
               </Table>
 
               <div className="flex gap-2">
-                {inputFields.map(field => (
+                {workflowInputVariableNames.map(field => (
                   <Input
                     key={field}
                     placeholder={field}
                     value={newRow[field]}
                     onChange={(e) => setNewRow({ ...newRow, [field]: e.target.value })}
+                    onKeyDown={handleKeyDown}
                   />
                 ))}
                 <Button color="primary" onPress={handleAddRow}>

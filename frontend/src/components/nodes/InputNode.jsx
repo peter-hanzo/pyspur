@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Handle } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
-import { setInputNodeValue, deleteInputNodeValue, updateInputNodeKey } from '../../store/flowSlice';
+import { setWorkflowInputVariable, deleteWorkflowInputVariable, updateWorkflowInputVariableKey } from '../../store/flowSlice';
 import { Input, Button } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import styles from './DynamicNode.module.css';
@@ -40,7 +40,7 @@ const InputNode = ({ id, data, ...props }) => {
   }, [data, inputFields]);
 
   const handleInputChange = (key, value) => {
-    dispatch(setInputNodeValue({ key, value }));
+    dispatch(setWorkflowInputVariable({ key, value }));
   };
 
   const handleAddField = () => {
@@ -48,7 +48,7 @@ const InputNode = ({ id, data, ...props }) => {
     const newKey = newFieldValue.trim();
 
     // Initialize new field with empty value
-    dispatch(setInputNodeValue({
+    dispatch(setWorkflowInputVariable({
       key: newKey,
       value: ''
     }));
@@ -57,7 +57,7 @@ const InputNode = ({ id, data, ...props }) => {
   };
 
   const handleDeleteField = (keyToDelete) => {
-    dispatch(deleteInputNodeValue({ key: keyToDelete }));
+    dispatch(deleteWorkflowInputVariable({ key: keyToDelete }));
   };
 
   const handleLabelEdit = (oldKey, newKey) => {
@@ -66,7 +66,7 @@ const InputNode = ({ id, data, ...props }) => {
       return;
     }
 
-    dispatch(updateInputNodeKey({ oldKey, newKey }));
+    dispatch(updateWorkflowInputVariableKey({ oldKey, newKey }));
     setEditingField(null);
   };
 
