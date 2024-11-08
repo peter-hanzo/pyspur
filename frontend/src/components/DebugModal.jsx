@@ -17,7 +17,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
-const DebugModal = ({ isOpen, onOpenChange }) => {
+const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
   const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
 
   const workflowInputVariableNames = Object.keys(workflowInputVariables || {});
@@ -85,6 +85,20 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
     }
   };
 
+  const handleRun = () => {
+    if (!selectedRow) return;
+
+    // Find the selected test data
+    const selectedTestCase = testData.find(row => row.id === selectedRow);
+    if (!selectedTestCase) return;
+
+    // Remove the id field from the test case
+    const { id, ...inputValues } = selectedTestCase;
+
+    // Call the onRun callback with the selected input values
+    onRun(inputValues);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -94,7 +108,9 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="flex flex-col gap-1">Test Inputs: Select The Test Input You Want To Run</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1">
+              Select Test Input To Run
+            </ModalHeader>
             <ModalBody>
               <Table
                 aria-label="Test cases table"
@@ -153,10 +169,14 @@ const DebugModal = ({ isOpen, onOpenChange }) => {
             </ModalBody>
             <ModalFooter>
               <Button color="danger" variant="light" onPress={onClose}>
-                Close
+                Cancel
               </Button>
-              <Button color="primary" onPress={onClose}>
-                Save Tests
+              <Button
+                color="primary"
+                onPress={handleRun}
+                isDisabled={!selectedRow}
+              >
+                Run
               </Button>
             </ModalFooter>
           </>
