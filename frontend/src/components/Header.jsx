@@ -14,15 +14,13 @@ import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import DebugModal from './DebugModal';
+import { useDispatch } from 'react-redux';
+import { useState } from 'react';
 
 const Header = ({ activePage }) => {
-    const {
-        handleRunWorkflow,
-        handleDownloadWorkflow,
-        handleClearCanvas,
-        handleProjectNameChange
-    } = useWorkflow();
-
+    const dispatch = useDispatch();
+    const nodes = useSelector((state) => state.flow.nodes);
+    const edges = useSelector((state) => state.flow.edges);
     const projectName = useSelector((state) => state.flow.projectName);
     const [isRunning, setIsRunning] = useState(false);
     const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
