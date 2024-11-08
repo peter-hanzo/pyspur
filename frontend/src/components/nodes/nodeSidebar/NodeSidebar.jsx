@@ -418,7 +418,7 @@ const NodeSidebar = ({ nodeID }) => {
                     )}
 
                     <AccordionItem key="output" aria-label='Output' title="Outputs">
-                        <NodeStatus node={node} />
+                        <NodeStatus nodeID={nodeID} />
                     </AccordionItem>
 
                     <AccordionItem key="title" aria-label="Node Title" title="Node Title">

@@ -37,8 +37,11 @@ const Header = ({ activePage }) => {
                     Object.entries(outputs).forEach(([nodeId, data]) => {
                         const node = nodes.find((node) => node.id === nodeId);
                         if (data) {
-                            dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, data } } }));
-                        }
+                            dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...data } } }));
+                        } 
+                        // else {
+                        //     dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, "test_output": "To check the display", "test_output_2": "To see the list in action" } } }));
+                        // }
                     });
                 }
 
@@ -59,7 +62,13 @@ const Header = ({ activePage }) => {
 
     const handleRunWorkflow = async () => {
         try {
-            const result = await startRun(workflowID, inputNodeValues, null, 'interactive');
+            console.log('Input Node Values:', inputNodeValues);
+            const test_inputs = {
+              "initial_inputs": {
+                "node_1731066766087": { "user_message": "Give me weather in London" }
+              }
+            };
+            const result = await startRun(workflowID, test_inputs, null, 'interactive');
 
             setIsRunning(true);
             updateWorkflowStatus(result.id);

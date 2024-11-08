@@ -28,7 +28,7 @@ const flowSlice = createSlice({
 
       // Map nodes to the expected format
       let mappedNodes = nodes.map(node =>
-        createNode(node.node_type, node.id, { x: 0, y: 0 }, { userconfig: node.config })
+        createNode(node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { userconfig: node.config })
       );
 
       state.nodes = mappedNodes;
