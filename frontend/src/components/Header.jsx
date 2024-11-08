@@ -1,6 +1,6 @@
 // frontend/src/components/Header.jsx
-import React from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import {
     Input,
     Navbar,
@@ -14,8 +14,6 @@ import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import DebugModal from './DebugModal';
-import { useDispatch } from 'react-redux';
-import { useState } from 'react';
 
 const Header = ({ activePage }) => {
     const dispatch = useDispatch();
