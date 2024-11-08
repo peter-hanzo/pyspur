@@ -18,7 +18,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
   const dispatch = useDispatch();
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
-  const selectedNodeId = useSelector((state) => state.flow.selectedNode); // Get selectedNodeID from Redux
+  const selectedNodeId = useSelector((state) => state.flow.selectedNode);
 
   const handleMouseEnter = () => {
     dispatch(setHoveredNode({ nodeId: id }));
@@ -27,7 +27,6 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
 
   const handleMouseLeave = () => {
     dispatch(setHoveredNode({ nodeId: null }));
-    // Only start the hide timer if tooltip isn't being hovered
     if (!isTooltipHovered) {
       setTimeout(() => {
         setShowControls(false);
@@ -43,20 +42,25 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
   };
 
   const isHovered = String(id) === String(hoveredNodeId);
-  const isSelected = String(id) === String(selectedNodeId); // Check if the node is selected
+  const isSelected = String(id) === String(selectedNodeId);
+
+  const status = data.status || 'default'; // Default status if not provided
+  const borderColor = status === 'completed' ? 'green' :
+                      status === 'failed' ? 'red' :
+                      status === 'pending' ? 'orange' :
+                      isSelected ? '#FF9800' : isHovered ? '#4CAF50' : style.borderColor || '#ccc';
 
   const cardStyle = {
     ...style,
-    borderColor: isSelected ? '#FF9800' : isHovered ? '#4CAF50' : style.borderColor || '#ccc', // Highlight selected node with orange
-    borderWidth: isSelected ? '3px' : isHovered ? '2px' : style.borderWidth || '1px', // Thicker border for selected node
+    borderColor: borderColor,
+    borderWidth: isSelected ? '3px' : isHovered ? '2px' : style.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
-    position: 'relative', // Ensure proper positioning of handles
+    position: 'relative',
   };
 
-  // Extract acronym and color from data
-  const acronym = data.acronym || 'N/A'; // Default to 'N/A' if acronym is not provided
-  const color = data.color || '#ccc'; // Default to grey if color is not provided
+  const acronym = data.acronym || 'N/A';
+  const color = data.color || '#ccc';
 
   const tagStyle = {
     backgroundColor: color,
@@ -79,7 +83,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
   };
 
   return (
-    <div style={{ position: 'relative' }}> {/* Wrap the node in a div with relative positioning */}
+    <div style={{ position: 'relative' }}>
       <Card
         className="base-node"
         style={cardStyle}
@@ -90,11 +94,9 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
         {data && data.title && (
           <CardHeader style={{ position: 'relative', paddingBottom: '28px' }}>
             <h3 className="text-lg font-semibold text-center">{data.userconfig.title || data.title}</h3>
-            {/* Acronym tag */}
             <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
               {acronym}
             </div>
-            {/* Collapse button */}
             <Button
               size="sm"
               variant="flat"
@@ -111,7 +113,6 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
       </Card>
 
       {(showControls || isSelected) && (
-
         <Card
           onMouseEnter={() => {
             setShowControls(true);
@@ -134,7 +135,7 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
           }}
         >
-          <div className="flex flex-row gap-1"> {/* Added container div with flex */}
+          <div className="flex flex-row gap-1">
             <Button
               isIconOnly
               radius="full"
@@ -152,10 +153,8 @@ const BaseNode = ({ id, data = {}, children, style = {} }) => {
             </Button>
           </div>
         </Card>
-
-      )
-      }
-    </div >
+      )}
+    </div>
   );
 };
 

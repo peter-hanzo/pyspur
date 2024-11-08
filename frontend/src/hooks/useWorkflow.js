@@ -23,7 +23,7 @@ const useWorkflow = () => {
                     Object.entries(outputs).forEach(([nodeId, data]) => {
                         const node = nodes.find((node) => node.id === nodeId);
                         if (data) {
-                            dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...data } } }));
+                            dispatch(updateNodeData({ id: nodeId, data: { status: data.status, run: { ...node.data.run, ...data } } }));
                         }
                     });
                 }
@@ -42,6 +42,12 @@ const useWorkflow = () => {
     const handleRunWorkflow = async () => {
         try {
             console.log('Input Node Values:', inputNodeValues);
+            
+            // Set all nodes' status to 'pending'
+            nodes.forEach(node => {
+                dispatch(updateNodeData({ id: node.id, data: { status: 'pending' } }));
+            });
+
             const test_inputs = {
                 "initial_inputs": {
                     "node_1731066766087": { "user_message": "Give me weather in London" }
