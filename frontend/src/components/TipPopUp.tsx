@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, forwardRef } from 'react'
 import { Tooltip } from '@nextui-org/react'
 
 type TipPopupProps = {
@@ -6,11 +6,12 @@ type TipPopupProps = {
   children: React.ReactNode
   shortcuts?: string[]
 }
-const TipPopup = ({
+
+const TipPopup = forwardRef<HTMLDivElement, TipPopupProps>(({
   title,
   children,
   shortcuts,
-}: TipPopupProps) => {
+}, ref) => {
   return (
     <Tooltip
       content={
@@ -19,9 +20,14 @@ const TipPopup = ({
         </div>
       }
     >
-      {children}
+      <div ref={ref}>
+        {children}
+      </div>
     </Tooltip>
   )
-}
+})
+
+// Add display name for better debugging
+TipPopup.displayName = 'TipPopup'
 
 export default memo(TipPopup)
