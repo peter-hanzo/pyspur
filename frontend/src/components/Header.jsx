@@ -8,13 +8,8 @@ import {
     NavbarItem,
     Link,
     Button,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { getRunStatus, startRun, getWorkflow } from '../utils/api'; // Ensure getRunStatus and getWorkflow are imported
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import DebugModal from './DebugModal';
@@ -151,7 +146,6 @@ const Header = ({ activePage }) => {
                     </NavbarItem>
                     {activePage !== "home" && (
                         <NavbarItem isActive={activePage === "workflow"}>
-
                             Editor
                         </NavbarItem>
                     )}

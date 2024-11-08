@@ -1,7 +1,14 @@
-import React from 'react';
-import Home from './pages';
+import React, { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { fetchNodeTypes } from './store/nodeTypesSlice';
 
-function App() {
+const App = () => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchNodeTypes());
+  }, [dispatch]);
+
   return (
     <Home />
   );

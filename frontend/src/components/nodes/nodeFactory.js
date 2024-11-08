@@ -29,8 +29,8 @@ export const createNode = (type, id, position, additionalData = {}) => {
     position,
     data: {
       title: nodeType.name,
-      acronym: nodeType.acronym,
-      color: nodeType.color,
+      acronym: nodeType.visual_tag.acronym,
+      color: nodeType.visual_tag.color,
       config: nodeType.config,
       input: nodeType.input,
       output: nodeType.output,
