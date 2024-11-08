@@ -18,7 +18,7 @@ import {
   useDisclosure
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { runWorkflow, getWorkflows, createWorkflow } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
@@ -115,6 +115,22 @@ const Dashboard = () => {
       alert('Please upload a file');
       return;
     }
+    let uploadedDataset;
+    // upload file as dataset
+    try {
+      // Generate a unique name for the dataset using the current timestamp
+      const datasetName = `Dataset_${Date.now()}`;
+      const datasetDescription = `Uploaded dataset for workflow ${selectedWorkflow.name}`;
+
+      // Call the API to upload the dataset
+      uploadedDataset = await uploadDataset(datasetName, datasetDescription, file);
+
+      console.log('Dataset uploaded successfully:', uploadedDataset);
+    } catch (error) {
+      console.error('Error uploading dataset:', error);
+      alert('Failed to upload dataset. Please try again.');
+      return;
+    }
 
     try {
       // Simulate workflow run and progress
@@ -129,8 +145,8 @@ const Dashboard = () => {
         });
       }, 500);
 
-      // Call the API to run the workflow (this is a placeholder)
-      await runWorkflow({ workflowId: selectedWorkflow.key, file });
+      // Call the API to start a batch workflow run
+      await startBatchRun(selectedWorkflow.id, uploadedDataset.id);
     } catch (error) {
       console.error('Error running workflow:', error);
     }
