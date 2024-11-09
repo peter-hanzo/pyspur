@@ -12,7 +12,7 @@ import {
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
 import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
-import RUnModal from './RunModal';
+import RunModal from './RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 
 const Header = ({ activePage }) => {
@@ -182,7 +182,7 @@ const Header = ({ activePage }) => {
           </NavbarContent>
         )}
       </Navbar>
-      <RUnModal
+      <RunModal
         isOpen={isDebugModalOpen}
         onOpenChange={setIsDebugModalOpen}
         onRun={async (selectedInputs) => {
