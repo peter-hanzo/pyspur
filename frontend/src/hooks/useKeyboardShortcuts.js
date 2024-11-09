@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { addNode } from '../store/flowSlice';
-import { createNode } from '../components/nodes/nodeFactory'; // Import createNode
+import { createNode } from '../utils/nodeFactory'; // Import createNode
 
 export const useKeyboardShortcuts = (selectedNodeID, nodes, dispatch) => {
   const [copiedNode, setCopiedNode] = useState(null); // State to store the copied node

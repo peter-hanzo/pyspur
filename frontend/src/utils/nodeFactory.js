@@ -1,5 +1,5 @@
-import { nodeTypes } from '../../constants/nodeTypes';
-import DynamicModel from '../../utils/DynamicModel';
+import { nodeTypes } from '../constants/nodeTypes';
+import DynamicModel from './DynamicModel';
 
 // Function to create a node based on its type
 export const createNode = (type, id, position, additionalData = {}) => {

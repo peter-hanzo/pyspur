@@ -1,7 +1,7 @@
 import { createSlice, createAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
-import { createNode } from '../components/nodes/nodeFactory';
+import { createNode } from '../utils/nodeFactory';
 
 
 const initialState = {
