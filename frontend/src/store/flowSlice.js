@@ -115,7 +115,12 @@ const flowSlice = createSlice({
 
     deleteWorkflowInputVariable: (state, action) => {
       const { key } = action.payload;
+
+      // Delete the workflow input variable
       delete state.workflowInputVariables[key];
+
+      // Remove any edges that are connected to this variable as a source
+      state.edges = state.edges.filter(edge => edge.sourceHandle !== key);
     },
 
     updateWorkflowInputVariableKey: (state, action) => {
