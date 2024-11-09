@@ -22,7 +22,17 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
             }
           };
         }
-        return node;
+        else {
+          return {
+            ...node,
+            config: {
+              ...node.data.userconfig,
+              input_schema: node.data.userconfig?.input_schema || {},
+              output_schema: node.data.userconfig?.output_schema || {}
+            },
+            title: node.data.userconfig?.title || node.data.title
+          }
+        }
       });
 
       const updatedWorkflow = {
