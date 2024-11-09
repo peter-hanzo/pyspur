@@ -81,6 +81,16 @@ export const updateWorkflow = async (workflowId, workflowData) => {
   }
 }
 
+export const resetWorkflow = async (workflowId) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/reset/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error resetting workflow:', error);
+    throw error;
+  }
+}
+
 export const startRun = async (workflowID, initialInputs = {}, parentRunId = null, runType = 'interactive') => {
   console.log('workflowID', workflowID, 'runType', runType, 'initialInputs', initialInputs, 'parentRunId', parentRunId);
   try {

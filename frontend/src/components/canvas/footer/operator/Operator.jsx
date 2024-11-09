@@ -8,17 +8,24 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useModeStore } from '../../../../store/modeStore';
 import { Icon } from "@iconify/react";
 import TipPopup from '../../../TipPopUp';
-import { clearCanvas } from '../../../../store/flowSlice';
+import { resetWorkflow } from '../../../../utils/api';
+import { resetFlow } from '../../../../store/flowSlice';
 
 function Operator() {
   const dispatch = useDispatch();
   const nodes = useSelector(state => state.flow.nodes);
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
+  const workflowID = useSelector(state => state.flow.workflowID);
 
-  const handleClearCanvas = () => {
+  const handleClearCanvas = async () => {
     if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
-      dispatch(clearCanvas());
+      try {
+        const newWorkflow = await resetWorkflow(workflowID);
+        dispatch(resetFlow(newWorkflow));
+      } catch (error) {
+        console.error('Error resetting workflow:', error);
+      }
     }
   };
 

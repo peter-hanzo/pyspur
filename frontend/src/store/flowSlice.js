@@ -23,7 +23,6 @@ const flowSlice = createSlice({
       const { workflowID, definition } = action.payload;
       state.workflowID = workflowID;
       const { nodes, links } = definition;
-
       // Map nodes to the expected format
       let mappedNodes = nodes.map(node =>
         createNode(node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { userconfig: node.config })
@@ -102,11 +101,7 @@ const flowSlice = createSlice({
       state.projectName = action.payload;
     },
 
-    clearCanvas: (state) => {
-      // Update clearCanvas to maintain at least the input node
-      state.nodes = [];
-      state.edges = [];
-    },
+
 
     setWorkflowInputVariable: (state, action) => {
       const { key, value } = action.payload;
@@ -141,7 +136,30 @@ const flowSlice = createSlice({
           return edge;
         });
       }
-    }
+    },
+
+    resetFlow: (state, action) => {
+      const { nodes, links } = action.payload.definition;
+      console.log("action", action);
+
+      // Map nodes to the expected format
+      let mappedNodes = nodes.map(node =>
+        createNode(node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { userconfig: node.config })
+      );
+
+      state.nodes = mappedNodes;
+
+      // Map links to the expected edge format
+      state.edges = links.map(link => ({
+        id: uuidv4(),
+        key: uuidv4(),
+        selected: link.selected || false,
+        source: link.source_id,
+        target: link.target_id,
+        sourceHandle: link.source_output_key,
+        targetHandle: link.target_input_key
+      }));
+    },
   },
 });
 
@@ -160,10 +178,10 @@ export const {
   deleteEdge,
   setSidebarWidth,
   setProjectName,
-  clearCanvas,
   setWorkflowInputVariable,
   deleteWorkflowInputVariable,
-  updateWorkflowInputVariableKey
+  updateWorkflowInputVariableKey,
+  resetFlow
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

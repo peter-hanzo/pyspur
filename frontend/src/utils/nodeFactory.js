@@ -11,7 +11,7 @@ export const createNode = (type, id, position, additionalData = {}) => {
       break;
     }
   }
-
+  console.log('nodeType', nodeType);
   if (!nodeType) {
     return null;
   }
@@ -23,7 +23,7 @@ export const createNode = (type, id, position, additionalData = {}) => {
     title: nodeType.name,
   };
 
-  return {
+  const node = {
     id,
     type: nodeType.name,
     position,
@@ -38,4 +38,6 @@ export const createNode = (type, id, position, additionalData = {}) => {
       ...additionalData,
     },
   };
+  console.log('newNode', node);
+  return node;
 };

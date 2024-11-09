@@ -91,3 +91,32 @@ def get_workflow(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     return workflow
+
+
+@router.put(
+    "/{workflow_id}/reset/",
+    response_model=WorkflowResponseSchema,
+    description="Reset a workflow to its initial state",
+)
+def reset_workflow(
+    workflow_id: str, db: Session = Depends(get_db)
+) -> WorkflowResponseSchema:
+    # Fetch the workflow by ID
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+
+    # If workflow not found, raise 404 error
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Reset the workflow definition to a new one
+    workflow.definition = create_a_new_workflow_definition().model_dump()
+
+    # Update the updated_at timestamp
+    workflow.updated_at = datetime.now(timezone.utc)
+
+    # Commit the changes to the database
+    db.commit()
+    db.refresh(workflow)
+
+    # Return the updated workflow
+    return workflow
