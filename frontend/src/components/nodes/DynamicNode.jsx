@@ -14,29 +14,26 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
 
   const nodeData = data || (node && node.data);
 
-  if (!nodeData) {
-    return null;
-  }
 
   useEffect(() => {
-    if (nodeRef.current && nodeData) {
-      const inputSchema = nodeData?.userconfig?.input_schema || nodeData?.input?.properties || {};
-      const outputSchema = nodeData?.userconfig?.output_schema || nodeData?.output?.properties || {};
-
-      const inputLabels = Object.keys(inputSchema);
-      const outputLabels = Object.keys(outputSchema);
-
-      const maxLabelLength = Math.max(
-        ...inputLabels.map(label => label.length),
-        ...outputLabels.map(label => label.length),
-        (nodeData?.title || '').length / 1.5
-      );
-
-      const calculatedWidth = Math.max(300, maxLabelLength * 15);
-      const finalWidth = Math.min(calculatedWidth, 600);
-
-      setNodeWidth(`${finalWidth}px`);
-    }
+    if (!nodeRef.current || !nodeData) return;
+  
+    const inputSchema = nodeData?.userconfig?.input_schema || nodeData?.input?.properties || {};
+    const outputSchema = nodeData?.userconfig?.output_schema || nodeData?.output?.properties || {};
+  
+    const inputLabels = Object.keys(inputSchema);
+    const outputLabels = Object.keys(outputSchema);
+  
+    const maxLabelLength = Math.max(
+      ...inputLabels.map(label => label.length),
+      ...outputLabels.map(label => label.length),
+      (nodeData?.title || '').length / 1.5
+    );
+  
+    const calculatedWidth = Math.max(300, maxLabelLength * 15);
+    const finalWidth = Math.min(calculatedWidth, 600);
+  
+    setNodeWidth(`${finalWidth}px`);
   }, [nodeData]);
 
   const renderHandles = () => {
