@@ -15,7 +15,9 @@ import styles from "./TextEditor.module.css";
 import { Icon } from "@iconify/react";
 
 // Wrap the component with forwardRef
-const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {} }, ref) => {
+const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {}, fieldTitle }, ref) => {
+  console.log("Received fieldTitle:", fieldTitle);
+
   const editor = useEditor({
     extensions: [
       Color.configure({ types: [TextStyle.name, ListItem.name] }),
@@ -29,7 +31,11 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     content: content,
     editorProps: {
       attributes: {
-        class: `w-full bg-content2 hover:bg-content3 transition-colors min-h-[40px] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500 ${isEditable ? "" : "rounded-medium"} ${fullScreen ? styles.fullScreenEditor : ""}`,
+        class: [
+          "w-full bg-content2 hover:bg-content3 transition-colors min-h-[40px] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500",
+          isEditable ? "" : "rounded-medium",
+          fullScreen ? styles.fullScreenEditor : styles.truncatedEditor
+        ].filter(Boolean).join(" "), // Join classes without extra spaces
       },
     },
     onUpdate: ({ editor }) => {
@@ -218,50 +224,54 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
 
   return (
     <div>
+      {/* Render the field title if it exists */}
+      {fieldTitle && (
+        <div className="flex justify-between items-center mb-2 ml-2 text-sm font-semibold bg-gray-50 text-gray-700">
+          <span>{fieldTitle}</span>
+          {!fullScreen && (
+            <Button onPress={onOpen} isIconOnly >
+              <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      )}
+
       {isEditable && renderToolbar(editor)}
       <div className={styles.tiptap}>
         <EditorContent editor={editor} />
       </div>
 
-      {!fullScreen && (
-        <>
-          <Button onPress={onOpen} isIconOnly className="mt-4">
-            <Icon icon="solar:maximize-square-linear" className="w-4 h-4" />
-          </Button>
-
-          <Modal
-            isOpen={isOpen}
-            onOpenChange={onOpenChange}
-            size="5xl"
-            scrollBehavior="inside"
-            placement="center"
-          >
-            <ModalContent>
-              {(onClose) => (
-                <>
-                  <ModalHeader className="flex flex-col gap-1">Prompt Editor</ModalHeader>
-                  <ModalBody>
-                    <div>
-                      {renderToolbar(modalEditor, true)}
-                      <div className={styles.tiptap}>
-                        <EditorContent editor={modalEditor} />
-                      </div>
-                    </div>
-                  </ModalBody>
-                  <ModalFooter>
-                    <Button color="danger" variant="light" onPress={() => handleCancel(onClose)}>
-                      Cancel
-                    </Button>
-                    <Button color="primary" onPress={() => handleSave(onClose)}>
-                      Save
-                    </Button>
-                  </ModalFooter>
-                </>
-              )}
-            </ModalContent>
-          </Modal>
-        </>
-      )}
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        size="5xl"
+        scrollBehavior="inside"
+        placement="center"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Prompt Editor</ModalHeader>
+              <ModalBody>
+                <div>
+                  {renderToolbar(modalEditor, true)}
+                  <div className={styles.tiptap}>
+                    <EditorContent editor={modalEditor} />
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={() => handleCancel(onClose)}>
+                  Cancel
+                </Button>
+                <Button color="primary" onPress={() => handleSave(onClose)}>
+                  Save
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 });

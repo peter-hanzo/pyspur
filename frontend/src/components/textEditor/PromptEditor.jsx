@@ -8,9 +8,10 @@ import { updateNodeData, selectNodeById } from '../../store/flowSlice';
  * @param {string} nodeID - The ID of the node.
  * @param {string} fieldName - The name of the field in the node's config to edit.
  * @param {object} [inputSchema={}] - The input schema containing variables to be inserted into the text (optional).
+ * @param {string} [fieldTitle] - The title of the field to be displayed above the editor (optional).
  * @returns {JSX.Element} - The editor component.
  */
-const PromptEditor = ({ nodeID, fieldName, inputSchema = {} }) => { // Default inputSchema to an empty object
+const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle }) => { // Accept fieldTitle as a prop
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
   const [fieldValue, setFieldValue] = useState(
@@ -46,6 +47,7 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema = {} }) => { // Default i
         setContent={setFieldValue}
         isEditable={true}
         inputSchema={inputSchema}
+        fieldTitle={fieldTitle}  // Ensure fieldTitle is passed here
       />
     </div>
   );

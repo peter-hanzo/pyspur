@@ -139,15 +139,13 @@ const NodeSidebar = ({ nodeID }) => {
             else if (field.title && field.title.toLowerCase().includes('prompt')) {
                 return (
                     <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
-                        <label className="text-sm font-semibold mb-3 block text-gray-700">
-                            {field.title}
-                        </label>
-                        <div className="border rounded-lg bg-white shadow-sm">
+                        <div >
                             <PromptEditor
                                 key={key}
                                 nodeID={nodeID}
                                 fieldName={key}
                                 inputSchema={dynamicModel.input_schema || {}}
+                                fieldTitle={field.title}
                             />
                         </div>
 
