@@ -25,9 +25,10 @@ import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
-import { updateWorkflow } from '../../utils/api'; // Import the new API function
+// Import the new API function
 import { getNodeTypes } from '../../utils/api';
 import InputNode from '../nodes/InputNode';
+import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 
 const useNodeTypes = () => {
   const [nodeTypes, setNodeTypes] = useState({});
@@ -81,14 +82,13 @@ const LoadingCanvas = () => (
 // Create a wrapper component that includes ReactFlow logic
 const FlowCanvasContent = ({ workflowData, workflowID }) => {
 
-  console.log('workflowData:', workflowData);
 
   const dispatch = useDispatch();
   useEffect(() => {
     if (workflowData) {
-      dispatch(initializeFlow(workflowData));
+      dispatch(initializeFlow({ ...workflowData, workflowID }));
     }
-  }, [dispatch, workflowData]);
+  }, [dispatch, workflowData, workflowID]);
 
   const { nodeTypes, isLoading } = useNodeTypes();
 
@@ -97,37 +97,7 @@ const FlowCanvasContent = ({ workflowData, workflowID }) => {
   const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
 
-  const saveWorkflow = useCallback(async () => {
-    try {
-      const updatedWorkflow = {
-        nodes: nodes.map(node => ({
-          id: node.id,
-          node_type: node.type,
-          config: node.data.userconfig,
-          coordinates: node.position,
-        })),
-        links: edges.map(edge => ({
-          source_id: edge.source,
-          source_output_key: edge.sourceHandle,
-          target_id: edge.target,
-          target_input_key: edge.targetHandle,
-        })),
-      };
-
-      await updateWorkflow(workflowID, updatedWorkflow);
-    } catch (error) {
-    }
-  }, [workflowID,nodes, edges]);
-
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      if (nodes.length > 0 || edges.length > 0) {
-        saveWorkflow();
-      }
-    }, 10000); // 10 seconds delay
-
-    return () => clearTimeout(handle);
-  }, [nodes, edges, saveWorkflow]);
+  const saveWorkflow = useSaveWorkflow([nodes, edges], 10000); // 10 second delay
 
   // Manage reactFlowInstance locally
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -136,7 +106,7 @@ const FlowCanvasContent = ({ workflowData, workflowID }) => {
 
   // Add a flag to control the visibility of helper lines
   const showHelperLines = false; // Set to false for now
-  
+
   const onNodesChange = useCallback(
     (changes) => {
       if (!changes.some((c) => c.type === 'position')) {

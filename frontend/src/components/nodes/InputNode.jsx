@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Handle } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
-import { setWorkflowInputVariable, deleteWorkflowInputVariable, updateWorkflowInputVariableKey } from '../../store/flowSlice';
+import { setWorkflowInputVariable, deleteWorkflowInputVariable, updateWorkflowInputVariableKey, updateNodeData } from '../../store/flowSlice';
 import { Input, Button } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import styles from './DynamicNode.module.css';
+import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
@@ -17,14 +18,14 @@ const InputNode = ({ id, data, ...props }) => {
   const [handlePosition, setHandlePosition] = useState('-12px');
 
   // Get the fields from workflowInputVariables instead of schema
-  const inputFields = Object.keys(workflowInputVariables);
-  const hasInputFields = inputFields.length > 0;
+  const workflowInputKeys = Object.keys(workflowInputVariables);
+  const hasWorkflowInputs = workflowInputKeys.length > 0;
 
   // Calculate node width based on content
   useEffect(() => {
     if (nodeRef.current) {
       const maxLabelLength = Math.max(
-        ...inputFields.map(label => label.length),
+        ...workflowInputKeys.map(label => label.length),
         (data?.title || '').length / 1.5
       );
 
@@ -37,30 +38,45 @@ const InputNode = ({ id, data, ...props }) => {
 
       setNodeWidth(`${finalWidth}px`);
     }
-  }, [data, inputFields]);
+  }, [data, workflowInputKeys]);
 
-  const handleInputChange = (key, value) => {
-    dispatch(setWorkflowInputVariable({ key, value }));
-  };
+  const saveWorkflow = useSaveWorkflow();
+  const nodes = useSelector(state => state.flow.nodes);
 
-  const handleAddField = () => {
+  const syncAndSave = useCallback(() => {
+    // Find this input node
+    const inputNode = nodes.find(node => node.id === id);
+    if (!inputNode) return;
+    console.log('inputNode', workflowInputVariables);
+
+    // Now save the workflow
+    saveWorkflow();
+  }, [dispatch, id, nodes, workflowInputVariables, saveWorkflow]);
+
+
+  // Sync and save whenever workflowInputVariables changes
+  useEffect(() => {
+    syncAndSave();
+  }, [workflowInputVariables]);
+
+  const handleAddField = useCallback(() => {
     if (!newFieldValue.trim()) return;
     const newKey = newFieldValue.trim();
 
-    // Initialize new field with empty value
     dispatch(setWorkflowInputVariable({
       key: newKey,
       value: ''
     }));
-
     setNewFieldValue('');
-  };
+    // No need to call syncAndSave here, it will be triggered by the useEffect
+  }, [dispatch, newFieldValue]);
 
-  const handleDeleteField = (keyToDelete) => {
+  const handleDeleteField = useCallback((keyToDelete) => {
     dispatch(deleteWorkflowInputVariable({ key: keyToDelete }));
-  };
+    // No need to call syncAndSave here, it will be triggered by the useEffect
+  }, [dispatch]);
 
-  const handleLabelEdit = (oldKey, newKey) => {
+  const handleLabelEdit = useCallback((oldKey, newKey) => {
     if (oldKey === newKey || !newKey.trim()) {
       setEditingField(null);
       return;
@@ -68,11 +84,11 @@ const InputNode = ({ id, data, ...props }) => {
 
     dispatch(updateWorkflowInputVariableKey({ oldKey, newKey }));
     setEditingField(null);
-  };
+    // No need to call syncAndSave here, it will be triggered by the useEffect
+  }, [dispatch]);
 
-
-  const renderInputFields = () => {
-    return inputFields.map((key, index) => (
+  const renderWorkflowInputs = () => {
+    return workflowInputKeys.map((key, index) => (
       <div key={key} className="relative w-full px-4 py-2">
         <div className="flex items-center gap-2">
           {editingField === key ? (
@@ -178,7 +194,7 @@ const InputNode = ({ id, data, ...props }) => {
         {...props}
       >
         <div className={styles.nodeWrapper} ref={nodeRef}>
-          {renderInputFields()}
+          {renderWorkflowInputs()}
           {renderAddField()}
         </div>
       </BaseNode>

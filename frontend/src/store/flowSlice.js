@@ -7,6 +7,7 @@ import { createNode } from '../components/nodes/nodeFactory';
 const initialState = {
   nodes: [],
   edges: [],
+  workflowID: null,
   hoveredNode: null,
   selectedNode: null,
   sidebarWidth: 400,
@@ -19,7 +20,8 @@ const flowSlice = createSlice({
   initialState,
   reducers: {
     initializeFlow: (state, action) => {
-      const { definition } = action.payload;
+      const { workflowID, definition } = action.payload;
+      state.workflowID = workflowID;
       const { nodes, links } = definition;
 
       // Map nodes to the expected format
@@ -39,6 +41,11 @@ const flowSlice = createSlice({
         sourceHandle: link.source_output_key,
         targetHandle: link.target_input_key
       }));
+
+      // Ensure workflowInputVariables are not reset unless explicitly provided
+      if (definition.input_variables) {
+        state.workflowInputVariables = definition.input_variables;
+      }
     },
     nodesChange: (state, action) => {
       const changes = action.payload.changes;

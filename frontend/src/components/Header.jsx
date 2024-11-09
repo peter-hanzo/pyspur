@@ -18,7 +18,6 @@ import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 const Header = ({ activePage }) => {
     const dispatch = useDispatch();
     const nodes = useSelector((state) => state.flow.nodes);
-    const edges = useSelector((state) => state.flow.edges);
     const projectName = useSelector((state) => state.flow.projectName);
     const [isRunning, setIsRunning] = useState(false);
     const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
@@ -28,7 +27,7 @@ const Header = ({ activePage }) => {
             try {
                 const statusResponse = await getRunStatus(runID);
                 console.log('Status Response:', statusResponse);
-                const outputs = statusResponse.outputs; 
+                const outputs = statusResponse.outputs;
 
                 // Update nodes based on outputs
                 if (outputs) {
@@ -50,7 +49,7 @@ const Header = ({ activePage }) => {
             }
         }, 10000);
     };
-    
+
     // get the workflow ID from the URL
     const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
 

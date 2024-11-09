@@ -185,6 +185,12 @@ const Dashboard = () => {
     });
   };
 
+  const handleDeleteClick = (workflow) => {
+    if (window.confirm(`Are you sure you want to delete workflow "${workflow.name}"?`)) {
+      // TODO: Add API call to delete workflow
+      console.log('Delete workflow:', workflow);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -246,6 +252,13 @@ const Dashboard = () => {
                           height={18}
                           width={18}
                           onClick={() => handleEditClick(workflow)}
+                        />
+                        <Icon
+                          icon="solar:trash-bin-trash-linear"
+                          className="cursor-pointer text-default-400"
+                          height={18}
+                          width={18}
+                          onClick={() => handleDeleteClick(workflow)}
                         />
                       </div>
                     ) : (
