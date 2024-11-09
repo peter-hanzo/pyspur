@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
-import { Button, Input, Textarea, Tooltip } from '@nextui-org/react';
+import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 
-const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
+const InputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
   const [newKey, setNewKey] = useState('');
-  const [editingKey, setEditingKey] = useState(null);
-  const [editedKey, setEditedKey] = useState('');
+  const [newType, setNewType] = useState('string'); // Default to 'string'
 
   const handleAddKey = () => {
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
       const updatedJson = {
         ...jsonValue,
-        [newKey]: true
+        [newKey]: newType // Store the selected type instead of a value
       };
       onChange(updatedJson);
       setNewKey('');
+      setNewType('string'); // Reset to default type
     }
+  };
+
+  const handleTypeChange = (key, type) => {
+    const updatedJson = {
+      ...jsonValue,
+      [key]: type
+    };
+    onChange(updatedJson);
   };
 
   const handleRemoveKey = (key) => {
@@ -23,23 +31,9 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
     onChange(updatedJson);
   };
 
-  const handleEditKey = (key) => {
-    setEditingKey(key);
-    setEditedKey(key);
-  };
-
-  const handleSaveEditedKey = (oldKey) => {
-    if (editedKey && editedKey !== oldKey && !jsonValue.hasOwnProperty(editedKey)) {
-      const { [oldKey]: _, ...updatedJson } = jsonValue;
-      updatedJson[editedKey] = true;
-      onChange(updatedJson);
-    }
-    setEditingKey(null);
-  };
-
   return (
     <div className="json-editor">
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex items-center">
         <Input
           type="text"
           value={newKey}
@@ -52,6 +46,19 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
             }
           }}
         />
+        <Select
+          selectedValue={newType}
+          onChange={(e) => setNewType(e.target.value)}
+          disabled={disabled}
+          label="Select Type"
+          defaultSelectedKeys={["str"]}
+          className="max-w-xs"
+        >
+          <SelectItem key="str" value="str">str</SelectItem>
+          <SelectItem key="bool" value="bool">bool</SelectItem>
+          <SelectItem key="int" value="int">int</SelectItem>
+          <SelectItem key="float" value="float">float</SelectItem>
+        </Select>
         <Button
           isIconOnly
           radius="full"
@@ -59,59 +66,30 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, disabled = false }) => {
           onClick={handleAddKey}
           color="primary"
           disabled={disabled || !newKey}
+          auto
         >
           <Icon icon="solar:add-circle-linear" width={22} />
         </Button>
       </div>
 
       {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) && (
-        <div className="flex flex-wrap gap-2">
-          {Object.keys(jsonValue).map((key) => (
-            <div key={key} className="flex items-center">
-              {editingKey === key ? (
-                <>
-                  <Input
-                    size="sm"
-                    value={editedKey}
-                    onChange={(e) => setEditedKey(e.target.value)}
-                    disabled={disabled}
-                    autoFocus
-                  />
-                  <Button
-                    isIconOnly
-                    radius="full"
-                    variant="light"
-                    onClick={() => handleSaveEditedKey(key)}
-                    color="primary"
-                    disabled={disabled || !editedKey}
-                    className="ml-2"
-                  >
-                    <Icon icon="solar:check-circle-linear" width={22} />
-                  </Button>
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span
-                    className="p-1 px-2 border rounded bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors"
-                    onClick={() => handleEditKey(key)}
-                  >
-                    {key}
-                  </span>
-                  <Button
-                    isIconOnly
-                    radius="full"
-                    variant="light"
-                    onClick={() => handleRemoveKey(key)}
-                    color="danger"
-                    disabled={disabled}
-                  >
-                    <Icon icon="solar:trash-bin-minimalistic-linear" width={20} />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        Object.entries(jsonValue).map(([key, type]) => (
+          <div key={key} className="mb-2 flex items-center">
+            <span className="mr-2">{key}:</span>
+            <span className="mr-2 p-1 border rounded bg-gray-200">{type}</span>
+            <Button
+              isIconOnly
+              radius="full"
+              variant="light"
+              onClick={() => handleRemoveKey(key)}
+              color="primary"
+              disabled={disabled}
+              auto
+            >
+              <Icon icon="solar:minus-circle-linear" width={22} />
+            </Button>
+          </div>
+        ))
       )}
     </div>
   );

@@ -51,11 +51,11 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           onChange={(e) => setNewType(e.target.value)}
           disabled={disabled}
           label="Select Type"
-          defaultSelectedKeys={["string"]}
+          defaultSelectedKeys={["str"]}
           className="max-w-xs"
         >
-          <SelectItem key="string" value="string">string</SelectItem>
-          <SelectItem key="boolean" value="boolean">boolean</SelectItem>
+          <SelectItem key="str" value="str">str</SelectItem>
+          <SelectItem key="bool" value="bool">bool</SelectItem>
           <SelectItem key="int" value="int">int</SelectItem>
           <SelectItem key="float" value="float">float</SelectItem>
         </Select>
