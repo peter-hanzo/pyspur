@@ -109,9 +109,10 @@ async def run_workflow_non_blocking(
                 run.outputs = {k: v.model_dump() for k, v in outputs.items()}
                 run.status = RunStatus.COMPLETED
                 run.end_time = datetime.now(timezone.utc)
-            except:
+            except Exception as e:
                 run.status = RunStatus.FAILED
                 run.end_time = datetime.now(timezone.utc)
+                raise e
             session.commit()
 
     background_tasks.add_task(run_workflow_task, new_run.id, workflow_definition)
