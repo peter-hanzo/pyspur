@@ -1,11 +1,11 @@
 import { nodeTypes } from '../constants/nodeTypes';
-import DynamicModel from './DynamicModel';
+import cloneDeep from 'lodash/cloneDeep';
 
 // Function to create a node based on its type
 export const createNode = (type, id, position, additionalData = {}) => {
   let nodeType = null;
   for (const category in nodeTypes) {
-    const found = nodeTypes[category].find(node => node.name === type);
+    const found = nodeTypes[category].find((node) => node.name === type);
     if (found) {
       nodeType = found;
       break;
@@ -17,9 +17,9 @@ export const createNode = (type, id, position, additionalData = {}) => {
   }
 
   const userConfigData = {
-    schema: nodeType.config?.schema || {},
-    input_schema: nodeType.input?.properties || {},
-    output_schema: nodeType.output?.properties || {},
+    schema: cloneDeep(nodeType.config?.schema) || {},
+    input_schema: cloneDeep(nodeType.input?.properties) || {},
+    output_schema: cloneDeep(nodeType.output?.properties) || {},
     title: nodeType.name,
   };
 
@@ -31,9 +31,9 @@ export const createNode = (type, id, position, additionalData = {}) => {
       title: nodeType.name,
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
-      config: nodeType.config,
-      input: nodeType.input,
-      output: nodeType.output,
+      config: cloneDeep(nodeType.config),
+      input: cloneDeep(nodeType.input),
+      output: cloneDeep(nodeType.output),
       userconfig: userConfigData,
       ...additionalData,
     },
