@@ -20,12 +20,6 @@ const WorkflowPage = () => {
         const fetchWorkflow = async () => {
             try {
                 const data = await getWorkflow(id);
-                // Dispatch the input schema to the Redux store
-                const inputSchema = data.definition.nodes[0].config.input_schema;
-                Object.keys(inputSchema).forEach(key => {
-                    dispatch(setWorkflowInputVariable({ key, value: inputSchema[key] }));
-                });
-
                 setWorkflowData(data);
             } catch (error) {
                 console.error('Error fetching workflow:', error);

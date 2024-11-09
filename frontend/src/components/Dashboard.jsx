@@ -36,7 +36,6 @@ const Dashboard = () => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
-        console.log('Workflows:', workflows);
         setWorkflows(workflows);
       } catch (error) {
         console.error('Error fetching workflows:', error);

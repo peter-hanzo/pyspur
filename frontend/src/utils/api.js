@@ -72,9 +72,7 @@ export const createWorkflow = async (workflowData) => {
 
 export const updateWorkflow = async (workflowId, workflowData) => {
   try {
-    console.log('sending input Schema', workflowData.nodes[0].config.input_schema);
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/`, workflowData);
-    console.log('response', response.data.definition.nodes[0].config.input_schema);
     return response.data;
   } catch (error) {
     console.error('Error updating workflow:', error);

@@ -47,8 +47,6 @@ const InputNode = ({ id, data, ...props }) => {
     // Find this input node
     const inputNode = nodes.find(node => node.id === id);
     if (!inputNode) return;
-    console.log('inputNode', workflowInputVariables);
-
     // Now save the workflow
     saveWorkflow();
   }, [id, nodes, workflowInputVariables, saveWorkflow]);
