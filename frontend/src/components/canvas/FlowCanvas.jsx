@@ -178,10 +178,26 @@ const FlowCanvasContent = (props) => {
   const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
   const [selectedEdge, setSelectedEdge] = useState(null);
 
+  const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
+
   const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }) => {
+    // Calculate center position between nodes in flow coordinates
+    const centerX = (sourceNode.position.x + targetNode.position.x) / 2;
+    const centerY = (sourceNode.position.y + targetNode.position.y) / 2;
+
+    // Convert flow coordinates to screen coordinates
+    const screenPos = reactFlowInstance.flowToScreenPosition({
+      x: centerX,
+      y: centerY,
+    });
+
+    setPopoverPosition({
+      x: screenPos.x,
+      y: screenPos.y
+    });
     setSelectedEdge({ sourceNode, targetNode, edgeId });
     setPopoverContentVisible(true);
-  }, []);
+  }, [reactFlowInstance]);
 
   const styledEdges = useMemo(() => {
     return edges.map((edge) => ({
@@ -323,36 +339,46 @@ const FlowCanvasContent = (props) => {
   return (
     <div style={{ position: 'relative', height: '100%' }}>
       {isPopoverContentVisible && selectedEdge && (
-        <Dropdown
-          isOpen={isPopoverContentVisible}
-          onOpenChange={setPopoverContentVisible}
-          placement="bottom"
+        <div
+          style={{
+            position: 'absolute',
+            left: `${popoverPosition.x}px`,
+            top: `${popoverPosition.y}px`,
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000,
+          }}
         >
-          <DropdownMenu>
-            {Object.keys(nodeTypesConfig).map((category) => (
-              <DropdownSection key={category} title={category} showDivider>
-                {nodeTypesConfig[category].map((node) => (
-                  <DropdownItem
-                    key={node.name}
-                    onClick={() =>
-                      addNodeBetweenNodes(
-                        node.name,
-                        selectedEdge.sourceNode,
-                        selectedEdge.targetNode,
-                        selectedEdge.edgeId,
-                        reactFlowInstance,
-                        dispatch,
-                        setPopoverContentVisible
-                      )
-                    }
-                  >
-                    {node.name}
-                  </DropdownItem>
-                ))}
-              </DropdownSection>
-            ))}
-          </DropdownMenu>
-        </Dropdown>
+          <Dropdown
+            isOpen={isPopoverContentVisible}
+            onOpenChange={setPopoverContentVisible}
+            placement="bottom"
+          >
+            <DropdownMenu>
+              {Object.keys(nodeTypesConfig).map((category) => (
+                <DropdownSection key={category} title={category} showDivider>
+                  {nodeTypesConfig[category].map((node) => (
+                    <DropdownItem
+                      key={node.name}
+                      onClick={() =>
+                        addNodeBetweenNodes(
+                          node.name,
+                          selectedEdge.sourceNode,
+                          selectedEdge.targetNode,
+                          selectedEdge.edgeId,
+                          reactFlowInstance,
+                          dispatch,
+                          setPopoverContentVisible
+                        )
+                      }
+                    >
+                      {node.name}
+                    </DropdownItem>
+                  ))}
+                </DropdownSection>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+        </div>
       )}
 
       <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
