@@ -51,7 +51,7 @@ const InputNode = ({ id, data, ...props }) => {
 
     // Now save the workflow
     saveWorkflow();
-  }, [dispatch, id, nodes, workflowInputVariables, saveWorkflow]);
+  }, [id, nodes, workflowInputVariables, saveWorkflow]);
 
 
   // Sync and save whenever workflowInputVariables changes

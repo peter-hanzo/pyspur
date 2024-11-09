@@ -10,6 +10,7 @@ import {
   setHoveredNode,
   setSelectedNode,
   deleteNode,
+  setWorkflowInputVariable,
 } from '../../store/flowSlice';
 // import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
@@ -80,14 +81,31 @@ const LoadingCanvas = () => (
 );
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent = ({ workflowData, workflowID }) => {
-
+const FlowCanvasContent = (props) => {
+  const { workflowData, workflowID } = props;
 
   const dispatch = useDispatch();
+
   useEffect(() => {
     if (workflowData) {
+      // if the input node already has a schema add it to the workflowInputVariables
+      if (workflowData.definition.nodes) {
+        const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
+        if (inputNode.length > 0) {
+          const inputSchema = inputNode[0].config.input_schema;
+          if (inputSchema) {
+            const workflowInputVariables = Object.entries(inputSchema).map(([key, type]) => {
+              return { key, value: '' };
+            });
+            workflowInputVariables.forEach(variable => {
+              dispatch(setWorkflowInputVariable(variable));
+            });
+          }
+        }
+      }
       dispatch(initializeFlow({ ...workflowData, workflowID }));
     }
+
   }, [dispatch, workflowData, workflowID]);
 
   const { nodeTypes, isLoading } = useNodeTypes();
