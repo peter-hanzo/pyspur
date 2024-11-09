@@ -17,7 +17,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
-const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
+const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
 
   const workflowInputVariableNames = Object.keys(workflowInputVariables || {});
@@ -95,27 +95,27 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
 
   const handleRun = () => {
     if (!selectedRow) return;
-  
+
     // Find the selected test data
     const selectedTestCase = testData.find(row => row.id == selectedRow);
     if (!selectedTestCase) return;
-  
+
     // Remove the id field from the test case
     const { id, ...inputValues } = selectedTestCase;
-    // console.log('Selected Test Case:', inputValues);
-  
+
+
     // Get the edges and nodes from the redux store
-  
+
     // Initialize the initialInputs structure
     const initialInputs = { "initial_inputs": {} };
-  
+
     // Find all edges with source as inputNode
     edges.forEach(edge => {
       if (getNodeNameById(edge.source, nodes) === 'InputNode') { // Assuming 'inputNode' is the ID of the input node
         const targetNodeId = edge.target;
         // console.log('Target Node ID:', targetNodeId);
         const inputKey = edge.sourceHandle;
-  
+
         // Check if the inputKey exists in the selectedTestCase
         if (inputValues.hasOwnProperty(inputKey)) {
           if (!initialInputs.initial_inputs[targetNodeId]) {
@@ -127,9 +127,26 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
     });
 
     console.log('Initial Inputs:', initialInputs);
-  
+
     // Call the onRun callback with the constructed initialInputs
     onRun(initialInputs);
+  };
+
+  const handleSave = () => {
+    if (!selectedRow) return;
+
+    // Find the selected test data
+    const selectedTestCase = testData.find(row => row.id == selectedRow);
+    if (!selectedTestCase) return;
+
+    // Remove the id field from the test case
+    const { id, ...inputValues } = selectedTestCase;
+
+    // Call the onSave callback with the selected test case
+    onSave(inputValues);
+
+    // Close the modal after saving
+    onOpenChange(false);
   };
 
   return (
@@ -142,7 +159,7 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1">
-              Select Test Input To Run
+              Select Test Input To Run or Save
             </ModalHeader>
             <ModalBody>
               <Table
@@ -206,7 +223,19 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
               </Button>
               <Button
                 color="primary"
-                onPress={handleRun}
+                onPress={() => {
+                  handleSave();
+                  onClose();
+                }}
+              >
+                Save
+              </Button>
+              <Button
+                color="primary"
+                onPress={() => {
+                  handleRun();
+                  onClose();
+                }}
                 isDisabled={!selectedRow}
               >
                 Run
@@ -219,4 +248,4 @@ const DebugModal = ({ isOpen, onOpenChange, onRun }) => {
   );
 };
 
-export default DebugModal;
+export default RunModal;
