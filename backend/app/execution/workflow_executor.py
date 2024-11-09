@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Set
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import BaseModel
 
@@ -39,14 +39,21 @@ class WorkflowExecutor:
         Validate that all links in the workflow are compatible.
         """
         for link in self.workflow.links:
-            if not self._are_link_types_compatible(link):
-                raise ValueError(f"Link {link} is not compatible with the node types.")
+            are_compatible, source_output_type, target_input_type = (
+                self._are_link_types_compatible(link)
+            )
+            if not are_compatible:
+                raise ValueError(
+                    f"Link {link} is not compatible with the node types. Source output type: {source_output_type}, Target input type: {target_input_type}"
+                )
 
-    def _are_link_types_compatible(self, link: WorkflowLinkSchema) -> bool:
+    def _are_link_types_compatible(
+        self, link: WorkflowLinkSchema
+    ) -> Tuple[bool, Any, Any]:
         source_node = self._node_dict.get(link.source_id)
         target_node = self._node_dict.get(link.target_id)
         if source_node is None or target_node is None:
-            return False
+            return False, None, None
 
         source_node_executor = NodeExecutor(source_node)
         target_node_executor = NodeExecutor(target_node)
@@ -62,9 +69,13 @@ class WorkflowExecutor:
             )
         )
         if source_output_type is None or target_input_type is None:
-            return False
+            return False, source_output_type, target_input_type
 
-        return source_output_type.annotation == target_input_type.annotation
+        return (
+            source_output_type.annotation == target_input_type.annotation,
+            source_output_type,
+            target_input_type,
+        )
 
     def _build_node_dict(self):
         self._node_dict = {node.id: node for node in self.workflow.nodes}
