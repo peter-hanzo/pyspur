@@ -121,8 +121,20 @@ const flowSlice = createSlice({
     updateWorkflowInputVariableKey: (state, action) => {
       const { oldKey, newKey } = action.payload;
       if (oldKey !== newKey) {
+        // Update the workflowInputVariables
         state.workflowInputVariables[newKey] = state.workflowInputVariables[oldKey];
         delete state.workflowInputVariables[oldKey];
+
+        // Update any edges that use this key as sourceHandle
+        state.edges = state.edges.map(edge => {
+          if (edge.sourceHandle === oldKey) {
+            return {
+              ...edge,
+              sourceHandle: newKey
+            };
+          }
+          return edge;
+        });
       }
     }
   },

@@ -72,6 +72,7 @@ export const createWorkflow = async (workflowData) => {
 
 export const updateWorkflow = async (workflowId, workflowData) => {
   try {
+    console.log("updateWorkflow", workflowData);
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/`, workflowData);
     return response.data;
   } catch (error) {

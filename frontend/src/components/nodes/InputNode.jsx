@@ -57,7 +57,7 @@ const InputNode = ({ id, data, ...props }) => {
     syncAndSave();
   }, [workflowInputVariables]);
 
-  const handleAddField = useCallback(() => {
+  const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
     const newKey = newFieldValue.trim();
 
@@ -69,12 +69,12 @@ const InputNode = ({ id, data, ...props }) => {
     // No need to call syncAndSave here, it will be triggered by the useEffect
   }, [dispatch, newFieldValue]);
 
-  const handleDeleteField = useCallback((keyToDelete) => {
+  const handleDeleteWorkflowInputVariable = useCallback((keyToDelete) => {
     dispatch(deleteWorkflowInputVariable({ key: keyToDelete }));
     // No need to call syncAndSave here, it will be triggered by the useEffect
   }, [dispatch]);
 
-  const handleLabelEdit = useCallback((oldKey, newKey) => {
+  const handleWorkflowInputVariableKeyEdit = useCallback((oldKey, newKey) => {
     if (oldKey === newKey || !newKey.trim()) {
       setEditingField(null);
       return;
@@ -96,10 +96,10 @@ const InputNode = ({ id, data, ...props }) => {
               size="sm"
               variant="faded"
               radius="lg"
-              onBlur={(e) => handleLabelEdit(key, e.target.value)}
+              onBlur={(e) => handleWorkflowInputVariableKeyEdit(key, e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  handleLabelEdit(key, e.target.value);
+                  handleWorkflowInputVariableKeyEdit(key, e.target.value);
                 } else if (e.key === 'Escape') {
                   setEditingField(null);
                 }
@@ -123,7 +123,7 @@ const InputNode = ({ id, data, ...props }) => {
                   size="sm"
                   variant="light"
                   color="danger"
-                  onClick={() => handleDeleteField(key)}
+                  onClick={() => handleDeleteWorkflowInputVariable(key)}
                 >
                   <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
                 </Button>
@@ -155,7 +155,7 @@ const InputNode = ({ id, data, ...props }) => {
         radius="lg"
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            handleAddField();
+            handleAddWorkflowInputVariable();
           }
         }}
         classNames={{
@@ -167,7 +167,7 @@ const InputNode = ({ id, data, ...props }) => {
             isIconOnly
             size="sm"
             variant="light"
-            onClick={handleAddField}
+            onClick={handleAddWorkflowInputVariable}
             className="text-default-400 hover:text-default-500"
           >
             <Icon icon="solar:add-circle-bold" width={16} className="text-default-500" />
