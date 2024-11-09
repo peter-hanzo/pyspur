@@ -17,8 +17,6 @@ export const getNodeTypes = async () => {
 
 export const runWorkflow = async (workflowData) => {
   try {
-    console.log('Workflow Data:', workflowData); // Log the workflowData for debugging
-
     // save the work flow Data to a file
     // Create a blob from the workflowData
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], { type: 'application/json' });
@@ -74,7 +72,9 @@ export const createWorkflow = async (workflowData) => {
 
 export const updateWorkflow = async (workflowId, workflowData) => {
   try {
+    console.log('sending input Schema', workflowData.nodes[0].config.input_schema);
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/`, workflowData);
+    console.log('response', response.data.definition.nodes[0].config.input_schema);
     return response.data;
   } catch (error) {
     console.error('Error updating workflow:', error);
@@ -263,4 +263,3 @@ export const listDatasetRuns = async (datasetId) => {
     throw error;
   }
 }
-

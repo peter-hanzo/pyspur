@@ -5,9 +5,12 @@ import Header from '../../components/Header'; // Import the Header component
 import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
 import { persistor } from '../../store/store'; // Import the persistor
 import { getWorkflow } from '../../utils/api';
+import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
+import { setWorkflowInputVariable } from '../../store/flowSlice'; // Import the action to set workflow input variables
 
 const WorkflowPage = () => {
 
+    const dispatch = useDispatch(); // Initialize dispatch
     const router = useRouter();
     const { id } = router.query; // Access the dynamic route parameter
     const [workflowData, setWorkflowData] = useState(null);
@@ -17,7 +20,12 @@ const WorkflowPage = () => {
         const fetchWorkflow = async () => {
             try {
                 const data = await getWorkflow(id);
-                console.log('Fetched workflow data:', data); // Add this line
+                // Dispatch the input schema to the Redux store
+                const inputSchema = data.definition.nodes[0].config.input_schema;
+                Object.keys(inputSchema).forEach(key => {
+                    dispatch(setWorkflowInputVariable({ key, value: inputSchema[key] }));
+                });
+
                 setWorkflowData(data);
             } catch (error) {
                 console.error('Error fetching workflow:', error);
@@ -27,7 +35,7 @@ const WorkflowPage = () => {
         if (id) {
             fetchWorkflow();
         }
-    }, [id]);
+    }, [id, dispatch]); // Add dispatch to the dependency array
 
     if (!workflowData) {
         return <div>Loading...</div>;

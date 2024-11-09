@@ -40,7 +40,7 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
         })),
       };
 
-      console.log('updatedWorkflow', updatedWorkflow);
+
       await updateWorkflow(workflowID, updatedWorkflow);
     } catch (error) {
       console.error('Error saving workflow:', error);
