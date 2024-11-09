@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
@@ -120,3 +120,26 @@ def reset_workflow(
 
     # Return the updated workflow
     return workflow
+
+
+@router.delete(
+    "/{workflow_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description="Delete a workflow by ID",
+)
+def delete_workflow(
+    workflow_id: str, db: Session = Depends(get_db)
+):
+    # Fetch the workflow by ID
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+
+    # If workflow not found, raise 404 error
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Delete the workflow
+    db.delete(workflow)
+    db.commit()
+
+    # Return no content status
+    return None

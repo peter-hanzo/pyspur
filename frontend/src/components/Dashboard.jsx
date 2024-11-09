@@ -18,7 +18,7 @@ import {
   useDisclosure
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
@@ -184,10 +184,20 @@ const Dashboard = () => {
     });
   };
 
-  const handleDeleteClick = (workflow) => {
+  const handleDeleteClick = async (workflow) => {
     if (window.confirm(`Are you sure you want to delete workflow "${workflow.name}"?`)) {
-      // TODO: Add API call to delete workflow
-      console.log('Delete workflow:', workflow);
+      try {
+        // Call the API to delete the workflow
+        await deleteWorkflow(workflow.id);
+
+        // Remove the deleted workflow from the state
+        setWorkflows((prevWorkflows) => prevWorkflows.filter((w) => w.id !== workflow.id));
+
+        console.log(`Workflow "${workflow.name}" deleted successfully.`);
+      } catch (error) {
+        console.error('Error deleting workflow:', error);
+        alert('Failed to delete workflow. Please try again.');
+      }
     }
   };
 

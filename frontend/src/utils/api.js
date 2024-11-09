@@ -272,3 +272,13 @@ export const listDatasetRuns = async (datasetId) => {
     throw error;
   }
 }
+
+export const deleteWorkflow = async (workflowId) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/wf/${workflowId}/`);
+    return response.status; // Should return 204 No Content
+  } catch (error) {
+    console.error('Error deleting workflow:', error);
+    throw error;
+  }
+};
