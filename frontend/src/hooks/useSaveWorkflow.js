@@ -17,7 +17,7 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
             config: {
               ...node.data.userconfig,
               input_schema: Object.fromEntries(
-                Object.keys(workflowInputVariables).map(key => [key, "string"])
+                Object.keys(workflowInputVariables).map(key => [key, "str"])
               )
             }
           };
