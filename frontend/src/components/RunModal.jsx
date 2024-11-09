@@ -107,24 +107,14 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     // Get the edges and nodes from the redux store
 
     // Initialize the initialInputs structure
-    const initialInputs = { "initial_inputs": {} };
+    let initialInputs = { };
 
-    // Find all edges with source as inputNode
-    edges.forEach(edge => {
-      if (getNodeNameById(edge.source, nodes) === 'InputNode') { // Assuming 'inputNode' is the ID of the input node
-        const targetNodeId = edge.target;
-        // console.log('Target Node ID:', targetNodeId);
-        const inputKey = edge.sourceHandle;
+    // InputNode id
+    const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
 
-        // Check if the inputKey exists in the selectedTestCase
-        if (inputValues.hasOwnProperty(inputKey)) {
-          if (!initialInputs.initial_inputs[targetNodeId]) {
-            initialInputs.initial_inputs[targetNodeId] = {};
-          }
-          initialInputs.initial_inputs[targetNodeId][inputKey] = inputValues[inputKey];
-        }
-      }
-    });
+    initialInputs = {
+      [inputNodeId]: inputValues
+    };
 
     console.log('Initial Inputs:', initialInputs);
 
