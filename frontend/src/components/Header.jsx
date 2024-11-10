@@ -23,12 +23,13 @@ const Header = ({ activePage }) => {
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
 
   const updateWorkflowStatus = async (runID) => {
+    let pollCount = 0;
     const checkStatusInterval = setInterval(async () => {
       try {
         const statusResponse = await getRunStatus(runID);
         const outputs = statusResponse.outputs;
 
-        if (statusResponse.status === 'FAILED') {
+        if (statusResponse.status === 'FAILED' || pollCount > 10) {
           setIsRunning(false);
           clearInterval(checkStatusInterval);
           return;
@@ -48,6 +49,8 @@ const Header = ({ activePage }) => {
           setIsRunning(false);
           clearInterval(checkStatusInterval);
         }
+
+        pollCount += 1;
       } catch (error) {
         console.error('Error fetching workflow status:', error);
         clearInterval(checkStatusInterval);
