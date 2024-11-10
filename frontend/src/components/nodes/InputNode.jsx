@@ -7,6 +7,7 @@ import { Input, Button } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import styles from './DynamicNode.module.css';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
+import { Divider } from '@nextui-org/react';
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
@@ -86,62 +87,74 @@ const InputNode = ({ id, data, ...props }) => {
   }, [dispatch]);
 
   const renderWorkflowInputs = () => {
-    return workflowInputKeys.map((key, index) => (
-      <div key={key} className="relative w-full px-4 py-2">
-        <div className="flex items-center gap-2">
-          {editingField === key ? (
-            <Input
-              autoFocus
-              defaultValue={key}
-              size="sm"
-              variant="faded"
-              radius="lg"
-              onBlur={(e) => handleWorkflowInputVariableKeyEdit(key, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleWorkflowInputVariableKeyEdit(key, e.target.value);
-                } else if (e.key === 'Escape') {
-                  setEditingField(null);
-                }
-              }}
-              classNames={{
-                input: "bg-default-100",
-                inputWrapper: "shadow-none",
-              }}
-            />
-          ) : (
-            <div className="flex flex-col w-full gap-1">
-              <div className="flex items-center justify-between">
-                <span
-                  className="text-sm font-medium text-default-600 cursor-pointer hover:text-primary"
-                  onClick={() => setEditingField(key)}
-                >
-                  {key}
-                </span>
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="light"
-                  color="danger"
-                  onClick={() => handleDeleteWorkflowInputVariable(key)}
-                >
-                  <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className={styles.outputHandleWrapper} style={{ right: handlePosition }}>
-          <Handle
-            type="source"
-            position="right"
-            id={key}
-            className={`${styles.handle} ${styles.handleRight}`}
-            isConnectable={true}
-          />
-        </div>
-      </div>
-    ));
+    return (
+      <table style={{ width: '100%' }}>
+        <tbody>
+          {workflowInputKeys.map((key, index) => (
+            <tr key={key} className="relative w-full px-4 py-2">
+              <td style={{ width: 'calc(100% - 40px)' }} className='pl-3'>
+                <div className="flex items-center gap-2">
+                  {editingField === key ? (
+                    <Input
+                      autoFocus
+                      defaultValue={key}
+                      size="sm"
+                      variant="faded"
+                      radius="lg"
+                      onBlur={(e) => handleWorkflowInputVariableKeyEdit(key, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleWorkflowInputVariableKeyEdit(key, e.target.value);
+                        } else if (e.key === 'Escape') {
+                          setEditingField(null);
+                        }
+                      }}
+                      classNames={{
+                        input: "bg-default-100",
+                        inputWrapper: "shadow-none",
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col w-full gap-1">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                          onClick={() => setEditingField(key)}
+                        >
+                          {key}
+                        </span>
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          color="danger"
+                          onClick={() => handleDeleteWorkflowInputVariable(key)}
+                        >
+                          <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </td>
+              <td className='border-l border-default-200 w-0 ml-2'
+              />
+              <td style={{width: '20px', verticalAlign: 'middle', textAlign: 'center'}}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                  <Handle
+                    type="source"
+                    position="right"
+                    id={key}
+                    className={`${styles.handle} ${styles.handleRight}`}
+                    isConnectable={true}
+                  />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
   };
 
   const renderAddField = () => (

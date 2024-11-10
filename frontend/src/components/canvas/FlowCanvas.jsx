@@ -208,12 +208,12 @@ const FlowCanvasContent = (props) => {
           ? 'black'
           : edge.source === hoveredNode || edge.target === hoveredNode
             ? 'black'
-            : undefined,
+            : '#555',
         strokeWidth: edge.id === hoveredEdge
           ? 4
           : edge.source === hoveredNode || edge.target === hoveredNode
             ? 4
-            : undefined,
+            : 2,
       },
       data: {
         ...edge.data,

@@ -3,6 +3,7 @@ import { Handle } from '@xyflow/react';
 import { useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
+import { Divider } from '@nextui-org/react';
 
 const DynamicNode = ({ id, type, data, position, ...props }) => {
   const nodeRef = useRef(null);
@@ -46,51 +47,62 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     const outputs = Object.keys(outputSchema).length;
 
     return (
-      <>
-        {inputs > 0 ? (
-          Object.entries(inputSchema).map(([key, value], index) => (
-            <div
-              key={`${index}`}
-              className={styles.inputHandleWrapper}
-              style={{
-                top: `${(index + 1) * 100 / (inputs + 1)}%`,
-                transform: 'translateY(-50%)'
-              }}
-            >
-              <Handle
-                type="target"
-                position="left"
-                id={`${key}`}
-                className={`${styles.handle} ${styles.handleLeft}`}
-                isConnectable={true}
-              />
-              <span className={styles.handleLabel}>{key}</span>
-            </div>
-          ))
-        ) : null}
-
-        {outputs > 0 ? (
-          Object.entries(outputSchema).map(([key, value], index) => (
-            <div
-              key={`output-${index}`}
-              className={styles.outputHandleWrapper}
-              style={{
-                top: `${(index + 1) * 100 / (outputs + 1)}%`,
-                transform: 'translateY(-50%)'
-              }}
-            >
-              <span className={styles.handleLabel}>{key}</span>
-              <Handle
-                type="source"
-                position="right"
-                id={`${key}`}
-                className={`${styles.handle} ${styles.handleRight}`}
-                isConnectable={true}
-              />
-            </div>
-          ))
-        ) : null}
-      </>
+      <div style={{ display: 'flex', width: '100%' }} id="handles">
+        <div style={{ width: '50%' }}>
+          {inputs > 0 && (
+            <table style={{ width: '100%' }}>
+              <tbody>
+                {Object.entries(inputSchema).map(([key, value], index) => (
+                  <tr key={`${index}`}>
+                    <td style={{ width: '20px' }}>
+                      <Handle
+                        type="target"
+                        position="left"
+                        id={`${key}`}
+                        className={`${styles.handle} ${styles.handleLeft}`}
+                        isConnectable={true}
+                      />
+                    </td>
+                    <td className="text-left align-middle">
+                      <span className={styles.handleLabel} style={{ whiteSpace: 'normal', wordWrap: 'break-word', display: 'flex' }}>
+                        {key}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div style={{ width: '50%' }}>
+          {outputs > 0 && (
+            <table style={{ width: '100%' }}>
+              <tbody>
+                {Object.entries(outputSchema).map(([key, value], index) => (
+                  <tr key={`output-${index}`} className="align-middle">
+                    <td className="text-right align-middle">
+                      <span className={styles.handleLabel} style={{ whiteSpace: 'normal', wordWrap: 'break-word', display: 'flex', justifyContent: 'end'}}>
+                        {key}
+                      </span>
+                    </td>
+                    <td style={{ width: '20px', verticalAlign: 'middle', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                        <Handle
+                          type="source"
+                          position="right"
+                          id={`${key}`}
+                          className={`${styles.handle} ${styles.handleRight}`}
+                          isConnectable={true}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     );
   };
 

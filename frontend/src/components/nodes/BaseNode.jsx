@@ -110,7 +110,12 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
         )}
         <Divider />
 
-        {!isCollapsed && <CardBody>{children}</CardBody>}
+        {!isCollapsed && 
+          <CardBody
+            className="px-1"
+          >
+            {children}
+          </CardBody>}
       </Card>
 
       {(showControls || isSelected) && (
