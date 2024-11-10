@@ -142,10 +142,12 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     // Remove the id field from the test case
     const { id, ...inputValues } = selectedTestCase;
 
-    // Call the onSave callback with the selected test case
-    onSave(inputValues);
+    if (typeof onSave === 'function') {
+      onSave(inputValues);  // Call the onSave function
+    } else {
+      console.error('onSave is not a function');
+    }
 
-    // Close the modal after saving
     onOpenChange(false);
   };
 
@@ -236,10 +238,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
               </Button>
               <Button
                 color="primary"
-                onPress={() => {
-                  handleSave();
-                  onClose();
-                }}
+                onPress={handleSave}
               >
                 Save
               </Button>
