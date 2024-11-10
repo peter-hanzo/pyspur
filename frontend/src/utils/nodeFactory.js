@@ -32,14 +32,19 @@ export const createNode = (type, id, position, additionalData = {}) => {
   }
 
   // if input_schema and output_schema are objects like foo: { type: 'string', title: 'Foo' } then convert them to foo: 'string'
+  // but if they are already foo: 'string' then leave them as is
   if (processedAdditionalData.userconfig?.input_schema) {
     processedAdditionalData.userconfig.input_schema = Object.fromEntries(
-      Object.entries(processedAdditionalData.userconfig.input_schema).map(([key, value]) => [key, value.type])
+      Object.entries(processedAdditionalData.userconfig.input_schema).map(([key, value]) => {
+        return [key, typeof value === 'object' ? value.type : value];
+      })
     );
   }
   if (processedAdditionalData.userconfig?.output_schema) {
     processedAdditionalData.userconfig.output_schema = Object.fromEntries(
-      Object.entries(processedAdditionalData.userconfig.output_schema).map(([key, value]) => [key, value.type])
+      Object.entries(processedAdditionalData.userconfig.output_schema).map(([key, value]) => {
+        return [key, typeof value === 'object' ? value.type : value];
+      })
     );
   }
 
