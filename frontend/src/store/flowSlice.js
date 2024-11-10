@@ -85,6 +85,9 @@ const flowSlice = createSlice({
       const nodeId = action.payload.nodeId;
       state.nodes = state.nodes.filter((node) => node.id !== nodeId);
 
+      // Delete all edges associated with the node
+      state.edges = state.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
+
       // Clear the selected node if it's the one being deleted
       if (state.selectedNode === nodeId) {
         state.selectedNode = null;
