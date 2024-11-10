@@ -3,7 +3,7 @@ import React from 'react';
 const NodeStatusDisplay = (props) => {
     const { node } = props;
     const nodeID = node?.id;
-    const output = node?.data?.run.data;
+    const output = node?.data?.run?.data;
     console.log('NodeStatusDisplay:', nodeID, output);
 
     return (
