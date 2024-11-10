@@ -44,11 +44,12 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
   const isHovered = String(id) === String(hoveredNodeId);
   const isSelected = String(id) === String(selectedNodeId);
 
-  const status = data.status || 'default'; // Default status if not provided
-  const borderColor = status === 'completed' ? 'green' :
+  const status = data.run && data.run.data ? 'completed' : (data.status || 'default').toLowerCase();
+
+  const borderColor = status === 'completed' ? '#4CAF50' :
                       status === 'failed' ? 'red' :
-                      status === 'pending' ? 'orange' :
-                      isSelected ? '#FF9800' : isHovered ? '#4CAF50' : style.borderColor || '#ccc';
+                      status === 'default' ? 'black' : 
+                      style.borderColor || '#ccc';
 
   const cardStyle = {
     ...style,
