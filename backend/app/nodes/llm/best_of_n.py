@@ -64,6 +64,14 @@ class BestOfNNode(DynamicSchemaNode):
         _response = self._rating_llm_node.input_model.model_validate(
             response.model_dump()
         )
+        rating_llm_config_dump = self._rating_llm_node.config.model_dump()
+        rating_llm_config_dump["system_prompt"] = self.config.rating_prompt.format(
+            **input_data.model_dump()
+        )
+        self._rating_llm_node = SingleLLMCallNode(
+            SingleLLMCallNodeConfig.model_validate(rating_llm_config_dump)
+        )
+
         rating_output = await self._rating_llm_node(_response)
         rating = rating_output.model_dump().get("rating", 0.0)
         return response, float(rating)

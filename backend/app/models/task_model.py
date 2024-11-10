@@ -49,7 +49,6 @@ class TaskModel(BaseModel):
 
     @property
     def run_time(self) -> Optional[float]:
-        print("computing run time")
         if self.start_time and self.end_time:
             return (self.end_time - self.start_time).total_seconds()
         elif self.start_time:

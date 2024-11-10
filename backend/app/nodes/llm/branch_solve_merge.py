@@ -64,9 +64,25 @@ class BranchSolveMergeNode(BaseNode):
         subtasks = await self._branch_node(input_data)
 
         # Step 2: Solve - solve each subtask in parallel
+        solve_system_prompt = self._solve_node.config.system_prompt.format(
+            **input_data.model_dump()
+        )
+        solve_config_data = self._solve_node.config.model_dump()
+        solve_config_data["system_prompt"] = solve_system_prompt
+        self._solve_node = SingleLLMCallNode(
+            SingleLLMCallNodeConfig.model_validate(solve_config_data)
+        )
         solutions = await self._solve_node(subtasks)  # type: ignore
 
         # Step 3: Merge - combine the solutions into final output
+        merge_system_prompt = self._merge_node.config.system_prompt.format(
+            **input_data.model_dump()
+        )
+        merge_config_data = self._merge_node.config.model_dump()
+        merge_config_data["system_prompt"] = merge_system_prompt
+        self._merge_node = SingleLLMCallNode(
+            SingleLLMCallNodeConfig.model_validate(merge_config_data)
+        )
         final_output = await self._merge_node(solutions)  # type: ignore
 
         return final_output
