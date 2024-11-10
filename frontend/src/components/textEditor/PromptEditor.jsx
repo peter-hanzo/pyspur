@@ -47,7 +47,9 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setCont
         setContent={(value) => {
           console.log(`Updating ${fieldName} with value:`, value); // Debugging log
           setFieldValue(value);
-          setContent(value); // Ensure this updates the parent state
+          if (setContent) {
+            setContent(value); // Only call setContent if it's provided
+          }
         }}
         isEditable={true}
         inputSchema={inputSchema}

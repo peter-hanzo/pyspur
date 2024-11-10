@@ -144,6 +144,7 @@ const NodeSidebar = ({ nodeID }) => {
                                 fieldName={key}
                                 inputSchema={dynamicModel.input_schema || {}}
                                 fieldTitle={field.title}
+                                setContent={(value) => handleInputChange(key, value)}
                             />
                         </div>
 
