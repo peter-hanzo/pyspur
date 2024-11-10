@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 
-const InputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
+const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input' }) => {
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('str'); // Default to 'string'
 
@@ -33,18 +33,20 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = 
 
   return (
     <div className="json-editor">
-      <div className="mb-4 flex items-center">
+      <div className="mb-4 flex items-center space-x-4">
         <Input
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder="Enter new key"
+          placeholder={`${schemaType} text`}
+          label={`${schemaType} key name`}
           disabled={disabled}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !disabled && newKey) {
               handleAddKey();
             }
           }}
+          className="p-2 flex-grow w-2/3"
         />
         <Select
           selectedValue={newType}
@@ -52,7 +54,7 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = 
           disabled={disabled}
           label="Select Type"
           defaultSelectedKeys={["str"]}
-          className="max-w-xs"
+          className="max-w-xs p-2 w-1/3"
         >
           <SelectItem key="str" value="str">str</SelectItem>
           <SelectItem key="bool" value="bool">bool</SelectItem>
@@ -95,4 +97,4 @@ const InputSchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = 
   );
 };
 
-export default InputSchemaEditor;
+export default SchemaEditor;

@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData, selectNodeById, setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
-import DynamicModel from '../../../utils/DynamicModel'; // Import DynamicModel
-import TextInput from '../../TextInput';
 import NumberInput from '../../NumberInput';
 import OutputSchemaEditor from './OutputSchemaEditor';
-import InputSchemaEditor from './InputSchemaEditor';
 import CodeEditor from '../../CodeEditor';
 import { nodeTypes } from '../../../constants/nodeTypes';
 import { jsonOptions } from '../../../constants/jsonOptions';
@@ -19,6 +16,7 @@ import { Select, SelectSection, SelectItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { Accordion, AccordionItem } from "@nextui-org/react";
 import NodeStatus from "../NodeStatusDisplay";
+import SchemaEditor from './SchemaEditor'; // Import the unified SchemaEditor
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -112,30 +110,31 @@ const NodeSidebar = ({ nodeID }) => {
                     <div key={key} className="my-2">
                         <hr className="my-2" />
                         <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
-                        <OutputSchemaEditor
+                        <SchemaEditor
                             jsonValue={value}
                             onChange={(newValue) => handleInputChange(key, newValue)}
                             options={jsonOptions}
+                            schemaType="output" // Specify schema type
+                        />
+                        <hr className="my-2" />
+                    </div>
+                );
+            } else if (field.title === 'Input Schema') {
+                return (
+                    <div key={key} className="my-2">
+                        <hr className="my-2" />
+                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <SchemaEditor
+                            jsonValue={value}
+                            onChange={(newValue) => handleInputChange(key, newValue)}
+                            options={jsonOptions}
+                            schemaType="input" // Specify schema type
                         />
                         <hr className="my-2" />
                     </div>
                 );
             }
-            else if (field.title === 'Input Schema') {
-                return (
-                    <div key={key} className="my-2">
-                        <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
-                        <InputSchemaEditor
-                            jsonValue={value}
-                            onChange={(newValue) => handleInputChange(key, newValue)}
-                            options={jsonOptions}
-                        />
-                        <hr className="my-2" />
-                    </div>
 
-                )
-            }
             else if (field.title && field.title.toLowerCase().includes('prompt')) {
                 return (
                     <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
