@@ -11,7 +11,7 @@ import { updateNodeData, selectNodeById } from '../../store/flowSlice';
  * @param {string} [fieldTitle] - The title of the field to be displayed above the editor (optional).
  * @returns {JSX.Element} - The editor component.
  */
-const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle }) => { // Accept fieldTitle as a prop
+const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setContent }) => { // Accept fieldTitle as a prop
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
   const [fieldValue, setFieldValue] = useState(
@@ -44,7 +44,11 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle }) => { 
     <div className="w-full">
       <TextEditor
         content={fieldValue}
-        setContent={setFieldValue}
+        setContent={(value) => {
+          console.log(`Updating ${fieldName} with value:`, value); // Debugging log
+          setFieldValue(value);
+          setContent(value); // Ensure this updates the parent state
+        }}
         isEditable={true}
         inputSchema={inputSchema}
         fieldTitle={fieldTitle}  // Ensure fieldTitle is passed here

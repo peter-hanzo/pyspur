@@ -13,9 +13,9 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Input,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import PromptEditor from './textEditor/PromptEditor';
 
 const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
@@ -28,16 +28,26 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const nodes = useSelector(state => state.flow.nodes);
   const edges = useSelector(state => state.flow.edges);
 
+  // Add this new state to track editor contents
+  const [editorContents, setEditorContents] = useState({});
+
   const handleAddRow = () => {
+    console.log('Editor Contents:', editorContents);
     setTestData([
       ...testData,
       {
         id: testData.length + 1,
-        ...newRow
+        ...editorContents
       }
     ]);
+    setEditorContents({});
     setNewRow(workflowInputVariableNames.reduce((acc, field) => ({ ...acc, [field]: "" }), {}));
   };
+
+  // Add this useEffect to log editorContents whenever it changes
+  useEffect(() => {
+    console.log('Updated editorContents:', editorContents);
+  }, [editorContents]);
 
   const handleDeleteRow = (id) => {
     setTestData(testData.filter(row => row.id !== id));
@@ -107,7 +117,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     // Get the edges and nodes from the redux store
 
     // Initialize the initialInputs structure
-    let initialInputs = { };
+    let initialInputs = {};
 
     // InputNode id
     const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
@@ -194,15 +204,28 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
 
               <div className="flex gap-2">
                 {workflowInputVariableNames.map(field => (
-                  <Input
-                    key={field}
-                    placeholder={field}
-                    value={newRow[field]}
-                    onChange={(e) => setNewRow({ ...newRow, [field]: e.target.value })}
-                    onKeyDown={handleKeyDown}
-                  />
+                  <div key={field} className="flex-1">
+                    <PromptEditor
+                      nodeID={`newRow-${field}`}
+                      fieldName={field}
+                      fieldTitle={field}
+                      inputSchema={{}}
+                      content={editorContents[field] || ''}
+                      setContent={(value) => {
+                        console.log(`Updating ${field} with value:`, value);
+                        setEditorContents(prev => ({
+                          ...prev,
+                          [field]: value
+                        }));
+                      }}
+                    />
+                  </div>
                 ))}
-                <Button color="primary" onPress={handleAddRow}>
+                <Button
+                  color="primary"
+                  onPress={handleAddRow}
+                  isDisabled={Object.values(editorContents).every(v => !v?.trim())}
+                >
                   Add Row
                 </Button>
               </div>
