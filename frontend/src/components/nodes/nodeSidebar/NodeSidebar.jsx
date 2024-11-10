@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData, selectNodeById, setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
-import OutputSchemaEditor from './OutputSchemaEditor';
 import CodeEditor from '../../CodeEditor';
 import { nodeTypes } from '../../../constants/nodeTypes';
 import { jsonOptions } from '../../../constants/jsonOptions';
