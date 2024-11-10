@@ -1,10 +1,9 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { selectNodeById } from '../../store/flowSlice';
 
-const NodeStatusDisplay = ({ nodeID }) => {
-    const node = useSelector((state) => selectNodeById(state, nodeID));
-    const output = node?.data?.run;
+const NodeStatusDisplay = (props) => {
+    const { node } = props;
+    const nodeID = node?.id;
+    const output = node?.data?.run.data;
     console.log('NodeStatusDisplay:', nodeID, output);
 
     return (
