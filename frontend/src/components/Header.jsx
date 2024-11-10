@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
-import { setProjectName, clearCanvas, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
+import { setProjectName, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import RunModal from './RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 
@@ -26,15 +26,20 @@ const Header = ({ activePage }) => {
     const checkStatusInterval = setInterval(async () => {
       try {
         const statusResponse = await getRunStatus(runID);
-        console.log('Status Response:', statusResponse);
         const outputs = statusResponse.outputs;
+
+        if (statusResponse.status === 'FAILED') {
+          setIsRunning(false);
+          clearInterval(checkStatusInterval);
+          return;
+        }
 
         // Update nodes based on outputs
         if (outputs) {
-          Object.entries(outputs).forEach(([nodeId, data]) => {
+          Object.entries(outputs).forEach(([nodeId, output_values]) => {
             const node = nodes.find((node) => node.id === nodeId);
-            if (data) {
-              dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, data } } }));
+            if (output_values) {
+              dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, data: output_values } } }));
             }
           });
         }
@@ -52,8 +57,6 @@ const Header = ({ activePage }) => {
 
   // get the workflow ID from the URL
   const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
-
-  const inputNodeValues = useSelector((state) => state.flow.inputNodeValues);
 
   const executeWorkflow = async (inputValues) => {
     try {
