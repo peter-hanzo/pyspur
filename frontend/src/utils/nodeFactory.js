@@ -16,11 +16,32 @@ export const createNode = (type, id, position, additionalData = {}) => {
   }
 
   const userConfigData = {
-    schema: cloneDeep(nodeType.config?.schema) || {},
     input_schema: cloneDeep(nodeType.input?.properties) || {},
     output_schema: cloneDeep(nodeType.output?.properties) || {},
     title: nodeType.name,
   };
+
+  let processedAdditionalData = cloneDeep(additionalData);
+
+  // If the additional data has a userconfig field, merge it with the default userconfig
+  if (additionalData.userconfig) {
+    processedAdditionalData.userconfig = {
+      ...userConfigData,
+      ...additionalData.userconfig,
+    };
+  }
+
+  // if input_schema and output_schema are objects like foo: { type: 'string', title: 'Foo' } then convert them to foo: 'string'
+  if (processedAdditionalData.userconfig?.input_schema) {
+    processedAdditionalData.userconfig.input_schema = Object.fromEntries(
+      Object.entries(processedAdditionalData.userconfig.input_schema).map(([key, value]) => [key, value.type])
+    );
+  }
+  if (processedAdditionalData.userconfig?.output_schema) {
+    processedAdditionalData.userconfig.output_schema = Object.fromEntries(
+      Object.entries(processedAdditionalData.userconfig.output_schema).map(([key, value]) => [key, value.type])
+    );
+  }
 
   const node = {
     id,
@@ -33,8 +54,7 @@ export const createNode = (type, id, position, additionalData = {}) => {
       config: cloneDeep(nodeType.config),
       input: cloneDeep(nodeType.input),
       output: cloneDeep(nodeType.output),
-      userconfig: userConfigData,
-      ...additionalData,
+      ...processedAdditionalData,
     },
   };
   return node;
