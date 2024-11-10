@@ -4,7 +4,7 @@ import { Icon } from '@iconify/react'; // Import Icon component
 
 const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false }) => {
   const [newKey, setNewKey] = useState('');
-  const [newType, setNewType] = useState('string'); // Default to 'string'
+  const [newType, setNewType] = useState('str'); // Default to 'string'
 
   const handleAddKey = () => {
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
@@ -14,7 +14,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
       };
       onChange(updatedJson);
       setNewKey('');
-      setNewType('string'); // Reset to default type
+      setNewType('str'); // Reset to default type
     }
   };
 
