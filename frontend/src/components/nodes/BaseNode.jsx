@@ -47,14 +47,14 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
   const status = data.run && data.run.data ? 'completed' : (data.status || 'default').toLowerCase();
 
   const borderColor = status === 'completed' ? '#4CAF50' :
-                      status === 'failed' ? 'red' :
-                      status === 'default' ? 'black' : 
-                      style.borderColor || '#ccc';
+    status === 'failed' ? 'red' :
+      status === 'default' ? 'black' :
+        style.borderColor || '#ccc';
 
   const cardStyle = {
     ...style,
     borderColor: borderColor,
-    borderWidth: isSelected ? '3px' : isHovered ? '2px' : style.borderWidth || '1px',
+    borderWidth: isSelected ? '3px' : isHovered ? '3px' : style.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
     position: 'relative',

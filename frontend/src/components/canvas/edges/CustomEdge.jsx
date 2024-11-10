@@ -73,14 +73,14 @@ const CustomEdge = ({
                   onPopoverOpen({ sourceNode, targetNode, edgeId: id });
                 }}
               >
-                <Icon icon="solar:add-circle-bold" width={20} className="text-default-500" />
+                <Icon icon="solar:add-circle-linear" width={20} className="text-default-500" />
               </Button>
               <Button
                 isIconOnly
                 auto
                 onClick={handleDeleteEdge}
               >
-                <Icon icon="solar:trash-bin-trash-bold" width={20} />
+                <Icon icon="solar:trash-bin-trash-linear" width={20} />
               </Button>
             </div>
           </div>

@@ -32,7 +32,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const [editorContents, setEditorContents] = useState({});
 
   const handleAddRow = () => {
-    console.log('Editor Contents:', editorContents);
+
     setTestData([
       ...testData,
       {
@@ -46,7 +46,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
 
   // Add this useEffect to log editorContents whenever it changes
   useEffect(() => {
-    console.log('Updated editorContents:', editorContents);
+
   }, [editorContents]);
 
   const handleDeleteRow = (id) => {
@@ -97,11 +97,6 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     }
   };
 
-  const getNodeNameById = (nodeId, nodes) => {
-    const node = nodes.find(node => node.id === nodeId);
-    // console.log('Node:', node);
-    return node ? node.type : null;
-  };
 
   const handleRun = () => {
     if (!selectedRow) return;
@@ -126,7 +121,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
       [inputNodeId]: inputValues
     };
 
-    console.log('Initial Inputs:', initialInputs);
+
 
     // Call the onRun callback with the constructed initialInputs
     onRun(initialInputs);
@@ -214,7 +209,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
                       inputSchema={{}}
                       content={editorContents[field] || ''}
                       setContent={(value) => {
-                        console.log(`Updating ${field} with value:`, value);
+
                         setEditorContents(prev => ({
                           ...prev,
                           [field]: value

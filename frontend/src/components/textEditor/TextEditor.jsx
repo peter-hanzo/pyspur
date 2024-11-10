@@ -16,7 +16,6 @@ import { Icon } from "@iconify/react";
 
 // Wrap the component with forwardRef
 const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {}, fieldTitle }, ref) => {
-  console.log("Received fieldTitle:", fieldTitle);
 
   const editor = useEditor({
     extensions: [
