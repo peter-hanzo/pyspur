@@ -101,8 +101,15 @@ class BaseNode(ABC):
             s = s.strip().lower()
             if s == "int":
                 return int
-            elif s in ("int", "float", "str", "bool"):
-                return {"int": int, "float": float, "str": str, "bool": bool}[s]
+            elif s in ("int", "float", "str", "bool", "string", "boolean"):
+                return {
+                    "int": int,
+                    "float": float,
+                    "str": str,
+                    "bool": bool,
+                    "string": str,
+                    "boolean": bool,
+                }[s]
             elif s == "dict":
                 return Dict[Any, Any]
             elif s == "list":
