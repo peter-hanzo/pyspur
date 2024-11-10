@@ -84,9 +84,10 @@ const Header = ({ activePage }) => {
     try {
       // Get the current workflow using the workflowID from Redux state
       const workflow = await getWorkflow(workflowID);
+      const workflowDefinition = workflow.definition;
 
       // Create a JSON blob from the workflow data
-      const blob = new Blob([JSON.stringify(workflow, null, 2)], {
+      const blob = new Blob([JSON.stringify(workflowDefinition, null, 2)], {
         type: 'application/json'
       });
 

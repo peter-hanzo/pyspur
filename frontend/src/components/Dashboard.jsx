@@ -18,7 +18,7 @@ import {
   useDisclosure
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
@@ -177,6 +177,55 @@ const Dashboard = () => {
     }
   };
 
+  const handleImportWorkflowClick = async () => {
+    try {
+      // Ask the user to upload a JSON file
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'application/json';
+      fileInput.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          alert('No file selected. Please try again.');
+          return;
+        }
+
+        // Read the file content
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const jsonContent = JSON.parse(e.target.result);
+
+            // Generate a unique name for the new workflow
+            const uniqueName = `Imported Workflow ${Date.now()}`;
+
+            // Create an empty workflow object
+            const newWorkflow = {
+              name: uniqueName,
+              description: '',
+            };
+
+            // Call the API to create the workflow
+            const createdWorkflow = await createWorkflow(newWorkflow);
+
+            // Update the newly created workflow with the JSON content
+            await updateWorkflow(createdWorkflow.id, jsonContent);
+
+            // Navigate to the new workflow's page using its ID
+            router.push(`/workflows/${createdWorkflow.id}`);
+          } catch (error) {
+            console.error('Error processing the JSON file:', error);
+            alert('Failed to import workflow. Please ensure the file is a valid JSON.');
+          }
+        };
+        reader.readAsText(file);
+      };
+      fileInput.click();
+    } catch (error) {
+      console.error('Error importing workflow:', error);
+    }
+  };
+
   const handleUseTemplate = (templateId) => {
     router.push({
       pathname: '/workflow',
@@ -206,20 +255,31 @@ const Dashboard = () => {
       <div className="w-3/4 mx-auto p-5">
 
         {/* Dashboard Header */}
-        <header className="mb-6 flex w-full items-center justify-between">
-          <div className="flex flex-col">
+        <header className="mb-6 flex w-full items-center">
+          <div className="flex flex-col max-w-fit" id="dashboard-title">
             <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
             <p className="text-small text-default-400 lg:text-medium">Manage your workflows</p>
           </div>
-          <Button
-            className="bg-foreground text-background"
-            startContent={
-              <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
-            }
-            onClick={handleNewWorkflowClick}
-          >
-            New Workflow
-          </Button>
+          <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
+            <Button
+              className="bg-foreground text-background"
+              startContent={
+                <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
+              }
+              onClick={handleNewWorkflowClick}
+            >
+              New Workflow
+            </Button>
+            <Button
+              className="bg-foreground text-background"
+              startContent={
+                <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
+              }
+              onClick={handleImportWorkflowClick}
+            >
+              Import Workflow
+            </Button>
+          </div>
         </header>
 
         {/* New Templates Section */}
