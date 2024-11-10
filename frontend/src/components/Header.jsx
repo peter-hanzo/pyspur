@@ -113,84 +113,98 @@ const Header = ({ activePage }) => {
     <>
       <Navbar
         classNames={{
-          base: "lg:bg-background lg:backdrop-filter-none",
-          item: "data-[active=true]:text-primary",
+          base: "lg:bg-background lg:backdrop-filter-none h-12 mt-1",
           wrapper: "px-4 sm:px-6",
+          item: [
+            "flex",
+            "relative",
+            "h-full",
+            "items-center",
+            "data-[active=true]:after:content-['']",
+            "data-[active=true]:after:absolute",
+            "data-[active=true]:after:bottom-0",
+            "data-[active=true]:after:left-0",
+            "data-[active=true]:after:right-0",
+            "data-[active=true]:after:h-[2px]",
+            "data-[active=true]:after:rounded-[2px]",
+            "data-[active=true]:after:bg-primary",
+            "data-[active=true]:text-primary",
+          ],
         }}
-        height="60px"
       >
-        <div className="flex w-full">
-          <NavbarBrand className="w-96"> {/* 24rem is equivalent to 96 in Tailwind CSS */}
-            {activePage === "home" ? (
-              <p className="font-bold text-inherit cursor-pointer">PySpur</p>
-            ) : (
-              <Link href="/" className="cursor-pointer">
-                <p className="font-bold text-inherit">PySpur</p>
-              </Link>
-            )}
-          </NavbarBrand>
+        <NavbarBrand
+          justify="start"
+          className="h-12 max-w-fit"
+        >
+          {activePage === "home" ? (
+            <p className="font-bold text-inherit cursor-pointer">PySpur</p>
+          ) : (
+            <Link href="/" className="cursor-pointer">
+              <p className="font-bold text-inherit">PySpur</p>
+            </Link>
+          )}
+        </NavbarBrand>
 
-          <div className="flex flex-grow">
-            {activePage === "workflow" && (
-              <NavbarContent
-                className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full bg-content2 px-4 dark:bg-content1 sm:flex"
-                justify="center"
+        {activePage === "workflow" && (
+          <NavbarContent
+            className="h-12 rounded-full bg-content2 dark:bg-content1 hidden sm:flex gap-4"
+            id="workflow-title"
+            justify="start"
+          >
+            <Input
+              type="text"
+              placeholder="Project Name"
+              value={projectName}
+              onChange={handleProjectNameChange}
+            />
+          </NavbarContent>
+        )}
+        <NavbarContent
+          className="h-12 gap-4 rounded-full bg-content2 px-4 dark:bg-content1 max-w-fit"
+          justify="end"
+          id="home-editor-nav"
+        >
+          <NavbarItem isActive={activePage === "home"}>
+            <Link className="flex gap-2 text-inherit" href="/">
+              Home
+            </Link>
+          </NavbarItem>
+          {activePage !== "home" && (
+            <NavbarItem isActive={activePage === "workflow"}>
+              Editor
+            </NavbarItem>
+          )}
+        </NavbarContent>
+        {activePage === "workflow" && (
+          <NavbarContent
+            className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+            justify="end"
+            id="workflow-actions-buttons"
+          >
+            <NavbarItem className="hidden sm:flex">
+              <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
+                <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+              </Button>
+            </NavbarItem>
+            <NavbarItem className="hidden sm:flex">
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                onClick={handleDownloadWorkflow}
               >
-                <Input
-                  type="text"
-                  placeholder="Project Name"
-                  className="w-full"
-                  value={projectName}
-                  onChange={handleProjectNameChange}
+                <Icon
+                  className="text-default-500"
+                  icon="solar:download-linear"
+                  width={24}
                 />
-              </NavbarContent>
-            )}
-            <NavbarContent
-              className="ml-auto mr-4 hidden h-12 max-w-fit gap-4 rounded-full bg-content2 px-4 dark:bg-content1 sm:flex"
-              justify="end"
-            >
-              <NavbarItem isActive={activePage === "home"}>
-                <Link className="flex gap-2 text-inherit" href="/">
-                  Home
-                </Link>
-              </NavbarItem>
-              {activePage !== "home" && (
-                <NavbarItem isActive={activePage === "workflow"}>
-                  Editor
-                </NavbarItem>
-              )}
-            </NavbarContent>
-            {activePage === "workflow" && (
-              <NavbarContent
-                className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
-                justify="end"
-              >
-                <NavbarItem className="hidden sm:flex">
-                  <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
-                    <Icon className="text-default-500" icon="solar:play-linear" width={22} />
-                  </Button>
-                </NavbarItem>
-                <NavbarItem className="hidden sm:flex">
-                  <Button
-                    isIconOnly
-                    radius="full"
-                    variant="light"
-                    onClick={handleDownloadWorkflow}
-                  >
-                    <Icon
-                      className="text-default-500"
-                      icon="solar:download-linear"
-                      width={24}
-                    />
-                  </Button>
-                </NavbarItem>
-                <NavbarItem className="hidden sm:flex">
-                  <SettingsCard />
-                </NavbarItem>
-              </NavbarContent>
-            )}
-          </div>
-        </div>
+              </Button>
+            </NavbarItem>
+            <NavbarItem className="hidden sm:flex">
+              <SettingsCard />
+            </NavbarItem>
+          </NavbarContent>
+        )}
       </Navbar>
       <RunModal
         isOpen={isDebugModalOpen}
