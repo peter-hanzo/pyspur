@@ -73,7 +73,46 @@ const flowSlice = createSlice({
       const { id, data } = action.payload;
       const node = state.nodes.find((node) => node.id === id);
       if (node) {
+        const oldData = node.data;
         node.data = { ...node.data, ...data };
+
+        // Check if the node is not an InputNode
+        if (node.type !== 'InputNode') {
+          // Check if any key names have changed in the node's data
+          const oldKeys = Object.keys(oldData.userconfig || {});
+          const newKeys = Object.keys(data.userconfig || {});
+
+          oldKeys.forEach((oldKey) => {
+            if (!newKeys.includes(oldKey)) {
+              // Key was removed, update edges
+              state.edges = state.edges.map((edge) => {
+                if (edge.sourceHandle === oldKey) {
+                  return { ...edge, sourceHandle: null }; // Remove the sourceHandle if the key was removed
+                }
+                if (edge.targetHandle === oldKey) {
+                  return { ...edge, targetHandle: null }; // Remove the targetHandle if the key was removed
+                }
+                return edge;
+              });
+            }
+          });
+
+          newKeys.forEach((newKey) => {
+            const oldKey = oldKeys.find((key) => key !== newKey);
+            if (oldKey) {
+              // Key was renamed, update edges
+              state.edges = state.edges.map((edge) => {
+                if (edge.sourceHandle === oldKey) {
+                  return { ...edge, sourceHandle: newKey }; // Update the sourceHandle with the new key
+                }
+                if (edge.targetHandle === oldKey) {
+                  return { ...edge, targetHandle: newKey }; // Update the targetHandle with the new key
+                }
+                return edge;
+              });
+            }
+          });
+        }
       }
     },
     setHoveredNode: (state, action) => {

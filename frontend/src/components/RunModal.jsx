@@ -108,9 +108,6 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     // Remove the id field from the test case
     const { id, ...inputValues } = selectedTestCase;
 
-
-    // Get the edges and nodes from the redux store
-
     // Initialize the initialInputs structure
     let initialInputs = {};
 

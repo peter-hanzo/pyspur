@@ -10,8 +10,7 @@ import PromptEditor from '../../textEditor/PromptEditor';
 import { Button } from '@nextui-org/react';
 import { Slider } from '@nextui-org/react';
 import { Switch } from '@nextui-org/react';
-import { Textarea } from '@nextui-org/react';
-import { Select, SelectSection, SelectItem } from '@nextui-org/react';
+import { Textarea, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { Accordion, AccordionItem } from "@nextui-org/react";
 import NodeStatus from "../NodeStatusDisplay";
@@ -227,7 +226,7 @@ const NodeSidebar = ({ nodeID }) => {
                         <div key={key} className="my-2">
                             <hr className="my-2" />
                             <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
-                            <OutputSchemaEditor
+                            <SchemaEditor
                                 jsonValue={value}
                                 onChange={(newValue) => handleInputChange(key, newValue)}
                                 options={jsonOptions}
@@ -283,13 +282,6 @@ const NodeSidebar = ({ nodeID }) => {
                 )}
             </div>
         );
-    };
-
-    const handleAddTestInput = () => {
-        const newTestInputs = { ...dynamicModel.testInputs };
-        const newKey = `TestInput${Object.keys(newTestInputs).length + 1}`;
-        newTestInputs[newKey] = '';
-        handleInputChange('testInputs', newTestInputs);
     };
 
 
@@ -377,7 +369,7 @@ const NodeSidebar = ({ nodeID }) => {
                     )}
 
                     <AccordionItem key="title" aria-label="Node Title" title="Node Title">
-                        <Textarea
+                        <Input
                             value={node?.data?.userconfig?.title || ''}
                             onChange={(e) => handleInputChange('title', e.target.value)}
                             placeholder="Enter node title"
