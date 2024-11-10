@@ -42,15 +42,21 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
           config: node.config,
           coordinates: node.position,
         })),
-        links: edges.map(edge => ({
-          source_id: edge.source,
-          source_output_key: edge.sourceHandle,
-          target_id: edge.target,
-          target_input_key: edge.targetHandle,
-        })),
+        links: edges.map(edge => {
+          const sourceNode = nodes.find(node => node.id === edge.source);
+          const targetNode = nodes.find(node => node.id === edge.target);
+
+          return {
+            source_id: edge.source,
+            source_output_key: edge.sourceHandle,
+            source_output_type: sourceNode?.config?.output_schema?.[edge.sourceHandle] || 'str',
+            target_id: edge.target,
+            target_input_key: edge.targetHandle,
+            target_input_type: targetNode?.config?.input_schema?.[edge.targetHandle] || 'str',
+          };
+        }),
       };
-
-
+      console.log('Updated workflow:', updatedWorkflow);
       await updateWorkflow(workflowID, updatedWorkflow);
     } catch (error) {
       console.error('Error saving workflow:', error);

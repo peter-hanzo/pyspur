@@ -1,9 +1,5 @@
-import React, { useState } from 'react';
-import { Button } from '@nextui-org/react';
-import { nodeTypes } from '../../constants/nodeTypes';
 import { addNode, connect, deleteEdge } from '../../store/flowSlice';
 import { createNode } from '../../utils/nodeFactory';
-import { DropdownSection, DropdownItem } from '@nextui-org/react';
 
 export const addNodeWithoutConnection = (nodeType, reactFlowInstance, dispatch) => {
   const id = `node_${Date.now()}`;
