@@ -20,8 +20,9 @@ const flowSlice = createSlice({
   initialState,
   reducers: {
     initializeFlow: (state, action) => {
-      const { workflowID, definition } = action.payload;
+      const { workflowID, definition, name } = action.payload;
       state.workflowID = workflowID;
+      state.projectName = name;
       const { nodes, links } = definition;
       // Map nodes to the expected format
       let mappedNodes = nodes.map(node =>
