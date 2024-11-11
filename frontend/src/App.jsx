@@ -1,14 +1,6 @@
-import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { fetchNodeTypes } from './store/nodeTypesSlice';
+import React from 'react';
 
 const App = () => {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(fetchNodeTypes());
-  }, [dispatch]);
-
   return (
     <Home />
   );

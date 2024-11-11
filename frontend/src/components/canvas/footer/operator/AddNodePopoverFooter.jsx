@@ -1,15 +1,14 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
-import { nodeTypes } from '../../../../constants/nodeTypes';
-import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { addNodeWithoutConnection } from '../../AddNodePopoverCanvas';
 import { useReactFlow } from '@xyflow/react';
 import TipPopup from '../../../TipPopUp';
 
 const AddNodePopoverFooter = () => {
+  const nodeTypes = useSelector((state) => state.nodeTypes.data);
   const reactFlowInstance = useReactFlow();
-  const dispatch = useDispatch();
 
   const handleAddNode = (nodeName) => {
     if (reactFlowInstance) {

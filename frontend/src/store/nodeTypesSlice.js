@@ -10,7 +10,7 @@ export const fetchNodeTypes = createAsyncThunk('nodeTypes/fetchNodeTypes', async
 const nodeTypesSlice = createSlice({
   name: 'nodeTypes',
   initialState: {
-    types: [],
+    data: [],
     status: 'idle',
     error: null,
   },
@@ -22,7 +22,7 @@ const nodeTypesSlice = createSlice({
       })
       .addCase(fetchNodeTypes.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.types = action.payload;
+        state.data = action.payload;
       })
       .addCase(fetchNodeTypes.rejected, (state, action) => {
         state.status = 'failed';
