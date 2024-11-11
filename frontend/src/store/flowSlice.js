@@ -18,11 +18,11 @@ const flowSlice = createSlice({
   initialState,
   reducers: {
     initializeFlow: (state, action) => {
-      const { workflowID, definition, name } = action.payload;
+      const { workflowID, definition, name, nodeTypes } = action.payload;
       state.workflowID = workflowID;
       state.projectName = name;
 
-      const { nodes, edges } = mapNodesAndEdges(definition);
+      const { nodes, edges } = mapNodesAndEdges(definition, nodeTypes);
       state.nodes = nodes;
       state.edges = edges;
 

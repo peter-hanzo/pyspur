@@ -72,6 +72,7 @@ const FlowCanvasContent = (props) => {
 
   useEffect(() => {
     if (workflowData) {
+      console.log('workflowData', workflowData);
       // if the input node already has a schema add it to the workflowInputVariables
       if (workflowData.definition.nodes) {
         const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
@@ -304,14 +305,16 @@ const FlowCanvasContent = (props) => {
 
   // Add this memoized nodes with mode
   const nodesWithMode = useMemo(() => {
-    return nodes.map(node => ({
-      ...node,
-      draggable: true,
-      selectable: mode === 'pointer',
-      position: node?.position,
-      type: node?.type,
-      data: node?.data,
-    }));
+    return nodes
+      .filter(Boolean) // Filters out null or undefined nodes
+      .map(node => ({
+        ...node,
+        draggable: true,
+        selectable: mode === 'pointer',
+        position: node?.position,
+        type: node?.type,
+        data: node?.data,
+      }));
   }, [nodes, mode]);
 
   // Add a local state to track edge updates
@@ -410,7 +413,7 @@ const FlowCanvasContent = (props) => {
             onEdgeMouseLeave={onEdgeMouseLeave}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
-            panOnDrag={mode === 'hand' && !nodes.some(n => n.selected)}
+            panOnDrag={mode === 'hand' && !nodes.filter(Boolean).some(n => n.selected)}
             panOnScroll={true}
             zoomOnScroll={true}
             minZoom={0.1}
