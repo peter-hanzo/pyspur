@@ -158,7 +158,7 @@ const Dashboard = () => {
   const handleNewWorkflowClick = async () => {
     try {
       // Generate a unique name for the new workflow
-      const uniqueName = `New Workflow ${Date.now()}`;
+      const uniqueName = `New Spur ${new Date().toLocaleString()}`;
 
       // Create an empty workflow object
       const newWorkflow = {
@@ -197,7 +197,7 @@ const Dashboard = () => {
             const jsonContent = JSON.parse(e.target.result);
 
             // Generate a unique name for the new workflow
-            const uniqueName = `Imported Workflow ${Date.now()}`;
+            const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
             // Create an empty workflow object
             const newWorkflow = {
