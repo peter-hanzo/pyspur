@@ -17,7 +17,6 @@ import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
-import { nodeTypes as nodeTypesConfig } from '../../constants/nodeTypes';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
 import CustomEdge from './edges/CustomEdge';
@@ -27,45 +26,28 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 // Import the new API function
-import { getNodeTypes } from '../../utils/api';
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 
-const useNodeTypes = () => {
-  const [nodeTypes, setNodeTypes] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
+const useNodeTypes = ({nodeTypesConfig}) => {
+  const nodeTypes = useMemo(() => {
+    if (!nodeTypesConfig) return {};
 
-  useEffect(() => {
-    const fetchNodeTypes = async () => {
-      setIsLoading(true);
-      try {
-        const nodeTypesConfig = await getNodeTypes();
-        const dynamicNodeTypes = Object.keys(nodeTypesConfig).reduce((acc, category) => {
-          nodeTypesConfig[category].forEach(node => {
-            if (node.name === 'InputNode') {
-              acc[node.name] = InputNode;
-            } else {
-              acc[node.name] = (props) => {
-                return <DynamicNode {...props} type={node.name} />;
-              };
-            }
-          });
-          return acc;
-        }, {});
+    return Object.keys(nodeTypesConfig).reduce((acc, category) => {
+      nodeTypesConfig[category].forEach(node => {
+        if (node.name === 'InputNode') {
+          acc[node.name] = InputNode;
+        } else {
+          acc[node.name] = (props) => {
+            return <DynamicNode {...props} type={node.name} />;
+          };
+        }
+      });
+      return acc;
+    }, {});
+  }, [nodeTypesConfig]);
 
-        setNodeTypes({
-          ...dynamicNodeTypes
-        });
-      } catch (error) {
-        console.error('Error fetching node types:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchNodeTypes();
-  }, []);
-
+  const isLoading = !nodeTypesConfig;
   return { nodeTypes, isLoading };
 };
 
@@ -86,6 +68,8 @@ const FlowCanvasContent = (props) => {
 
   const dispatch = useDispatch();
 
+  const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
+
   useEffect(() => {
     if (workflowData) {
       // if the input node already has a schema add it to the workflowInputVariables
@@ -103,12 +87,12 @@ const FlowCanvasContent = (props) => {
           }
         }
       }
-      dispatch(initializeFlow({ ...workflowData, workflowID }));
+      dispatch(initializeFlow({ ...workflowData, workflowID, nodeTypes: nodeTypesConfig }));
     }
 
   }, [dispatch, workflowData, workflowID]);
 
-  const { nodeTypes, isLoading } = useNodeTypes();
+  const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);

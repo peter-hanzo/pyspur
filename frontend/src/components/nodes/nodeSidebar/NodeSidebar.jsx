@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData, selectNodeById, setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
-import { nodeTypes } from '../../../constants/nodeTypes';
 import { jsonOptions } from '../../../constants/jsonOptions';
 import FewShotEditor from '../../textEditor/FewShotEditor';
 import PromptEditor from '../../textEditor/PromptEditor';
@@ -13,6 +12,7 @@ import NodeStatus from "../NodeStatusDisplay";
 import SchemaEditor from './SchemaEditor';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
+    const nodeTypes = useSelector((state) => state.nodeTypes.data);
     const node = useSelector((state) => selectNodeById(state, nodeID));
     // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
