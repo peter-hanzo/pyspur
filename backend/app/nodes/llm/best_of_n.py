@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 from ..dynamic_schema import DynamicSchemaNode
 from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
-from ..base import VisualTag
 
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig):
@@ -35,7 +34,6 @@ class BestOfNNode(DynamicSchemaNode):
     config_model = BestOfNNodeConfig
     input_model = BaseModel
     output_model = BaseModel
-    visual_tag = VisualTag(acronym="BoN", color="#FFD1C1")
 
     def setup(self) -> None:
         super().setup()

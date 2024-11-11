@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
-from ..base import VisualTag
 
 
 class SingleLLMCallNodeConfig(DynamicSchemaNodeConfig):
@@ -38,7 +37,6 @@ class SingleLLMCallNode(DynamicSchemaNode):
     config_model = SingleLLMCallNodeConfig
     input_model = SingleLLMCallNodeInput
     output_model = SingleLLMCallNodeOutput
-    visual_tag = VisualTag(acronym="SLC", color="#FFC1C1")
 
     async def run(self, input_data: BaseModel) -> BaseModel:
         system_message = self.config.system_prompt

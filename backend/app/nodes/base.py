@@ -190,18 +190,25 @@ class BaseNode(ABC):
 
         # default color is randomly picked from a list of pastel colors
         colors = [
-            "#FFC1C1",
-            "#FFD3C1",
-            "#FFF2C1",
-            "#E8FFC1",
-            "#C1FFD1",
-            "#C1FFEC",
-            "#C1F4FF",
-            "#C1D6FF",
-            "#C1C1FF",
-            "#D6C1FF",
-            "#F4C1FF",
-            "#FFC1EC",
+            "#007BFF",  # Electric Blue
+            "#28A745",  # Emerald Green
+            "#FFC107",  # Sunflower Yellow
+            "#DC3545",  # Crimson Red
+            "#6F42C1",  # Royal Purple
+            "#FD7E14",  # Bright Orange
+            "#20C997",  # Teal
+            "#E83E8C",  # Hot Pink
+            "#17A2B8",  # Cyan
+            "#6610F2",  # Indigo
+            "#8CC63F",  # Lime Green
+            "#FF00FF",  # Magenta
+            "#FFD700",  # Gold
+            "#FF7F50",  # Coral
+            "#40E0D0",  # Turquoise
+            "#00BFFF",  # Deep Sky Blue
+            "#7FFF00",  # Chartreuse
+            "#FA8072",  # Salmon
+            "#8A2BE2",  # Violet
         ]
         color = colors[hash(cls.name) % len(colors)]
 
