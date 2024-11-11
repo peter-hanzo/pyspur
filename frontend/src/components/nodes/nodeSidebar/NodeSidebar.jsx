@@ -82,17 +82,19 @@ const NodeSidebar = ({ nodeID }) => {
 
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
-        const properties = nodeSchema.config.properties;
-
+        const properties = nodeSchema.config;
+        console.log('properties', properties);
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
+            console.log('field', field);
 
-            if (field.title === 'Input Schema') {
+            // Check for input_schema key
+            if (key === 'input_schema') {
                 return (
                     <div key={key} className="my-2">
                         <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <label className="text-sm font-semibold mb-1 block">Input Schema</label>
                         <SchemaEditor
                             jsonValue={node?.data?.input?.properties || {}}
                             onChange={(newValue) => handleInputChange('input', { properties: newValue })}
@@ -102,11 +104,14 @@ const NodeSidebar = ({ nodeID }) => {
                         <hr className="my-2" />
                     </div>
                 );
-            } else if (field.title === 'Output Schema') {
+            }
+
+            // Check for output_schema key
+            else if (key === 'output_schema') {
                 return (
                     <div key={key} className="my-2">
                         <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <label className="text-sm font-semibold mb-1 block">Output Schema</label>
                         <SchemaEditor
                             jsonValue={node?.data?.output?.properties || {}}
                             onChange={(newValue) => handleInputChange('output', { properties: newValue })}
@@ -118,115 +123,61 @@ const NodeSidebar = ({ nodeID }) => {
                 );
             }
 
-            if (field.$ref) {
-                // Handle enums using $ref
-                const refPath = field.$ref.replace('#/$defs/', '');
-                const enumDef = nodeSchema.config.$defs[refPath];
-                if (enumDef && enumDef.enum) {
-                    return renderEnumSelect(key, enumDef.title || key, enumDef.enum);
-                }
-            }
-
-            // Check if the field has "additionalProperties" and render SchemaEditor
-            if (field.title === 'Output Schema') {
-                return (
-                    <div key={key} className="my-2">
-                        <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
-                        <SchemaEditor
-                            jsonValue={value}
-                            onChange={(newValue) => handleInputChange(key, newValue)}
-                            options={jsonOptions}
-                            schemaType="output" // Specify schema type
-                        />
-                        <hr className="my-2" />
-                    </div>
-                );
-            } else if (field.title === 'Input Schema') {
-                return (
-                    <div key={key} className="my-2">
-                        <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
-                        <SchemaEditor
-                            jsonValue={value}
-                            onChange={(newValue) => handleInputChange(key, newValue)}
-                            options={jsonOptions}
-                            schemaType="input" // Specify schema type
-                        />
-                        <hr className="my-2" />
-                    </div>
-                );
-            }
-
-            else if (field.title && field.title.toLowerCase().includes('prompt')) {
+            // Check for system_prompt key
+            else if (key === 'system_prompt') {
                 return (
                     <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
-                        <div >
+                        <div>
                             <PromptEditor
                                 key={key}
                                 nodeID={nodeID}
                                 fieldName={key}
                                 inputSchema={dynamicModel.input_schema || {}}
-                                fieldTitle={field.title}
+                                fieldTitle="System Prompt"
                                 setContent={(value) => handleInputChange(key, value)}
                             />
                         </div>
 
                         {/* Render Few Shot Examples right after the System Prompt */}
-                        {key.toLowerCase().includes('system_prompt') && renderFewShotExamples()}
+                        {renderFewShotExamples()}
                     </div>
                 );
             }
 
+            // Check for few_shot_examples key
+            else if (key === 'few_shot_examples') {
+                return (
+                    <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
+                        <label className="text-sm font-semibold mb-1 block">Few Shot Examples</label>
+                        <Textarea
+                            fullWidth
+                            value={value || ''}
+                            onChange={(e) => handleInputChange(key, e.target.value)}
+                            placeholder="Enter few shot examples"
+                        />
+                    </div>
+                );
+            }
 
-            switch (field.type) {
+            // Handle other types (string, integer, number, boolean, object, code)
+            switch (typeof field) {
                 case 'string':
                     console.log('string', key, value);
                     return (
                         <Textarea
                             fullWidth
                             key={key}
-                            label={field.title || key}
+                            label={key}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter your input"
-
-                        />
-                    );
-                case 'integer':
-                    return (
-                        <NumberInput
-                            key={key}
-                            label={field.title || key}
-                            value={value}
-                            onChange={(e) => {
-                                const newValue = parseFloat(e.target.value);
-                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
-                            }}
                         />
                     );
                 case 'number':
-                    if (field.minimum !== undefined && field.maximum !== undefined) {
-                        return (
-
-                            <Slider
-                                fullWidth
-                                label={field.title || key}
-                                step={field.step || 0.1}
-                                maxValue={field.maximum}
-                                minValue={field.minimum}
-                                value={value || field.value || field.minimum}
-                                onChange={(newValue) => handleInputChange(key, newValue)}
-                                className="my-4"
-                            />
-
-                        );
-                    }
                     return (
                         <NumberInput
-                            fullWidth
                             key={key}
-                            label={field.title || key}
+                            label={key}
                             value={value}
                             onChange={(e) => {
                                 const newValue = parseFloat(e.target.value);
@@ -238,7 +189,7 @@ const NodeSidebar = ({ nodeID }) => {
                     return (
                         <div key={key} className="my-4">
                             <div className="flex justify-between items-center">
-                                <label className="font-semibold">{field.title || key}</label>
+                                <label className="font-semibold">{key}</label>
                                 <Switch
                                     checked={value}
                                     onChange={(e) => handleInputChange(key, e.target.checked)}
@@ -250,7 +201,7 @@ const NodeSidebar = ({ nodeID }) => {
                     return (
                         <div key={key} className="my-2">
                             <hr className="my-2" />
-                            <label className="text-sm font-semibold mb-1 block">{field.title || (key === 'input_schema' ? 'Input Schema' : 'Output Schema')}</label>
+                            <label className="text-sm font-semibold mb-1 block">{key}</label>
                             <SchemaEditor
                                 jsonValue={value}
                                 onChange={(newValue) => handleInputChange(key, newValue)}
