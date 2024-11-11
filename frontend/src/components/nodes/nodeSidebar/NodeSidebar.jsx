@@ -83,11 +83,10 @@ const NodeSidebar = ({ nodeID }) => {
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config;
-        console.log('properties', properties);
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
-            console.log('field', field);
+
 
             // Check for input_schema key
             if (key === 'input_schema') {
@@ -96,7 +95,7 @@ const NodeSidebar = ({ nodeID }) => {
                         <hr className="my-2" />
                         <label className="text-sm font-semibold mb-1 block">Input Schema</label>
                         <SchemaEditor
-                            jsonValue={node?.data?.input?.properties || {}}
+                            jsonValue={field || {}}
                             onChange={(newValue) => handleInputChange('input', { properties: newValue })}
                             options={jsonOptions}
                             schemaType="input" // Specify schema type
@@ -108,12 +107,13 @@ const NodeSidebar = ({ nodeID }) => {
 
             // Check for output_schema key
             else if (key === 'output_schema') {
+
                 return (
                     <div key={key} className="my-2">
                         <hr className="my-2" />
                         <label className="text-sm font-semibold mb-1 block">Output Schema</label>
                         <SchemaEditor
-                            jsonValue={node?.data?.output?.properties || {}}
+                            jsonValue={field || {}}
                             onChange={(newValue) => handleInputChange('output', { properties: newValue })}
                             options={jsonOptions}
                             schemaType="output" // Specify schema type
@@ -162,7 +162,7 @@ const NodeSidebar = ({ nodeID }) => {
             // Handle other types (string, integer, number, boolean, object, code)
             switch (typeof field) {
                 case 'string':
-                    console.log('string', key, value);
+
                     return (
                         <Textarea
                             fullWidth
