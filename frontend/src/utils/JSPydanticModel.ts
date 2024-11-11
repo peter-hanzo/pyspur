@@ -11,7 +11,7 @@ interface JSONSchema {
   type?: string;
 }
 
-class DynamicModel {
+class JSPydanticModel {
   [key: string]: any; // Allow dynamic properties
 
   private schema: JSONSchema;
@@ -92,4 +92,4 @@ class DynamicModel {
   }
 }
 
-export default DynamicModel;
+export default JSPydanticModel;
