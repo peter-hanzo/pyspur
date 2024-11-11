@@ -1,7 +1,7 @@
 // frontend/src/utils/JSPydanticModel.ts
 
 interface SchemaProperty {
-  type?: string;
+  type?: string | string[];
   title?: string;
   default?: any;
   $ref?: string;
@@ -12,6 +12,7 @@ interface SchemaProperty {
   items?: SchemaProperty; // For handling arrays
   description?: string;
   enum?: any[];
+  nullable?: boolean; // Added to handle nullable types
 }
 
 interface JSONSchema {
@@ -48,14 +49,9 @@ class JSPydanticModel {
       const resolvedSchema = this.processSchema(fieldSchema);
 
       // Determine default value for the field
-      let defaultValue;
-      if (defaultValues && defaultValues.hasOwnProperty(fieldName)) {
-        defaultValue = defaultValues[fieldName];
-      } else if (defaults.hasOwnProperty(fieldName)) {
-        defaultValue = defaults[fieldName];
-      } else {
-        defaultValue = undefined;
-      }
+      let defaultValue = defaultValues[fieldName] !== undefined
+        ? defaultValues[fieldName]
+        : defaults[fieldName];
 
       // Handle nested objects
       if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
@@ -78,16 +74,23 @@ class JSPydanticModel {
         Object.defineProperty(parentObj, fieldName, {
           get: () => parentObj[`_${fieldName}`],
           set: (value: any[]) => {
-            if (!Array.isArray(value)) {
+            if (value === null) {
+              if (resolvedSchema.nullable) {
+                parentObj[`_${fieldName}`] = null;
+              } else {
+                throw new Error(`Field '${fullFieldName}' cannot be null.`);
+              }
+            } else if (!Array.isArray(value)) {
               throw new Error(`Field '${fullFieldName}' must be an array.`);
+            } else {
+              parentObj[`_${fieldName}`] = value.map((item, index) => {
+                return this.processValue(
+                  itemSchema,
+                  item,
+                  `${fullFieldName}[${index}]`
+                );
+              });
             }
-            parentObj[`_${fieldName}`] = value.map((item, index) => {
-              return this.processValue(
-                itemSchema,
-                item,
-                `${fullFieldName}[${index}]`
-              );
-            });
           },
           enumerable: true,
         });
@@ -96,7 +99,7 @@ class JSPydanticModel {
         if (defaultValue !== undefined) {
           parentObj[fieldName] = defaultValue;
         } else {
-          parentObj[fieldName] = [];
+          parentObj[fieldName] = resolvedSchema.nullable ? null : [];
         }
         continue;
       }
@@ -110,17 +113,25 @@ class JSPydanticModel {
       Object.defineProperty(parentObj, fieldName, {
         get: () => parentObj[`_${fieldName}`],
         set: (value: any) => {
-          // Validate against enum if applicable
-          if (this.enums[fullFieldName]) {
-            if (!this.enums[fullFieldName].includes(value)) {
-              throw new Error(
-                `Invalid value '${value}' for field '${fullFieldName}'. Allowed values are: ${this.enums[fullFieldName].join(
-                  ', '
-                )}.`
-              );
+          if (value === null) {
+            if (resolvedSchema.nullable) {
+              parentObj[`_${fieldName}`] = null;
+            } else {
+              throw new Error(`Field '${fullFieldName}' cannot be null.`);
             }
+          } else {
+            // Validate against enum if applicable
+            if (this.enums[fullFieldName]) {
+              if (!this.enums[fullFieldName].includes(value)) {
+                throw new Error(
+                  `Invalid value '${value}' for field '${fullFieldName}'. Allowed values are: ${this.enums[fullFieldName].join(
+                    ', '
+                  )}.`
+                );
+              }
+            }
+            parentObj[`_${fieldName}`] = value;
           }
-          parentObj[`_${fieldName}`] = value;
         },
         enumerable: true,
       });
@@ -129,7 +140,7 @@ class JSPydanticModel {
       if (defaultValue !== undefined) {
         parentObj[fieldName] = defaultValue;
       } else if (!requiredFields.has(fieldName)) {
-        parentObj[fieldName] = undefined;
+        parentObj[fieldName] = resolvedSchema.nullable ? null : undefined;
       }
     }
   }
@@ -170,14 +181,36 @@ class JSPydanticModel {
     }
 
     if (schema.anyOf) {
-      // Process 'anyOf' schemas
+      // Process 'anyOf' schemas to combine possible types
+      const types: (string | string[])[] = [];
+      let nullable = false;
       for (const option of schema.anyOf) {
-        const result = this.processSchema(option, refsSeen);
-        if (result) {
-          return result;
+        const processedOption = this.processSchema(option, refsSeen);
+        if (processedOption.type) {
+          types.push(processedOption.type);
+        }
+        if (processedOption.type === 'null') {
+          nullable = true;
+        }
+        if (processedOption.nullable) {
+          nullable = true;
         }
       }
-      return {};
+
+      const nonNullTypes = types.flat().filter((type) => type !== 'null');
+
+      const resultSchema: SchemaProperty = { ...schema };
+      if (nonNullTypes.length === 1) {
+        resultSchema.type = nonNullTypes[0];
+      } else if (nonNullTypes.length > 1) {
+        resultSchema.type = nonNullTypes;
+      }
+
+      if (nullable) {
+        resultSchema.nullable = true;
+      }
+
+      return resultSchema;
     }
 
     return schema;
@@ -232,6 +265,15 @@ class JSPydanticModel {
     fieldPath: string
   ): any {
     const resolvedSchema = this.processSchema(schema);
+
+    // Handle nullable values
+    if (value === null) {
+      if (resolvedSchema.nullable) {
+        return null;
+      } else {
+        throw new Error(`Field '${fieldPath}' cannot be null.`);
+      }
+    }
 
     // Handle nested objects
     if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
@@ -295,7 +337,8 @@ class JSPydanticModel {
         }
       } else {
         // For simple types, add to schemaDict
-        schemaDict[fullFieldName] = resolvedSchema.type || 'any';
+        const types = Array.isArray(resolvedSchema.type) ? resolvedSchema.type : [resolvedSchema.type];
+        schemaDict[fullFieldName] = types.join(' | ') || 'any';
       }
     }
     return schemaDict;
@@ -340,6 +383,8 @@ class JSPydanticModel {
         result[key] = resolvedSchema.default || resolvedSchema.enum[0];
       } else if (resolvedSchema.hasOwnProperty('default')) {
         result[key] = resolvedSchema.default;
+      } else if (resolvedSchema.nullable) {
+        result[key] = null;
       } else {
         result[key] = this.getDefaultValueForType(resolvedSchema.type);
       }
@@ -348,8 +393,9 @@ class JSPydanticModel {
     return result;
   }
 
-  private getDefaultValueForType(type?: string): any {
-    switch (type) {
+  private getDefaultValueForType(type?: string | string[]): any {
+    const actualType = Array.isArray(type) ? type[0] : type;
+    switch (actualType) {
       case 'string':
         return '';
       case 'number':
