@@ -75,7 +75,12 @@ def update_workflow(
     "/", response_model=List[WorkflowResponseSchema], description="List all workflows"
 )
 def list_workflows(db: Session = Depends(get_db)):
-    workflows = db.query(WorkflowModel).all()
+    workflows = (
+        db.query(WorkflowModel)
+        .order_by(WorkflowModel.created_at.desc())
+        .slice(0, 10)
+        .all()
+    )
     return workflows
 
 
@@ -127,9 +132,7 @@ def reset_workflow(
     status_code=status.HTTP_204_NO_CONTENT,
     description="Delete a workflow by ID",
 )
-def delete_workflow(
-    workflow_id: str, db: Session = Depends(get_db)
-):
+def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
     # Fetch the workflow by ID
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
 
