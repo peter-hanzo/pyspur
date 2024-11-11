@@ -14,7 +14,7 @@ export const getNodeTypes = async () => {
     // Create an object from the schema
     const schemaObject = model.createObjectFromSchema();
     console.log('schemaObject', schemaObject);
-    return model;
+    return schemaObject;
   } catch (error) {
     console.error('Error getting node types:', error);
     throw error;
