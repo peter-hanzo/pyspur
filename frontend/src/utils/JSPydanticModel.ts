@@ -90,6 +90,34 @@ class JSPydanticModel {
     // Extend with more types as needed
     return true;
   }
+
+  public toJSON(): any {
+    return this.buildJSON(this.schema.properties, this);
+  }
+
+  private buildJSON(properties: { [key: string]: SchemaProperty }, instance: any): any {
+    const json: { [key: string]: any } = {};
+    for (const key in properties) {
+      const property = properties[key];
+
+      if (property['$ref']) {
+        // Handle $ref by resolving it from the schema's $defs
+        const refPath = property['$ref'].replace('#/', '').split('/');
+        const refSchema = this.resolveRef(refPath, this.schema);
+        json[key] = this.buildJSON(refSchema.properties, instance[key]);
+      } else if (property.type === 'object' && property.properties) {
+        // Recursively process nested properties
+        json[key] = this.buildJSON(property.properties, instance[key]);
+      } else if (property['anyOf']) {
+        // Handle anyOf by selecting the first valid option (for simplicity)
+        json[key] = instance[key];
+      } else {
+        // Directly assign the value from the instance
+        json[key] = instance[key];
+      }
+    }
+    return json;
+  }
 }
 
 export default JSPydanticModel;
