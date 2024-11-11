@@ -8,7 +8,10 @@ from pydantic import BaseModel
 class DynamicSchemaNodeConfig(BaseModel):
     """Configuration for nodes with dynamic input/output schemas."""
 
-    input_schema: List[SchemaField]
+    input_schema: List[SchemaField] = [
+        SchemaField(field_name="user_message", field_type=SuportedSchemaTypesEnum.str)
+    ]
+
     output_schema: List[SchemaField] = [
         SchemaField(
             field_name="assistant_message", field_type=SuportedSchemaTypesEnum.str
