@@ -79,12 +79,16 @@ const flowSlice = createSlice({
 
         // Check if the node is not an InputNode
         if (node.type !== 'InputNode') {
-          // Check if any key names have changed in the node's data
-          const oldKeys = Object.keys(oldData.userconfig || {});
-          const newKeys = Object.keys(data.userconfig || {});
+          // Check if any key names have changed in the node's input/output properties
+          const oldInputKeys = Object.keys(oldData.input?.properties || {});
+          const newInputKeys = Object.keys(data.input?.properties || {});
 
-          oldKeys.forEach((oldKey) => {
-            if (!newKeys.includes(oldKey)) {
+          const oldOutputKeys = Object.keys(oldData.output?.properties || {});
+          const newOutputKeys = Object.keys(data.output?.properties || {});
+
+          // Handle input schema changes
+          oldInputKeys.forEach((oldKey) => {
+            if (!newInputKeys.includes(oldKey)) {
               // Key was removed, update edges
               state.edges = state.edges.map((edge) => {
                 if (edge.sourceHandle === oldKey) {
@@ -98,16 +102,16 @@ const flowSlice = createSlice({
             }
           });
 
-          newKeys.forEach((newKey) => {
-            const oldKey = oldKeys.find((key) => key !== newKey);
-            if (oldKey) {
-              // Key was renamed, update edges
+          // Handle output schema changes
+          oldOutputKeys.forEach((oldKey) => {
+            if (!newOutputKeys.includes(oldKey)) {
+              // Key was removed, update edges
               state.edges = state.edges.map((edge) => {
                 if (edge.sourceHandle === oldKey) {
-                  return { ...edge, sourceHandle: newKey }; // Update the sourceHandle with the new key
+                  return { ...edge, sourceHandle: null }; // Remove the sourceHandle if the key was removed
                 }
                 if (edge.targetHandle === oldKey) {
-                  return { ...edge, targetHandle: newKey }; // Update the targetHandle with the new key
+                  return { ...edge, targetHandle: null }; // Remove the targetHandle if the key was removed
                 }
                 return edge;
               });

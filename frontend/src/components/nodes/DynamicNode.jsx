@@ -18,30 +18,30 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
 
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
-  
-    const inputSchema = nodeData?.userconfig?.input_schema || nodeData?.input?.properties || {};
-    const outputSchema = nodeData?.userconfig?.output_schema || nodeData?.output?.properties || {};
-  
+
+    const inputSchema = nodeData?.input?.properties || {};
+    const outputSchema = nodeData?.output?.properties || {};
+
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);
-  
+
     const maxLabelLength = Math.max(
       ...inputLabels.map(label => label.length),
       ...outputLabels.map(label => label.length),
       (nodeData?.title || '').length / 1.5
     );
-  
+
     const calculatedWidth = Math.max(300, maxLabelLength * 15);
     const finalWidth = Math.min(calculatedWidth, 600);
-  
+
     setNodeWidth(`${finalWidth}px`);
   }, [nodeData]);
 
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = nodeData?.userconfig?.input_schema || nodeData?.input?.properties || {};
-    const outputSchema = nodeData?.userconfig?.output_schema || nodeData?.output?.properties || {};
+    const inputSchema = nodeData?.input?.properties || {};
+    const outputSchema = nodeData?.output?.properties || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
@@ -81,7 +81,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 {Object.entries(outputSchema).map(([key, value], index) => (
                   <tr key={`output-${index}`} className="align-middle">
                     <td className="text-right align-middle">
-                      <span className={styles.handleLabel} style={{ whiteSpace: 'normal', wordWrap: 'break-word', display: 'flex', justifyContent: 'end'}}>
+                      <span className={styles.handleLabel} style={{ whiteSpace: 'normal', wordWrap: 'break-word', display: 'flex', justifyContent: 'end' }}>
                         {key}
                       </span>
                     </td>
