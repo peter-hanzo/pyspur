@@ -1,13 +1,20 @@
 import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
-import { Workflow } from 'lucide-react';
+import JSPydanticModel from './JSPydanticModel'; // Import the JSPydanticModel class
 
 const API_BASE_URL = 'http://localhost:8000';
 
 export const getNodeTypes = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/node/supported_types/`);
-    return response.data;
+    console.log('response', response.data);
+    const model = new JSPydanticModel(response.data);
+    console.log('model', model);
+
+    // Create an object from the schema
+    const schemaObject = model.createObjectFromSchema();
+    console.log('schemaObject', schemaObject);
+    return model;
   } catch (error) {
     console.error('Error getting node types:', error);
     throw error;
