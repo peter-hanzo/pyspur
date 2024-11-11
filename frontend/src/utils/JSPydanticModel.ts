@@ -24,49 +24,139 @@ interface JSONSchema {
 class JSPydanticModel {
   [key: string]: any;
   private _schema: JSONSchema;
+  private enums: { [key: string]: any[] } = {};
 
   constructor(schema: JSONSchema) {
     this._schema = schema;
-    this.initializeProperties();
+    this.initializeFields(schema);
   }
 
-  private initializeProperties() {
-    // Process each key at the root of the schema
-    for (const key in this._schema) {
-      if (this._schema.hasOwnProperty(key)) {
-        this[key] = this.processSchema(this._schema[key]);
+  private initializeFields(
+    schema: JSONSchema,
+    parentKey: string = '',
+    parentObj: any = this,
+    defaultValues: any = {}
+  ) {
+    const properties = schema.properties || {};
+    const requiredFields = new Set(schema.required || []);
+    const defaults = this.extractDefaults(schema);
+
+    for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+      const fullFieldName = parentKey ? `${parentKey}.${fieldName}` : fieldName;
+
+      // Resolve $ref if present
+      const resolvedSchema = this.processSchema(fieldSchema);
+
+      // Determine default value for the field
+      let defaultValue;
+      if (defaultValues && defaultValues.hasOwnProperty(fieldName)) {
+        defaultValue = defaultValues[fieldName];
+      } else if (defaults.hasOwnProperty(fieldName)) {
+        defaultValue = defaults[fieldName];
+      } else {
+        defaultValue = undefined;
+      }
+
+      // Handle nested objects
+      if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
+        parentObj[fieldName] = {};
+        this.initializeFields(
+          resolvedSchema,
+          fullFieldName,
+          parentObj[fieldName],
+          defaultValue || {}
+        );
+        continue;
+      }
+
+      // Handle arrays
+      if (resolvedSchema.type === 'array' && resolvedSchema.items) {
+        parentObj[`_${fieldName}`] = [];
+
+        const itemSchema = resolvedSchema.items;
+
+        Object.defineProperty(parentObj, fieldName, {
+          get: () => parentObj[`_${fieldName}`],
+          set: (value: any[]) => {
+            if (!Array.isArray(value)) {
+              throw new Error(`Field '${fullFieldName}' must be an array.`);
+            }
+            parentObj[`_${fieldName}`] = value.map((item, index) => {
+              return this.processValue(
+                itemSchema,
+                item,
+                `${fullFieldName}[${index}]`
+              );
+            });
+          },
+          enumerable: true,
+        });
+
+        // Set default value if available
+        if (defaultValue !== undefined) {
+          parentObj[fieldName] = defaultValue;
+        } else {
+          parentObj[fieldName] = [];
+        }
+        continue;
+      }
+
+      // Store enum options if available
+      if (resolvedSchema.enum) {
+        this.enums[fullFieldName] = resolvedSchema.enum;
+      }
+
+      // Define getters and setters with validation
+      Object.defineProperty(parentObj, fieldName, {
+        get: () => parentObj[`_${fieldName}`],
+        set: (value: any) => {
+          // Validate against enum if applicable
+          if (this.enums[fullFieldName]) {
+            if (!this.enums[fullFieldName].includes(value)) {
+              throw new Error(
+                `Invalid value '${value}' for field '${fullFieldName}'. Allowed values are: ${this.enums[fullFieldName].join(
+                  ', '
+                )}.`
+              );
+            }
+          }
+          parentObj[`_${fieldName}`] = value;
+        },
+        enumerable: true,
+      });
+
+      // Assign the default value
+      if (defaultValue !== undefined) {
+        parentObj[fieldName] = defaultValue;
+      } else if (!requiredFields.has(fieldName)) {
+        parentObj[fieldName] = undefined;
       }
     }
   }
 
   private processSchema(
-    schema: any,
+    schema: SchemaProperty,
     refsSeen: Set<string> = new Set()
-  ): any {
+  ): SchemaProperty {
     if (schema === null || schema === undefined) {
-      return null;
+      return {};
     }
 
     if (typeof schema !== 'object') {
-      // Primitive value (string, number, boolean, null), return as-is
-      return schema;
-    }
-
-    if (Array.isArray(schema)) {
-      return schema.map((item) => this.processSchema(item, refsSeen));
+      return {};
     }
 
     if (schema.$ref) {
       const refPath = schema.$ref;
       if (refsSeen.has(refPath)) {
         // Circular reference detected
-        return {}; // Return an empty object or handle appropriately
+        return {};
       }
       refsSeen.add(refPath);
 
       const refSchema = this.resolveRef(refPath);
       if (!refSchema) {
-        return null; // Unable to resolve reference
+        return {};
       }
 
       // Merge the schemas, giving precedence to properties in 'schema'
@@ -75,145 +165,25 @@ class JSPydanticModel {
 
       const result = this.processSchema(mergedSchema, refsSeen);
 
-      refsSeen.delete(refPath); // Clean up after processing
+      refsSeen.delete(refPath);
       return result;
     }
 
     if (schema.anyOf) {
-      return this.processAnyOf(schema.anyOf, refsSeen);
-    }
-
-    if (schema.enum) {
-      return this.processEnum(schema, refsSeen);
-    }
-
-    if (schema.type) {
-      switch (schema.type) {
-        case 'object':
-          return this.processObject(schema, refsSeen);
-
-        case 'array':
-          return this.processArray(schema, refsSeen);
-
-        case 'string':
-        case 'number':
-        case 'integer':
-        case 'boolean':
-          return this.processPrimitive(schema);
-
-        default:
-          return null;
-      }
-    }
-
-    // Fallback: process properties recursively
-    const result: { [key: string]: any } = {};
-    for (const key in schema) {
-      if (schema.hasOwnProperty(key)) {
-        result[key] = this.processSchema(schema[key], refsSeen);
-      }
-    }
-    return result;
-  }
-
-  private processObject(schema: any, refsSeen: Set<string>): any {
-    const obj: { [key: string]: any } = {};
-
-    if (schema.properties) {
-      for (const key in schema.properties) {
-        if (schema.properties.hasOwnProperty(key)) {
-          const propertySchema = schema.properties[key];
-
-          // Process the property's schema
-          const value = this.processSchema(propertySchema, refsSeen);
-
-          // Use the default value if available, otherwise use the processed value
-          obj[key] =
-            propertySchema.default !== undefined ? propertySchema.default : value;
+      // Process 'anyOf' schemas
+      for (const option of schema.anyOf) {
+        const result = this.processSchema(option, refsSeen);
+        if (result) {
+          return result;
         }
       }
+      return {};
     }
 
-    // Handle additionalProperties if necessary
-    if (schema.additionalProperties === true) {
-      // Assuming you want to allow additional properties as empty objects
-      // obj['additionalProperties'] = {};
-    }
-
-    // If the object itself has a default, merge it
-    if (schema.default && typeof schema.default === 'object') {
-      Object.assign(obj, schema.default);
-    }
-
-    return obj;
+    return schema;
   }
 
-  private processArray(schema: any, refsSeen: Set<string>): any {
-    const arr: any = {};
-
-    // Include metadata
-    if (schema.title) {
-      arr['title'] = schema.title;
-    }
-    if (schema.description) {
-      arr['description'] = schema.description;
-    }
-    arr['type'] = 'array';
-
-    // Process items
-    if (schema.items) {
-      arr['items'] = this.processSchema(schema.items, refsSeen);
-    } else {
-      arr['items'] = {};
-    }
-
-    // Assign default value
-    if (schema.default !== undefined) {
-      arr['default'] = schema.default;
-    } else {
-      arr['default'] = [];
-    }
-
-    return arr;
-  }
-
-  private processPrimitive(schema: any): any {
-    const result: any = {};
-
-    // Include metadata
-    if (schema.title) {
-      result['title'] = schema.title;
-    }
-    if (schema.description) {
-      result['description'] = schema.description;
-    }
-    result['type'] = schema.type;
-
-    // Assign default value
-    if (schema.default !== undefined) {
-      result['default'] = schema.default;
-    } else {
-      // Assign sensible defaults based on type
-      switch (schema.type) {
-        case 'string':
-          result['default'] = '';
-          break;
-        case 'number':
-        case 'integer':
-          result['default'] = 0;
-          break;
-        case 'boolean':
-          result['default'] = false;
-          break;
-        default:
-          result['default'] = null;
-      }
-    }
-
-    return result;
-  }
-
-  private resolveRef(ref: string): any {
+  private resolveRef(ref: string): SchemaProperty | null {
     const cleanRef = ref.split('#/').pop(); // Remove starting '#/' if present
     const path = cleanRef ? cleanRef.split('/') : [];
     let schema: any = this._schema;
@@ -228,56 +198,172 @@ class JSPydanticModel {
     return schema;
   }
 
-  private processAnyOf(anyOf: any[], refsSeen: Set<string>): any {
-    for (const option of anyOf) {
-      const result = this.processSchema(option, refsSeen);
-      if (result !== null && result !== undefined) {
-        return result;
+  private extractDefaults(schema: JSONSchema): { [key: string]: any } {
+    let defaults: { [key: string]: any } = {};
+
+    // Handle default at the schema level
+    if (schema.hasOwnProperty('default')) {
+      defaults = schema.default;
+    }
+
+    // Handle properties with defaults
+    const properties = schema.properties || {};
+    for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+      const resolvedSchema = this.processSchema(fieldSchema);
+      let fieldDefault;
+
+      if (fieldSchema.hasOwnProperty('default')) {
+        fieldDefault = fieldSchema.default;
+      } else if (resolvedSchema.hasOwnProperty('default')) {
+        fieldDefault = resolvedSchema.default;
+      }
+
+      if (fieldDefault !== undefined) {
+        defaults[fieldName] = fieldDefault;
       }
     }
-    return null;
+
+    return defaults;
   }
 
-  private processEnum(schema: any): any {
-    const result: any = {};
+  private processValue(
+    schema: SchemaProperty,
+    value: any,
+    fieldPath: string
+  ): any {
+    const resolvedSchema = this.processSchema(schema);
 
-    // Include metadata
-    if (schema.title) {
-      result['title'] = schema.title;
-    }
-    if (schema.description) {
-      result['description'] = schema.description;
-    }
-    result['type'] = 'enum';
-
-    // Assign default value
-    if (schema.default !== undefined) {
-      result['default'] = schema.default;
-    } else if (schema.enum && schema.enum.length > 0) {
-      result['default'] = schema.enum[0];
-    } else {
-      result['default'] = null;
+    // Handle nested objects
+    if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
+      const obj: any = {};
+      this.initializeFields(resolvedSchema, fieldPath, obj);
+      Object.assign(obj, value);
+      return obj;
     }
 
-    result['enum'] = schema.enum || [];
+    // Handle arrays
+    if (resolvedSchema.type === 'array' && resolvedSchema.items) {
+      if (!Array.isArray(value)) {
+        throw new Error(`Field '${fieldPath}' must be an array.`);
+      }
+      return value.map((item, index) =>
+        this.processValue(resolvedSchema.items!, item, `${fieldPath}[${index}]`)
+      );
+    }
 
-    return result;
+    // Validate enum
+    if (resolvedSchema.enum) {
+      if (!resolvedSchema.enum.includes(value)) {
+        throw new Error(
+          `Invalid value '${value}' for field '${fieldPath}'. Allowed values are: ${resolvedSchema.enum.join(
+            ', '
+          )}.`
+        );
+      }
+    }
+
+    // Additional type validation can be added here if necessary
+
+    return value;
   }
 
-  private inferTypeFromValue(value: any): string {
-    if (value === null) {
-      return 'null';
-    } else if (Array.isArray(value)) {
-      return 'array';
-    } else if (typeof value === 'object') {
-      return 'object';
+  public getSchema(
+    schema: JSONSchema = this._schema,
+    parentKey: string = '',
+    schemaDict: { [key: string]: any } = {}
+  ): { [key: string]: any } {
+    const properties = schema.properties || {};
+    for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+      const fullFieldName = parentKey ? `${parentKey}.${fieldName}` : fieldName;
+      const resolvedSchema = this.processSchema(fieldSchema);
+
+      if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
+        // Recursively process nested objects
+        this.getSchema(resolvedSchema, fullFieldName, schemaDict);
+      } else if (resolvedSchema.type === 'array' && resolvedSchema.items) {
+        // Handle arrays
+        const itemSchema = this.processSchema(resolvedSchema.items);
+
+        if (itemSchema.type === 'object' && itemSchema.properties) {
+          // For arrays of objects, process the object's properties
+          const itemTypes: { [key: string]: any } = {};
+          this.getSchema(itemSchema, `${fullFieldName}[]`, itemTypes);
+          schemaDict[fullFieldName] = itemTypes;
+        } else {
+          const itemType = itemSchema.type || 'any';
+          schemaDict[fullFieldName] = `Array<${itemType}>`;
+        }
+      } else {
+        // For simple types, add to schemaDict
+        schemaDict[fullFieldName] = resolvedSchema.type || 'any';
+      }
+    }
+    return schemaDict;
+  }
+
+  public setValue(fieldPath: string, value: any): void {
+    const keys = fieldPath.split('.');
+    let parentObj: any = this;
+    for (let i = 0; i < keys.length - 1; i++) {
+      parentObj = parentObj[keys[i]];
+      if (parentObj === undefined) {
+        throw new Error(`Field '${fieldPath}' does not exist in the schema.`);
+      }
+    }
+    const fieldName = keys[keys.length - 1];
+    if (parentObj.hasOwnProperty(fieldName)) {
+      parentObj[fieldName] = value;
     } else {
-      return typeof value;
+      throw new Error(`Field '${fieldPath}' does not exist in the schema.`);
     }
   }
 
   public createObjectFromSchema(): any {
-    return this.processSchema(this._schema);
+    return this._createObjectFromSchema(this._schema);
+  }
+
+  private _createObjectFromSchema(schema: JSONSchema): any {
+    const result: any = {};
+    const properties = schema.properties || {};
+
+    for (const [key, propSchema] of Object.entries(properties)) {
+      const resolvedSchema = this.processSchema(propSchema);
+
+      if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
+        result[key] = this._createObjectFromSchema(resolvedSchema);
+      } else if (resolvedSchema.type === 'array') {
+        const itemSchema = resolvedSchema.items
+          ? this.processSchema(resolvedSchema.items)
+          : {};
+        result[key] = [this._createObjectFromSchema(itemSchema)];
+      } else if (resolvedSchema.enum) {
+        result[key] = resolvedSchema.default || resolvedSchema.enum[0];
+      } else if (resolvedSchema.hasOwnProperty('default')) {
+        result[key] = resolvedSchema.default;
+      } else {
+        result[key] = this.getDefaultValueForType(resolvedSchema.type);
+      }
+    }
+
+    return result;
+  }
+
+  private getDefaultValueForType(type?: string): any {
+    switch (type) {
+      case 'string':
+        return '';
+      case 'number':
+      case 'integer':
+        return 0;
+      case 'boolean':
+        return false;
+      case 'array':
+        return [];
+      case 'object':
+        return {};
+      default:
+        return null;
+    }
   }
 }
 
