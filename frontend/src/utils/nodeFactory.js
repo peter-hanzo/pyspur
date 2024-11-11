@@ -1,8 +1,7 @@
-import { nodeTypes } from '../constants/nodeTypes';
 import cloneDeep from 'lodash/cloneDeep';
 
 // Function to create a node based on its type
-export const createNode = (type, id, position, additionalData = {}) => {
+export const createNode = (nodeTypes, type, id, position, additionalData = {}) => {
   let nodeType = null;
   for (const category in nodeTypes) {
     const found = nodeTypes[category].find((node) => node.name === type);

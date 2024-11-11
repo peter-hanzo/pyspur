@@ -2,8 +2,6 @@
 
 set -e 
 
-source venv/bin/activate
-
 check_for_changes() {
     alembic check
 }
