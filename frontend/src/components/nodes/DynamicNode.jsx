@@ -1,13 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Handle } from '@xyflow/react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
-import { Divider } from '@nextui-org/react';
+import { Divider, Input } from '@nextui-org/react';
+import { updateNodeData } from '../../store/flowSlice';
 
 const DynamicNode = ({ id, type, data, position, ...props }) => {
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
+  const [editingField, setEditingField] = useState(null);
+  const [newFieldValue, setNewFieldValue] = useState('');
 
   const node = useSelector((state) =>
     state.flow.nodes.find((n) => n.id === id)
@@ -15,6 +18,28 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
 
   const nodeData = data || (node && node.data);
 
+  const dispatch = useDispatch();
+
+  const handleSchemaKeyEdit = useCallback((oldKey, newKey, schemaType) => {
+    if (oldKey === newKey || !newKey.trim()) {
+      setEditingField(null);
+      return;
+    }
+
+    const updatedSchema = {
+      ...nodeData[schemaType]?.properties,
+      [newKey]: nodeData[schemaType]?.properties[oldKey],
+    };
+    delete updatedSchema[oldKey];
+
+    dispatch(updateNodeData({
+      id,
+      data: {
+        [schemaType]: { properties: updatedSchema }
+      }
+    }));
+    setEditingField(null);
+  }, [dispatch, id, nodeData]);
 
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
@@ -64,9 +89,34 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                       />
                     </td>
                     <td className="text-left align-middle">
-                      <span className={styles.handleLabel} style={{ whiteSpace: 'normal', wordWrap: 'break-word', display: 'flex' }}>
-                        {key}
-                      </span>
+                      {editingField === key ? (
+                        <Input
+                          autoFocus
+                          defaultValue={key}
+                          size="sm"
+                          variant="faded"
+                          radius="lg"
+                          onBlur={(e) => handleSchemaKeyEdit(key, e.target.value, 'input')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSchemaKeyEdit(key, e.target.value, 'input');
+                            } else if (e.key === 'Escape') {
+                              setEditingField(null);
+                            }
+                          }}
+                          classNames={{
+                            input: "bg-default-100",
+                            inputWrapper: "shadow-none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                          onClick={() => setEditingField(key)}
+                        >
+                          {key}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -81,9 +131,34 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 {Object.entries(outputSchema).map(([key, value], index) => (
                   <tr key={`output-${index}`} className="align-middle">
                     <td className="text-right align-middle">
-                      <span className={styles.handleLabel} style={{ whiteSpace: 'normal', wordWrap: 'break-word', display: 'flex', justifyContent: 'end' }}>
-                        {key}
-                      </span>
+                      {editingField === key ? (
+                        <Input
+                          autoFocus
+                          defaultValue={key}
+                          size="sm"
+                          variant="faded"
+                          radius="lg"
+                          onBlur={(e) => handleSchemaKeyEdit(key, e.target.value, 'output')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSchemaKeyEdit(key, e.target.value, 'output');
+                            } else if (e.key === 'Escape') {
+                              setEditingField(null);
+                            }
+                          }}
+                          classNames={{
+                            input: "bg-default-100",
+                            inputWrapper: "shadow-none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                          onClick={() => setEditingField(key)}
+                        >
+                          {key}
+                        </span>
+                      )}
                     </td>
                     <td style={{ width: '20px', verticalAlign: 'middle', textAlign: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>

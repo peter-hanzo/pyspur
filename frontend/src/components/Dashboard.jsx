@@ -268,7 +268,7 @@ const Dashboard = () => {
               }
               onClick={handleNewWorkflowClick}
             >
-              New Workflow
+              New Spur
             </Button>
             <Button
               className="bg-foreground text-background"
@@ -277,13 +277,13 @@ const Dashboard = () => {
               }
               onClick={handleImportWorkflowClick}
             >
-              Import Workflow
+              Import Spur
             </Button>
           </div>
         </header>
 
         {/* New Templates Section */}
-        <h3 className="text-xl font-semibold mb-4">Templates</h3>
+        <h3 className="text-xl font-semibold mb-4">Spur Templates</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
           {templates.map((template) => (
             <TemplateCard
@@ -296,7 +296,7 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <h3 className="text-xl font-semibold mb-4">Recent Workflows</h3>
+        <h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>
         <Table aria-label="Saved Workflows" isHeaderSticky>
           <TableHeader columns={columns}>
             {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
@@ -340,7 +340,7 @@ const Dashboard = () => {
           </TableBody>
         </Table>
 
-        <WorkflowBatchRunsTable/>
+        <WorkflowBatchRunsTable />
       </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
