@@ -1,11 +1,11 @@
-from typing import Dict
+from typing import Any, Dict
 from pydantic import BaseModel, model_validator
 from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 
 
 class InputNodeConfig(DynamicSchemaNodeConfig):
     @model_validator(mode="before")
-    def set_output_schema_same_as_input(cls, data: Dict[str, str]) -> Dict[str, str]:
+    def set_output_schema_same_as_input(cls, data: Dict[str, Any]) -> Dict[str, Any]:
         data["output_schema"] = data["input_schema"]
         return data
 

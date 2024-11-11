@@ -3,7 +3,12 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
+from ..dynamic_schema import (
+    DynamicSchemaNode,
+    DynamicSchemaNodeConfig,
+    SchemaField,
+    SuportedSchemaTypesEnum,
+)
 from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
 
 
@@ -14,7 +19,15 @@ class SingleLLMCallNodeConfig(DynamicSchemaNodeConfig):
     system_prompt: str = Field(
         "You are a helpful assistant.", description="The system prompt for the LLM"
     )
-    input_schema: Dict[str, str] = {"user_message": "str"}
+    # input_schema: Dict[str, str] = {"user_message": "str"}
+    input_schema: List[SchemaField] = [
+        SchemaField(field_name="user_message", field_type=SuportedSchemaTypesEnum.str),
+    ]
+    output_schema: List[SchemaField] = [
+        SchemaField(
+            field_name="assistant_response", field_type=SuportedSchemaTypesEnum.str
+        ),
+    ]
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
@@ -74,8 +87,18 @@ if __name__ == "__main__":
             config=SingleLLMCallNodeConfig(
                 llm_info=ModelInfo(name="gpt-4o-mini", temperature=0.1, max_tokens=100),
                 system_prompt="This is a test prompt.",
-                output_schema={"response": "str", "your_name": "str"},
-                input_schema={"user_message": "str", "your_name": "str"},
+                output_schema=[
+                    SchemaField(
+                        field_name="assistant_message",
+                        field_type=SuportedSchemaTypesEnum.str,
+                    )
+                ],
+                input_schema=[
+                    SchemaField(
+                        field_name="user_message",
+                        field_type=SuportedSchemaTypesEnum.str,
+                    )
+                ],
             )
         )
         advanced_input = advanced_llm_node.input_model.model_validate(
