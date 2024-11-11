@@ -6,23 +6,30 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('str'); // Default to 'string'
   const [editingKey, setEditingKey] = useState(null); // Track which key's type is being edited
+  const [editingField, setEditingField] = useState(null); // Track the field being edited
 
   const handleAddKey = () => {
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
       const updatedJson = {
         ...jsonValue,
-        [newKey]: newType // Store the selected type instead of a value
+        [newKey]: {
+          title: newKey,
+          type: newType
+        }
       };
       onChange(updatedJson);
       setNewKey('');
-      setNewType('str'); // Reset to default type
+      setNewType('str');
     }
   };
 
   const handleTypeChange = (key, type) => {
     const updatedJson = {
       ...jsonValue,
-      [key]: type
+      [key]: {
+        title: key,
+        type: type
+      }
     };
     onChange(updatedJson);
   };
@@ -35,9 +42,28 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
   // Helper function to extract the type from the value
   const getType = (value) => {
     if (typeof value === 'object' && value !== null) {
-      return value.type || 'str'; // Default to 'str' if type is not defined
+      return value.type || 'str';
     }
-    return value; // If it's a simple type, return it directly
+    return value;
+  };
+
+  const handleKeyEdit = (oldKey, newKey) => {
+    if (oldKey === newKey || !newKey.trim()) {
+      setEditingField(null);
+      return;
+    }
+
+    const updatedJson = {
+      ...jsonValue,
+      [newKey]: {
+        title: newKey,
+        type: jsonValue[oldKey].type
+      }
+    };
+    delete updatedJson[oldKey];
+
+    onChange(updatedJson);
+    setEditingField(null);
   };
 
   return (
@@ -86,30 +112,35 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
       {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) && (
         Object.entries(jsonValue).map(([key, value]) => (
           <div key={key} className="mb-2 flex items-center">
-            <span className="mr-2">{key}:</span>
-            {editingKey === key ? (
-              <Select
-                selectedValue={getType(value)} // Use the helper function to get the type
-                onChange={(e) => {
-                  handleTypeChange(key, e.target.value);
-                  setEditingKey(null); // Close the dropdown after selection
+            {editingField === key ? (
+              <Input
+                autoFocus
+                defaultValue={key}
+                size="sm"
+                variant="faded"
+                radius="lg"
+                onBlur={(e) => handleKeyEdit(key, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleKeyEdit(key, e.target.value);
+                  } else if (e.key === 'Escape') {
+                    setEditingField(null);
+                  }
                 }}
-                disabled={disabled}
-                defaultSelectedKeys={[getType(value)]} // Use the helper function to get the type
-              >
-                <SelectItem key="str" value="str">str</SelectItem>
-                <SelectItem key="bool" value="bool">bool</SelectItem>
-                <SelectItem key="int" value="int">int</SelectItem>
-                <SelectItem key="float" value="float">float</SelectItem>
-              </Select>
+                classNames={{
+                  input: "bg-default-100",
+                  inputWrapper: "shadow-none",
+                }}
+              />
             ) : (
               <span
                 className="mr-2 p-1 border rounded bg-gray-200 cursor-pointer"
-                onClick={() => setEditingKey(key)} // Open the dropdown on click
+                onClick={() => setEditingField(key)} // Open the input on click
               >
-                {getType(value)} {/* Use the helper function to display the type */}
+                {key}
               </span>
             )}
+            <span className="mr-2">{getType(value)}</span>
             <Button
               isIconOnly
               radius="full"

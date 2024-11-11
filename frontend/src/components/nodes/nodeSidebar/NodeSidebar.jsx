@@ -290,7 +290,7 @@ const NodeSidebar = ({ nodeID }) => {
                         <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
                         <ul>
                             {fewShotExamples.map((example, index) => (
-                                <li key={index} className="flex items-center justify-between mb-1">
+                                <li key={`few-shot-${index}`} className="flex items-center justify-between mb-1">
                                     <div>Example {index + 1}</div>
                                     <div className="ml-2">
                                         <Button onClick={() => setFewShotIndex(index)}>Edit</Button>

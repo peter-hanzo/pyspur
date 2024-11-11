@@ -10,6 +10,7 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
 
   const saveWorkflow = useCallback(async () => {
     try {
+      console.log('Nodes:', nodes);
       const updatedNodes = nodes.map(node => {
         if (node.type === 'InputNode') {
           return {
@@ -27,10 +28,10 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
             ...node,
             config: {
               ...node.data.userconfig,
-              input_schema: node.data.userconfig?.input_schema || {},
-              output_schema: node.data.userconfig?.output_schema || {}
+              input: node.data.input?.properties || {},
+              output: node.data.output?.properties || {}
             },
-            title: node.data.userconfig?.title || node.data.title
+            title: node.data?.title
           }
         }
       });
