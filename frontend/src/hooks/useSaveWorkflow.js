@@ -34,7 +34,7 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
           }
         }
       });
-
+      console.log('Updated nodes:', updatedNodes);
       const updatedWorkflow = {
         nodes: updatedNodes.map(node => ({
           id: node.id,

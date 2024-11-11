@@ -45,7 +45,6 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setCont
       <TextEditor
         content={fieldValue}
         setContent={(value) => {
-          console.log(`Updating ${fieldName} with value:`, value); // Debugging log
           setFieldValue(value);
           if (setContent) {
             setContent(value); // Only call setContent if it's provided

@@ -7,7 +7,7 @@ import { Input, Button } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import styles from './DynamicNode.module.css';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
-import { Divider } from '@nextui-org/react';
+
 
 const InputNode = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
@@ -127,7 +127,6 @@ const InputNode = ({ id, data, ...props }) => {
                           isIconOnly
                           size="sm"
                           variant="light"
-                          color="danger"
                           onClick={() => handleDeleteWorkflowInputVariable(key)}
                         >
                           <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
@@ -139,7 +138,7 @@ const InputNode = ({ id, data, ...props }) => {
               </td>
               <td className='border-l border-default-200 w-0 ml-2'
               />
-              <td style={{width: '20px', verticalAlign: 'middle', textAlign: 'center'}}>
+              <td style={{ width: '20px', verticalAlign: 'middle', textAlign: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                   <Handle
                     type="source"

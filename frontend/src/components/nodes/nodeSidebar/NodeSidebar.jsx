@@ -7,15 +7,10 @@ import { nodeTypes } from '../../../constants/nodeTypes';
 import { jsonOptions } from '../../../constants/jsonOptions';
 import FewShotEditor from '../../textEditor/FewShotEditor';
 import PromptEditor from '../../textEditor/PromptEditor';
-import { Button } from '@nextui-org/react';
-import { Slider } from '@nextui-org/react';
-import { Switch } from '@nextui-org/react';
-import { Textarea, Input, Select, SelectItem } from '@nextui-org/react';
+import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion, AccordionItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
-import { Accordion, AccordionItem } from "@nextui-org/react";
 import NodeStatus from "../NodeStatusDisplay";
-import SchemaEditor from './SchemaEditor'; // Import the unified SchemaEditor
-
+import SchemaEditor from './SchemaEditor';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const node = useSelector((state) => selectNodeById(state, nodeID));
@@ -51,7 +46,7 @@ const NodeSidebar = ({ nodeID }) => {
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
         const updatedModel = { ...dynamicModel, [key]: value };
-        dispatch(updateNodeData({ id: nodeID, data: { userconfig: updatedModel } }));
+        dispatch(updateNodeData({ id: nodeID, data: { input: { properties: updatedModel } } }));
     };
 
 
@@ -92,6 +87,36 @@ const NodeSidebar = ({ nodeID }) => {
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
+
+            if (field.title === 'Input Schema') {
+                return (
+                    <div key={key} className="my-2">
+                        <hr className="my-2" />
+                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <SchemaEditor
+                            jsonValue={node?.data?.input?.properties || {}}
+                            onChange={(newValue) => handleInputChange('input', { properties: newValue })}
+                            options={jsonOptions}
+                            schemaType="input" // Specify schema type
+                        />
+                        <hr className="my-2" />
+                    </div>
+                );
+            } else if (field.title === 'Output Schema') {
+                return (
+                    <div key={key} className="my-2">
+                        <hr className="my-2" />
+                        <label className="text-sm font-semibold mb-1 block">{field.title || key}</label>
+                        <SchemaEditor
+                            jsonValue={node?.data?.output?.properties || {}}
+                            onChange={(newValue) => handleInputChange('output', { properties: newValue })}
+                            options={jsonOptions}
+                            schemaType="output" // Specify schema type
+                        />
+                        <hr className="my-2" />
+                    </div>
+                );
+            }
 
             if (field.$ref) {
                 // Handle enums using $ref

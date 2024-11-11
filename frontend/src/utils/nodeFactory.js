@@ -15,37 +15,30 @@ export const createNode = (type, id, position, additionalData = {}) => {
     return null;
   }
 
-  const userConfigData = {
-    input_schema: cloneDeep(nodeType.input?.properties) || {},
-    output_schema: cloneDeep(nodeType.output?.properties) || {},
-    title: nodeType.name,
-  };
+  const inputProperties = cloneDeep(nodeType.input?.properties) || {};
+  const outputProperties = cloneDeep(nodeType.output?.properties) || {};
 
   let processedAdditionalData = cloneDeep(additionalData);
 
-  // If the additional data has a userconfig field, merge it with the default userconfig
-  if (additionalData.userconfig) {
-    processedAdditionalData.userconfig = {
-      ...userConfigData,
-      ...additionalData.userconfig,
+  // If the additional data has input/output properties, merge them with the default properties
+  if (additionalData.input?.properties) {
+    processedAdditionalData.input = {
+      ...processedAdditionalData.input,
+      properties: {
+        ...inputProperties,
+        ...additionalData.input.properties,
+      },
     };
   }
 
-  // if input_schema and output_schema are objects like foo: { type: 'string', title: 'Foo' } then convert them to foo: 'string'
-  // but if they are already foo: 'string' then leave them as is
-  if (processedAdditionalData.userconfig?.input_schema) {
-    processedAdditionalData.userconfig.input_schema = Object.fromEntries(
-      Object.entries(processedAdditionalData.userconfig.input_schema).map(([key, value]) => {
-        return [key, typeof value === 'object' ? value.type : value];
-      })
-    );
-  }
-  if (processedAdditionalData.userconfig?.output_schema) {
-    processedAdditionalData.userconfig.output_schema = Object.fromEntries(
-      Object.entries(processedAdditionalData.userconfig.output_schema).map(([key, value]) => {
-        return [key, typeof value === 'object' ? value.type : value];
-      })
-    );
+  if (additionalData.output?.properties) {
+    processedAdditionalData.output = {
+      ...processedAdditionalData.output,
+      properties: {
+        ...outputProperties,
+        ...additionalData.output.properties,
+      },
+    };
   }
 
   const node = {
@@ -57,8 +50,14 @@ export const createNode = (type, id, position, additionalData = {}) => {
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
       config: cloneDeep(nodeType.config),
-      input: cloneDeep(nodeType.input),
-      output: cloneDeep(nodeType.output),
+      input: {
+        properties: inputProperties,
+        ...processedAdditionalData.input,
+      },
+      output: {
+        properties: outputProperties,
+        ...processedAdditionalData.output,
+      },
       ...processedAdditionalData,
     },
   };

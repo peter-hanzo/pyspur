@@ -32,6 +32,14 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     onChange(updatedJson);
   };
 
+  // Helper function to extract the type from the value
+  const getType = (value) => {
+    if (typeof value === 'object' && value !== null) {
+      return value.type || 'str'; // Default to 'str' if type is not defined
+    }
+    return value; // If it's a simple type, return it directly
+  };
+
   return (
     <div className="json-editor">
       <div className="mb-4 flex items-center space-x-4">
@@ -39,7 +47,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder={`${schemaType} text`}
+          placeholder={`${schemaType} key name`}
           label={`${schemaType} key name`}
           disabled={disabled}
           onKeyDown={(e) => {
@@ -76,18 +84,18 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
       </div>
 
       {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) && (
-        Object.entries(jsonValue).map(([key, type]) => (
+        Object.entries(jsonValue).map(([key, value]) => (
           <div key={key} className="mb-2 flex items-center">
             <span className="mr-2">{key}:</span>
             {editingKey === key ? (
               <Select
-                selectedValue={type}
+                selectedValue={getType(value)} // Use the helper function to get the type
                 onChange={(e) => {
                   handleTypeChange(key, e.target.value);
                   setEditingKey(null); // Close the dropdown after selection
                 }}
                 disabled={disabled}
-                defaultSelectedKeys={[type]}
+                defaultSelectedKeys={[getType(value)]} // Use the helper function to get the type
               >
                 <SelectItem key="str" value="str">str</SelectItem>
                 <SelectItem key="bool" value="bool">bool</SelectItem>
@@ -99,7 +107,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
                 className="mr-2 p-1 border rounded bg-gray-200 cursor-pointer"
                 onClick={() => setEditingKey(key)} // Open the dropdown on click
               >
-                {type}
+                {getType(value)} {/* Use the helper function to display the type */}
               </span>
             )}
             <Button
