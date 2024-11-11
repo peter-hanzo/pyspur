@@ -2,12 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { createNode } from './nodeFactory';
 
 // Utility function to map nodes and edges
-export const mapNodesAndEdges = (definition) => {
+export const mapNodesAndEdges = (definition, nodeTypes) => {
   const { nodes, links } = definition;
-
+  console.log('nodes', nodes);
   // Map nodes to the expected format
   const mappedNodes = nodes.map(node =>
-    createNode(node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y })
+    createNode(nodeTypes, node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, node.additionalData || {})
   );
 
   // Map links to the expected edge format

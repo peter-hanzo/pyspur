@@ -29,10 +29,10 @@ import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 
-const useNodeTypes = ({nodeTypesConfig}) => {
+const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
     if (!nodeTypesConfig) return {};
-
+    console.log('nodeTypesConfig', nodeTypesConfig);
     return Object.keys(nodeTypesConfig).reduce((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
