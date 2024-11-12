@@ -8,6 +8,7 @@ import { getWorkflow } from '../../utils/api';
 import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
 import { fetchNodeTypes } from '../../store/nodeTypesSlice'; // Import fetchNodeTypes
 
+import LoadingSpinner from '../../components/LoadingSpinner';
 const WorkflowPage = () => {
 
     const dispatch = useDispatch(); // Initialize dispatch
@@ -33,7 +34,7 @@ const WorkflowPage = () => {
     }, [id, dispatch]); // Add dispatch to the dependency array
 
     if (!workflowData) {
-        return <div>Loading...</div>;
+        return <LoadingSpinner />;
     }
 
     return (

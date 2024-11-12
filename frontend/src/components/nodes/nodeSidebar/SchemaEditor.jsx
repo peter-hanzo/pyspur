@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 
@@ -8,12 +8,13 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
   const [editingKey, setEditingKey] = useState(null); // Track which key's type is being edited
   const [editingField, setEditingField] = useState(null); // Track the field being edited
 
+
   const handleAddKey = () => {
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
       const updatedJson = {
         ...jsonValue,
         [newKey]: newType
-      }
+      };
       onChange(updatedJson);
       setNewKey('');
       setNewType('str');
@@ -24,7 +25,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     const updatedJson = {
       ...jsonValue,
       [key]: type
-    }
+    };
     onChange(updatedJson);
   };
 
@@ -56,6 +57,8 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     onChange(updatedJson);
     setEditingField(null);
   };
+
+
 
   return (
     <div className="json-editor">
