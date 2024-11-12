@@ -84,13 +84,14 @@ const NodeSidebar = ({ nodeID }) => {
     const renderField = (key, field, value) => {
         // Handle specific cases for input_schema, output_schema, and system_prompt
         if (key === 'input_schema') {
+
             return (
                 <div key={key} className="my-2">
                     <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Input Schema</label>
                     <SchemaEditor
                         jsonValue={field || {}}
-                        onChange={(newValue) => handleInputChange('input_schema', newValue)}
+                        onChange={(newValue) => handleInputChange('input_schema', { ...field, ...newValue })}
                         options={jsonOptions}
                         schemaType="input_schema" // Specify schema type
                     />
