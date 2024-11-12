@@ -5,8 +5,9 @@ import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
 import { Divider, Input } from '@nextui-org/react';
 import { updateNodeData } from '../../store/flowSlice';
+import { JSPydanticModel } from '../../utils/JSPydanticModel';
 
-const DynamicNode = ({ id, type, data, position, ...props }) => {
+const DynamicNode = ({ id, nodeTypeConfig, position }) => {
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
   const [editingField, setEditingField] = useState(null);
@@ -15,8 +16,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const node = useSelector((state) =>
     state.flow.nodes.find((n) => n.id === id)
   );
-
-  const nodeData = data || (node && node.data);
+  const nodeData = nodeTypeConfig || (node && node.data);
 
   const dispatch = useDispatch();
 
@@ -186,13 +186,11 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   return (
     <div style={{
       position: 'relative',
-      zIndex: props.parentNode ? 1 : 0
     }}>
       <BaseNode
         id={id}
         data={nodeData}
         style={{ width: nodeWidth }}
-        selected={props.selected}
       >
         <div className={styles.nodeWrapper} ref={nodeRef}>
           {renderHandles()}
