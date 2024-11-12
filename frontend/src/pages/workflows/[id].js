@@ -6,7 +6,7 @@ import { PersistGate } from 'redux-persist/integration/react'; // Import Persist
 import { persistor } from '../../store/store'; // Import the persistor
 import { getWorkflow } from '../../utils/api';
 import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
-import { setWorkflowInputVariable } from '../../store/flowSlice'; // Import the action to set workflow input variables
+import { fetchNodeTypes } from '../../store/nodeTypesSlice'; // Import fetchNodeTypes
 
 const WorkflowPage = () => {
 
@@ -17,6 +17,7 @@ const WorkflowPage = () => {
 
 
     useEffect(() => {
+        dispatch(fetchNodeTypes());
         const fetchWorkflow = async () => {
             try {
                 const data = await getWorkflow(id);
