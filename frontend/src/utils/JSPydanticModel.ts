@@ -49,16 +49,17 @@ class JSPydanticModel {
       const resolvedSchema = this.processSchema(fieldSchema);
 
       // Determine default value for the field
-      let defaultValue = defaultValues[fieldName] !== undefined
-        ? defaultValues[fieldName]
-        : defaults[fieldName];
+      let defaultValue =
+        defaultValues[fieldName] !== undefined
+          ? defaultValues[fieldName]
+          : defaults[fieldName];
 
       // Handle nested objects
       if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
         parentObj[fieldName] = {};
         this.initializeFields(
           resolvedSchema,
-          fullFieldName,
+          '', // Reset parentKey for nested object
           parentObj[fieldName],
           defaultValue || {}
         );
@@ -67,7 +68,7 @@ class JSPydanticModel {
 
       // Handle arrays
       if (resolvedSchema.type === 'array' && resolvedSchema.items) {
-        parentObj[`_${fieldName}`] = [];
+        parentObj[fieldName] = [];
 
         const itemSchema = resolvedSchema.items;
 
