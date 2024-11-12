@@ -309,3 +309,13 @@ export const instantiateTemplate = async (templateFileName) => {
     throw error;
   }
 };
+
+export const duplicateWorkflow = async (workflowId) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/duplicate/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating workflow:', error);
+    throw error;
+  }
+};

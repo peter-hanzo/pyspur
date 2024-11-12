@@ -18,7 +18,7 @@ import {
   useDisclosure
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow, getTemplates, instantiateTemplate } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
@@ -236,6 +236,18 @@ const Dashboard = () => {
     }
   };
 
+  const handleDuplicateClick = async (workflow) => {
+    try {
+      const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
+      // Update the workflows state
+      setWorkflows((prevWorkflows) => [duplicatedWorkflow, ...prevWorkflows]);
+      console.log(`Workflow "${workflow.name}" duplicated successfully.`);
+    } catch (error) {
+      console.error('Error duplicating workflow:', error);
+      alert('Failed to duplicate workflow. Please try again.');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="w-3/4 mx-auto p-5">
@@ -309,7 +321,14 @@ const Dashboard = () => {
                           onClick={() => handleEditClick(workflow)}
                         />
                         <Icon
-                          icon="solar:trash-bin-trash-linear"
+                          icon="solar:copy-bold"
+                          className="cursor-pointer text-default-400"
+                          height={18}
+                          width={18}
+                          onClick={() => handleDuplicateClick(workflow)}
+                        />
+                        <Icon
+                          icon="solar:trash-bin-trash-bold"
                           className="cursor-pointer text-default-400"
                           height={18}
                           width={18}
