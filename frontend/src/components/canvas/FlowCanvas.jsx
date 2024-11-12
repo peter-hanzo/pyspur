@@ -29,7 +29,6 @@ import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner'; // Updated import
-import { fetchNodeTypes } from '../../store/nodeTypesSlice'; // Import the new action
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
@@ -64,10 +63,6 @@ const FlowCanvasContent = (props) => {
   const dispatch = useDispatch();
 
   const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
-
-  useEffect(() => {
-    dispatch(fetchNodeTypes());
-  }, []);
 
   useEffect(() => {
     if (workflowData) {
