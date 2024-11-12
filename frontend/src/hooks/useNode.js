@@ -25,6 +25,14 @@ function useNode(nodeId) {
     const isHovered = String(nodeId) === String(hoveredNodeId);
     const isSelected = String(nodeId) === String(selectedNodeId);
 
+    // Method to update node data
+    const updateNodeData = useCallback(
+        (newData) => {
+            dispatch(updateNodeDataAction({ id: nodeId, data: newData }));
+        },
+        [dispatch, nodeId]
+    );
+
     // Initialize input JSPydanticModel with node.input
     const input_model = useMemo(() => {
         if (node && node.data && node.data.input) {
@@ -33,7 +41,7 @@ function useNode(nodeId) {
         return null;
     }, [node]);
 
-    // Initialize output JSPydanticModel with node.input
+    // Initialize output JSPydanticModel with node.output
     const output_model = useMemo(() => {
         if (node && node.data && node.data.output) {
             return new JSPydanticModel(node.data.output);
@@ -41,7 +49,7 @@ function useNode(nodeId) {
         return null;
     }, [node]);
 
-    // Initialize config JSPydanticModel with node.input
+    // Initialize config JSPydanticModel with node.config
     const config_model = useMemo(() => {
         if (node && node.data && node.data.config) {
             return new JSPydanticModel(node.data.config);
@@ -49,63 +57,53 @@ function useNode(nodeId) {
         return null;
     }, [node]);
 
-    // initialise config_values with the default values of the config_model
+    // Initialise config_values with the default values of the config_model
     const config_values = useMemo(() => {
         if (config_model) {
             const defaultValues = config_model.getDefaultValues();
             if (node && node.data && !node.data.config_values) {
-                dispatch(updateNodeDataAction({
-                    nodeId,
-                    data: {
-                        ...node.data,
-                        config_values: defaultValues,
-                    },
-                }));
+                updateNodeData({
+                    config_values: defaultValues,
+                });
             }
-            return defaultValues;
+            return node.data.config_values || defaultValues;
         }
         return null;
-    }, [config_model, node, dispatch, nodeId]);
+    }, [config_model, node, updateNodeData]);
 
     const input_schema = useMemo(() => {
-        const config_model = new JSPydanticModel(node?.data?.config);
         if (config_model?.input_schema) {
             return config_model.input_schema;
-        }
-        else {
-            const input_model = new JSPydanticModel(node?.data?.input);
+        } else if (input_model) {
             return input_model.getSchema();
         }
-    }, [node]);
+        return null;
+    }, [config_model, input_model]);
 
     const output_schema = useMemo(() => {
-        const config_model = new JSPydanticModel(node?.data?.config);
         if (config_model?.output_schema) {
             return config_model.output_schema;
-        }
-        else {
-            const output_model = new JSPydanticModel(node?.data?.output);
+        } else if (output_model) {
             return output_model.getSchema();
         }
-    }, [node]);
+        return null;
+    }, [config_model, output_model]);
 
     const addSchemaKey = useCallback(
-        // we store all values provided by the user in the config_values field
+        // We store all values provided by the user in the config_values field
         (key, type, schemaType) => {
-            const nodeData = node ? node.data : null;
-            if (!key.trim() || !nodeData) {
+            if (!key.trim() || !node?.data) {
                 return;
             }
 
             const updatedSchema = {
-                ...nodeData?.config_values?.[`${schemaType}_schema`],
+                ...(node.data.config_values?.[`${schemaType}_schema`] || {}),
                 [key]: type,
             };
 
             updateNodeData({
-                ...nodeData,
                 config_values: {
-                    ...nodeData.config_values,
+                    ...node.data.config_values,
                     [`${schemaType}_schema`]: updatedSchema,
                 },
             });
@@ -115,32 +113,21 @@ function useNode(nodeId) {
 
     const deleteSchemaKey = useCallback(
         (key, schemaType) => {
-            const nodeData = node ? node.data : null;
-            if (!nodeData) {
+            if (!node?.data) {
                 return;
             }
 
-            const updatedSchema = { ...nodeData?.config_values?.[`${schemaType}_schema`] };
+            const updatedSchema = { ...(node.data.config_values?.[`${schemaType}_schema`] || {}) };
             delete updatedSchema[key];
 
             updateNodeData({
-                ...nodeData,
                 config_values: {
-                    ...nodeData.config_values,
+                    ...node.data.config_values,
                     [`${schemaType}_schema`]: updatedSchema,
                 },
             });
         },
         [node, updateNodeData]
-    );
-
-
-    // Method to update node data
-    const updateNodeData = useCallback(
-        (newData) => {
-            dispatch(updateNodeDataAction({ id: nodeId, data: newData }));
-        },
-        [dispatch, nodeId]
     );
 
     // Method to set node as hovered
@@ -170,21 +157,20 @@ function useNode(nodeId) {
     // Method to handle schema key editing
     const handleSchemaKeyEdit = useCallback(
         (oldKey, newKey, schemaType) => {
-            const nodeData = node ? node.data : null;
-            if (oldKey === newKey || !newKey.trim() || !nodeData) {
+            if (oldKey === newKey || !newKey.trim() || !node?.data) {
                 return;
             }
 
+            const schema = node.data.config_values?.[`${schemaType}_schema`] || {};
             const updatedSchema = {
-                ...nodeData?.config?.[`${schemaType}_schema`],
-                [newKey]: nodeData?.config?.[`${schemaType}_schema`][oldKey],
+                ...schema,
+                [newKey]: schema[oldKey],
             };
             delete updatedSchema[oldKey];
 
             updateNodeData({
-                ...nodeData,
-                config: {
-                    ...nodeData.config,
+                config_values: {
+                    ...node.data.config_values,
                     [`${schemaType}_schema`]: updatedSchema,
                 },
             });
