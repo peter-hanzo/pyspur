@@ -17,10 +17,7 @@ const WorkflowPage = () => {
     const [workflowData, setWorkflowData] = useState(null);
 
     useEffect(() => {
-        dispatch(fetchNodeTypes()); // Dispatch the fetchNodeTypes action
-    }, []); 
-
-    useEffect(() => {
+        dispatch(fetchNodeTypes());
         const fetchWorkflow = async () => {
             try {
                 const data = await getWorkflow(id);
