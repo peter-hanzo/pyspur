@@ -28,6 +28,7 @@ import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 // Import the new API function
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
+import LoadingSpinner from '../LoadingSpinner'; // Updated import
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
@@ -54,13 +55,6 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
 const edgeTypes = {
   custom: CustomEdge,
 };
-
-// Optional: Add a loading component
-const LoadingCanvas = () => (
-  <div className="flex items-center justify-center h-full">
-    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-  </div>
-);
 
 // Create a wrapper component that includes ReactFlow logic
 const FlowCanvasContent = (props) => {
@@ -336,7 +330,7 @@ const FlowCanvasContent = (props) => {
   }, [edges]);
 
   if (isLoading) {
-    return <LoadingCanvas />;
+    return <LoadingSpinner />;
   }
 
   return (

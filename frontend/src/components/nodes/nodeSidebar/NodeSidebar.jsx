@@ -43,11 +43,13 @@ const NodeSidebar = ({ nodeID }) => {
             setNodeSchema(findNodeSchema(node.type));
             setDynamicModel(node.data.config || {});
         }
-    }, [nodeID, node]);
+    }, [nodeID, node, node.data.config]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
         const updatedModel = { ...dynamicModel, [key]: value };
+        console.log('Updated dynamicModel in NodeSidebar:', updatedModel);
+        setDynamicModel(updatedModel);
         dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     };
 
@@ -92,8 +94,11 @@ const NodeSidebar = ({ nodeID }) => {
                     <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Input Schema</label>
                     <SchemaEditor
-                        jsonValue={field || {}}
-                        onChange={(newValue) => handleInputChange('input_schema', { ...field, ...newValue })}
+                        jsonValue={dynamicModel.input_schema || {}}
+                        onChange={(newValue) => {
+                            console.log('onChange called for input_schema:', newValue);
+                            handleInputChange('input_schema', { ...field, ...newValue });
+                        }}
                         options={jsonOptions}
                         schemaType="input_schema" // Specify schema type
                     />
@@ -108,8 +113,11 @@ const NodeSidebar = ({ nodeID }) => {
                     <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Output Schema</label>
                     <SchemaEditor
-                        jsonValue={field || {}}
-                        onChange={(newValue) => handleInputChange('output_schema', newValue)}
+                        jsonValue={dynamicModel.output_schema || {}}
+                        onChange={(newValue) => {
+                            console.log('onChange called for output_schema:', newValue);
+                            handleInputChange('output_schema', newValue);
+                        }}
                         options={jsonOptions}
                         schemaType="output_schema" // Specify schema type
                     />
@@ -280,6 +288,8 @@ const NodeSidebar = ({ nodeID }) => {
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isResizing, dispatch, width]);
+
+    console.log('dynamicModel:', dynamicModel);
 
     return (
         <div
