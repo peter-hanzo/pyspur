@@ -20,8 +20,6 @@ export const mapNodesAndEdges = (definition, nodeTypes) => {
     sourceHandle: link.source_output_key,
     targetHandle: link.target_input_key
   }));
-  console.log('mappedEdges', mappedEdges);
-  console.log('mappedNodes', mappedNodes);
   return { nodes: mappedNodes, edges: mappedEdges };
 };
 

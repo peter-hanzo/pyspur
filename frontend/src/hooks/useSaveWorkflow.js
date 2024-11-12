@@ -10,13 +10,13 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
 
   const saveWorkflow = useCallback(async () => {
     try {
-      console.log('Nodes:', nodes);
+
       const updatedNodes = nodes.map(node => {
         if (node.type === 'InputNode') {
           return {
             ...node,
             config: {
-              ...node.data.userconfig,
+              ...node.data.config,
               input_schema: Object.fromEntries(
                 Object.keys(workflowInputVariables).map(key => [key, "str"])
               )

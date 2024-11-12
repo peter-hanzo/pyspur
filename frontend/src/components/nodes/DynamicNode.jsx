@@ -31,11 +31,11 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
       [newKey]: nodeData?.config?.[`${schemaType}_schema`][oldKey],
     };
     delete updatedSchema[oldKey];
-    console.log('updatedSchema', updatedSchema);
     dispatch(updateNodeData({
       id,
       data: {
         config: {
+          ...nodeData?.config,
           [`${schemaType}_schema`]: updatedSchema
         }
       }
