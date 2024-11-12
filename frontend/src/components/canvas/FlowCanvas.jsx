@@ -29,27 +29,6 @@ import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 
-const useNodeTypes = ({ nodeTypesConfig }) => {
-  const nodeTypes = useMemo(() => {
-    if (!nodeTypesConfig) return {};
-    console.log('nodeTypesConfig', nodeTypesConfig);
-    return Object.keys(nodeTypesConfig).reduce((acc, category) => {
-      nodeTypesConfig[category].forEach(node => {
-        if (node.name === 'InputNode') {
-          acc[node.name] = InputNode;
-        } else {
-          acc[node.name] = (props) => {
-            return <DynamicNode {...props} type={node.name} />;
-          };
-        }
-      });
-      return acc;
-    }, {});
-  }, [nodeTypesConfig]);
-
-  const isLoading = !nodeTypesConfig;
-  return { nodeTypes, isLoading };
-};
 
 const edgeTypes = {
   custom: CustomEdge,
@@ -66,9 +45,30 @@ const LoadingCanvas = () => (
 const FlowCanvasContent = (props) => {
   const { workflowData, workflowID } = props;
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const dispatch = useDispatch();
 
   const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
+  const nodeTypes = useMemo(() => {
+    if (!nodeTypesConfig) return {};
+    return Object.keys(nodeTypesConfig).reduce((acc, category) => {
+      nodeTypesConfig[category].forEach(node_type => {
+        if (node_type.name === 'InputNode') {
+          acc[node_type.name] = InputNode;
+        } else {
+          acc[node_type.name] = (props) => {
+            return <DynamicNode 
+                      id={props.id} 
+                      nodeTypeConfig={props.data} 
+                      position={props.position} 
+                    />; 
+          };
+        }
+      });
+      return acc;
+    }, {});
+  }, [nodeTypesConfig]);
 
   useEffect(() => {
     if (workflowData) {
@@ -93,7 +93,7 @@ const FlowCanvasContent = (props) => {
 
   }, [dispatch, workflowData, workflowID]);
 
-  const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
+  // const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
