@@ -6,8 +6,7 @@ import { PersistGate } from 'redux-persist/integration/react'; // Import Persist
 import { persistor } from '../../store/store'; // Import the persistor
 import { getWorkflow } from '../../utils/api';
 import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
-import { setWorkflowInputVariable } from '../../store/flowSlice'; // Import the action to set workflow input variables
-
+import LoadingSpinner from '../../components/LoadingSpinner';
 const WorkflowPage = () => {
 
     const dispatch = useDispatch(); // Initialize dispatch
@@ -32,7 +31,7 @@ const WorkflowPage = () => {
     }, [id, dispatch]); // Add dispatch to the dependency array
 
     if (!workflowData) {
-        return <div>Loading...</div>;
+        return <LoadingSpinner />;
     }
 
     return (
