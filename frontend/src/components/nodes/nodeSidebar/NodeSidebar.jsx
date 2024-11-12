@@ -46,7 +46,6 @@ const NodeSidebar = ({ nodeID }) => {
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
         const updatedModel = { ...dynamicModel, [key]: value };
-        console.log('Updated dynamicModel in NodeSidebar:', updatedModel);
         setDynamicModel(updatedModel);
         dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     };
@@ -94,7 +93,6 @@ const NodeSidebar = ({ nodeID }) => {
                     <SchemaEditor
                         jsonValue={dynamicModel.input_schema || {}}
                         onChange={(newValue) => {
-                            console.log('onChange called for input_schema:', newValue);
                             handleInputChange('input_schema', { ...field, ...newValue });
                         }}
                         options={jsonOptions}
@@ -113,7 +111,6 @@ const NodeSidebar = ({ nodeID }) => {
                     <SchemaEditor
                         jsonValue={dynamicModel.output_schema || {}}
                         onChange={(newValue) => {
-                            console.log('onChange called for output_schema:', newValue);
                             handleInputChange('output_schema', newValue);
                         }}
                         options={jsonOptions}
@@ -287,7 +284,6 @@ const NodeSidebar = ({ nodeID }) => {
         };
     }, [isResizing, dispatch, width]);
 
-    console.log('dynamicModel:', dynamicModel);
 
     return (
         <div
