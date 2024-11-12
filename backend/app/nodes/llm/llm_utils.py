@@ -24,7 +24,7 @@ class ModelInfo(BaseModel):
     max_tokens: Optional[int] = Field(
         ...,
         ge=1,
-        le=32768,
+        le=65536,
         description="Maximum number of tokens the model can generate",
     )
     temperature: Optional[float] = Field(
