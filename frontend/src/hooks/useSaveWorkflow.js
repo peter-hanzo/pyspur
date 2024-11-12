@@ -26,16 +26,12 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
         else {
           return {
             ...node,
-            config: {
-              ...node.data.userconfig,
-              input: node.data.input?.properties || {},
-              output: node.data.output?.properties || {}
-            },
+            config: node.data?.config,
             title: node.data?.title
           }
         }
       });
-      console.log('Updated nodes:', updatedNodes);
+
       const updatedWorkflow = {
         nodes: updatedNodes.map(node => ({
           id: node.id,
@@ -50,14 +46,14 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
           return {
             source_id: edge.source,
             source_output_key: edge.sourceHandle,
-            source_output_type: sourceNode?.config?.output_schema?.[edge.sourceHandle] || 'str',
+            source_output_type: sourceNode?.config?.data?.output_schema?.[edge.sourceHandle] || 'str',
             target_id: edge.target,
             target_input_key: edge.targetHandle,
-            target_input_type: targetNode?.config?.input_schema?.[edge.targetHandle] || 'str',
+            target_input_type: targetNode?.config?.data?.input_schema?.[edge.targetHandle] || 'str',
           };
         }),
       };
-      console.log('Updated workflow:', updatedWorkflow);
+      console.log('send to b/e workflow:', updatedWorkflow);
       await updateWorkflow(workflowID, updatedWorkflow);
     } catch (error) {
       console.error('Error saving workflow:', error);
