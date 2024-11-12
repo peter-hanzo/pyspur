@@ -12,11 +12,8 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
       const updatedJson = {
         ...jsonValue,
-        [newKey]: {
-          title: newKey,
-          type: newType
-        }
-      };
+        [newKey]: newType
+      }
       onChange(updatedJson);
       setNewKey('');
       setNewType('str');
@@ -26,11 +23,8 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
   const handleTypeChange = (key, type) => {
     const updatedJson = {
       ...jsonValue,
-      [key]: {
-        title: key,
-        type: type
-      }
-    };
+      [key]: type
+    }
     onChange(updatedJson);
   };
 
@@ -55,10 +49,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
 
     const updatedJson = {
       ...jsonValue,
-      [newKey]: {
-        title: newKey,
-        type: jsonValue[oldKey].type
-      }
+      [newKey]: getType(jsonValue[oldKey]),
     };
     delete updatedJson[oldKey];
 
@@ -85,7 +76,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
         />
         <Select
           selectedValue={newType}
-          onChange={(e) => setNewType(e.target.value)}
+          onChange={setNewType}
           disabled={disabled}
           label="Select Type"
           defaultSelectedKeys={["str"]}

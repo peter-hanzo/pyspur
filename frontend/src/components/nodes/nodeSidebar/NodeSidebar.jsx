@@ -31,7 +31,7 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-    const [dynamicModel, setDynamicModel] = useState(node?.data?.userconfig || {});
+    const [dynamicModel, setDynamicModel] = useState(node?.data?.config || {});
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
 
     // Update dynamicModel when nodeID changes
@@ -39,14 +39,15 @@ const NodeSidebar = ({ nodeID }) => {
         if (node) {
             setNodeType(node.type || 'ExampleNode');
             setNodeSchema(findNodeSchema(node.type));
-            setDynamicModel(node.data.userconfig || {});
+            setDynamicModel(node.data.config || {});
         }
     }, [nodeID, node]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
         const updatedModel = { ...dynamicModel, [key]: value };
-        dispatch(updateNodeData({ id: nodeID, data: { input: { properties: updatedModel } } }));
+        console.log('updatedModel', updatedModel);
+        dispatch(updateNodeData({ id: nodeID, data: { input: { updatedModel } } }));
     };
 
 
@@ -225,7 +226,7 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
     const renderFewShotExamples = () => {
-        const fewShotExamples = node?.data?.userconfig?.few_shot_examples || [];
+        const fewShotExamples = node?.data?.config?.few_shot_examples || [];
 
         return (
             <div>
@@ -346,7 +347,7 @@ const NodeSidebar = ({ nodeID }) => {
 
                     <AccordionItem key="title" aria-label="Node Title" title="Node Title">
                         <Input
-                            value={node?.data?.userconfig?.title || ''}
+                            value={node?.data?.config?.title || ''}
                             onChange={(e) => handleInputChange('title', e.target.value)}
                             placeholder="Enter node title"
                             maxRows={1}

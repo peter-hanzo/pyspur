@@ -31,7 +31,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
       [newKey]: nodeData?.config?.[`${schemaType}_schema`][oldKey],
     };
     delete updatedSchema[oldKey];
-
+    console.log('updatedSchema', updatedSchema);
     dispatch(updateNodeData({
       id,
       data: {
@@ -46,8 +46,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
-    const inputSchema = nodeData?.input?.properties || {};
-    const outputSchema = nodeData?.output?.properties || {};
+    const inputSchema = nodeData?.config?.input_schema || {};
+    const outputSchema = nodeData?.config?.output_schema || {};
 
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);

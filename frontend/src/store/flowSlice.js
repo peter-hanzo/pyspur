@@ -25,7 +25,6 @@ const flowSlice = createSlice({
       const { nodes, edges } = mapNodesAndEdges(definition, nodeTypes);
       state.nodes = nodes;
       state.edges = edges;
-
       if (definition.input_variables) {
         state.workflowInputVariables = definition.input_variables;
       }
@@ -53,7 +52,9 @@ const flowSlice = createSlice({
     updateNodeData: (state, action) => {
       const { id, data } = action.payload;
       const node = state.nodes.find((node) => node.id === id);
+
       if (node) {
+
         state.edges = handleSchemaChanges(node, data, state.edges);
       }
     },

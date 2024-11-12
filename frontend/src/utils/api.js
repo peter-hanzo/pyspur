@@ -131,6 +131,7 @@ export const startBatchRun = async (workflowID, datasetID, miniBatchSize = 10) =
 export const getWorkflow = async (workflowID) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/`);
+    console.log('get wrkflow from b/e', response.data);
     return response.data;
   } catch (error) {
     console.error('Error getting workflow:', error);
