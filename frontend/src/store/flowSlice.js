@@ -51,11 +51,13 @@ const flowSlice = createSlice({
     },
     updateNodeData: (state, action) => {
       const { id, data } = action.payload;
+      console.log('updateNodeData', id, data);
       const node = state.nodes.find((node) => node.id === id);
 
       if (node) {
 
         state.edges = handleSchemaChanges(node, data, state.edges);
+        node.data = { ...node.data, ...data };
       }
     },
     setHoveredNode: (state, action) => {

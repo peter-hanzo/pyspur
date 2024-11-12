@@ -46,8 +46,7 @@ const NodeSidebar = ({ nodeID }) => {
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
         const updatedModel = { ...dynamicModel, [key]: value };
-        console.log('updatedModel', updatedModel);
-        dispatch(updateNodeData({ id: nodeID, data: { input: { updatedModel } } }));
+        dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     };
 
 
@@ -81,147 +80,129 @@ const NodeSidebar = ({ nodeID }) => {
         handleInputChange('few_shot_examples', updatedExamples);
     };
 
+    // Helper function to render fields based on their type
+    const renderField = (key, field, value) => {
+        // Handle specific cases for input_schema, output_schema, and system_prompt
+        if (key === 'input_schema') {
+            return (
+                <div key={key} className="my-2">
+                    <hr className="my-2" />
+                    <label className="text-sm font-semibold mb-1 block">Input Schema</label>
+                    <SchemaEditor
+                        jsonValue={field || {}}
+                        onChange={(newValue) => handleInputChange('input_schema', newValue)}
+                        options={jsonOptions}
+                        schemaType="input_schema" // Specify schema type
+                    />
+                    <hr className="my-2" />
+                </div>
+            );
+        }
+
+        if (key === 'output_schema') {
+            return (
+                <div key={key} className="my-2">
+                    <hr className="my-2" />
+                    <label className="text-sm font-semibold mb-1 block">Output Schema</label>
+                    <SchemaEditor
+                        jsonValue={field || {}}
+                        onChange={(newValue) => handleInputChange('output_schema', newValue)}
+                        options={jsonOptions}
+                        schemaType="output_schema" // Specify schema type
+                    />
+                    <hr className="my-2" />
+                </div>
+            );
+        }
+
+        if (key === 'system_prompt') {
+            return (
+                <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
+                    <PromptEditor
+                        key={key}
+                        nodeID={nodeID}
+                        fieldName={key}
+                        inputSchema={dynamicModel.input_schema || {}}
+                        fieldTitle="System Prompt"
+                        setContent={(value) => handleInputChange(key, value)}
+                    />
+                    {/* Render Few Shot Examples right after the System Prompt */}
+                    {renderFewShotExamples()}
+                </div>
+            );
+        }
+
+        // Handle other types (string, number, boolean, object, code)
+        switch (typeof field) {
+            case 'string':
+                return (
+                    <Textarea
+                        fullWidth
+                        key={key}
+                        label={key}
+                        value={value}
+                        onChange={(e) => handleInputChange(key, e.target.value)}
+                        placeholder="Enter your input"
+                    />
+                );
+            case 'number':
+                return (
+                    <NumberInput
+                        key={key}
+                        label={key}
+                        value={value}
+                        onChange={(e) => {
+                            const newValue = parseFloat(e.target.value);
+                            handleInputChange(key, isNaN(newValue) ? 0 : newValue);
+                        }}
+                    />
+                );
+            case 'boolean':
+                return (
+                    <div key={key} className="my-4">
+                        <div className="flex justify-between items-center">
+                            <label className="font-semibold">{key}</label>
+                            <Switch
+                                checked={value}
+                                onChange={(e) => handleInputChange(key, e.target.checked)}
+                            />
+                        </div>
+                    </div>
+                );
+            case 'object':
+                // Ensure field is a valid object before traversing
+                if (field && typeof field === 'object' && !Array.isArray(field)) {
+                    return (
+                        <div key={key} className="my-2">
+                            <hr className="my-2" />
+                            <label className="text-sm font-semibold mb-1 block">{key}</label>
+                            {Object.keys(field).map((subKey) => renderField(subKey, field[subKey], value?.[subKey]))}
+                            <hr className="my-2" />
+                        </div>
+                    );
+                }
+                return null; // Return null if field is not a valid object
+            case 'code':
+                return (
+                    <CodeEditor
+                        key={key}
+                        code={value}
+                        onChange={(newValue) => handleInputChange(key, newValue)}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
+    // Updated renderConfigFields function
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config;
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
-
-
-            // Check for input_schema key
-            if (key === 'input_schema') {
-                return (
-                    <div key={key} className="my-2">
-                        <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">Input Schema</label>
-                        <SchemaEditor
-                            jsonValue={field || {}}
-                            onChange={(newValue) => handleInputChange('input', { properties: newValue })}
-                            options={jsonOptions}
-                            schemaType="input" // Specify schema type
-                        />
-                        <hr className="my-2" />
-                    </div>
-                );
-            }
-
-            // Check for output_schema key
-            else if (key === 'output_schema') {
-
-                return (
-                    <div key={key} className="my-2">
-                        <hr className="my-2" />
-                        <label className="text-sm font-semibold mb-1 block">Output Schema</label>
-                        <SchemaEditor
-                            jsonValue={field || {}}
-                            onChange={(newValue) => handleInputChange('output', { properties: newValue })}
-                            options={jsonOptions}
-                            schemaType="output" // Specify schema type
-                        />
-                        <hr className="my-2" />
-                    </div>
-                );
-            }
-
-            // Check for system_prompt key
-            else if (key === 'system_prompt') {
-                return (
-                    <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <PromptEditor
-                                key={key}
-                                nodeID={nodeID}
-                                fieldName={key}
-                                inputSchema={dynamicModel.input_schema || {}}
-                                fieldTitle="System Prompt"
-                                setContent={(value) => handleInputChange(key, value)}
-                            />
-                        </div>
-
-                        {/* Render Few Shot Examples right after the System Prompt */}
-                        {renderFewShotExamples()}
-                    </div>
-                );
-            }
-
-            // Check for few_shot_examples key
-            else if (key === 'few_shot_examples') {
-                return (
-                    <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
-                        <label className="text-sm font-semibold mb-1 block">Few Shot Examples</label>
-                        <Textarea
-                            fullWidth
-                            value={value || ''}
-                            onChange={(e) => handleInputChange(key, e.target.value)}
-                            placeholder="Enter few shot examples"
-                        />
-                    </div>
-                );
-            }
-
-            // Handle other types (string, integer, number, boolean, object, code)
-            switch (typeof field) {
-                case 'string':
-
-                    return (
-                        <Textarea
-                            fullWidth
-                            key={key}
-                            label={key}
-                            value={value}
-                            onChange={(e) => handleInputChange(key, e.target.value)}
-                            placeholder="Enter your input"
-                        />
-                    );
-                case 'number':
-                    return (
-                        <NumberInput
-                            key={key}
-                            label={key}
-                            value={value}
-                            onChange={(e) => {
-                                const newValue = parseFloat(e.target.value);
-                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
-                            }}
-                        />
-                    );
-                case 'boolean':
-                    return (
-                        <div key={key} className="my-4">
-                            <div className="flex justify-between items-center">
-                                <label className="font-semibold">{key}</label>
-                                <Switch
-                                    checked={value}
-                                    onChange={(e) => handleInputChange(key, e.target.checked)}
-                                />
-                            </div>
-                        </div>
-                    );
-                case 'object':
-                    return (
-                        <div key={key} className="my-2">
-                            <hr className="my-2" />
-                            <label className="text-sm font-semibold mb-1 block">{key}</label>
-                            <SchemaEditor
-                                jsonValue={value}
-                                onChange={(newValue) => handleInputChange(key, newValue)}
-                                options={jsonOptions}
-                            />
-                            <hr className="my-2" />
-                        </div>
-                    );
-                case 'code':
-                    return (
-                        <CodeEditor
-                            key={key}
-                            code={value}
-                            onChange={(newValue) => handleInputChange(key, newValue)}
-                        />
-                    );
-                default:
-                    return null;
-            }
+            return renderField(key, field, value); // Use the helper function to render each field
         }).concat(<hr key="divider" className="my-2" />);
     };
 
