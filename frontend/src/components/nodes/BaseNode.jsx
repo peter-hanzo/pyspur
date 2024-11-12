@@ -1,32 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setHoveredNode, deleteNode, setSelectedNode } from '../../store/flowSlice';
+import React, { useState } from 'react';
 import {
   Card,
   CardHeader,
   CardBody,
   Divider,
   Button,
-  Tooltip,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import useNode from '../../hooks/useNode';
 
 const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const dispatch = useDispatch();
 
-  const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
-  const selectedNodeId = useSelector((state) => state.flow.selectedNode);
+  const {
+    isHovered,
+    isSelected,
+    setHovered,
+    setSelected,
+    deleteNode,
+  } = useNode(id);
 
   const handleMouseEnter = () => {
-    dispatch(setHoveredNode({ nodeId: id }));
+    setHovered(true);
     setShowControls(true);
   };
 
   const handleMouseLeave = () => {
-    dispatch(setHoveredNode({ nodeId: null }));
+    setHovered(false);
     if (!isTooltipHovered) {
       setTimeout(() => {
         setShowControls(false);
@@ -35,14 +37,11 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
   };
 
   const handleDelete = () => {
-    dispatch(deleteNode({ nodeId: id }));
-    if (selectedNodeId === id) {
-      dispatch(setSelectedNode({ nodeId: null }));
+    deleteNode();
+    if (isSelected) {
+      setSelected(false);
     }
   };
-
-  const isHovered = String(id) === String(hoveredNodeId);
-  const isSelected = String(id) === String(selectedNodeId);
 
   const status = data.run && data.run.data ? 'completed' : (data.status || 'default').toLowerCase();
 

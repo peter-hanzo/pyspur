@@ -1,53 +1,27 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Handle } from '@xyflow/react';
-import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
-import { Divider, Input } from '@nextui-org/react';
-import { updateNodeData } from '../../store/flowSlice';
-import { JSPydanticModel } from '../../utils/JSPydanticModel';
+import { Input } from '@nextui-org/react';
+import useNode from '../../hooks/useNode';
 
 const DynamicNode = ({ id, nodeTypeConfig, position }) => {
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
   const [editingField, setEditingField] = useState(null);
-  const [newFieldValue, setNewFieldValue] = useState('');
 
-  const node = useSelector((state) =>
-    state.flow.nodes.find((n) => n.id === id)
-  );
-  const nodeData = nodeTypeConfig || (node && node.data);
-
-  const dispatch = useDispatch();
-
-  const handleSchemaKeyEdit = useCallback((oldKey, newKey, schemaType) => {
-    if (oldKey === newKey || !newKey.trim()) {
-      setEditingField(null);
-      return;
-    }
-
-    const updatedSchema = {
-      ...nodeData?.config?.[`${schemaType}_schema`],
-      [newKey]: nodeData?.config?.[`${schemaType}_schema`][oldKey],
-    };
-    delete updatedSchema[oldKey];
-    dispatch(updateNodeData({
-      id,
-      data: {
-        config: {
-          ...nodeData?.config,
-          [`${schemaType}_schema`]: updatedSchema
-        }
-      }
-    }));
-    setEditingField(null);
-  }, [dispatch, id, nodeData]);
+  const {
+    nodeData,
+    input_schema,
+    output_schema,
+    handleSchemaKeyEdit,
+  } = useNode(id);
 
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
-    const inputSchema = nodeData?.config?.input_schema || {};
-    const outputSchema = nodeData?.config?.output_schema || {};
+    const inputSchema = input_schema || {};
+    const outputSchema = output_schema || {};
 
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);
@@ -62,13 +36,13 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
     const finalWidth = Math.min(calculatedWidth, 600);
 
     setNodeWidth(`${finalWidth}px`);
-  }, [nodeData]);
+  }, [nodeData, input_schema, output_schema]);
 
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = nodeData?.config?.input_schema || {};
-    const outputSchema = nodeData?.config?.output_schema || {};
+    const inputSchema = input_schema || {};
+    const outputSchema = output_schema || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
