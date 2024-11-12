@@ -234,30 +234,39 @@ class JSPydanticModel {
 
   private extractDefaults(schema: JSONSchema): { [key: string]: any } {
     let defaults: { [key: string]: any } = {};
-
+  
     // Handle default at the schema level
     if (schema.hasOwnProperty('default')) {
-      defaults = schema.default;
+      return schema.default;
     }
-
-    // Handle properties with defaults
-    const properties = schema.properties || {};
-    for (const [fieldName, fieldSchema] of Object.entries(properties)) {
-      const resolvedSchema = this.processSchema(fieldSchema);
-      let fieldDefault;
-
-      if (fieldSchema.hasOwnProperty('default')) {
-        fieldDefault = fieldSchema.default;
-      } else if (resolvedSchema.hasOwnProperty('default')) {
-        fieldDefault = resolvedSchema.default;
+  
+    const resolvedSchema = this.processSchema(schema);
+  
+    if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
+      defaults = {};
+      const properties = resolvedSchema.properties || {};
+      for (const [fieldName, fieldSchema] of Object.entries(properties)) {
+        const fieldDefault = this.extractDefaults(fieldSchema);
+        if (fieldDefault !== undefined) {
+          defaults[fieldName] = fieldDefault;
+        }
       }
-
-      if (fieldDefault !== undefined) {
-        defaults[fieldName] = fieldDefault;
+    } else if (resolvedSchema.type === 'array' && resolvedSchema.items) {
+      const itemDefault = this.extractDefaults(resolvedSchema.items);
+      if (itemDefault !== undefined) {
+        defaults = [itemDefault];
+      } else {
+        defaults = [];
       }
+    } else if (resolvedSchema.hasOwnProperty('default')) {
+      defaults = resolvedSchema.default;
     }
-
+  
     return defaults;
+  }
+
+  public getDefaultValues(): { [key: string]: any } {
+    return this.extractDefaults(this._schema);
   }
 
   private processValue(
