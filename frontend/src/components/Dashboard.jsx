@@ -258,7 +258,7 @@ const Dashboard = () => {
         <header className="mb-6 flex w-full items-center">
           <div className="flex flex-col max-w-fit" id="dashboard-title">
             <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
-            <p className="text-small text-default-400 lg:text-medium">Manage your workflows</p>
+            <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
           </div>
           <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
             <Button
