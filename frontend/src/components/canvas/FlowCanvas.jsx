@@ -88,7 +88,7 @@ const FlowCanvasContent = (props) => {
           }
         }
       }
-      dispatch(initializeFlow({ ...workflowData, workflowID, nodeTypes: nodeTypesConfig }));
+      dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
     }
 
   }, [dispatch, workflowData, workflowID]);

@@ -15,9 +15,7 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setCont
   const dispatch = useDispatch();
   const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
   const [fieldValue, setFieldValue] = useState(
-    // First try to read from userconfig, fall back to config.properties
-    node?.data?.userconfig?.[fieldName] ||
-    node?.data?.config?.properties?.[fieldName]?.value ||
+    node?.data?.config?.[fieldName]?.value ||
     ''
   );
 
@@ -25,14 +23,13 @@ const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setCont
   useEffect(() => {
     if (!node) return; // Add early return if node is undefined
 
-    // Compare with userconfig instead of config.properties
-    if (fieldValue !== node?.data?.userconfig?.[fieldName]) {
+    if (fieldValue !== node?.data?.config?.[fieldName]) {
       dispatch(updateNodeData({
         id: nodeID,
         data: {
           ...node?.data,
-          userconfig: {
-            ...node?.data?.userconfig || {}, // Add fallback empty object
+          config: {
+            ...node?.data?.config || {}, // Add fallback empty object
             [fieldName]: fieldValue,
           },
         },

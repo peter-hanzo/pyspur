@@ -27,15 +27,17 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     }
 
     const updatedSchema = {
-      ...nodeData[schemaType]?.properties,
-      [newKey]: nodeData[schemaType]?.properties[oldKey],
+      ...nodeData?.config?.[`${schemaType}_schema`],
+      [newKey]: nodeData?.config?.[`${schemaType}_schema`][oldKey],
     };
     delete updatedSchema[oldKey];
-
     dispatch(updateNodeData({
       id,
       data: {
-        [schemaType]: { properties: updatedSchema }
+        config: {
+          ...nodeData?.config,
+          [`${schemaType}_schema`]: updatedSchema
+        }
       }
     }));
     setEditingField(null);
@@ -44,8 +46,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
-    const inputSchema = nodeData?.input?.properties || {};
-    const outputSchema = nodeData?.output?.properties || {};
+    const inputSchema = nodeData?.config?.input_schema || {};
+    const outputSchema = nodeData?.config?.output_schema || {};
 
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);
@@ -65,8 +67,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = nodeData?.input?.properties || {};
-    const outputSchema = nodeData?.output?.properties || {};
+    const inputSchema = nodeData?.config?.input_schema || {};
+    const outputSchema = nodeData?.config?.output_schema || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
