@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import usePartialRun from '../../hooks/usePartialRun';
 
 const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -19,6 +20,8 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeId = useSelector((state) => state.flow.selectedNode);
+
+  const { executePartialRun, loading, error, result } = usePartialRun();
 
   const handleMouseEnter = () => {
     dispatch(setHoveredNode({ nodeId: id }));
@@ -39,6 +42,22 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
     if (selectedNodeId === id) {
       dispatch(setSelectedNode({ nodeId: null }));
     }
+  };
+
+  const handlePartialRun = () => {
+    const initialInputs = {
+      "input_node": { "user_message": "Give me geographical conditions of London" }
+    };
+    const partialOutputs = {
+      "input_node": { "user_message": "Hi There!" },
+      "node_1731411247373": { "response": "Hello, How are ya?" }
+    };
+    const rerunPredecessors = true;
+
+    // get workflow id from url
+    const workflowId = window.location.pathname.split('/').pop();
+
+    executePartialRun(workflowId, id, initialInputs, partialOutputs, rerunPredecessors);
   };
 
   const isHovered = String(id) === String(hoveredNodeId);
@@ -110,7 +129,7 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
         )}
         <Divider />
 
-        {!isCollapsed && 
+        {!isCollapsed &&
           <CardBody
             className="px-1"
           >
@@ -146,9 +165,13 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
               isIconOnly
               radius="full"
               variant="light"
+              onPress={handlePartialRun}
+              disabled={loading}
             >
               <Icon className="text-default-500" icon="solar:play-linear" width={22} />
             </Button>
+            {/* {error && <div>Error: {error.message}</div>}
+            {result && <div>Result: {JSON.stringify(result)}</div>} */}
             {!isInputNode && (
               <Button
                 isIconOnly
