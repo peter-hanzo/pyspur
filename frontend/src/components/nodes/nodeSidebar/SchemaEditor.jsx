@@ -1,45 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
+import useNode from '../../../hooks/useNode';
 
-const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input' }) => {
+const SchemaEditor = (props) => {
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('str'); // Default to 'string'
-  const [editingKey, setEditingKey] = useState(null); // Track which key's type is being edited
   const [editingField, setEditingField] = useState(null); // Track the field being edited
+  const { nodeID, schemaType, disabled = false } = props;
+  const {config_values, input_schema, output_schema, addSchemaField, deleteSchemaField, updateSchemaField} = useNode(nodeID);
 
+  if (!nodeID) return null;
+  
+  const schemaFields = schemaType === 'input' ? input_schema : output_schema;
 
   const handleAddKey = () => {
-    if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
-      const updatedJson = {
-        ...jsonValue,
-        [newKey]: newType
-      };
-      onChange(updatedJson);
-      setNewKey('');
-      setNewType('str');
-    }
+    console.log('config_values before',config_values);
+    console.log('schemaFields before',schemaFields);
+    addSchemaField(newKey, newType, schemaType);
+    console.log('config_values after',config_values);
+    console.log('schemaFields after',schemaFields);
+    setNewKey('');
+    setNewType('str');
   };
 
   const handleTypeChange = (key, type) => {
-    const updatedJson = {
-      ...jsonValue,
-      [key]: type
-    };
-    onChange(updatedJson);
+    updateSchemaField(key, key, type, schemaType);
   };
 
   const handleRemoveKey = (key) => {
-    const { [key]: _, ...updatedJson } = jsonValue;
-    onChange(updatedJson);
+    deleteSchemaField(key, schemaType);
   };
 
   // Helper function to extract the type from the value
   const getType = (value) => {
-    if (typeof value === 'object' && value !== null) {
-      return value.type || 'str';
-    }
-    return value;
+    return value?.fieldType || 'str';
   };
 
   const handleKeyEdit = (oldKey, newKey) => {
@@ -47,41 +42,32 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
       setEditingField(null);
       return;
     }
-
-    const updatedJson = {
-      ...jsonValue,
-      [newKey]: getType(jsonValue[oldKey]),
-    };
-    delete updatedJson[oldKey];
-
-    onChange(updatedJson);
+    updateSchemaField(oldKey, newKey, null, schemaType);
     setEditingField(null);
   };
-
-
-
+  
   return (
     <div className="json-editor">
-      <div className="mb-4 flex items-center space-x-4">
+      <div className="mb-4 flex items-center">
         <Input
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder={`${schemaType} key name`}
-          label={`${schemaType} key name`}
+          placeholder={`${schemaType} field name`}
+          // label={`${schemaType} field name`}
           disabled={disabled}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !disabled && newKey) {
               handleAddKey();
             }
           }}
-          className="p-2 flex-grow w-2/3"
+          className="flex-grow w-2/3"
         />
         <Select
           selectedValue={newType}
-          onChange={setNewType}
+          onChange={(e) => setNewType(e.target.value)}
           disabled={disabled}
-          label="Select Type"
+          // label="Type"
           defaultSelectedKeys={["str"]}
           className="max-w-xs p-2 w-1/3"
         >
@@ -103,50 +89,52 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
         </Button>
       </div>
 
-      {jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue) && (
-        Object.entries(jsonValue).map(([key, value]) => (
-          <div key={key} className="mb-2 flex items-center">
-            {editingField === key ? (
-              <Input
-                autoFocus
-                defaultValue={key}
-                size="sm"
-                variant="faded"
-                radius="lg"
-                onBlur={(e) => handleKeyEdit(key, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleKeyEdit(key, e.target.value);
-                  } else if (e.key === 'Escape') {
-                    setEditingField(null);
-                  }
-                }}
-                classNames={{
-                  input: "bg-default-100",
-                  inputWrapper: "shadow-none",
-                }}
-              />
-            ) : (
-              <span
-                className="mr-2 p-1 border rounded bg-gray-200 cursor-pointer"
-                onClick={() => setEditingField(key)} // Open the input on click
+      {schemaFields && Array.isArray(schemaFields) && (
+        schemaFields.map((schemaField) => (
+          schemaField && (
+            <div key={schemaField.field_name} className="mb-2 flex items-center">
+              {editingField === schemaField.field_name ? (
+                <Input
+                  autoFocus
+                  defaultValue={schemaField.field_name}
+                  size="sm"
+                  variant="faded"
+                  radius="lg"
+                  onBlur={(e) => handleKeyEdit(schemaField.field_name, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleKeyEdit(schemaField.field_name, e.target.value);
+                    } else if (e.key === 'Escape') {
+                      setEditingField(null);
+                    }
+                  }}
+                  classNames={{
+                    input: "bg-default-100",
+                    inputWrapper: "shadow-none",
+                  }}
+                />
+              ) : (
+                <span
+                  className="mr-2 p-1 border rounded bg-gray-200 cursor-pointer"
+                  onClick={() => setEditingField(schemaField.field_name)} // Open the input on click
+                >
+                  {schemaField.field_name}
+                </span>
+              )}
+              <span className="mr-2">{schemaField.field_type}</span>
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                onClick={() => handleRemoveKey(schemaField.field_name)}
+                color="primary"
+                disabled={disabled}
+                auto
               >
-                {key}
-              </span>
-            )}
-            <span className="mr-2">{getType(value)}</span>
-            <Button
-              isIconOnly
-              radius="full"
-              variant="light"
-              onClick={() => handleRemoveKey(key)}
-              color="primary"
-              disabled={disabled}
-              auto
-            >
-              <Icon icon="solar:trash-bin-trash-linear" width={22} />
-            </Button>
-          </div>
+                <Icon icon="solar:trash-bin-trash-linear" width={22} />
+              </Button>
+            </div>
+          )
         ))
       )}
     </div>

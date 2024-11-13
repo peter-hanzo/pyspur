@@ -1,6 +1,6 @@
 // frontend/src/hooks/useNode.js
 import { useDispatch, useSelector } from 'react-redux';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
     updateNodeData as updateNodeDataAction,
     setHoveredNode,
@@ -35,72 +35,76 @@ function useNode(nodeId) {
 
     // Initialize input JSPydanticModel with node.input
     const input_model = useMemo(() => {
-        if (node && node.data && node.data.input) {
+        if (node?.data?.input) {
             return new JSPydanticModel(node.data.input);
         }
         return null;
-    }, [node]);
+    }, [node?.data?.input]);
 
     // Initialize output JSPydanticModel with node.output
     const output_model = useMemo(() => {
-        if (node && node.data && node.data.output) {
+        if (node?.data?.output) {
             return new JSPydanticModel(node.data.output);
         }
         return null;
-    }, [node]);
+    }, [node?.data?.output]);
 
     // Initialize config JSPydanticModel with node.config
     const config_model = useMemo(() => {
-        if (node && node.data && node.data.config) {
+        if (node?.data?.config) {
             return new JSPydanticModel(node.data.config);
         }
         return null;
-    }, [node]);
+    }, [node?.data?.config]);
 
     // Initialise config_values with the default values of the config_model
     const config_values = useMemo(() => {
         if (config_model) {
             const defaultValues = config_model.getDefaultValues();
-            if (node && node.data && !node.data.config_values) {
-                updateNodeData({
-                    config_values: defaultValues,
-                });
-            }
             return node.data.config_values || defaultValues;
         }
         return null;
+    }, [config_model, node.data.config_values]);
+
+    useEffect(() => {
+        if (config_model && node && node.data && !node.data.config_values) {
+            updateNodeData({
+                config_values: config_model.getDefaultValues(),
+            });
+        }
     }, [config_model, node, updateNodeData]);
 
     const input_schema = useMemo(() => {
-        if (config_model?.input_schema) {
+        if (config_values?.input_schema) {
+            return config_values.input_schema;
+        } else if (config_model?.input_schema) {
             return config_model.input_schema;
         } else if (input_model) {
             return input_model.getSchema();
         }
         return null;
-    }, [config_model, input_model]);
+    }, [config_values?.input_schema, config_model?.input_schema, input_model]);
 
     const output_schema = useMemo(() => {
-        if (config_model?.output_schema) {
+        if (config_values?.output_schema) {
+            return config_values.output_schema;
+        } else if (config_model?.output_schema) {
             return config_model.output_schema;
         } else if (output_model) {
             return output_model.getSchema();
         }
         return null;
-    }, [config_model, output_model]);
+    }, [config_values?.output_schema, config_model?.output_schema, output_model]);
 
-    const addSchemaKey = useCallback(
-        // We store all values provided by the user in the config_values field
+    const addSchemaField = useCallback(
         (key, type, schemaType) => {
             if (!key.trim() || !node?.data) {
                 return;
             }
 
-            const updatedSchema = {
-                ...(node.data.config_values?.[`${schemaType}_schema`] || {}),
-                [key]: type,
-            };
-
+            let schemaFiedsSoFar = node.data.config_values?.[`${schemaType}_schema`] || [];
+            const newSchemaField = { field_name: key, field_type: type };
+            const updatedSchema = schemaFiedsSoFar.concat(newSchemaField);
             updateNodeData({
                 config_values: {
                     ...node.data.config_values,
@@ -111,15 +115,41 @@ function useNode(nodeId) {
         [node, updateNodeData]
     );
 
-    const deleteSchemaKey = useCallback(
+    const deleteSchemaField = useCallback(
         (key, schemaType) => {
             if (!node?.data) {
                 return;
             }
 
-            const updatedSchema = { ...(node.data.config_values?.[`${schemaType}_schema`] || {}) };
-            delete updatedSchema[key];
+            const updatedSchema = node.data.config_values?.[`${schemaType}_schema`].filter(
+                (field) => field.field_name !== key
+            );
+            updateNodeData({
+                config_values: {
+                    ...node.data.config_values,
+                    [`${schemaType}_schema`]: updatedSchema,
+                },
+            });
+        },
+        [node, updateNodeData]
+    );
 
+    const updateSchemaField = useCallback(
+        (origKey, newKey, newType, schemaType) => {
+            if (!node?.data) {
+                return;
+            }
+
+            const updatedSchema = node.data.config_values?.[`${schemaType}_schema`].map((field) => {
+                if (field.fieldName === origKey) {
+                    return {
+                        field_name: newKey,
+                        field_type: newType ? newType : field.field_type,
+                    };
+                }
+                return field;
+            }
+            );
             updateNodeData({
                 config_values: {
                     ...node.data.config_values,
@@ -186,8 +216,9 @@ function useNode(nodeId) {
         input_schema,
         output_schema,
         config_values,
-        addSchemaKey,
-        deleteSchemaKey,
+        addSchemaField,
+        deleteSchemaField,
+        updateSchemaField,
         updateNodeData,
         setHovered,
         setSelected,
