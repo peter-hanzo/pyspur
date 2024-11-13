@@ -26,9 +26,11 @@ const NodeSidebar = ({ nodeID }) => {
     const [inputVariables, setInputVariables] = useState({});
 
     useEffect(() => {
-        const inputVars = input_schema.map((schemaField) => {
-            return { [schemaField.fieldName]: schemaField.fieldType };
-        });
+        const inputVars = input_schema.reduce((acc, curr) => {
+            acc[curr.field_name] = curr.field_type;
+            return acc;
+        }
+        , {});
         setInputVariables(inputVars);
     }, [input_schema]);
 
@@ -129,7 +131,7 @@ const NodeSidebar = ({ nodeID }) => {
                         key={key}
                         nodeID={nodeID}
                         fieldName={key}
-                        inputSchema={input_schema || {}}
+                        inputSchema={inputVariables}
                         fieldTitle="System Prompt"
                         setContent={(value) => handleInputChange(key, value)}
                     />
