@@ -120,18 +120,29 @@ class JSPydanticModel {
             } else {
               throw new Error(`Field '${fullFieldName}' cannot be null.`);
             }
-          } else {
-            // Validate against enum if applicable
-            if (this.enums[fullFieldName]) {
-              if (!this.enums[fullFieldName].includes(value)) {
-                throw new Error(
-                  `Invalid value '${value}' for field '${fullFieldName}'. Allowed values are: ${this.enums[fullFieldName].join(
-                    ', '
-                  )}.`
-                );
-              }
+          } 
+          else if (value === undefined) {
+            // do nothing
+          }
+          else if (this.enums[fullFieldName]) {
+            // Validate enum values
+            if (!this.enums[fullFieldName].includes(value)) {
+              // throw new Error(
+              //   `Invalid value '${JSON.stringify(value)}' for field '${fullFieldName}'. Allowed values are: ${this.enums[fullFieldName].join(
+              //     ', '
+              //   )}.`
+              // );
             }
-            parentObj[`_${fieldName}`] = value;
+            else {
+              parentObj[`_${fieldName}`] = value;
+            }
+          }
+          else {
+            parentObj[`_${fieldName}`] = this.processValue(
+              resolvedSchema,
+              value,
+              fullFieldName
+            );
           }
         },
         enumerable: true,
@@ -218,18 +229,22 @@ class JSPydanticModel {
   }
 
   private resolveRef(ref: string): SchemaProperty | null {
-    const cleanRef = ref.split('#/').pop(); // Remove starting '#/' if present
-    const path = cleanRef ? cleanRef.split('/') : [];
-    let schema: any = this._schema;
-    for (const part of path) {
-      if (schema[part]) {
-        schema = schema[part];
-      } else {
-        // Reference not found
-        return null;
+    if (ref.startsWith('#/')) {
+      const path = ref.slice(2).split('/'); // Removes the leading '#/' and splits the path
+      let schema: any = this._schema;
+      for (const part of path) {
+        if (schema.hasOwnProperty(part)) {
+          schema = schema[part];
+        } else {
+          // Reference not found
+          return null;
+        }
       }
+      return schema;
+    } else {
+      // Handle external references or other ref formats if necessary
+      return null;
     }
-    return schema;
   }
 
   private extractDefaults(schema: JSONSchema): { [key: string]: any } {
@@ -253,7 +268,7 @@ class JSPydanticModel {
       }
     } else if (resolvedSchema.type === 'array' && resolvedSchema.items) {
       const itemDefault = this.extractDefaults(resolvedSchema.items);
-      if (itemDefault !== undefined) {
+      if (itemDefault !== undefined && Object.keys(itemDefault).length > 0) {
         defaults = [itemDefault];
       } else {
         defaults = [];
@@ -314,7 +329,14 @@ class JSPydanticModel {
       }
     }
 
-    // Additional type validation can be added here if necessary
+    // validate $ref
+    if (resolvedSchema.$ref) {
+      const refSchema = this.resolveRef(resolvedSchema.$ref);
+      if (refSchema) {
+        return this.processValue(refSchema, value, fieldPath);
+      }
+    }
+
 
     return value;
   }
