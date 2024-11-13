@@ -1,25 +1,27 @@
-# PySpur - LLM Reasoning via Inference-Time Compute
+# PySpur - An IDE for Inference-Time Compute
 
-PySpur is a library for building LLM reasoning pipelines involving inference-time compute methods.
+PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference-time compute pipelines.
 
 *Insert GIF here*
 
+# Three Key Features
+
+1. **Inference-Time Compute Nodes**: We natively support nodes for
+    * **High-level, batteries-included planners** (MCTS, Self-Refinement, BoN, ToT, etc.)
+    * **Low-level primitives for parallel and sequential sampling** (cycles, branching, aggregation) to build custom planners
+    * **Verifiers** (Code nodes, LLM-as-a-judge, software integrations, etc.)
+2. **Job Queue for Batch Inference**:
+    * **Submit and manage batch jobs via UI**
+    * **Self-hosting of async batch APIs**
+    * **Fault tolerance and job persistence**  
+3. **Evals**:
+    * **Common reasoning benchmarks** (GSM8k, MATH, ARC, etc.)
+
 # Why PySpur?
 
-*Insert Results and templates here*
+Humans think for longer on difficult problems to improve their decisions. Similarly, we can enable LLMs to utilize additional compute at inference time via computational graphs that involve multiple steps and feedback loops. However, developing, debugging, and deploying such graphs can be challenging due to the intricate interdependencies among nodes, where the output of one node becomes the input for the next.
 
-* Inference-time compute is the next paradigm...
-    * O1 has shown this
-* Iterating on ITC workflows is much easier visually
-* Evals are essential
-    * errors compound
-    * debugging every step is essential for **robustness**
-* Open-Source: ...
-
-# Core Components
-1. **Inference-Time Compute Algorithms**: MCTS, Tree of Thoughts, Self-Consistency...
-2. **Visual IDE**
-3. **Batch Inference**: Evals
+The goal of PySpur is to enable developers to quickly build, test, and deploy such LLM graphs - all while abstracting away the complexity of parallel execution and state management.
 
 # Quick start
 

@@ -44,7 +44,6 @@ const WorkflowBatchRunsTable = () => {
 
   return (
     <>
-      <h3 className="text-xl font-semibold mt-8 mb-4">Spur Jobs</h3>
       <Table aria-label="Spur Jobs" isHeaderSticky>
         <TableHeader columns={activeColumns}>
           {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
