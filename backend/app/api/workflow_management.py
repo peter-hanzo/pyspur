@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+import uuid
 
 from ..schemas.workflow_schemas import (
     WorkflowNodeCoordinatesSchema,
@@ -146,3 +147,36 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
 
     # Return no content status
     return None
+
+
+@router.post(
+    "/{workflow_id}/duplicate/",
+    response_model=WorkflowResponseSchema,
+    description="Duplicate a workflow by ID",
+)
+def duplicate_workflow(
+    workflow_id: str, db: Session = Depends(get_db)
+) -> WorkflowResponseSchema:
+    # Fetch the workflow by ID
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+
+    # If workflow not found, raise 404 error
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Create a new WorkflowModel instance by copying fields
+    new_workflow = WorkflowModel(
+        name=f"{workflow.name} (Copy)",
+        description=workflow.description,
+        definition=workflow.definition,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+
+    # Add and commit the new workflow
+    db.add(new_workflow)
+    db.commit()
+    db.refresh(new_workflow)
+
+    # Return the duplicated workflow
+    return new_workflow
