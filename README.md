@@ -1,21 +1,23 @@
 # PySpur - An IDE for Inference-Time Compute
 
-PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference-time compute pipelines.
+PySpur is an opinionated drag-and-drop IDE that lets you develop, debug, and deploy inference-time compute pipelines.
 
 *Insert GIF here*
 
 # ✨ Three Key Features
 
-1. **Inference-Time Compute Nodes**: We natively support nodes for
+1. **Develop with Inference-Time Compute Nodes**:
     * **High-level, batteries-included planners** (MCTS, Self-Refinement, BoN, ToT, etc.)
-    * **Low-level primitives for parallel and sequential sampling** (cycles, branching, aggregation)
+    * **Low-level primitives for parallel and sequential sampling** (cycles, routers, branchers, aggregators)
     * **Verifiers** (Code nodes, LLM-as-a-judge, software integrations, etc.)
-2. **Job Queue for Batch Inference**:
+2. **Debug with Evals**:
+    * **Common reasoning benchmarks** (GSM8k, MATH, ARC, etc.)
+    * **Custom scorers** via LLM-as-a-judge
+    * **Custom datasets** via CSV, JSONL, HF Datasets
+3. **Deploy for Batch Inference via Job Queue**:
     * **Submit and manage batch jobs via UI** for ease of use
     * **Self-hosting of async batch APIs** for full flexbility
     * **Fault tolerance and job persistence** for long-running jobs
-3. **Evals**:
-    * **Common reasoning benchmarks** (GSM8k, MATH, ARC, etc.)
 
 # 🕸️ Why PySpur?
 
@@ -105,22 +107,3 @@ npm start
     ```
     http://localhost:8000
     ```
-
-## Available Scripts
-
-### Frontend
-
-In the `frontend` directory, you can run:
-
-- **`yarn start`**: Runs the app in development mode.
-- **`yarn test`**: Launches the test runner.
-- **`yarn build`**: Builds the app for production.
-- **`yarn eject`**: Ejects the Create React App configuration.
-
-For more details, refer to the [frontend/README.md](frontend/README.md).
-
-## Learn More
-
-- **Create React App documentation**: [Create React App](https://facebook.github.io/create-react-app/docs/getting-started)
-- **React documentation**: [React](https://reactjs.org/)
-- **FastAPI documentation**: [FastAPI](https://fastapi.tiangolo.com/)
