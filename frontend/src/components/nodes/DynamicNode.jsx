@@ -75,6 +75,9 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
   
+    // Define the offset value (adjust as needed)
+    const outputHandleOffset = 4; // You may need to adjust this value
+  
     return (
       <div style={{ display: 'flex', width: '100%' }} id="handles">
         {/* Input Handles */}
@@ -220,7 +223,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                               ? {
                                   position: 'absolute',
                                   top: '50%',
-                                  right: 0, // Align the handle to the right edge
+                                  // Adjust the right offset here
+                                  right: `${outputHandleOffset}px`,
                                   transform: 'translateY(-50%)',
                                 }
                               : {}
@@ -237,6 +241,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
       </div>
     );
   };
+  
   
   
 
