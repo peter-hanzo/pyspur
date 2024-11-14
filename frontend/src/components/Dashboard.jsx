@@ -15,7 +15,9 @@ import {
   Button,
   Input,
   Progress,
-  useDisclosure
+  useDisclosure,
+  Accordion,
+  AccordionItem
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
@@ -280,72 +282,105 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* Spur Templates Section */}
-        <h3 className="text-xl font-semibold mb-4">Spur Templates</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
-          {templates.map((template) => (
-            <TemplateCard
-              key={template.file_name}
-              title={template.name}
-              description={template.description}
-              features={template.features}
-              onUse={() => handleUseTemplate(template.file_name)}
-            />
-          ))}
-        </div>
+        {/* Wrap sections in Accordion */}
+        <Accordion defaultExpandedKeys={["1", "2", "3"]} selectionMode="multiple">
+          <AccordionItem
+            key="1"
+            aria-label="Spur Templates"
+            title={
+              <h3 className="text-xl font-semibold mb-4">
+                Spur Templates
+              </h3>
+            }
+          >
+            {/* Spur Templates Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
+              {templates.map((template) => (
+                <TemplateCard
+                  key={template.file_name}
+                  title={template.name}
+                  description={template.description}
+                  features={template.features}
+                  onUse={() => handleUseTemplate(template.file_name)}
+                />
+              ))}
+            </div>
+          </AccordionItem>
 
-        <h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>
-        <Table aria-label="Saved Workflows" isHeaderSticky>
-          <TableHeader columns={columns}>
-            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-          </TableHeader>
-          <TableBody items={workflows}>
-            {(workflow) => (
-              <TableRow key={workflow.key}>
-                {(columnKey) => (
-                  <TableCell>
-                    {columnKey === "action" ? (
-                      <div className="flex items-center gap-2">
-                        <Icon
-                          icon="solar:play-bold"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleRunClick(workflow)}
-                        />
-                        <Icon
-                          icon="solar:pen-bold"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleEditClick(workflow)}
-                        />
-                        <Icon
-                          icon="solar:copy-bold"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleDuplicateClick(workflow)}
-                        />
-                        <Icon
-                          icon="solar:trash-bin-trash-bold"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleDeleteClick(workflow)}
-                        />
-                      </div>
-                    ) : (
-                      getKeyValue(workflow, columnKey)
+          <AccordionItem
+            key="2"
+            aria-label="Recent Spurs"
+            title={
+              <h3 className="text-xl font-semibold mb-4">
+                Recent Spurs
+              </h3>
+            }
+          >
+            {/* Recent Spurs Section */}
+            <Table aria-label="Saved Workflows" isHeaderSticky>
+              <TableHeader columns={columns}>
+                {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+              </TableHeader>
+              <TableBody items={workflows}>
+                {(workflow) => (
+                  <TableRow key={workflow.key}>
+                    {(columnKey) => (
+                      <TableCell>
+                        {columnKey === "action" ? (
+                          <div className="flex items-center gap-2">
+                            <Icon
+                              icon="solar:play-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleRunClick(workflow)}
+                            />
+                            <Icon
+                              icon="solar:pen-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleEditClick(workflow)}
+                            />
+                            <Icon
+                              icon="solar:copy-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleDuplicateClick(workflow)}
+                            />
+                            <Icon
+                              icon="solar:trash-bin-trash-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleDeleteClick(workflow)}
+                            />
+                          </div>
+                        ) : (
+                          getKeyValue(workflow, columnKey)
+                        )}
+                      </TableCell>
                     )}
-                  </TableCell>
+                  </TableRow>
                 )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              </TableBody>
+            </Table>
+          </AccordionItem>
 
-        <WorkflowBatchRunsTable />
+          <AccordionItem
+            key="3"
+            aria-label="Spur Jobs"
+            title={
+              <h3 className="text-xl font-semibold mb-4">
+                Spur Jobs
+              </h3>
+            }
+          >
+            {/* Spur Jobs Section */}
+            <WorkflowBatchRunsTable />
+          </AccordionItem>
+        </Accordion>
       </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>

@@ -1,27 +1,31 @@
-# PySpur - LLM Reasoning via Inference-Time Compute
+# PySpur - An IDE for Inference-Time Compute
 
-PySpur is a library for building LLM reasoning pipelines involving inference-time compute methods.
+PySpur is an opinionated drag-and-drop IDE that lets you develop, debug, and deploy inference-time compute pipelines.
 
 *Insert GIF here*
 
-# Why PySpur?
+# ✨ Three Key Features
 
-*Insert Results and templates here*
+1. **Develop with Inference-Time Compute Nodes**:
+    * **High-level, batteries-included planners** (MCTS, Self-Refinement, BoN, ToT, etc.)
+    * **Low-level primitives for parallel and sequential sampling** (cycles, routers, branchers, aggregators)
+    * **Verifiers** (Code nodes, LLM-as-a-judge, software integrations, etc.)
+2. **Debug with Evals**:
+    * **Common reasoning benchmarks** (GSM8k, MATH, ARC, etc.)
+    * **Custom scorers** via LLM-as-a-judge
+    * **Custom datasets** via CSV, JSONL, HF Datasets
+3. **Deploy for Batch Inference via Job Queue**:
+    * **Submit and manage batch jobs via UI** for ease of use
+    * **Self-hosting of async batch APIs** for full flexbility
+    * **Fault tolerance and job persistence** for long-running jobs
 
-* Inference-time compute is the next paradigm...
-    * O1 has shown this
-* Iterating on ITC workflows is much easier visually
-* Evals are essential
-    * errors compound
-    * debugging every step is essential for **robustness**
-* Open-Source: ...
+# 🕸️ Why PySpur?
 
-# Core Components
-1. **Inference-Time Compute Algorithms**: MCTS, Tree of Thoughts, Self-Consistency...
-2. **Visual IDE**
-3. **Batch Inference**: Evals
+Humans think for longer on difficult problems to improve their decisions. Similarly, we can enable LLMs to utilize additional compute at inference time via computational graphs that involve multiple steps and feedback loops. However, developing, debugging, and deploying such graphs can be challenging due to the intricate interdependencies among nodes, where the output of one node becomes the input for the next.
 
-# Quick start
+The goal of PySpur is to enable developers to quickly build, test, and deploy such LLM graphs - all while abstracting away the complexity of parallel execution and state management.
+
+# ⚡ Quick start
 
 ```bash
 npm start
@@ -103,22 +107,3 @@ npm start
     ```
     http://localhost:8000
     ```
-
-## Available Scripts
-
-### Frontend
-
-In the `frontend` directory, you can run:
-
-- **`yarn start`**: Runs the app in development mode.
-- **`yarn test`**: Launches the test runner.
-- **`yarn build`**: Builds the app for production.
-- **`yarn eject`**: Ejects the Create React App configuration.
-
-For more details, refer to the [frontend/README.md](frontend/README.md).
-
-## Learn More
-
-- **Create React App documentation**: [Create React App](https://facebook.github.io/create-react-app/docs/getting-started)
-- **React documentation**: [React](https://reactjs.org/)
-- **FastAPI documentation**: [FastAPI](https://fastapi.tiangolo.com/)
