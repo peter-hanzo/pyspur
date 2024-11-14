@@ -1,7 +1,7 @@
 .nodeWrapper {
     position: relative;
     width: 100%;
-    min-height: 50px;
+    min-height: 20px;
 }
 
 .inputHandleWrapper,
