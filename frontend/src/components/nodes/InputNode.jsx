@@ -17,6 +17,7 @@ const InputNode = ({ id, data, ...props }) => {
   const [editingField, setEditingField] = useState(null);
   const [newFieldValue, setNewFieldValue] = useState('');
   const [handlePosition, setHandlePosition] = useState('-12px');
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Get the fields from workflowInputVariables instead of schema
   const workflowInputKeys = Object.keys(workflowInputVariables);
@@ -195,6 +196,8 @@ const InputNode = ({ id, data, ...props }) => {
         id={id}
         type="input"
         isInputNode={true}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
         data={{
           ...data,
           acronym: 'IN',
