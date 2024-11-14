@@ -77,6 +77,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   
     return (
       <div style={{ display: 'flex', width: '100%' }} id="handles">
+        {/* Input Handles */}
         <div style={{ width: '50%', position: 'relative' }}>
           {inputs > 0 && (
             <table style={{ width: '100%' }}>
@@ -95,6 +96,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                             ? {
                                 position: 'absolute',
                                 top: '50%',
+                                left: 0,
                                 transform: 'translateY(-50%)',
                               }
                             : {}
@@ -145,6 +147,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
             </table>
           )}
         </div>
+  
+        {/* Output Handles */}
         <div style={{ width: '50%', position: 'relative' }}>
           {outputs > 0 && (
             <table style={{ width: '100%' }}>
@@ -216,6 +220,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                               ? {
                                   position: 'absolute',
                                   top: '50%',
+                                  right: 0, // Align the handle to the right edge
                                   transform: 'translateY(-50%)',
                                 }
                               : {}
@@ -232,6 +237,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
       </div>
     );
   };
+  
   
 
   return (
