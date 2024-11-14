@@ -12,8 +12,8 @@ import {
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 
-const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const BaseNode = ({isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
+  // const [isCollapsed, setIsCollapsed] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const dispatch = useDispatch();
@@ -129,7 +129,7 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
         )}
         <Divider />
 
-        {!isCollapsed &&
+        {true &&
           <CardBody
             className="px-1"
           >
