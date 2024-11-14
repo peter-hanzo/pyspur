@@ -358,6 +358,7 @@ const FlowCanvasContent = (props) => {
                       key={node.name}
                       onClick={() =>
                         addNodeBetweenNodes(
+                          nodeTypesConfig,
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,

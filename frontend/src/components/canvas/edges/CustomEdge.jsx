@@ -27,8 +27,31 @@ const CustomEdge = ({
   const { onPopoverOpen, showPlusButton } = data;
   const reactFlowInstance = useReactFlow();
   const dispatch = useDispatch();
+
+  // Get the full node objects
   const sourceNode = reactFlowInstance.getNode(source);
   const targetNode = reactFlowInstance.getNode(target);
+
+  // Add validation to ensure nodes exist
+  const handleAddNode = () => {
+    if (!sourceNode || !targetNode) {
+      console.error('Source or target node not found');
+      return;
+    }
+    onPopoverOpen({
+      sourceNode: {
+        id: sourceNode.id,
+        position: sourceNode.position,
+        data: sourceNode.data
+      },
+      targetNode: {
+        id: targetNode.id,
+        position: targetNode.position,
+        data: targetNode.data
+      },
+      edgeId: id
+    });
+  };
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -69,9 +92,7 @@ const CustomEdge = ({
               <Button
                 isIconOnly
                 auto
-                onClick={() => {
-                  onPopoverOpen({ sourceNode, targetNode, edgeId: id });
-                }}
+                onClick={handleAddNode}
               >
                 <Icon icon="solar:add-circle-linear" width={20} className="text-default-500" />
               </Button>
