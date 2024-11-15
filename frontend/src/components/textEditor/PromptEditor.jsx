@@ -10,14 +10,21 @@ import useNode from '../../hooks/useNode';
  * @param {string} [fieldTitle] - The title of the field to be displayed above the editor (optional).
  * @returns {JSX.Element} - The editor component.
  */
-const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setContent }) => {
+const PromptEditor = (props) => {
+  const { nodeID, fieldName, inputSchema = {}, fieldTitle, setContent } = props;
   const { config_values, updateConfigValue  } = useNode(nodeID);
-  const [fieldValue, setFieldValue] = useState(config_values[fieldName]);
+  const [fieldValue, setFieldValue] = useState(config_values ? config_values[fieldName] : '');
 
   // Update the node's field value in the config_model when fieldValue changes
   useEffect(() => {
     updateConfigValue(nodeID, fieldName, fieldValue);
   }, [nodeID, fieldValue, fieldName, updateConfigValue]);
+
+  useEffect(() => {
+    if (setContent) {
+      setContent(fieldValue);
+    }
+  }, [setContent, fieldValue]);
 
   return (
     <div className="w-full">
