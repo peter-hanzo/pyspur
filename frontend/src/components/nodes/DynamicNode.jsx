@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Handle } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
@@ -7,7 +7,6 @@ import useNode from '../../hooks/useNode';
 
 const DynamicNode = ({ id, nodeTypeConfig, position }) => {
   const nodeRef = useRef(null);
-  const [nodeWidth, setNodeWidth] = useState('auto');
   const [editingField, setEditingField] = useState(null);
 
   const {
@@ -17,29 +16,30 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
     handleSchemaKeyEdit,
   } = useNode(id);
 
-  useEffect(() => {
-    if (!nodeRef.current || !nodeData) return;
+  const memoizedInputSchema = useMemo(() => input_schema || {}, [input_schema]);
+  const memoizedOutputSchema = useMemo(() => output_schema || {}, [output_schema]);
+  const memoizedNodeData = useMemo(() => nodeData || {}, [nodeData]);
 
-    const inputSchema = input_schema || {};
-    const outputSchema = output_schema || {};
+  const nodeWidth = useMemo(() => {
+    if (!nodeRef.current || !memoizedNodeData) return 'auto';
 
-    const inputLabels = Object.keys(inputSchema);
-    const outputLabels = Object.keys(outputSchema);
+    const inputLabels = Object.keys(memoizedInputSchema);
+    const outputLabels = Object.keys(memoizedOutputSchema);
 
     const maxLabelLength = Math.max(
       ...inputLabels.map(label => label.length),
       ...outputLabels.map(label => label.length),
-      (nodeData?.title || '').length / 1.5
+      (memoizedNodeData?.title || '').length / 1.5
     );
 
     const calculatedWidth = Math.max(300, maxLabelLength * 20);
     const finalWidth = Math.min(calculatedWidth, 600);
 
-    setNodeWidth(`${finalWidth}px`);
-  }, [nodeData, input_schema, output_schema]);
+    return `${finalWidth}px`;
+  }, [memoizedNodeData, memoizedInputSchema, memoizedOutputSchema]);
 
   const renderHandles = () => {
-    if (!nodeData) return null;
+    if (!memoizedNodeData) return null;
 
     const inputSchema = input_schema || [];
     const outputSchema = output_schema || [];
