@@ -43,7 +43,9 @@ const useWorkflow = (workflowID, workflowData) => {
     const mode = useModeStore((state) => state.mode);
     const saveWorkflow = useSaveWorkflow([nodes, edges], 10000);
 
-
+    const workflowInputVariables = useSelector((state) => {
+        return state.flow.workflowInputVariables;
+    });
     const setWorkflowInputVariableValue = useCallback((key, value) => {
         dispatch(setWorkflowInputVariable({ key, value }));
     }, [dispatch]);
@@ -259,6 +261,7 @@ const useWorkflow = (workflowID, workflowData) => {
         selectedNodeID,
         hoveredNode,
         hoveredEdge,
+        workflowInputVariables,
         setWorkflowInputVariableValue,
         handleRunWorkflow,
         handleDownloadWorkflow,
