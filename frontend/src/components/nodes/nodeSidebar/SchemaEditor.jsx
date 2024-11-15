@@ -131,10 +131,11 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
                   input: "bg-default-100",
                   inputWrapper: "shadow-none",
                 }}
+                className="w-40"
               />
             ) : (
               <span
-                className="mr-2 p-1 border rounded bg-gray-200 cursor-pointer"
+                className="mr-2 p-1 border rounded-full bg-gray-100 cursor-pointer"
                 onClick={() => setEditingField(key)} // Open the input on click
               >
                 {key}
