@@ -29,21 +29,23 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
       }
 
       const updatedSchema = {
-        ...nodeData?.config?.[`${schemaType}_schema`],
-        [newKey]: nodeData?.config?.[`${schemaType}_schema`][oldKey],
+        ...nodeData?.config?.[schemaType],
+        [newKey]: nodeData?.config?.[schemaType][oldKey],
       };
       delete updatedSchema[oldKey];
+
       dispatch(
         updateNodeData({
           id,
           data: {
             config: {
               ...nodeData?.config,
-              [`${schemaType}_schema`]: updatedSchema,
+              [schemaType]: updatedSchema,
             },
           },
         })
       );
+
       dispatch(
         updateEdgesOnHandleRename({
           nodeId: id,
@@ -52,6 +54,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
           schemaType,
         })
       );
+
       setEditingField(null);
     },
     [dispatch, id, nodeData]
@@ -60,8 +63,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
-    const inputSchema = nodeData?.config?.input_schema || {};
-    const outputSchema = nodeData?.config?.output_schema || {};
+    const inputSchema = nodeData?.config?.['input_schema'] || {};
+    const outputSchema = nodeData?.config?.['output_schema'] || {};
 
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);
@@ -103,10 +106,10 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 size="sm"
                 variant="faded"
                 radius="lg"
-                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'input')}
+                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'input_schema')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, e.target.value, 'input');
+                    handleSchemaKeyEdit(keyName, e.target.value, 'input_schema');
                   } else if (e.key === 'Escape') {
                     setEditingField(null);
                   }
@@ -144,10 +147,10 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 size="sm"
                 variant="faded"
                 radius="lg"
-                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'output')}
+                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'output_schema')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, e.target.value, 'output');
+                    handleSchemaKeyEdit(keyName, e.target.value, 'output_schema');
                   } else if (e.key === 'Escape') {
                     setEditingField(null);
                   }
@@ -187,8 +190,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = nodeData?.config?.input_schema || {};
-    const outputSchema = nodeData?.config?.output_schema || {};
+    const inputSchema = nodeData?.config?.['input_schema'] || {};
+    const outputSchema = nodeData?.config?.['output_schema'] || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
