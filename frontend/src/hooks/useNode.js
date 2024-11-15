@@ -67,10 +67,19 @@ function useNode(nodeId) {
             if (!node?.data) {
                 return;
             }
+            try{
+                const oldValue = node.data.config_values[key];
+                if (oldValue === value) {
+                    return;
+                }
+            } catch (error) {
+                console.log('Error:', error);
+            }
             const updatedConfig = { ...node.data.config_values, [key]: value };
-            dispatch(updateNodeDataPath({id: nodeId, path: 'config_values', value: updatedConfig}));
-        }, []
+            dispatch(updateNodeDataPath({ id: nodeId, path: 'config_values', value: updatedConfig }));
+        }, [dispatch, node?.data]
     );
+
     // Initialise config_values with the default values of the config_model
     const config_values = useMemo(() => {
         if (config_model) {
