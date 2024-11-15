@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle } from '@xyflow/react';
+import { Handle, useHandleConnections } from '@xyflow/react';
 import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
@@ -82,16 +82,16 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
             <table style={{ width: '100%' }}>
               <tbody>
                 {Object.entries(inputSchema).map(([key], index) => (
+
                   <tr key={`${index}`}>
                     <td className={styles.handleCell}>
                       <Handle
                         type="target"
                         position="left"
                         id={`${key}`}
-                        className={`${styles.handle} ${styles.handleLeft} ${
-                          isCollapsed ? styles.collapsedHandleInput : ''
-                        }`}
-                        isConnectable={!isCollapsed}
+                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+                          }`}
+                        isConnectable={!isCollapsed && useHandleConnections({ type: 'target', id: `${key}` }).length === 0}
                       />
                     </td>
                     {!isCollapsed && (
@@ -178,9 +178,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                           type="source"
                           position="right"
                           id={`${key}`}
-                          className={`${styles.handle} ${styles.handleRight} ${
-                            isCollapsed ? styles.collapsedHandleOutput : ''
-                          }`}
+                          className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+                            }`}
                           isConnectable={!isCollapsed}
                         />
                       </div>
