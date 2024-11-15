@@ -157,7 +157,7 @@ const NodeSidebar = ({ nodeID }) => {
         }
 
         // Handle other types (string, number, boolean, object, code)
-        switch (typeof field) {
+        switch (typeof value) {
             case 'string':
                 return (
                     <Textarea
@@ -169,7 +169,7 @@ const NodeSidebar = ({ nodeID }) => {
                         placeholder="Enter your input"
                     />
                 );
-            case 'number':
+            case 'number' || 'integer' || 'float':
                 return (
                     <NumberInput
                         key={key}
