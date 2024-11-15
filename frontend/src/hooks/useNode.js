@@ -113,7 +113,11 @@ function useNode(nodeId) {
         } else if (config_model?.input_schema) {
             return config_model.input_schema;
         } else if (input_model) {
-            return input_model.getSchema();
+            const kv_schema = input_model.getSchema();
+            return Object.keys(kv_schema).map((key) => ({
+                field_name: key,
+                field_type: kv_schema[key],
+            }));
         }
         return null;
     }, [config_values?.input_schema, config_model?.input_schema, input_model]);
@@ -124,7 +128,11 @@ function useNode(nodeId) {
         } else if (config_model?.output_schema) {
             return config_model.output_schema;
         } else if (output_model) {
-            return output_model.getSchema();
+            const kv_schema = input_model.getSchema();
+            return Object.keys(kv_schema).map((key) => ({
+                field_name: key,
+                field_type: kv_schema[key],
+            }));
         }
         return null;
     }, [config_values?.output_schema, config_model?.output_schema, output_model]);
