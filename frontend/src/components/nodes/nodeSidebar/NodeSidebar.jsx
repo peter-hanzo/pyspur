@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
@@ -15,7 +15,7 @@ import useNode from '../../../hooks/useNode';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
-    const { nodeData, config_model, config_values, input_schema, updateNodeData  } = useNode(nodeID);
+    const { node, nodeData, config_model, config_values, input_schema, updateNodeData  } = useNode(nodeID);
 
     // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
@@ -34,14 +34,17 @@ const NodeSidebar = ({ nodeID }) => {
         setInputVariables(inputVars);
     }, [input_schema]);
 
-    const [nodeType, setNodeType] = useState(nodeData?.type || 'ExampleNode');
-    const findNodeSchema = (nodeType) => {
-        for (const category in nodeTypes) {
-            const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
-            if (nodeSchema) return nodeSchema;
-        }
-        return null;
-    };
+    const [nodeType, setNodeType] = useState(node.type );
+
+    const findNodeSchema = useMemo(() => {
+        return (nodeType) => {
+            for (const category in nodeTypes) {
+                const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
+                if (nodeSchema) return nodeSchema;
+            }
+            return null;
+        };
+    }, [nodeTypes]);
 
     const [nodeSchema, setNodeSchema] = useState(findNodeSchema(nodeData?.type));
     const [dynamicModel, setDynamicModel] = useState(nodeData?.config || {});
@@ -49,12 +52,12 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Update dynamicModel when nodeID changes
     useEffect(() => {
-        if (nodeData) {
-            setNodeType(nodeData.type || 'ExampleNode');
-            setNodeSchema(findNodeSchema(nodeData.type));
+        if (node) {
+            setNodeType(node.type);
+            setNodeSchema(findNodeSchema(node.type));
             setDynamicModel(nodeData.config || {});
         }
-    }, [nodeID, nodeData]);
+    }, [nodeID, node, nodeData, findNodeSchema]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
@@ -105,7 +108,6 @@ const NodeSidebar = ({ nodeID }) => {
                         nodeID={nodeID}
                         schemaType="input" // Specify schema type
                     />
-                    <hr className="my-2" />
                 </div>
             );
         }

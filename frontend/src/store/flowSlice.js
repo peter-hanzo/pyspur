@@ -79,6 +79,16 @@ const flowSlice = createSlice({
         node.data = { ...node.data, ...data };
       }
     },
+    updateNodeDataPath: (state, action) => {
+      const { id, path, value } = action.payload;
+      const node = state.nodes.find((node) => node.id === id);
+      let pathParent = node.data;
+      let path_parts = path.split('.');
+      for (let i = 0; i < path_parts.length - 1; i++) {
+        pathParent = pathParent[path_parts[i]];
+      }
+      pathParent[path_parts[path_parts.length - 1]] = value;
+    },
     setHoveredNode: (state, action) => {
       state.hoveredNode = action.payload.nodeId;
     },
@@ -179,6 +189,7 @@ export const {
   setNodes,
   setEdges,
   updateNodeData,
+  updateNodeDataPath,
   setHoveredNode,
   setSelectedNode,
   deleteNode,

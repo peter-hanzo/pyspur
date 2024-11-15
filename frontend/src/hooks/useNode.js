@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useCallback, useEffect, useMemo } from 'react';
 import {
     updateNodeData as updateNodeDataAction,
+    updateNodeDataPath,
     setHoveredNode,
     setSelectedNode,
     deleteNode as deleteNodeAction,
@@ -15,6 +16,10 @@ function useNode(nodeId) {
     // Get the node from the Redux store
     const node = useSelector((state) =>
         state.flow.nodes.find((n) => n.id === nodeId)
+    );
+
+    const nodeData = useSelector((state) => 
+        state.flow.nodes.find((n) => n.id === nodeId).data
     );
 
     // Get hovered and selected node IDs from the store
@@ -57,6 +62,15 @@ function useNode(nodeId) {
         return null;
     }, [node?.data?.config]);
 
+    const updateConfigValue = useCallback(
+        (nodeId, key, value) => {
+            if (!node?.data) {
+                return;
+            }
+            const updatedConfig = { ...node.data.config_values, [key]: value };
+            dispatch(updateNodeDataPath({id: nodeId, path: 'config_values', value: updatedConfig}));
+        }, []
+    );
     // Initialise config_values with the default values of the config_model
     const config_values = useMemo(() => {
         if (config_model) {
@@ -67,12 +81,12 @@ function useNode(nodeId) {
     }, [config_model, node.data.config_values]);
 
     useEffect(() => {
-        if (config_model && node && node.data && !node.data.config_values) {
+        if (config_model && !node?.data?.config_values) {
             updateNodeData({
                 config_values: config_model.getDefaultValues(),
             });
         }
-    }, [config_model, node, updateNodeData]);
+    }, [config_model, node?.data?.config_values, updateNodeData]);
 
     const input_schema = useMemo(() => {
         if (config_values?.input_schema) {
@@ -209,13 +223,15 @@ function useNode(nodeId) {
     );
 
     return {
-        nodeData: node ? node.data : null,
+        node,
+        nodeData,
         input_model,
         output_model,
         config_model,
         input_schema,
         output_schema,
         config_values,
+        updateConfigValue,
         addSchemaField,
         deleteSchemaField,
         updateSchemaField,

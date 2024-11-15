@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
 import TextEditor from './TextEditor';
-import { updateNodeData, selectNodeById } from '../../store/flowSlice';
+import useNode from '../../hooks/useNode';
 
 /**
  * A generic editor component for editing any field in a node's config.
@@ -11,45 +10,23 @@ import { updateNodeData, selectNodeById } from '../../store/flowSlice';
  * @param {string} [fieldTitle] - The title of the field to be displayed above the editor (optional).
  * @returns {JSX.Element} - The editor component.
  */
-const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setContent }) => { // Accept fieldTitle as a prop
-  const dispatch = useDispatch();
-  const node = useSelector((state) => selectNodeById(state, nodeID)); // Use the selector to get the node
-  const [fieldValue, setFieldValue] = useState(
-    node?.data?.config?.[fieldName]?.value ||
-    ''
-  );
+const PromptEditor = ({ nodeID, fieldName, inputSchema = {}, fieldTitle, setContent }) => {
+  const { config_values, updateConfigValue  } = useNode(nodeID);
+  const [fieldValue, setFieldValue] = useState(config_values[fieldName]);
 
-  // Update the node's field value in the Redux store when fieldValue changes
+  // Update the node's field value in the config_model when fieldValue changes
   useEffect(() => {
-    if (!node) return; // Add early return if node is undefined
-
-    if (fieldValue !== node?.data?.config?.[fieldName]) {
-      dispatch(updateNodeData({
-        id: nodeID,
-        data: {
-          ...node?.data,
-          config: {
-            ...node?.data?.config || {}, // Add fallback empty object
-            [fieldName]: fieldValue,
-          },
-        },
-      }));
-    }
-  }, [fieldValue, node, node?.data?.userconfig?.[fieldName], dispatch, nodeID, fieldName]);
+    updateConfigValue(nodeID, fieldName, fieldValue);
+  }, [nodeID, fieldValue, fieldName, updateConfigValue]);
 
   return (
     <div className="w-full">
       <TextEditor
         content={fieldValue}
-        setContent={(value) => {
-          setFieldValue(value);
-          if (setContent) {
-            setContent(value); // Only call setContent if it's provided
-          }
-        }}
+        setContent={setFieldValue}
         isEditable={true}
         inputSchema={inputSchema}
-        fieldTitle={fieldTitle}  // Ensure fieldTitle is passed here
+        fieldTitle={fieldTitle}
       />
     </div>
   );

@@ -8,18 +8,14 @@ const SchemaEditor = (props) => {
   const [newType, setNewType] = useState('str'); // Default to 'string'
   const [editingField, setEditingField] = useState(null); // Track the field being edited
   const { nodeID, schemaType, disabled = false } = props;
-  const {config_values, input_schema, output_schema, addSchemaField, deleteSchemaField, updateSchemaField} = useNode(nodeID);
+  const {input_schema, output_schema, addSchemaField, deleteSchemaField, updateSchemaField} = useNode(nodeID);
 
   if (!nodeID) return null;
   
   const schemaFields = schemaType === 'input' ? input_schema : output_schema;
 
   const handleAddKey = () => {
-    console.log('config_values before',config_values);
-    console.log('schemaFields before',schemaFields);
     addSchemaField(newKey, newType, schemaType);
-    console.log('config_values after',config_values);
-    console.log('schemaFields after',schemaFields);
     setNewKey('');
     setNewType('str');
   };
@@ -30,11 +26,6 @@ const SchemaEditor = (props) => {
 
   const handleRemoveKey = (key) => {
     deleteSchemaField(key, schemaType);
-  };
-
-  // Helper function to extract the type from the value
-  const getType = (value) => {
-    return value?.fieldType || 'str';
   };
 
   const handleKeyEdit = (oldKey, newKey) => {
@@ -67,6 +58,7 @@ const SchemaEditor = (props) => {
           selectedValue={newType}
           onChange={(e) => setNewType(e.target.value)}
           disabled={disabled}
+          aria-labelledby="Type"
           // label="Type"
           defaultSelectedKeys={["str"]}
           className="max-w-xs p-2 w-1/3"

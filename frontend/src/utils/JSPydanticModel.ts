@@ -56,20 +56,19 @@ class JSPydanticModel {
 
       // Handle nested objects
       if (resolvedSchema.type === 'object' && resolvedSchema.properties) {
-        parentObj[fieldName] = {};
-        this.initializeFields(
-          resolvedSchema,
-          '', // Reset parentKey for nested object
-          parentObj[fieldName],
-          defaultValue || {}
-        );
+        // Create a new instance of JSPydanticModel for the nested object
+        parentObj[fieldName] = new JSPydanticModel(resolvedSchema);
+
+        // Set default values if available
+        if (defaultValue !== undefined && typeof defaultValue === 'object') {
+          parentObj[fieldName].assignValues(defaultValue);
+        }
+
         continue;
       }
 
       // Handle arrays
       if (resolvedSchema.type === 'array' && resolvedSchema.items) {
-        parentObj[fieldName] = [];
-
         const itemSchema = resolvedSchema.items;
 
         Object.defineProperty(parentObj, fieldName, {
@@ -120,11 +119,9 @@ class JSPydanticModel {
             } else {
               throw new Error(`Field '${fullFieldName}' cannot be null.`);
             }
-          } 
-          else if (value === undefined) {
-            // do nothing
-          }
-          else if (this.enums[fullFieldName]) {
+          } else if (value === undefined) {
+            // Do nothing
+          } else if (this.enums[fullFieldName]) {
             // Validate enum values
             if (!this.enums[fullFieldName].includes(value)) {
               // throw new Error(
@@ -132,12 +129,10 @@ class JSPydanticModel {
               //     ', '
               //   )}.`
               // );
-            }
-            else {
+            } else {
               parentObj[`_${fieldName}`] = value;
             }
-          }
-          else {
+          } else {
             parentObj[`_${fieldName}`] = this.processValue(
               resolvedSchema,
               value,
@@ -153,6 +148,23 @@ class JSPydanticModel {
         parentObj[fieldName] = defaultValue;
       } else if (!requiredFields.has(fieldName)) {
         parentObj[fieldName] = resolvedSchema.nullable ? null : undefined;
+      }
+    }
+  }
+
+  // New method to assign values to the model, including nested models
+  public assignValues(values: any) {
+    for (const key of Object.keys(values)) {
+      if (this.hasOwnProperty(key)) {
+        if (
+          this[key] instanceof JSPydanticModel &&
+          typeof values[key] === 'object'
+        ) {
+          // Recursively assign values to nested JSPydanticModel
+          this[key].assignValues(values[key]);
+        } else {
+          this[key] = values[key];
+        }
       }
     }
   }
@@ -374,6 +386,18 @@ class JSPydanticModel {
       }
     }
     return schemaDict;
+  }
+
+  public getValue(fieldPath: string): any {
+    const keys = fieldPath.split('.');
+    let parentObj: any = this;
+    for (let i = 0; i < keys.length; i++) {
+      if (parentObj === undefined) {
+        throw new Error(`Field '${fieldPath}' does not exist in the schema.`);
+      }
+      parentObj = parentObj[keys[i]];
+    }
+    return parentObj;
   }
 
   public setValue(fieldPath: string, value: any): void {
