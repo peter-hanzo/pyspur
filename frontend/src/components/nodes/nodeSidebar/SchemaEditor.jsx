@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 
-const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input' }) => {
+const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input_schema' }) => {
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('str'); // Default to 'string'
   const [editingKey, setEditingKey] = useState(null); // Track which key's type is being edited
   const [editingField, setEditingField] = useState(null); // Track the field being edited
 
+  const getPlaceholderExample = () => {
+    console.log(schemaType);
+    return schemaType === 'input_schema'
+      ? 'eg. article'
+      : 'eg. summary';
+  };
 
   const handleAddKey = () => {
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
@@ -67,8 +73,8 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder={`${schemaType} key name`}
-          label={`${schemaType} key name`}
+          placeholder={getPlaceholderExample()}
+          label="Name"
           disabled={disabled}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !disabled && newKey) {
@@ -81,7 +87,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
           selectedValue={newType}
           onChange={setNewType}
           disabled={disabled}
-          label="Select Type"
+          label="Type"
           defaultSelectedKeys={["str"]}
           className="max-w-xs p-2 w-1/3"
         >
