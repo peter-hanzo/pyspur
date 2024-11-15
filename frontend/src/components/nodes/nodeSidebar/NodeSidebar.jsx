@@ -26,12 +26,15 @@ const NodeSidebar = ({ nodeID }) => {
     const [inputVariables, setInputVariables] = useState({});
 
     useEffect(() => {
-        const inputVars = input_schema.reduce((acc, curr) => {
-            acc[curr.field_name] = curr.field_type;
-            return acc;
+        if (Array.isArray(input_schema)) {
+            const inputVars = input_schema.reduce((acc, curr) => {
+                acc[curr.field_name] = curr.field_type;
+                return acc;
+            }, {});
+            setInputVariables(inputVars);
+        } else {
+            setInputVariables({});
         }
-        , {});
-        setInputVariables(inputVars);
     }, [input_schema]);
 
     const [nodeType, setNodeType] = useState(node.type );
