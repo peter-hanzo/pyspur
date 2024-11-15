@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData, selectNodeById, setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
+import { setSidebarWidth, setSelectedNode } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
 import { jsonOptions } from '../../../constants/jsonOptions';
@@ -10,48 +10,73 @@ import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion,
 import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
+import useNode from '../../../hooks/useNode';
+import isEqual from 'lodash/isEqual';
+
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
-    const node = useSelector((state) => selectNodeById(state, nodeID));
+    const { node, nodeData, config_model, config_values, input_schema, updateConfigValue  } = useNode(nodeID);
+
     // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
 
     // Initialize width state with the stored value
     const [width, setWidth] = useState(storedWidth);
     const [isResizing, setIsResizing] = useState(false);
+    const [inputVariables, setInputVariables] = useState({});
 
-    const [nodeType, setNodeType] = useState(node?.type || 'ExampleNode');
-    const findNodeSchema = (nodeType) => {
-        for (const category in nodeTypes) {
-            const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
-            if (nodeSchema) {
-                return nodeSchema;
-            }
+    useEffect(() => {
+        if (Array.isArray(input_schema)) {
+            const inputVars = input_schema.reduce((acc, curr) => {
+                acc[curr.field_name] = curr.field_type;
+                return acc;
+            }, {});
+            setInputVariables(inputVars);
+        } else {
+            setInputVariables({});
         }
-        return null;
-    };
+    }, [input_schema]);
 
-    const [nodeSchema, setNodeSchema] = useState(findNodeSchema(node?.type));
-    const [dynamicModel, setDynamicModel] = useState(node?.data?.config || {});
-    const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
+    const [nodeType, setNodeType] = useState(null);
 
-    // Update dynamicModel when nodeID changes
+    const findNodeSchema = useMemo(() => {
+        return (nodeType) => {
+            for (const category in nodeTypes) {
+                const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
+                if (nodeSchema) return nodeSchema;
+            }
+            return null;
+        };
+    }, [nodeTypes]);
+
+    const [nodeSchema, setNodeSchema] = useState(null);
+    
     useEffect(() => {
         if (node) {
-            setNodeType(node.type || 'ExampleNode');
-            setNodeSchema(findNodeSchema(node.type));
-            setDynamicModel(node.data.config || {});
+            if (nodeType !== node.type) {
+                setNodeType(node.type);
+            }
+            const schema = findNodeSchema(node.type);
+            if (schema !== nodeSchema) {
+                setNodeSchema(schema);
+            }
         }
-    }, [nodeID, node, node.data.config]);
+    }, [node, findNodeSchema]);
+
+    const [dynamicModel, setDynamicModel] = useState({});
+    const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
+
+    useEffect(() => {
+        if (nodeData?.config && !isEqual(nodeData.config, dynamicModel)) {
+            setDynamicModel(nodeData.config);
+        }
+    }, [nodeData?.config, dynamicModel]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
-        const updatedModel = { ...dynamicModel, [key]: value };
-        setDynamicModel(updatedModel);
-        dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+        updateConfigValue(nodeID, key, value);
     };
-
 
     const renderEnumSelect = (key, label, enumValues) => (
         <div key={key}>
@@ -87,20 +112,14 @@ const NodeSidebar = ({ nodeID }) => {
     const renderField = (key, field, value) => {
         // Handle specific cases for input_schema, output_schema, and system_prompt
         if (key === 'input_schema') {
-
             return (
                 <div key={key} className="my-2">
                     <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Input Schema</label>
                     <SchemaEditor
-                        jsonValue={dynamicModel.input_schema || {}}
-                        onChange={(newValue) => {
-                            handleInputChange('input_schema', { ...field, ...newValue });
-                        }}
-                        options={jsonOptions}
-                        schemaType="input_schema" // Specify schema type
+                        nodeID={nodeID}
+                        schemaType="input" // Specify schema type
                     />
-                    <hr className="my-2" />
                 </div>
             );
         }
@@ -111,12 +130,8 @@ const NodeSidebar = ({ nodeID }) => {
                     <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Output Schema</label>
                     <SchemaEditor
-                        jsonValue={dynamicModel.output_schema || {}}
-                        onChange={(newValue) => {
-                            handleInputChange('output_schema', newValue);
-                        }}
-                        options={jsonOptions}
-                        schemaType="output_schema" // Specify schema type
+                        nodeID={nodeID}
+                        schemaType="output" // Specify schema type
                     />
                     <hr className="my-2" />
                 </div>
@@ -130,9 +145,10 @@ const NodeSidebar = ({ nodeID }) => {
                         key={key}
                         nodeID={nodeID}
                         fieldName={key}
-                        inputSchema={dynamicModel.input_schema || {}}
+                        inputSchema={inputVariables}
                         fieldTitle="System Prompt"
                         setContent={(value) => handleInputChange(key, value)}
+                        content={config_values?.system_prompt || ''}
                     />
                     {/* Render Few Shot Examples right after the System Prompt */}
                     {renderFewShotExamples()}
@@ -141,7 +157,7 @@ const NodeSidebar = ({ nodeID }) => {
         }
 
         // Handle other types (string, number, boolean, object, code)
-        switch (typeof field) {
+        switch (typeof value) {
             case 'string':
                 return (
                     <Textarea
@@ -153,7 +169,7 @@ const NodeSidebar = ({ nodeID }) => {
                         placeholder="Enter your input"
                     />
                 );
-            case 'number':
+            case 'number' || 'integer' || 'float':
                 return (
                     <NumberInput
                         key={key}
@@ -205,17 +221,20 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Updated renderConfigFields function
     const renderConfigFields = () => {
-        if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
-        const properties = nodeSchema.config;
-        return Object.keys(properties).map((key) => {
-            const field = properties[key];
-            const value = dynamicModel[key]; // Access value from DynamicModel
-            return renderField(key, field, value); // Use the helper function to render each field
+        if (!config_model || !nodeData) return null;
+
+        const configSchema = config_model.getSchema();
+        const configValues = config_values || {};
+
+        return Object.keys(configSchema).map((key) => {
+            const field = key;
+            const value = configValues[key];
+            return renderField(key, field, value);
         }).concat(<hr key="divider" className="my-2" />);
     };
 
     const renderFewShotExamples = () => {
-        const fewShotExamples = node?.data?.config?.few_shot_examples || [];
+        const fewShotExamples = dynamicModel?.few_shot_examples || [];
 
         return (
             <div>
@@ -249,7 +268,6 @@ const NodeSidebar = ({ nodeID }) => {
             </div>
         );
     };
-
 
     // Add resize handler
     const handleMouseDown = useCallback((e) => {
@@ -286,7 +304,6 @@ const NodeSidebar = ({ nodeID }) => {
         };
     }, [isResizing, dispatch, width]);
 
-
     return (
         <div
             className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 flex"
@@ -310,7 +327,7 @@ const NodeSidebar = ({ nodeID }) => {
             <div className="flex-1 px-4 py-1 overflow-auto max-h-screen" id="node-details">
                 <div className="flex justify-between items-center mb-2">
                     <div>
-                        <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
+                        <h1 className="text-lg font-semibold">{nodeData?.id || 'Node Details'}</h1>
                         <h2 className="text-sm font-semibold">{nodeType}</h2>
                     </div>
                     <Button
@@ -337,7 +354,7 @@ const NodeSidebar = ({ nodeID }) => {
 
                     <AccordionItem key="title" aria-label="Node Title" title="Node Title">
                         <Input
-                            value={node?.data?.config?.title || ''}
+                            value={dynamicModel?.title || ''}
                             onChange={(e) => handleInputChange('title', e.target.value)}
                             placeholder="Enter node title"
                             maxRows={1}
@@ -349,7 +366,6 @@ const NodeSidebar = ({ nodeID }) => {
                     <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
                         {renderConfigFields()}
                     </AccordionItem>
-
 
                 </Accordion>
             </div>

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode, VisualTag
+from ..dynamic_schema import SchemaField, SuportedSchemaTypesEnum
 from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 
@@ -38,7 +39,9 @@ class BranchSolveMergeNode(BaseNode):
 
         # Initialize the LLM node for the branch module
         branch_node_config = SingleLLMCallNodeConfig.model_validate(config.model_dump())
-        branch_node_config.output_schema = {"subtasks": "list[str]"}
+        branch_node_config.output_schema = [
+            SchemaField(field_name="subtasks", field_type=SuportedSchemaTypesEnum.str)
+        ]
         branch_node_config.system_prompt = config.branch_prompt
         self._branch_node = SingleLLMCallNode(branch_node_config)
 
@@ -46,7 +49,12 @@ class BranchSolveMergeNode(BaseNode):
         solve_config = SingleLLMCallNodeConfig.model_validate(config.model_dump())
         solve_config.system_prompt = config.solve_prompt
         solve_config.input_schema = branch_node_config.output_schema
-        solve_config.output_schema = {"subtask_solutions": "list[str]"}
+        solve_config.output_schema = [
+            SchemaField(
+                field_name="subtask_solutions", field_type=SuportedSchemaTypesEnum.str
+            )
+        ]
+
         self._solve_node = SingleLLMCallNode(solve_config)
 
         # Initialize the LLM node for the merge module

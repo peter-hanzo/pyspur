@@ -1,85 +1,48 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle, useHandleConnections } from '@xyflow/react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { Handle, useHandleConnections  } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
 import { Input } from '@nextui-org/react';
+import useNode from '../../hooks/useNode';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   updateNodeData,
   updateEdgesOnHandleRename,
 } from '../../store/flowSlice';
 
-const DynamicNode = ({ id, type, data, position, ...props }) => {
+const DynamicNode = ({ id, type, position, ...props }) => {
   const nodeRef = useRef(null);
-  const [nodeWidth, setNodeWidth] = useState('auto');
   const [editingField, setEditingField] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
-  const nodeData = data || (node && node.data);
-  const dispatch = useDispatch();
+  const {
+    nodeData,
+    input_schema,
+    output_schema,
+    handleSchemaKeyEdit,
+  } = useNode(id);
 
-  const edges = useSelector((state) => state.flow.edges);
+  const memoizedInputSchema = useMemo(() => input_schema || {}, [input_schema]);
+  const memoizedOutputSchema = useMemo(() => output_schema || {}, [output_schema]);
+  const memoizedNodeData = useMemo(() => nodeData || {}, [nodeData]);
 
-  const handleSchemaKeyEdit = useCallback(
-    (oldKey, newKey, schemaType) => {
-      if (oldKey === newKey || !newKey.trim()) {
-        setEditingField(null);
-        return;
-      }
+  const nodeWidth = useMemo(() => {
+    if (!nodeRef.current || !memoizedNodeData) return 'auto';
 
-      const updatedSchema = {
-        ...nodeData?.config?.[schemaType],
-        [newKey]: nodeData?.config?.[schemaType][oldKey],
-      };
-      delete updatedSchema[oldKey];
-
-      dispatch(
-        updateNodeData({
-          id,
-          data: {
-            config: {
-              ...nodeData?.config,
-              [schemaType]: updatedSchema,
-            },
-          },
-        })
-      );
-
-      dispatch(
-        updateEdgesOnHandleRename({
-          nodeId: id,
-          oldHandleId: oldKey,
-          newHandleId: newKey,
-          schemaType,
-        })
-      );
-
-      setEditingField(null);
-    },
-    [dispatch, id, nodeData]
-  );
-
-  useEffect(() => {
-    if (!nodeRef.current || !nodeData) return;
-
-    const inputSchema = nodeData?.config?.['input_schema'] || {};
-    const outputSchema = nodeData?.config?.['output_schema'] || {};
-
-    const inputLabels = Object.keys(inputSchema);
-    const outputLabels = Object.keys(outputSchema);
+    const inputLabels = Object.keys(memoizedInputSchema);
+    const outputLabels = Object.keys(memoizedOutputSchema);
 
     const maxLabelLength = Math.max(
-      ...inputLabels.map((label) => label.length),
-      ...outputLabels.map((label) => label.length),
-      (nodeData?.title || '').length / 1.5
+      ...inputLabels.map(label => label.length),
+      ...outputLabels.map(label => label.length),
+      (memoizedNodeData?.title || '').length / 1.5
     );
 
-    const calculatedWidth = Math.max(300, maxLabelLength * 15);
+    const calculatedWidth = Math.max(300, maxLabelLength * 20);
     const finalWidth = Math.min(calculatedWidth, 600);
 
-    setNodeWidth(`${finalWidth}px`);
-  }, [nodeData]);
+    return `${finalWidth}px`;
+  }, [memoizedNodeData, memoizedInputSchema, memoizedOutputSchema]);
 
   const InputHandleRow = ({ keyName }) => {
     const connections = useHandleConnections({ type: 'target', id: keyName });
@@ -188,13 +151,13 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   };
 
   const renderHandles = () => {
-    if (!nodeData) return null;
+    if (!memoizedNodeData) return null;
 
-    const inputSchema = nodeData?.config?.['input_schema'] || {};
-    const outputSchema = nodeData?.config?.['output_schema'] || {};
+    const inputSchema = input_schema || [];
+    const outputSchema = output_schema || [];
 
-    const inputs = Object.keys(inputSchema).length;
-    const outputs = Object.keys(outputSchema).length;
+    const inputs = inputSchema.length;
+    const outputs = outputSchema.length;
 
     return (
       <div className={styles.handlesWrapper} id="handles">
@@ -203,8 +166,49 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
           {inputs > 0 && (
             <table style={{ width: '100%' }}>
               <tbody>
-                {Object.keys(inputSchema).map((key) => (
-                  <InputHandleRow key={key} keyName={key} />
+                {inputSchema.map((field, index) => (
+                  <tr key={`${index}`}>
+                    <td style={{ width: '20px' }}>
+                      <Handle
+                        type="target"
+                        position="left"
+                        id={`${field.field_name}`}
+                        className={`${styles.handle} ${styles.handleLeft}`}
+                        isConnectable={true}
+                      />
+                    </td>
+                    <td className="text-left align-middle">
+                      {editingField === field.field_name ? (
+                        <Input
+                          autoFocus
+                          defaultValue={field.field_name}
+                          size="sm"
+                          variant="faded"
+                          radius="lg"
+                          onBlur={(e) => handleSchemaKeyEdit(field.field_name, e.target.value, 'input')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSchemaKeyEdit(field.field_name, e.target.value, 'input');
+                            } else if (e.key === 'Escape') {
+                              setEditingField(null);
+                            }
+                          }}
+                          classNames={{
+                            input: "bg-default-100",
+                            inputWrapper: "shadow-none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                          onClick={() => setEditingField(field.field_name)}
+                          style={{ maxWidth: '8rem', whiteSpace: 'normal', wordWrap: 'break-word' }}
+                        >
+                          {field.field_name}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -216,8 +220,51 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
           {outputs > 0 && (
             <table style={{ width: '100%' }}>
               <tbody>
-                {Object.keys(outputSchema).map((key) => (
-                  <OutputHandleRow key={key} keyName={key} />
+                {outputSchema.map((field, index) => (
+                  <tr key={`output-${index}`} className="align-middle">
+                    <td className="text-right align-middle">
+                      {editingField === field.field_name ? (
+                        <Input
+                          autoFocus
+                          defaultValue={field.field_name}
+                          size="sm"
+                          variant="faded"
+                          radius="lg"
+                          onBlur={(e) => handleSchemaKeyEdit(field.field_name, e.target.value, 'output')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSchemaKeyEdit(field.field_name, e.target.value, 'output');
+                            } else if (e.key === 'Escape') {
+                              setEditingField(null);
+                            }
+                          }}
+                          classNames={{
+                            input: "bg-default-100",
+                            inputWrapper: "shadow-none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                          onClick={() => setEditingField(field.field_name)}
+                          style={{ maxWidth: '8rem', whiteSpace: 'normal', wordWrap: 'break-word' }}
+                        >
+                          {field.field_name}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ width: '20px', verticalAlign: 'middle', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                        <Handle
+                          type="source"
+                          position="right"
+                          id={`${field.field_name}`}
+                          className={`${styles.handle} ${styles.handleRight}`}
+                          isConnectable={true}
+                        />
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -230,25 +277,27 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const isConditionalNode = type === 'ConditionalNode';
 
   return (
-    <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentNode ? 1 : 0 }}>
-      <BaseNode
-        id={id}
-        data={nodeData}
-        style={{ width: nodeWidth, backgroundColor: isConditionalNode ? '#e0f7fa' : undefined }}
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        selected={props.selected}
-      >
-        <div className={styles.nodeWrapper} ref={nodeRef}>
-          {isConditionalNode ? (
-            <div>
-              <strong>Conditional Node</strong>
-            </div>
-          ) : null}
-          {renderHandles()}
-        </div>
-      </BaseNode>
-    </div>
+    nodeData && (
+      <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentNode ? 1 : 0 }}>
+        <BaseNode
+          id={id}
+          data={nodeData}
+          style={{ width: nodeWidth, backgroundColor: isConditionalNode ? '#e0f7fa' : undefined }}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+          selected={props.selected}
+        >
+          <div className={styles.nodeWrapper} ref={nodeRef}>
+            {isConditionalNode ? (
+              <div>
+                <strong>Conditional Node</strong>
+              </div>
+            ) : null}
+            {renderHandles()}
+          </div>
+        </BaseNode>
+      </div>
+    )
   );
 };
 

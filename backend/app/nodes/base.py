@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Type, Union
 
 from pydantic import BaseModel, Field, ValidationError, create_model
+from enum import Enum as PyEnum
 
 DynamicSchemaValueType = str
 TSchemaValue = Type[
@@ -18,6 +19,24 @@ class VisualTag(BaseModel):
     color: str = Field(
         ..., pattern=r"^#(?:[0-9a-fA-F]{3}){1,2}$"
     )  # Hex color code validation using regex
+
+
+class SuportedSchemaTypesEnum(PyEnum):
+    """Enum for supported schema types."""
+
+    str = "str"
+    int = "int"
+    float = "float"
+    bool = "bool"
+    string = "str"
+    boolean = "bool"
+
+
+class SchemaField(BaseModel):
+    """Pydantic model for a schema field."""
+
+    field_name: str
+    field_type: SuportedSchemaTypesEnum
 
 
 class BaseNode(ABC):

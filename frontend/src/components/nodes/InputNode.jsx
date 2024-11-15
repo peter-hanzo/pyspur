@@ -20,6 +20,7 @@ const InputNode = ({ id, data, ...props }) => {
   const [editingField, setEditingField] = useState(null);
   const [newFieldValue, setNewFieldValue] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [handlePosition, setHandlePosition] = useState('-28px');
 
   const workflowInputKeys = Object.keys(workflowInputVariables);
 
@@ -33,9 +34,20 @@ const InputNode = ({ id, data, ...props }) => {
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
       const finalWidth = Math.min(calculatedWidth, 600);
 
-      setNodeWidth(`${finalWidth}px`);
+      const nodePadding = 26;
+      const borderWidth = 2;
+      const newHandlePosition = `-${nodePadding + borderWidth}px`;
+
+      if (handlePosition !== newHandlePosition) {
+        setHandlePosition(newHandlePosition);
+      }
+
+      const newNodeWidth = `${finalWidth}px`;
+      if (nodeWidth !== newNodeWidth) {
+        setNodeWidth(newNodeWidth);
+      }
     }
-  }, [data, workflowInputKeys]);
+  }, [data.title, workflowInputKeys.length, handlePosition, nodeWidth]);
 
   const saveWorkflow = useSaveWorkflow();
   const nodes = useSelector((state) => state.flow.nodes);
@@ -46,9 +58,11 @@ const InputNode = ({ id, data, ...props }) => {
     saveWorkflow();
   }, [id, nodes, saveWorkflow]);
 
+
+  // Sync and save whenever the input schema changes
   useEffect(() => {
     syncAndSave();
-  }, [workflowInputVariables]);
+  }, [syncAndSave]);
 
   const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
@@ -61,7 +75,7 @@ const InputNode = ({ id, data, ...props }) => {
       })
     );
     setNewFieldValue('');
-  }, [dispatch, newFieldValue]);
+  }, [dispatch, newFieldValue, setNewFieldValue]);
 
   const handleDeleteWorkflowInputVariable = useCallback(
     (keyToDelete) => {
