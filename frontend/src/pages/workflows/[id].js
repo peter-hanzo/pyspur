@@ -22,20 +22,6 @@ const WorkflowPage = () => {
 
     const initializeWorkflowData = (workflowID, workflowData, nodeTypesConfig, dispatch) => {
         console.log('workflowData', workflowData);
-        if (workflowData.definition.nodes) {
-            const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
-            if (inputNode.length > 0) {
-                const inputSchema = inputNode[0].config.input_schema;
-                if (inputSchema) {
-                    const workflowInputVariables = Object.entries(inputSchema).map(([key, type]) => {
-                        return { key, value: '' };
-                    });
-                    workflowInputVariables.forEach(variable => {
-                        dispatch(setWorkflowInputVariable(variable));
-                    });
-                }
-            }
-        }
         dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
     };
 
