@@ -10,15 +10,17 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import usePartialRun from '../../hooks/usePartialRun';
 
-const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const dispatch = useDispatch();
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeId = useSelector((state) => state.flow.selectedNode);
+
+  const { executePartialRun, loading, error, result } = usePartialRun();
 
   const handleMouseEnter = () => {
     dispatch(setHoveredNode({ nodeId: id }));
@@ -39,6 +41,21 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
     if (selectedNodeId === id) {
       dispatch(setSelectedNode({ nodeId: null }));
     }
+  };
+
+  const handlePartialRun = () => {
+    const initialInputs = {
+      "input_node": { "user_message": "Give me geographical conditions of London" }
+    };
+    const partialOutputs = {
+      "input_node": { "user_message": "Hi There!" },
+      "node_1731411247373": { "response": "Hello, How are ya?" }
+    };
+    const rerunPredecessors = true;
+
+    const workflowId = window.location.pathname.split('/').pop();
+
+    executePartialRun(workflowId, id, initialInputs, partialOutputs, rerunPredecessors);
   };
 
   const isHovered = String(id) === String(hoveredNodeId);
@@ -70,17 +87,6 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
     borderRadius: '12px',
     fontSize: '0.75rem',
     display: 'inline-block',
-    marginBottom: '8px',
-  };
-
-  const collapseButtonStyle = {
-    position: 'absolute',
-    right: '8px',
-    bottom: '4px',
-    minWidth: 'auto',
-    height: '20px',
-    padding: '0 8px',
-    fontSize: '0.7rem',
   };
 
   return (
@@ -93,29 +99,61 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
         isHoverable
       >
         {data && data.title && (
-          <CardHeader style={{ position: 'relative', paddingBottom: '28px' }}>
-            <h3 className="text-lg font-semibold text-center">{data?.userconfig?.title || data?.title || 'Untitled'}</h3>
-            <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
-              {acronym}
-            </div>
-            <Button
-              size="sm"
-              variant="flat"
-              style={collapseButtonStyle}
-              onClick={() => setIsCollapsed(!isCollapsed)}
+          <CardHeader
+            style={{
+              position: 'relative',
+              paddingTop: '8px',
+              paddingBottom: isCollapsed ? '0px' : '16px',
+            }}
+          >
+            <h3
+              className="text-lg font-semibold text-center"
+              style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
             >
-              {isCollapsed ? '▼' : '▲'}
-            </Button>
+              {data?.userconfig?.title || data?.title || 'Untitled'}
+            </h3>
+
+            {/* Container for the collapse button and acronym tag */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {/* Collapse Button */}
+              <Button
+                size="sm"
+                variant="flat"
+                style={{
+                  minWidth: 'auto',
+                  height: '24px',
+                  padding: '0 8px',
+                  fontSize: '0.8rem',
+                  marginRight: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                {isCollapsed ? '▼' : '▲'}
+              </Button>
+
+              {/* Acronym Tag */}
+              <div style={{ ...tagStyle }} className="node-acronym-tag">
+                {acronym}
+              </div>
+            </div>
           </CardHeader>
         )}
-        <Divider />
+        {!isCollapsed && <Divider />}
 
-        {!isCollapsed &&
-          <CardBody
-            className="px-1"
-          >
-            {children}
-          </CardBody>}
+        <CardBody className="px-1">
+          {children}
+        </CardBody>
       </Card>
 
       {(showControls || isSelected) && (
@@ -146,6 +184,8 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
               isIconOnly
               radius="full"
               variant="light"
+              onPress={handlePartialRun}
+              disabled={loading}
             >
               <Icon className="text-default-500" icon="solar:play-linear" width={22} />
             </Button>

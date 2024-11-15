@@ -7,6 +7,8 @@ import { persistor } from '../../store/store'; // Import the persistor
 import { getWorkflow } from '../../utils/api';
 import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { fetchNodeTypes } from '../../store/nodeTypesSlice';
+
 const WorkflowPage = () => {
 
     const dispatch = useDispatch(); // Initialize dispatch
@@ -14,8 +16,8 @@ const WorkflowPage = () => {
     const { id } = router.query; // Access the dynamic route parameter
     const [workflowData, setWorkflowData] = useState(null);
 
-
     useEffect(() => {
+        dispatch(fetchNodeTypes());
         const fetchWorkflow = async () => {
             try {
                 const data = await getWorkflow(id);

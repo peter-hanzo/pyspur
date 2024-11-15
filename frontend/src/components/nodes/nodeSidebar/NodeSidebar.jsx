@@ -8,7 +8,7 @@ import FewShotEditor from '../../textEditor/FewShotEditor';
 import PromptEditor from '../../textEditor/PromptEditor';
 import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion, AccordionItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
-import NodeStatus from "../NodeStatusDisplay";
+import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -25,7 +25,9 @@ const NodeSidebar = ({ nodeID }) => {
     const findNodeSchema = (nodeType) => {
         for (const category in nodeTypes) {
             const nodeSchema = nodeTypes[category].find((n) => n.name === nodeType);
-            if (nodeSchema) return nodeSchema;
+            if (nodeSchema) {
+                return nodeSchema;
+            }
         }
         return null;
     };
@@ -329,7 +331,7 @@ const NodeSidebar = ({ nodeID }) => {
 
                     {nodeType !== 'InputNode' && (
                         <AccordionItem key="output" aria-label='Output' title="Outputs">
-                            <NodeStatus node={node} />
+                            <NodeOutput node={node} />
                         </AccordionItem>
                     )}
 

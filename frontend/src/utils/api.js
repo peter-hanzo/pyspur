@@ -319,3 +319,19 @@ export const duplicateWorkflow = async (workflowId) => {
     throw error;
   }
 };
+
+export const runPartialWorkflow = async (workflowId, nodeId, initialInputs, partialOutputs, rerunPredecessors) => {
+  try {
+    const requestBody = {
+      node_id: nodeId,
+      initial_inputs: initialInputs,
+      partial_outputs: partialOutputs,
+      rerun_predecessors: rerunPredecessors
+    };
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/run_partial/`, requestBody);
+    return response.data;
+  } catch (error) {
+    console.error('Error running partial workflow:', error);
+    throw error;
+  }
+};
