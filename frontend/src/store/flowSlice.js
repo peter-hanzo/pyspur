@@ -172,7 +172,7 @@ const flowSlice = createSlice({
       const { nodeId, oldHandleId, newHandleId, schemaType } = action.payload;
 
       state.edges = state.edges.map((edge) => {
-        if (schemaType === 'input') {
+        if (schemaType === 'input_schema') {
           // For input handles, update edges where this node is the target
           if (edge.target === nodeId && edge.targetHandle === oldHandleId) {
             return {
@@ -180,7 +180,7 @@ const flowSlice = createSlice({
               targetHandle: newHandleId,
             };
           }
-        } else if (schemaType === 'output') {
+        } else if (schemaType === 'output_schema') {
           // For output handles, update edges where this node is the source
           if (edge.source === nodeId && edge.sourceHandle === oldHandleId) {
             return {

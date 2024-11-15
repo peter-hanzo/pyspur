@@ -9,7 +9,6 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
   const [editingField, setEditingField] = useState(null); // Track the field being edited
 
   const getPlaceholderExample = () => {
-    console.log(schemaType);
     return schemaType === 'input_schema'
       ? 'eg. article'
       : 'eg. summary';
