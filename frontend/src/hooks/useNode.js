@@ -128,7 +128,7 @@ function useNode(nodeId) {
         } else if (config_model?.output_schema) {
             return config_model.output_schema;
         } else if (output_model) {
-            const kv_schema = input_model.getSchema();
+            const kv_schema = output_model.getSchema();
             return Object.keys(kv_schema).map((key) => ({
                 field_name: key,
                 field_type: kv_schema[key],
