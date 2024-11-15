@@ -53,27 +53,27 @@ const FlowCanvasContent = (props) => {
   } = useWorkflow(workflowID, workflowData);
 
   const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
-  const nodeTypes = useMemo(() => {
+  const createNodeTypes = useCallback(() => {
     if (!nodeTypesConfig) return {};
     return Object.keys(nodeTypesConfig).reduce((acc, category) => {
       nodeTypesConfig[category].forEach(node_type => {
         if (node_type.name === 'InputNode') {
           acc[node_type.name] = InputNode;
         } else {
-          acc[node_type.name] = (props) => {
-            return <DynamicNode
+          acc[node_type.name] = (props) => (
+            <DynamicNode
               id={props.id}
               nodeTypeConfig={props.data}
               position={props.position}
-            />;
-          };
+            />
+          );
         }
       });
       return acc;
     }, {});
   }, [nodeTypesConfig]);
-
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  
+  const nodeTypes = useMemo(() => createNodeTypes(), [createNodeTypes]);
 
   const [helperLines, setHelperLines] = useState({ horizontal: null, vertical: null });
 
@@ -84,7 +84,7 @@ const FlowCanvasContent = (props) => {
   const [selectedEdge, setSelectedEdge] = useState(null);
 
 
-
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const onInit = useCallback((instance) => {
     setReactFlowInstance(instance);
     instance.setViewport({ x: 0, y: 0, zoom: 0.8 });
