@@ -74,6 +74,11 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;
 
+    const inputConnections = Object.keys(inputSchema).reduce((acc, key) => {
+      acc[key] = useHandleConnections({ type: 'target', id: `${key}` });
+      return acc;
+    }, {});
+
     return (
       <div className={styles.handlesWrapper} id="handles">
         {/* Input Handles */}
@@ -82,16 +87,14 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
             <table style={{ width: '100%' }}>
               <tbody>
                 {Object.entries(inputSchema).map(([key], index) => (
-
                   <tr key={`${index}`}>
                     <td className={styles.handleCell}>
                       <Handle
                         type="target"
                         position="left"
                         id={`${key}`}
-                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
-                          }`}
-                        isConnectable={!isCollapsed && useHandleConnections({ type: 'target', id: `${key}` }).length === 0}
+                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
+                        isConnectable={!isCollapsed && inputConnections[key].length === 0}
                       />
                     </td>
                     {!isCollapsed && (
@@ -178,8 +181,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                           type="source"
                           position="right"
                           id={`${key}`}
-                          className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-                            }`}
+                          className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
                           isConnectable={!isCollapsed}
                         />
                       </div>
