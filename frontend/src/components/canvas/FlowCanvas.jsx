@@ -311,24 +311,6 @@ const FlowCanvasContent = (props) => {
       }));
   }, [nodes, mode]);
 
-  // Add a local state to track edge updates
-  const [edgeUpdateTrigger, setEdgeUpdateTrigger] = useState(0);
-
-  const prevConnectionsRef = useRef('');
-
-  // Only trigger re-render when edge connections change
-  useEffect(() => {
-    const newConnections = edges.map(edge =>
-      `${edge.source}-${edge.sourceHandle}-${edge.target}-${edge.targetHandle}`
-    ).join('|');
-
-    const hasChanged = prevConnectionsRef.current !== newConnections;
-    if (hasChanged) {
-      prevConnectionsRef.current = newConnections;
-      setEdgeUpdateTrigger(prev => prev + 1);
-    }
-  }, [edges]);
-
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -421,7 +403,7 @@ const FlowCanvasContent = (props) => {
             deleteKeyCode="Delete"
             nodesConnectable={true}
             connectionMode="loose"
-            key={edgeUpdateTrigger}            >
+          >
             <Background />
 
             {/* Conditionally render HelperLinesRenderer based on the flag */}
