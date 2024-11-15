@@ -13,7 +13,6 @@ import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 
 const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
-  // const [isCollapsed, setIsCollapsed] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const dispatch = useDispatch();
@@ -54,7 +53,6 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     };
     const rerunPredecessors = true;
 
-    // get workflow id from url
     const workflowId = window.location.pathname.split('/').pop();
 
     executePartialRun(workflowId, id, initialInputs, partialOutputs, rerunPredecessors);
@@ -89,17 +87,6 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     borderRadius: '12px',
     fontSize: '0.75rem',
     display: 'inline-block',
-    marginBottom: '8px',
-  };
-
-  const collapseButtonStyle = {
-    position: 'absolute',
-    right: '8px',
-    bottom: '4px',
-    minWidth: 'auto',
-    height: '20px',
-    padding: '0 8px',
-    fontSize: '0.7rem',
   };
 
   return (
@@ -112,28 +99,59 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
         isHoverable
       >
         {data && data.title && (
-          <CardHeader style={{ position: 'relative', paddingBottom: '28px' }}>
-            <h3 className="text-lg font-semibold text-center">{data?.userconfig?.title || data?.title || 'Untitled'}</h3>
-            <div style={{ ...tagStyle, position: 'absolute', top: '8px', right: '8px' }} className="node-acronym-tag">
-              {acronym}
-            </div>
-            <Button
-              size="sm"
-              variant="flat"
-              style={collapseButtonStyle}
-              onClick={() => setIsCollapsed(!isCollapsed)}
+          <CardHeader
+            style={{
+              position: 'relative',
+              paddingTop: '8px',
+              paddingBottom: isCollapsed ? '0px' : '16px',
+            }}
+          >
+            <h3
+              className="text-lg font-semibold text-center"
+              style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
             >
-              {isCollapsed ? '▼' : '▲'}
-            </Button>
+              {data?.userconfig?.title || data?.title || 'Untitled'}
+            </h3>
+
+            {/* Container for the collapse button and acronym tag */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {/* Collapse Button */}
+              <Button
+                size="sm"
+                variant="flat"
+                style={{
+                  minWidth: 'auto',
+                  height: '24px',
+                  padding: '0 8px',
+                  fontSize: '0.8rem',
+                  marginRight: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onClick={() => setIsCollapsed(!isCollapsed)}
+              >
+                {isCollapsed ? '▼' : '▲'}
+              </Button>
+
+              {/* Acronym Tag */}
+              <div style={{ ...tagStyle }} className="node-acronym-tag">
+                {acronym}
+              </div>
+            </div>
           </CardHeader>
         )}
-        {!isCollapsed &&
-          <Divider />
-        }
+        {!isCollapsed && <Divider />}
 
-        <CardBody
-          className="px-1"
-        >
+        <CardBody className="px-1">
           {children}
         </CardBody>
       </Card>
@@ -171,8 +189,6 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
             >
               <Icon className="text-default-500" icon="solar:play-linear" width={22} />
             </Button>
-            {/* {error && <div>Error: {error.message}</div>}
-            {result && <div>Result: {JSON.stringify(result)}</div>} */}
             {!isInputNode && (
               <Button
                 isIconOnly
