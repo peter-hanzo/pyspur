@@ -277,25 +277,27 @@ const DynamicNode = ({ id, type, position, ...props }) => {
   const isConditionalNode = type === 'ConditionalNode';
 
   return (
-    <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentNode ? 1 : 0 }}>
-      <BaseNode
-        id={id}
-        data={nodeData}
-        style={{ width: nodeWidth, backgroundColor: isConditionalNode ? '#e0f7fa' : undefined }}
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        selected={props.selected}
-      >
-        <div className={styles.nodeWrapper} ref={nodeRef}>
-          {isConditionalNode ? (
-            <div>
-              <strong>Conditional Node</strong>
-            </div>
-          ) : null}
-          {renderHandles()}
-        </div>
-      </BaseNode>
-    </div>
+    nodeData && (
+      <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentNode ? 1 : 0 }}>
+        <BaseNode
+          id={id}
+          data={nodeData}
+          style={{ width: nodeWidth, backgroundColor: isConditionalNode ? '#e0f7fa' : undefined }}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+          selected={props.selected}
+        >
+          <div className={styles.nodeWrapper} ref={nodeRef}>
+            {isConditionalNode ? (
+              <div>
+                <strong>Conditional Node</strong>
+              </div>
+            ) : null}
+            {renderHandles()}
+          </div>
+        </BaseNode>
+      </div>
+    )
   );
 };
 
