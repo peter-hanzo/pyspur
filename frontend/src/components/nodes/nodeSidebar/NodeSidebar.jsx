@@ -228,7 +228,7 @@ const NodeSidebar = ({ nodeID }) => {
 
         return Object.keys(configSchema).map((key) => {
             const field = key;
-            const value = configValues.key;
+            const value = configValues[key];
             return renderField(key, field, value);
         }).concat(<hr key="divider" className="my-2" />);
     };
