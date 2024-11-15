@@ -11,11 +11,12 @@ import { Icon } from "@iconify/react";
 import NodeStatus from "../NodeStatusDisplay";
 import SchemaEditor from './SchemaEditor';
 import useNode from '../../../hooks/useNode';
+import isEqual from 'lodash/isEqual';
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
-    const { node, nodeData, config_model, config_values, input_schema, updateNodeData  } = useNode(nodeID);
+    const { node, nodeData, config_model, config_values, input_schema, updateConfigValue  } = useNode(nodeID);
 
     // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
@@ -37,7 +38,7 @@ const NodeSidebar = ({ nodeID }) => {
         }
     }, [input_schema]);
 
-    const [nodeType, setNodeType] = useState(node.type );
+    const [nodeType, setNodeType] = useState(null);
 
     const findNodeSchema = useMemo(() => {
         return (nodeType) => {
@@ -49,24 +50,33 @@ const NodeSidebar = ({ nodeID }) => {
         };
     }, [nodeTypes]);
 
-    const [nodeSchema, setNodeSchema] = useState(findNodeSchema(nodeData?.type));
-    const [dynamicModel, setDynamicModel] = useState(nodeData?.config || {});
-    const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
-
-    // Update dynamicModel when nodeID changes
+    const [nodeSchema, setNodeSchema] = useState(null);
+    
     useEffect(() => {
         if (node) {
-            setNodeType(node.type);
-            setNodeSchema(findNodeSchema(node.type));
-            setDynamicModel(nodeData.config || {});
+            if (nodeType !== node.type) {
+                setNodeType(node.type);
+            }
+            const schema = findNodeSchema(node.type);
+            if (schema !== nodeSchema) {
+                setNodeSchema(schema);
+            }
         }
-    }, [nodeID, node, nodeData, findNodeSchema]);
+    }, [node, findNodeSchema]);
+
+    const [dynamicModel, setDynamicModel] = useState({});
+    const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
+
+    useEffect(() => {
+        if (nodeData?.config && !isEqual(nodeData.config, dynamicModel)) {
+            setDynamicModel(nodeData.config);
+        }
+    }, [nodeData?.config, dynamicModel]);
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
-        const updatedModel = { ...dynamicModel, [key]: value };
-        setDynamicModel(updatedModel);
-        updateNodeData({ config: updatedModel });
+        // updateConfigValue(nodeID, key, value);
+        setDynamicModel((prev) => ({ ...prev, [key]: value }));
     };
 
     const renderEnumSelect = (key, label, enumValues) => (
