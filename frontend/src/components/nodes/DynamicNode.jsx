@@ -32,7 +32,7 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
       (nodeData?.title || '').length / 1.5
     );
 
-    const calculatedWidth = Math.max(300, maxLabelLength * 15);
+    const calculatedWidth = Math.max(300, maxLabelLength * 20);
     const finalWidth = Math.min(calculatedWidth, 600);
 
     setNodeWidth(`${finalWidth}px`);
@@ -41,11 +41,11 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = input_schema || {};
-    const outputSchema = output_schema || {};
+    const inputSchema = input_schema || [];
+    const outputSchema = output_schema || [];
 
-    const inputs = Object.keys(inputSchema).length;
-    const outputs = Object.keys(outputSchema).length;
+    const inputs = inputSchema.length;
+    const outputs = outputSchema.length;
 
     return (
       <div style={{ display: 'flex', width: '100%' }} id="handles">
@@ -53,29 +53,29 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
           {inputs > 0 && (
             <table style={{ width: '100%' }}>
               <tbody>
-                {Object.entries(inputSchema).map(([key, value], index) => (
+                {inputSchema.map((field, index) => (
                   <tr key={`${index}`}>
                     <td style={{ width: '20px' }}>
                       <Handle
                         type="target"
                         position="left"
-                        id={`${key}`}
+                        id={`${field.field_name}`}
                         className={`${styles.handle} ${styles.handleLeft}`}
                         isConnectable={true}
                       />
                     </td>
                     <td className="text-left align-middle">
-                      {editingField === key ? (
+                      {editingField === field.field_name ? (
                         <Input
                           autoFocus
-                          defaultValue={key}
+                          defaultValue={field.field_name}
                           size="sm"
                           variant="faded"
                           radius="lg"
-                          onBlur={(e) => handleSchemaKeyEdit(key, e.target.value, 'input')}
+                          onBlur={(e) => handleSchemaKeyEdit(field.field_name, e.target.value, 'input')}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              handleSchemaKeyEdit(key, e.target.value, 'input');
+                              handleSchemaKeyEdit(field.field_name, e.target.value, 'input');
                             } else if (e.key === 'Escape') {
                               setEditingField(null);
                             }
@@ -88,9 +88,10 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
                       ) : (
                         <span
                           className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
-                          onClick={() => setEditingField(key)}
+                          onClick={() => setEditingField(field.field_name)}
+                          style={{ maxWidth: '8rem', whiteSpace: 'normal', wordWrap: 'break-word' }}
                         >
-                          {key}
+                          {field.field_name}
                         </span>
                       )}
                     </td>
@@ -104,20 +105,20 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
           {outputs > 0 && (
             <table style={{ width: '100%' }}>
               <tbody>
-                {Object.entries(outputSchema).map(([key, value], index) => (
+                {outputSchema.map((field, index) => (
                   <tr key={`output-${index}`} className="align-middle">
                     <td className="text-right align-middle">
-                      {editingField === key ? (
+                      {editingField === field.field_name ? (
                         <Input
                           autoFocus
-                          defaultValue={key}
+                          defaultValue={field.field_name}
                           size="sm"
                           variant="faded"
                           radius="lg"
-                          onBlur={(e) => handleSchemaKeyEdit(key, e.target.value, 'output')}
+                          onBlur={(e) => handleSchemaKeyEdit(field.field_name, e.target.value, 'output')}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              handleSchemaKeyEdit(key, e.target.value, 'output');
+                              handleSchemaKeyEdit(field.field_name, e.target.value, 'output');
                             } else if (e.key === 'Escape') {
                               setEditingField(null);
                             }
@@ -130,9 +131,10 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
                       ) : (
                         <span
                           className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
-                          onClick={() => setEditingField(key)}
+                          onClick={() => setEditingField(field.field_name)}
+                          style={{ maxWidth: '8rem', whiteSpace: 'normal', wordWrap: 'break-word' }}
                         >
-                          {key}
+                          {field.field_name}
                         </span>
                       )}
                     </td>
@@ -141,7 +143,7 @@ const DynamicNode = ({ id, nodeTypeConfig, position }) => {
                         <Handle
                           type="source"
                           position="right"
-                          id={`${key}`}
+                          id={`${field.field_name}`}
                           className={`${styles.handle} ${styles.handleRight}`}
                           isConnectable={true}
                         />
