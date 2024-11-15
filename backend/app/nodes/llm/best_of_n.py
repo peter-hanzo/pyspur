@@ -3,7 +3,7 @@ from typing import Tuple
 
 from pydantic import BaseModel, Field
 
-from ..dynamic_schema import DynamicSchemaNode, SchemaField, SuportedSchemaTypesEnum
+from ..dynamic_schema import DynamicSchemaNode
 from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 
@@ -49,11 +49,7 @@ class BestOfNNode(DynamicSchemaNode):
             llm_info=self.config.llm_info,
             system_prompt=self.config.rating_prompt,
             input_schema=self.config.output_schema,
-            output_schema=[
-                SchemaField(
-                    field_name="rating", field_type=SuportedSchemaTypesEnum.float
-                )
-            ],
+            output_schema={"rating": "float"},
         )
         self._rating_llm_node = SingleLLMCallNode(rating_llm_config)
 

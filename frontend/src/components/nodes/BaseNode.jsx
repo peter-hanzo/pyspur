@@ -1,36 +1,34 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setHoveredNode, deleteNode, setSelectedNode } from '../../store/flowSlice';
 import {
   Card,
   CardHeader,
   CardBody,
   Divider,
   Button,
+  Tooltip,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import useNode from '../../hooks/useNode';
 import usePartialRun from '../../hooks/usePartialRun';
 
 const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  const dispatch = useDispatch();
 
-  const {
-    isHovered,
-    isSelected,
-    setHovered,
-    setSelected,
-    deleteNode,
-  } = useNode(id);
+  const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
+  const selectedNodeId = useSelector((state) => state.flow.selectedNode);
 
   const { executePartialRun, loading, error, result } = usePartialRun();
 
   const handleMouseEnter = () => {
-    setHovered(true);
+    dispatch(setHoveredNode({ nodeId: id }));
     setShowControls(true);
   };
 
   const handleMouseLeave = () => {
-    setHovered(false);
+    dispatch(setHoveredNode({ nodeId: null }));
     if (!isTooltipHovered) {
       setTimeout(() => {
         setShowControls(false);
@@ -39,9 +37,9 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   };
 
   const handleDelete = () => {
-    deleteNode();
-    if (isSelected) {
-      setSelected(false);
+    dispatch(deleteNode({ nodeId: id }));
+    if (selectedNodeId === id) {
+      dispatch(setSelectedNode({ nodeId: null }));
     }
   };
 
@@ -60,7 +58,10 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     executePartialRun(workflowId, id, initialInputs, partialOutputs, rerunPredecessors);
   };
 
-  const status = data?.run ? 'completed' : (data?.status || 'default').toLowerCase();
+  const isHovered = String(id) === String(hoveredNodeId);
+  const isSelected = String(id) === String(selectedNodeId);
+
+  const status = data.run && data.run.data ? 'completed' : (data.status || 'default').toLowerCase();
 
   const borderColor = status === 'completed' ? '#4CAF50' :
     status === 'failed' ? 'red' :
@@ -158,12 +159,10 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
       {(showControls || isSelected) && (
         <Card
           onMouseEnter={() => {
-            console.log('Mouse enter tooltip');
             setShowControls(true);
             setIsTooltipHovered(true);
           }}
           onMouseLeave={() => {
-            console.log('Mouse leave tooltip');
             setIsTooltipHovered(false);
             setTimeout(() => {
               if (!isHovered) {

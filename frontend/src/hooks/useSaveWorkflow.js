@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { updateWorkflow } from '../utils/api';
 
-export const useSaveWorkflow = (trigger, delay = 20000) => {
+export const useSaveWorkflow = (trigger, delay = 2000) => {
   const nodes = useSelector(state => state.flow.nodes);
   const edges = useSelector(state => state.flow.edges);
   const workflowID = useSelector(state => state.flow.workflowID);
@@ -17,8 +17,8 @@ export const useSaveWorkflow = (trigger, delay = 20000) => {
             ...node,
             config: {
               ...node.data.config,
-              input_schema: Object.keys(workflowInputVariables).map(key => 
-                ({ field_name: key, field_type: 'str' })
+              input_schema: Object.fromEntries(
+                Object.keys(workflowInputVariables).map(key => [key, "str"])
               )
             }
           };

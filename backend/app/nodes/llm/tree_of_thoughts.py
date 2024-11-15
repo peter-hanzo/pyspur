@@ -7,12 +7,7 @@ import numpy as np
 from pydantic import Field
 
 from ..base import BaseNode, VisualTag
-from .single_llm_call import (
-    SingleLLMCallNode,
-    SingleLLMCallNodeConfig,
-    SchemaField,
-    SuportedSchemaTypesEnum,
-)
+from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
 from .llm_utils import LLMModelRegistry, ModelInfo
 from .string_output_llm import (
     StringOutputLLMNode,
@@ -72,14 +67,8 @@ class TreeOfThoughtsNode(BaseNode):
         evaluation_config = SingleLLMCallNodeConfig(
             llm_info=config.llm_info,
             system_prompt=config.system_prompt,
-            input_schema=[
-                SchemaField(field_name="prompt", field_type=SuportedSchemaTypesEnum.str)
-            ],
-            output_schema=[
-                SchemaField(
-                    field_name="value", field_type=SuportedSchemaTypesEnum.float
-                )
-            ],
+            input_schema={"prompt": "str"},
+            output_schema={"value": "float"},
         )
         self._evaluation_llm_node = SingleLLMCallNode(evaluation_config)
         self.input_model = StringOutputLLMNodeInput

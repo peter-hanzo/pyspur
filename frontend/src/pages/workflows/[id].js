@@ -5,12 +5,9 @@ import Header from '../../components/Header'; // Import the Header component
 import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
 import { persistor } from '../../store/store'; // Import the persistor
 import { getWorkflow } from '../../utils/api';
-import { useDispatch, useSelector } from 'react-redux'; // Import useDispatch from react-redux
-import { fetchNodeTypes } from '../../store/nodeTypesSlice'; // Import fetchNodeTypes
-
+import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
 import LoadingSpinner from '../../components/LoadingSpinner';
-import useWorkflow from '../../hooks/useWorkflow';
-import { initializeFlow, setWorkflowInputVariable } from '../../store/flowSlice';
+import { fetchNodeTypes } from '../../store/nodeTypesSlice';
 
 const WorkflowPage = () => {
 
@@ -18,18 +15,6 @@ const WorkflowPage = () => {
     const router = useRouter();
     const { id } = router.query; // Access the dynamic route parameter
     const [workflowData, setWorkflowData] = useState(null);
-    const [initialized, setInitialized] = useState(false);
-
-    const initializeWorkflowData = (workflowID, workflowData, nodeTypesConfig, dispatch) => {
-        console.log('workflowData', workflowData);
-        dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
-    };
-
-    const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
-
-    useEffect(() => {
-        dispatch(fetchNodeTypes());
-    }, [dispatch]);
 
     useEffect(() => {
         dispatch(fetchNodeTypes());
@@ -45,17 +30,9 @@ const WorkflowPage = () => {
         if (id) {
             fetchWorkflow();
         }
-    }, [id]);
+    }, [id, dispatch]); // Add dispatch to the dependency array
 
-    useEffect(() => {
-        if (workflowData && nodeTypesConfig) {
-            initializeWorkflowData(id, workflowData, nodeTypesConfig, dispatch);
-            setInitialized(true);
-        }
-    }, [workflowData, nodeTypesConfig, id, dispatch]);
-
-
-    if (!initialized) {
+    if (!workflowData) {
         return <LoadingSpinner />;
     }
 
