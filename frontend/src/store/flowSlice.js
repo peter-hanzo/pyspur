@@ -2,7 +2,7 @@ import { createSlice, createAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
-
+import set from 'lodash/set';
 
 const initialState = {
   nodeTypes: [],
@@ -44,10 +44,15 @@ const flowSlice = createSlice({
         targetHandle: link.target_input_key
       }));
 
-      // Ensure workflowInputVariables are not reset unless explicitly provided
-      if (definition.input_variables) {
-        state.workflowInputVariables = definition.input_variables;
-      }
+      // Initialize workflow input variables
+      state.workflowInputVariables = {};
+      nodes.forEach(node => {
+        if (node.node_type === 'InputNode' && node.config?.input_schema) {
+          node.config.input_schema.forEach(field => {
+            state.workflowInputVariables[field.field_name] = '';
+          });
+        }
+      });
     },
     nodesChange: (state, action) => {
       const changes = action.payload.changes;
@@ -74,20 +79,29 @@ const flowSlice = createSlice({
     updateNodeData: (state, action) => {
       const { id, data } = action.payload;
       console.log('updateNodeData', id, data);
-      const node = state.nodes.find((node) => node.id === id);
-      if (node) {
-        node.data = { ...node.data, ...data };
+      const nodeIndex = state.nodes.findIndex((node) => node.id === id);
+      if (nodeIndex !== -1) {
+        const node = state.nodes[nodeIndex];
+        const updatedNode = {
+          ...node,
+          data: { ...node.data, ...data },
+        };
+        state.nodes[nodeIndex] = updatedNode;
       }
     },
     updateNodeDataPath: (state, action) => {
       const { id, path, value } = action.payload;
-      const node = state.nodes.find((node) => node.id === id);
-      let pathParent = node.data;
-      let path_parts = path.split('.');
-      for (let i = 0; i < path_parts.length - 1; i++) {
-        pathParent = pathParent[path_parts[i]];
+      const nodeIndex = state.nodes.findIndex((node) => node.id === id);
+      if (nodeIndex !== -1) {
+        const node = state.nodes[nodeIndex];
+        const newData = { ...node.data };
+        set(newData, path, value);
+        const updatedNode = {
+          ...node,
+          data: newData,
+        };
+        state.nodes[nodeIndex] = updatedNode;
       }
-      pathParent[path_parts[path_parts.length - 1]] = value;
     },
     setHoveredNode: (state, action) => {
       state.hoveredNode = action.payload.nodeId;
