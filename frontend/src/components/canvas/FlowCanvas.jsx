@@ -29,6 +29,7 @@ import { initializeFlow } from '../../store/flowSlice'; // Import the new action
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner'; // Updated import
+import ConditionalNode from '../nodes/ConditionalNode';
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
@@ -38,6 +39,8 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
+        } else if (node.name === 'ConditionalNode') {
+          acc[node.name] = ConditionalNode;
         } else {
           acc[node.name] = (props) => {
             return <DynamicNode {...props} type={node.name} />;

@@ -5,7 +5,7 @@ import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
 import { jsonOptions } from '../../../constants/jsonOptions';
 import FewShotEditor from '../../textEditor/FewShotEditor';
-import PromptEditor from '../../textEditor/PromptEditor';
+import TextEditor from '../../textEditor/TextEditor';
 import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion, AccordionItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
@@ -126,7 +126,7 @@ const NodeSidebar = ({ nodeID }) => {
         if (key === 'system_prompt') {
             return (
                 <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
-                    <PromptEditor
+                    <TextEditor
                         key={key}
                         nodeID={nodeID}
                         fieldName={key}
