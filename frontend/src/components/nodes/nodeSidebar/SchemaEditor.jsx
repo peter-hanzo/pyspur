@@ -13,6 +13,11 @@ const SchemaEditor = (props) => {
   if (!nodeID) return null;
   
   const schemaFields = schemaType === 'input' ? input_schema : output_schema;
+  const getPlaceholderExample = () => {
+    return schemaType === 'input_schema'
+      ? 'eg. article'
+      : 'eg. summary';
+  };
 
   const handleAddKey = () => {
     addSchemaField(newKey, newType, schemaType);
@@ -44,8 +49,8 @@ const SchemaEditor = (props) => {
           type="text"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder={`${schemaType} field name`}
           // label={`${schemaType} field name`}
+          placeholder={getPlaceholderExample()}
           disabled={disabled}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !disabled && newKey) {
@@ -59,7 +64,6 @@ const SchemaEditor = (props) => {
           onChange={(e) => setNewType(e.target.value)}
           disabled={disabled}
           aria-labelledby="Type"
-          // label="Type"
           defaultSelectedKeys={["str"]}
           className="max-w-xs p-2 w-1/3"
         >

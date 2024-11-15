@@ -282,3 +282,49 @@ export const deleteWorkflow = async (workflowId) => {
     throw error;
   }
 };
+
+export const getTemplates = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/templates/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting templates:', error);
+    throw error;
+  }
+};
+
+export const instantiateTemplate = async (templateFileName) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/templates/${templateFileName}/instantiate/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error instantiating template:', error);
+    throw error;
+  }
+};
+
+export const duplicateWorkflow = async (workflowId) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/duplicate/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating workflow:', error);
+    throw error;
+  }
+};
+
+export const runPartialWorkflow = async (workflowId, nodeId, initialInputs, partialOutputs, rerunPredecessors) => {
+  try {
+    const requestBody = {
+      node_id: nodeId,
+      initial_inputs: initialInputs,
+      partial_outputs: partialOutputs,
+      rerun_predecessors: rerunPredecessors
+    };
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/run_partial/`, requestBody);
+    return response.data;
+  } catch (error) {
+    console.error('Error running partial workflow:', error);
+    throw error;
+  }
+};

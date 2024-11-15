@@ -16,7 +16,7 @@ import {
   TableCell,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import PromptEditor from './textEditor/PromptEditor';
+import TextEditor from './textEditor/TextEditor';
 
 const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
@@ -200,14 +200,13 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
               <div className="flex gap-2">
                 {workflowInputVariableNames.map(field => (
                   <div key={field} className="flex-1">
-                    <PromptEditor
+                    <TextEditor
                       nodeID={`newRow-${field}`}
                       fieldName={field}
                       fieldTitle={field}
                       inputSchema={{}}
                       content={editorContents[field] || ''}
                       setContent={(value) => {
-
                         setEditorContents(prev => ({
                           ...prev,
                           [field]: value

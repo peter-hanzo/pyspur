@@ -40,7 +40,7 @@ const Header = ({ activePage }) => {
           Object.entries(outputs).forEach(([nodeId, output_values]) => {
             const node = nodes.find((node) => node.id === nodeId);
             if (output_values) {
-              dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, data: output_values } } }));
+              dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...output_values } } }));
             }
           });
         }

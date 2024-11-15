@@ -5,10 +5,10 @@ import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
 import { jsonOptions } from '../../../constants/jsonOptions';
 import FewShotEditor from '../../textEditor/FewShotEditor';
-import PromptEditor from '../../textEditor/PromptEditor';
+import TextEditor from '../../textEditor/TextEditor';
 import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion, AccordionItem } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
-import NodeStatus from "../NodeStatusDisplay";
+import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
 import useNode from '../../../hooks/useNode';
 import isEqual from 'lodash/isEqual';
@@ -75,8 +75,7 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
-        // updateConfigValue(nodeID, key, value);
-        setDynamicModel((prev) => ({ ...prev, [key]: value }));
+        updateConfigValue(nodeID, key, value);
     };
 
     const renderEnumSelect = (key, label, enumValues) => (
@@ -142,13 +141,14 @@ const NodeSidebar = ({ nodeID }) => {
         if (key === 'system_prompt') {
             return (
                 <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
-                    <PromptEditor
+                    <TextEditor
                         key={key}
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={inputVariables}
                         fieldTitle="System Prompt"
                         setContent={(value) => handleInputChange(key, value)}
+                        content={config_values?.system_prompt || ''}
                     />
                     {/* Render Few Shot Examples right after the System Prompt */}
                     {renderFewShotExamples()}
@@ -348,7 +348,7 @@ const NodeSidebar = ({ nodeID }) => {
 
                     {nodeType !== 'InputNode' && (
                         <AccordionItem key="output" aria-label='Output' title="Outputs">
-                            <NodeStatus node={nodeData} />
+                            <NodeOutput node={node} />
                         </AccordionItem>
                     )}
 

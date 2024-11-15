@@ -17,6 +17,7 @@ from .dataset_management import router as dataset_management_router
 from .run_management import router as run_management_router
 from .output_file_management import router as output_file_management_router
 from .key_management import router as key_management_router
+from .template_management import router as template_management_router
 
 load_dotenv()
 
@@ -46,6 +47,7 @@ app.include_router(dataset_management_router, prefix="/ds")
 app.include_router(run_management_router, prefix="/run")
 app.include_router(output_file_management_router, prefix="/of")
 app.include_router(key_management_router, prefix="/env-mgmt")
+app.include_router(template_management_router, prefix="/templates")
 
 
 @app.post("/run_node/")

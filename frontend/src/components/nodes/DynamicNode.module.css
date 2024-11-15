@@ -1,52 +1,76 @@
 .nodeWrapper {
-    position: relative;
-    width: 100%;
-    min-height: 50px;
+  position: relative;
+  width: 100%;
+  min-height: 20px;
 }
 
-.inputHandleWrapper,
-.outputHandleWrapper {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-    z-index: 1000;
+.handlesWrapper {
+  display: flex;
+  width: 100%;
 }
 
-.inputHandleWrapper {
-    display: flex;
-    align-items: center;
-
+.handlesColumn {
+  width: 50%;
+  position: relative;
 }
 
-.outputHandleWrapper {
-    display: flex;
-    align-items: center;
+.handleCell {
+  width: 20px;
+  position: relative;
+}
 
+.outputHandleCell {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.handleWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 .handleLabel {
-    font-size: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-    display: inline-block;
-    position: relative;
-    z-index: 1000;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  display: inline-block;
+  position: relative;
+  z-index: 1000;
 }
 
 .handle {
-    width: 0.8rem !important;
-    height: 0.8rem !important;
-    background: #555 !important;
-    position: relative;
-    z-index: 1001 !important;
-    top: auto;
-    right: auto;
-    transform: none;
+  width: 0.8rem !important;
+  height: 0.8rem !important;
+  background: #555 !important;
+  position: relative;
+  z-index: 1001 !important;
+  top: auto;
+  right: auto;
+  transform: none;
 }
 
 .handle:hover {
-    background-color: #777;
+  background-color: #777;
+}
+
+.collapsedHandleInput {
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  transform: translateY(-50%) !important;
+}
+
+.collapsedHandleOutput {
+  position: absolute !important;
+  top: 50% !important;
+  right: 4px !important;
+  transform: translateY(-50%) !important;
+}
+
+.dynamicNodeWrapper {
+  position: relative;
 }

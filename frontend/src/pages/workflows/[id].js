@@ -32,6 +32,7 @@ const WorkflowPage = () => {
     }, [dispatch]);
 
     useEffect(() => {
+        dispatch(fetchNodeTypes());
         const fetchWorkflow = async () => {
             try {
                 const data = await getWorkflow(id);

@@ -15,10 +15,12 @@ import {
   Button,
   Input,
   Progress,
-  useDisclosure
+  useDisclosure,
+  Accordion,
+  AccordionItem
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
@@ -31,6 +33,7 @@ const Dashboard = () => {
   const router = useRouter();
 
   const [workflows, setWorkflows] = useState([]);
+  const [templates, setTemplates] = useState([]);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
@@ -45,46 +48,29 @@ const Dashboard = () => {
     fetchWorkflows();
   }, []);
 
+  useEffect(() => {
+    // Fetch workflows and templates
+    const fetchData = async () => {
+      try {
+        const [workflowsData, templatesData] = await Promise.all([
+          getWorkflows(),
+          getTemplates(),
+        ]);
+        setWorkflows(workflowsData);
+        setTemplates(templatesData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const columns = [
     { key: "id", label: "ID" },
     { key: "name", label: "Name" },
     { key: "description", label: "Description" },
     { key: "action", label: "Action" },
-  ];
-
-
-  const templates = [
-    {
-      id: 1,
-      title: "AI Trader",
-      description: "Template for basic data processing workflows",
-      features: [
-        "CSV/JSON handling",
-        "Data cleaning",
-        "Format conversion"
-      ]
-    },
-    {
-      id: 2,
-      title: "AI Researcher",
-      description: "NLP workflow template for text analysis",
-      features: [
-        "Sentiment analysis",
-        "Entity extraction",
-        "Text classification"
-      ]
-    },
-    {
-      id: 3,
-      title: "AI Podcaster",
-      description: "Template for API-based workflows",
-      features: [
-        "REST API endpoints",
-        "Data transformation",
-        "Error handling"
-      ]
-    }
   ];
 
   const handleRunClick = (workflow) => {
@@ -226,11 +212,13 @@ const Dashboard = () => {
     }
   };
 
-  const handleUseTemplate = (templateId) => {
-    router.push({
-      pathname: '/workflow',
-      query: { templateId },
-    });
+  const handleUseTemplate = async (templateFileName) => {
+    try {
+      const newWorkflow = await instantiateTemplate(templateFileName);
+      router.push(`/workflows/${newWorkflow.id}`);
+    } catch (error) {
+      console.error('Error using template:', error);
+    }
   };
 
   const handleDeleteClick = async (workflow) => {
@@ -247,6 +235,18 @@ const Dashboard = () => {
         console.error('Error deleting workflow:', error);
         alert('Failed to delete workflow. Please try again.');
       }
+    }
+  };
+
+  const handleDuplicateClick = async (workflow) => {
+    try {
+      const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
+      // Update the workflows state
+      setWorkflows((prevWorkflows) => [duplicatedWorkflow, ...prevWorkflows]);
+      console.log(`Workflow "${workflow.name}" duplicated successfully.`);
+    } catch (error) {
+      console.error('Error duplicating workflow:', error);
+      alert('Failed to duplicate workflow. Please try again.');
     }
   };
 
@@ -282,65 +282,105 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* New Templates Section */}
-        <h3 className="text-xl font-semibold mb-4">Spur Templates</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
-          {templates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              title={template.title}
-              description={template.description}
-              features={template.features}
-              onUse={() => handleUseTemplate(template.id)}
-            />
-          ))}
-        </div>
+        {/* Wrap sections in Accordion */}
+        <Accordion defaultExpandedKeys={["1", "2", "3"]} selectionMode="multiple">
+          <AccordionItem
+            key="1"
+            aria-label="Spur Templates"
+            title={
+              <h3 className="text-xl font-semibold mb-4">
+                Spur Templates
+              </h3>
+            }
+          >
+            {/* Spur Templates Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
+              {templates.map((template) => (
+                <TemplateCard
+                  key={template.file_name}
+                  title={template.name}
+                  description={template.description}
+                  features={template.features}
+                  onUse={() => handleUseTemplate(template.file_name)}
+                />
+              ))}
+            </div>
+          </AccordionItem>
 
-        <h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>
-        <Table aria-label="Saved Workflows" isHeaderSticky>
-          <TableHeader columns={columns}>
-            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-          </TableHeader>
-          <TableBody items={workflows}>
-            {(workflow) => (
-              <TableRow key={workflow.key}>
-                {(columnKey) => (
-                  <TableCell>
-                    {columnKey === "action" ? (
-                      <div className="flex items-center gap-2">
-                        <Icon
-                          icon="solar:play-bold"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleRunClick(workflow)}
-                        />
-                        <Icon
-                          icon="solar:pen-bold"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleEditClick(workflow)}
-                        />
-                        <Icon
-                          icon="solar:trash-bin-trash-linear"
-                          className="cursor-pointer text-default-400"
-                          height={18}
-                          width={18}
-                          onClick={() => handleDeleteClick(workflow)}
-                        />
-                      </div>
-                    ) : (
-                      getKeyValue(workflow, columnKey)
+          <AccordionItem
+            key="2"
+            aria-label="Recent Spurs"
+            title={
+              <h3 className="text-xl font-semibold mb-4">
+                Recent Spurs
+              </h3>
+            }
+          >
+            {/* Recent Spurs Section */}
+            <Table aria-label="Saved Workflows" isHeaderSticky>
+              <TableHeader columns={columns}>
+                {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+              </TableHeader>
+              <TableBody items={workflows}>
+                {(workflow) => (
+                  <TableRow key={workflow.key}>
+                    {(columnKey) => (
+                      <TableCell>
+                        {columnKey === "action" ? (
+                          <div className="flex items-center gap-2">
+                            <Icon
+                              icon="solar:play-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleRunClick(workflow)}
+                            />
+                            <Icon
+                              icon="solar:pen-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleEditClick(workflow)}
+                            />
+                            <Icon
+                              icon="solar:copy-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleDuplicateClick(workflow)}
+                            />
+                            <Icon
+                              icon="solar:trash-bin-trash-bold"
+                              className="cursor-pointer text-default-400"
+                              height={18}
+                              width={18}
+                              onClick={() => handleDeleteClick(workflow)}
+                            />
+                          </div>
+                        ) : (
+                          getKeyValue(workflow, columnKey)
+                        )}
+                      </TableCell>
                     )}
-                  </TableCell>
+                  </TableRow>
                 )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              </TableBody>
+            </Table>
+          </AccordionItem>
 
-        <WorkflowBatchRunsTable />
+          <AccordionItem
+            key="3"
+            aria-label="Spur Jobs"
+            title={
+              <h3 className="text-xl font-semibold mb-4">
+                Spur Jobs
+              </h3>
+            }
+          >
+            {/* Spur Jobs Section */}
+            <WorkflowBatchRunsTable />
+          </AccordionItem>
+        </Accordion>
       </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>

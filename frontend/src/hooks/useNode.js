@@ -7,6 +7,7 @@ import {
     setHoveredNode,
     setSelectedNode,
     deleteNode as deleteNodeAction,
+    updateEdgesOnHandleRename,
 } from '../store/flowSlice';
 import JSPydanticModel from '../utils/JSPydanticModel';
 
@@ -134,19 +135,19 @@ function useNode(nodeId) {
                 return;
             }
 
-            updateNodeData((prevData) => {
-                const schemaFieldsSoFar = prevData.config_values?.[`${schemaType}_schema`] || [];
-                const newSchemaField = { field_name: key, field_type: type };
-                const updatedSchema = schemaFieldsSoFar.concat(newSchemaField);
+            const schemaFieldsSoFar = config_values?.[`${schemaType}_schema`] || [];
+            const newSchemaField = { field_name: key, field_type: type };
+            const updatedSchema = schemaFieldsSoFar.concat(newSchemaField);
 
-                return {
-                    ...prevData,
-                    config_values: {
-                        ...prevData.config_values,
-                        [`${schemaType}_schema`]: updatedSchema,
-                    },
-                };
-            });
+            const updatedData = {
+                ...node.data,
+                config_values: {
+                    ...node.data.config_values,
+                    [`${schemaType}_schema`]: updatedSchema,
+                },
+            };
+
+            updateNodeData(updatedData);
         },
         [updateNodeData]
     );
@@ -239,8 +240,15 @@ function useNode(nodeId) {
                     [`${schemaType}_schema`]: updatedSchema,
                 },
             });
+
+            dispatch(updateEdgesOnHandleRename({
+                nodeId: node.id,
+                oldHandleId: oldKey,
+                newHandleId: newKey,
+                schemaType,
+            }));
         },
-        [node, updateNodeData]
+        [node, updateNodeData, dispatch]
     );
 
     return {

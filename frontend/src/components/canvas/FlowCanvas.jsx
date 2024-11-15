@@ -164,6 +164,7 @@ const FlowCanvasContent = (props) => {
                       key={node.name}
                       onClick={() =>
                         addNodeBetweenNodes(
+                          nodeTypesConfig,
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,
@@ -226,7 +227,7 @@ const FlowCanvasContent = (props) => {
             deleteKeyCode="Delete"
             nodesConnectable={true}
             connectionMode="loose"
-            key={edgeUpdateTrigger}            >
+          >
             <Background />
 
             {showHelperLines && (

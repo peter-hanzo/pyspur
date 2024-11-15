@@ -191,6 +191,31 @@ const flowSlice = createSlice({
         targetHandle: link.target_input_key
       }));
     },
+
+    updateEdgesOnHandleRename: (state, action) => {
+      const { nodeId, oldHandleId, newHandleId, schemaType } = action.payload;
+
+      state.edges = state.edges.map((edge) => {
+        if (schemaType === 'input_schema') {
+          // For input handles, update edges where this node is the target
+          if (edge.target === nodeId && edge.targetHandle === oldHandleId) {
+            return {
+              ...edge,
+              targetHandle: newHandleId,
+            };
+          }
+        } else if (schemaType === 'output_schema') {
+          // For output handles, update edges where this node is the source
+          if (edge.source === nodeId && edge.sourceHandle === oldHandleId) {
+            return {
+              ...edge,
+              sourceHandle: newHandleId,
+            };
+          }
+        }
+        return edge;
+      });
+    },
   },
 });
 
@@ -213,7 +238,8 @@ export const {
   setWorkflowInputVariable,
   deleteWorkflowInputVariable,
   updateWorkflowInputVariableKey,
-  resetFlow
+  resetFlow,
+  updateEdgesOnHandleRename
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
