@@ -35,11 +35,18 @@ const InputNode = ({ id, data, ...props }) => {
 
       const nodePadding = 26;
       const borderWidth = 2;
-      setHandlePosition(`-${nodePadding + borderWidth}px`);
+      const newHandlePosition = `-${nodePadding + borderWidth}px`;
 
-      setNodeWidth(`${finalWidth}px`);
+      if (handlePosition !== newHandlePosition) {
+        setHandlePosition(newHandlePosition);
+      }
+
+      const newNodeWidth = `${finalWidth}px`;
+      if (nodeWidth !== newNodeWidth) {
+        setNodeWidth(newNodeWidth);
+      }
     }
-  }, [data, workflowInputKeys]);
+  }, [data.title, workflowInputKeys.length, handlePosition, nodeWidth]);
 
   const saveWorkflow = useSaveWorkflow();
   const nodes = useSelector(state => state.flow.nodes);
@@ -50,13 +57,13 @@ const InputNode = ({ id, data, ...props }) => {
     if (!inputNode) return;
     // Now save the workflow
     saveWorkflow();
-  }, [id, nodes, workflowInputVariables, saveWorkflow]);
+  }, [id, nodes, saveWorkflow]);
 
 
-  // Sync and save whenever workflowInputVariables changes
+  // Sync and save whenever the input schema changes
   useEffect(() => {
     syncAndSave();
-  }, [workflowInputVariables]);
+  }, [syncAndSave]);
 
   const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
@@ -68,7 +75,7 @@ const InputNode = ({ id, data, ...props }) => {
     }));
     setNewFieldValue('');
     // No need to call syncAndSave here, it will be triggered by the useEffect
-  }, [dispatch, newFieldValue]);
+  }, [dispatch, newFieldValue, setNewFieldValue]);
 
   const handleDeleteWorkflowInputVariable = useCallback((keyToDelete) => {
     dispatch(deleteWorkflowInputVariable({ key: keyToDelete }));
