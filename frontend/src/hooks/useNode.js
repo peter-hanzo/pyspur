@@ -1,6 +1,6 @@
 // frontend/src/hooks/useNode.js
-import { useDispatch, useSelector } from 'react-redux';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { useCallback, useMemo } from 'react';
 import {
     updateNodeData as updateNodeDataAction,
     updateNodeDataPath,
@@ -14,17 +14,26 @@ function useNode(nodeId) {
     const dispatch = useDispatch();
 
     // Get the node from the Redux store
-    const node = useSelector((state) =>
-        state.flow.nodes.find((n) => n.id === nodeId)
+    const node = useSelector(
+        (state) => state.flow.nodes.find((n) => n.id === nodeId),
+        shallowEqual
     );
 
-    const nodeData = useSelector((state) => 
-        state.flow.nodes.find((n) => n.id === nodeId).data
-    );
+    const nodeData = useSelector((state) => {
+        const node = state.flow.nodes.find((n) => n.id === nodeId);
+        if (node) {
+            return node.data;
+        }
+        return null;
+    });
 
     // Get hovered and selected node IDs from the store
-    const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
-    const selectedNodeId = useSelector((state) => state.flow.selectedNode);
+    const hoveredNodeId = useSelector((state) => {
+        return state.flow.hoveredNode;
+    });
+    const selectedNodeId = useSelector((state) => {
+        return state.flow.selectedNode;
+    });
 
     // Determine if the current node is hovered or selected
     const isHovered = String(nodeId) === String(hoveredNodeId);
@@ -84,18 +93,18 @@ function useNode(nodeId) {
     const config_values = useMemo(() => {
         if (config_model) {
             const defaultValues = config_model.getDefaultValues();
-            return node.data.config_values || defaultValues;
+            const previouslySetValues = node?.data?.config?.input_schema;
+            const currentValues = node?.data?.config_values;
+            if (currentValues) {
+                return currentValues;
+            }
+            if (previouslySetValues) {
+                return previouslySetValues;
+            }
+            return defaultValues;
         }
         return null;
-    }, [config_model, node.data.config_values]);
-
-    useEffect(() => {
-        if (config_model && !node?.data?.config_values) {
-            updateNodeData({
-                config_values: config_model.getDefaultValues(),
-            });
-        }
-    }, [config_model, node?.data?.config_values, updateNodeData]);
+    }, [config_model, node?.data?.config?.input_schema, node?.data.config_values]);
 
     const input_schema = useMemo(() => {
         if (config_values?.input_schema) {
@@ -125,17 +134,21 @@ function useNode(nodeId) {
                 return;
             }
 
-            let schemaFiedsSoFar = node.data.config_values?.[`${schemaType}_schema`] || [];
-            const newSchemaField = { field_name: key, field_type: type };
-            const updatedSchema = schemaFiedsSoFar.concat(newSchemaField);
-            updateNodeData({
-                config_values: {
-                    ...node.data.config_values,
-                    [`${schemaType}_schema`]: updatedSchema,
-                },
+            updateNodeData((prevData) => {
+                const schemaFieldsSoFar = prevData.config_values?.[`${schemaType}_schema`] || [];
+                const newSchemaField = { field_name: key, field_type: type };
+                const updatedSchema = schemaFieldsSoFar.concat(newSchemaField);
+
+                return {
+                    ...prevData,
+                    config_values: {
+                        ...prevData.config_values,
+                        [`${schemaType}_schema`]: updatedSchema,
+                    },
+                };
             });
         },
-        [node, updateNodeData]
+        [updateNodeData]
     );
 
     const deleteSchemaField = useCallback(
@@ -171,8 +184,7 @@ function useNode(nodeId) {
                     };
                 }
                 return field;
-            }
-            );
+            });
             updateNodeData({
                 config_values: {
                     ...node.data.config_values,
