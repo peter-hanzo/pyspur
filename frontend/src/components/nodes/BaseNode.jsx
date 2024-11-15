@@ -43,7 +43,7 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
     }
   };
 
-  const status = data.run && data.run.data ? 'completed' : (data.status || 'default').toLowerCase();
+  const status = data?.run && data.run?.data ? 'completed' : (data?.status || 'default').toLowerCase();
 
   const borderColor = status === 'completed' ? '#4CAF50' :
     status === 'failed' ? 'red' :
@@ -120,10 +120,12 @@ const BaseNode = ({ id, data = {}, children, style = {}, isInputNode = false }) 
       {(showControls || isSelected) && (
         <Card
           onMouseEnter={() => {
+            console.log('Mouse enter tooltip');
             setShowControls(true);
             setIsTooltipHovered(true);
           }}
           onMouseLeave={() => {
+            console.log('Mouse leave tooltip');
             setIsTooltipHovered(false);
             setTimeout(() => {
               if (!isHovered) {
