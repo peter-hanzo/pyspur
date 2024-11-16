@@ -64,7 +64,7 @@ class JSPydanticModel {
 
     // Process $defs if present
     if (schema.$defs) {
-      this.processDefs(schema.$defs);
+      this.processDefs(schema.$defs, currentConstraints, currentConstraints);
     }
 
     if (schema.$ref) {
@@ -129,14 +129,22 @@ class JSPydanticModel {
     return result;
   }
 
-  private processDefs(defs: { [key: string]: any }) {
+  private processDefs(defs: { [key: string]: any }, currentConstraints: any, parentConstraints: any) {
     // Process each definition in $defs
     for (const defKey in defs) {
       if (defs.hasOwnProperty(defKey)) {
         const defSchema = defs[defKey];
         // Process the definition schema and store it in the constraints
-        this.constraints[defKey] = {};
-        this.processSchema(defSchema, new Set(), this.constraints[defKey]);
+        currentConstraints[defKey] = {};
+        this.processSchema(defSchema, new Set(), currentConstraints[defKey]);
+
+        // If the definition is "ModelInfo", move it directly under config instead of $defs
+        if (defKey === 'ModelInfo') {
+          // Check if the parent schema is an LLM node
+          if (parentConstraints && parentConstraints.config) {
+            parentConstraints.config.ModelInfo = this.constraints.ModelInfo;
+          }
+        }
       }
     }
   }
@@ -145,7 +153,7 @@ class JSPydanticModel {
     const obj: { [key: string]: any } = {};
 
     // Collect object-level constraints first
-    const constraintKeys = ['minimum', 'maximum', 'minProperties', 'maxProperties', 'required'];
+    const constraintKeys = ['minimum', 'maximum', 'minProperties', 'maxProperties'];
     for (const constraintKey of constraintKeys) {
       if (schema[constraintKey] !== undefined) {
         currentConstraints[constraintKey] = schema[constraintKey];
@@ -266,19 +274,18 @@ class JSPydanticModel {
   }
 
   private processAnyOf(anyOf: any[], refsSeen: Set<string>, currentConstraints: any): any {
-    currentConstraints.anyOf = [];
-
+    // Instead of storing all options in anyOf, we will prune and return the first valid schema
     for (const option of anyOf) {
       const optionConstraints = {};
       const result = this.processSchema(option, refsSeen, optionConstraints);
 
       if (result !== null && result !== undefined) {
-        // Store constraints for each valid option
-        currentConstraints.anyOf.push(optionConstraints);
-        return result;
+        // Merge the constraints of the first valid option into the current constraints
+        Object.assign(currentConstraints, optionConstraints);
+        return result; // Return the first valid schema
       }
     }
-    return null;
+    return null; // If no valid schema is found, return null
   }
 
   private resolveRef(ref: string): any {
