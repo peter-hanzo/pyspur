@@ -1,19 +1,24 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getNodeTypes } from '../utils/api';
 
-// Async thunk to fetch node types
-export const fetchNodeTypes = createAsyncThunk('nodeTypes/fetchNodeTypes', async () => {
-  const response = await getNodeTypes();
-  return response;
-});
+const initialState = {
+  data: null,  // This will store the schema object
+  constraints: null,  // This will store the constraints
+  status: 'idle',
+  error: null,
+};
+
+export const fetchNodeTypes = createAsyncThunk(
+  'nodeTypes/fetchNodeTypes',
+  async () => {
+    const response = await getNodeTypes();
+    return response;  // Now returns { schemaObject, constraints }
+  }
+);
 
 const nodeTypesSlice = createSlice({
   name: 'nodeTypes',
-  initialState: {
-    data: [],
-    status: 'idle',
-    error: null,
-  },
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -22,7 +27,8 @@ const nodeTypesSlice = createSlice({
       })
       .addCase(fetchNodeTypes.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.data = action.payload;
+        state.data = action.payload.schemaObject;  // Store schema object in data
+        state.constraints = action.payload.constraints;  // Store constraints
       })
       .addCase(fetchNodeTypes.rejected, (state, action) => {
         state.status = 'failed';
@@ -32,3 +38,6 @@ const nodeTypesSlice = createSlice({
 });
 
 export default nodeTypesSlice.reducer;
+
+// Add a selector to get constraints
+export const selectNodeTypeConstraints = (state) => state.nodeTypes.constraints;
