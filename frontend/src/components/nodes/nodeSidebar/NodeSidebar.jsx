@@ -14,7 +14,7 @@ import SchemaEditor from './SchemaEditor';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
-    const nodeConstraints = useSelector((state) => state.nodeTypes.constraints);
+
     const node = useSelector((state) => selectNodeById(state, nodeID));
     // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
@@ -87,27 +87,7 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Helper function to get constraints for a field
     const getFieldConstraints = (key) => {
-        console.log("nodeConstraints", nodeConstraints);
-        if (!nodeConstraints || !nodeType) {
-            return null;
-        }
 
-        // Find the category (primitives, llm, python) and index
-        for (const category in nodeConstraints) {
-            for (const index in nodeConstraints[category]) {
-                if (nodeConstraints[category][index].name === nodeType) {
-                    // Check in config first
-                    if (nodeConstraints[category][index].config?.[key]) {
-                        return nodeConstraints[category][index].config[key];
-                    }
-
-                    // Check in ModelInfo if it exists
-                    if (nodeConstraints[category][index].config?.ModelInfo?.[key]) {
-                        return nodeConstraints[category][index].config.ModelInfo[key];
-                    }
-                }
-            }
-        }
         return null;
     };
 
@@ -115,7 +95,7 @@ const NodeSidebar = ({ nodeID }) => {
     const renderField = (key, field, value) => {
         // Get constraints for this field
         const fieldConstraints = getFieldConstraints(key);
-        console.log(key, fieldConstraints);
+        console.log("renderField", key, field, value);
         // Handle specific cases for input_schema, output_schema, and system_prompt
         if (key === 'input_schema') {
 

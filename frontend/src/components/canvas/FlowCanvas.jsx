@@ -34,7 +34,6 @@ import ConditionalNode from '../nodes/ConditionalNode';
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
     if (!nodeTypesConfig) return {};
-    console.log('nodeTypesConfig', nodeTypesConfig);
     return Object.keys(nodeTypesConfig).reduce((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
