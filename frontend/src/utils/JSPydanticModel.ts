@@ -24,24 +24,22 @@ interface JSONSchema {
 class JSPydanticModel {
   [key: string]: any;
   private _schema: JSONSchema;
+  private constraints: { [key: string]: any } = {}; // Initialize constraints
 
   constructor(schema: JSONSchema) {
     this._schema = schema;
-    this.initializeProperties();
+    this.createObjectFromSchema();
   }
 
-  private initializeProperties() {
-    // Process each key at the root of the schema
-    for (const key in this._schema) {
-      if (this._schema.hasOwnProperty(key)) {
-        this[key] = this.processSchema(this._schema[key]);
-      }
-    }
+  public createObjectFromSchema(): any {
+    // Start processing from the root of the schema
+    return this.processSchema(this._schema, new Set(), this.constraints);
   }
 
   private processSchema(
     schema: any,
-    refsSeen: Set<string> = new Set()
+    refsSeen: Set<string> = new Set(),
+    currentConstraints: any = {}
   ): any {
     if (schema === null || schema === undefined) {
       return null;
@@ -53,7 +51,20 @@ class JSPydanticModel {
     }
 
     if (Array.isArray(schema)) {
-      return schema.map((item) => this.processSchema(item, refsSeen));
+      const arr = [];
+      for (let i = 0; i < schema.length; i++) {
+        // Initialize constraints for this item
+        currentConstraints[i] = {};
+
+        const item = this.processSchema(schema[i], refsSeen, currentConstraints[i]);
+        arr.push(item);
+      }
+      return arr;
+    }
+
+    // Process $defs if present
+    if (schema.$defs) {
+      this.processDefs(schema.$defs);
     }
 
     if (schema.$ref) {
@@ -73,33 +84,33 @@ class JSPydanticModel {
       const mergedSchema = { ...refSchema, ...schema };
       delete mergedSchema.$ref; // Prevent re-processing $ref
 
-      const result = this.processSchema(mergedSchema, refsSeen);
+      const result = this.processSchema(mergedSchema, refsSeen, currentConstraints);
 
       refsSeen.delete(refPath); // Clean up after processing
       return result;
     }
 
     if (schema.anyOf) {
-      return this.processAnyOf(schema.anyOf, refsSeen);
+      return this.processAnyOf(schema.anyOf, refsSeen, currentConstraints);
     }
 
     if (schema.enum) {
-      return this.processEnum(schema, refsSeen);
+      return this.processEnum(schema, refsSeen, currentConstraints);
     }
 
     if (schema.type) {
       switch (schema.type) {
         case 'object':
-          return this.processObject(schema, refsSeen);
+          return this.processObject(schema, refsSeen, currentConstraints);
 
         case 'array':
-          return this.processArray(schema, refsSeen);
+          return this.processArray(schema, refsSeen, currentConstraints);
 
         case 'string':
         case 'number':
         case 'integer':
         case 'boolean':
-          return this.processPrimitive(schema);
+          return this.processPrimitive(schema, currentConstraints);
 
         default:
           return null;
@@ -110,107 +121,164 @@ class JSPydanticModel {
     const result: { [key: string]: any } = {};
     for (const key in schema) {
       if (schema.hasOwnProperty(key)) {
-        result[key] = this.processSchema(schema[key], refsSeen);
+        currentConstraints[key] = {};
+
+        result[key] = this.processSchema(schema[key], refsSeen, currentConstraints[key]);
       }
     }
     return result;
   }
 
-  private processObject(schema: any, refsSeen: Set<string>): any {
+  private processDefs(defs: { [key: string]: any }) {
+    // Process each definition in $defs
+    for (const defKey in defs) {
+      if (defs.hasOwnProperty(defKey)) {
+        const defSchema = defs[defKey];
+        // Process the definition schema and store it in the constraints
+        this.constraints[defKey] = {};
+        this.processSchema(defSchema, new Set(), this.constraints[defKey]);
+      }
+    }
+  }
+
+  private processObject(schema: any, refsSeen: Set<string>, currentConstraints: any): any {
     const obj: { [key: string]: any } = {};
+
+    // Collect object-level constraints first
+    const constraintKeys = ['minimum', 'maximum', 'minProperties', 'maxProperties', 'required'];
+    for (const constraintKey of constraintKeys) {
+      if (schema[constraintKey] !== undefined) {
+        currentConstraints[constraintKey] = schema[constraintKey];
+      }
+    }
 
     if (schema.properties) {
       for (const key in schema.properties) {
         if (schema.properties.hasOwnProperty(key)) {
           const propertySchema = schema.properties[key];
 
+          // Initialize constraints for this property
+          currentConstraints[key] = {};
+
           // Process the property's schema
-          const value = this.processSchema(propertySchema, refsSeen);
+          const value = this.processSchema(propertySchema, refsSeen, currentConstraints[key]);
 
           // Use the default value if available, otherwise use the processed value
-          obj[key] =
-            propertySchema.default !== undefined ? propertySchema.default : value;
+          obj[key] = propertySchema.default !== undefined ? propertySchema.default : value;
+
+          // If the processed value is empty but we have constraints, keep the constraints
+          if (Object.keys(currentConstraints[key]).length === 0 && propertySchema.type) {
+            currentConstraints[key].type = propertySchema.type;
+          }
         }
       }
     }
 
-    // Handle additionalProperties if necessary
-    if (schema.additionalProperties === true) {
-      // Assuming you want to allow additional properties as empty objects
-      // obj['additionalProperties'] = {};
-    }
-
-    // If the object itself has a default, merge it
-    if (schema.default && typeof schema.default === 'object') {
-      Object.assign(obj, schema.default);
+    // If schema has a default value, use it
+    if (schema.default !== undefined) {
+      return schema.default;
     }
 
     return obj;
   }
 
-  private processArray(schema: any, refsSeen: Set<string>): any {
-    const arr: any = {};
-
-    // Include metadata
-    if (schema.title) {
-      arr['title'] = schema.title;
-    }
-    if (schema.description) {
-      arr['description'] = schema.description;
-    }
-    arr['type'] = 'array';
-
-    // Process items
-    if (schema.items) {
-      arr['items'] = this.processSchema(schema.items, refsSeen);
-    } else {
-      arr['items'] = {};
-    }
-
-    // Assign default value
-    if (schema.default !== undefined) {
-      arr['default'] = schema.default;
-    } else {
-      arr['default'] = [];
-    }
-
-    return arr;
-  }
-
-  private processPrimitive(schema: any): any {
-    const result: any = {};
-
-    // Include metadata
-    if (schema.title) {
-      result['title'] = schema.title;
-    }
-    if (schema.description) {
-      result['description'] = schema.description;
-    }
-    result['type'] = schema.type;
-
-    // Assign default value
-    if (schema.default !== undefined) {
-      result['default'] = schema.default;
-    } else {
-      // Assign sensible defaults based on type
-      switch (schema.type) {
-        case 'string':
-          result['default'] = '';
-          break;
-        case 'number':
-        case 'integer':
-          result['default'] = 0;
-          break;
-        case 'boolean':
-          result['default'] = false;
-          break;
-        default:
-          result['default'] = null;
+  private processArray(schema: any, refsSeen: Set<string>, currentConstraints: any): any {
+    // Collect array-level constraints
+    const constraintKeys = ['minItems', 'maxItems'];
+    for (const constraintKey of constraintKeys) {
+      if (schema[constraintKey] !== undefined) {
+        currentConstraints[constraintKey] = schema[constraintKey];
       }
     }
 
-    return result;
+    // If schema has items definition
+    if (schema.items) {
+      currentConstraints.items = {};
+      const processedItems = this.processSchema(schema.items, refsSeen, currentConstraints.items);
+
+      // If schema has a default value, use it
+      if (schema.default !== undefined) {
+        return schema.default;
+      }
+
+      // Return an empty array as default
+      return [];
+    }
+
+    return schema.default !== undefined ? schema.default : [];
+  }
+
+  private processPrimitive(schema: any, currentConstraints: any): any {
+    // Collect primitive-level constraints
+    const constraintKeys = [
+      'minimum',
+      'maximum',
+      'exclusiveMinimum',
+      'exclusiveMaximum',
+      'minLength',
+      'maxLength',
+      'pattern',
+      'enum',
+      'type'
+    ];
+
+    for (const constraintKey of constraintKeys) {
+      if (schema[constraintKey] !== undefined) {
+        currentConstraints[constraintKey] = schema[constraintKey];
+      }
+    }
+
+    // If schema has a default value, use it
+    if (schema.default !== undefined) {
+      return schema.default;
+    }
+
+    // Return type-appropriate default value
+    switch (schema.type) {
+      case 'string':
+        return '';
+      case 'number':
+      case 'integer':
+        return 0;
+      case 'boolean':
+        return false;
+      default:
+        return null;
+    }
+  }
+
+  private processEnum(schema: any, refsSeen: Set<string>, currentConstraints: any): any {
+    // Store enum values in constraints
+    if (schema.enum) {
+      currentConstraints.enum = schema.enum;
+    }
+
+    // Store type information
+    currentConstraints.type = 'enum';
+
+    // If schema has a default value, use it
+    if (schema.default !== undefined) {
+      return schema.default;
+    }
+
+    // Return first enum value as default, or null if no enum values
+    return schema.enum && schema.enum.length > 0 ? schema.enum[0] : null;
+  }
+
+  private processAnyOf(anyOf: any[], refsSeen: Set<string>, currentConstraints: any): any {
+    currentConstraints.anyOf = [];
+
+    for (const option of anyOf) {
+      const optionConstraints = {};
+      const result = this.processSchema(option, refsSeen, optionConstraints);
+
+      if (result !== null && result !== undefined) {
+        // Store constraints for each valid option
+        currentConstraints.anyOf.push(optionConstraints);
+        return result;
+      }
+    }
+    return null;
   }
 
   private resolveRef(ref: string): any {
@@ -228,42 +296,6 @@ class JSPydanticModel {
     return schema;
   }
 
-  private processAnyOf(anyOf: any[], refsSeen: Set<string>): any {
-    for (const option of anyOf) {
-      const result = this.processSchema(option, refsSeen);
-      if (result !== null && result !== undefined) {
-        return result;
-      }
-    }
-    return null;
-  }
-
-  private processEnum(schema: any): any {
-    const result: any = {};
-
-    // Include metadata
-    if (schema.title) {
-      result['title'] = schema.title;
-    }
-    if (schema.description) {
-      result['description'] = schema.description;
-    }
-    result['type'] = 'enum';
-
-    // Assign default value
-    if (schema.default !== undefined) {
-      result['default'] = schema.default;
-    } else if (schema.enum && schema.enum.length > 0) {
-      result['default'] = schema.enum[0];
-    } else {
-      result['default'] = null;
-    }
-
-    result['enum'] = schema.enum || [];
-
-    return result;
-  }
-
   private inferTypeFromValue(value: any): string {
     if (value === null) {
       return 'null';
@@ -274,10 +306,6 @@ class JSPydanticModel {
     } else {
       return typeof value;
     }
-  }
-
-  public createObjectFromSchema(): any {
-    return this.processSchema(this._schema);
   }
 }
 

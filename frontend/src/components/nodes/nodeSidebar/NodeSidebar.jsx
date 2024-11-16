@@ -207,6 +207,7 @@ const NodeSidebar = ({ nodeID }) => {
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config;
+        console.log(nodeSchema);
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
