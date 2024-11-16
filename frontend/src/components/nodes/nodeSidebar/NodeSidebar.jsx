@@ -10,9 +10,11 @@ import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion,
 import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
+
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
+    const nodeConstraints = useSelector((state) => state.nodeTypes.constraints);
     const node = useSelector((state) => selectNodeById(state, nodeID));
     // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
@@ -83,8 +85,37 @@ const NodeSidebar = ({ nodeID }) => {
         handleInputChange('few_shot_examples', updatedExamples);
     };
 
+    // Helper function to get constraints for a field
+    const getFieldConstraints = (key) => {
+        console.log("nodeConstraints", nodeConstraints);
+        if (!nodeConstraints || !nodeType) {
+            return null;
+        }
+
+        // Find the category (primitives, llm, python) and index
+        for (const category in nodeConstraints) {
+            for (const index in nodeConstraints[category]) {
+                if (nodeConstraints[category][index].name === nodeType) {
+                    // Check in config first
+                    if (nodeConstraints[category][index].config?.[key]) {
+                        return nodeConstraints[category][index].config[key];
+                    }
+
+                    // Check in ModelInfo if it exists
+                    if (nodeConstraints[category][index].config?.ModelInfo?.[key]) {
+                        return nodeConstraints[category][index].config.ModelInfo[key];
+                    }
+                }
+            }
+        }
+        return null;
+    };
+
     // Helper function to render fields based on their type
     const renderField = (key, field, value) => {
+        // Get constraints for this field
+        const fieldConstraints = getFieldConstraints(key);
+        console.log(key, fieldConstraints);
         // Handle specific cases for input_schema, output_schema, and system_prompt
         if (key === 'input_schema') {
 
@@ -154,6 +185,30 @@ const NodeSidebar = ({ nodeID }) => {
                     />
                 );
             case 'number':
+                // Check if we have constraints that would make this suitable for a slider
+                if (fieldConstraints &&
+                    (fieldConstraints.minimum !== undefined || fieldConstraints.maximum !== undefined)) {
+                    const min = fieldConstraints.minimum ?? 0;
+                    const max = fieldConstraints.maximum ?? 100;
+                    return (
+                        <div key={key} className="my-4">
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="font-semibold">{key}</label>
+                                <span className="text-sm">{value}</span>
+                            </div>
+                            <Slider
+                                aria-label={key}
+                                value={value}
+                                min={min}
+                                max={max}
+                                step={fieldConstraints.type === 'integer' ? 1 : 0.1}
+                                className="w-full"
+                                onChange={(newValue) => handleInputChange(key, newValue)}
+                            />
+                        </div>
+                    );
+                }
+                // Fall back to number input if no suitable constraints
                 return (
                     <NumberInput
                         key={key}

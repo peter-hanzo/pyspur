@@ -138,12 +138,9 @@ class JSPydanticModel {
         currentConstraints[defKey] = {};
         this.processSchema(defSchema, new Set(), currentConstraints[defKey]);
 
-        // If the definition is "ModelInfo", move it directly under config instead of $defs
-        if (defKey === 'ModelInfo') {
-          // Check if the parent schema is an LLM node
-          if (parentConstraints && parentConstraints.config) {
-            parentConstraints.config.ModelInfo = this.constraints.ModelInfo;
-          }
+        // Move the definition directly under the parent constraints instead of $defs
+        if (parentConstraints) {
+          parentConstraints[defKey] = currentConstraints[defKey];
         }
       }
     }
