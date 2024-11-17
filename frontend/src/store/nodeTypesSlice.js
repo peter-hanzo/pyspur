@@ -37,9 +37,42 @@ const nodeTypesSlice = createSlice({
   },
 });
 
-// Add selector to easily get metadata for a specific property
+// Helper function to find metadata in the nested structure
+const findMetadataInCategory = (metadata, nodeType, path) => {
+  if (!metadata) return null;
+
+  // Find which category the node belongs to
+  const categories = ['primitives', 'llm', 'python'];
+  for (const category of categories) {
+    const nodes = metadata[category];
+    if (!nodes) continue;
+
+    // Find the node in the category
+    const nodeIndex = nodes.findIndex(node => node.name === nodeType);
+    if (nodeIndex === -1) continue;
+
+    // Navigate the remaining path
+    let current = nodes[nodeIndex];
+    const remainingPath = path.split('.');
+
+    for (const part of remainingPath) {
+      if (!current || !current[part]) return null;
+      current = current[part];
+    }
+
+    return current;
+  }
+  return null;
+};
+
 export const selectPropertyMetadata = (state, propertyPath) => {
-  return state.nodeTypes.metadata?.[propertyPath] || null;
+  if (!propertyPath) return null;
+
+  // Split path into nodeType and remaining path
+  const [nodeType, ...pathParts] = propertyPath.split('.');
+  const remainingPath = pathParts.join('.');
+
+  return findMetadataInCategory(state.nodeTypes.metadata, nodeType, remainingPath);
 };
 
 export default nodeTypesSlice.reducer;

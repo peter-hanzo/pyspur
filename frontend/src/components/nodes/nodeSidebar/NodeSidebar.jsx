@@ -87,21 +87,23 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
     // Helper function to get field metadata
-    const getFieldMetadata = (key) => {
-        // Construct the property path based on the node type and field key
-        const propertyPath = `${nodeType}.config.${key}`;
-        return useSelector(state => selectPropertyMetadata(state, propertyPath));
+    const getFieldMetadata = (fullPath) => {
+        return useSelector(state => selectPropertyMetadata(state, fullPath));
     };
 
     // Helper function to render fields based on their type
-    const renderField = (key, field, value) => {
+    const renderField = (key, field, value, parentPath = '') => {
+        // Construct the full property path
+        const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
+
         // Get metadata for this field
-        const fieldMetadata = getFieldMetadata(key);
+        const fieldMetadata = getFieldMetadata(fullPath);
 
         // Special handling for numeric fields with constraints
         if (typeof field === 'number' && fieldMetadata) {
             const { minimum, maximum } = fieldMetadata;
             if (minimum !== undefined || maximum !== undefined) {
+                console.log("rendering slider for", key);
                 return (
                     <div key={key} className="my-4">
                         <div className="flex justify-between items-center mb-2">
@@ -250,7 +252,7 @@ const NodeSidebar = ({ nodeID }) => {
                         <div key={key} className="my-2">
                             <hr className="my-2" />
                             <label className="text-sm font-semibold mb-1 block">{key}</label>
-                            {Object.keys(field).map((subKey) => renderField(subKey, field[subKey], value?.[subKey]))}
+                            {Object.keys(field).map((subKey) => renderField(subKey, field[subKey], value?.[subKey], fullPath))}
                             <hr className="my-2" />
                         </div>
                     );
@@ -277,7 +279,7 @@ const NodeSidebar = ({ nodeID }) => {
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
-            return renderField(key, field, value); // Use the helper function to render each field
+            return renderField(key, field, value, `${nodeType}.config`); // Pass the full path
         }).concat(<hr key="divider" className="my-2" />);
     };
 
