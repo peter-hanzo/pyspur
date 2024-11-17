@@ -10,8 +10,7 @@ class JSPydanticModel {
     this._metadata = {
       primitives: [],
       llm: [],
-      python: [],
-      $defs: {}
+      python: []
     };
 
     this.ajv = new Ajv({
@@ -157,6 +156,24 @@ class JSPydanticModel {
       return;
     }
 
+    // If this is an anyOf/oneOf schema, flatten it by taking the first non-null type
+    if (schema.anyOf || schema.oneOf) {
+      const variants = schema.anyOf || schema.oneOf;
+      const nonNullVariant = variants.find(v => v.type !== 'null');
+      if (nonNullVariant) {
+        // Merge the parent schema's metadata with the non-null variant
+        const mergedSchema = {
+          ...schema,
+          ...nonNullVariant
+        };
+        // Remove the anyOf/oneOf to prevent infinite recursion
+        delete mergedSchema.anyOf;
+        delete mergedSchema.oneOf;
+        this.extractMetadata(mergedSchema, path);
+        return;
+      }
+    }
+
     const metadataKeys = [
       'type', 'title', 'description', 'default',
       'minimum', 'maximum', 'minItems', 'maxItems',
@@ -198,9 +215,18 @@ class JSPydanticModel {
               const newPath = [category, index, schemaType];
               this.extractMetadata(node[schemaType], newPath);
 
+              // Handle $defs without including it in path
+              if (schemaType === 'config' && node[schemaType].$defs) {
+                Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
+                  // Remove '$defs' from path
+                  this.extractMetadata(value, [...newPath, key]);
+                });
+              }
+
               if (node[schemaType].properties) {
                 Object.entries(node[schemaType].properties).forEach(([key, value]) => {
-                  this.extractMetadata(value, [...newPath, 'properties', key]);
+                  // Remove 'properties' from path
+                  this.extractMetadata(value, [...newPath, key]);
                 });
               }
             }
@@ -220,7 +246,11 @@ class JSPydanticModel {
         if (currentContext && currentContext.$defs) {
           refSchema = currentContext.$defs[refPath[1]];
           if (refSchema) {
-            this.extractMetadata(refSchema, ['$defs', refPath[1]]);
+            // Remove '$defs' from path
+            const contextPath = this.findPathToContext(currentContext);
+            if (contextPath) {
+              this.extractMetadata(refSchema, [...contextPath, refPath[1]]);
+            }
           }
         }
       } else {
@@ -236,10 +266,11 @@ class JSPydanticModel {
       return;
     }
 
-    // Process nested properties
+    // Process nested properties - remove 'properties' from path
     if (schema.properties) {
       Object.entries(schema.properties).forEach(([key, value]) => {
-        this.extractMetadata(value, [...path, 'properties', key]);
+        // Remove 'properties' from path
+        this.extractMetadata(value, [...path, key]);
       });
     }
 
@@ -248,25 +279,9 @@ class JSPydanticModel {
       this.extractMetadata(schema.items, [...path, 'items']);
     }
 
-    // Process anyOf, oneOf, allOf
-    ['anyOf', 'oneOf', 'allOf'].forEach(key => {
-      if (Array.isArray(schema[key])) {
-        schema[key].forEach((subSchema, index) => {
-          this.extractMetadata(subSchema, [...path, key, index.toString()]);
-        });
-      }
-    });
-
-    // Process additionalProperties if it's an object schema
+    // Process additionalProperties
     if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
       this.extractMetadata(schema.additionalProperties, [...path, 'additionalProperties']);
-    }
-
-    // Process $defs or definitions
-    if (schema.$defs) {
-      Object.entries(schema.$defs).forEach(([key, value]) => {
-        this.extractMetadata(value, ['$defs', key]);
-      });
     }
   }
 
@@ -379,6 +394,29 @@ class JSPydanticModel {
       }
       if (typeof value === 'object') {
         const result = this.findParentContext(schema, value);
+        if (result) {
+          return result;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Add this helper method to find the path to a context
+  findPathToContext(targetContext, currentContext = this._schema, currentPath = []) {
+    if (currentContext === targetContext) {
+      return currentPath;
+    }
+
+    if (typeof currentContext !== 'object' || currentContext === null) {
+      return null;
+    }
+
+    for (const [key, value] of Object.entries(currentContext)) {
+      if (typeof value === 'object' && value !== null) {
+        const newPath = [...currentPath, key];
+        const result = this.findPathToContext(targetContext, value, newPath);
         if (result) {
           return result;
         }
