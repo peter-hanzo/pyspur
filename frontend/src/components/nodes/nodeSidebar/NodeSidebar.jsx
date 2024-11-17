@@ -11,6 +11,7 @@ import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
+import { cloneDeep, set } from 'lodash';
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -48,9 +49,25 @@ const NodeSidebar = ({ nodeID }) => {
         }
     }, [nodeID, node, node.data.config]);
 
+    // Helper function to update nested object by path
+    const updateNestedModel = (obj, path, value) => {
+        const deepClone = cloneDeep(obj); // Use lodash's cloneDeep for deep cloning
+        set(deepClone, path, value); // Use lodash's set to update the nested value
+        return deepClone;
+    };
+
     // Update the input change handler to use DynamicModel
     const handleInputChange = (key, value) => {
-        const updatedModel = { ...dynamicModel, [key]: value };
+        let updatedModel;
+
+        if (key.includes('.')) {
+            // If the key is a nested path, update the nested value
+            updatedModel = updateNestedModel(dynamicModel, key, value);
+        } else {
+            // If the key is not nested, update the value directly
+            updatedModel = { ...dynamicModel, [key]: value };
+        }
+
         setDynamicModel(updatedModel);
         dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     };
@@ -93,35 +110,8 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Helper function to render fields based on their type
     const renderField = (key, field, value, parentPath = '') => {
-        // Construct the full property path
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
-
-        // Get metadata for this field
         const fieldMetadata = getFieldMetadata(fullPath);
-        // Special handling for numeric fields with constraints
-        if (typeof field === 'number' && fieldMetadata) {
-            const { minimum, maximum } = fieldMetadata;
-            if (minimum !== undefined || maximum !== undefined) {
-                console.log("rendering slider for", key);
-                return (
-                    <div key={key} className="my-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="font-semibold">{key}</label>
-                            <span className="text-sm">{value}</span>
-                        </div>
-                        <Slider
-                            aria-label={key}
-                            value={value}
-                            min={minimum ?? 0}
-                            max={maximum ?? 100}
-                            step={fieldMetadata.type === 'integer' ? 1 : 0.1}
-                            className="w-full"
-                            onChange={(newValue) => handleInputChange(key, newValue)}
-                        />
-                    </div>
-                );
-            }
-        }
 
         // Handle enum fields
         if (fieldMetadata?.enum) {
@@ -205,17 +195,21 @@ const NodeSidebar = ({ nodeID }) => {
                     return (
                         <div key={key} className="my-4">
                             <div className="flex justify-between items-center mb-2">
-                                <label className="font-semibold">{key}</label>
+                                <label className="font-semibold">{fieldMetadata.title || key}</label>
                                 <span className="text-sm">{value}</span>
                             </div>
                             <Slider
-                                aria-label={key}
+                                aria-label={fieldMetadata.title || key}
                                 value={value}
                                 min={min}
                                 max={max}
                                 step={fieldMetadata.type === 'integer' ? 1 : 0.1}
                                 className="w-full"
-                                onChange={(newValue) => handleInputChange(key, newValue)}
+                                onChange={(newValue) => {
+                                    const path = parentPath ? `${parentPath}.${key}` : key;
+                                    const lastTwoDots = path.split('.').slice(-2).join('.');
+                                    handleInputChange(lastTwoDots, newValue);
+                                }}
                             />
                         </div>
                     );

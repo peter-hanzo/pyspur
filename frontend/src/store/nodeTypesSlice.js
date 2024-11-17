@@ -45,7 +45,6 @@ const findMetadataInCategory = (metadata, nodeType, path) => {
   const categories = ['primitives', 'llm', 'python'];
   for (const category of categories) {
     const nodes = metadata[category];
-    console.log("nodes", nodes);
     if (!nodes) continue;
 
     // Find the node in the category
