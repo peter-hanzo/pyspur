@@ -45,24 +45,28 @@ const findMetadataInCategory = (metadata, nodeType, path) => {
   const categories = ['primitives', 'llm', 'python'];
   for (const category of categories) {
     const nodes = metadata[category];
+    console.log("nodes", nodes);
     if (!nodes) continue;
 
     // Find the node in the category
-    const nodeIndex = nodes.findIndex(node => node.name === nodeType);
-    if (nodeIndex === -1) continue;
-
+    const node = nodes.find(node => node.name === nodeType);
+    if (!node) continue;
     // Navigate the remaining path
-    let current = nodes[nodeIndex];
     const remainingPath = path.split('.');
+    let current = node;
 
     for (const part of remainingPath) {
-      if (!current || !current[part]) return null;
-      current = current[part];
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return null;  // Path not found
+      }
     }
 
-    return current;
+    return current;  // Return the found metadata
   }
-  return null;
+
+  return null;  // Node type not found in any category
 };
 
 export const selectPropertyMetadata = (state, propertyPath) => {
@@ -71,7 +75,6 @@ export const selectPropertyMetadata = (state, propertyPath) => {
   // Split path into nodeType and remaining path
   const [nodeType, ...pathParts] = propertyPath.split('.');
   const remainingPath = pathParts.join('.');
-
   return findMetadataInCategory(state.nodeTypes.metadata, nodeType, remainingPath);
 };
 

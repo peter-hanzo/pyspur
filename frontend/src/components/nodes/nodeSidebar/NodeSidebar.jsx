@@ -98,7 +98,6 @@ const NodeSidebar = ({ nodeID }) => {
 
         // Get metadata for this field
         const fieldMetadata = getFieldMetadata(fullPath);
-
         // Special handling for numeric fields with constraints
         if (typeof field === 'number' && fieldMetadata) {
             const { minimum, maximum } = fieldMetadata;

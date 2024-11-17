@@ -49,6 +49,7 @@ class JSPydanticModel {
     ['primitives', 'llm', 'python'].forEach(category => {
       if (schema[category]) {
         result[category] = schema[category].map(node => {
+          // Copy all fields from the original node
           const processedNode = { ...node };
 
           // Process schemas for input, output, and config
@@ -58,10 +59,14 @@ class JSPydanticModel {
                 const validator = this.ajv.compile(node[key]);
                 const obj = {};
                 validator(obj);
-                processedNode[key] = obj;
+                // Merge the validated object with any existing fields
+                processedNode[key] = {
+                  ...node[key],  // Keep original fields like title, description etc
+                  ...obj         // Add validated default values
+                };
               } catch (error) {
                 console.error(`Error processing ${key} schema for node:`, error);
-                processedNode[key] = {};
+                processedNode[key] = node[key] || {}; // Fallback to original or empty object
               }
             }
           });
@@ -178,7 +183,8 @@ class JSPydanticModel {
       'type', 'title', 'description', 'default',
       'minimum', 'maximum', 'minItems', 'maxItems',
       'minLength', 'maxLength', 'pattern', 'enum',
-      'required', 'additionalProperties'
+      'required', 'additionalProperties', 'name', 'description',
+      'visual_tag'
     ];
 
     // Get metadata at current level
@@ -202,12 +208,19 @@ class JSPydanticModel {
         }
 
         schema[category].forEach((node, index) => {
+          // Store the node's name and visual_tag at the category level
           if (!this._metadata[category][index]) {
             this._metadata[category][index] = {
+              name: node.name,
+              visual_tag: node.visual_tag,
               input: {},
               output: {},
               config: {}
             };
+          } else {
+            // Update existing metadata with name and visual_tag
+            this._metadata[category][index].name = node.name;
+            this._metadata[category][index].visual_tag = node.visual_tag;
           }
 
           ['input', 'output', 'config'].forEach(schemaType => {
