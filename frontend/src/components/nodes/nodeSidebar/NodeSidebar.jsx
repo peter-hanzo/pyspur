@@ -11,7 +11,7 @@ import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
-import { cloneDeep, set } from 'lodash';
+import { cloneDeep, set, debounce } from 'lodash';
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -40,6 +40,14 @@ const NodeSidebar = ({ nodeID }) => {
     const [dynamicModel, setDynamicModel] = useState(node?.data?.config || {});
     const [fewShotIndex, setFewShotIndex] = useState(null); // Track the index of the few-shot example being edited
 
+    // Create a debounced version of the dispatch update
+    const debouncedDispatch = useCallback(
+        debounce((id, updatedModel) => {
+            dispatch(updateNodeData({ id, data: { config: updatedModel } }));
+        }, 300), // Adjust the delay (in ms) as needed
+        [dispatch]
+    );
+
     // Update dynamicModel when nodeID changes
     useEffect(() => {
         if (node) {
@@ -56,20 +64,21 @@ const NodeSidebar = ({ nodeID }) => {
         return deepClone;
     };
 
-    // Update the input change handler to use DynamicModel
+    // Update the input change handler to use local state immediately but debounce Redux updates
     const handleInputChange = (key, value) => {
         let updatedModel;
 
         if (key.includes('.')) {
-            // If the key is a nested path, update the nested value
             updatedModel = updateNestedModel(dynamicModel, key, value);
         } else {
-            // If the key is not nested, update the value directly
             updatedModel = { ...dynamicModel, [key]: value };
         }
 
+        // Update local state immediately
         setDynamicModel(updatedModel);
-        dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+
+        // Debounce the Redux update
+        debouncedDispatch(nodeID, updatedModel);
     };
 
 
@@ -192,8 +201,7 @@ const NodeSidebar = ({ nodeID }) => {
                     (fieldMetadata.minimum !== undefined || fieldMetadata.maximum !== undefined)) {
                     const min = fieldMetadata.minimum ?? 0;
                     const max = fieldMetadata.maximum ?? 100;
-                    console.log("key", key, "has min", min, "and max", max, "and the value is", value);
-                    console.log("fieldMetadata", fieldMetadata);
+
                     return (
                         <div key={key} className="my-4">
                             <div className="flex justify-between items-center mb-2">

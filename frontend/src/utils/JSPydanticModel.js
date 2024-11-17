@@ -6,22 +6,13 @@ import addFormats from 'ajv-formats';
 class JSPydanticModel {
   constructor(schema) {
     this._schema = schema;
-    this._constraints = {};
-    this._metadata = {
-      primitives: [],
-      llm: [],
-      python: []
-    };
-
     this.ajv = new Ajv({
       useDefaults: true,
       coerceTypes: true,
       removeAdditional: true,
       allErrors: true,
     });
-
     addFormats(this.ajv);
-    this.extractMetadata(this._schema);
   }
 
   createObjectFromSchema() {
@@ -35,11 +26,28 @@ class JSPydanticModel {
       const validate = this.ajv.compile(this._schema);
       const obj = {};
       validate(obj);
-      this.extractConstraints(this._schema);
-      return obj;
+      // Exclude JSON Schema keywords from the resulting object
+      const cleanedObj = this.excludeSchemaKeywords(obj);
+      return cleanedObj;
     } catch (error) {
       console.error('Error compiling schema:', error);
       return null;
+    }
+  }
+
+  excludeSchemaKeywords(obj) {
+    const schemaKeywords = ['$defs', 'properties', 'anyOf', 'oneOf', 'allOf', 'items', 'additionalProperties', '$ref'];
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.excludeSchemaKeywords(item));
+    } else if (obj && typeof obj === 'object') {
+      return Object.keys(obj).reduce((acc, key) => {
+        if (!schemaKeywords.includes(key)) {
+          acc[key] = this.excludeSchemaKeywords(obj[key]);
+        }
+        return acc;
+      }, {});
+    } else {
+      return obj;
     }
   }
 
@@ -64,6 +72,8 @@ class JSPydanticModel {
                   ...node[key],  // Keep original fields like title, description etc
                   ...obj         // Add validated default values
                 };
+                // Exclude JSON Schema keywords from the resulting object
+                processedNode[key] = this.excludeSchemaKeywords(processedNode[key]);
               } catch (error) {
                 console.error(`Error processing ${key} schema for node:`, error);
                 processedNode[key] = node[key] || {}; // Fallback to original or empty object
@@ -79,84 +89,16 @@ class JSPydanticModel {
     return result;
   }
 
-  extractConstraints(schema, path = []) {
-    const constraintKeys = [
-      'minimum', 'maximum', 'minItems', 'maxItems',
-      'minLength', 'maxLength', 'pattern',
-      'exclusiveMinimum', 'exclusiveMaximum',
-      'minProperties', 'maxProperties',
-      'type', 'enum'
-    ];
-
-    // Get constraints at current level
-    const constraints = constraintKeys.reduce((acc, key) => {
-      if (schema[key] !== undefined) {
-        acc[key] = schema[key];
-      }
-      return acc;
-    }, {});
-    // Store constraints if found
-    if (Object.keys(constraints).length > 0) {
-      const propertyName = path.join('.');
-      if (propertyName) {
-        this._constraints[propertyName] = constraints;
-      }
-    }
-
-    // Handle $ref to definitions
-    if (schema.$ref) {
-      const refPath = schema.$ref.replace(/^#\//, '').split('/');
-      let refSchema = this._schema;
-
-      // Special handling for $defs references
-      if (refPath[0] === '$defs') {
-        // If the reference is to a $defs definition, look in the current context
-        const currentContext = this.findContextWithDefs(schema);
-        if (currentContext && currentContext.$defs) {
-          refSchema = currentContext.$defs[refPath[1]];
-        }
-      } else {
-        // For other references, traverse the path
-        for (const part of refPath) {
-          if (refSchema && typeof refSchema === 'object') {
-            refSchema = refSchema[part];
-          } else {
-            console.warn(`Unable to resolve reference path: ${schema.$ref}`);
-            return;
-          }
-        }
-      }
-
-      if (refSchema) {
-        // Process the referenced schema with the same path
-        this.extractConstraints(refSchema, path);
-      }
-      return; // Stop processing this branch after handling $ref
-    }
-
-    // Process nested properties
-    if (schema.properties) {
-      Object.entries(schema.properties).forEach(([key, value]) => {
-        this.extractConstraints(value, [...path, key]);
-      });
-    } else if (schema.anyOf || schema.oneOf || schema.allOf) {
-      const schemas = schema.anyOf || schema.oneOf || schema.allOf;
-      schemas.forEach(subSchema => {
-        this.extractConstraints(subSchema, path);
-      });
-    }
-
-    // Process array items
-    if (schema.items) {
-      this.extractConstraints(schema.items, [...path, 'items']);
-    }
+  extractMetadata() {
+    this._metadata = {
+      primitives: [],
+      llm: [],
+      python: []
+    };
+    this._extractMetadata(this._schema);
   }
 
-  getConstraints() {
-    return this._constraints;
-  }
-
-  extractMetadata(schema, path = []) {
+  _extractMetadata(schema, path = []) {
     if (!schema || typeof schema !== 'object') {
       return;
     }
@@ -174,7 +116,7 @@ class JSPydanticModel {
         // Remove the anyOf/oneOf to prevent infinite recursion
         delete mergedSchema.anyOf;
         delete mergedSchema.oneOf;
-        this.extractMetadata(mergedSchema, path);
+        this._extractMetadata(mergedSchema, path);
         return;
       }
     }
@@ -226,20 +168,20 @@ class JSPydanticModel {
           ['input', 'output', 'config'].forEach(schemaType => {
             if (node[schemaType]) {
               const newPath = [category, index, schemaType];
-              this.extractMetadata(node[schemaType], newPath);
+              this._extractMetadata(node[schemaType], newPath);
 
               // Handle $defs without including it in path
               if (schemaType === 'config' && node[schemaType].$defs) {
                 Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
                   // Remove '$defs' from path
-                  this.extractMetadata(value, [...newPath, key]);
+                  this._extractMetadata(value, [...newPath, key]);
                 });
               }
 
               if (node[schemaType].properties) {
                 Object.entries(node[schemaType].properties).forEach(([key, value]) => {
                   // Remove 'properties' from path
-                  this.extractMetadata(value, [...newPath, key]);
+                  this._extractMetadata(value, [...newPath, key]);
                 });
               }
             }
@@ -261,7 +203,7 @@ class JSPydanticModel {
           if (refSchema) {
             // Instead of using the $defs path, use the current path
             // This will store the metadata under the property that has the $ref
-            this.extractMetadata(refSchema, path);
+            this._extractMetadata(refSchema, path);
           }
         }
       } else {
@@ -271,7 +213,7 @@ class JSPydanticModel {
           }
         }
         if (refSchema) {
-          this.extractMetadata(refSchema, path);
+          this._extractMetadata(refSchema, path);
         }
       }
       return;
@@ -281,18 +223,18 @@ class JSPydanticModel {
     if (schema.properties) {
       Object.entries(schema.properties).forEach(([key, value]) => {
         // Remove 'properties' from path
-        this.extractMetadata(value, [...path, key]);
+        this._extractMetadata(value, [...path, key]);
       });
     }
 
     // Process array items
     if (schema.items) {
-      this.extractMetadata(schema.items, [...path, 'items']);
+      this._extractMetadata(schema.items, [...path, 'items']);
     }
 
     // Process additionalProperties
     if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
-      this.extractMetadata(schema.additionalProperties, [...path, 'additionalProperties']);
+      this._extractMetadata(schema.additionalProperties, [...path, 'additionalProperties']);
     }
   }
 
@@ -326,6 +268,9 @@ class JSPydanticModel {
 
   // Update the getter methods to work with nested structure
   getPropertyMetadata(propertyPath) {
+    if (!this._metadata) {
+      this.extractMetadata();
+    }
     if (!propertyPath) return null;
     const parts = propertyPath.split('.');
     let current = this._metadata;
@@ -339,6 +284,9 @@ class JSPydanticModel {
   }
 
   getAllMetadata() {
+    if (!this._metadata) {
+      this.extractMetadata();
+    }
     return this._metadata;
   }
 
@@ -435,6 +383,91 @@ class JSPydanticModel {
     }
 
     return null;
+  }
+
+  extractConstraints() {
+    this._constraints = {};
+    this._extractConstraints(this._schema);
+  }
+
+  _extractConstraints(schema, path = []) {
+    const constraintKeys = [
+      'minimum', 'maximum', 'minItems', 'maxItems',
+      'minLength', 'maxLength', 'pattern',
+      'exclusiveMinimum', 'exclusiveMaximum',
+      'minProperties', 'maxProperties',
+      'type', 'enum'
+    ];
+
+    // Get constraints at current level
+    const constraints = constraintKeys.reduce((acc, key) => {
+      if (schema[key] !== undefined) {
+        acc[key] = schema[key];
+      }
+      return acc;
+    }, {});
+    // Store constraints if found
+    if (Object.keys(constraints).length > 0) {
+      const propertyName = path.join('.');
+      if (propertyName) {
+        this._constraints[propertyName] = constraints;
+      }
+    }
+
+    // Handle $ref to definitions
+    if (schema.$ref) {
+      const refPath = schema.$ref.replace(/^#\//, '').split('/');
+      let refSchema = this._schema;
+
+      // Special handling for $defs references
+      if (refPath[0] === '$defs') {
+        // If the reference is to a $defs definition, look in the current context
+        const currentContext = this.findContextWithDefs(schema);
+        if (currentContext && currentContext.$defs) {
+          refSchema = currentContext.$defs[refPath[1]];
+        }
+      } else {
+        // For other references, traverse the path
+        for (const part of refPath) {
+          if (refSchema && typeof refSchema === 'object') {
+            refSchema = refSchema[part];
+          } else {
+            console.warn(`Unable to resolve reference path: ${schema.$ref}`);
+            return;
+          }
+        }
+      }
+
+      if (refSchema) {
+        // Process the referenced schema with the same path
+        this._extractConstraints(refSchema, path);
+      }
+      return; // Stop processing this branch after handling $ref
+    }
+
+    // Process nested properties
+    if (schema.properties) {
+      Object.entries(schema.properties).forEach(([key, value]) => {
+        this._extractConstraints(value, [...path, key]);
+      });
+    } else if (schema.anyOf || schema.oneOf || schema.allOf) {
+      const schemas = schema.anyOf || schema.oneOf || schema.allOf;
+      schemas.forEach(subSchema => {
+        this._extractConstraints(subSchema, path);
+      });
+    }
+
+    // Process array items
+    if (schema.items) {
+      this._extractConstraints(schema.items, [...path, 'items']);
+    }
+  }
+
+  getConstraints() {
+    if (!this._constraints) {
+      this.extractConstraints();
+    }
+    return this._constraints;
   }
 }
 
