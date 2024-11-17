@@ -246,11 +246,9 @@ class JSPydanticModel {
         if (currentContext && currentContext.$defs) {
           refSchema = currentContext.$defs[refPath[1]];
           if (refSchema) {
-            // Remove '$defs' from path
-            const contextPath = this.findPathToContext(currentContext);
-            if (contextPath) {
-              this.extractMetadata(refSchema, [...contextPath, refPath[1]]);
-            }
+            // Instead of using the $defs path, use the current path
+            // This will store the metadata under the property that has the $ref
+            this.extractMetadata(refSchema, path);
           }
         }
       } else {
