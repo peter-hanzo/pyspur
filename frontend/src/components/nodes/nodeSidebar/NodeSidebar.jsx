@@ -192,6 +192,8 @@ const NodeSidebar = ({ nodeID }) => {
                     (fieldMetadata.minimum !== undefined || fieldMetadata.maximum !== undefined)) {
                     const min = fieldMetadata.minimum ?? 0;
                     const max = fieldMetadata.maximum ?? 100;
+                    console.log("key", key, "has min", min, "and max", max, "and the value is", value);
+                    console.log("fieldMetadata", fieldMetadata);
                     return (
                         <div key={key} className="my-4">
                             <div className="flex justify-between items-center mb-2">
@@ -201,8 +203,8 @@ const NodeSidebar = ({ nodeID }) => {
                             <Slider
                                 aria-label={fieldMetadata.title || key}
                                 value={value}
-                                min={min}
-                                max={max}
+                                minValue={min}
+                                maxValue={max}
                                 step={fieldMetadata.type === 'integer' ? 1 : 0.1}
                                 className="w-full"
                                 onChange={(newValue) => {
