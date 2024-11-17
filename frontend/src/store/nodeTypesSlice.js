@@ -2,7 +2,8 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getNodeTypes } from '../utils/api';
 
 const initialState = {
-  data: null,  // This will store the schema object with embedded constraints
+  data: null,      // This will store the schema object
+  metadata: null,  // This will store the metadata
   status: 'idle',
   error: null,
 };
@@ -11,7 +12,7 @@ export const fetchNodeTypes = createAsyncThunk(
   'nodeTypes/fetchNodeTypes',
   async () => {
     const response = await getNodeTypes();
-    return response;  // Now just returns the schema object with embedded constraints
+    return response;  // Now returns { schema, metadata }
   }
 );
 
@@ -26,7 +27,8 @@ const nodeTypesSlice = createSlice({
       })
       .addCase(fetchNodeTypes.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.data = action.payload;  // Store complete schema with embedded constraints
+        state.data = action.payload.schema;
+        state.metadata = action.payload.metadata;
       })
       .addCase(fetchNodeTypes.rejected, (state, action) => {
         state.status = 'failed';
@@ -34,5 +36,10 @@ const nodeTypesSlice = createSlice({
       });
   },
 });
+
+// Add selector to easily get metadata for a specific property
+export const selectPropertyMetadata = (state, propertyPath) => {
+  return state.nodeTypes.metadata?.[propertyPath] || null;
+};
 
 export default nodeTypesSlice.reducer;

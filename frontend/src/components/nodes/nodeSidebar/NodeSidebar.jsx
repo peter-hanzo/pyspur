@@ -10,6 +10,7 @@ import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion,
 import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
+import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
@@ -85,17 +86,47 @@ const NodeSidebar = ({ nodeID }) => {
         handleInputChange('few_shot_examples', updatedExamples);
     };
 
-    // Helper function to get constraints for a field
-    const getFieldConstraints = (key) => {
-
-        return null;
+    // Helper function to get field metadata
+    const getFieldMetadata = (key) => {
+        // Construct the property path based on the node type and field key
+        const propertyPath = `${nodeType}.config.${key}`;
+        return useSelector(state => selectPropertyMetadata(state, propertyPath));
     };
 
     // Helper function to render fields based on their type
     const renderField = (key, field, value) => {
-        // Get constraints for this field
-        const fieldConstraints = getFieldConstraints(key);
-        console.log("renderField", key, field, value);
+        // Get metadata for this field
+        const fieldMetadata = getFieldMetadata(key);
+
+        // Special handling for numeric fields with constraints
+        if (typeof field === 'number' && fieldMetadata) {
+            const { minimum, maximum } = fieldMetadata;
+            if (minimum !== undefined || maximum !== undefined) {
+                return (
+                    <div key={key} className="my-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="font-semibold">{key}</label>
+                            <span className="text-sm">{value}</span>
+                        </div>
+                        <Slider
+                            aria-label={key}
+                            value={value}
+                            min={minimum ?? 0}
+                            max={maximum ?? 100}
+                            step={fieldMetadata.type === 'integer' ? 1 : 0.1}
+                            className="w-full"
+                            onChange={(newValue) => handleInputChange(key, newValue)}
+                        />
+                    </div>
+                );
+            }
+        }
+
+        // Handle enum fields
+        if (fieldMetadata?.enum) {
+            return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum);
+        }
+
         // Handle specific cases for input_schema, output_schema, and system_prompt
         if (key === 'input_schema') {
 
@@ -166,10 +197,10 @@ const NodeSidebar = ({ nodeID }) => {
                 );
             case 'number':
                 // Check if we have constraints that would make this suitable for a slider
-                if (fieldConstraints &&
-                    (fieldConstraints.minimum !== undefined || fieldConstraints.maximum !== undefined)) {
-                    const min = fieldConstraints.minimum ?? 0;
-                    const max = fieldConstraints.maximum ?? 100;
+                if (fieldMetadata &&
+                    (fieldMetadata.minimum !== undefined || fieldMetadata.maximum !== undefined)) {
+                    const min = fieldMetadata.minimum ?? 0;
+                    const max = fieldMetadata.maximum ?? 100;
                     return (
                         <div key={key} className="my-4">
                             <div className="flex justify-between items-center mb-2">
@@ -181,7 +212,7 @@ const NodeSidebar = ({ nodeID }) => {
                                 value={value}
                                 min={min}
                                 max={max}
-                                step={fieldConstraints.type === 'integer' ? 1 : 0.1}
+                                step={fieldMetadata.type === 'integer' ? 1 : 0.1}
                                 className="w-full"
                                 onChange={(newValue) => handleInputChange(key, newValue)}
                             />
@@ -242,7 +273,7 @@ const NodeSidebar = ({ nodeID }) => {
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config;
-        console.log(nodeSchema);
+
         return Object.keys(properties).map((key) => {
             const field = properties[key];
             const value = dynamicModel[key]; // Access value from DynamicModel
