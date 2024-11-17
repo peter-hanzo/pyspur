@@ -16,10 +16,11 @@ import { cloneDeep, set, debounce } from 'lodash';
 const NodeSidebar = ({ nodeID }) => {
     const dispatch = useDispatch();
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
-
     const node = useSelector((state) => selectNodeById(state, nodeID));
-    // Get the width from Redux store
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
+
+    // Fetch all metadata once at the top level
+    const metadata = useSelector((state) => state.nodeTypes.metadata);
 
     // Initialize width state with the stored value
     const [width, setWidth] = useState(storedWidth);
@@ -114,7 +115,7 @@ const NodeSidebar = ({ nodeID }) => {
 
     // Helper function to get field metadata
     const getFieldMetadata = (fullPath) => {
-        return useSelector(state => selectPropertyMetadata(state, fullPath));
+        return selectPropertyMetadata({ nodeTypes: { metadata } }, fullPath);
     };
 
     // Helper function to render fields based on their type
