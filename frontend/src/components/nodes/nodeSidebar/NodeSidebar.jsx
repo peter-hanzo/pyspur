@@ -280,11 +280,14 @@ const NodeSidebar = ({ nodeID }) => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config;
 
-        return Object.keys(properties).map((key) => {
-            const field = properties[key];
-            const value = dynamicModel[key]; // Access value from DynamicModel
-            return renderField(key, field, value, `${nodeType}.config`); // Pass the full path
-        }).concat(<hr key="divider" className="my-2" />);
+        return Object.keys(properties)
+            .filter((key) => key !== 'title' && key !== 'type') // Skip "title" and "type"
+            .map((key) => {
+                const field = properties[key];
+                const value = dynamicModel[key]; // Access value from DynamicModel
+                return renderField(key, field, value, `${nodeType}.config`); // Pass the full path
+            })
+            .concat(<hr key="divider" className="my-2" />);
     };
 
     const renderFewShotExamples = () => {

@@ -28,7 +28,7 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
 
     const handleContentChange = (content) => {
         const fieldName = `few_shot_examples[${exampleIndex}].${activeTab}`;
-        const updatedExamples = [...(node?.data?.userconfig?.few_shot_examples || [])];
+        const updatedExamples = [...(node?.data?.config?.few_shot_examples || [])];
 
         if (!updatedExamples[exampleIndex]) {
             updatedExamples[exampleIndex] = {};
@@ -39,8 +39,8 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
             id: nodeID,
             data: {
                 ...node?.data,
-                userconfig: {
-                    ...node?.data?.userconfig,
+                config: {
+                    ...node?.data?.config,
                     few_shot_examples: updatedExamples
                 }
             }
@@ -53,7 +53,7 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
 
             <TextEditor
                 key={`${activeTab}-${exampleIndex}`}
-                content={node?.data?.userconfig?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
+                content={node?.data?.config?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
                 setContent={handleContentChange}
                 isEditable={true}
                 fieldTitle={`Example ${exampleIndex + 1} ${activeTab}`}

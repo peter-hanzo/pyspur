@@ -88,7 +88,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     fontSize: '0.75rem',
     display: 'inline-block',
   };
-
+  console.log("node data", data);
   return (
     <div style={{ position: 'relative' }}>
       <Card
@@ -110,7 +110,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
               className="text-lg font-semibold text-center"
               style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
             >
-              {data?.userconfig?.title || data?.title || 'Untitled'}
+              {data?.config?.title || data?.title || 'Untitled'}
             </h3>
 
             {/* Container for the collapse button and acronym tag */}
