@@ -65,8 +65,8 @@ const NodeSidebar = ({ nodeID }) => {
         return deepClone;
     };
 
-    // Update the input change handler to use local state immediately but debounce Redux updates
-    const handleInputChange = (key, value) => {
+    // Update the input change handler to use local state immediately but debounce Redux updates for Slider
+    const handleInputChange = (key, value, isSlider = false) => {
         let updatedModel;
 
         if (key.includes('.')) {
@@ -78,8 +78,12 @@ const NodeSidebar = ({ nodeID }) => {
         // Update local state immediately
         setDynamicModel(updatedModel);
 
-        // Debounce the Redux update
-        debouncedDispatch(nodeID, updatedModel);
+        // Conditionally debounce the Redux update for Slider inputs
+        if (isSlider) {
+            debouncedDispatch(nodeID, updatedModel);
+        } else {
+            dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+        }
     };
 
 
@@ -175,6 +179,7 @@ const NodeSidebar = ({ nodeID }) => {
                         fieldName={key}
                         inputSchema={dynamicModel.input_schema || {}}
                         fieldTitle="System Prompt"
+                        content={dynamicModel[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
                     />
                     {/* Render Few Shot Examples right after the System Prompt */}
@@ -219,7 +224,7 @@ const NodeSidebar = ({ nodeID }) => {
                                 onChange={(newValue) => {
                                     const path = parentPath ? `${parentPath}.${key}` : key;
                                     const lastTwoDots = path.split('.').slice(-2).join('.');
-                                    handleInputChange(lastTwoDots, newValue);
+                                    handleInputChange(lastTwoDots, newValue, true); // Pass true for isSlider
                                 }}
                             />
                         </div>

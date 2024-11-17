@@ -88,7 +88,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     fontSize: '0.75rem',
     display: 'inline-block',
   };
-  console.log("node data", data);
+
   return (
     <div style={{ position: 'relative' }}>
       <Card

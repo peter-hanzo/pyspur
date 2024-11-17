@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import TextEditor from './TextEditor';
 import { updateNodeData } from '../../store/flowSlice';
 import { Button, Tabs, Tab } from "@nextui-org/react";
+import _ from 'lodash';
 
 const InputOutputTabs = ({ activeTab, setActiveTab }) => {
     return (
@@ -28,13 +29,18 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
 
     const handleContentChange = (content) => {
         const fieldName = `few_shot_examples[${exampleIndex}].${activeTab}`;
-        const updatedExamples = [...(node?.data?.config?.few_shot_examples || [])];
+
+        // Use lodash's cloneDeep to deep clone the few_shot_examples array
+        const updatedExamples = _.cloneDeep(node?.data?.config?.few_shot_examples || []);
 
         if (!updatedExamples[exampleIndex]) {
             updatedExamples[exampleIndex] = {};
         }
+
+        // Update the content for the active tab (input/output)
         updatedExamples[exampleIndex][activeTab] = content;
 
+        // Dispatch the updated data to Redux
         dispatch(updateNodeData({
             id: nodeID,
             data: {

@@ -103,6 +103,12 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     };
   }, [modalEditor]);
 
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content || '');
+    }
+  }, [content, editor]);
+
   const ModalEditor = () => {
     return (
       <div>
