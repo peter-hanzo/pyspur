@@ -69,7 +69,7 @@ class SingleLLMCallNode(DynamicSchemaNode):
         )
         assistant_message = await generate_text(
             messages=messages,
-            model_name=self.config.llm_info.name,
+            model_name=LLMModels(self.config.llm_info.model).value,
             temperature=self.config.llm_info.temperature,
             json_mode=True,
         )
