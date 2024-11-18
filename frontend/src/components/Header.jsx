@@ -22,16 +22,21 @@ const Header = ({ activePage }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
 
+  let currentStatusInterval = null;
+
   const updateWorkflowStatus = async (runID) => {
     let pollCount = 0;
-    const checkStatusInterval = setInterval(async () => {
+    if (currentStatusInterval) {
+      clearInterval(currentStatusInterval);
+    }
+    currentStatusInterval = setInterval(async () => {
       try {
         const statusResponse = await getRunStatus(runID);
         const outputs = statusResponse.outputs;
 
         if (statusResponse.status === 'FAILED' || pollCount > 10) {
           setIsRunning(false);
-          clearInterval(checkStatusInterval);
+          clearInterval(currentStatusInterval);
           return;
         }
 
@@ -47,13 +52,13 @@ const Header = ({ activePage }) => {
 
         if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
-          clearInterval(checkStatusInterval);
+          clearInterval(currentStatusInterval);
         }
 
         pollCount += 1;
       } catch (error) {
         console.error('Error fetching workflow status:', error);
-        clearInterval(checkStatusInterval);
+        clearInterval(currentStatusInterval);
       }
     }, 10000);
   };
@@ -65,7 +70,6 @@ const Header = ({ activePage }) => {
     try {
       const result = await startRun(workflowID, inputValues, null, 'interactive');
       setIsRunning(true);
-      // console.log('Result:', result);
       updateWorkflowStatus(result.id);
     } catch (error) {
       console.error('Error starting workflow run:', error);
