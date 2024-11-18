@@ -97,7 +97,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
           />
         </td>
         {!isCollapsed && (
-          <td className="text-left align-middle">
+          <td className="text-left align-middle pl-1">
             {editingField === keyName ? (
               <Input
                 autoFocus
@@ -138,7 +138,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     return (
       <tr key={`output-${keyName}`} className="align-middle">
         {!isCollapsed && (
-          <td className="text-right align-middle ">
+          <td className="text-right align-middle pr-1">
             {editingField === keyName ? (
               <Input
                 autoFocus
@@ -169,7 +169,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
             )}
           </td>
         )}
-        <td className={`${styles.handleCell} ${styles.outputHandleCell} border-l border-default-300 w-0 ml-2`}>
+        <td className={`${styles.handleCell} ${styles.outputHandleCell} border-l border-default-300 w-0 pl-1`}>
           <div className={styles.handleWrapper}>
             <Handle
               type="source"
