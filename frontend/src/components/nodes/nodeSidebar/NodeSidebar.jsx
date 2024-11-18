@@ -74,7 +74,7 @@ const NodeSidebar = ({ nodeID }) => {
         } else {
             updatedModel = { ...dynamicModel, [key]: value };
         }
-
+        console.log("after making a change: ", updatedModel);
         // Update local state immediately
         setDynamicModel(updatedModel);
 
@@ -143,7 +143,7 @@ const NodeSidebar = ({ nodeID }) => {
                     <SchemaEditor
                         jsonValue={dynamicModel.input_schema || {}}
                         onChange={(newValue) => {
-                            handleInputChange('input_schema', { ...field, ...newValue });
+                            handleInputChange('input_schema', newValue);
                         }}
                         options={jsonOptions}
                         schemaType="input_schema" // Specify schema type

@@ -5,7 +5,6 @@ import { Icon } from '@iconify/react';
 const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input_schema' }) => {
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('str'); // Default to 'string'
-  const [editingKey, setEditingKey] = useState(null); // Track which key's type is being edited
   const [editingField, setEditingField] = useState(null); // Track the field being edited
 
   const getPlaceholderExample = () => {
@@ -26,16 +25,9 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     }
   };
 
-  const handleTypeChange = (key, type) => {
-    const updatedJson = {
-      ...jsonValue,
-      [key]: type
-    };
-    onChange(updatedJson);
-  };
-
   const handleRemoveKey = (key) => {
     const { [key]: _, ...updatedJson } = jsonValue;
+    console.log("after removing a key: ", key, updatedJson);
     onChange(updatedJson);
   };
 
