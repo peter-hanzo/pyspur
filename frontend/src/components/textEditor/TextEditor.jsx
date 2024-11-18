@@ -121,7 +121,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             color="primary"
             onClick={() => {
               if (editorInstance) {
-                editorInstance.chain().focus().insertContent(`{${variable}}`).run();
+                editorInstance.chain().focus().insertContent(`{{${variable}}}`).run();
               }
             }}
           >

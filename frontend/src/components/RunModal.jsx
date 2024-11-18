@@ -13,6 +13,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Input
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import TextEditor from './textEditor/TextEditor';
