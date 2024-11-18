@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from hashlib import md5
 from typing import Any, Dict, List, Tuple, Type, Union
 
 from pydantic import BaseModel, Field, ValidationError, create_model
@@ -210,6 +211,6 @@ class BaseNode(ABC):
             "#FA8072",  # Salmon
             "#8A2BE2",  # Violet
         ]
-        color = colors[hash(cls.name) % len(colors)]
+        color = colors[int(md5(cls.__name__.encode()).hexdigest(), 16) % len(colors)]
 
         return VisualTag(acronym=acronym, color=color)
