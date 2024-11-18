@@ -71,7 +71,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   const cardStyle = {
     ...style,
     borderColor: borderColor,
-    borderWidth: (isSelected || status === 'completed') ? '3px' : isHovered ? '3px' : style.borderWidth || '1px',
+    borderWidth: isSelected ? '3px' : status === 'completed' ? '2px' : isHovered ? '3px' : style.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
     position: 'relative',
