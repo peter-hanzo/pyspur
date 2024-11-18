@@ -7,7 +7,7 @@ const API_BASE_URL = 'http://localhost:8000';
 export const getNodeTypes = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/node/supported_types/`);
-    console.log('Node Types Response:', response.data);
+    console.log('Raw Node Types Response:', response.data);
     const model = new JSPydanticModel(response.data);
 
     // Get both the processed schema and metadata

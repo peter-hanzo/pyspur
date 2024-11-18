@@ -10,6 +10,12 @@ from .llm_utils import LLMModels, ModelInfo
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig):
     samples: int = Field(3, ge=1, le=10, description="Number of samples to generate")
+    system_message: str = Field(
+        "You are a helpful assistant.", description="The system message for the LLM"
+    )
+    user_message: str = Field(
+        "What would you like to ask?", description="The user message for the LLM"
+    )
     rating_prompt: str = Field(
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
         "Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
@@ -26,7 +32,7 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig):
     )
     llm_info: ModelInfo = Field(
         ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
-        description="The default LLM model to use"
+        description="The default LLM model to use",
     )
 
 
@@ -48,7 +54,8 @@ class BestOfNNode(DynamicSchemaNode):
         # Initialize the LLM node for rating responses
         rating_llm_config = SingleLLMCallNodeConfig(
             llm_info=self.config.llm_info,
-            system_prompt=self.config.rating_prompt,
+            system_message=self.config.rating_prompt,
+            user_message="",
             input_schema=self.config.output_schema,
             output_schema={"rating": "float"},
         )
@@ -64,7 +71,7 @@ class BestOfNNode(DynamicSchemaNode):
             response.model_dump()
         )
         rating_llm_config_dump = self._rating_llm_node.config.model_dump()
-        rating_llm_config_dump["system_prompt"] = self.config.rating_prompt.format(
+        rating_llm_config_dump["system_message"] = self.config.rating_prompt.format(
             **input_data.model_dump()
         )
         self._rating_llm_node = SingleLLMCallNode(

@@ -11,8 +11,11 @@ class StringOutputLLMNodeConfig(BaseModel):
         ModelInfo(model=LLMModels.GPT_4O_MINI, max_tokens=16384, temperature=0.7),
         description="The default LLM model to use"
     )
-    system_prompt: str = Field(
-        "You are a helpful assistant.", description="The system prompt for the LLM"
+    system_message: str = Field(
+        "You are a helpful assistant.", description="The system message for the LLM"
+    )
+    user_message: str = Field(
+        "What would you like to ask?", description="The user message for the LLM"
     )
     json_mode: bool = Field(False, description="Whether to use JSON mode for the LLM")
     few_shot_examples: Optional[List[Dict[str, str]]] = None
@@ -43,10 +46,11 @@ class StringOutputLLMNode(BaseNode):
     async def run(
         self, input_data: StringOutputLLMNodeInput
     ) -> StringOutputLLMNodeOutput:
-        system_message = self.config.system_prompt
+        system_message = self.config.system_message
+        user_message = self.config.user_message
         messages = create_messages(
             system_message=system_message,
-            user_message=input_data.user_message,
+            user_message=user_message,
             few_shot_examples=self.config.few_shot_examples,  # Pass examples here
         )
         assistant_message = await generate_text(
@@ -64,7 +68,8 @@ if __name__ == "__main__":
         string_output_llm_node = StringOutputLLMNode(
             config=StringOutputLLMNodeConfig(
                 llm_info=ModelInfo(model=LLMModels.GPT_4O_MINI, max_tokens=16384, temperature=0.7),
-                system_prompt="This is a test prompt.",
+                system_message="This is a test prompt.",
+                user_message="This is a test message.",
                 json_mode=False,
             )
         )
