@@ -86,14 +86,13 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
 
     return (
       <tr key={keyName}>
-        <td className={styles.handleCell}>
+        <td className={`${styles.handleCell} border-r border-default-300 w-0 ml-2`}>
           <Handle
             type="target"
             position="left"
             id={keyName}
-            className={`${styles.handle} ${styles.handleLeft} ${
-              isCollapsed ? styles.collapsedHandleInput : ''
-            }`}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+              }`}
             isConnectable={!isCollapsed && connections.length === 0}
           />
         </td>
@@ -139,7 +138,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     return (
       <tr key={`output-${keyName}`} className="align-middle">
         {!isCollapsed && (
-          <td className="text-right align-middle">
+          <td className="text-right align-middle ">
             {editingField === keyName ? (
               <Input
                 autoFocus
@@ -170,15 +169,14 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
             )}
           </td>
         )}
-        <td className={`${styles.handleCell} ${styles.outputHandleCell}`}>
+        <td className={`${styles.handleCell} ${styles.outputHandleCell} border-l border-default-300 w-0 ml-2`}>
           <div className={styles.handleWrapper}>
             <Handle
               type="source"
               position="right"
               id={keyName}
-              className={`${styles.handle} ${styles.handleRight} ${
-                isCollapsed ? styles.collapsedHandleOutput : ''
-              }`}
+              className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+                }`}
               isConnectable={!isCollapsed}
             />
           </div>

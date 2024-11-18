@@ -8,11 +8,9 @@ import { Color } from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import ListItem from "@tiptap/extension-list-item";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from "@nextui-org/react";
-import {
-  Bold, Strikethrough, Italic, List, ListOrdered, Quote, Undo, Redo, Code, SeparatorHorizontal
-} from "lucide-react";
-import styles from "./TextEditor.module.css";
 import { Icon } from "@iconify/react";
+import { List, ListOrdered } from "lucide-react";
+import styles from "./TextEditor.module.css";
 
 // Wrap the component with forwardRef
 const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {}, fieldTitle }, ref) => {
@@ -109,17 +107,6 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     }
   }, [content, editor]);
 
-  const ModalEditor = () => {
-    return (
-      <div>
-        {renderToolbar(modalEditor, true)}
-        <div className={styles.tiptap}>
-          <EditorContent editor={modalEditor} />
-        </div>
-      </div>
-    );
-  };
-
   // Add variable button rendering function
   const renderVariableButtons = (editorInstance) => {
     if (!inputSchema || Object.keys(inputSchema).length === 0) return null;
@@ -165,7 +152,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             auto
             isIconOnly
           >
-            <Bold className={buttonClassName} />
+            <Icon icon="solar:text-bold-linear" className={buttonClassName} />
           </Button>
           <Button
             onPress={() => editorInstance.chain().focus().toggleItalic().run()}
@@ -176,18 +163,18 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             auto
             isIconOnly
           >
-            <Italic className={buttonClassName} />
+            <Icon icon="solar:text-italic-linear" className={buttonClassName} />
           </Button>
           <Button
-            onPress={() => editorInstance.chain().focus().toggleStrike().run()}
-            disabled={!editorInstance.can().chain().focus().toggleStrike().run()}
+            onPress={() => editorInstance.chain().focus().toggleUnderline().run()}
+            disabled={!editorInstance.can().chain().focus().toggleUnderline().run()}
             color="primary"
-            variant={editorInstance.isActive("strike") ? "solid" : "flat"}
+            variant={editorInstance.isActive("underline") ? "solid" : "flat"}
             size={buttonSize}
             auto
             isIconOnly
           >
-            <Strikethrough className={buttonClassName} />
+            <Icon icon="solar:text-underline-linear" className={buttonClassName} />
           </Button>
           <Button
             onPress={() => editorInstance.chain().focus().toggleBulletList().run()}
