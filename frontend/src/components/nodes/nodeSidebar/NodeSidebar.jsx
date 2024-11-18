@@ -108,6 +108,9 @@ const NodeSidebar = ({ nodeID }) => {
     const handleAddNewExample = () => {
         const updatedExamples = [...(dynamicModel?.few_shot_examples || []), { input: '', output: '' }];
         handleInputChange('few_shot_examples', updatedExamples);
+
+        // Set the fewShotIndex to the index of the newly added example
+        setFewShotIndex(updatedExamples.length - 1);
     };
 
     // Handle deleting a few-shot example
@@ -123,7 +126,7 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
     // Helper function to render fields based on their type
-    const renderField = (key, field, value, parentPath = '') => {
+    const renderField = (key, field, value, parentPath = '', isLast = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
         const fieldMetadata = getFieldMetadata(fullPath);
 
@@ -134,10 +137,8 @@ const NodeSidebar = ({ nodeID }) => {
 
         // Handle specific cases for input_schema, output_schema, and system_prompt
         if (key === 'input_schema') {
-
             return (
                 <div key={key} className="my-2">
-                    <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Input Schema</label>
                     <SchemaEditor
                         jsonValue={dynamicModel.input_schema || {}}
@@ -147,7 +148,7 @@ const NodeSidebar = ({ nodeID }) => {
                         options={jsonOptions}
                         schemaType="input_schema" // Specify schema type
                     />
-                    <hr className="my-2" />
+                    {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
                 </div>
             );
         }
@@ -155,7 +156,6 @@ const NodeSidebar = ({ nodeID }) => {
         if (key === 'output_schema') {
             return (
                 <div key={key} className="my-2">
-                    <hr className="my-2" />
                     <label className="text-sm font-semibold mb-1 block">Output Schema</label>
                     <SchemaEditor
                         jsonValue={dynamicModel.output_schema || {}}
@@ -165,14 +165,14 @@ const NodeSidebar = ({ nodeID }) => {
                         options={jsonOptions}
                         schemaType="output_schema" // Specify schema type
                     />
-                    <hr className="my-2" />
+                    {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
                 </div>
             );
         }
 
         if (key === 'system_prompt') {
             return (
-                <div key={key} className="my-4 p-4 bg-gray-50 rounded-lg">
+                <div key={key} >
                     <TextEditor
                         key={key}
                         nodeID={nodeID}
@@ -184,6 +184,7 @@ const NodeSidebar = ({ nodeID }) => {
                     />
                     {/* Render Few Shot Examples right after the System Prompt */}
                     {renderFewShotExamples()}
+                    {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
                 </div>
             );
         }
@@ -259,10 +260,8 @@ const NodeSidebar = ({ nodeID }) => {
                 if (field && typeof field === 'object' && !Array.isArray(field)) {
                     return (
                         <div key={key} className="my-2">
-                            <hr className="my-2" />
-                            <label className="text-sm font-semibold mb-1 block">{key}</label>
                             {Object.keys(field).map((subKey) => renderField(subKey, field[subKey], value?.[subKey], fullPath))}
-                            <hr className="my-2" />
+                            {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
                         </div>
                     );
                 }
@@ -284,15 +283,14 @@ const NodeSidebar = ({ nodeID }) => {
     const renderConfigFields = () => {
         if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
         const properties = nodeSchema.config;
+        const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type'); // Skip "title" and "type"
 
-        return Object.keys(properties)
-            .filter((key) => key !== 'title' && key !== 'type') // Skip "title" and "type"
-            .map((key) => {
-                const field = properties[key];
-                const value = dynamicModel[key]; // Access value from DynamicModel
-                return renderField(key, field, value, `${nodeType}.config`); // Pass the full path
-            })
-            .concat(<hr key="divider" className="my-2" />);
+        return keys.map((key, index) => {
+            const field = properties[key];
+            const value = dynamicModel[key]; // Access value from DynamicModel
+            const isLast = index === keys.length - 1; // Check if this is the last element
+            return renderField(key, field, value, `${nodeType}.config`, isLast); // Pass the isLast flag
+        });
     };
 
     const renderFewShotExamples = () => {
@@ -310,20 +308,41 @@ const NodeSidebar = ({ nodeID }) => {
                 ) : (
                     <div>
                         <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
-                        <ul>
+                        <div className="flex flex-wrap gap-2">
                             {fewShotExamples.map((example, index) => (
-                                <li key={`few-shot-${index}`} className="flex items-center justify-between mb-1">
-                                    <div>Example {index + 1}</div>
-                                    <div className="ml-2">
-                                        <Button onClick={() => setFewShotIndex(index)}>Edit</Button>
-                                        <Button onClick={() => handleDeleteExample(index)}>Delete</Button>
-                                    </div>
-                                </li>
+                                <div
+                                    key={`few-shot-${index}`}
+                                    className="flex items-center space-x-2 p-2 bg-gray-100 rounded-full cursor-pointer"
+                                    onClick={() => setFewShotIndex(index)} // Open editor on click
+                                >
+                                    <span>Example {index + 1}</span>
+                                    <Button
+                                        isIconOnly
+                                        radius="full"
+                                        variant="light"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Prevent triggering the edit on delete click
+                                            handleDeleteExample(index);
+                                        }}
+                                        color="primary"
+                                        auto
+                                    >
+                                        <Icon icon="solar:trash-bin-trash-linear" width={22} />
+                                    </Button>
+                                </div>
                             ))}
-                        </ul>
 
-                        <div className="mt-2">
-                            <Button onClick={handleAddNewExample}>Add Example</Button>
+                            {/* Add new example button */}
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onClick={handleAddNewExample}
+                                color="primary"
+                                auto
+                            >
+                                <Icon icon="solar:add-circle-linear" width={22} />
+                            </Button>
                         </div>
                     </div>
                 )}

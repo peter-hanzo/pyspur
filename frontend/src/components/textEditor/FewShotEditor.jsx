@@ -67,14 +67,6 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
 
             <div className="mt-4">
                 <Button
-                    onPress={onSave}
-                    color="primary"
-                    variant="solid"
-                    auto
-                >
-                    Save
-                </Button>
-                <Button
                     onPress={onDiscard}
                     color="primary"
                     variant="flat"
@@ -82,6 +74,15 @@ const FewShotEditor = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
                 >
                     Discard
                 </Button>
+                <Button
+                    onPress={onSave}
+                    color="primary"
+                    variant="solid"
+                    auto
+                >
+                    Save
+                </Button>
+
             </div>
         </div>
     );
