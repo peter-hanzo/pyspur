@@ -12,7 +12,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
-import { setProjectName, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
+import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import RunModal from './RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
@@ -75,6 +75,7 @@ const Header = ({ activePage }) => {
       toast('Starting workflow run...');
       const result = await startRun(workflowID, inputValues, null, 'interactive');
       setIsRunning(true);
+      dispatch(resetRun());
       updateWorkflowStatus(result.id);
     } catch (error) {
       console.error('Error starting workflow run:', error);

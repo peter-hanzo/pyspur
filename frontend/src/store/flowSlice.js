@@ -192,6 +192,18 @@ const flowSlice = createSlice({
         return edge;
       });
     },
+
+    resetRun: (state, action) => {
+      state.nodes = state.nodes.map(node => {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            run: undefined
+          }
+        };
+      });
+    }
   },
 });
 
@@ -214,7 +226,8 @@ export const {
   deleteWorkflowInputVariable,
   updateWorkflowInputVariableKey,
   resetFlow,
-  updateEdgesOnHandleRename
+  updateEdgesOnHandleRename,
+  resetRun
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
