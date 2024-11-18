@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 
-from .llm_utils import LLMModelRegistry, ModelInfo
+from .llm_utils import LLMModels, ModelInfo
 from .string_output_llm import (
     StringOutputLLMNode,
     StringOutputLLMNodeConfig,
@@ -14,7 +14,8 @@ from ..base import VisualTag
 
 class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
     llm_info: ModelInfo = Field(
-        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+        ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
+        description="The default LLM model to use"
     )
     samples: int = 3
     critique_prompt_template: str = (

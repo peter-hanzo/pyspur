@@ -2,12 +2,13 @@ from pydantic import BaseModel, Field
 
 from ..base import BaseNode, VisualTag
 from .single_llm_call import SingleLLMCallNode, SingleLLMCallNodeConfig
-from .llm_utils import LLMModelRegistry, ModelInfo
+from .llm_utils import LLMModels, ModelInfo
 
 
 class BranchSolveMergeNodeConfig(SingleLLMCallNodeConfig):
     llm_info: ModelInfo = Field(
-        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+        ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
+        description="The default LLM model to use"
     )
     system_prompt: str = Field(
         "You are a helpful assistant.",

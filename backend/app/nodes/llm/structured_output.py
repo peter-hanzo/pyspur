@@ -4,13 +4,14 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode, VisualTag
-from .llm_utils import LLMModelRegistry, ModelInfo, create_messages, generate_text
+from .llm_utils import LLMModels, ModelInfo, create_messages, generate_text
 from .string_output_llm import ModelInfo
 
 
 class StructuredOutputNodeConfig(BaseModel):
     llm_info: ModelInfo = Field(
-        LLMModelRegistry.GPT_4O, description="The default LLM model to use"
+        ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
+        description="The default LLM model to use"
     )
     system_prompt: str = Field(
         "You are a helpful assistant.", description="The system prompt for the LLM"
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     async def test_llm_nodes():
         structured_output_llm_node = StructuredOutputNode(
             config=StructuredOutputNodeConfig(
-                llm_info=LLMModelRegistry.GPT_4O_MINI,
+                llm_info=ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
                 system_prompt="This is a test prompt.",
                 output_schema={"response": "str"},
             )
