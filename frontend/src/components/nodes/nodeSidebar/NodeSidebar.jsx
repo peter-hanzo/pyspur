@@ -18,6 +18,7 @@ const NodeSidebar = ({ nodeID }) => {
     const nodeTypes = useSelector((state) => state.nodeTypes.data);
     const node = useSelector((state) => selectNodeById(state, nodeID));
     const storedWidth = useSelector((state) => state.flow.sidebarWidth);
+    const hasRunOutput = node?.data?.run ? true : false;
 
     // Fetch all metadata once at the top level
     const metadata = useSelector((state) => state.nodeTypes.metadata);
@@ -448,8 +449,7 @@ const NodeSidebar = ({ nodeID }) => {
                     </Button>
                 </div>
 
-                <Accordion selectionMode="multiple" defaultExpandedKeys={["title", "config", "examples", "testInputs"]}>
-
+                <Accordion selectionMode="multiple" defaultExpandedKeys={hasRunOutput ? ["output"] : ["title", "config"]}>
                     {nodeType !== 'InputNode' && (
                         <AccordionItem key="output" aria-label='Output' title="Outputs">
                             <NodeOutput node={node} />
