@@ -8,6 +8,7 @@ import {
   NavbarItem,
   Link,
   Button,
+  Spinner,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
@@ -38,7 +39,7 @@ const Header = ({ activePage }) => {
         if (statusResponse.status === 'FAILED' || pollCount > 10) {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
-          toast.error('Workflow run failed.', { position: 'top-right' });
+          toast.error('Workflow run failed.');
           return;
         }
 
@@ -55,7 +56,7 @@ const Header = ({ activePage }) => {
         if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
-          toast.success('Workflow run completed.', { position: 'top-right' });
+          toast.success('Workflow run completed.');
         }
 
         pollCount += 1;
@@ -71,18 +72,26 @@ const Header = ({ activePage }) => {
 
   const executeWorkflow = async (inputValues) => {
     try {
-      toast('Starting workflow run...', { position: 'top-right' });
+      toast('Starting workflow run...');
       const result = await startRun(workflowID, inputValues, null, 'interactive');
       setIsRunning(true);
       updateWorkflowStatus(result.id);
     } catch (error) {
       console.error('Error starting workflow run:', error);
-      toast.error('Error starting workflow run.', { position: 'top-right' });
+      toast.error('Error starting workflow run.');
     }
   };
 
   const handleRunWorkflow = async () => {
     setIsDebugModalOpen(true);
+  };
+
+  const handleStopWorkflow = () => {
+    setIsRunning(false);
+    if (currentStatusInterval) {
+      clearInterval(currentStatusInterval);
+    }
+    toast('Workflow run stopped.');
   };
 
   const handleProjectNameChange = (e) => {
@@ -121,7 +130,7 @@ const Header = ({ activePage }) => {
 
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster richColors position="bottom-right" />
       <Navbar
         classNames={{
           base: "lg:bg-background lg:backdrop-filter-none h-12 mt-1",
@@ -192,11 +201,24 @@ const Header = ({ activePage }) => {
             justify="end"
             id="workflow-actions-buttons"
           >
-            <NavbarItem className="hidden sm:flex">
-              <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
-                <Icon className="text-default-500" icon="solar:play-linear" width={22} />
-              </Button>
-            </NavbarItem>
+            {isRunning ? (
+              <>
+                <NavbarItem className="hidden sm:flex">
+                  <Spinner size="sm" />
+                </NavbarItem>
+                <NavbarItem className="hidden sm:flex">
+                  <Button isIconOnly radius="full" variant="light" onClick={handleStopWorkflow}>
+                    <Icon className="text-default-500" icon="solar:stop-linear" width={22} />
+                  </Button>
+                </NavbarItem>
+              </>
+            ) : (
+              <NavbarItem className="hidden sm:flex">
+                <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
+                  <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+                </Button>
+              </NavbarItem>
+            )}
             <NavbarItem className="hidden sm:flex">
               <Button
                 isIconOnly
