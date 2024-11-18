@@ -139,7 +139,7 @@ const NodeSidebar = ({ nodeID }) => {
         if (key === 'input_schema') {
             return (
                 <div key={key} className="my-2">
-                    <label className="text-sm font-semibold mb-1 block">Input Schema</label>
+                    <label className="font-semibold mb-1 block">Input Schema</label>
                     <SchemaEditor
                         jsonValue={dynamicModel.input_schema || {}}
                         onChange={(newValue) => {
@@ -156,7 +156,7 @@ const NodeSidebar = ({ nodeID }) => {
         if (key === 'output_schema') {
             return (
                 <div key={key} className="my-2">
-                    <label className="text-sm font-semibold mb-1 block">Output Schema</label>
+                    <label className="font-semibold mb-1 block">Output Schema</label>
                     <SchemaEditor
                         jsonValue={dynamicModel.output_schema || {}}
                         onChange={(newValue) => {
@@ -307,7 +307,7 @@ const NodeSidebar = ({ nodeID }) => {
                     />
                 ) : (
                     <div>
-                        <h3 className="my-2 text-sm font-semibold">Few Shot Examples</h3>
+                        <h3 className="my-2 font-semibold">Few Shot Examples</h3>
                         <div className="flex flex-wrap gap-2">
                             {fewShotExamples.map((example, index) => (
                                 <div

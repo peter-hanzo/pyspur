@@ -231,7 +231,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     <div>
       {/* Render the field title if it exists */}
       {fieldTitle && (
-        <div className="flex justify-between items-center mb-2 ml-2 text-sm font-semibold bg-gray-50 text-gray-700">
+        <div className="flex justify-between items-center mb-2 ml-2 font-semibold">
           <span>{fieldTitle}</span>
           {!fullScreen && (
             <Button onPress={onOpen} isIconOnly >
