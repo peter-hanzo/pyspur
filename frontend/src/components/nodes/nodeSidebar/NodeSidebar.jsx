@@ -87,22 +87,26 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
 
-    const renderEnumSelect = (key, label, enumValues) => (
-        <div key={key}>
-            <Select
-                label={label}
-                value={dynamicModel[key] || ''}
-                onChange={(e) => handleInputChange(key, e.target.value)}
-                fullWidth
-            >
-                {enumValues.map((option) => (
-                    <SelectItem key={option} value={option}>
-                        {option}
-                    </SelectItem>
-                ))}
-            </Select>
-        </div>
-    );
+    const renderEnumSelect = (key, label, enumValues, fullPath) => {
+        const lastTwoDots = fullPath.split('.').slice(-2).join('.'); // Extract last two segments of the path
+        console.log("dynamicModel: ", dynamicModel[key]);
+        return (
+            <div key={key}>
+                <Select
+                    label={label}
+                    defaultSelectedKeys={[dynamicModel[key] || '']}
+                    onChange={(e) => handleInputChange(lastTwoDots, e.target.value)} // Use lastTwoDots in handleInputChange
+                    fullWidth
+                >
+                    {enumValues.map((option) => (
+                        <SelectItem key={option} value={option}>
+                            {option}
+                        </SelectItem>
+                    ))}
+                </Select>
+            </div>
+        );
+    };
 
     // Handle adding a new few-shot example
     const handleAddNewExample = () => {
@@ -132,7 +136,8 @@ const NodeSidebar = ({ nodeID }) => {
 
         // Handle enum fields
         if (fieldMetadata?.enum) {
-            return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum);
+            console.log("rendering enum select for: ", fullPath, fieldMetadata.title || key, fieldMetadata.enum);
+            return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum, fullPath); // Pass fullPath
         }
 
         // Handle specific cases for input_schema, output_schema, and system_prompt
