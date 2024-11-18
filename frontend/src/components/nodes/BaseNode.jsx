@@ -110,7 +110,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
               className="text-lg font-semibold text-center"
               style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
             >
-              {data?.config?.title || data?.title || 'Untitled'}
+              {data?.title || 'Untitled'}
             </h3>
 
             {/* Container for the collapse button and acronym tag */}
