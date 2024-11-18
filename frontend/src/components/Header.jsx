@@ -134,7 +134,7 @@ const Header = ({ activePage }) => {
       <Toaster richColors position="bottom-right" />
       <Navbar
         classNames={{
-          base: "lg:bg-background lg:backdrop-filter-none h-12 mt-1",
+          base: "lg:bg-background lg:backdrop-filter-none h-12 mt-1 shadow-sm",
           wrapper: "px-4 sm:px-6",
           item: [
             "flex",
@@ -168,11 +168,12 @@ const Header = ({ activePage }) => {
 
         {activePage === "workflow" && (
           <NavbarContent
-            className="h-12 rounded-full bg-content2 dark:bg-content1 hidden sm:flex gap-4"
+            className="h-12 rounded-full bg-content2 dark:bg-content1 sm:flex"
             id="workflow-title"
             justify="start"
           >
             <Input
+              className="px-4"
               type="text"
               placeholder="Project Name"
               value={projectName}
