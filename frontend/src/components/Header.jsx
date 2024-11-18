@@ -14,6 +14,7 @@ import SettingsCard from './settings/Settings';
 import { setProjectName, updateNodeData } from '../store/flowSlice'; // Ensure updateNodeData is imported
 import RunModal from './RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
+import { Toaster, toast } from 'sonner'
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
@@ -37,6 +38,7 @@ const Header = ({ activePage }) => {
         if (statusResponse.status === 'FAILED' || pollCount > 10) {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
+          toast.error('Workflow run failed.', { position: 'top-right' });
           return;
         }
 
@@ -53,6 +55,7 @@ const Header = ({ activePage }) => {
         if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
+          toast.success('Workflow run completed.', { position: 'top-right' });
         }
 
         pollCount += 1;
@@ -68,11 +71,13 @@ const Header = ({ activePage }) => {
 
   const executeWorkflow = async (inputValues) => {
     try {
+      toast('Starting workflow run...', { position: 'top-right' });
       const result = await startRun(workflowID, inputValues, null, 'interactive');
       setIsRunning(true);
       updateWorkflowStatus(result.id);
     } catch (error) {
       console.error('Error starting workflow run:', error);
+      toast.error('Error starting workflow run.', { position: 'top-right' });
     }
   };
 
@@ -116,6 +121,7 @@ const Header = ({ activePage }) => {
 
   return (
     <>
+      <Toaster position="top-right" />
       <Navbar
         classNames={{
           base: "lg:bg-background lg:backdrop-filter-none h-12 mt-1",

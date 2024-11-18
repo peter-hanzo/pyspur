@@ -51,6 +51,7 @@
     "react18-json-view": "^0.2.8",
     "redux-persist": "^6.0.0",
     "sass": "^1.79.3",
+    "sonner": "1.7.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "use-debounce": "^10.0.4",
