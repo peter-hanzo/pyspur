@@ -170,7 +170,7 @@ const NodeSidebar = ({ nodeID }) => {
             );
         }
 
-        if (key === 'system_prompt') {
+        if (key === 'system_message') {
             return (
                 <div key={key} >
                     <TextEditor
@@ -178,7 +178,23 @@ const NodeSidebar = ({ nodeID }) => {
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={dynamicModel.input_schema || {}}
-                        fieldTitle="System Prompt"
+                        fieldTitle="System Message"
+                        content={dynamicModel[key] || ''}
+                        setContent={(value) => handleInputChange(key, value)}
+                    />
+                    {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
+                </div>
+            );
+        }
+        else if (key === 'user_message') {
+            return (
+                <div key={key} >
+                    <TextEditor
+                        key={key}
+                        nodeID={nodeID}
+                        fieldName={key}
+                        inputSchema={dynamicModel.input_schema || {}}
+                        fieldTitle="User Message"
                         content={dynamicModel[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
                     />
