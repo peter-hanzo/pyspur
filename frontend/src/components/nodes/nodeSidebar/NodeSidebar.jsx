@@ -75,7 +75,7 @@ const NodeSidebar = ({ nodeID }) => {
         } else {
             updatedModel = { ...dynamicModel, [key]: value };
         }
-        console.log("after making a change: ", updatedModel);
+
         // Update local state immediately
         setDynamicModel(updatedModel);
 
@@ -247,8 +247,12 @@ const NodeSidebar = ({ nodeID }) => {
                                 className="w-full"
                                 onChange={(newValue) => {
                                     const path = parentPath ? `${parentPath}.${key}` : key;
-                                    const lastTwoDots = path.split('.').slice(-2).join('.');
-                                    handleInputChange(lastTwoDots, newValue, true); // Pass true for isSlider
+                                    const lastTwoDots = path.split('.').slice(-2);
+
+                                    // If the first part is "config", only pass the second part
+                                    const finalPath = lastTwoDots[0] === 'config' ? lastTwoDots[1] : lastTwoDots.join('.');
+
+                                    handleInputChange(finalPath, newValue, true); // Pass true for isSlider
                                 }}
                             />
                         </div>
