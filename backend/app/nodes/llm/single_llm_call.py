@@ -2,7 +2,6 @@ import json
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
-from jinja2 import Template  # Import Jinja2 Template
 
 from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 from .llm_utils import LLMModels, ModelInfo, create_messages, generate_text
@@ -17,20 +16,19 @@ class SingleLLMCallNodeConfig(DynamicSchemaNodeConfig):
         "You are a helpful assistant.", description="The system message for the LLM"
     )
     user_message: str = Field(
-        "What would you like to ask?", description="The user message for the LLM"
+        "{{ input_field_1 }}",
+        description="The user message for the LLM, serialized from input_schema",
     )
-    input_schema: Dict[str, str] = {"user_message": "str"}
+    input_schema: Dict[str, str] = {"input_field_1": "str"}
     few_shot_examples: Optional[List[Dict[str, str]]] = None
 
 
 class SingleLLMCallNodeInput(BaseModel):
-    user_message: str
-    # pass
+    pass
 
 
 class SingleLLMCallNodeOutput(BaseModel):
-    response: str
-    # pass
+    pass
 
 
 class SingleLLMCallNode(DynamicSchemaNode):
@@ -44,23 +42,22 @@ class SingleLLMCallNode(DynamicSchemaNode):
     output_model = SingleLLMCallNodeOutput
 
     async def run(self, input_data: BaseModel) -> BaseModel:
-        system_message_template = self.config.system_message  # Treat as template
-        user_message_template = self.config.user_message  # Treat as template
         output_schema = self.config.output_schema
 
         input_data_dict = input_data.model_dump()
         config_data_dict = self.config.model_dump()
 
-        # Render the system_message using Jinja2 template
-        system_message = Template(system_message_template).render(
-            **input_data_dict, **config_data_dict
+        system_message = self.hydrate_jinja2_template(
+            self.config.system_message, {**input_data_dict, **config_data_dict}
         )
         system_message += (
             f"\nMake sure the output follows this JSON schema: {output_schema}"
         )
 
         # Render the user_message using Jinja2 template
-        user_message = Template(user_message_template).render(**input_data_dict)
+        user_message = self.hydrate_jinja2_template(
+            self.config.user_message, input_data_dict
+        )
 
         messages = create_messages(
             system_message=system_message,
