@@ -9,6 +9,13 @@ import {
   updateEdgesOnHandleRename,
 } from '../../store/flowSlice';
 
+const updateMessageVariables = (message, oldKey, newKey) => {
+  if (!message) return message;
+
+  const regex = new RegExp(`{{\\s*${oldKey}\\s*}}`, 'g');
+  return message.replace(regex, `{{${newKey}}}`);
+};
+
 const DynamicNode = ({ id, type, data, position, ...props }) => {
   const nodeRef = useRef(null);
   const [nodeWidth, setNodeWidth] = useState('auto');
@@ -34,14 +41,33 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
       };
       delete updatedSchema[oldKey];
 
+      let updatedConfig = {
+        ...nodeData?.config,
+        [schemaType]: updatedSchema,
+      };
+
+      if (schemaType === 'input_schema') {
+        if (nodeData?.config?.system_message) {
+          updatedConfig.system_message = updateMessageVariables(
+            nodeData.config.system_message,
+            oldKey,
+            newKey
+          );
+        }
+        if (nodeData?.config?.user_message) {
+          updatedConfig.user_message = updateMessageVariables(
+            nodeData.config.user_message,
+            oldKey,
+            newKey
+          );
+        }
+      }
+
       dispatch(
         updateNodeData({
           id,
           data: {
-            config: {
-              ...nodeData?.config,
-              [schemaType]: updatedSchema,
-            },
+            config: updatedConfig,
           },
         })
       );
