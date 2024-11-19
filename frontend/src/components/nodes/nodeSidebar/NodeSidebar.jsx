@@ -88,14 +88,13 @@ const NodeSidebar = ({ nodeID }) => {
     };
 
 
-    const renderEnumSelect = (key, label, enumValues, fullPath) => {
+    const renderEnumSelect = (key, label, enumValues, fullPath, defaultSelected) => {
         const lastTwoDots = fullPath.split('.').slice(-2).join('.'); // Extract last two segments of the path
-        console.log("dynamicModel: ", dynamicModel[key]);
         return (
             <div key={key}>
                 <Select
                     label={label}
-                    defaultSelectedKeys={[dynamicModel[key] || '']}
+                    defaultSelectedKeys={[defaultSelected || dynamicModel[key] || '']}
                     onChange={(e) => handleInputChange(lastTwoDots, e.target.value)} // Use lastTwoDots in handleInputChange
                     fullWidth
                 >
@@ -137,8 +136,8 @@ const NodeSidebar = ({ nodeID }) => {
 
         // Handle enum fields
         if (fieldMetadata?.enum) {
-            console.log("rendering enum select for: ", fullPath, fieldMetadata.title || key, fieldMetadata.enum);
-            return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum, fullPath); // Pass fullPath
+            const defaultSelected = value || fieldMetadata.default;
+            return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum, fullPath, defaultSelected); // Pass fullPath
         }
 
         // Handle specific cases for input_schema, output_schema, and system_prompt

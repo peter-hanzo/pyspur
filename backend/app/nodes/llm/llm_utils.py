@@ -37,7 +37,9 @@ class LLMModels(str, Enum):
 
 
 class ModelInfo(BaseModel):
-    model: LLMModels
+    model: LLMModels = Field(
+        LLMModels.GPT_4O, description="The LLM model to use for completion"
+    )
     max_tokens: Optional[int] = Field(
         ...,
         ge=1,
