@@ -85,7 +85,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
 
     return (
       <div onDoubleClick={() => handleDoubleClick(row.id, field)}>
-        {row[field]}
+        <div dangerouslySetInnerHTML={{ __html: row[field] }} />
       </div>
     );
   };
