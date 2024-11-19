@@ -10,12 +10,6 @@ from .llm_utils import LLMModels, ModelInfo
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig):
     samples: int = Field(3, ge=1, le=10, description="Number of samples to generate")
-    system_message: str = Field(
-        "You are a helpful assistant.", description="The system message for the LLM"
-    )
-    user_message: str = Field(
-        "What would you like to ask?", description="The user message for the LLM"
-    )
     rating_prompt: str = Field(
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
         "Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
@@ -55,7 +49,9 @@ class BestOfNNode(DynamicSchemaNode):
         rating_llm_config = SingleLLMCallNodeConfig(
             llm_info=self.config.llm_info,
             system_message=self.config.rating_prompt,
-            user_message="",
+            user_message=self.get_jinja2_template_for_fields(
+                list(self.config.output_schema.keys())
+            ),
             input_schema=self.config.output_schema,
             output_schema={"rating": "float"},
         )
@@ -71,8 +67,8 @@ class BestOfNNode(DynamicSchemaNode):
             response.model_dump()
         )
         rating_llm_config_dump = self._rating_llm_node.config.model_dump()
-        rating_llm_config_dump["system_message"] = self.config.rating_prompt.format(
-            **input_data.model_dump()
+        rating_llm_config_dump["system_message"] = self.hydrate_jinja2_template(
+            rating_llm_config_dump["system_message"], input_data.model_dump()
         )
         self._rating_llm_node = SingleLLMCallNode(
             SingleLLMCallNodeConfig.model_validate(rating_llm_config_dump)
