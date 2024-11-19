@@ -63,7 +63,7 @@ export const useSaveWorkflow = (trigger, delay = 2000) => {
     } catch (error) {
       console.error('Error saving workflow:', error);
     }
-  }, [workflowID, nodes, edges, workflowInputVariables]);
+  }, [workflowID, nodes, edges, workflowInputVariables, workflowName]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
