@@ -142,8 +142,6 @@ const FlowCanvasContent = (props) => {
   );
   const onConnect = useCallback(
     (connection) => {
-      console.log('connection', connection);
-
       if (!connection.targetHandle || connection.targetHandle === 'node-body') {
         // The user dropped the connection on the body of the node
         const sourceNode = nodes.find((n) => n.id === connection.source);

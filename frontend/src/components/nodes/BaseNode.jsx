@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setHoveredNode, deleteNode, setSelectedNode } from '../../store/flowSlice';
+import { setHoveredNode, deleteNode, setSelectedNode, updateNodeData } from '../../store/flowSlice';
 import { Handle } from '@xyflow/react';
 import {
   Card,
@@ -8,6 +8,7 @@ import {
   CardBody,
   Divider,
   Button,
+  Input,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
@@ -15,6 +16,7 @@ import usePartialRun from '../../hooks/usePartialRun';
 const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
   const dispatch = useDispatch();
 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
@@ -137,12 +139,57 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
                   paddingBottom: isCollapsed ? '0px' : '16px',
                 }}
               >
-                <h3
-                  className="text-lg font-semibold text-center"
-                  style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
-                >
-                  {data?.config?.title || data?.title || 'Untitled'}
-                </h3>
+                {editingTitle ? (
+                  <Input
+                    autoFocus
+                    defaultValue={data?.config?.title || data?.title || 'Untitled'}
+                    size="sm"
+                    variant="faded"
+                    radius="lg"
+                    onBlur={(e) => {
+                      setEditingTitle(false);
+                      dispatch(updateNodeData({
+                        id,
+                        data: {
+                          config: {
+                            ...data.config,
+                            title: e.target.value,
+                          },
+                        },
+                      }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === 'Escape') {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setEditingTitle(false);
+                        if (e.key === 'Enter') {
+                          dispatch(updateNodeData({
+                            id,
+                            data: {
+                              config: {
+                                ...data.config,
+                                title: e.target.value,
+                              },
+                            },
+                          }));
+                        }
+                      }
+                    }}
+                    classNames={{
+                      input: 'bg-default-100',
+                      inputWrapper: 'shadow-none',
+                    }}
+                  />
+                ) : (
+                  <h3
+                    className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
+                    style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
+                    onClick={() => setEditingTitle(true)}
+                  >
+                    {data?.config?.title || data?.title || 'Untitled'}
+                  </h3>
+                )}
 
                 {/* Container for the collapse button and acronym tag */}
                 <div
