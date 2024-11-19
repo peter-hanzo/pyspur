@@ -153,6 +153,7 @@ const NodeSidebar = ({ nodeID }) => {
                         }}
                         options={jsonOptions}
                         schemaType="input_schema" // Specify schema type
+                        nodeId={nodeID}
                     />
                     {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
                 </div>
@@ -170,6 +171,7 @@ const NodeSidebar = ({ nodeID }) => {
                         }}
                         options={jsonOptions}
                         schemaType="output_schema" // Specify schema type
+                        nodeId={nodeID}
                     />
                     {!isLast && <hr className="my-2" />} {/* Add hr only if not the last element */}
                 </div>

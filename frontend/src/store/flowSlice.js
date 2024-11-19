@@ -101,6 +101,18 @@ const flowSlice = createSlice({
       const edgeId = action.payload.edgeId;
       state.edges = state.edges.filter((edge) => edge.id !== edgeId);
     },
+    deleteEdgeByHandle: (state, action) => {
+      const { nodeId, handleKey } = action.payload;
+      state.edges = state.edges.filter((edge) => {
+        if (edge.source === nodeId && edge.sourceHandle === handleKey) {
+          return false;
+        }
+        if (edge.target === nodeId && edge.targetHandle === handleKey) {
+          return false;
+        }
+        return true;
+      });
+    },
     setSidebarWidth: (state, action) => {
       state.sidebarWidth = action.payload;
     },
@@ -220,6 +232,7 @@ export const {
   setSelectedNode,
   deleteNode,
   deleteEdge,
+  deleteEdgeByHandle,
   setSidebarWidth,
   setProjectName,
   setWorkflowInputVariable,
