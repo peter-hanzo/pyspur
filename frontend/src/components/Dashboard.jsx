@@ -190,13 +190,21 @@ const Dashboard = () => {
               name: uniqueName,
               description: '',
             };
-
-            const workflowData = {name: uniqueName, description: '', ...jsonContent};
+            // to support old style downloaded workflows
+            if (jsonContent.name) {
+              newWorkflow.name = jsonContent.name;
+            }
+            if (jsonContent.description) {
+              newWorkflow.description = jsonContent.description;
+            }
+            if (jsonContent.nodes) {
+              newWorkflow.definition = jsonContent;
+            }
+            if (jsonContent.definition) {
+              newWorkflow.definition = jsonContent.definition;
+            }
             // Call the API to create the workflow
             const createdWorkflow = await createWorkflow(newWorkflow);
-
-            // Update the newly created workflow with the JSON content
-            await updateWorkflow(createdWorkflow.id, workflowData);
 
             // Navigate to the new workflow's page using its ID
             router.push(`/workflows/${createdWorkflow.id}`);
