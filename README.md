@@ -29,9 +29,31 @@ While there are more agent frameworks out there than agents, we believe that PyS
 
 # ⚡ Quick start
 
-```bash
-npm start
-```
+You can get PySpur up and running in three quick steps.
+
+1. **Clone the repository:**
+    ```sh
+    git clone https://github.com/your-repo/pyspur.git
+    cd pyspur
+    ```
+
+2. **Start the docker services:**
+    
+    ```sudo docker compose up --build -d```
+    
+    This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
+
+3. **Access the portal:**
+    
+    Go to `http://localhost:6080/` in your browser. 
+
+    Enter `pyspur`/`canaryhattan` as username/password.
+
+
+
+
+
+#  Development Setup
 
 ## Prerequisites
 
@@ -72,7 +94,7 @@ npm start
     yarn install
     ```
 
-## Development
+## Development Servers
 
 ### Backend
 
@@ -91,21 +113,4 @@ npm start
 2. **Open your browser and navigate to:**
     ```
     http://localhost:3000
-    ```
-
-### Docker (Optional)
-
-1. **Build and run the services using Docker Compose:**
-    ```sh
-    docker-compose up --build
-    ```
-
-2. **Access the frontend at:**
-    ```
-    http://localhost:3000
-    ```
-
-3. **Access the backend at:**
-    ```
-    http://localhost:8000
     ```
