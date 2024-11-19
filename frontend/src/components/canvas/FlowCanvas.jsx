@@ -11,6 +11,7 @@ import {
   setSelectedNode,
   deleteNode,
   setWorkflowInputVariable,
+  updateNodeData,
 } from '../../store/flowSlice';
 // import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
@@ -141,6 +142,50 @@ const FlowCanvasContent = (props) => {
   );
   const onConnect = useCallback(
     (connection) => {
+      console.log('connection', connection);
+
+      if (!connection.targetHandle || connection.targetHandle === 'node-body') {
+        // The user dropped the connection on the body of the node
+        const sourceNode = nodes.find((n) => n.id === connection.source);
+        const targetNode = nodes.find((n) => n.id === connection.target);
+
+        if (sourceNode && targetNode) {
+          const outputHandleName = connection.sourceHandle;
+
+          // Ensure the source handle (output variable) is specified
+          if (!outputHandleName) {
+            console.error('Source handle is not specified.');
+            return;
+          }
+
+          // Add a new input variable to the target node's input_schema
+          const updatedInputSchema = {
+            ...targetNode.data.config.input_schema,
+            [outputHandleName]: 'str', // Assuming the type is 'str'
+          };
+
+          // Dispatch an action to update the target node's data
+          dispatch(
+            updateNodeData({
+              id: targetNode.id,
+              data: {
+                config: {
+                  ...targetNode.data.config,
+                  input_schema: updatedInputSchema,
+                },
+              },
+            })
+          );
+
+          // Update the connection to include the new targetHandle
+          connection = {
+            ...connection,
+            targetHandle: outputHandleName,
+          };
+        }
+      }
+
+      // Create the new edge with the updated connection
       const newEdge = {
         ...connection,
         id: uuidv4(),
@@ -148,7 +193,7 @@ const FlowCanvasContent = (props) => {
       };
       dispatch(connect({ connection: newEdge }));
     },
-    [dispatch] // Add nodes to the dependency array
+    [dispatch, nodes]
   );
 
 

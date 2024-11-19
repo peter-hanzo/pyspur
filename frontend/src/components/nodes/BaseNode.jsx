@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setHoveredNode, deleteNode, setSelectedNode } from '../../store/flowSlice';
+import { Handle } from '@xyflow/react';
 import {
   Card,
   CardHeader,
   CardBody,
   Divider,
   Button,
-  Tooltip,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
@@ -20,7 +20,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeId = useSelector((state) => state.flow.selectedNode);
 
-  const { executePartialRun, loading, error, result } = usePartialRun();
+  const { executePartialRun, loading } = usePartialRun();
 
   const handleMouseEnter = () => {
     dispatch(setHoveredNode({ nodeId: id }));
@@ -74,7 +74,6 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     borderWidth: isSelected ? '3px' : status === 'completed' ? '2px' : isHovered ? '3px' : style.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
-    position: 'relative',
   };
 
   const acronym = data.acronym || 'N/A';
@@ -90,74 +89,110 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   };
 
   return (
-    <div style={{ position: 'relative' }}>
-      <Card
-        className="base-node"
-        style={cardStyle}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        isHoverable
-      >
-        {data && data.title && (
-          <CardHeader
-            style={{
-              position: 'relative',
-              paddingTop: '8px',
-              paddingBottom: isCollapsed ? '0px' : '16px',
-            }}
+    <div
+      style={{ position: 'relative' }}
+      draggable={false}
+    >
+      {/* Container to hold the Handle and the content */}
+      <div style={{ position: 'relative' }}>
+        {/* Hidden target handle covering the entire node */}
+        <Handle
+          type="target"
+          position="top"
+          id="node-body"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 10,
+            opacity: 0,
+            pointerEvents: 'auto',
+          }}
+          isConnectable={true}
+        />
+
+        {/* Node content wrapped in drag handle */}
+        <div
+          className="react-flow__node-drag-handle"
+          style={{
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none', // Prevents content from blocking events
+          }}
+        >
+          <Card
+            className="base-node"
+            style={{ ...cardStyle, pointerEvents: 'auto' }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            isHoverable
           >
-            <h3
-              className="text-lg font-semibold text-center"
-              style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
-            >
-              {/* {data?.title || 'Untitled'} */}
-              {data?.config?.title || data?.title || 'Untitled'}
-
-            </h3>
-
-            {/* Container for the collapse button and acronym tag */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              {/* Collapse Button */}
-              <Button
-                size="sm"
-                variant="flat"
+            {data && data.title && (
+              <CardHeader
                 style={{
-                  minWidth: 'auto',
-                  height: '24px',
-                  padding: '0 8px',
-                  fontSize: '0.8rem',
-                  marginRight: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  position: 'relative',
+                  paddingTop: '8px',
+                  paddingBottom: isCollapsed ? '0px' : '16px',
                 }}
-                onClick={() => setIsCollapsed(!isCollapsed)}
               >
-                {isCollapsed ? '▼' : '▲'}
-              </Button>
+                <h3
+                  className="text-lg font-semibold text-center"
+                  style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
+                >
+                  {data?.config?.title || data?.title || 'Untitled'}
+                </h3>
 
-              {/* Acronym Tag */}
-              <div style={{ ...tagStyle }} className="node-acronym-tag">
-                {acronym}
-              </div>
-            </div>
-          </CardHeader>
-        )}
-        {!isCollapsed && <Divider />}
+                {/* Container for the collapse button and acronym tag */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {/* Collapse Button */}
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    style={{
+                      minWidth: 'auto',
+                      height: '24px',
+                      padding: '0 8px',
+                      fontSize: '0.8rem',
+                      marginRight: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCollapsed(!isCollapsed);
+                    }}
+                  >
+                    {isCollapsed ? '▼' : '▲'}
+                  </Button>
 
-        <CardBody className="px-1">
-          {children}
-        </CardBody>
-      </Card>
+                  {/* Acronym Tag */}
+                  <div style={{ ...tagStyle }} className="node-acronym-tag">
+                    {acronym}
+                  </div>
+                </div>
+              </CardHeader>
+            )}
+            {!isCollapsed && <Divider />}
 
+            <CardBody className="px-1">
+              {children}
+            </CardBody>
+          </Card>
+        </div>
+      </div>
+
+      {/* Controls */}
       {(showControls || isSelected) && (
         <Card
           onMouseEnter={() => {
@@ -179,6 +214,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
             padding: '4px',
             backgroundColor: 'white',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            pointerEvents: 'auto',
           }}
         >
           <div className="flex flex-row gap-1">

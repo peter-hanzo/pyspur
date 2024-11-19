@@ -133,7 +133,6 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   };
 
   const OutputHandleRow = ({ keyName }) => {
-    const connections = useHandleConnections({ type: 'source', id: keyName });
 
     return (
       <tr key={`output-${keyName}`} className="align-middle">
@@ -228,11 +227,17 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const isConditionalNode = type === 'ConditionalNode';
 
   return (
-    <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentNode ? 1 : 0 }}>
+    <div
+      className={styles.dynamicNodeWrapper}
+      style={{ zIndex: props.parentNode ? 1 : 0 }}
+    >
       <BaseNode
         id={id}
         data={nodeData}
-        style={{ width: nodeWidth, backgroundColor: isConditionalNode ? '#e0f7fa' : undefined }}
+        style={{
+          width: nodeWidth,
+          backgroundColor: isConditionalNode ? '#e0f7fa' : undefined,
+        }}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         selected={props.selected}
