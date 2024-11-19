@@ -2,7 +2,9 @@ import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
 import JSPydanticModel from './JSPydanticModel.js'; // Import the JSPydanticModel class
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = typeof window !== 'undefined'
+  ? `http://${window.location.host}/api`
+  : 'http://localhost:6080/api';
 
 export const getNodeTypes = async () => {
   try {
