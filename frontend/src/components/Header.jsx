@@ -64,7 +64,7 @@ const Header = ({ activePage }) => {
         console.error('Error fetching workflow status:', error);
         clearInterval(currentStatusInterval);
       }
-    }, 10000);
+    }, 1000);
   };
 
   // get the workflow ID from the URL
