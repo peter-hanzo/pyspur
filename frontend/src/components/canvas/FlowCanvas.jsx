@@ -12,6 +12,7 @@ import {
   deleteNode,
   setWorkflowInputVariable,
   updateNodeData,
+  setNodes,
 } from '../../store/flowSlice';
 // import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
@@ -31,6 +32,8 @@ import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner'; // Updated import
 import ConditionalNode from '../nodes/ConditionalNode';
+import dagre from '@dagrejs/dagre'; 
+
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
@@ -314,6 +317,51 @@ const FlowCanvasContent = (props) => {
     [nodes, onNodesDelete]
   );
 
+  const getLayoutedNodes = (nodes, edges, direction = 'LR') => {
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setGraph({ 
+      rankdir: direction, 
+      align: 'UL',
+      edgesep: 100, 
+      ranksep: 160, 
+      nodesep: 150,
+      ranker: 'tight-tree'
+    });
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+    nodes.forEach((node) => {
+      dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
+    });
+
+    edges.forEach((edge) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const isHorizontal = direction === 'LR';
+
+    const layoutedNodes = nodes.map((node) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+
+      return {
+        ...node,
+        position: {
+          x: nodeWithPosition.x - node.measured.width / 2,
+          y: nodeWithPosition.y - node.measured.height / 2,
+        },
+      };
+    });
+
+    return layoutedNodes;
+  };
+
+  const handleLayout = useCallback(() => {
+    const layoutedNodes = getLayoutedNodes(nodes, edges);
+    dispatch(setNodes({ nodes: layoutedNodes }));
+  }, [nodes, edges, dispatch]);
+
+
   // Add effect to handle keyboard events
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -461,7 +509,7 @@ const FlowCanvasContent = (props) => {
 
 
 
-            <Operator />
+            <Operator handleLayout={handleLayout}/>
           </ReactFlow>
         </div>
         {selectedNodeID && (
