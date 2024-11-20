@@ -437,8 +437,8 @@ const NodeSidebar = ({ nodeID }) => {
             <div className="flex-1 px-4 py-1 overflow-auto max-h-screen" id="node-details">
                 <div className="flex justify-between items-center mb-2">
                     <div>
-                        <h1 className="text-lg font-semibold">{node?.id || 'Node Details'}</h1>
-                        <h2 className="text-sm font-semibold">{nodeType}</h2>
+                        <h1 className="text-lg font-semibold">{node?.data?.config?.title || node?.id || 'Node Details'}</h1>
+                        <h2 className="text-xs font-semibold">{nodeType}</h2>
                     </div>
                     <Button
                         isIconOnly
