@@ -24,6 +24,7 @@ PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference
 - [X] Canvas
 - [X] ITC Nodes
 - [X] Async/Batch Execution
+- [ ] ITC Node Monitoring
 - [ ] Evals
 - [ ] Multimodal
 - [ ] Spur API
@@ -31,6 +32,9 @@ PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference
 - [ ] Containerization of Code Verifiers
 - [ ] Leaderboard
 - [ ] Generate Spurs via AI
+
+Your feedback will be massively appreciated.
+Please [tell us](mailto:founders@pyspur.com?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
 
 # 🕸️ Why PySpur?
 
