@@ -30,6 +30,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
 
   const handleSchemaKeyEdit = useCallback(
     (oldKey, newKey, schemaType) => {
+      newKey = newKey.replace(/\s+/g, '_');
       if (oldKey === newKey || !newKey.trim()) {
         setEditingField(null);
         return;
