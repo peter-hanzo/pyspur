@@ -62,9 +62,6 @@ You can get PySpur up and running in three quick steps.
     Enter `pyspur`/`canaryhattan` as username/password.
 
 
-
-
-
 #  Development Setup
 
 ## Prerequisites
