@@ -2,7 +2,9 @@
 
 PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference-time compute pipelines.
 
-*Insert GIF here*
+# PySpur in 90 Seconds
+
+
 
 # ✨ Three Key Features
 
@@ -25,10 +27,13 @@ PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference
 - [X] ITC Nodes
 - [X] Async/Batch Execution
 - [ ] ITC Node Monitoring
+- [ ] New Nodes
+    - [ ] Tools
+    - [ ] Loops
+    - [ ] Conditionals
 - [ ] Evals
 - [ ] Multimodal
 - [ ] Spur API
-- [ ] Tool Nodes
 - [ ] Containerization of Code Verifiers
 - [ ] Leaderboard
 - [ ] Generate Spurs via AI
