@@ -1,6 +1,10 @@
 # Development
 
-## Adding a package to existing docker container
+## Adding an npm package
+
+
+
+Adding an n package to existing docker container
 
 ```sh
 sudo docker exec -it pyspur_dev-frontend-1 sh

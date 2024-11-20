@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setHoveredNode, deleteNode, setSelectedNode, updateNodeData } from '../../store/flowSlice';
-import { Handle } from '@xyflow/react';
+import { setHoveredNode, deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
+import { Handle, getConnectedEdges } from '@xyflow/react';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Card,
   CardHeader,
@@ -19,6 +20,9 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   const [editingTitle, setEditingTitle] = useState(false);
   const dispatch = useDispatch();
 
+  // Retrieve the node's position and edges from the Redux store
+  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
+  const edges = useSelector((state) => state.flow.edges);
   const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeId = useSelector((state) => state.flow.selectedNode);
 
@@ -58,6 +62,42 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     const workflowId = window.location.pathname.split('/').pop();
 
     executePartialRun(workflowId, id, initialInputs, partialOutputs, rerunPredecessors);
+  };
+
+  const handleDuplicate = () => {
+    if (!node || !node.position) {
+      console.error('Node position not found');
+      return;
+    }
+
+    // Get all edges connected to the current node
+    const connectedEdges = getConnectedEdges([node], edges);
+
+    // Generate a new unique ID for the duplicated node
+    const newNodeId = `${id}-${uuidv4()}`;
+
+    // Create the new node with an offset position
+    const newNode = {
+      ...node,
+      id: newNodeId,
+      position: { x: node.position.x + 20, y: node.position.y + 20 }, // Offset the position slightly
+      selected: false, // Ensure the new node is not selected by default
+    };
+
+    // Duplicate the edges connected to the node
+    const newEdges = connectedEdges.map((edge) => {
+      const newEdgeId = uuidv4();
+      return {
+        ...edge,
+        id: newEdgeId,
+        source: edge.source === id ? newNodeId : edge.source, // Update source if the current node is the source
+        target: edge.target === id ? newNodeId : edge.target, // Update target if the current node is the target
+      };
+    });
+
+    // Dispatch actions to add the new node and edges
+    dispatch(addNode({ node: newNode }));
+    dispatch(setEdges({ edges: [...edges, ...newEdges] }));
   };
 
   const isHovered = String(id) === String(hoveredNodeId);
@@ -284,6 +324,15 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
                 <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
               </Button>
             )}
+            {/* Duplicate Button */}
+            <Button
+              isIconOnly
+              radius="full"
+              variant="light"
+              onPress={handleDuplicate}
+            >
+              <Icon className="text-default-500" icon="solar:copy-bold" width={22} />
+            </Button>
           </div>
         </Card>
       )}

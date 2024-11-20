@@ -19,13 +19,23 @@ PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference
     * **Self-hosting of async batch APIs** for full flexbility
     * **Fault tolerance and job persistence** for long-running jobs
 
+# 🗺️ Roadmap
+
+- [X] Canvas
+- [X] ITC Nodes
+- [X] Async/Batch Execution
+- [ ] Evals
+- [ ] Spur API
+- [ ] Tool Nodes
+- [ ] Containerization of Code Verifiers
+- [ ] Leaderboard
+
 # 🕸️ Why PySpur?
 
-Humans think for longer on difficult problems to improve their decisions. Similarly, we can enable LLMs to utilize additional compute at inference time via computational graphs that involve multiple steps and feedback loops. However, developing, debugging, and deploying such graphs can be challenging due to the intricate interdependencies among nodes, where the output of one node becomes the input for the next.
-
-The goal of PySpur is to enable developers to quickly build, test, and deploy such LLM graphs by abstracting away the complexity of parallel execution and state management.
-
-While there are more agent frameworks out there than agents, we believe that PySpur's
+* Humans think for longer on difficult problems to improve their decisions.
+* Similarly, we can enable LLMs to utilize additional compute at inference time via computational graphs that involve multiple steps and feedback loops.
+* However, developing, debugging, and deploying such graphs involves intricate interdependencies among nodes, where the output of one node becomes the input for the next.
+* **The goal of PySpur is to enable developers to quickly build, test, and deploy such LLM graphs by abstracting away the complexity of parallel execution and state management.**
 
 # ⚡ Quick start
 
@@ -38,14 +48,14 @@ You can get PySpur up and running in three quick steps.
     ```
 
 2. **Start the docker services:**
-    
+
     ```sudo docker compose up --build -d```
-    
+
     This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
 
 3. **Access the portal:**
-    
-    Go to `http://localhost:6080/` in your browser. 
+
+    Go to `http://localhost:6080/` in your browser.
 
     Enter `pyspur`/`canaryhattan` as username/password.
 
