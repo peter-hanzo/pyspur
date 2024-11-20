@@ -51,7 +51,7 @@ You can get PySpur up and running in three quick steps.
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/your-repo/pyspur.git
+    git clone https://github.com/PySpur-com/PySpur.git
     cd pyspur
     ```
 
