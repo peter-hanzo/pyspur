@@ -36,7 +36,7 @@ const Header = ({ activePage }) => {
         const statusResponse = await getRunStatus(runID);
         const outputs = statusResponse.outputs;
 
-        if (statusResponse.status === 'FAILED' || pollCount > 10) {
+        if (statusResponse.status === 'FAILED') {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
           toast.error('Workflow run failed.');
