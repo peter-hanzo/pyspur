@@ -331,7 +331,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
               variant="light"
               onPress={handleDuplicate}
             >
-              <Icon className="text-default-500" icon="solar:copy-bold" width={22} />
+              <Icon className="text-default-500" icon="solar:copy-linear" width={22} />
             </Button>
           </div>
         </Card>
