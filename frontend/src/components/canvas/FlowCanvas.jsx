@@ -322,10 +322,10 @@ const FlowCanvasContent = (props) => {
     dagreGraph.setGraph({ 
       rankdir: direction, 
       align: 'UL',
-      edgesep: 100, 
-      ranksep: 160, 
-      nodesep: 150,
-      ranker: 'tight-tree'
+      edgesep: 32, 
+      ranksep: 32, 
+      nodesep: 32,
+      // ranker: 'longest-path'
     });
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -333,8 +333,66 @@ const FlowCanvasContent = (props) => {
       dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
     });
 
+    const nodeWeights = {};
+    const edgeWeights = {};
+
+    // Initialize root nodes with weight 1024
+    nodes.forEach(node => {
+      const incomingEdges = edges.filter(edge => edge.target === node.id);
+      if (incomingEdges.length === 0) {
+        nodeWeights[node.id] = 1024;
+        // set weight for all outgoing edges to half of the node weight
+        const outgoingEdges = edges.filter(edge => edge.source === node.id);
+        outgoingEdges.forEach(edge => {
+          edgeWeights[edge.id] = 512;
+        });
+      }
+
+    });
+
+    // Perform a topological sort to determine the order of processing nodes
+    const sortedNodes = [];
+    const visited = new Set();
+
+    const visit = (node) => {
+      if (!visited.has(node.id)) {
+        visited.add(node.id);
+        const outgoingEdges = edges.filter(edge => edge.source === node.id);
+        outgoingEdges.forEach(edge => {
+          const targetNode = nodes.find(n => n.id === edge.target);
+          visit(targetNode);
+        });
+        sortedNodes.push(node);
+      }
+    };
+
+    nodes.forEach(node => {
+      if (!visited.has(node.id)) {
+        visit(node);
+      }
+    });
+
+    // Calculate weights for nodes and edges
+    sortedNodes.forEach(node => {
+      const incomingEdges = edges.filter(edge => edge.target === node.id);
+      const maxIncomingWeight = incomingEdges.reduce((maxWeight, edge) => {
+        return Math.max(maxWeight, edgeWeights[edge.id] || 0);
+      }, 0);
+
+      if (!nodeWeights[node.id]) {
+        nodeWeights[node.id] = maxIncomingWeight;
+      }
+
+      const outgoingEdges = edges.filter(edge => edge.source === node.id);
+      outgoingEdges.forEach(edge => {
+        edgeWeights[edge.id] = nodeWeights[node.id] / 2;
+      });
+    });
+
+
     edges.forEach((edge) => {
-      dagreGraph.setEdge(edge.source, edge.target);
+      const weight = edgeWeights[edge.id] || 1; // Use edgeWeights if available, default to 1
+      dagreGraph.setEdge(edge.source, edge.target, { weight: weight, height: 10, width: 10, labelpos: 'c', minlen: 2 });
     });
 
     dagre.layout(dagreGraph);

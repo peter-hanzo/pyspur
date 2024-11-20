@@ -4,7 +4,7 @@ PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference
 
 # PySpur in 90 Seconds
 
-
+https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 
 # ✨ Three Key Features
 
@@ -54,7 +54,7 @@ You can get PySpur up and running in three quick steps.
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/your-repo/pyspur.git
+    git clone https://github.com/PySpur-com/PySpur.git
     cd pyspur
     ```
 

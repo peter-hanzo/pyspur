@@ -93,7 +93,7 @@ function Operator({handleLayout}) {
             >
               <Icon
                 className="text-default-500"
-                icon="solar:box-minimalistic-linear"
+                icon="solar:ruler-angular-linear"
                 width={16}
               />
             </Button>
