@@ -311,9 +311,9 @@ export const getTemplates = async () => {
   }
 };
 
-export const instantiateTemplate = async (templateFileName) => {
+export const instantiateTemplate = async (template) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/templates/${templateFileName}/instantiate/`);
+    const response = await axios.post(`${API_BASE_URL}/templates/instantiate/`, template);
     return response.data;
   } catch (error) {
     console.error('Error instantiating template:', error);

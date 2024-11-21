@@ -221,9 +221,9 @@ const Dashboard = () => {
     }
   };
 
-  const handleUseTemplate = async (templateFileName) => {
+  const handleUseTemplate = async (template) => {
     try {
-      const newWorkflow = await instantiateTemplate(templateFileName);
+      const newWorkflow = await instantiateTemplate(template);
       router.push(`/workflows/${newWorkflow.id}`);
     } catch (error) {
       console.error('Error using template:', error);
@@ -310,7 +310,7 @@ const Dashboard = () => {
                   title={template.name}
                   description={template.description}
                   features={template.features}
-                  onUse={() => handleUseTemplate(template.file_name)}
+                  onUse={() => handleUseTemplate(template)}
                 />
               ))}
             </div>
