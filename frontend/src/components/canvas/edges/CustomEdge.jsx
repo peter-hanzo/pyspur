@@ -55,7 +55,7 @@ const CustomEdge = ({
   };
   const borderRadius = 16;
 
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
+  const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,
