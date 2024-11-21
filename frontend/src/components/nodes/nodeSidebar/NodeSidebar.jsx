@@ -211,6 +211,15 @@ const NodeSidebar = ({ nodeID }) => {
                 </div>
             );
         }
+        else if (key === 'code') {
+            return (
+                <CodeEditor
+                    key={key}
+                    code={value}
+                    onChange={(newValue) => handleInputChange(key, newValue)}
+                />
+            );
+        }
 
         // Handle other types (string, number, boolean, object, code)
         switch (typeof field) {
