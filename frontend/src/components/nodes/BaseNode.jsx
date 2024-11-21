@@ -74,7 +74,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
       return;
     }
     setIsRunning(true);
-    const rerunPredecessors = true;
+    const rerunPredecessors = false;
 
     const workflowId = window.location.pathname.split('/').pop();
 

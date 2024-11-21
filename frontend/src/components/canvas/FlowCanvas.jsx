@@ -392,7 +392,7 @@ const FlowCanvasContent = (props) => {
 
     edges.forEach((edge) => {
       const weight = edgeWeights[edge.id] || 1; // Use edgeWeights if available, default to 1
-      dagreGraph.setEdge(edge.source, edge.target, { weight: weight, height: 10, width: 10, labelpos: 'c', minlen: 2 });
+      dagreGraph.setEdge(edge.source, edge.target, { weight: weight, height: 10, width: 10, labelpos: 'c', minlen: 1 });
     });
 
     dagre.layout(dagreGraph);
