@@ -49,21 +49,16 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch workflows and templates
-    const fetchData = async () => {
+    const fetchTemplates = async () => {
       try {
-        const [workflowsData, templatesData] = await Promise.all([
-          getWorkflows(),
-          getTemplates(),
-        ]);
-        setWorkflows(workflowsData);
-        setTemplates(templatesData);
+        const workflows = await getTemplates();
+        setTemplates(workflows);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching templates:', error);
       }
     };
 
-    fetchData();
+    fetchTemplates();
   }, []);
 
   const columns = [
