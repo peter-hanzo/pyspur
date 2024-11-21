@@ -9,12 +9,15 @@ from datetime import datetime, timezone
 
 router = APIRouter()
 
-TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
 
+print(f"TEMPLATES_DIR resolved to: {TEMPLATES_DIR.resolve()}")
 
 @router.get("/", description="List all available templates")
 def list_templates():
     templates = []
+    if not TEMPLATES_DIR.exists():
+        raise HTTPException(status_code=500, detail="Templates directory not found")
     for template_file in TEMPLATES_DIR.glob("*.json"):
         with open(template_file, "r") as f:
             template_content = json.load(f)
@@ -36,6 +39,8 @@ def list_templates():
 )
 def instantiate_template(template_file_name: str, db: Session = Depends(get_db)):
     template_path = TEMPLATES_DIR / template_file_name
+    print(f"Requested template: {template_file_name}")
+    print(f"Resolved template path: {template_path}")
     if not template_path.exists():
         raise HTTPException(status_code=404, detail="Template not found")
     with open(template_path, "r") as f:

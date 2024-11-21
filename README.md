@@ -1,6 +1,6 @@
 # PySpur - An IDE for Inference-Time Compute
 
-PySpur is a drag-and-drop IDE that lets you develop, debug, and deploy inference-time compute pipelines.
+PySpur is an IDE that lets you develop, debug, and deploy inference-time compute pipelines.
 
 # PySpur in 90 Seconds
 
