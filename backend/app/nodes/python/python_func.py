@@ -1,14 +1,19 @@
-from typing import Dict
+from typing import Dict, Any
 
 from pydantic import BaseModel
 
-from ..base import BaseNode, DynamicSchemaValueType
+from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 
 
-class PythonFuncNodeConfig(BaseModel):
-    code: str  # The Python code to execute
-    input_schema: Dict[str, DynamicSchemaValueType]  # The input schema
-    output_schema: Dict[str, DynamicSchemaValueType]  # The output schema
+class PythonFuncNodeConfig(DynamicSchemaNodeConfig):
+    input_schema: Dict[str, str] = {}
+    code: str = "\n".join(
+        [
+            "# Write your Python code here.",
+            "# All the inputs to the node will be available as local variables.",
+            "# The output will be the local variables that are also in the output schema.",
+        ]
+    )
 
 
 class PythonFuncNodeInput(BaseModel):
@@ -19,7 +24,7 @@ class PythonFuncNodeOutput(BaseModel):
     pass
 
 
-class PythonFuncNode(BaseNode):
+class PythonFuncNode(DynamicSchemaNode):
     """
     Node type for executing Python code on the input data.
     """
@@ -29,25 +34,19 @@ class PythonFuncNode(BaseNode):
     input_model = PythonFuncNodeInput
     output_model = PythonFuncNodeOutput
 
-    def setup(self) -> None:
-        self.input_model = self.get_model_for_schema_dict(
-            self.config.input_schema, "PythonFuncNodeInput"
-        )
-        self.output_model = self.get_model_for_schema_dict(
-            self.config.output_schema, "PythonFuncNodeOutput"
-        )
-
     async def run(self, input_data: BaseModel) -> BaseModel:
         # Prepare the execution environment
-        exec_globals = {}
+        exec_globals: Dict[str, Any] = {}
         print("input_data", input_data.model_dump())
-        exec_locals = {"input_data": input_data.model_dump()}
+        exec_locals = input_data.model_dump()
 
         # Execute the user-defined code
         exec(self.config.code, exec_globals, exec_locals)
 
-        # Retrieve the output data
-        output_data = exec_locals.get("output_data")
-        if output_data is None:
-            raise ValueError("Output data not found in the execution environment")
+        # Retrieve the output data, select all keys that are also in the output schema
+        output_data = {
+            key: value
+            for key, value in exec_locals.items()
+            if key in self.config.output_schema
+        }
         return self.output_model.model_validate(output_data)
