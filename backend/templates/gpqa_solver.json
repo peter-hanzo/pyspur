@@ -21,8 +21,8 @@
           }
         },
         "coordinates": {
-          "x": 100,
-          "y": 100
+          "x": 0,
+          "y": 0
         }
       },
       {
@@ -54,45 +54,8 @@
           "few_shot_examples": null
         },
         "coordinates": {
-          "x": 840,
-          "y": -45
-        }
-      },
-      {
-        "id": "node_1732233661809",
-        "title": "",
-        "node_type": "BestOfNNode",
-        "config": {
-          "title": "MultipleAttempts",
-          "type": "object",
-          "input_schema": {
-            "question": "str",
-            "A": "str",
-            "B": "str",
-            "C": "str",
-            "D": "str"
-          },
-          "output_schema": {
-            "correct_answer": "str",
-            "explanation": "str"
-          },
-          "llm_info": {
-            "model": "gpt-4o",
-            "max_tokens": 16384,
-            "temperature": 0.7,
-            "top_p": 1
-          },
-          "system_message": "<p>You are a PhD student in the field of Science (Physics, Chemistry or Biology). Your task is to solve the question provided to you and pick its answer from the given options.</p><p>Respond only with the Option you pick: A, B, C or D.</p>",
-          "user_message": "<p>Question: {{question}}</p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p>",
-          "few_shot_examples": null,
-          "samples": 3,
-          "rating_prompt": "<p>The response is answer to the question: {{question}}</p><p>Where the options were: </p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p><p></p><p>Rate the response on a scale from 0 to 10, where 0 is incorrect and 10 is correct, based on the explanation provided.</p>",
-          "rating_temperature": 0.1,
-          "rating_max_tokens": 16
-        },
-        "coordinates": {
-          "x": 840,
-          "y": 210
+          "x": 438,
+          "y": 39
         }
       },
       {
@@ -125,8 +88,8 @@
           "rating_max_tokens": 16
         },
         "coordinates": {
-          "x": 840,
-          "y": 525
+          "x": 438,
+          "y": 394
         }
       },
       {
@@ -152,14 +115,14 @@
           "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). You are given instruction to solve part of a question. Please provide a detailed solution as per the instruction.</p>",
           "user_message": "<p>Question: {{question}}</p><p>step_1: {{step_1}}</p>",
           "few_shot_examples": null,
-          "samples": 3,
+          "samples": 1,
           "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
           "rating_temperature": 0.1,
           "rating_max_tokens": 16
         },
         "coordinates": {
-          "x": 1320,
-          "y": 525
+          "x": 876,
+          "y": 593.5
         }
       },
       {
@@ -187,14 +150,14 @@
           "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). You are given instruction to solve part of a question. Specifically the solution of step_2. Please provide a detailed solution as per the instruction. </p>",
           "user_message": "<p>Question: {{question}}</p><p>step_1: {{step_1}}</p><p>step_1_solution: {{step_1_solution}}</p><p>step_2: {{step_2}}</p>",
           "few_shot_examples": null,
-          "samples": 3,
+          "samples": 1,
           "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
           "rating_temperature": 0.1,
           "rating_max_tokens": 16
         },
         "coordinates": {
-          "x": 1755,
-          "y": 525
+          "x": 1314,
+          "y": 764
         }
       },
       {
@@ -224,14 +187,14 @@
           "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). You are given instruction to solve part of a question. Specifically the solution of step_3. Please provide a detailed solution as per the instruction.</p>",
           "user_message": "<p>Question: {{question}}</p><p>step_1: {{step_1}}</p><p>step_1_solution: {{step_1_solution}}</p><p>step_2: {{step_2}}</p><p>step_3: {{step_3}}</p>",
           "few_shot_examples": null,
-          "samples": 3,
+          "samples": 1,
           "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
           "rating_temperature": 0.1,
           "rating_max_tokens": 16
         },
         "coordinates": {
-          "x": 2280,
-          "y": 495
+          "x": 1752,
+          "y": 952.5
         }
       },
       {
@@ -264,7 +227,7 @@
             "temperature": 0.7,
             "top_p": 1
           },
-          "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). Your given parts of the solutions to a larger question. Please combine them all to form the final solution and pick the correct option based on the solution from A, B, C, D</p>",
+          "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). Your given parts of the solutions to a larger question. Please combine them all to form the final solution and pick the correct option based on the solution from A, B, C, D.<br>In Explanation merge all the steps and provided a consolidated, but concise explanation of the solution.</p>",
           "user_message": "<p>Question: {{question}}</p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p><p>step_1: {{step_1}}</p><p>step_1_solution: {{step_1_solution}}</p><p>step_2: {{step_2}}</p><p>step_2_solution: {{step_2_solution}}</p><p>step_3: {{step_3}}</p><p>step_3_solution: {{step_3_solution}}</p><p></p>",
           "few_shot_examples": null,
           "samples": 3,
@@ -273,8 +236,8 @@
           "rating_max_tokens": 16
         },
         "coordinates": {
-          "x": 2850,
-          "y": 705
+          "x": 2190,
+          "y": 681
         }
       }
     ],
@@ -307,36 +270,6 @@
         "source_id": "input_node",
         "source_output_key": "D",
         "target_id": "node_1732232621723",
-        "target_input_key": "D"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "question",
-        "target_id": "node_1732233661809",
-        "target_input_key": "question"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "A",
-        "target_id": "node_1732233661809",
-        "target_input_key": "A"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "B",
-        "target_id": "node_1732233661809",
-        "target_input_key": "B"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "C",
-        "target_id": "node_1732233661809",
-        "target_input_key": "C"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "D",
-        "target_id": "node_1732233661809",
         "target_input_key": "D"
       },
       {
@@ -492,6 +425,14 @@
         "B": "<p>0.85</p>",
         "C": "<p>-1.4</p>",
         "D": "<p>1.65</p>"
+      },
+      {
+        "id": 1732239244654,
+        "question": "<p>In a parallel universe where a magnet can have an isolated North or South pole, Maxwell’s equations look different. But, specifically, which of those equations are different?</p>",
+        "A": "<p>The ones related to the circulation of the electric field and the divergence of the magnetic field. &nbsp;</p>",
+        "B": "<p>The ones related to the divergence and the curl of the magnetic field.</p>",
+        "C": "<p>The one related to the divergence of the magnetic field.&nbsp;</p>",
+        "D": "<p>The one related to the circulation of the magnetic field and the flux of the electric field.&nbsp;</p>"
       }
     ]
   },
