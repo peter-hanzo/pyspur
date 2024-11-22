@@ -1,0 +1,499 @@
+{
+  "name": "GPQA Solver using step-by-step planning and multiple attempts",
+  "metadata": {
+    "name": "GPQA Solver",
+    "description": "Solve GPQA questions using a step-by-step reasoning approach.",
+    "features": ["Step-by-step reasoning", "Multiple attempts", "Solution planning"]
+  },
+  "definition": {
+    "nodes": [
+      {
+        "id": "input_node",
+        "title": "",
+        "node_type": "InputNode",
+        "config": {
+          "input_schema": {
+            "question": "str",
+            "A": "str",
+            "B": "str",
+            "C": "str",
+            "D": "str"
+          }
+        },
+        "coordinates": {
+          "x": 100,
+          "y": 100
+        }
+      },
+      {
+        "id": "node_1732232621723",
+        "title": "",
+        "node_type": "SingleLLMCallNode",
+        "config": {
+          "title": "OneShotSolver",
+          "type": "object",
+          "input_schema": {
+            "question": "str",
+            "A": "str",
+            "B": "str",
+            "C": "str",
+            "D": "str"
+          },
+          "output_schema": {
+            "correct_answer": "str",
+            "explanation": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in the field of Science (Physics, Chemistry or Biology). Your task is to solve the question provided to you and pick its answer from the given options.</p><p>Respond only with the Option you pick: A, B, C or D.</p>",
+          "user_message": "<p>Question: {{question}}</p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p>",
+          "few_shot_examples": null
+        },
+        "coordinates": {
+          "x": 840,
+          "y": -45
+        }
+      },
+      {
+        "id": "node_1732233661809",
+        "title": "",
+        "node_type": "BestOfNNode",
+        "config": {
+          "title": "MultipleAttempts",
+          "type": "object",
+          "input_schema": {
+            "question": "str",
+            "A": "str",
+            "B": "str",
+            "C": "str",
+            "D": "str"
+          },
+          "output_schema": {
+            "correct_answer": "str",
+            "explanation": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in the field of Science (Physics, Chemistry or Biology). Your task is to solve the question provided to you and pick its answer from the given options.</p><p>Respond only with the Option you pick: A, B, C or D.</p>",
+          "user_message": "<p>Question: {{question}}</p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p>",
+          "few_shot_examples": null,
+          "samples": 3,
+          "rating_prompt": "<p>The response is answer to the question: {{question}}</p><p>Where the options were: </p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p><p></p><p>Rate the response on a scale from 0 to 10, where 0 is incorrect and 10 is correct, based on the explanation provided.</p>",
+          "rating_temperature": 0.1,
+          "rating_max_tokens": 16
+        },
+        "coordinates": {
+          "x": 840,
+          "y": 210
+        }
+      },
+      {
+        "id": "node_1732234981946",
+        "title": "",
+        "node_type": "BestOfNNode",
+        "config": {
+          "title": "SolutionPlanner",
+          "type": "object",
+          "input_schema": {
+            "question": "str"
+          },
+          "output_schema": {
+            "step_1": "str",
+            "step_2": "str",
+            "step_3": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in the field of Science (Physics, Chemistry or Biology) who is supervising a junior researcher.</p><p>Your task is to create a plan for solving the question provided to you. This plan is for the junior student you are managing to work on. </p><p>The plan must break the problem into at most 3 steps with instructions. The instructions for each step must be clear, concise and high level. </p><p>If the problem needs less than 5steps, please leave the un-required steps as \"NA\".</p><p></p><p></p>",
+          "user_message": "<p>Question: {{question}}</p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p>",
+          "few_shot_examples": null,
+          "samples": 3,
+          "rating_prompt": "<p>Rate the following instructions on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.</p>",
+          "rating_temperature": 0.1,
+          "rating_max_tokens": 16
+        },
+        "coordinates": {
+          "x": 840,
+          "y": 525
+        }
+      },
+      {
+        "id": "node_1732236371719",
+        "title": "",
+        "node_type": "BestOfNNode",
+        "config": {
+          "title": "Step 1 Solver",
+          "type": "object",
+          "input_schema": {
+            "question": "str",
+            "step_1": "str"
+          },
+          "output_schema": {
+            "step_1_solution": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). You are given instruction to solve part of a question. Please provide a detailed solution as per the instruction.</p>",
+          "user_message": "<p>Question: {{question}}</p><p>step_1: {{step_1}}</p>",
+          "few_shot_examples": null,
+          "samples": 3,
+          "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
+          "rating_temperature": 0.1,
+          "rating_max_tokens": 16
+        },
+        "coordinates": {
+          "x": 1320,
+          "y": 525
+        }
+      },
+      {
+        "id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "title": "",
+        "node_type": "BestOfNNode",
+        "config": {
+          "title": "Step 2 Solver",
+          "type": "object",
+          "input_schema": {
+            "question": "str",
+            "step_1": "str",
+            "step_1_solution": "str",
+            "step_2": "str"
+          },
+          "output_schema": {
+            "step_2_solution": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). You are given instruction to solve part of a question. Specifically the solution of step_2. Please provide a detailed solution as per the instruction. </p>",
+          "user_message": "<p>Question: {{question}}</p><p>step_1: {{step_1}}</p><p>step_1_solution: {{step_1_solution}}</p><p>step_2: {{step_2}}</p>",
+          "few_shot_examples": null,
+          "samples": 3,
+          "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
+          "rating_temperature": 0.1,
+          "rating_max_tokens": 16
+        },
+        "coordinates": {
+          "x": 1755,
+          "y": 525
+        }
+      },
+      {
+        "id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "title": "",
+        "node_type": "BestOfNNode",
+        "config": {
+          "title": "Step 3 Solver",
+          "type": "object",
+          "input_schema": {
+            "question": "str",
+            "step_1": "str",
+            "step_1_solution": "str",
+            "step_2": "str",
+            "step_2_solution": "str",
+            "step_3": "str"
+          },
+          "output_schema": {
+            "step_3_solution": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). You are given instruction to solve part of a question. Specifically the solution of step_3. Please provide a detailed solution as per the instruction.</p>",
+          "user_message": "<p>Question: {{question}}</p><p>step_1: {{step_1}}</p><p>step_1_solution: {{step_1_solution}}</p><p>step_2: {{step_2}}</p><p>step_3: {{step_3}}</p>",
+          "few_shot_examples": null,
+          "samples": 3,
+          "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
+          "rating_temperature": 0.1,
+          "rating_max_tokens": 16
+        },
+        "coordinates": {
+          "x": 2280,
+          "y": 495
+        }
+      },
+      {
+        "id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "title": "",
+        "node_type": "BestOfNNode",
+        "config": {
+          "title": "Merge Steps",
+          "type": "object",
+          "input_schema": {
+            "question": "str",
+            "step_1": "str",
+            "step_1_solution": "str",
+            "step_2": "str",
+            "step_2_solution": "str",
+            "step_3": "str",
+            "step_3_solution": "str",
+            "A": "str",
+            "B": "str",
+            "C": "str",
+            "D": "str"
+          },
+          "output_schema": {
+            "explanation": "str",
+            "correct_option": "str"
+          },
+          "llm_info": {
+            "model": "gpt-4o",
+            "max_tokens": 16384,
+            "temperature": 0.7,
+            "top_p": 1
+          },
+          "system_message": "<p>You are a PhD student in science (Physics, Chemistry or Biology). Your given parts of the solutions to a larger question. Please combine them all to form the final solution and pick the correct option based on the solution from A, B, C, D</p>",
+          "user_message": "<p>Question: {{question}}</p><p>A: {{A}}</p><p>B: {{B}}</p><p>C: {{C}}</p><p>D: {{D}}</p><p>step_1: {{step_1}}</p><p>step_1_solution: {{step_1_solution}}</p><p>step_2: {{step_2}}</p><p>step_2_solution: {{step_2_solution}}</p><p>step_3: {{step_3}}</p><p>step_3_solution: {{step_3_solution}}</p><p></p>",
+          "few_shot_examples": null,
+          "samples": 3,
+          "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
+          "rating_temperature": 0.1,
+          "rating_max_tokens": 16
+        },
+        "coordinates": {
+          "x": 2850,
+          "y": 705
+        }
+      }
+    ],
+    "links": [
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732232621723",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "A",
+        "target_id": "node_1732232621723",
+        "target_input_key": "A"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "B",
+        "target_id": "node_1732232621723",
+        "target_input_key": "B"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "C",
+        "target_id": "node_1732232621723",
+        "target_input_key": "C"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "D",
+        "target_id": "node_1732232621723",
+        "target_input_key": "D"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732233661809",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "A",
+        "target_id": "node_1732233661809",
+        "target_input_key": "A"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "B",
+        "target_id": "node_1732233661809",
+        "target_input_key": "B"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "C",
+        "target_id": "node_1732233661809",
+        "target_input_key": "C"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "D",
+        "target_id": "node_1732233661809",
+        "target_input_key": "D"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732234981946",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732236371719",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_1",
+        "target_id": "node_1732236371719",
+        "target_input_key": "step_1"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_1",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "target_input_key": "step_1"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_2",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "target_input_key": "step_2"
+      },
+      {
+        "source_id": "node_1732236371719",
+        "source_output_key": "step_1_solution",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "target_input_key": "step_1_solution"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_1",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "target_input_key": "step_1"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_2",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "target_input_key": "step_2"
+      },
+      {
+        "source_id": "node_1732236371719",
+        "source_output_key": "step_1_solution",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "target_input_key": "step_1_solution"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_3",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "target_input_key": "step_3"
+      },
+      {
+        "source_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "source_output_key": "step_2_solution",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "target_input_key": "step_2_solution"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "question",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "question"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_1",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "step_1"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_2",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "step_2"
+      },
+      {
+        "source_id": "node_1732236371719",
+        "source_output_key": "step_1_solution",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "step_1_solution"
+      },
+      {
+        "source_id": "node_1732234981946",
+        "source_output_key": "step_3",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "step_3"
+      },
+      {
+        "source_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6",
+        "source_output_key": "step_2_solution",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "step_2_solution"
+      },
+      {
+        "source_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef",
+        "source_output_key": "step_3_solution",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "step_3_solution"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "A",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "A"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "B",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "B"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "C",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "C"
+      },
+      {
+        "source_id": "input_node",
+        "source_output_key": "D",
+        "target_id": "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3",
+        "target_input_key": "D"
+      }
+    ],
+    "test_inputs": [
+      {
+        "id": 1732233510034,
+        "question": "<p>A spin-half particle is in a linear superposition 0.5|\\uparrow\\rangle+sqrt(3)/2|\\downarrow\\rangle of its spin-up and spin-down states. If |\\uparrow\\rangle and |\\downarrow\\rangle are the eigenstates of \\sigma{z} , then what is the expectation value up to one decimal place, of the operator 10\\sigma{z}+5\\sigma_{x} ? Here, symbols have their usual meanings</p>",
+        "A": "<p>-0.7</p>",
+        "B": "<p>0.85</p>",
+        "C": "<p>-1.4</p>",
+        "D": "<p>1.65</p>"
+      }
+    ]
+  },
+  "description": ""
+}
