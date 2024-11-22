@@ -7,7 +7,6 @@ import {
   nodesChange,
   edgesChange,
   connect,
-  setHoveredNode,
   setSelectedNode,
   deleteNode,
   setWorkflowInputVariable,
@@ -97,7 +96,6 @@ const FlowCanvasContent = (props) => {
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
-  const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
 
   const saveWorkflow = useSaveWorkflow([nodes, edges], 10000); // 10 second delay
@@ -199,7 +197,8 @@ const FlowCanvasContent = (props) => {
 
 
 
-  const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
+  const [hoveredNode, setHoveredNode] = useState(null);
+  const [hoveredEdge, setHoveredEdge] = useState(null);
 
   // State to manage the visibility of the PopoverContent and the selected edge
   const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
@@ -261,17 +260,6 @@ const FlowCanvasContent = (props) => {
   const onEdgeMouseLeave = useCallback(() => {
     setHoveredEdge(null);
   }, []);
-
-  const onNodeMouseEnter = useCallback(
-    (event, node) => {
-      dispatch(setHoveredNode({ nodeId: node.id }));
-    },
-    [dispatch]
-  );
-
-  const onNodeMouseLeave = useCallback(() => {
-    dispatch(setHoveredNode({ nodeId: null }));
-  }, [dispatch]);
 
   const onInit = useCallback((instance) => {
     setReactFlowInstance(instance);
@@ -485,6 +473,15 @@ const FlowCanvasContent = (props) => {
       }));
   }, [nodes, mode]);
 
+  // Add node hover handlers
+  const onNodeMouseEnter = useCallback((event, node) => {
+    setHoveredNode(node.id);
+  }, []);
+
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNode(null);
+  }, []);
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -554,14 +551,8 @@ const FlowCanvasContent = (props) => {
             edgeTypes={edgeTypes}
             fitView
             onInit={onInit}
-            onNodeMouseEnter={onNodeMouseEnter}
-            onNodeMouseLeave={onNodeMouseLeave}
-            snapToGrid={true}
-            snapGrid={[15, 15]}
-            onPaneClick={onPaneClick}
             onNodeClick={onNodeClick}
-            onEdgeMouseEnter={onEdgeMouseEnter}
-            onEdgeMouseLeave={onEdgeMouseLeave}
+            onPaneClick={onPaneClick}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
             panOnDrag={mode === 'hand' && !nodes.filter(Boolean).some(n => n.selected)}
@@ -577,6 +568,10 @@ const FlowCanvasContent = (props) => {
             deleteKeyCode="Delete"
             nodesConnectable={true}
             connectionMode="loose"
+            onNodeMouseEnter={onNodeMouseEnter}
+            onNodeMouseLeave={onNodeMouseLeave}
+            onEdgeMouseEnter={onEdgeMouseEnter}
+            onEdgeMouseLeave={onEdgeMouseLeave}
           >
             <Background />
 

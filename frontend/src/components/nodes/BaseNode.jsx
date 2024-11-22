@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setHoveredNode, deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
+import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
 import { Handle, getConnectedEdges } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -15,6 +15,7 @@ import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 
 const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
+  const [isHovered, setIsHovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -24,7 +25,6 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   // Retrieve the node's position and edges from the Redux store
   const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
   const edges = useSelector((state) => state.flow.edges);
-  const hoveredNodeId = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeId = useSelector((state) => state.flow.selectedNode);
 
   const initialInputs = useSelector((state) => {
@@ -50,12 +50,12 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   const { executePartialRun, loading } = usePartialRun();
 
   const handleMouseEnter = () => {
-    dispatch(setHoveredNode({ nodeId: id }));
+    setIsHovered(true);
     setShowControls(true);
   };
 
   const handleMouseLeave = () => {
-    dispatch(setHoveredNode({ nodeId: null }));
+    setIsHovered(false);
     if (!isTooltipHovered) {
       setTimeout(() => {
         setShowControls(false);
@@ -129,7 +129,6 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     dispatch(setEdges({ edges: [...edges, ...newEdges] }));
   };
 
-  const isHovered = String(id) === String(hoveredNodeId);
   const isSelected = String(id) === String(selectedNodeId);
 
   const status = data.run && data.run ? 'completed' : (data.status || 'default').toLowerCase();
