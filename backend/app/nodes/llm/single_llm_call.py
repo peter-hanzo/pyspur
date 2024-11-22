@@ -51,7 +51,7 @@ class SingleLLMCallNode(DynamicSchemaNode):
             self.config.system_message, {**input_data_dict, **config_data_dict}
         )
         system_message += (
-            f"\nMake sure the output follows this JSON schema: {output_schema}"
+            f"\nMake sure the output is a JSON Object like this: {output_schema}"
         )
 
         # Render the user_message using Jinja2 template
