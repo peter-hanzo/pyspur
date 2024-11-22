@@ -322,9 +322,9 @@ const FlowCanvasContent = (props) => {
     dagreGraph.setGraph({ 
       rankdir: direction, 
       align: 'UL',
-      edgesep: 32, 
-      ranksep: 32, 
-      nodesep: 32,
+      edgesep: 10, 
+      ranksep: 128, 
+      nodesep: 128,
       // ranker: 'longest-path'
     });
     dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -351,19 +351,28 @@ const FlowCanvasContent = (props) => {
     });
 
     // Perform a topological sort to determine the order of processing nodes
-    const sortedNodes = [];
+    let sortedNodes = [];
     const visited = new Set();
+    const visiting = new Set();
 
     const visit = (node) => {
-      if (!visited.has(node.id)) {
-        visited.add(node.id);
-        const outgoingEdges = edges.filter(edge => edge.source === node.id);
-        outgoingEdges.forEach(edge => {
-          const targetNode = nodes.find(n => n.id === edge.target);
-          visit(targetNode);
-        });
-        sortedNodes.push(node);
+      if (visited.has(node.id)) {
+        return;
       }
+      if (visiting.has(node.id)) {
+        throw new Error('Graph has cycles');
+      }
+      visiting.add(node.id);
+      const outgoingEdges = edges.filter(edge => edge.source === node.id);
+      outgoingEdges.forEach(edge => {
+        const targetNode = nodes.find(n => n.id === edge.target);
+        if (targetNode) {
+          visit(targetNode);
+        }
+      });
+      visiting.delete(node.id);
+      visited.add(node.id);
+      sortedNodes.push(node);
     };
 
     nodes.forEach(node => {
@@ -372,20 +381,30 @@ const FlowCanvasContent = (props) => {
       }
     });
 
+    // Reverse the sortedNodes to get the correct topological order
+    sortedNodes = sortedNodes.reverse();
+
     // Calculate weights for nodes and edges
+    // Each node weight is the maximum of the incoming edges' weights
+    // Each edge weight is twice its source node's weight
     sortedNodes.forEach(node => {
       const incomingEdges = edges.filter(edge => edge.target === node.id);
-      const maxIncomingWeight = incomingEdges.reduce((maxWeight, edge) => {
-        return Math.max(maxWeight, edgeWeights[edge.id] || 0);
-      }, 0);
+      let maxIncomingWeight = -Infinity;
 
-      if (!nodeWeights[node.id]) {
-        nodeWeights[node.id] = maxIncomingWeight;
+      if (incomingEdges.length > 0) {
+        maxIncomingWeight = incomingEdges.reduce((maxWeight, edge) => {
+          return Math.max(maxWeight, edgeWeights[edge.id] || -Infinity);
+        }, -Infinity);
+
+        nodeWeights[node.id] = (maxIncomingWeight !== -Infinity) ? maxIncomingWeight : 2;
+      } else {
+        // Root nodes (no incoming edges) have weight 2
+        nodeWeights[node.id] = 2;
       }
 
       const outgoingEdges = edges.filter(edge => edge.source === node.id);
       outgoingEdges.forEach(edge => {
-        edgeWeights[edge.id] = nodeWeights[node.id] / 2;
+        edgeWeights[edge.id] = nodeWeights[node.id] * 2;
       });
     });
 
