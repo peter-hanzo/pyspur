@@ -46,7 +46,7 @@ https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 - [ ] Generate Spurs via AI
 
 Your feedback will be massively appreciated.
-Please [tell us](mailto:founders@pyspur.com?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
+Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
 
 # ⚡ Quick start
 
