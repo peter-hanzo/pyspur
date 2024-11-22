@@ -7,12 +7,11 @@ export function useCopyPaste() {
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
   const pasteTimeoutRef = useRef(null);
+  const dispatch = useDispatch();
 
   // Set up the paste buffers to store the copied nodes and edges
   const [bufferedNodes, setBufferedNodes] = useState([]);
   const [bufferedEdges, setBufferedEdges] = useState([]);
-
-  const dispatch = useDispatch();
 
   const copy = useCallback(() => {
     const selectedNodes = nodes.filter((node) => node.selected);
@@ -51,7 +50,6 @@ export function useCopyPaste() {
     setBufferedNodes(selectedNodes);
     setBufferedEdges(selectedEdges);
 
-    // A cut action needs to remove the copied nodes and edges from the graph
     const updatedNodes = nodes.filter((node) => !node.selected);
     const updatedEdges = edges.filter((edge) => !selectedEdges.includes(edge));
 
@@ -62,12 +60,10 @@ export function useCopyPaste() {
   const paste = useCallback(() => {
     if (bufferedNodes.length === 0 || pasteTimeoutRef.current) return;
 
-    // Set a timeout to prevent multiple pastes
     pasteTimeoutRef.current = setTimeout(() => {
       pasteTimeoutRef.current = null;
     }, 300);
 
-    // Calculate offset from the center of the viewport
     const viewportCenter = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
@@ -108,6 +104,27 @@ export function useCopyPaste() {
     dispatch(setEdges({ edges: updatedEdges }));
   }, [bufferedNodes, bufferedEdges, nodes, edges, dispatch]);
 
+  // Handle keyboard shortcuts
+  const handleKeyDown = useCallback((event) => {
+    const isFlowCanvasFocused = event.target.closest('.react-flow');
+    if (!isFlowCanvasFocused) return;
+
+    if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
+      copy();
+    } else if ((event.metaKey || event.ctrlKey) && event.key === 'v') {
+      paste();
+    } else if ((event.metaKey || event.ctrlKey) && event.key === 'x') {
+      cut();
+    }
+  }, [copy, paste, cut]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -117,21 +134,7 @@ export function useCopyPaste() {
     };
   }, []);
 
-  useShortcut(['Meta+x', 'Control+x'], cut);
-  useShortcut(['Meta+c', 'Control+c'], copy);
-  useShortcut(['Meta+v', 'Control+v'], paste);
-
   return { cut, copy, paste, bufferedNodes, bufferedEdges };
-}
-
-function useShortcut(keyCode, callback) {
-  const shouldRun = useKeyPress(keyCode);
-
-  useEffect(() => {
-    if (shouldRun) {
-      callback();
-    }
-  }, [shouldRun, callback]);
 }
 
 export default useCopyPaste;

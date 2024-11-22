@@ -32,7 +32,7 @@ import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner'; // Updated import
 import ConditionalNode from '../nodes/ConditionalNode';
-import dagre from '@dagrejs/dagre'; 
+import dagre from '@dagrejs/dagre';
 
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
@@ -307,6 +307,10 @@ const FlowCanvasContent = (props) => {
   // Add this new keyboard handler
   const handleKeyDown = useCallback(
     (event) => {
+      // Check if the event target is within the ReactFlow container
+      const isFlowCanvasFocused = event.target.closest('.react-flow');
+      if (!isFlowCanvasFocused) return;
+
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const selectedNodes = nodes.filter(node => node.selected);
         if (selectedNodes.length > 0) {
@@ -319,11 +323,11 @@ const FlowCanvasContent = (props) => {
 
   const getLayoutedNodes = (nodes, edges, direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setGraph({ 
-      rankdir: direction, 
+    dagreGraph.setGraph({
+      rankdir: direction,
       align: 'UL',
-      edgesep: 10, 
-      ranksep: 128, 
+      edgesep: 10,
+      ranksep: 128,
       nodesep: 128,
       // ranker: 'longest-path'
     });
