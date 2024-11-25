@@ -28,7 +28,6 @@ const EvalsPage = () => {
   const handleLaunchEval = async (evalName) => {
     toast(`Launching eval: ${evalName}...`);
     try {
-      // You can add a launch eval API call here if needed
       console.log(`Eval "${evalName}" launched.`);
       toast.success(`Eval "${evalName}" launched successfully.`);
     } catch (error) {
@@ -53,7 +52,9 @@ const EvalsPage = () => {
                 key={evalItem.name}
                 title={evalItem.name}
                 description={evalItem.description}
-                features={["YAML File", "Customizable"]}
+                type={evalItem.type}
+                dataPoints={evalItem.data_points}
+                paperLink={evalItem.paper_link}
                 onRun={() => handleLaunchEval(evalItem.name)}
               />
             ))}
