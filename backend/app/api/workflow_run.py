@@ -21,6 +21,11 @@ from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
+from ..utils.workflow_version_utils import (
+    get_latest_workflow_version,
+    hash_workflow_definition,
+    fetch_workflow_version,
+)
 
 router = APIRouter()
 
@@ -39,9 +44,13 @@ async def run_workflow_blocking(
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    workflow_version = fetch_workflow_version(workflow_id, workflow.definition, db)
+
     initial_inputs = request.initial_inputs or {}
     new_run = RunModel(
         workflow_id=workflow.id,
+        workflow_version_id=workflow_version._intid,
         status=RunStatus.RUNNING,
         initial_inputs=initial_inputs,
         start_time=datetime.now(timezone.utc),
@@ -52,7 +61,9 @@ async def run_workflow_blocking(
     db.commit()
     db.refresh(new_run)
     task_recorder = TaskRecorder(db, new_run.id)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+    workflow_definition = WorkflowDefinitionSchema.model_validate(
+        workflow_version.definition
+    )
     executor = WorkflowExecutor(workflow_definition, task_recorder)
     outputs = await executor(initial_inputs)
     new_run.status = RunStatus.COMPLETED
@@ -77,10 +88,16 @@ async def run_workflow_non_blocking(
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+
+    workflow_version = fetch_workflow_version(workflow_id, workflow, db)
+
+    workflow_definition = WorkflowDefinitionSchema.model_validate(
+        workflow_version.definition
+    )
     initial_inputs = start_run_request.initial_inputs or {}
     new_run = RunModel(
         workflow_id=workflow.id,
+        workflow_version_id=workflow_version._intid,
         status=RunStatus.PENDING,
         initial_inputs=initial_inputs,
         start_time=datetime.now(timezone.utc),
@@ -159,9 +176,13 @@ async def batch_run_workflow_non_blocking(
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    workflow_version = fetch_workflow_version(workflow_id, workflow, db)
+
     dataset_id = request.dataset_id
     new_run = RunModel(
         workflow_id=workflow.id,
+        workflow_version_id=workflow_version._intid,
         status=RunStatus.RUNNING,
         input_dataset_id=dataset_id,
         start_time=datetime.now(timezone.utc),
@@ -178,7 +199,9 @@ async def batch_run_workflow_non_blocking(
 
     # ensure ds columns match workflow inputs
     dataset_columns = get_ds_column_names(dataset.file_path)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+    workflow_definition = WorkflowDefinitionSchema.model_validate(
+        workflow_version.definition
+    )
     input_node = next(
         node for node in workflow_definition.nodes if node.node_type == "InputNode"
     )

@@ -97,3 +97,19 @@ class WorkflowResponseSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+class WorkflowVersionResponseSchema(BaseModel):
+    """
+    A response containing the details of a workflow version.
+    """
+
+    version: int
+    name: str
+    description: Optional[str]
+    definition: Any
+    definition_hash: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
