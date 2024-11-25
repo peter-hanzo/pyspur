@@ -346,3 +346,13 @@ export const runPartialWorkflow = async (workflowId, nodeId, initialInputs, part
     throw error;
   }
 };
+
+export const getEvals = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/evals/`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching evals:", error);
+    throw error;
+  }
+};

@@ -171,21 +171,6 @@ const Header = ({ activePage }) => {
           )}
         </NavbarBrand>
 
-        {activePage === "workflow" && (
-          <NavbarContent
-            className="h-12 rounded-full bg-content2 dark:bg-content1 sm:flex"
-            id="workflow-title"
-            justify="start"
-          >
-            <Input
-              className="px-4"
-              type="text"
-              placeholder="Project Name"
-              value={projectName}
-              onChange={handleProjectNameChange}
-            />
-          </NavbarContent>
-        )}
         <NavbarContent
           className="h-12 gap-4 rounded-full bg-content2 px-4 dark:bg-content1 max-w-fit"
           justify="end"
@@ -196,55 +181,17 @@ const Header = ({ activePage }) => {
               Home
             </Link>
           </NavbarItem>
+          <NavbarItem isActive={activePage === "evals"}>
+            <Link className="flex gap-2 text-inherit" href="/evals">
+              Evals
+            </Link>
+          </NavbarItem>
           {activePage !== "home" && (
             <NavbarItem isActive={activePage === "workflow"}>
               Editor
             </NavbarItem>
           )}
         </NavbarContent>
-        {activePage === "workflow" && (
-          <NavbarContent
-            className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
-            justify="end"
-            id="workflow-actions-buttons"
-          >
-            {isRunning ? (
-              <>
-                <NavbarItem className="hidden sm:flex">
-                  <Spinner size="sm" />
-                </NavbarItem>
-                <NavbarItem className="hidden sm:flex">
-                  <Button isIconOnly radius="full" variant="light" onClick={handleStopWorkflow}>
-                    <Icon className="text-default-500" icon="solar:stop-linear" width={22} />
-                  </Button>
-                </NavbarItem>
-              </>
-            ) : (
-              <NavbarItem className="hidden sm:flex">
-                <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
-                  <Icon className="text-default-500" icon="solar:play-linear" width={22} />
-                </Button>
-              </NavbarItem>
-            )}
-            <NavbarItem className="hidden sm:flex">
-              <Button
-                isIconOnly
-                radius="full"
-                variant="light"
-                onClick={handleDownloadWorkflow}
-              >
-                <Icon
-                  className="text-default-500"
-                  icon="solar:download-linear"
-                  width={24}
-                />
-              </Button>
-            </NavbarItem>
-            <NavbarItem className="hidden sm:flex">
-              <SettingsCard />
-            </NavbarItem>
-          </NavbarContent>
-        )}
       </Navbar>
       <RunModal
         isOpen={isDebugModalOpen}
