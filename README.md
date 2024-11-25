@@ -1,4 +1,5 @@
-# PySpur - An IDE for Inference-Time Compute
+# PySpur - GUI for Visualizing LLM Reasoning Paths
+
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -7,7 +8,6 @@
   <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
 </p>
 
-PySpur is an IDE that lets you develop, debug, and deploy inference-time compute pipelines.
 
 https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 

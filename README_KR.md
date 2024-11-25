@@ -1,4 +1,4 @@
-# PySpur - 추론 시간 계산을 위한 IDE
+# PySpur - LLM 추론 경로 시각화를 위한 GUI
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -7,7 +7,6 @@
   <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
 </p>
 
-PySpur는 추론 시간 계산 파이프라인을 개발, 디버그 및 배포할 수 있는 IDE입니다.
 
 https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 

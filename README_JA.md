@@ -1,4 +1,4 @@
-# PySpur - 推論時計算用IDE
+# PySpur - LLMの推論経路を可視化するGUI
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -7,7 +7,6 @@
   <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
 </p>
 
-PySpurは、推論時の計算パイプラインを開発、デバッグ、展開するためのIDEです。
 
 https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 

@@ -1,4 +1,4 @@
-# PySpur - 推理时计算的集成开发环境
+# PySpur - 可视化LLM推理路径的图形界面
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -7,7 +7,6 @@
   <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
 </p>
 
-PySpur 是一个集成开发环境（IDE），可用于开发、调试和部署推理时计算管道。
 
 https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 
