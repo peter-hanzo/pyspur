@@ -130,3 +130,10 @@ subject_category_mapping:
   us_foreign_policy: "social_sciences"
   virology: "other"
   world_religions: "humanities"
+
+metadata:
+  name: "MMLU"
+  description: "Multiple Choice Questions on 57 Subjects"
+  type: "Reasoning"
+  data_points: 1000
+  paper_link: "https://example.com/original-paper"

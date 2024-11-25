@@ -21,12 +21,15 @@ def list_evals() -> List[Dict[str, Any]]:
         raise HTTPException(status_code=500, detail="Evals directory not found")
     for eval_file in EVALS_DIR.glob("*.yaml"):
         try:
-            # Use load_yaml_config to handle custom tags like !function
             eval_content = load_yaml_config(yaml_path=eval_file)
+            metadata = eval_content.get("metadata", {})
             evals.append(
                 {
-                    "name": eval_file.stem,
-                    "description": eval_content.get("preamble", ""),
+                    "name": metadata.get("name", eval_file.stem),
+                    "description": metadata.get("description", ""),
+                    "type": metadata.get("type", "Unknown"),
+                    "data_points": metadata.get("data_points", "N/A"),
+                    "paper_link": metadata.get("paper_link", ""),
                     "file_name": eval_file.name,
                 }
             )

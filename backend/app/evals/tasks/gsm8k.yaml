@@ -41,3 +41,9 @@ predicted_answer_extraction:
     - maybe_remove_comma
 evaluation:
   method: "numeric"
+metadata:
+  name: "GSM8K"
+  description: "GSM8K is a dataset of 8,000+ elementary math word problems with answers."
+  type: "Reasoning"
+  data_points: 1000
+  paper_link: "https://example.com/original-paper"
