@@ -9,7 +9,6 @@ const initialState = {
   nodes: [],
   edges: [],
   workflowID: null,
-  hoveredNode: null,
   selectedNode: null,
   sidebarWidth: 400,
   projectName: 'Untitled Project',
@@ -79,9 +78,6 @@ const flowSlice = createSlice({
       if (node) {
         node.data = { ...node.data, ...data };
       }
-    },
-    setHoveredNode: (state, action) => {
-      state.hoveredNode = action.payload.nodeId;
     },
     setSelectedNode: (state, action) => {
       state.selectedNode = action.payload.nodeId;
@@ -249,7 +245,6 @@ export const {
   setNodes,
   setEdges,
   updateNodeData,
-  setHoveredNode,
   setSelectedNode,
   deleteNode,
   deleteEdge,

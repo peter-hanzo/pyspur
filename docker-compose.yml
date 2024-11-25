@@ -11,6 +11,7 @@ services:
     depends_on:
       - backend
       - frontend
+    restart: always
   backend:
     build: ./backend
     command: bash /pyspur/entrypoint.sh
@@ -19,6 +20,7 @@ services:
     ports:
       - "8000:8000"
       - "8787:8787"
+    restart: always
   frontend:
     build: ./frontend
     command: npm run dev
@@ -29,5 +31,6 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    restart: always
 volumes:
   node_modules:

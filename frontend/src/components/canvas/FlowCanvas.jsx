@@ -7,7 +7,6 @@ import {
   nodesChange,
   edgesChange,
   connect,
-  setHoveredNode,
   setSelectedNode,
   deleteNode,
   setWorkflowInputVariable,
@@ -32,7 +31,7 @@ import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner'; // Updated import
 import ConditionalNode from '../nodes/ConditionalNode';
-import dagre from '@dagrejs/dagre'; 
+import dagre from '@dagrejs/dagre';
 
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
@@ -97,7 +96,6 @@ const FlowCanvasContent = (props) => {
 
   const nodes = useSelector((state) => state.flow.nodes);
   const edges = useSelector((state) => state.flow.edges);
-  const hoveredNode = useSelector((state) => state.flow.hoveredNode);
   const selectedNodeID = useSelector((state) => state.flow.selectedNode);
 
   const saveWorkflow = useSaveWorkflow([nodes, edges], 10000); // 10 second delay
@@ -199,7 +197,8 @@ const FlowCanvasContent = (props) => {
 
 
 
-  const [hoveredEdge, setHoveredEdge] = useState(null); // Add state for hoveredEdge
+  const [hoveredNode, setHoveredNode] = useState(null);
+  const [hoveredEdge, setHoveredEdge] = useState(null);
 
   // State to manage the visibility of the PopoverContent and the selected edge
   const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
@@ -262,17 +261,6 @@ const FlowCanvasContent = (props) => {
     setHoveredEdge(null);
   }, []);
 
-  const onNodeMouseEnter = useCallback(
-    (event, node) => {
-      dispatch(setHoveredNode({ nodeId: node.id }));
-    },
-    [dispatch]
-  );
-
-  const onNodeMouseLeave = useCallback(() => {
-    dispatch(setHoveredNode({ nodeId: null }));
-  }, [dispatch]);
-
   const onInit = useCallback((instance) => {
     setReactFlowInstance(instance);
     instance.setViewport({ x: 0, y: 0, zoom: 0.8 }); // Set zoom to 100%
@@ -307,6 +295,10 @@ const FlowCanvasContent = (props) => {
   // Add this new keyboard handler
   const handleKeyDown = useCallback(
     (event) => {
+      // Check if the event target is within the ReactFlow container
+      const isFlowCanvasFocused = event.target.closest('.react-flow');
+      if (!isFlowCanvasFocused) return;
+
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const selectedNodes = nodes.filter(node => node.selected);
         if (selectedNodes.length > 0) {
@@ -319,11 +311,11 @@ const FlowCanvasContent = (props) => {
 
   const getLayoutedNodes = (nodes, edges, direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setGraph({ 
-      rankdir: direction, 
+    dagreGraph.setGraph({
+      rankdir: direction,
       align: 'UL',
-      edgesep: 10, 
-      ranksep: 128, 
+      edgesep: 10,
+      ranksep: 128,
       nodesep: 128,
       // ranker: 'longest-path'
     });
@@ -481,6 +473,15 @@ const FlowCanvasContent = (props) => {
       }));
   }, [nodes, mode]);
 
+  // Add node hover handlers
+  const onNodeMouseEnter = useCallback((event, node) => {
+    setHoveredNode(node.id);
+  }, []);
+
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNode(null);
+  }, []);
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -550,14 +551,8 @@ const FlowCanvasContent = (props) => {
             edgeTypes={edgeTypes}
             fitView
             onInit={onInit}
-            onNodeMouseEnter={onNodeMouseEnter}
-            onNodeMouseLeave={onNodeMouseLeave}
-            snapToGrid={true}
-            snapGrid={[15, 15]}
-            onPaneClick={onPaneClick}
             onNodeClick={onNodeClick}
-            onEdgeMouseEnter={onEdgeMouseEnter}
-            onEdgeMouseLeave={onEdgeMouseLeave}
+            onPaneClick={onPaneClick}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
             panOnDrag={mode === 'hand' && !nodes.filter(Boolean).some(n => n.selected)}
@@ -573,6 +568,10 @@ const FlowCanvasContent = (props) => {
             deleteKeyCode="Delete"
             nodesConnectable={true}
             connectionMode="loose"
+            onNodeMouseEnter={onNodeMouseEnter}
+            onNodeMouseLeave={onNodeMouseLeave}
+            onEdgeMouseEnter={onEdgeMouseEnter}
+            onEdgeMouseLeave={onEdgeMouseLeave}
           >
             <Background />
 

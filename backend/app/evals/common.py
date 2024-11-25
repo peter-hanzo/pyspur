@@ -1,13 +1,8 @@
-import os
 import re
-from collections import defaultdict
-from multiprocessing.pool import ThreadPool
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
-from tqdm import tqdm
 
-from .types import EvalResult, Message, SingleEvalResult
 
 QUERY_TEMPLATE_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
@@ -99,50 +94,6 @@ def _compute_stat(values: list, stat: str):
         return np.max(values)
     else:
         raise ValueError(f"Unknown {stat =}")
-
-
-def aggregate_results(
-    single_eval_results: list[SingleEvalResult],
-    default_stats: tuple[str] = ("mean", "std"),
-    name2stats: dict[str, tuple[str]] | None = None,
-) -> EvalResult:
-    """
-    Aggregate results from multiple evaluations into a single EvalResult.
-    """
-    name2stats = name2stats or {}
-    name2values = defaultdict(list)
-    htmls = []
-    convos = []
-    for single_eval_result in single_eval_results:
-        for name, value in single_eval_result.metrics.items():
-            name2values[name].append(value)
-        if single_eval_result.score is not None:
-            name2values["score"].append(single_eval_result.score)
-        htmls.append(single_eval_result.html)
-        convos.append(single_eval_result.convo)
-    final_metrics = {}
-    for name, values in name2values.items():
-        stats = name2stats.get(name, default_stats)
-        for stat in stats:
-            key = name if stat == "mean" else f"{name}:{stat}"
-            final_metrics[key] = _compute_stat(values, stat)
-    return EvalResult(
-        score=final_metrics.pop("score", None),
-        metrics=final_metrics,
-        htmls=htmls,
-        convos=convos,
-    )
-
-
-def map_with_progress(f: callable, xs: list[Any], num_threads: int = 50):
-    """
-    Apply f to each element of xs, using a ThreadPool, and show progress.
-    """
-    if os.getenv("debug"):
-        return list(map(f, tqdm(xs, total=len(xs))))
-    else:
-        with ThreadPool(min(num_threads, len(xs))) as pool:
-            return list(tqdm(pool.imap(f, xs), total=len(xs)))
 
 
 def normalize_response(response: str) -> str:

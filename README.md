@@ -1,6 +1,13 @@
-# PySpur - An IDE for Inference-Time Compute
+# PySpur - GUI for Visualizing LLM Reasoning Paths
 
-PySpur is an IDE that lets you develop, debug, and deploy inference-time compute pipelines.
+
+<p align="center">
+  <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
+  <a href="./README_CN.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-blue"></a>
+  <a href="./README_JA.md"><img alt="日本語のREADME" src="https://img.shields.io/badge/日本語-blue"></a>
+  <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
+</p>
+
 
 https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 
@@ -46,7 +53,7 @@ https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 - [ ] Generate Spurs via AI
 
 Your feedback will be massively appreciated.
-Please [tell us](mailto:founders@pyspur.com?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
+Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
 
 # ⚡ Quick start
 
