@@ -20,5 +20,5 @@ metadata:
   name: "GPQA"
   description: "Google-Proof Questions Answering"
   type: "Reasoning"
-  data_points: 1000
+  num_samples: 1000
   paper_link: "https://arxiv.org/abs/2305.17100"

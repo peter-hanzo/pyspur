@@ -30,5 +30,5 @@ metadata:
   name: "Math"
   description: "Math is a dataset of 1000+ math word problems with answers."
   type: "Reasoning"
-  data_points: 1000
+  num_samples: 1000
   paper_link: "https://example.com/original-paper"

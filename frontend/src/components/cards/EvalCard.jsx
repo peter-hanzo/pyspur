@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/react";
+import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Slider } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { getWorkflows, getWorkflowOutputVariables } from "../../utils/api"; // Import the new API function
 import { toast } from "sonner";
 
-export default function EvalCard({ title, description, type, dataPoints, paperLink, onRun }) {
+export default function EvalCard({ title, description, type, numSamples, paperLink, onRun }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [workflows, setWorkflows] = useState([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [outputVariables, setOutputVariables] = useState([]);
   const [selectedOutputVariable, setSelectedOutputVariable] = useState(null);
+  const [selectedNumSamples, setSelectedNumSamples] = useState(1); // State for slider value
 
   // Fetch workflows when the modal opens
   useEffect(() => {
@@ -55,8 +56,8 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
       return;
     }
 
-    // Pass the selected workflow ID and output variable to the onRun function
-    onRun(selectedWorkflow.id, selectedOutputVariable);
+    // Pass the selected workflow ID, output variable, and number of samples to the onRun function
+    onRun(selectedWorkflow.id, selectedOutputVariable, selectedNumSamples);
     setIsModalOpen(false); // Close the modal
   };
 
@@ -67,7 +68,7 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
           <h2 className="text-xl font-semibold mb-2">{title}</h2>
           <p className="text-default-500 text-sm mb-3">{description}</p>
           <p className="text-default-500 text-sm mb-1"><strong>Type:</strong> {type}</p>
-          <p className="text-default-500 text-sm mb-1"><strong>Data Points:</strong> {dataPoints}</p>
+          <p className="text-default-500 text-sm mb-1"><strong>Num Samples:</strong> {numSamples}</p>
           {paperLink && (
             <a href={paperLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-sm">
               Original Paper
@@ -86,14 +87,14 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
         </CardFooter>
       </Card>
 
-      {/* Modal for selecting a workflow and output variable */}
+      {/* Modal for selecting a workflow, output variable, and number of samples */}
       <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Select Workflow and Output Variable</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">Select Workflow, Output Variable, and Number of Samples</ModalHeader>
               <ModalBody>
-                {/* Heading for Workflow selection */}
+                {/* Workflow selection */}
                 <h3 className="text-sm font-semibold mb-2">Select a Workflow</h3>
                 <Dropdown>
                   <DropdownTrigger>
@@ -117,7 +118,7 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
 
                 {selectedWorkflow && (
                   <>
-                    {/* Heading for Output Variable selection */}
+                    {/* Output Variable selection */}
                     <h3 className="text-sm font-semibold mt-4 mb-2">Select an Output Variable</h3>
                     <Dropdown>
                       <DropdownTrigger>
@@ -134,6 +135,20 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
                         ))}
                       </DropdownMenu>
                     </Dropdown>
+
+                    {/* Slider for selecting number of samples */}
+                    <h3 className="text-sm font-semibold mt-4 mb-2">Select Number of Samples</h3>
+                    <Slider
+                      label="Number of Samples"
+                      step={1}
+                      maxValue={numSamples} // Use the maximum number of samples from the eval
+                      minValue={1}
+                      defaultValue={1}
+                      value={selectedNumSamples}
+                      onValueChange={setSelectedNumSamples} // Update state on slider change
+                      className="max-w-md"
+                    />
+                    <p className="text-sm mt-2">Selected: {selectedNumSamples}</p>
                   </>
                 )}
               </ModalBody>

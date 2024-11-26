@@ -30,7 +30,7 @@ def list_evals() -> List[Dict[str, Any]]:
                     "name": metadata.get("name", eval_file.stem),
                     "description": metadata.get("description", ""),
                     "type": metadata.get("type", "Unknown"),
-                    "data_points": metadata.get("data_points", "N/A"),
+                    "num_samples": metadata.get("num_samples", "N/A"),
                     "paper_link": metadata.get("paper_link", ""),
                     "file_name": eval_file.name,
                 }
@@ -48,8 +48,8 @@ async def launch_eval(
     workflow_id: str,
     output_variable: str,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
     num_samples: int = 10,
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Launch an eval job by triggering the evaluator with the specified eval configuration.
