@@ -196,3 +196,28 @@ def duplicate_workflow(
 
     # Return the duplicated workflow
     return new_workflow
+
+
+@router.get(
+    "/{workflow_id}/output_variables/",
+    response_model=List[str],
+    description="Get the output variables (leaf nodes) of a workflow",
+)
+def get_workflow_output_variables(
+    workflow_id: str, db: Session = Depends(get_db)
+) -> List[str]:
+    """
+    Fetch the output variables (leaf nodes) of a workflow.
+    """
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+
+    # Find leaf nodes (nodes without outgoing links)
+    all_source_ids = {link.source_id for link in workflow_definition.links}
+    all_node_ids = {node.id for node in workflow_definition.nodes}
+    leaf_nodes = all_node_ids - all_source_ids
+
+    return list(leaf_nodes)

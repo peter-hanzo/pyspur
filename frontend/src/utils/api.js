@@ -357,15 +357,26 @@ export const getEvals = async () => {
   }
 };
 
-export const startEvalRun = async (workflowId, evalName, numSamples = 10) => {
+export const startEvalRun = async (workflowId, evalName, outputVariable, numSamples = 10) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/start_eval/`, {
       eval_name: evalName,
+      output_variable: outputVariable,
       num_samples: numSamples,
     });
     return response.data;
   } catch (error) {
     console.error("Error starting eval run:", error);
+    throw error;
+  }
+};
+
+export const getWorkflowOutputVariables = async (workflowId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/wf/${workflowId}/output_variables/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching output variables for workflow ${workflowId}:`, error);
     throw error;
   }
 };

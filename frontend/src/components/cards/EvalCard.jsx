@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { getWorkflows } from "../../utils/api"; // Import the getWorkflows API function
+import { getWorkflows, getWorkflowOutputVariables } from "../../utils/api"; // Import the new API function
 import { toast } from "sonner";
 
 export default function EvalCard({ title, description, type, dataPoints, paperLink, onRun }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [workflows, setWorkflows] = useState([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
+  const [outputVariables, setOutputVariables] = useState([]);
+  const [selectedOutputVariable, setSelectedOutputVariable] = useState(null);
 
   // Fetch workflows when the modal opens
   useEffect(() => {
@@ -26,14 +28,35 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
     }
   }, [isModalOpen]);
 
+  // Fetch output variables when a workflow is selected
+  useEffect(() => {
+    if (selectedWorkflow) {
+      const fetchOutputVariables = async () => {
+        try {
+          const variables = await getWorkflowOutputVariables(selectedWorkflow.id);
+          setOutputVariables(variables);
+        } catch (error) {
+          console.error("Error fetching output variables:", error);
+          toast.error("Failed to load output variables.");
+        }
+      };
+
+      fetchOutputVariables();
+    }
+  }, [selectedWorkflow]);
+
   const handleRunEval = () => {
     if (!selectedWorkflow) {
       toast.error("Please select a workflow.");
       return;
     }
+    if (!selectedOutputVariable) {
+      toast.error("Please select an output variable.");
+      return;
+    }
 
-    // Pass the selected workflow ID to the onRun function
-    onRun(selectedWorkflow);
+    // Pass the selected workflow ID and output variable to the onRun function
+    onRun(selectedWorkflow, selectedOutputVariable);
     setIsModalOpen(false); // Close the modal
   };
 
@@ -63,12 +86,12 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
         </CardFooter>
       </Card>
 
-      {/* Modal for selecting a workflow */}
+      {/* Modal for selecting a workflow and output variable */}
       <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Select Workflow</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">Select Workflow and Output Variable</ModalHeader>
               <ModalBody>
                 <Dropdown>
                   <DropdownTrigger>
@@ -81,6 +104,7 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
                     onAction={(key) => {
                       const workflow = workflows.find((wf) => wf.id === key);
                       setSelectedWorkflow(workflow);
+                      setSelectedOutputVariable(null); // Reset output variable
                     }}
                   >
                     {workflows.map((workflow) => (
@@ -88,6 +112,24 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
                     ))}
                   </DropdownMenu>
                 </Dropdown>
+
+                {selectedWorkflow && (
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button variant="flat" color="primary">
+                        {selectedOutputVariable || "Select an Output Variable"}
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      aria-label="Output Variables"
+                      onAction={(key) => setSelectedOutputVariable(key)}
+                    >
+                      {outputVariables.map((variable) => (
+                        <DropdownItem key={variable}>{variable}</DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  </Dropdown>
+                )}
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>

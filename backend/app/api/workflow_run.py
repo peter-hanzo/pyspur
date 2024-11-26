@@ -312,6 +312,7 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
 async def start_eval_run(
     workflow_id: str,
     eval_name: str,
+    output_variable: str,
     num_samples: int = 10,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
@@ -331,8 +332,21 @@ async def start_eval_run(
         # Load the eval configuration
         task_config = load_yaml_config(eval_file)
 
+        # Validate the output variable
+        workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+        all_source_ids = {link.source_id for link in workflow_definition.links}
+        all_node_ids = {node.id for node in workflow_definition.nodes}
+        leaf_nodes = all_node_ids - all_source_ids
+        if output_variable not in leaf_nodes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid output variable '{output_variable}'. Must be one of: {leaf_nodes}",
+            )
+
         # Run the evaluation
-        results = await evaluate_model_on_dataset(task_config, num_samples=num_samples)
+        results = await evaluate_model_on_dataset(
+            task_config, num_samples=num_samples, output_variable=output_variable
+        )
 
         return {
             "status": "success",
