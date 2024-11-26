@@ -11,7 +11,7 @@ class WorkflowVersionModel(BaseModel):
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"), nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
     definition: Mapped[Any] = mapped_column(JSON, nullable=False)
     definition_hash: Mapped[str] = mapped_column(String, nullable=False)
