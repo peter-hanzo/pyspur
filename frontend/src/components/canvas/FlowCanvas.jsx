@@ -32,12 +32,12 @@ import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner'; // Updated import
 import ConditionalNode from '../nodes/ConditionalNode';
 import dagre from '@dagrejs/dagre';
-
+import OutputNode from '../nodes/OutputNode';
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
     if (!nodeTypesConfig) return {};
-    return Object.keys(nodeTypesConfig).reduce((acc, category) => {
+    const types = Object.keys(nodeTypesConfig).reduce((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
@@ -45,12 +45,17 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
           acc[node.name] = ConditionalNode;
         } else {
           acc[node.name] = (props) => {
-            return <DynamicNode {...props} type={node.name} />;
+            return <OutputNode {...props} type={node.name} />;
           };
         }
       });
       return acc;
     }, {});
+
+    // Add the OutputNode component
+    // types['OutputNode'] = OutputNode;
+    return types;
+  
   }, [nodeTypesConfig]);
 
   const isLoading = !nodeTypesConfig;

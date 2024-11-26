@@ -33,6 +33,8 @@ const Header = ({ activePage }) => {
 
   let currentStatusInterval = null;
 
+  const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
+
   useEffect(() => {
     if (workflowID) {
       const fetchWorkflowRuns = async () => {
@@ -89,10 +91,6 @@ const Header = ({ activePage }) => {
       }
     }, 1000);
   };
-
-  // get the workflow ID from the URL
-  const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
-
 
 
   const executeWorkflow = async (inputValues) => {
