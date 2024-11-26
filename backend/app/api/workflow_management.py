@@ -12,6 +12,7 @@ from ..schemas.workflow_schemas import (
 )
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
+from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
 
 router = APIRouter()
 
@@ -31,7 +32,9 @@ def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
 
 
 def generate_unique_workflow_name(db: Session, base_name: str) -> str:
-    existing_workflow = db.query(WorkflowModel).filter(WorkflowModel.name == base_name).first()
+    existing_workflow = (
+        db.query(WorkflowModel).filter(WorkflowModel.name == base_name).first()
+    )
     if existing_workflow:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return f"{base_name} {timestamp}"
@@ -46,7 +49,9 @@ def create_workflow(
 ) -> WorkflowResponseSchema:
     if not workflow_request.definition:
         workflow_request.definition = create_a_new_workflow_definition()
-    workflow_name = generate_unique_workflow_name(db, workflow_request.name or "Untitled Workflow")
+    workflow_name = generate_unique_workflow_name(
+        db, workflow_request.name or "Untitled Workflow"
+    )
     new_workflow = WorkflowModel(
         name=workflow_name,
         description=workflow_request.description,
@@ -220,4 +225,12 @@ def get_workflow_output_variables(
     all_node_ids = {node.id for node in workflow_definition.nodes}
     leaf_nodes = all_node_ids - all_source_ids
 
-    return list(leaf_nodes)
+    # Collect output variables from the output_schema of each leaf node
+    output_variables = []
+    for node in workflow_definition.nodes:
+        if node.id in leaf_nodes:
+            # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
+            node_config = DynamicSchemaNodeConfig(**node.config)
+            output_variables.extend(node_config.output_schema.keys())
+
+    return output_variables
