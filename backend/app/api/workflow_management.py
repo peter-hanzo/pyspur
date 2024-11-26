@@ -205,12 +205,12 @@ def duplicate_workflow(
 
 @router.get(
     "/{workflow_id}/output_variables/",
-    response_model=List[str],
+    response_model=List[dict],
     description="Get the output variables (leaf nodes) of a workflow",
 )
 def get_workflow_output_variables(
     workflow_id: str, db: Session = Depends(get_db)
-) -> List[str]:
+) -> List[dict]:
     """
     Fetch the output variables (leaf nodes) of a workflow.
     """
@@ -225,12 +225,13 @@ def get_workflow_output_variables(
     all_node_ids = {node.id for node in workflow_definition.nodes}
     leaf_nodes = all_node_ids - all_source_ids
 
-    # Collect output variables from the output_schema of each leaf node
+    # Collect output variables as a list of dictionaries
     output_variables = []
     for node in workflow_definition.nodes:
         if node.id in leaf_nodes:
             # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
             node_config = DynamicSchemaNodeConfig(**node.config)
-            output_variables.extend(node_config.output_schema.keys())
+            for var_name in node_config.output_schema.keys():
+                output_variables.append({"node_id": node.id, "variable_name": var_name})
 
     return output_variables

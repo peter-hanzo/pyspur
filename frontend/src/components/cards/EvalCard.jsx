@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Slider } from "@nextui-org/react";
+import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Slider, DropdownSection } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { getWorkflows, getWorkflowOutputVariables } from "../../utils/api"; // Import the new API function
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
   // Fetch workflows when the modal opens
   useEffect(() => {
     if (isModalOpen) {
+      console.log("eval information", title, description, type, numSamples, paperLink);
       const fetchWorkflows = async () => {
         try {
           const workflowsData = await getWorkflows();
@@ -92,7 +93,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Select Workflow, Output Variable, and Number of Samples</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">Eval Configuration</ModalHeader>
               <ModalBody>
                 {/* Workflow selection */}
                 <h3 className="text-sm font-semibold mb-2">Select a Workflow</h3>
@@ -130,27 +131,39 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                         aria-label="Output Variables"
                         onAction={(key) => setSelectedOutputVariable(key)}
                       >
-                        {outputVariables.map((variable) => (
-                          <DropdownItem key={variable}>{variable}</DropdownItem>
+                        {Object.entries(
+                          outputVariables.reduce((acc, variable) => {
+                            const { node_id, variable_name } = variable;
+                            if (!acc[node_id]) acc[node_id] = [];
+                            acc[node_id].push(variable_name);
+                            return acc;
+                          }, {})
+                        ).map(([nodeId, variables]) => (
+                          <DropdownSection key={nodeId} title={`Node: ${nodeId}`}>
+                            {variables.map((variable) => (
+                              <DropdownItem key={`${nodeId}-${variable}`}>
+                                {variable}
+                              </DropdownItem>
+                            ))}
+                          </DropdownSection>
                         ))}
                       </DropdownMenu>
                     </Dropdown>
-
-                    {/* Slider for selecting number of samples */}
-                    <h3 className="text-sm font-semibold mt-4 mb-2">Select Number of Samples</h3>
-                    <Slider
-                      label="Number of Samples"
-                      step={1}
-                      maxValue={numSamples} // Use the maximum number of samples from the eval
-                      minValue={1}
-                      defaultValue={1}
-                      value={selectedNumSamples}
-                      onValueChange={setSelectedNumSamples} // Update state on slider change
-                      className="max-w-md"
-                    />
-                    <p className="text-sm mt-2">Selected: {selectedNumSamples}</p>
                   </>
                 )}
+
+                {/* Slider for selecting number of samples */}
+                <h3 className="text-sm font-semibold mt-4 mb-2">Select Number of Samples</h3>
+                <Slider
+                  label="Number of Samples"
+                  step={1}
+                  maxValue={numSamples} // Use the maximum number of samples from the eval
+                  minValue={1}
+                  defaultValue={1}
+                  value={selectedNumSamples}
+                  onChange={setSelectedNumSamples} // Update state on slider change
+                  className="max-w-md"
+                />
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
