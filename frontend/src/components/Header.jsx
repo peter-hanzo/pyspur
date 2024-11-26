@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Input,
@@ -9,6 +9,10 @@ import {
   Link,
   Button,
   Spinner,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
@@ -16,6 +20,7 @@ import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; /
 import RunModal from './RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
+import { getWorkflowRuns } from '../utils/api';
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
@@ -23,8 +28,26 @@ const Header = ({ activePage }) => {
   const projectName = useSelector((state) => state.flow.projectName);
   const [isRunning, setIsRunning] = useState(false);
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
+  const [workflowRuns, setWorkflowRuns] = useState([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   let currentStatusInterval = null;
+
+  useEffect(() => {
+    if (workflowID) {
+      const fetchWorkflowRuns = async () => {
+        try {
+          const response = await getWorkflowRuns(workflowID);
+          console.log('Workflow runs:', response);
+          setWorkflowRuns(response);
+        }
+        catch (error) {
+          console.error('Error fetching workflow runs:', error);
+        }
+      };
+      fetchWorkflowRuns();
+    }
+  }, [workflowID]);
 
   const updateWorkflowStatus = async (runID) => {
     let pollCount = 0;
@@ -70,10 +93,13 @@ const Header = ({ activePage }) => {
   // get the workflow ID from the URL
   const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
 
+
+
   const executeWorkflow = async (inputValues) => {
     try {
       toast('Starting workflow run...');
       const result = await startRun(workflowID, inputValues, null, 'interactive');
+      console.log('Workflow run started:', result);
       setIsRunning(true);
       dispatch(resetRun());
       updateWorkflowStatus(result.id);
@@ -226,6 +252,26 @@ const Header = ({ activePage }) => {
                 </Button>
               </NavbarItem>
             )}
+            <NavbarItem className="hidden sm:flex">
+              <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+                <DropdownTrigger>
+                  <Button isIconOnly radius="full" variant="light">
+                    <Icon className="text-default-500" icon="solar:history-linear" width={22} />
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu>
+                  {workflowRuns.map((run, index) => (
+                    <DropdownItem
+                      key={index}
+                      onClick={() => window.open(`${workflowID}/traces/${run.id}`, '_blank')}
+                      textValue={`Version ${index + 1}`}
+                    >
+                      Version {workflowRuns.length - index}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+            </NavbarItem>
             <NavbarItem className="hidden sm:flex">
               <Button
                 isIconOnly

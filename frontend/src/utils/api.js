@@ -163,6 +163,17 @@ export const getAllRuns = async (lastK = 10, parentOnly = true, runType = "batch
   }
 }
 
+export const getWorkflowRuns = async (workflowID) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/runs/`);
+    return response.data;
+  }
+  catch (error) {
+    console.error('Error fetching workflow runs:', error);
+    throw error;
+  }
+}
+
 export const downloadOutputFile = async (outputFileID) => {
   try {
     // First, get the output file details to find the original filename
