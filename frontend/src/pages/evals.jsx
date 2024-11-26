@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Header from "../components/Header";
-import { getEvals } from "../utils/api";
-import EvalCard from "../components/EvalCard";
-import { Spinner } from "@nextui-org/react";
+import { getEvals, startEvalRun } from "../utils/api";
+import EvalCard from "../components/cards/EvalCard";
+import { Spinner, Button, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@nextui-org/react";
 import { toast } from "sonner";
 
 const EvalsPage = () => {
   const [evals, setEvals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [evalResults, setEvalResults] = useState(null);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const router = useRouter();
+  const { id: workflowId } = router.query;
 
   useEffect(() => {
     const fetchEvals = async () => {
@@ -25,11 +30,18 @@ const EvalsPage = () => {
     fetchEvals();
   }, []);
 
-  const handleLaunchEval = async (evalName) => {
+  const handleLaunchEval = async (workflowId, evalName) => {
+    if (!workflowId) {
+      toast.error("Workflow ID is missing.");
+      return;
+    }
+
     toast(`Launching eval: ${evalName}...`);
     try {
-      console.log(`Eval "${evalName}" launched.`);
-      toast.success(`Eval "${evalName}" launched successfully.`);
+      const results = await startEvalRun(workflowId, evalName);
+      setEvalResults(results);
+      onOpen();
+      toast.success(`Eval "${evalName}" completed successfully.`);
     } catch (error) {
       console.error(`Error launching eval "${evalName}":`, error);
       toast.error(`Failed to launch eval "${evalName}".`);
@@ -55,7 +67,7 @@ const EvalsPage = () => {
                 type={evalItem.type}
                 dataPoints={evalItem.data_points}
                 paperLink={evalItem.paper_link}
-                onRun={() => handleLaunchEval(evalItem.name)}
+                onRun={() => handleLaunchEval(workflowId, evalItem.name)}
               />
             ))}
           </div>
@@ -63,6 +75,29 @@ const EvalsPage = () => {
           <p>No evals available.</p>
         )}
       </div>
+
+      {/* Modal for displaying eval results */}
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Evaluation Results</ModalHeader>
+              <ModalBody>
+                {evalResults ? (
+                  <pre className="text-sm bg-gray-100 p-4 rounded">{JSON.stringify(evalResults, null, 2)}</pre>
+                ) : (
+                  <p>No results available.</p>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

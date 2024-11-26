@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from typing import Awaitable, Dict, Any, List
+from pathlib import Path  # Import Path for directory handling
 
 from ..schemas.run_schemas import (
     StartRunRequestSchema,
@@ -21,8 +22,12 @@ from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
+from ..evals.evaluator import evaluate_model_on_dataset, load_yaml_config
 
 router = APIRouter()
+
+# Define EVALS_DIR (same as in evals_management.py)
+EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
 
 
 @router.post(
@@ -297,3 +302,41 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
         .all()
     )
     return runs
+
+
+@router.post(
+    "/{workflow_id}/start_eval/",
+    response_model=Dict[str, Any],
+    description="Start an evaluation run for a workflow",
+)
+async def start_eval_run(
+    workflow_id: str,
+    eval_name: str,
+    num_samples: int = 10,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Start an evaluation run for a workflow using the evaluator logic.
+    """
+    # Validate workflow ID
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    eval_file = EVALS_DIR / f"{eval_name}.yaml"
+    if not eval_file.exists():
+        raise HTTPException(status_code=404, detail="Eval configuration not found")
+
+    try:
+        # Load the eval configuration
+        task_config = load_yaml_config(eval_file)
+
+        # Run the evaluation
+        results = await evaluate_model_on_dataset(task_config, num_samples=num_samples)
+
+        return {
+            "status": "success",
+            "results": results,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting eval run: {e}")

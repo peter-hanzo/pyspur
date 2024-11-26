@@ -356,3 +356,16 @@ export const getEvals = async () => {
     throw error;
   }
 };
+
+export const startEvalRun = async (workflowId, evalName, numSamples = 10) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/start_eval/`, {
+      eval_name: evalName,
+      num_samples: numSamples,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error starting eval run:", error);
+    throw error;
+  }
+};

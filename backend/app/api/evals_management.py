@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from sqlalchemy.orm import Session
 from pathlib import Path
 import yaml
-import asyncio
 from typing import List, Dict, Any
 
+from ..database import get_db
+from ..models.workflow_model import WorkflowModel
 from ..evals.evaluator import evaluate_model_on_dataset, load_yaml_config
 
 router = APIRouter()
@@ -41,10 +43,21 @@ def list_evals() -> List[Dict[str, Any]]:
 
 
 @router.post("/launch/", description="Launch an eval job")
-async def launch_eval(eval_name: str, num_samples: int = 10) -> Dict[str, Any]:
+async def launch_eval(
+    eval_name: str,
+    workflow_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    num_samples: int = 10,
+) -> Dict[str, Any]:
     """
     Launch an eval job by triggering the evaluator with the specified eval configuration.
     """
+    # Validate workflow ID
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
     eval_file = EVALS_DIR / f"{eval_name}.yaml"
     if not eval_file.exists():
         raise HTTPException(status_code=404, detail="Eval configuration not found")
@@ -52,8 +65,10 @@ async def launch_eval(eval_name: str, num_samples: int = 10) -> Dict[str, Any]:
     try:
         # Load the eval configuration
         task_config = load_yaml_config(eval_file)
-        # Run the evaluation
+
+        # Run the evaluation asynchronously
         results = await evaluate_model_on_dataset(task_config, num_samples=num_samples)
+
         return {
             "status": "success",
             "results": results,
