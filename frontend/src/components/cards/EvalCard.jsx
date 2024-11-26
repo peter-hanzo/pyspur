@@ -93,6 +93,8 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
             <>
               <ModalHeader className="flex flex-col gap-1">Select Workflow and Output Variable</ModalHeader>
               <ModalBody>
+                {/* Heading for Workflow selection */}
+                <h3 className="text-sm font-semibold mb-2">Select a Workflow</h3>
                 <Dropdown>
                   <DropdownTrigger>
                     <Button variant="flat" color="primary">
@@ -114,21 +116,25 @@ export default function EvalCard({ title, description, type, dataPoints, paperLi
                 </Dropdown>
 
                 {selectedWorkflow && (
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button variant="flat" color="primary">
-                        {selectedOutputVariable || "Select an Output Variable"}
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu
-                      aria-label="Output Variables"
-                      onAction={(key) => setSelectedOutputVariable(key)}
-                    >
-                      {outputVariables.map((variable) => (
-                        <DropdownItem key={variable}>{variable}</DropdownItem>
-                      ))}
-                    </DropdownMenu>
-                  </Dropdown>
+                  <>
+                    {/* Heading for Output Variable selection */}
+                    <h3 className="text-sm font-semibold mt-4 mb-2">Select an Output Variable</h3>
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <Button variant="flat" color="primary">
+                          {selectedOutputVariable || "Select an Output Variable"}
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu
+                        aria-label="Output Variables"
+                        onAction={(key) => setSelectedOutputVariable(key)}
+                      >
+                        {outputVariables.map((variable) => (
+                          <DropdownItem key={variable}>{variable}</DropdownItem>
+                        ))}
+                      </DropdownMenu>
+                    </Dropdown>
+                  </>
                 )}
               </ModalBody>
               <ModalFooter>
