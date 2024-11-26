@@ -257,6 +257,7 @@ async def evaluate_on_dataset(
     subject_category_mapping: Optional[Dict[str, str]] = None,
     category_correct: Optional[Dict[str, int]] = None,
     category_total: Optional[Dict[str, int]] = None,
+    output_variable: Optional[str] = None,
 ) -> dict:
     """Evaluates the model on the given dataset and returns evaluation metrics."""
     # Extract necessary components from task_config
@@ -268,6 +269,10 @@ async def evaluate_on_dataset(
     )
     predicted_answer_extraction = task_config.get("predicted_answer_extraction", {})
     evaluation = task_config.get("evaluation", {})
+
+    # Use output_variable if needed in the evaluation logic
+    if output_variable:
+        print(f"Evaluating with output variable: {output_variable}")
 
     all_responses = {}
     short_responses = {}
@@ -394,6 +399,7 @@ async def evaluate_model_on_dataset(
     task_config: Dict[str, Any],
     batch_size: int = 10,
     num_samples: Optional[int] = None,
+    output_variable: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Evaluate the model on the specified dataset and return evaluation metrics."""
     dataset_name = task_config.get("dataset_name")
@@ -433,12 +439,12 @@ async def evaluate_model_on_dataset(
                 subject_category_mapping=subject_category_mapping,
                 category_correct=category_correct,
                 category_total=category_total,
+                output_variable=output_variable,
             )
             subset_metrics[subset] = metrics
             total_correct += metrics["correct_predictions"]
             total_samples += metrics["total_samples"]
 
-        # Use the new calculate_metrics function
         results = calculate_metrics(
             total_correct, total_samples, category_correct, category_total
         )
@@ -458,8 +464,8 @@ async def evaluate_model_on_dataset(
             batch_size,
             subject=dataset_subsets,
             subject_category_mapping=subject_category_mapping,
+            output_variable=output_variable,
         )
-        # Use the new calculate_metrics function
         results = calculate_metrics(
             metrics["correct_predictions"],
             metrics["total_samples"],

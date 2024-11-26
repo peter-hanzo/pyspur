@@ -46,6 +46,7 @@ def list_evals() -> List[Dict[str, Any]]:
 async def launch_eval(
     eval_name: str,
     workflow_id: str,
+    output_variable: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     num_samples: int = 10,
@@ -67,7 +68,9 @@ async def launch_eval(
         task_config = load_yaml_config(eval_file)
 
         # Run the evaluation asynchronously
-        results = await evaluate_model_on_dataset(task_config, num_samples=num_samples)
+        results = await evaluate_model_on_dataset(
+            task_config, num_samples=num_samples, output_variable=output_variable
+        )
 
         return {
             "status": "success",

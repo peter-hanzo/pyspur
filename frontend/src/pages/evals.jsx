@@ -30,15 +30,19 @@ const EvalsPage = () => {
     fetchEvals();
   }, []);
 
-  const handleLaunchEval = async (workflowId, evalName) => {
+  const handleLaunchEval = async (workflowId, evalName, outputVariable) => {
     if (!workflowId) {
       toast.error("Workflow ID is missing.");
       return;
     }
+    if (!outputVariable) {
+      toast.error("Output variable is missing.");
+      return;
+    }
 
-    toast(`Launching eval: ${evalName}...`);
+    toast(`Launching eval: ${evalName} with output variable: ${outputVariable}...`);
     try {
-      const results = await startEvalRun(workflowId, evalName);
+      const results = await startEvalRun(workflowId, evalName, outputVariable);
       setEvalResults(results);
       onOpen();
       toast.success(`Eval "${evalName}" completed successfully.`);
@@ -67,7 +71,7 @@ const EvalsPage = () => {
                 type={evalItem.type}
                 dataPoints={evalItem.data_points}
                 paperLink={evalItem.paper_link}
-                onRun={() => handleLaunchEval(workflowId, evalItem.name)}
+                onRun={() => handleLaunchEval(workflowId, evalItem.name, evalItem.output_variable)}
               />
             ))}
           </div>
