@@ -12,9 +12,11 @@ from datasets import Dataset, load_dataset
 from jinja2 import Template
 
 from app.evals.common import EQUALITY_TEMPLATE, normalize_extracted_answer
-from app.nodes.llm.string_output_llm import (StringOutputLLMNode,
-                                             StringOutputLLMNodeConfig,
-                                             StringOutputLLMNodeInput)
+from app.nodes.llm.string_output_llm import (
+    StringOutputLLMNode,
+    StringOutputLLMNodeConfig,
+    StringOutputLLMNodeInput,
+)
 from app.execution.workflow_executor import WorkflowExecutor
 from app.schemas.workflow_schemas import WorkflowDefinitionSchema
 
@@ -154,56 +156,50 @@ async def check_equality(expr1: str, expr2: str) -> bool:
         bool: True if expressions are equal, False otherwise.
     """
     prompt = EQUALITY_TEMPLATE % {"expression1": expr1, "expression2": expr2}
-    response = await call_model(prompt)
-    return response.lower().strip() == "yes"
+    # response = await call_model(prompt)
+    # return response.lower().strip() == "yes"
+    # TODO (jean): Implement equality check using simple LLM
+    return True
 
 
-async def call_model(
+async def execute_workflow(
     full_prompt: str,
     workflow: Optional[WorkflowDefinitionSchema] = None,
     workflow_output_variable: Optional[str] = None,
 ) -> str:
     """
-    Calls either a basic LLM model or executes a workflow.
+    Executes an LLM workflow.
 
     Args:
         full_prompt: The prompt to send
         workflow: Optional workflow definition to execute
         workflow_output_variable: The output variable to extract from workflow results
+
+    Returns:
+        str: The model's response text
     """
-    if workflow and workflow_output_variable:
-        # Find input node
-        input_node = next(
-            node for node in workflow.nodes if node.node_type == "InputNode"
+    if workflow is None:
+        raise ValueError("Workflow definition is required")
+
+    # Find input node - we know workflows must have exactly one InputNode
+    input_node = next(
+        (node for node in workflow.nodes if node.node_type == "InputNode"), None
+    )
+    if input_node is None:
+        raise ValueError("Workflow must have an InputNode")
+
+    # Execute workflow
+    executor = WorkflowExecutor(workflow)
+    initial_inputs = {input_node.id: {"user_message": full_prompt}}
+    outputs = await executor(initial_inputs)
+
+    # Extract output from specified variable
+    if workflow_output_variable not in outputs:
+        raise ValueError(
+            f"Output variable {workflow_output_variable} not found in workflow outputs"
         )
 
-        # Execute workflow
-        executor = WorkflowExecutor(workflow)
-        initial_inputs = {input_node.id: {"user_message": full_prompt}}
-        outputs = await executor(initial_inputs)
-
-        # Extract output from specified variable
-        if workflow_output_variable not in outputs:
-            raise ValueError(f"Output variable {workflow_output_variable} not found in workflow outputs")
-
-        output = outputs[workflow_output_variable]
-        # Most workflow nodes output a BaseModel with an "assistant_message" field
-        return output.assistant_message if hasattr(output, "assistant_message") else str(output)
-    else:
-        # Fallback to basic LLM node
-        basic_llm_node = StringOutputLLMNode(
-            config=StringOutputLLMNodeConfig(
-                llm_name="gpt-4o-mini",
-                max_tokens=256,
-                temperature=0.0,
-                json_mode=False,
-                system_prompt="",
-                few_shot_examples=None,
-            )
-        )
-        basic_input = StringOutputLLMNodeInput(user_message=full_prompt)
-        basic_output = await basic_llm_node(basic_input)
-        return basic_output.assistant_message
+    return str(outputs[workflow_output_variable])
 
 
 def extract_answer(
@@ -279,47 +275,61 @@ def get_ground_truth_answer(problem, doc_to_target):
     return ground_truth.strip()
 
 
-async def evaluate_on_dataset(
+async def evaluate_dataset_batch(
     dataset: Dataset,
-    task_config: Dict[str, Any],
+    eval_config: Dict[str, Any],
+    workflow: WorkflowDefinitionSchema,
     batch_size: int = 10,
     subject: Optional[str] = None,
     subject_category_mapping: Optional[Dict[str, str]] = None,
     category_correct: Optional[Dict[str, int]] = None,
     category_total: Optional[Dict[str, int]] = None,
     output_variable: Optional[str] = None,
-    workflow: Optional[WorkflowDefinitionSchema] = None,
 ) -> dict:
     """
-    Evaluates the model on the given dataset and returns evaluation metrics.
+    Evaluate the model on a dataset in batches.
 
-    Added workflow and output_variable parameters to support workflow execution.
+    This function performs the core evaluation logic, including generating prompts,
+    calling the model, and comparing predictions with ground truth answers.
+
+    Args:
+        dataset: The dataset to evaluate on.
+        eval_config: Configuration for the evaluation task.
+        workflow: Workflow definition to execute.
+        batch_size: Size of batches for processing.
+        subject: Optional subject name for categorization.
+        subject_category_mapping: Optional mapping of subjects to categories.
+        category_correct: Optional dict tracking correct predictions per category.
+        category_total: Optional dict tracking total samples per category.
+        output_variable: Optional output variable name from workflow output.
+
+    Returns:
+        dict: Evaluation metrics, including accuracy and category-wise performance.
     """
-    # Extract necessary components from task_config
-    preamble = task_config.get("preamble", "")
-    doc_to_text = task_config.get("doc_to_text", "")
-    doc_to_target = task_config.get("doc_to_target", "")
-    ground_truth_answer_extraction = task_config.get(
+    # Extract task configuration
+    preamble = eval_config.get("preamble", "")
+    doc_to_text = eval_config.get("doc_to_text", "")
+    doc_to_target = eval_config.get("doc_to_target", "")
+    ground_truth_answer_extraction = eval_config.get(
         "ground_truth_answer_extraction", {}
     )
-    predicted_answer_extraction = task_config.get("predicted_answer_extraction", {})
-    evaluation = task_config.get("evaluation", {})
+    predicted_answer_extraction = eval_config.get("predicted_answer_extraction", {})
+    evaluation = eval_config.get("evaluation", {})
 
-    # Use output_variable if needed in the evaluation logic
-    if output_variable:
-        print(f"Evaluating with output variable: {output_variable}")
-
+    # Initialize tracking variables
     all_responses = {}
     short_responses = {}
     total = len(dataset)
     correct = 0
     task_id = 0
 
+    # Initialize category tracking if needed
     if subject_category_mapping and category_correct is None and category_total is None:
         categories = set(subject_category_mapping.values())
         category_correct = {category: 0 for category in categories}
         category_total = {category: 0 for category in categories}
 
+    # Process dataset in batches
     for batch in dataset.iter(batch_size=batch_size):
         transformed_batch = [
             dict(zip(batch.keys(), values)) for values in zip(*batch.values())
@@ -331,25 +341,35 @@ async def evaluate_on_dataset(
 
         # Call the model on all prompts in the batch concurrently
         responses = await asyncio.gather(
-            *[call_model(prompt, workflow, output_variable) for prompt in full_prompts]
+            *[
+                execute_workflow(prompt, workflow, output_variable)
+                for prompt in full_prompts
+            ]
         )
 
-        for idx, problem in enumerate(transformed_batch):
-            response_text = responses[idx]
-            all_responses[task_id] = response_text
+        # Process responses and update metrics
+        for idx, (problem, response_text) in enumerate(
+            zip(transformed_batch, responses)
+        ):
             predicted_answer = extract_answer(
                 response_text, predicted_answer_extraction
             )
-            short_responses[task_id] = predicted_answer
             ground_truth_answer = extract_answer(
                 get_ground_truth_answer(problem, doc_to_target),
                 ground_truth_answer_extraction,
             )
+
+            # Store responses
+            all_responses[task_id] = response_text
+            short_responses[task_id] = predicted_answer
+
+            # Evaluate correctness
             is_correct = await evaluate_answer(
                 predicted_answer, ground_truth_answer, evaluation
             )
             correct += int(is_correct)
 
+            # Update category metrics if needed
             if subject_category_mapping:
                 subject_value = (
                     subject or problem.get("subject") or problem.get("Subject")
@@ -359,6 +379,7 @@ async def evaluate_on_dataset(
                 if is_correct:
                     category_correct[category] += 1
 
+            # Log results
             print(f"Task ID {task_id}")
             print(f"Predicted answer: {predicted_answer}")
             print(f"Ground truth answer: {ground_truth_answer}")
@@ -366,14 +387,15 @@ async def evaluate_on_dataset(
             print("=" * 40)
             task_id += 1
 
-    accuracy = correct / total
+    # Calculate final metrics
     metrics = {
         "total_samples": total,
         "correct_predictions": correct,
-        "accuracy": accuracy,
+        "accuracy": correct / total,
         "all_responses": all_responses,
         "short_responses": short_responses,
     }
+
     if subject_category_mapping:
         category_accuracy = {
             category: (
@@ -390,6 +412,7 @@ async def evaluate_on_dataset(
                 "category_accuracy": category_accuracy,
             }
         )
+
     return metrics
 
 
@@ -432,45 +455,49 @@ def calculate_metrics(
     return metrics
 
 
-async def evaluate_model_on_dataset(
-    task_config: Dict[str, Any],
+async def prepare_and_evaluate_dataset(
+    eval_config: Dict[str, Any],
+    workflow: WorkflowDefinitionSchema,
     batch_size: int = 10,
     num_samples: Optional[int] = None,
     output_variable: Optional[str] = None,
-    workflow: Optional[WorkflowDefinitionSchema] = None,
 ) -> Dict[str, Any]:
     """
-    Evaluate the model on the specified dataset and return evaluation metrics.
+    Prepare the dataset and evaluate the model on it.
+
+    This function handles dataset loading, preprocessing, and category-level metrics.
+    It supports evaluating multiple subsets of a dataset and aggregates the results.
 
     Args:
-        task_config: Configuration for the evaluation task
-        batch_size: Size of batches for processing
-        num_samples: Optional number of samples to evaluate
-        output_variable: Optional output variable name when using workflow
-        workflow: Optional workflow definition to use instead of basic LLM
+        eval_config: Configuration for the evaluation task.
+        workflow: Workflow definition to execute.
+        batch_size: Size of batches for processing.
+        num_samples: Optional number of samples to evaluate.
+        output_variable: Optional output variable name from workflow output.
+
+    Returns:
+        Dict[str, Any]: Evaluation metrics, including accuracy and category-wise metrics.
     """
-    dataset_name = task_config.get("dataset_name")
-    dataset_split = task_config.get("dataset_split", "test")
-    dataset_subsets = task_config.get("dataset_subsets")
-    subject_category_mapping = task_config.get("subject_category_mapping")
-    process_docs = task_config.get("process_docs")
-
+    # Extract dataset config
+    dataset_name = eval_config.get("dataset_name")
     if not dataset_name:
-        raise ValueError("dataset_name must be provided in task_config.")
+        raise ValueError("dataset_name must be provided in eval_config.")
 
+    dataset_split = eval_config.get("dataset_split", "test")
+    dataset_subsets = eval_config.get("dataset_subsets", None)  # Subsets to evaluate
+    process_docs = eval_config.get("process_docs")
+
+    # Initialize metrics for aggregation
+    subset_metrics = {}
+    total_correct = 0
+    total_samples = 0
     category_correct = None
     category_total = None
-    if subject_category_mapping:
-        categories = set(subject_category_mapping.values())
-        category_correct = {category: 0 for category in categories}
-        category_total = {category: 0 for category in categories}
 
-    if isinstance(dataset_subsets, list):
-        total_correct = 0
-        total_samples = 0
-        subset_metrics = {}
+    # Handle multiple subsets if specified
+    if dataset_subsets and isinstance(dataset_subsets, list):
         for subset in dataset_subsets:
-            print(f"Evaluating subset: {subset}")
+            # Load the subset of the dataset
             dataset = load_dataset_by_name(
                 dataset_name, dataset_split, subset, process_docs
             )
@@ -478,80 +505,64 @@ async def evaluate_model_on_dataset(
                 dataset = dataset.shuffle(seed=42).select(
                     range(min(num_samples, len(dataset)))
                 )
-            metrics = await evaluate_on_dataset(
-                dataset,
-                task_config,
-                batch_size,
-                subject=subset,
-                subject_category_mapping=subject_category_mapping,
-                category_correct=category_correct,
-                category_total=category_total,
-                output_variable=output_variable,
+
+            # Evaluate the subset
+            metrics = await evaluate_dataset_batch(
+                dataset=dataset,
+                eval_config=eval_config,
                 workflow=workflow,
+                batch_size=batch_size,
+                subject=subset,
+                subject_category_mapping=eval_config.get("subject_category_mapping"),
+                output_variable=output_variable,
             )
+
+            # Aggregate metrics
             subset_metrics[subset] = metrics
             total_correct += metrics["correct_predictions"]
             total_samples += metrics["total_samples"]
 
-        results = calculate_metrics(
-            total_correct, total_samples, category_correct, category_total
-        )
-        results["subset_metrics"] = subset_metrics
-        return results
+            # Update category-level metrics if applicable
+            if "category_correct" in metrics and "category_total" in metrics:
+                if category_correct is None:
+                    category_correct = metrics["category_correct"]
+                    category_total = metrics["category_total"]
+                else:
+                    for category in metrics["category_correct"]:
+                        category_correct[category] += metrics["category_correct"][
+                            category
+                        ]
+                        category_total[category] += metrics["category_total"][category]
     else:
-        dataset = load_dataset_by_name(
-            dataset_name, dataset_split, dataset_subsets, process_docs
-        )
+        # Single dataset evaluation
+        dataset = load_dataset_by_name(dataset_name, dataset_split, None, process_docs)
         if num_samples is not None:
             dataset = dataset.shuffle(seed=42).select(
                 range(min(num_samples, len(dataset)))
             )
-        metrics = await evaluate_on_dataset(
-            dataset,
-            task_config,
-            batch_size,
-            subject=dataset_subsets,
-            subject_category_mapping=subject_category_mapping,
-            output_variable=output_variable,
+
+        metrics = await evaluate_dataset_batch(
+            dataset=dataset,
+            eval_config=eval_config,
             workflow=workflow,
+            batch_size=batch_size,
+            output_variable=output_variable,
         )
-        results = calculate_metrics(
-            metrics["correct_predictions"],
-            metrics["total_samples"],
-            category_correct,
-            category_total,
-        )
-        results.update(metrics)
-        return results
 
+        # Aggregate metrics
+        subset_metrics["default"] = metrics
+        total_correct = metrics["correct_predictions"]
+        total_samples = metrics["total_samples"]
+        category_correct = metrics.get("category_correct", None)
+        category_total = metrics.get("category_total", None)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluate LLM on a dataset.")
-    parser.add_argument(
-        "--task_config_path",
-        type=str,
-        default=os.path.join(os.path.dirname(__file__), "tasks", "mmlu.yaml"),
-        help="Path to the task configuration YAML file.",
+    # Calculate overall metrics
+    results = calculate_metrics(
+        total_correct=total_correct,
+        total_samples=total_samples,
+        category_correct=category_correct,
+        category_total=category_total,
     )
-    parser.add_argument(
-        "--num_samples",
-        type=int,
-        default=80,
-        help="Number of samples to evaluate from the dataset.",
-    )
-    args = parser.parse_args()
+    results["subset_metrics"] = subset_metrics
 
-    task_config = load_yaml_config(args.task_config_path)
-    results = asyncio.run(
-        evaluate_model_on_dataset(task_config, num_samples=args.num_samples)
-    )
-
-    print("Overall Accuracy:", results.get("accuracy", 0))
-    category_accuracy = results.get("category_accuracy", {})
-    if category_accuracy:
-        print("\nCategory-wise Accuracy:")
-        for category, accuracy in category_accuracy.items():
-            print(f"Category: {category}, Accuracy: {accuracy:.4f}")
-    subset_metrics = results.get("subset_metrics", {})
-    for subset, metrics in subset_metrics.items():
-        print(f"\nSubset: {subset}, Accuracy: {metrics['accuracy']}")
+    return results

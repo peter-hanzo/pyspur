@@ -22,7 +22,7 @@ from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
-from ..evals.evaluator import evaluate_model_on_dataset, load_yaml_config
+from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
 
 router = APIRouter()
 
@@ -302,55 +302,3 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
         .all()
     )
     return runs
-
-
-@router.post(
-    "/{workflow_id}/start_eval/",
-    response_model=Dict[str, Any],
-    description="Start an evaluation run for a workflow",
-)
-async def start_eval_run(
-    workflow_id: str,
-    eval_name: str,
-    output_variable: str,
-    num_samples: int = 10,
-    db: Session = Depends(get_db),
-) -> Dict[str, Any]:
-    """
-    Start an evaluation run for a workflow using the evaluator logic.
-    """
-    # Validate workflow ID
-    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
-    if not workflow:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-
-    eval_file = EVALS_DIR / f"{eval_name}.yaml"
-    if not eval_file.exists():
-        raise HTTPException(status_code=404, detail="Eval configuration not found")
-
-    try:
-        # Load the eval configuration
-        task_config = load_yaml_config(eval_file)
-
-        # Validate the output variable
-        workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
-        all_source_ids = {link.source_id for link in workflow_definition.links}
-        all_node_ids = {node.id for node in workflow_definition.nodes}
-        leaf_nodes = all_node_ids - all_source_ids
-        if output_variable not in leaf_nodes:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid output variable '{output_variable}'. Must be one of: {leaf_nodes}",
-            )
-
-        # Run the evaluation
-        results = await evaluate_model_on_dataset(
-            task_config, num_samples=num_samples, output_variable=output_variable
-        )
-
-        return {
-            "status": "success",
-            "results": results,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting eval run: {e}")

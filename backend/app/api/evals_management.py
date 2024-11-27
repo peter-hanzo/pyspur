@@ -7,17 +7,20 @@ from pydantic import BaseModel
 
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel
-from ..evals.evaluator import evaluate_model_on_dataset, load_yaml_config
+from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
+from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 
 router = APIRouter()
 
 EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
+
 
 class EvalRunRequest(BaseModel):
     eval_name: str
     workflow_id: str
     output_variable: str
     num_samples: int = 10
+
 
 @router.get("/", description="List all available evals")
 def list_evals() -> List[Dict[str, Any]]:
@@ -47,7 +50,12 @@ def list_evals() -> List[Dict[str, Any]]:
             )
     return evals
 
-@router.post("/launch/", description="Launch an eval job")
+
+@router.post(
+    "/launch/",
+    response_model=Dict[str, Any],
+    description="Launch an eval job with detailed validation and workflow integration",
+)
 async def launch_eval(
     request: EvalRunRequest,
     background_tasks: BackgroundTasks,
@@ -57,7 +65,9 @@ async def launch_eval(
     Launch an eval job by triggering the evaluator with the specified eval configuration.
     """
     # Validate workflow ID
-    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == request.workflow_id).first()
+    workflow = (
+        db.query(WorkflowModel).filter(WorkflowModel.id == request.workflow_id).first()
+    )
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -67,13 +77,27 @@ async def launch_eval(
 
     try:
         # Load the eval configuration
-        task_config = load_yaml_config(eval_file)
+        eval_config = load_yaml_config(eval_file)
 
-        # Run the evaluation asynchronously
-        results = await evaluate_model_on_dataset(
-            task_config,
+        # Validate the output variable
+        workflow_definition = WorkflowDefinitionSchema.model_validate(
+            workflow.definition
+        )
+        all_source_ids = {link.source_id for link in workflow_definition.links}
+        all_node_ids = {node.id for node in workflow_definition.nodes}
+        leaf_nodes = all_node_ids - all_source_ids
+        if request.output_variable not in leaf_nodes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid output variable '{request.output_variable}'. Must be one of: {leaf_nodes}",
+            )
+
+        # Run the evaluation with mandatory workflow parameter
+        results = await prepare_and_evaluate_dataset(
+            eval_config,
+            workflow=workflow_definition,  # Now required
             num_samples=request.num_samples,
-            output_variable=request.output_variable
+            output_variable=request.output_variable,
         )
 
         return {
