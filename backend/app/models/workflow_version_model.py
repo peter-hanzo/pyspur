@@ -1,16 +1,19 @@
-from sqlalchemy import Computed, Integer, String, DateTime, JSON, ForeignKey
+from sqlalchemy import Integer, String, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from typing import List, Optional, Any
 from .base_model import BaseModel
 from .run_model import RunModel
 
+
 class WorkflowVersionModel(BaseModel):
     __tablename__ = "workflow_versions"
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
-    workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"), nullable=False, index=True)
+    workflow_id: Mapped[int] = mapped_column(
+        ForeignKey("workflows.id"), nullable=False, index=True
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
     definition: Mapped[Any] = mapped_column(JSON, nullable=False)
