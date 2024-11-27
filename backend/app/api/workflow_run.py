@@ -26,6 +26,29 @@ from ..utils.workflow_version_utils import fetch_workflow_version
 router = APIRouter()
 
 
+async def create_run_model(
+    workflow_id: str,
+    workflow_version_id: int,
+    initial_inputs: Dict[str, Dict[str, Any]],
+    parent_run_id: Optional[str],
+    run_type: str,
+    db: Session,
+) -> RunModel:
+    new_run = RunModel(
+        workflow_id=workflow_id,
+        workflow_version_id=workflow_version_id,
+        status=RunStatus.PENDING,
+        initial_inputs=initial_inputs,
+        start_time=datetime.now(timezone.utc),
+        parent_run_id=parent_run_id,
+        run_type=run_type,
+    )
+    db.add(new_run)
+    db.commit()
+    db.refresh(new_run)
+    return new_run
+
+
 @router.post(
     "/{workflow_id}/run/",
     response_model=Dict[str, Any],
@@ -44,18 +67,14 @@ async def run_workflow_blocking(
     workflow_version = fetch_workflow_version(workflow_id, workflow.definition, db)
 
     initial_inputs = request.initial_inputs or {}
-    new_run = RunModel(
-        workflow_id=workflow.id,
-        workflow_version_id=workflow_version._intid,  # type: ignore
-        status=RunStatus.RUNNING,
-        initial_inputs=initial_inputs,
-        start_time=datetime.now(timezone.utc),
-        run_type=run_type,
-        parent_run_id=request.parent_run_id,
+    new_run = await create_run_model(
+        workflow_id,
+        workflow_version._intid,  # type: ignore
+        initial_inputs,
+        request.parent_run_id,
+        run_type,
+        db,
     )
-    db.add(new_run)
-    db.commit()
-    db.refresh(new_run)
     task_recorder = TaskRecorder(db, new_run.id)
     workflow_definition = WorkflowDefinitionSchema.model_validate(
         workflow_version.definition
@@ -91,18 +110,14 @@ async def run_workflow_non_blocking(
         workflow_version.definition
     )
     initial_inputs = start_run_request.initial_inputs or {}
-    new_run = RunModel(
-        workflow_id=workflow.id,
-        workflow_version_id=workflow_version._intid,  # type: ignore
-        status=RunStatus.PENDING,
-        initial_inputs=initial_inputs,
-        start_time=datetime.now(timezone.utc),
-        parent_run_id=start_run_request.parent_run_id,
-        run_type=run_type,
+    new_run = await create_run_model(
+        workflow_id,
+        workflow_version._intid,  # type: ignore
+        initial_inputs,
+        start_run_request.parent_run_id,
+        run_type,
+        db,
     )
-    db.add(new_run)
-    db.commit()
-    db.refresh(new_run)
 
     async def run_workflow_task(
         run_id: str, workflow_definition: WorkflowDefinitionSchema
@@ -176,17 +191,9 @@ async def batch_run_workflow_non_blocking(
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
 
     dataset_id = request.dataset_id
-    new_run = RunModel(
-        workflow_id=workflow.id,
-        workflow_version_id=workflow_version._intid,  # type: ignore
-        status=RunStatus.RUNNING,
-        input_dataset_id=dataset_id,
-        start_time=datetime.now(timezone.utc),
-        run_type="batch",
+    new_run = await create_run_model(
+        workflow_id, workflow_version._intid, {}, None, "batch", db  # type: ignore
     )
-    db.add(new_run)
-    db.commit()
-    db.refresh(new_run)
 
     # parse the dataset
     dataset = db.query(DatasetModel).filter(DatasetModel.id == dataset_id).first()
