@@ -4,7 +4,7 @@ import asyncio
 import importlib.util
 import os
 import re
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 import yaml
@@ -15,6 +15,8 @@ from app.evals.common import EQUALITY_TEMPLATE, normalize_extracted_answer
 from app.nodes.llm.string_output_llm import (StringOutputLLMNode,
                                              StringOutputLLMNodeConfig,
                                              StringOutputLLMNodeInput)
+from app.execution.workflow_executor import WorkflowExecutor
+from app.schemas.workflow_schemas import WorkflowDefinitionSchema
 
 # Precompiled regular expressions
 NUMBER_REGEX = re.compile(r"-?[\d,]*\.?\d+", re.MULTILINE | re.DOTALL | re.IGNORECASE)
@@ -156,24 +158,52 @@ async def check_equality(expr1: str, expr2: str) -> bool:
     return response.lower().strip() == "yes"
 
 
-async def call_model(full_prompt):
-    """Calls the LLM model using StringOutputLLMNode."""
-    # Instantiate the StringOutputLLMNode with the desired configuration
-    basic_llm_node = StringOutputLLMNode(
-        config=StringOutputLLMNodeConfig(
-            llm_name="gpt-4o-mini",
-            max_tokens=256,
-            temperature=0.0,
-            json_mode=False,
-            system_prompt="",  # You can set this if needed
-            few_shot_examples=None,  # Add few-shot examples if required
+async def call_model(
+    full_prompt: str,
+    workflow: Optional[WorkflowDefinitionSchema] = None,
+    workflow_output_variable: Optional[str] = None,
+) -> str:
+    """
+    Calls either a basic LLM model or executes a workflow.
+
+    Args:
+        full_prompt: The prompt to send
+        workflow: Optional workflow definition to execute
+        workflow_output_variable: The output variable to extract from workflow results
+    """
+    if workflow and workflow_output_variable:
+        # Find input node
+        input_node = next(
+            node for node in workflow.nodes if node.node_type == "InputNode"
         )
-    )
-    # Create the input data
-    basic_input = StringOutputLLMNodeInput(user_message=full_prompt)
-    # Call the node to get the output
-    basic_output = await basic_llm_node(basic_input)
-    return basic_output.assistant_message
+
+        # Execute workflow
+        executor = WorkflowExecutor(workflow)
+        initial_inputs = {input_node.id: {"user_message": full_prompt}}
+        outputs = await executor(initial_inputs)
+
+        # Extract output from specified variable
+        if workflow_output_variable not in outputs:
+            raise ValueError(f"Output variable {workflow_output_variable} not found in workflow outputs")
+
+        output = outputs[workflow_output_variable]
+        # Most workflow nodes output a BaseModel with an "assistant_message" field
+        return output.assistant_message if hasattr(output, "assistant_message") else str(output)
+    else:
+        # Fallback to basic LLM node
+        basic_llm_node = StringOutputLLMNode(
+            config=StringOutputLLMNodeConfig(
+                llm_name="gpt-4o-mini",
+                max_tokens=256,
+                temperature=0.0,
+                json_mode=False,
+                system_prompt="",
+                few_shot_examples=None,
+            )
+        )
+        basic_input = StringOutputLLMNodeInput(user_message=full_prompt)
+        basic_output = await basic_llm_node(basic_input)
+        return basic_output.assistant_message
 
 
 def extract_answer(
@@ -258,8 +288,13 @@ async def evaluate_on_dataset(
     category_correct: Optional[Dict[str, int]] = None,
     category_total: Optional[Dict[str, int]] = None,
     output_variable: Optional[str] = None,
+    workflow: Optional[WorkflowDefinitionSchema] = None,
 ) -> dict:
-    """Evaluates the model on the given dataset and returns evaluation metrics."""
+    """
+    Evaluates the model on the given dataset and returns evaluation metrics.
+
+    Added workflow and output_variable parameters to support workflow execution.
+    """
     # Extract necessary components from task_config
     preamble = task_config.get("preamble", "")
     doc_to_text = task_config.get("doc_to_text", "")
@@ -293,10 +328,12 @@ async def evaluate_on_dataset(
             generate_input_prompt(problem, doc_to_text, preamble)
             for problem in transformed_batch
         ]
+
         # Call the model on all prompts in the batch concurrently
         responses = await asyncio.gather(
-            *[call_model(prompt) for prompt in full_prompts]
+            *[call_model(prompt, workflow, output_variable) for prompt in full_prompts]
         )
+
         for idx, problem in enumerate(transformed_batch):
             response_text = responses[idx]
             all_responses[task_id] = response_text
@@ -400,8 +437,18 @@ async def evaluate_model_on_dataset(
     batch_size: int = 10,
     num_samples: Optional[int] = None,
     output_variable: Optional[str] = None,
+    workflow: Optional[WorkflowDefinitionSchema] = None,
 ) -> Dict[str, Any]:
-    """Evaluate the model on the specified dataset and return evaluation metrics."""
+    """
+    Evaluate the model on the specified dataset and return evaluation metrics.
+
+    Args:
+        task_config: Configuration for the evaluation task
+        batch_size: Size of batches for processing
+        num_samples: Optional number of samples to evaluate
+        output_variable: Optional output variable name when using workflow
+        workflow: Optional workflow definition to use instead of basic LLM
+    """
     dataset_name = task_config.get("dataset_name")
     dataset_split = task_config.get("dataset_split", "test")
     dataset_subsets = task_config.get("dataset_subsets")
@@ -440,6 +487,7 @@ async def evaluate_model_on_dataset(
                 category_correct=category_correct,
                 category_total=category_total,
                 output_variable=output_variable,
+                workflow=workflow,
             )
             subset_metrics[subset] = metrics
             total_correct += metrics["correct_predictions"]
@@ -465,6 +513,7 @@ async def evaluate_model_on_dataset(
             subject=dataset_subsets,
             subject_category_mapping=subject_category_mapping,
             output_variable=output_variable,
+            workflow=workflow,
         )
         results = calculate_metrics(
             metrics["correct_predictions"],
