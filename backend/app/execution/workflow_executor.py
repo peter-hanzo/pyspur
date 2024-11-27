@@ -10,7 +10,8 @@ from ..schemas.workflow_schemas import (
     WorkflowLinkSchema,
     WorkflowNodeSchema,
 )
-from ..execution.task_recorder import TaskRecorder, TaskStatus
+from .task_recorder import TaskRecorder, TaskStatus
+from .workflow_execution_context import WorkflowExecutionContext
 
 
 class WorkflowExecutor:
@@ -22,9 +23,11 @@ class WorkflowExecutor:
         self,
         workflow: WorkflowDefinitionSchema,
         task_recorder: Optional[TaskRecorder] = None,
+        context: Optional[WorkflowExecutionContext] = None,
     ):
         self.workflow = workflow
         self.task_recorder = task_recorder
+        self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[None]] = {}

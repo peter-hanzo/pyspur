@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from ..nodes.base import BaseNode
 from ..nodes.factory import NodeFactory
 from ..schemas.workflow_schemas import WorkflowNodeSchema
+from .workflow_execution_context import WorkflowExecutionContext
 
 
 class NodeExecutor:
@@ -12,8 +13,13 @@ class NodeExecutor:
     Handles the execution of a workflow node.
     """
 
-    def __init__(self, workflow_node: WorkflowNodeSchema):
+    def __init__(
+        self,
+        workflow_node: WorkflowNodeSchema,
+        context: Optional[WorkflowExecutionContext] = None,
+    ):
         self.workflow_node = workflow_node
+        self.context = context
         self._node_instance: Optional[BaseNode] = None
         self.output: Optional[BaseModel] = None
 

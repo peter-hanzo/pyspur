@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from typing import Awaitable, Dict, Any, List
+from typing import Awaitable, Dict, Any, List, Optional
 
 from ..schemas.run_schemas import (
     StartRunRequestSchema,
@@ -22,6 +22,7 @@ from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
 from ..utils.workflow_version_utils import fetch_workflow_version
+from ..execution.workflow_execution_context import WorkflowExecutionContext
 
 router = APIRouter()
 
@@ -79,7 +80,18 @@ async def run_workflow_blocking(
     workflow_definition = WorkflowDefinitionSchema.model_validate(
         workflow_version.definition
     )
-    executor = WorkflowExecutor(workflow_definition, task_recorder)
+    context = WorkflowExecutionContext(
+        workflow_id=workflow.id,
+        run_id=new_run.id,
+        parent_run_id=request.parent_run_id,
+        run_type=run_type,
+        db_session=db,
+    )
+    executor = WorkflowExecutor(
+        workflow=workflow_definition,
+        task_recorder=task_recorder,
+        context=context,
+    )
     outputs = await executor(initial_inputs)
     new_run.status = RunStatus.COMPLETED
     new_run.end_time = datetime.now(timezone.utc)
@@ -130,7 +142,18 @@ async def run_workflow_non_blocking(
             run.status = RunStatus.RUNNING
             session.commit()
             task_recorder = TaskRecorder(db, run_id)
-            executor = WorkflowExecutor(workflow_definition, task_recorder)
+            context = WorkflowExecutionContext(
+                workflow_id=run.workflow_id,
+                run_id=run_id,
+                parent_run_id=start_run_request.parent_run_id,
+                run_type=run_type,
+                db_session=session,
+            )
+            executor = WorkflowExecutor(
+                workflow=workflow_definition,
+                task_recorder=task_recorder,
+                context=context,
+            )
             try:
                 assert run.initial_inputs
                 outputs = await executor(run.initial_inputs)

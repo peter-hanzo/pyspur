@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from hashlib import md5
-from typing import Any, Dict, List, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from jinja2 import Template
 from pydantic import BaseModel, Field, ValidationError, create_model
+from ..execution.workflow_execution_context import WorkflowExecutionContext
 
 DynamicSchemaValueType = str
 TSchemaValue = Type[
@@ -36,8 +37,11 @@ class BaseNode(ABC):
     _config: Any
     visual_tag: VisualTag
 
-    def __init__(self, config: Any) -> None:
+    def __init__(
+        self, config: Any, context: Optional[WorkflowExecutionContext] = None
+    ) -> None:
         self._config = config
+        self.context = context
         # if visual tag is not set by the node, set a default visual tag
         if not hasattr(self, "visual_tag"):
             self.visual_tag = self.get_default_visual_tag()
