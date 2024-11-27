@@ -71,7 +71,9 @@ const EvalsPage = () => {
                 type={evalItem.type}
                 numSamples={evalItem.num_samples}
                 paperLink={evalItem.paper_link}
-                onRun={() => handleLaunchEval(workflowId, evalItem.name, evalItem.output_variable, evalItem.num_samples)}
+                onRun={(workflowId, outputVariable, numSamples) =>
+                  handleLaunchEval(workflowId, evalItem.name, outputVariable, numSamples)
+                }
               />
             ))}
           </div>

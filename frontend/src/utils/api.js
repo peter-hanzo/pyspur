@@ -1,8 +1,7 @@
 import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
 import JSPydanticModel from './JSPydanticModel.js'; // Import the JSPydanticModel class
-import { useDispatch } from 'react-redux';
-import { setTestInputs } from '../store/flowSlice';
+
 
 const API_BASE_URL = typeof window !== 'undefined'
   ? `http://${window.location.host}/api`
@@ -359,8 +358,9 @@ export const getEvals = async () => {
 
 export const startEvalRun = async (workflowId, evalName, outputVariable, numSamples = 10) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/start_eval/`, {
+    const response = await axios.post(`${API_BASE_URL}/evals/launch/`, {
       eval_name: evalName,
+      workflow_id: workflowId,
       output_variable: outputVariable,
       num_samples: numSamples,
     });

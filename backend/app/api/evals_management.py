@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 import yaml
 from typing import List, Dict, Any
+from pydantic import BaseModel
 
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel
@@ -12,6 +13,11 @@ router = APIRouter()
 
 EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
 
+class EvalRunRequest(BaseModel):
+    eval_name: str
+    workflow_id: str
+    output_variable: str
+    num_samples: int = 10
 
 @router.get("/", description="List all available evals")
 def list_evals() -> List[Dict[str, Any]]:
@@ -41,25 +47,21 @@ def list_evals() -> List[Dict[str, Any]]:
             )
     return evals
 
-
 @router.post("/launch/", description="Launch an eval job")
 async def launch_eval(
-    eval_name: str,
-    workflow_id: str,
-    output_variable: str,
+    request: EvalRunRequest,
     background_tasks: BackgroundTasks,
-    num_samples: int = 10,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Launch an eval job by triggering the evaluator with the specified eval configuration.
     """
     # Validate workflow ID
-    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == request.workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    eval_file = EVALS_DIR / f"{eval_name}.yaml"
+    eval_file = EVALS_DIR / f"{request.eval_name}.yaml"
     if not eval_file.exists():
         raise HTTPException(status_code=404, detail="Eval configuration not found")
 
@@ -69,7 +71,9 @@ async def launch_eval(
 
         # Run the evaluation asynchronously
         results = await evaluate_model_on_dataset(
-            task_config, num_samples=num_samples, output_variable=output_variable
+            task_config,
+            num_samples=request.num_samples,
+            output_variable=request.output_variable
         )
 
         return {
