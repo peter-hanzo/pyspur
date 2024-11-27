@@ -20,9 +20,11 @@ class BaseSubworkflowNode(BaseNode, ABC):
 
     def setup(self) -> None:
         config = self.config
-        self.workflow: WorkflowDefinitionSchema = self._parse_workflow_json(
-            config.workflow_json
-        )
+        if not self.workflow:
+            self.workflow: WorkflowDefinitionSchema = self._parse_workflow_json(
+                config.workflow_json
+            )
+        print(f"Workflow: {self.workflow}")
         self._node_dict: Dict[str, WorkflowNodeSchema] = {
             node.id: node for node in self.workflow.nodes
         }
