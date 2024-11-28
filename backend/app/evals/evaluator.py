@@ -162,6 +162,50 @@ async def check_equality(expr1: str, expr2: str) -> bool:
     return True
 
 
+def extract_output_variable(outputs: dict, workflow_output_variable: str) -> Any:
+    """
+    Extract the output value from the outputs dictionary based on the workflow_output_variable.
+
+    Args:
+        outputs (dict): The dictionary containing workflow outputs.
+        workflow_output_variable (str): The variable to extract, potentially nested.
+
+    Returns:
+        Any: The extracted output value.
+
+    Raises:
+        ValueError: If the specified variable is not found or the structure is invalid.
+    """
+    current_level = outputs
+    remaining_variable = workflow_output_variable
+
+    while remaining_variable:
+        # Find the next matching key in the current level
+        matched_key = None
+        for key in current_level.keys():
+            if remaining_variable.startswith(key):
+                matched_key = key
+                break
+
+        if not matched_key:
+            # Debugging: Log available keys for better error diagnosis
+            print(f"Current level keys: {list(current_level.keys())}")
+            raise ValueError(f"Key '{remaining_variable}' not found in the current level of outputs")
+
+        # Descend into the matched key
+        current_level = current_level[matched_key]
+
+        # Remove the matched key and the delimiter from the remaining variable
+        remaining_variable = remaining_variable[len(matched_key) + 1 :]
+
+        # If the remaining variable is a single key and the current level is a dictionary,
+        # directly return the value if it exists
+        if isinstance(current_level, dict) and remaining_variable in current_level:
+            return current_level[remaining_variable]
+
+    return current_level
+
+
 async def execute_workflow(
     full_prompt: str,
     workflow_definition: Optional[WorkflowDefinitionSchema] = None,
@@ -196,14 +240,17 @@ async def execute_workflow(
     # Execute workflow
     executor = WorkflowExecutor(workflow_definition)
     outputs = await executor(initial_inputs)
+    outputs = {k: v.model_dump() for k, v in outputs.items()}
+    print(f"Outputs: {outputs}")
+    # Debugging: Log the outputs dictionary and workflow_output_variable
+    print(f"Workflow Output Variable: {workflow_output_variable}")
+    print(f"Outputs Dictionary: {outputs}")
 
-    # Extract output from specified variable
-    if workflow_output_variable not in outputs:
-        raise ValueError(
-            f"Output variable {workflow_output_variable} not found in workflow outputs"
-        )
+    # Extract output from specified variable using the new function
+    outputs = extract_output_variable(outputs, workflow_output_variable)
 
-    return str(outputs[workflow_output_variable])
+    print(f"Extracted outputs: {outputs}")
+    return str(outputs)
 
 
 def extract_answer(
@@ -576,3 +623,20 @@ async def prepare_and_evaluate_dataset(
     results["subset_metrics"] = subset_metrics
 
     return results
+
+
+if __name__ == "__main__":
+    test_dict = {
+        "input_node": "hello",
+        "node_1732234981946": "hello",
+        "node_1732236371719": "hello",
+        "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6": "hello",
+        "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef": "hello",
+        "node_1732236371719-bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3": "hello",
+    }
+    print(
+        extract_output_variable(
+            test_dict,
+            "bd9e35ad-829c-4618-a828-546c4a3e65f6-50292c67-7a0e-4f11-97fc-ba2cd8ee45ef-5ecee81a-746d-4847-abf6-0e6a6d241de3-correct_option",
+        )
+    )
