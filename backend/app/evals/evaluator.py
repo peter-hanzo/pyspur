@@ -188,9 +188,16 @@ async def execute_workflow(
     if input_node is None:
         raise ValueError("Workflow must have an InputNode")
 
+    # Extract input schema from the InputNode
+    input_schema = input_node.config.get("input_schema", {})
+    initial_inputs = {
+        input_node.id: {
+            key: value for key, value in locals().items() if key in input_schema
+        }
+    }
+
     # Execute workflow
     executor = WorkflowExecutor(workflow)
-    initial_inputs = {input_node.id: {"user_message": full_prompt}}
     outputs = await executor(initial_inputs)
 
     # Extract output from specified variable
@@ -487,6 +494,12 @@ async def prepare_and_evaluate_dataset(
     dataset_subsets = eval_config.get("dataset_subsets", None)  # Subsets to evaluate
     process_docs = eval_config.get("process_docs")
 
+    # Parse the output variable into node_id and variable_name
+    if output_variable:
+        node_id, variable_name = output_variable.split("-", 1)
+    else:
+        node_id, variable_name = None, None
+
     # Initialize metrics for aggregation
     subset_metrics = {}
     total_correct = 0
@@ -514,7 +527,7 @@ async def prepare_and_evaluate_dataset(
                 batch_size=batch_size,
                 subject=subset,
                 subject_category_mapping=eval_config.get("subject_category_mapping"),
-                output_variable=output_variable,
+                output_variable=variable_name,  # Pass only the variable name
             )
 
             # Aggregate metrics
@@ -546,7 +559,7 @@ async def prepare_and_evaluate_dataset(
             eval_config=eval_config,
             workflow=workflow,
             batch_size=batch_size,
-            output_variable=output_variable,
+            output_variable=variable_name,  # Pass only the variable name
         )
 
         # Aggregate metrics

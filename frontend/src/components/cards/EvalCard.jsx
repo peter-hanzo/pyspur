@@ -58,7 +58,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
     }
 
     // Pass the selected workflow ID, output variable, and number of samples to the onRun function
-    onRun(selectedWorkflow.id, selectedOutputVariable, selectedNumSamples);
+    onRun(`${selectedWorkflow.id}-${selectedOutputVariable}`, selectedNumSamples);
     setIsModalOpen(false); // Close the modal
   };
 

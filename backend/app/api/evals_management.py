@@ -86,10 +86,19 @@ async def launch_eval(
         all_source_ids = {link.source_id for link in workflow_definition.links}
         all_node_ids = {node.id for node in workflow_definition.nodes}
         leaf_nodes = all_node_ids - all_source_ids
-        if request.output_variable not in leaf_nodes:
+
+        # Extract all output variables from leaf nodes
+        leaf_node_output_variables = {
+            f"{node.id}-{output_variable}"
+            for node in workflow_definition.nodes
+            if node.id in leaf_nodes
+            for output_variable in node.config.get("output_variables", [])
+        }
+
+        if request.output_variable not in leaf_node_output_variables:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid output variable '{request.output_variable}'. Must be one of: {leaf_nodes}",
+                detail=f"Invalid output variable '{request.output_variable}'. Must be one of: {leaf_node_output_variables}",
             )
 
         # Run the evaluation with mandatory workflow parameter
