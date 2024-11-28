@@ -2,14 +2,17 @@ from typing import Any, Dict
 
 from pydantic import BaseModel
 
+from ...schemas.workflow_schemas import WorkflowDefinitionSchema
+
 from ...execution.workflow_executor import WorkflowExecutor
 from .base_subworkflow_node import BaseSubworkflowNode
 from ...models.workflow_model import WorkflowModel
 from ...api.workflow_run import run_workflow_blocking, StartRunRequestSchema
+from ...database import get_db
 
 
 class StaticSubworkflowNodeConfig(BaseModel):
-    workflow_id: str
+    workflow_id: str = ""
 
 
 class StaticSubworkflowNode(BaseSubworkflowNode):
@@ -19,6 +22,19 @@ class StaticSubworkflowNode(BaseSubworkflowNode):
     def setup(self) -> None:
         if self.context is None:
             # context less execution
+            with next(get_db()) as db:
+                workflow_model = (
+                    db.query(WorkflowModel)
+                    .filter(WorkflowModel.id == self.config.workflow_id)
+                    .first()
+                )
+                if workflow_model is None:
+                    raise ValueError(
+                        f"Workflow with id {self.config.workflow_id} not found"
+                    )
+                self.workflow = WorkflowDefinitionSchema.model_validate(
+                    workflow_model.definition
+                )
             return super().setup()
         else:
             # context aware execution
@@ -30,8 +46,9 @@ class StaticSubworkflowNode(BaseSubworkflowNode):
             )
             if workflow_model is None:
                 raise ValueError(f"Workflow with id {workflow_id} not found")
-            self.workflow = workflow_model.definition
-            self.config.workflow_json = self.workflow
+            self.workflow = WorkflowDefinitionSchema.model_validate(
+                workflow_model.definition
+            )
             return super().setup()
 
     async def run(self, input_data: BaseModel) -> BaseModel:
