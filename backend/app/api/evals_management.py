@@ -9,6 +9,7 @@ from ..database import get_db
 from ..models.workflow_model import WorkflowModel
 from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
+from .workflow_management import get_workflow_output_variables
 
 router = APIRouter()
 
@@ -16,8 +17,8 @@ EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
 
 
 class EvalRunRequest(BaseModel):
-    eval_name: str
     workflow_id: str
+    eval_name: str
     output_variable: str
     num_samples: int = 10
 
@@ -80,31 +81,30 @@ async def launch_eval(
         eval_config = load_yaml_config(eval_file)
 
         # Validate the output variable
-        workflow_definition = WorkflowDefinitionSchema.model_validate(
-            workflow.definition
+        leaf_node_output_variables = get_workflow_output_variables(
+            workflow_id=request.workflow_id, db=db
         )
-        all_source_ids = {link.source_id for link in workflow_definition.links}
-        all_node_ids = {node.id for node in workflow_definition.nodes}
-        leaf_nodes = all_node_ids - all_source_ids
 
-        # Extract all output variables from leaf nodes
-        leaf_node_output_variables = {
-            f"{node.id}-{output_variable}"
-            for node in workflow_definition.nodes
-            if node.id in leaf_nodes
-            for output_variable in node.config.get("output_variables", [])
-        }
+        print(f"Valid output variables: {leaf_node_output_variables}")
 
-        if request.output_variable not in leaf_node_output_variables:
+        # Extract the list of valid prefixed variables
+        valid_prefixed_variables = [
+            var["prefixed_variable"] for var in leaf_node_output_variables
+        ]
+
+        if request.output_variable not in valid_prefixed_variables:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid output variable '{request.output_variable}'. Must be one of: {leaf_node_output_variables}",
+                detail=(
+                    f"Invalid output variable '{request.output_variable}'. "
+                    f"Must be one of: {leaf_node_output_variables}"
+                ),
             )
 
         # Run the evaluation with mandatory workflow parameter
         results = await prepare_and_evaluate_dataset(
             eval_config,
-            workflow=workflow_definition,  # Now required
+            workflow=workflow,  # Now required
             num_samples=request.num_samples,
             output_variable=request.output_variable,
         )

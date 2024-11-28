@@ -232,6 +232,13 @@ def get_workflow_output_variables(
             # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
             node_config = DynamicSchemaNodeConfig(**node.config)
             for var_name in node_config.output_schema.keys():
-                output_variables.append({"node_id": node.id, "variable_name": var_name})
+                # Include the node_id as a prefix in the output variable
+                output_variables.append(
+                    {
+                        "node_id": node.id,
+                        "variable_name": var_name,
+                        "prefixed_variable": f"{node.id}-{var_name}",  # Add prefixed format
+                    }
+                )
 
     return output_variables
