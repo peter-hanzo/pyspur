@@ -356,7 +356,7 @@ export const getEvals = async () => {
   }
 };
 
-export const startEvalRun = async (workflowId, evalName, outputVariable, numSamples = 10) => {
+export const startEvalRun = async (workflowId, evalName, numSamples = 10, outputVariable) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/evals/launch/`, {
       eval_name: evalName,

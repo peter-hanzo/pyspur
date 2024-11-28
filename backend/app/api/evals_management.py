@@ -72,6 +72,8 @@ async def launch_eval(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+
     eval_file = EVALS_DIR / f"{request.eval_name}.yaml"
     if not eval_file.exists():
         raise HTTPException(status_code=404, detail="Eval configuration not found")
@@ -104,7 +106,7 @@ async def launch_eval(
         # Run the evaluation with mandatory workflow parameter
         results = await prepare_and_evaluate_dataset(
             eval_config,
-            workflow=workflow,  # Now required
+            workflow_definition=workflow_definition,  # Now required
             num_samples=request.num_samples,
             output_variable=request.output_variable,
         )

@@ -57,8 +57,8 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
       return;
     }
 
-    // Pass the selected workflow ID, output variable, and number of samples to the onRun function
-    onRun(`${selectedWorkflow.id}-${selectedOutputVariable}`, selectedNumSamples);
+    // Pass the selected workflow ID, eval name, number of samples, and output variable to the onRun function
+    onRun(selectedWorkflow.id, selectedNumSamples, selectedOutputVariable);
     setIsModalOpen(false); // Close the modal
   };
 
@@ -129,20 +129,20 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                       </DropdownTrigger>
                       <DropdownMenu
                         aria-label="Output Variables"
-                        onAction={(key) => setSelectedOutputVariable(key)}
+                        onAction={(key) => setSelectedOutputVariable(key)} // Use the full prefixed value as the key
                       >
                         {Object.entries(
                           outputVariables.reduce((acc, variable) => {
-                            const { node_id, variable_name } = variable;
+                            const { node_id, variable_name, prefixed_variable } = variable;
                             if (!acc[node_id]) acc[node_id] = [];
-                            acc[node_id].push(variable_name);
+                            acc[node_id].push({ variable_name, prefixed_variable });
                             return acc;
                           }, {})
                         ).map(([nodeId, variables]) => (
                           <DropdownSection key={nodeId} title={`Node: ${nodeId}`}>
-                            {variables.map((variable) => (
-                              <DropdownItem key={`${nodeId}-${variable}`}>
-                                {variable}
+                            {variables.map(({ variable_name, prefixed_variable }) => (
+                              <DropdownItem key={prefixed_variable}>
+                                {variable_name} {/* Display only the variable name */}
                               </DropdownItem>
                             ))}
                           </DropdownSection>

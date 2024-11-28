@@ -164,7 +164,7 @@ async def check_equality(expr1: str, expr2: str) -> bool:
 
 async def execute_workflow(
     full_prompt: str,
-    workflow: Optional[WorkflowDefinitionSchema] = None,
+    workflow_definition: Optional[WorkflowDefinitionSchema] = None,
     workflow_output_variable: Optional[str] = None,
 ) -> str:
     """
@@ -178,26 +178,23 @@ async def execute_workflow(
     Returns:
         str: The model's response text
     """
-    if workflow is None:
+    if workflow_definition is None:
         raise ValueError("Workflow definition is required")
 
     # Find input node - we know workflows must have exactly one InputNode
     input_node = next(
-        (node for node in workflow.nodes if node.node_type == "InputNode"), None
+        (node for node in workflow_definition.nodes if node.node_type == "InputNode"),
+        None,
     )
     if input_node is None:
         raise ValueError("Workflow must have an InputNode")
 
     # Extract input schema from the InputNode
     input_schema = input_node.config.get("input_schema", {})
-    initial_inputs = {
-        input_node.id: {
-            key: value for key, value in locals().items() if key in input_schema
-        }
-    }
+    initial_inputs = {input_node.id: {key: full_prompt for key in input_schema.keys()}}
 
     # Execute workflow
-    executor = WorkflowExecutor(workflow)
+    executor = WorkflowExecutor(workflow_definition)
     outputs = await executor(initial_inputs)
 
     # Extract output from specified variable
@@ -285,7 +282,7 @@ def get_ground_truth_answer(problem, doc_to_target):
 async def evaluate_dataset_batch(
     dataset: Dataset,
     eval_config: Dict[str, Any],
-    workflow: WorkflowDefinitionSchema,
+    workflow_definition: WorkflowDefinitionSchema,
     batch_size: int = 10,
     subject: Optional[str] = None,
     subject_category_mapping: Optional[Dict[str, str]] = None,
@@ -349,7 +346,7 @@ async def evaluate_dataset_batch(
         # Call the model on all prompts in the batch concurrently
         responses = await asyncio.gather(
             *[
-                execute_workflow(prompt, workflow, output_variable)
+                execute_workflow(prompt, workflow_definition, output_variable)
                 for prompt in full_prompts
             ]
         )
@@ -464,7 +461,7 @@ def calculate_metrics(
 
 async def prepare_and_evaluate_dataset(
     eval_config: Dict[str, Any],
-    workflow: WorkflowDefinitionSchema,
+    workflow_definition: WorkflowDefinitionSchema,
     batch_size: int = 10,
     num_samples: Optional[int] = None,
     output_variable: Optional[str] = None,
@@ -523,7 +520,7 @@ async def prepare_and_evaluate_dataset(
             metrics = await evaluate_dataset_batch(
                 dataset=dataset,
                 eval_config=eval_config,
-                workflow=workflow,
+                workflow_definition=workflow_definition,
                 batch_size=batch_size,
                 subject=subset,
                 subject_category_mapping=eval_config.get("subject_category_mapping"),
@@ -557,7 +554,7 @@ async def prepare_and_evaluate_dataset(
         metrics = await evaluate_dataset_batch(
             dataset=dataset,
             eval_config=eval_config,
-            workflow=workflow,
+            workflow_definition=workflow_definition,
             batch_size=batch_size,
             output_variable=variable_name,  # Pass only the variable name
         )
