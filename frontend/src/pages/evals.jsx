@@ -5,6 +5,16 @@ import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils
 import EvalCard from "../components/cards/EvalCard";
 import { Spinner, Button, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@nextui-org/react";
 import { toast } from "sonner";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+  ResponsiveContainer,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+} from "recharts";
 
 const EvalsPage = () => {
   const [evals, setEvals] = useState([]);
@@ -31,11 +41,48 @@ const EvalsPage = () => {
     fetchEvals();
   }, []);
 
+  // Helper function to safely parse results
+  const parseResults = (results) => {
+    if (!results) return null;
+    if (typeof results === "string") {
+      try {
+        return JSON.parse(results);
+      } catch (error) {
+        console.error("Error parsing results:", error);
+        return null;
+      }
+    }
+    return results; // If already an object
+  };
+
   useEffect(() => {
     const fetchEvalRuns = async () => {
       try {
         const runsData = await listEvalRuns();
-        setEvalRuns(runsData);
+
+        // For each completed run, fetch the results
+        const runsDataWithResults = await Promise.all(
+          runsData.map(async (run) => {
+            if (run.status === "COMPLETED") {
+              try {
+                const evalRunData = await getEvalRunStatus(run.run_id);
+                const parsedResults = parseResults(evalRunData.results);
+                return {
+                  ...run,
+                  results: parsedResults,
+                };
+              } catch (error) {
+                console.error(`Error fetching results for run ${run.run_id}:`, error);
+                return run; // Return run without results
+              }
+            } else {
+              // For pending or running runs, just return the run as is
+              return run;
+            }
+          })
+        );
+
+        setEvalRuns(runsDataWithResults);
       } catch (error) {
         console.error("Error fetching eval runs:", error);
         toast.error("Failed to load eval runs.");
@@ -61,7 +108,7 @@ const EvalsPage = () => {
       const results = await startEvalRun(workflowId, evalName, numSamples, outputVariable);
       setEvalResults(results);
       onOpen();
-      toast.success(`Eval completed successfully.`);
+      toast.success(`Eval run started.`);
     } catch (error) {
       console.error(`Error launching eval:`, error);
       toast.error(`Failed to launch eval.`);
@@ -92,6 +139,7 @@ const EvalsPage = () => {
               <TableColumn>Eval Name</TableColumn>
               <TableColumn>Workflow ID</TableColumn>
               <TableColumn>Status</TableColumn>
+              <TableColumn>Accuracy</TableColumn>
               <TableColumn>Actions</TableColumn>
             </TableHeader>
             <TableBody items={evalRuns}>
@@ -102,11 +150,35 @@ const EvalsPage = () => {
                   <TableCell>{run.workflow_id}</TableCell>
                   <TableCell>{run.status}</TableCell>
                   <TableCell>
+                    {run.results && run.results.accuracy !== undefined ? (
+                      <div style={{ width: 50, height: 50 }}>
+                        <RadialBarChart
+                          innerRadius="80%"
+                          outerRadius="100%"
+                          data={[{ name: "Accuracy", value: run.results.accuracy * 100 }]}
+                          startAngle={90}
+                          endAngle={-270}
+                        >
+                          <RadialBar
+                            minAngle={15}
+                            background
+                            clockWise
+                            dataKey="value"
+                            cornerRadius={10}
+                            fill="#4ade80"
+                          />
+                          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                        </RadialBarChart>
+                      </div>
+                    ) : run.status === "COMPLETED" ? (
+                      "N/A"
+                    ) : (
+                      "--"
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {run.status === "COMPLETED" ? (
-                      <Button
-                        size="sm"
-                        onPress={() => handleViewResults(run.run_id)}
-                      >
+                      <Button size="sm" onPress={() => handleViewResults(run.run_id)}>
                         View Results
                       </Button>
                     ) : (
@@ -153,18 +225,20 @@ const EvalsPage = () => {
         {/* Modal for displaying eval results */}
         <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
           <ModalContent>
-            {(onClose) => (
+            {() => (
               <>
                 <ModalHeader className="flex flex-col gap-1">Evaluation Results</ModalHeader>
                 <ModalBody>
                   {evalResults ? (
-                    <pre className="text-sm bg-gray-100 p-4 rounded">{JSON.stringify(evalResults, null, 2)}</pre>
+                    <pre className="text-sm bg-gray-100 p-4 rounded">
+                      {JSON.stringify(evalResults, null, 2)}
+                    </pre>
                   ) : (
                     <p>No results available.</p>
                   )}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="danger" variant="light" onPress={onClose}>
+                  <Button color="danger" variant="light" onPress={onOpenChange}>
                     Close
                   </Button>
                 </ModalFooter>
