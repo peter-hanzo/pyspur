@@ -4,10 +4,13 @@ from typing import Any, Awaitable, Dict, List
 from pydantic import BaseModel, create_model
 
 from ..base import BaseNode
-from .subworkflow_node import SubworkflowNode, SubworkflowNodeConfig
+from .static_subworkflow_node import (
+    StaticSubworkflowNode,
+    StaticSubworkflowNodeConfig,
+)
 
 
-class VectorizeSubworkflowNodeConfig(SubworkflowNodeConfig):
+class VectorizeSubworkflowNodeConfig(StaticSubworkflowNodeConfig):
     pass
 
 
@@ -21,7 +24,7 @@ class VectorizeSubworkflowNode(BaseNode):
 
     def setup(self) -> None:
         config = self.config
-        self.subworkflow_node = SubworkflowNode(config)
+        self.subworkflow_node = StaticSubworkflowNode(config=config)
 
         # the input and output schemas of the vectorized node
         # they have the same keys as the subworkflow node but the values are lists of the original type
@@ -167,9 +170,7 @@ if __name__ == "__main__":
         "5__user_message": "Complete this joke like Jimmy Carr: Why do politicians and actors not like to ride shotgun?",
     }
     input_data = {k: [v] * n_parallel for k, v in input_data.items()}
-    node = VectorizeSubworkflowNode(
-        VectorizeSubworkflowNodeConfig(workflow_json=workflow_json)
-    )
+    node = VectorizeSubworkflowNode(VectorizeSubworkflowNodeConfig(workflow_id="S1"))
     print("Input model:")
     print(node.input_model.model_json_schema())
     print("-" * 50)

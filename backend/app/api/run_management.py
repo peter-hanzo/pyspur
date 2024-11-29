@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -52,6 +53,10 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
             "inputs": task.inputs,
             "outputs": task.outputs,
             "run_time": task.run_time,
+            "subworkflow": json.loads(task.subworkflow) if task.subworkflow else None,
+            "subworkflow_output": (
+                json.loads(task.subworkflow_output) if task.subworkflow_output else None
+            ),
         }
         for task in tasks
     ]

@@ -42,7 +42,7 @@ const findMetadataInCategory = (metadata, nodeType, path) => {
   if (!metadata) return null;
 
   // Find which category the node belongs to
-  const categories = ['primitives', 'llm', 'python'];
+  const categories = ['primitives', 'json', 'llm', 'python'];
   for (const category of categories) {
     const nodes = metadata[category];
     if (!nodes) continue;
