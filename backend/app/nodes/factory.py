@@ -53,6 +53,23 @@ class NodeFactory:
                 "class_name": "StaticValueNode",
             },
         ],
+        "json": [
+            {
+                "node_type_name": "JsonifyNode",
+                "module": ".nodes.primitives.json.jsonify",
+                "class_name": "JsonifyNode",
+            },
+            {
+                "node_type_name": "ExtractJsonNode",
+                "module": ".nodes.primitives.json.extract_json",
+                "class_name": "ExtractJsonNode",
+            },
+            {
+                "node_type_name": "PickOneNode",
+                "module": ".nodes.primitives.json.pick_one",
+                "class_name": "PickOneNode",
+            },
+        ],
         "llm": [
             {
                 "node_type_name": "SingleLLMCallNode",
