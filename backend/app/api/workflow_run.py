@@ -21,11 +21,7 @@ from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
-from ..utils.workflow_version_utils import (
-    get_latest_workflow_version,
-    hash_workflow_definition,
-    fetch_workflow_version,
-)
+from ..utils.workflow_version_utils import fetch_workflow_version
 
 router = APIRouter()
 
@@ -50,7 +46,7 @@ async def run_workflow_blocking(
     initial_inputs = request.initial_inputs or {}
     new_run = RunModel(
         workflow_id=workflow.id,
-        workflow_version_id=workflow_version._intid,
+        workflow_version_id=workflow_version._intid,  # type: ignore
         status=RunStatus.RUNNING,
         initial_inputs=initial_inputs,
         start_time=datetime.now(timezone.utc),
@@ -97,7 +93,7 @@ async def run_workflow_non_blocking(
     initial_inputs = start_run_request.initial_inputs or {}
     new_run = RunModel(
         workflow_id=workflow.id,
-        workflow_version_id=workflow_version._intid,
+        workflow_version_id=workflow_version._intid,  # type: ignore
         status=RunStatus.PENDING,
         initial_inputs=initial_inputs,
         start_time=datetime.now(timezone.utc),
@@ -182,7 +178,7 @@ async def batch_run_workflow_non_blocking(
     dataset_id = request.dataset_id
     new_run = RunModel(
         workflow_id=workflow.id,
-        workflow_version_id=workflow_version._intid,
+        workflow_version_id=workflow_version._intid,  # type: ignore
         status=RunStatus.RUNNING,
         input_dataset_id=dataset_id,
         start_time=datetime.now(timezone.utc),
