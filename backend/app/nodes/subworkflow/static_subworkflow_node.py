@@ -32,7 +32,7 @@ class StaticSubworkflowNode(BaseSubworkflowNode):
                     raise ValueError(
                         f"Workflow with id {self.config.workflow_id} not found"
                     )
-                self.workflow = WorkflowDefinitionSchema.model_validate(
+                self.subworkflow = WorkflowDefinitionSchema.model_validate(
                     workflow_model.definition
                 )
             return super().setup()
@@ -46,24 +46,25 @@ class StaticSubworkflowNode(BaseSubworkflowNode):
             )
             if workflow_model is None:
                 raise ValueError(f"Workflow with id {workflow_id} not found")
-            self.workflow = WorkflowDefinitionSchema.model_validate(
+            self.subworkflow = WorkflowDefinitionSchema.model_validate(
                 workflow_model.definition
             )
             return super().setup()
 
     async def run(self, input_data: BaseModel) -> BaseModel:
+        assert self.subworkflow is not None
         context = self.context
         # initial inputs is <input_node_id>: {<input_field_name>: <input_value>}
         initial_inputs: Dict[str, Dict[str, Any]] = {}
         input_data_dict = input_data.model_dump()
         input_node_id = [
-            node.id for node in self.workflow.nodes if node.node_type == "InputNode"
+            node.id for node in self.subworkflow.nodes if node.node_type == "InputNode"
         ][0]
         initial_inputs[input_node_id] = input_data_dict
 
         if context is None:
             # context less execution
-            executor = WorkflowExecutor(self.workflow)
+            executor = WorkflowExecutor(self.subworkflow)
             outputs = await executor(initial_inputs)
         else:
             # prepare the initial inputs for the workflow

@@ -16,16 +16,13 @@ class BaseSubworkflowNodeConfig(BaseModel, ABC):
 class BaseSubworkflowNode(BaseNode, ABC):
     name: str = "static_workflow_node"
     config_model = BaseSubworkflowNodeConfig
-    workflow: WorkflowDefinitionSchema
 
     def setup(self) -> None:
         config = self.config
-        if not self.workflow:
-            self.workflow: WorkflowDefinitionSchema = self._parse_workflow_json(
-                config.workflow_json
-            )
+        if not self.subworkflow:
+            self.subworkflow = self._parse_workflow_json(config.workflow_json)
         self._node_dict: Dict[str, WorkflowNodeSchema] = {
-            node.id: node for node in self.workflow.nodes
+            node.id: node for node in self.subworkflow.nodes
         }
         self._dependencies: Dict[str, Set[str]] = self._build_dependencies()
         # Collect input and output schemas
@@ -46,10 +43,11 @@ class BaseSubworkflowNode(BaseNode, ABC):
         return WorkflowDefinitionSchema.model_validate(workflow_dict)
 
     def _build_dependencies(self) -> Dict[str, Set[str]]:
+        assert self.subworkflow is not None
         dependencies: Dict[str, Set[str]] = {
-            node.id: set() for node in self.workflow.nodes
+            node.id: set() for node in self.subworkflow.nodes
         }
-        for link in self.workflow.links:
+        for link in self.subworkflow.links:
             dependencies[link.target_id].add(link.source_id)
         return dependencies
 
@@ -57,9 +55,10 @@ class BaseSubworkflowNode(BaseNode, ABC):
         """
         input schema of a workflow is the schema of the input node of the workflow
         """
+        assert self.subworkflow is not None
         # find the input node
         input_node = None
-        for node in self.workflow.nodes:
+        for node in self.subworkflow.nodes:
             if node.node_type == "InputNode":
                 input_node = node
                 break
@@ -72,9 +71,10 @@ class BaseSubworkflowNode(BaseNode, ABC):
         If the workflow has an output node, the output schema of the workflow is the output schema of the output node.
         Otherwise, the output schema is the schema of the outputs of the nodes that are not consumed by other nodes.
         """
+        assert self.subworkflow is not None
         # find the output node
         output_node = None
-        for node in self.workflow.nodes:
+        for node in self.subworkflow.nodes:
             if node.node_type == "OutputNode":
                 output_node = node
                 break
@@ -96,9 +96,10 @@ class BaseSubworkflowNode(BaseNode, ABC):
         Collects the outputs from the sub-workflow that are not consumed by other nodes.
         Also builds a mapping from output field names to node IDs and node output keys.
         """
+        assert self.subworkflow is not None
         # Collect all consumed outputs
         all_consumed_sources: Set[Tuple[str, str]] = set()
-        for link in self.workflow.links:
+        for link in self.subworkflow.links:
             all_consumed_sources.add((link.source_id, link.source_output_key))
 
         output_fields: Dict[str, str] = {}
