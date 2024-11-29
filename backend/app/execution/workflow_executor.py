@@ -123,7 +123,10 @@ class WorkflowExecutor:
         # Update task recorder
         if self.task_recorder:
             self.task_recorder.update_task(
-                node_id=node_id, status=TaskStatus.RUNNING, inputs=input_data_dict
+                node_id=node_id,
+                status=TaskStatus.RUNNING,
+                inputs=input_data_dict,
+                subworkflow=node_executor.subworkflow,
             )
         # Execute node
         try:
@@ -142,6 +145,8 @@ class WorkflowExecutor:
                 status=TaskStatus.COMPLETED,
                 outputs=output.model_dump(),
                 end_time=datetime.now(),
+                subworkflow=node_executor.subworkflow,
+                subworkflow_output=node_executor.subworkflow_output,
             )
         # Store output
         self._outputs[node_id] = output
