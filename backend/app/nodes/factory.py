@@ -43,6 +43,11 @@ class NodeFactory:
                 "class_name": "InputNode",
             },
             {
+                "node_type_name": "OutputNode",
+                "module": ".nodes.primitives.output",
+                "class_name": "OutputNode",
+            },
+            {
                 "node_type_name": "StaticValueNode",
                 "module": ".nodes.primitives.static_value",
                 "class_name": "StaticValueNode",
