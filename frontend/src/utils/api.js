@@ -68,6 +68,17 @@ export const getRunStatus = async (runID) => {
   }
 };
 
+export const getRun = async (runID) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/run/${runID}/`);
+    console.log('Run Data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting run:', error);
+    throw error;
+  }
+};
+
 export const getWorkflows = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/`);
