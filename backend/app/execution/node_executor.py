@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from ..nodes.base import BaseNode
 from ..nodes.factory import NodeFactory
-from ..schemas.workflow_schemas import WorkflowNodeSchema
+from ..schemas.workflow_schemas import WorkflowDefinitionSchema, WorkflowNodeSchema
 from .workflow_execution_context import WorkflowExecutionContext
 
 
@@ -22,6 +22,8 @@ class NodeExecutor:
         self.context = context
         self._node_instance: Optional[BaseNode] = None
         self.output: Optional[BaseModel] = None
+        self.subworkflow: Optional[WorkflowDefinitionSchema] = None
+        self.subworkflow_output: Optional[Dict[str, Any]] = None
 
     def create_node_instance(self) -> BaseNode:
         """
@@ -44,4 +46,6 @@ class NodeExecutor:
         if isinstance(input_data, dict):
             input_data = self.node_instance.input_model.model_validate(input_data)
         self.output = await self.node_instance(input_data)
+        self.subworkflow = self.node_instance.subworkflow
+        self.subworkflow_output = self.node_instance.subworkflow_output
         return self.output
