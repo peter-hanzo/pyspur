@@ -24,7 +24,6 @@ class BaseSubworkflowNode(BaseNode, ABC):
             self.workflow: WorkflowDefinitionSchema = self._parse_workflow_json(
                 config.workflow_json
             )
-        print(f"Workflow: {self.workflow}")
         self._node_dict: Dict[str, WorkflowNodeSchema] = {
             node.id: node for node in self.workflow.nodes
         }
@@ -69,6 +68,30 @@ class BaseSubworkflowNode(BaseNode, ABC):
         return input_node.config.get("input_schema", {})
 
     def _collect_output_schema(self) -> Dict[str, str]:
+        """
+        If the workflow has an output node, the output schema of the workflow is the output schema of the output node.
+        Otherwise, the output schema is the schema of the outputs of the nodes that are not consumed by other nodes.
+        """
+        # find the output node
+        output_node = None
+        for node in self.workflow.nodes:
+            if node.node_type == "OutputNode":
+                output_node = node
+                break
+        if output_node is not None:
+            self._output_field_to_node_output: Dict[str, Tuple[str, str]] = {}
+            for output_name, _field in output_node.config.get(
+                "output_schema", {}
+            ).items():
+                self._output_field_to_node_output[output_name] = (
+                    output_node.id,
+                    output_name,
+                )
+            return output_node.config.get("output_schema", {})
+        else:
+            return self._collect_unused_output_schema()
+
+    def _collect_unused_output_schema(self) -> Dict[str, str]:
         """
         Collects the outputs from the sub-workflow that are not consumed by other nodes.
         Also builds a mapping from output field names to node IDs and node output keys.
