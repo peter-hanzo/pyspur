@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator
 
-from ..nodes.factory import NodeFactory
+from ..nodes.node_types import is_valid_node_type
 
 
 class WorkflowNodeCoordinatesSchema(BaseModel):
@@ -30,7 +30,7 @@ class WorkflowNodeSchema(BaseModel):
 
     @field_validator("node_type")
     def type_must_be_in_factory(cls, v: str):
-        if not NodeFactory.is_valid_node_type(v):
+        if not is_valid_node_type(v):
             raise ValueError(f"Node type '{v}' is not valid.")
         return v
 
