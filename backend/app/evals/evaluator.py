@@ -380,6 +380,7 @@ async def evaluate_dataset_batch(
     total = len(dataset)
     correct = 0
     task_id = 0
+    per_example_results = []
 
     # Initialize category tracking if needed
     if subject_category_mapping and category_correct is None and category_total is None:
@@ -427,6 +428,14 @@ async def evaluate_dataset_batch(
             )
             correct += int(is_correct)
 
+            # Add per-example results
+            per_example_results.append({
+                'task_id': task_id,
+                'predicted_answer': predicted_answer,
+                'ground_truth_answer': ground_truth_answer,
+                'is_correct': is_correct,
+            })
+
             # Update category metrics if needed
             if subject_category_mapping:
                 subject_value = (
@@ -452,6 +461,7 @@ async def evaluate_dataset_batch(
         "accuracy": correct / total,
         "all_responses": all_responses,
         "short_responses": short_responses,
+        "per_example_results": per_example_results,
     }
 
     if subject_category_mapping:
