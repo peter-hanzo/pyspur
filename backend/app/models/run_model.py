@@ -33,6 +33,9 @@ class RunModel(BaseModel):
     workflow_id: Mapped[str] = mapped_column(
         String, ForeignKey("workflows.id"), nullable=False, index=True
     )
+    workflow_version_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("workflow_versions._intid"), nullable=False, index=True
+    )
     parent_run_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("runs.id"), nullable=True, index=True
     )

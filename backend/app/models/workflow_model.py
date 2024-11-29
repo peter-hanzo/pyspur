@@ -3,10 +3,17 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from typing import List, Optional, Any
 from .base_model import BaseModel
-from .run_model import RunModel
 
 
 class WorkflowModel(BaseModel):
+    """
+    Represents a workflow in the system.
+
+    A version of the workflow is created only when the workflow is run.
+    The latest or current version of the workflow is always stored in the
+    WorkflowModel itself, while specific versions are managed separately.
+    """
+
     __tablename__ = "workflows"
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -25,6 +32,4 @@ class WorkflowModel(BaseModel):
         onupdate=datetime.now(timezone.utc),
     )
 
-    runs: Mapped[Optional[List["RunModel"]]] = relationship(
-        "RunModel", backref="workflow"
-    )
+    versions = relationship("WorkflowVersionModel", back_populates="workflow")

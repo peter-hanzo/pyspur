@@ -8,6 +8,7 @@ import {
   updateNodeData,
   updateEdgesOnHandleRename,
 } from '../../store/flowSlice';
+import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
 
 const updateMessageVariables = (message, oldKey, newKey) => {
   if (!message) return message;
@@ -27,6 +28,21 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const dispatch = useDispatch();
 
   const edges = useSelector((state) => state.flow.edges);
+
+  const inputMetadata = useSelector((state) => selectPropertyMetadata(state, `${type}.input`));
+  const outputMetadata = useSelector((state) => selectPropertyMetadata(state, `${type}.output`));
+  const excludeSchemaKeywords = (metadata) => {
+    const schemaKeywords = ['required', 'title', 'type' ];
+    return Object.keys(metadata).reduce((acc, key) => {
+      if (!schemaKeywords.includes(key)) {
+        acc[key] = metadata[key];
+      }
+      return acc;
+    }, {});
+  };
+
+  const cleanedInputMetadata = excludeSchemaKeywords(inputMetadata);
+  const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata);
 
   const handleSchemaKeyEdit = useCallback(
     (oldKey, newKey, schemaType) => {
@@ -90,8 +106,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
-    const inputSchema = nodeData?.config?.['input_schema'] || {};
-    const outputSchema = nodeData?.config?.['output_schema'] || {};
+    const inputSchema = nodeData?.config?.['input_schema'] || cleanedInputMetadata || {};
+    const outputSchema = nodeData?.config?.['output_schema'] || cleanedOutputMetadata || {};
 
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);
@@ -214,8 +230,8 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = nodeData?.config?.['input_schema'] || {};
-    const outputSchema = nodeData?.config?.['output_schema'] || {};
+    const inputSchema = nodeData?.config?.['input_schema'] || cleanedInputMetadata || {};
+    const outputSchema = nodeData?.config?.['output_schema'] || cleanedOutputMetadata || {};
 
     const inputs = Object.keys(inputSchema).length;
     const outputs = Object.keys(outputSchema).length;

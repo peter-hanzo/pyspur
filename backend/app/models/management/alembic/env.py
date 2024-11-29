@@ -8,6 +8,7 @@ from alembic import context
 
 # Import models
 from app.models.workflow_model import WorkflowModel  # type: ignore
+from app.models.workflow_version_model import WorkflowVersionModel  # type: ignore
 from app.models.run_model import RunModel  # type: ignore
 from app.models.task_model import TaskModel  # type: ignore
 from app.models.output_file_model import OutputFileModel  # type: ignore
