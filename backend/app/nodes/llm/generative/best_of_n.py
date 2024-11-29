@@ -52,7 +52,7 @@ class BestOfNNode(EphemeralSubworkflowNode):
     config_model = BestOfNNodeConfig
     workflow: WorkflowDefinitionSchema
 
-    def generated_best_of_n_workflow(self) -> WorkflowDefinitionSchema:
+    def generate_best_of_n_workflow(self) -> WorkflowDefinitionSchema:
         samples = self.config.samples
 
         # Generate the nodes for the subworkflow
@@ -230,5 +230,5 @@ class BestOfNNode(EphemeralSubworkflowNode):
         )
 
     def setup(self) -> None:
-        self.workflow = self.generated_best_of_n_workflow()
+        self.subworkflow = self.generate_best_of_n_workflow()
         super().setup()
