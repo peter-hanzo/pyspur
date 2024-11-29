@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Slider, DropdownSection } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { getWorkflows, getWorkflowOutputVariables } from "../../utils/api"; // Import the new API function
+import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from "../../utils/api"; // Import the new API function
 import { toast } from "sonner";
 
 export default function EvalCard({ title, description, type, numSamples, paperLink, onRun }) {
@@ -47,7 +47,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
     }
   }, [selectedWorkflow]);
 
-  const handleRunEval = () => {
+  const handleRunEval = async () => {
     if (!selectedWorkflow) {
       toast.error("Please select a workflow.");
       return;
@@ -57,9 +57,20 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
       return;
     }
 
-    // Pass the selected workflow ID, eval name, number of samples, and output variable to the onRun function
-    onRun(selectedWorkflow.id, selectedNumSamples, selectedOutputVariable);
-    setIsModalOpen(false); // Close the modal
+    try {
+      // Start the eval run and get the run ID
+      const evalRunResponse = await startEvalRun(
+        selectedWorkflow.id,
+        title, // Assuming title is the eval name
+        selectedNumSamples,
+        selectedOutputVariable
+      );
+      toast.success(`Eval run started with ID: ${evalRunResponse.run_id}`);
+      setIsModalOpen(false); // Close the modal
+    } catch (error) {
+      console.error("Error starting eval run:", error);
+      toast.error("Failed to start eval run.");
+    }
   };
 
   return (

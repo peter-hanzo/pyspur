@@ -2,14 +2,17 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 from pathlib import Path
 import yaml
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
+from datetime import datetime, timezone
+from enum import Enum
 
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel
 from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 from .workflow_management import get_workflow_output_variables
+from ..models.eval_run_model import EvalRunModel, EvalRunStatus
 
 router = APIRouter()
 
@@ -21,6 +24,23 @@ class EvalRunRequest(BaseModel):
     eval_name: str
     output_variable: str
     num_samples: int = 10
+
+
+class EvalRunStatusEnum(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class EvalRunResponse(BaseModel):
+    run_id: str
+    eval_name: str
+    workflow_id: str
+    status: EvalRunStatus
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+    results: Optional[Dict[str, Any]] = None
 
 
 @router.get("/", description="List all available evals")
@@ -54,14 +74,14 @@ def list_evals() -> List[Dict[str, Any]]:
 
 @router.post(
     "/launch/",
-    response_model=Dict[str, Any],
+    response_model=EvalRunResponse,
     description="Launch an eval job with detailed validation and workflow integration",
 )
 async def launch_eval(
     request: EvalRunRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> EvalRunResponse:
     """
     Launch an eval job by triggering the evaluator with the specified eval configuration.
     """
@@ -103,17 +123,104 @@ async def launch_eval(
                 ),
             )
 
-        # Run the evaluation with mandatory workflow parameter
-        results = await prepare_and_evaluate_dataset(
-            eval_config,
-            workflow_definition=workflow_definition,  # Now required
-            num_samples=request.num_samples,
+        # Create a new EvalRunModel instance
+        new_eval_run = EvalRunModel(
+            eval_name=request.eval_name,
+            workflow_id=request.workflow_id,
             output_variable=request.output_variable,
+            num_samples=request.num_samples,
+            status=EvalRunStatus.PENDING,
+            start_time=datetime.now(timezone.utc),
         )
+        db.add(new_eval_run)
+        db.commit()
+        db.refresh(new_eval_run)
 
-        return {
-            "status": "success",
-            "results": results,
-        }
+        async def run_eval_task(eval_run_id: str):
+            with next(get_db()) as session:
+                eval_run = (
+                    session.query(EvalRunModel)
+                    .filter(EvalRunModel.id == eval_run_id)
+                    .first()
+                )
+                if not eval_run:
+                    session.close()
+                    return
+
+                eval_run.status = EvalRunStatus.RUNNING
+                session.commit()
+
+                try:
+                    # Run the evaluation asynchronously
+                    results = await prepare_and_evaluate_dataset(
+                        eval_config,
+                        workflow_definition=workflow_definition,
+                        num_samples=eval_run.num_samples,
+                        output_variable=eval_run.output_variable,
+                    )
+                    eval_run.results = results
+                    eval_run.status = EvalRunStatus.COMPLETED
+                    eval_run.end_time = datetime.now(timezone.utc)
+                except Exception as e:
+                    eval_run.status = EvalRunStatus.FAILED
+                    eval_run.end_time = datetime.now(timezone.utc)
+                    session.commit()
+                    raise e
+                finally:
+                    session.commit()
+
+        background_tasks.add_task(run_eval_task, new_eval_run.id)
+
+        # Return all required parameters
+        return EvalRunResponse(
+            run_id=new_eval_run.id,
+            eval_name=new_eval_run.eval_name,
+            workflow_id=new_eval_run.workflow_id,
+            status=new_eval_run.status,
+            start_time=new_eval_run.start_time,
+            end_time=new_eval_run.end_time,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error launching eval: {e}")
+
+
+@router.get(
+    "/runs/{eval_run_id}",
+    response_model=EvalRunResponse,
+    description="Get the status of an eval run",
+)
+async def get_eval_run_status(
+    eval_run_id: str, db: Session = Depends(get_db)
+) -> EvalRunResponse:
+    eval_run = db.query(EvalRunModel).filter(EvalRunModel.id == eval_run_id).first()
+    if not eval_run:
+        raise HTTPException(status_code=404, detail="Eval run not found")
+    return EvalRunResponse(
+        run_id=eval_run.id,
+        eval_name=eval_run.eval_name,
+        workflow_id=eval_run.workflow_id,
+        status=eval_run.status,
+        start_time=eval_run.start_time,
+        end_time=eval_run.end_time,
+        results=eval_run.results,
+    )
+
+
+@router.get(
+    "/runs/",
+    response_model=List[EvalRunResponse],
+    description="List all eval runs",
+)
+async def list_eval_runs(db: Session = Depends(get_db)) -> List[EvalRunResponse]:
+    eval_runs = db.query(EvalRunModel).order_by(EvalRunModel.start_time.desc()).all()
+    return [
+        EvalRunResponse(
+            run_id=eval_run.id,
+            eval_name=eval_run.eval_name,
+            workflow_id=eval_run.workflow_id,
+            status=eval_run.status,
+            start_time=eval_run.start_time,
+            end_time=eval_run.end_time,
+        )
+        for eval_run in eval_runs
+    ]

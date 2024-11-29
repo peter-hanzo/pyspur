@@ -371,6 +371,26 @@ export const startEvalRun = async (workflowId, evalName, numSamples = 10, output
   }
 };
 
+export const getEvalRunStatus = async (evalRunId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/evals/runs/${evalRunId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching eval run status:", error);
+    throw error;
+  }
+};
+
+export const listEvalRuns = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/evals/runs/`);
+    return response.data;
+  } catch (error) {
+    console.error("Error listing eval runs:", error);
+    throw error;
+  }
+};
+
 export const getWorkflowOutputVariables = async (workflowId) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowId}/output_variables/`);
