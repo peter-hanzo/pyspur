@@ -5,16 +5,7 @@ import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils
 import EvalCard from "../components/cards/EvalCard";
 import { Spinner, Button, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@nextui-org/react";
 import { toast } from "sonner";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis,
-} from "recharts";
+import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 
 const EvalsPage = () => {
   const [evals, setEvals] = useState([]);
@@ -153,9 +144,14 @@ const EvalsPage = () => {
                     {run.results && run.results.accuracy !== undefined ? (
                       <div style={{ width: 50, height: 50 }}>
                         <RadialBarChart
-                          innerRadius="80%"
-                          outerRadius="100%"
-                          data={[{ name: "Accuracy", value: run.results.accuracy * 100 }]}
+                          width={50}
+                          height={50}
+                          cx={25}
+                          cy={25}
+                          innerRadius={20}
+                          outerRadius={25}
+                          barSize={5}
+                          data={[{ name: 'Accuracy', value: run.results.accuracy * 100 }]}
                           startAngle={90}
                           endAngle={-270}
                         >
@@ -168,6 +164,15 @@ const EvalsPage = () => {
                             fill="#4ade80"
                           />
                           <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                          <text
+                            x={25}
+                            y={25}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            style={{ fontSize: "10px", fill: "#333" }}
+                          >
+                            {`${(run.results.accuracy * 100).toFixed(1)}%`}
+                          </text>
                         </RadialBarChart>
                       </div>
                     ) : run.status === "COMPLETED" ? (
