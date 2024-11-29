@@ -69,6 +69,13 @@ class WorkflowDefinitionSchema(BaseModel):
             raise ValueError("Workflow must have exactly one input node.")
         return v
 
+    @field_validator("nodes")
+    def must_have_at_most_one_output_node(cls, v: List[WorkflowNodeSchema]):
+        output_nodes = [node for node in v if node.node_type == "OutputNode"]
+        if len(output_nodes) > 1:
+            raise ValueError("Workflow must have at most one output node.")
+        return v
+
     class Config:
         from_attributes = True
 
@@ -97,6 +104,7 @@ class WorkflowResponseSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class WorkflowVersionResponseSchema(BaseModel):
     """
