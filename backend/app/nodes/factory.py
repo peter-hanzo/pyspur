@@ -83,7 +83,7 @@ class NodeFactory:
             },
             {
                 "node_type_name": "BestOfNNode",
-                "module": ".nodes.llm.best_of_n",
+                "module": ".nodes.llm.generative.best_of_n",
                 "class_name": "BestOfNNode",
             },
             {
