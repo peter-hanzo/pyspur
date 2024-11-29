@@ -180,9 +180,9 @@ def extract_output_variable(outputs: dict, workflow_output_variable: str) -> Any
     remaining_variable = workflow_output_variable
 
     while remaining_variable:
-        # Find the next matching key in the current level
+        # Find the longest matching key in the current level
         matched_key = None
-        for key in current_level.keys():
+        for key in sorted(current_level.keys(), key=len, reverse=True):
             if remaining_variable.startswith(key):
                 matched_key = key
                 break
@@ -190,13 +190,21 @@ def extract_output_variable(outputs: dict, workflow_output_variable: str) -> Any
         if not matched_key:
             # Debugging: Log available keys for better error diagnosis
             print(f"Current level keys: {list(current_level.keys())}")
-            raise ValueError(f"Key '{remaining_variable}' not found in the current level of outputs")
+            raise ValueError(
+                f"Key '{remaining_variable}' not found in the current level of outputs"
+            )
 
         # Descend into the matched key
         current_level = current_level[matched_key]
 
         # Remove the matched key and the delimiter from the remaining variable
-        remaining_variable = remaining_variable[len(matched_key) + 1 :]
+        remaining_variable = remaining_variable[len(matched_key):]
+        if remaining_variable.startswith('-'):
+            remaining_variable = remaining_variable[1:]
+
+        # If the remaining variable is empty, return the current level
+        if not remaining_variable:
+            return current_level
 
         # If the remaining variable is a single key and the current level is a dictionary,
         # directly return the value if it exists
@@ -241,10 +249,9 @@ async def execute_workflow(
     executor = WorkflowExecutor(workflow_definition)
     outputs = await executor(initial_inputs)
     outputs = {k: v.model_dump() for k, v in outputs.items()}
-    print(f"Outputs: {outputs}")
+
     # Debugging: Log the outputs dictionary and workflow_output_variable
     print(f"Workflow Output Variable: {workflow_output_variable}")
-    print(f"Outputs Dictionary: {outputs}")
 
     # Extract output from specified variable using the new function
     outputs = extract_output_variable(outputs, workflow_output_variable)
@@ -538,12 +545,6 @@ async def prepare_and_evaluate_dataset(
     dataset_subsets = eval_config.get("dataset_subsets", None)  # Subsets to evaluate
     process_docs = eval_config.get("process_docs")
 
-    # Parse the output variable into node_id and variable_name
-    if output_variable:
-        node_id, variable_name = output_variable.split("-", 1)
-    else:
-        node_id, variable_name = None, None
-
     # Initialize metrics for aggregation
     subset_metrics = {}
     total_correct = 0
@@ -571,7 +572,7 @@ async def prepare_and_evaluate_dataset(
                 batch_size=batch_size,
                 subject=subset,
                 subject_category_mapping=eval_config.get("subject_category_mapping"),
-                output_variable=variable_name,  # Pass only the variable name
+                output_variable=output_variable,  # Pass only the variable name
             )
 
             # Aggregate metrics
@@ -603,7 +604,7 @@ async def prepare_and_evaluate_dataset(
             eval_config=eval_config,
             workflow_definition=workflow_definition,
             batch_size=batch_size,
-            output_variable=variable_name,  # Pass only the variable name
+            output_variable=output_variable,  # Pass only the variable name
         )
 
         # Aggregate metrics
