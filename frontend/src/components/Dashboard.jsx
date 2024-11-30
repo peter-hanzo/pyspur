@@ -20,9 +20,9 @@ import {
   AccordionItem
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, updateWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
-import TemplateCard from './TemplateCard';
+import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
 
 const Dashboard = () => {

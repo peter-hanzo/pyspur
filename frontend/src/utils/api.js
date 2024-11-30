@@ -1,8 +1,7 @@
 import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
 import JSPydanticModel from './JSPydanticModel.js'; // Import the JSPydanticModel class
-import { useDispatch } from 'react-redux';
-import { setTestInputs } from '../store/flowSlice';
+
 
 const API_BASE_URL = typeof window !== 'undefined'
   ? `http://${window.location.host}/api`
@@ -343,6 +342,61 @@ export const runPartialWorkflow = async (workflowId, nodeId, initialInputs, part
     return response.data;
   } catch (error) {
     console.error('Error running partial workflow:', error);
+    throw error;
+  }
+};
+
+export const getEvals = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/evals/`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching evals:", error);
+    throw error;
+  }
+};
+
+export const startEvalRun = async (workflowId, evalName, numSamples = 10, outputVariable) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/evals/launch/`, {
+      eval_name: evalName,
+      workflow_id: workflowId,
+      output_variable: outputVariable,
+      num_samples: numSamples,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error starting eval run:", error);
+    throw error;
+  }
+};
+
+export const getEvalRunStatus = async (evalRunId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/evals/runs/${evalRunId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching eval run status:", error);
+    throw error;
+  }
+};
+
+export const listEvalRuns = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/evals/runs/`);
+    return response.data;
+  } catch (error) {
+    console.error("Error listing eval runs:", error);
+    throw error;
+  }
+};
+
+export const getWorkflowOutputVariables = async (workflowId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/wf/${workflowId}/output_variables/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching output variables for workflow ${workflowId}:`, error);
     throw error;
   }
 };

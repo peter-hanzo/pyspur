@@ -196,11 +196,16 @@ const Header = ({ activePage }) => {
               Home
             </Link>
           </NavbarItem>
-          {activePage !== "home" && (
+          {activePage === "workflow" && (
             <NavbarItem isActive={activePage === "workflow"}>
               Editor
             </NavbarItem>
           )}
+          <NavbarItem isActive={activePage === "evals"}>
+            <Link className="flex gap-2 text-inherit" href="/evals">
+              Evals
+            </Link>
+          </NavbarItem>
         </NavbarContent>
         {activePage === "workflow" && (
           <NavbarContent

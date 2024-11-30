@@ -4,6 +4,7 @@ import json
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+from pathlib import Path  # Import Path for directory handling
 from typing import Awaitable, Dict, Any, List, Optional
 
 from ..schemas.run_schemas import (
@@ -21,10 +22,14 @@ from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
+from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
 from ..utils.workflow_version_utils import fetch_workflow_version
 from ..execution.workflow_execution_context import WorkflowExecutionContext
 
 router = APIRouter()
+
+# Define EVALS_DIR (same as in evals_management.py)
+EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
 
 
 async def create_run_model(
