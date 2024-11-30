@@ -44,45 +44,49 @@ const WorkflowBatchRunsTable = () => {
 
   return (
     <>
-      <Table aria-label="Spur Jobs" isHeaderSticky>
-        <TableHeader columns={activeColumns}>
-          {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-        </TableHeader>
-        <TableBody items={workflowBatchRuns}>
-          {(batchRun) => (
-            <TableRow key={batchRun.key}>
-              {(columnKey) => (
-                <TableCell>
-                  {columnKey === "progress" ? (
-                    batchRun.progress === 100 ? (
-                      <span className="text-success">Finished</span>
+      {workflowBatchRuns.length > 0 ? (
+        <Table aria-label="Spur Jobs" isHeaderSticky>
+          <TableHeader columns={activeColumns}>
+            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+          </TableHeader>
+          <TableBody items={workflowBatchRuns}>
+            {(batchRun) => (
+              <TableRow key={batchRun.key}>
+                {(columnKey) => (
+                  <TableCell>
+                    {columnKey === "progress" ? (
+                      batchRun.progress === 100 ? (
+                        <span className="text-success">Finished</span>
+                      ) : (
+                        <Progress value={batchRun.progress} />
+                      )
+                    ) : columnKey === "download" ? (
+                      batchRun.progress === 100 ? (
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          onClick={() => handleDownload(batchRun)}
+                        >
+                          <Icon
+                            icon="solar:download-linear"
+                            className="text-default-400"
+                            width={20}
+                          />
+                        </Button>
+                      ) : null
                     ) : (
-                      <Progress value={batchRun.progress} />
-                    )
-                  ) : columnKey === "download" ? (
-                    batchRun.progress === 100 ? (
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        onClick={() => handleDownload(batchRun)}
-                      >
-                        <Icon
-                          icon="solar:download-linear"
-                          className="text-default-400"
-                          width={20}
-                        />
-                      </Button>
-                    ) : null
-                  ) : (
-                    getKeyValue(batchRun, columnKey)
-                  )}
-                </TableCell>
-              )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                      getKeyValue(batchRun, columnKey)
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      ) : (
+        <p>No spur runs available.</p>
+      )}
     </>
   );
 };

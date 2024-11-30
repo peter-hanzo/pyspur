@@ -321,55 +321,59 @@ const Dashboard = () => {
             }
           >
             {/* Recent Spurs Section */}
-            <Table aria-label="Saved Workflows" isHeaderSticky>
-              <TableHeader columns={columns}>
-                {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-              </TableHeader>
-              <TableBody items={workflows}>
-                {(workflow) => (
-                  <TableRow key={workflow.key}>
-                    {(columnKey) => (
-                      <TableCell>
-                        {columnKey === "action" ? (
-                          <div className="flex items-center gap-2">
-                            <Icon
-                              icon="solar:play-bold"
-                              className="cursor-pointer text-default-400"
-                              height={18}
-                              width={18}
-                              onClick={() => handleRunClick(workflow)}
-                            />
-                            <Icon
-                              icon="solar:pen-bold"
-                              className="cursor-pointer text-default-400"
-                              height={18}
-                              width={18}
-                              onClick={() => handleEditClick(workflow)}
-                            />
-                            <Icon
-                              icon="solar:copy-bold"
-                              className="cursor-pointer text-default-400"
-                              height={18}
-                              width={18}
-                              onClick={() => handleDuplicateClick(workflow)}
-                            />
-                            <Icon
-                              icon="solar:trash-bin-trash-bold"
-                              className="cursor-pointer text-default-400"
-                              height={18}
-                              width={18}
-                              onClick={() => handleDeleteClick(workflow)}
-                            />
-                          </div>
-                        ) : (
-                          getKeyValue(workflow, columnKey)
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            {workflows.length > 0 ? (
+              <Table aria-label="Saved Workflows" isHeaderSticky>
+                <TableHeader columns={columns}>
+                  {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+                </TableHeader>
+                <TableBody items={workflows}>
+                  {(workflow) => (
+                    <TableRow key={workflow.key}>
+                      {(columnKey) => (
+                        <TableCell>
+                          {columnKey === "action" ? (
+                            <div className="flex items-center gap-2">
+                              <Icon
+                                icon="solar:play-bold"
+                                className="cursor-pointer text-default-400"
+                                height={18}
+                                width={18}
+                                onClick={() => handleRunClick(workflow)}
+                              />
+                              <Icon
+                                icon="solar:pen-bold"
+                                className="cursor-pointer text-default-400"
+                                height={18}
+                                width={18}
+                                onClick={() => handleEditClick(workflow)}
+                              />
+                              <Icon
+                                icon="solar:copy-bold"
+                                className="cursor-pointer text-default-400"
+                                height={18}
+                                width={18}
+                                onClick={() => handleDuplicateClick(workflow)}
+                              />
+                              <Icon
+                                icon="solar:trash-bin-trash-bold"
+                                className="cursor-pointer text-default-400"
+                                height={18}
+                                width={18}
+                                onClick={() => handleDeleteClick(workflow)}
+                              />
+                            </div>
+                          ) : (
+                            getKeyValue(workflow, columnKey)
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            ) : (
+              <p>No spur runs available.</p>
+            )}
           </AccordionItem>
 
           <AccordionItem
