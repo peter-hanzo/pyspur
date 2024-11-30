@@ -3,44 +3,19 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 import yaml
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
 from datetime import datetime, timezone
-from enum import Enum
 
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel
 from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
+from ..schemas.eval_schemas import EvalRunRequest, EvalRunStatusEnum, EvalRunResponse
 from .workflow_management import get_workflow_output_variables
 from ..models.eval_run_model import EvalRunModel, EvalRunStatus
 
 router = APIRouter()
 
 EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
-
-
-class EvalRunRequest(BaseModel):
-    workflow_id: str
-    eval_name: str
-    output_variable: str
-    num_samples: int = 10
-
-
-class EvalRunStatusEnum(str, Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-
-
-class EvalRunResponse(BaseModel):
-    run_id: str
-    eval_name: str
-    workflow_id: str
-    status: EvalRunStatus
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    results: Optional[Dict[str, Any]] = None
 
 
 @router.get("/", description="List all available evals")
