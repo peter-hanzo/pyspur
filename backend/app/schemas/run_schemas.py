@@ -2,7 +2,6 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from datetime import datetime
 
-from ..schemas.workflow_schemas import WorkflowResponseSchema
 from ..schemas.workflow_schemas import WorkflowVersionResponseSchema
 from ..models.run_model import RunStatus
 
