@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -102,7 +102,14 @@ def list_workflows(db: Session = Depends(get_db)):
         .slice(0, 10)
         .all()
     )
-    return workflows
+    valid_workflows: List[WorkflowModel] = []
+    for workflow in workflows:
+        try:
+            WorkflowResponseSchema.model_validate(workflow)
+            valid_workflows.append(workflow)
+        except Exception:
+            continue
+    return valid_workflows
 
 
 @router.get(
@@ -205,12 +212,12 @@ def duplicate_workflow(
 
 @router.get(
     "/{workflow_id}/output_variables/",
-    response_model=List[dict],
+    response_model=List[Dict[str, str]],
     description="Get the output variables (leaf nodes) of a workflow",
 )
 def get_workflow_output_variables(
     workflow_id: str, db: Session = Depends(get_db)
-) -> List[dict]:
+) -> List[Dict[str, str]]:
     """
     Fetch the output variables (leaf nodes) of a workflow.
     """
@@ -226,7 +233,7 @@ def get_workflow_output_variables(
     leaf_nodes = all_node_ids - all_source_ids
 
     # Collect output variables as a list of dictionaries
-    output_variables = []
+    output_variables: List[Dict[str, str]] = []
     for node in workflow_definition.nodes:
         if node.id in leaf_nodes:
             # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
