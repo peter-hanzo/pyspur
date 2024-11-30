@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from ..schemas.workflow_schemas import WorkflowResponseSchema
+from ..schemas.workflow_schemas import WorkflowVersionResponseSchema
 from ..models.run_model import RunStatus
 
 
@@ -14,7 +15,8 @@ class StartRunRequestSchema(BaseModel):
 class RunResponseSchema(BaseModel):
     id: str
     workflow_id: str
-    workflow: WorkflowResponseSchema
+    workflow_version_id: int
+    workflow_version: WorkflowVersionResponseSchema
     status: RunStatus
     run_type: str
     initial_inputs: Optional[Dict[str, Dict[str, Any]]]

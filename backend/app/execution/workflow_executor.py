@@ -10,7 +10,8 @@ from ..schemas.workflow_schemas import (
     WorkflowLinkSchema,
     WorkflowNodeSchema,
 )
-from ..execution.task_recorder import TaskRecorder, TaskStatus
+from .task_recorder import TaskRecorder, TaskStatus
+from .workflow_execution_context import WorkflowExecutionContext
 
 
 class WorkflowExecutor:
@@ -22,9 +23,11 @@ class WorkflowExecutor:
         self,
         workflow: WorkflowDefinitionSchema,
         task_recorder: Optional[TaskRecorder] = None,
+        context: Optional[WorkflowExecutionContext] = None,
     ):
         self.workflow = workflow
         self.task_recorder = task_recorder
+        self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[None]] = {}
@@ -120,7 +123,10 @@ class WorkflowExecutor:
         # Update task recorder
         if self.task_recorder:
             self.task_recorder.update_task(
-                node_id=node_id, status=TaskStatus.RUNNING, inputs=input_data_dict
+                node_id=node_id,
+                status=TaskStatus.RUNNING,
+                inputs=input_data_dict,
+                subworkflow=node_executor.subworkflow,
             )
         # Execute node
         try:
@@ -139,6 +145,8 @@ class WorkflowExecutor:
                 status=TaskStatus.COMPLETED,
                 outputs=output.model_dump(),
                 end_time=datetime.now(),
+                subworkflow=node_executor.subworkflow,
+                subworkflow_output=node_executor.subworkflow_output,
             )
         # Store output
         self._outputs[node_id] = output

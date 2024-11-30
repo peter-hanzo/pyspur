@@ -103,7 +103,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
     const connectedEdges = getConnectedEdges([node], edges);
 
     // Generate a new unique ID for the duplicated node
-    const newNodeId = `${id}-${uuidv4()}`;
+    const newNodeId = `node_${Date.now()}`;
 
     // Create the new node with an offset position
     const newNode = {
