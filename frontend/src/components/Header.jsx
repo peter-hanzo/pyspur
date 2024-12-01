@@ -154,62 +154,77 @@ const Header = ({ activePage }) => {
     return `${baseUrl}/api/wf/${workflowID}/start_run/?run_type=non_blocking`;
   };
 
-  const DeployModal = () => (
-    <Modal
-      isOpen={isDeployModalOpen}
-      onOpenChange={setIsDeployModalOpen}
-      size="2xl" // Make modal larger
-    >
-      <ModalContent>
-        <ModalHeader>API Endpoint Information</ModalHeader>
-        <ModalBody>
-          <p>Use this endpoint to run your workflow in a non-blocking way:</p>
-          <div className="flex items-center gap-2 w-full">
-            <Code className="w-full overflow-x-auto whitespace-nowrap">
-              {getApiEndpoint()}
-            </Code>
-            <Tooltip content="Copy to clipboard">
-              <Button
-                isIconOnly
-                variant="light"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(getApiEndpoint());
-                  toast.success('API endpoint copied to clipboard');
-                }}
-              >
-                <Icon icon="solar:copy-linear" width={20} />
-              </Button>
-            </Tooltip>
-          </div>
-          <p className="mt-2">Send a POST request with the following body:</p>
-          <div className="flex items-center gap-2 w-full">
-            <Code className="w-full overflow-x-auto whitespace-pre">
-              {JSON.stringify({ initial_inputs: {} }, null, 2)}
-            </Code>
-            <Tooltip content="Copy to clipboard">
-              <Button
-                isIconOnly
-                variant="light"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(JSON.stringify({ initial_inputs: {} }, null, 2));
-                  toast.success('Request body copied to clipboard');
-                }}
-              >
-                <Icon icon="solar:copy-linear" width={20} />
-              </Button>
-            </Tooltip>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onPress={() => setIsDeployModalOpen(false)}>
-            Close
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
+  const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
+
+  const DeployModal = () => {
+    // Create example request body with the actual input variables
+    const exampleRequestBody = {
+      initial_inputs: Object.keys(workflowInputVariables).reduce((acc, key) => {
+        // Create an example value based on the variable type
+        acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
+                   workflowInputVariables[key].type === 'boolean' ? false :
+                   "example_value";
+        return acc;
+      }, {})
+    };
+
+    return (
+      <Modal
+        isOpen={isDeployModalOpen}
+        onOpenChange={setIsDeployModalOpen}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader>API Endpoint Information</ModalHeader>
+          <ModalBody>
+            <p>Use this endpoint to run your workflow in a non-blocking way:</p>
+            <div className="flex items-center gap-2 w-full">
+              <Code className="w-full overflow-x-auto whitespace-nowrap">
+                {getApiEndpoint()}
+              </Code>
+              <Tooltip content="Copy to clipboard">
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getApiEndpoint());
+                    toast.success('API endpoint copied to clipboard');
+                  }}
+                >
+                  <Icon icon="solar:copy-linear" width={20} />
+                </Button>
+              </Tooltip>
+            </div>
+            <p className="mt-2">Send a POST request with the following body:</p>
+            <div className="flex items-center gap-2 w-full">
+              <Code className="w-full overflow-x-auto whitespace-pre">
+                {JSON.stringify(exampleRequestBody, null, 2)}
+              </Code>
+              <Tooltip content="Copy to clipboard">
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(exampleRequestBody, null, 2));
+                    toast.success('Request body copied to clipboard');
+                  }}
+                >
+                  <Icon icon="solar:copy-linear" width={20} />
+                </Button>
+              </Tooltip>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="primary" onPress={() => setIsDeployModalOpen(false)}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    );
+  };
 
   return (
     <>
