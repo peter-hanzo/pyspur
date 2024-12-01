@@ -162,8 +162,8 @@ const Header = ({ activePage }) => {
       initial_inputs: Object.keys(workflowInputVariables).reduce((acc, key) => {
         // Create an example value based on the variable type
         acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
-                   workflowInputVariables[key].type === 'boolean' ? false :
-                   "example_value";
+          workflowInputVariables[key].type === 'boolean' ? false :
+            "example_value";
         return acc;
       }, {})
     };
@@ -189,7 +189,6 @@ const Header = ({ activePage }) => {
                   size="sm"
                   onClick={() => {
                     navigator.clipboard.writeText(getApiEndpoint());
-                    toast.success('API endpoint copied to clipboard');
                   }}
                 >
                   <Icon icon="solar:copy-linear" width={20} />
@@ -208,7 +207,6 @@ const Header = ({ activePage }) => {
                   size="sm"
                   onClick={() => {
                     navigator.clipboard.writeText(JSON.stringify(exampleRequestBody, null, 2));
-                    toast.success('Request body copied to clipboard');
                   }}
                 >
                   <Icon icon="solar:copy-linear" width={20} />
