@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useDispatch } from 'react-redux';
-import { deleteEdgeByHandle } from '../../../store/flowSlice'; // Import the deleteEdge action
+import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'; // Import the deleteEdge action
 
 const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input_schema', nodeId }) => {
   const [newKey, setNewKey] = useState('');
@@ -59,6 +59,14 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     delete updatedJson[oldKey];
 
     onChange(updatedJson);
+    if (newKey && oldKey) {
+      dispatch(updateEdgesOnHandleRename({
+        nodeId,
+        oldHandleId: oldKey,
+        newHandleId: newKey,
+        schemaType,
+      }))
+    }
     setEditingField(null);
   };
 
