@@ -56,7 +56,7 @@ SUPPORTED_NODE_TYPES = {
         },
         {
             "node_type_name": "BranchSolveMergeNode",
-            "module": ".nodes.llm.branch_solve_merge",
+            "module": ".nodes.llm.generative.branch_solve_merge",
             "class_name": "BranchSolveMergeNode",
         },
         {
