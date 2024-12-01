@@ -9,6 +9,13 @@ import {
   Link,
   Button,
   Spinner,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Code,
+  Tooltip,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
@@ -23,6 +30,7 @@ const Header = ({ activePage }) => {
   const projectName = useSelector((state) => state.flow.projectName);
   const [isRunning, setIsRunning] = useState(false);
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
 
   let currentStatusInterval = null;
 
@@ -133,6 +141,75 @@ const Header = ({ activePage }) => {
       // You might want to add some user feedback here
     }
   };
+
+  const handleDeploy = () => {
+    setIsDeployModalOpen(true);
+  };
+
+  const getApiEndpoint = () => {
+    if (typeof window === 'undefined') {
+      return ''; // Return empty string during server-side rendering
+    }
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/api/wf/${workflowID}/start_run/?run_type=non_blocking`;
+  };
+
+  const DeployModal = () => (
+    <Modal
+      isOpen={isDeployModalOpen}
+      onOpenChange={setIsDeployModalOpen}
+      size="2xl" // Make modal larger
+    >
+      <ModalContent>
+        <ModalHeader>API Endpoint Information</ModalHeader>
+        <ModalBody>
+          <p>Use this endpoint to run your workflow in a non-blocking way:</p>
+          <div className="flex items-center gap-2 w-full">
+            <Code className="w-full overflow-x-auto whitespace-nowrap">
+              {getApiEndpoint()}
+            </Code>
+            <Tooltip content="Copy to clipboard">
+              <Button
+                isIconOnly
+                variant="light"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(getApiEndpoint());
+                  toast.success('API endpoint copied to clipboard');
+                }}
+              >
+                <Icon icon="solar:copy-linear" width={20} />
+              </Button>
+            </Tooltip>
+          </div>
+          <p className="mt-2">Send a POST request with the following body:</p>
+          <div className="flex items-center gap-2 w-full">
+            <Code className="w-full overflow-x-auto whitespace-pre">
+              {JSON.stringify({ initial_inputs: {} }, null, 2)}
+            </Code>
+            <Tooltip content="Copy to clipboard">
+              <Button
+                isIconOnly
+                variant="light"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify({ initial_inputs: {} }, null, 2));
+                  toast.success('Request body copied to clipboard');
+                }}
+              >
+                <Icon icon="solar:copy-linear" width={20} />
+              </Button>
+            </Tooltip>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onPress={() => setIsDeployModalOpen(false)}>
+            Close
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
 
   return (
     <>
@@ -246,6 +323,20 @@ const Header = ({ activePage }) => {
               </Button>
             </NavbarItem>
             <NavbarItem className="hidden sm:flex">
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                onClick={handleDeploy}
+              >
+                <Icon
+                  className="text-default-500"
+                  icon="solar:cloud-upload-linear"
+                  width={24}
+                />
+              </Button>
+            </NavbarItem>
+            <NavbarItem className="hidden sm:flex">
               <SettingsCard />
             </NavbarItem>
           </NavbarContent>
@@ -259,6 +350,7 @@ const Header = ({ activePage }) => {
           setIsDebugModalOpen(false);
         }}
       />
+      <DeployModal />
     </>
   );
 };
