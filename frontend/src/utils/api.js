@@ -122,19 +122,7 @@ export const startRun = async (workflowID, initialInputs = {}, parentRunId = nul
   }
 }
 
-export const startNonBlockingRun = async (workflowID, initialInputs = {}) => {
-  try {
-    const requestBody = {
-      initial_inputs: initialInputs,
-      parent_run_id: null
-    };
-    const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_run/?run_type=non_blocking`, requestBody);
-    return response.data;
-  } catch (error) {
-    console.error('Error starting non-blocking run:', error);
-    throw error;
-  }
-}
+
 
 export const startBatchRun = async (workflowID, datasetID, miniBatchSize = 10) => {
   try {
