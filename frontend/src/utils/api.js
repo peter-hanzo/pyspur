@@ -122,8 +122,6 @@ export const startRun = async (workflowID, initialInputs = {}, parentRunId = nul
   }
 }
 
-
-
 export const startBatchRun = async (workflowID, datasetID, miniBatchSize = 10) => {
   try {
     const requestBody = {
