@@ -245,10 +245,16 @@ async def execute_workflow(
     input_schema = input_node.config.get("input_schema", {})
     initial_inputs = {input_node.id: {key: full_prompt for key in input_schema.keys()}}
 
-    # Execute workflow
+    # Execute workflow with error handling
     executor = WorkflowExecutor(workflow_definition)
-    outputs = await executor(initial_inputs)
-    outputs = {k: v.model_dump() for k, v in outputs.items()}
+    try:
+        outputs = await executor(initial_inputs)
+        outputs = {k: v.model_dump() for k, v in outputs.items()}
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Workflow execution failed: {e}")
+        # Use an empty output to indicate failure
+        outputs = {}
 
     # Debugging: Log the outputs dictionary and workflow_output_variable
     print(f"Workflow Output Variable: {workflow_output_variable}")
@@ -274,6 +280,9 @@ def extract_answer(
     Returns:
         str: The extracted answer.
     """
+    if text is None:
+        return ""
+
     # Extract regexes and functions from the extraction configuration
     regexes = answer_extraction.get("regexes", [])
     functions = answer_extraction.get("functions", [])
@@ -303,6 +312,9 @@ async def evaluate_answer(
     predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]
 ):
     """Evaluates if the predicted answer matches the ground truth based on evaluation logic."""
+    if predicted_answer is None or ground_truth_answer is None:
+        return False
+
     evaluation_method = evaluation.get("method", "default").lower()
     if evaluation_method == "numeric":
         try:
