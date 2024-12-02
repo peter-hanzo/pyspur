@@ -16,8 +16,8 @@ import {
   Input
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import TextEditor from './textEditor/TextEditor';
-import { addTestInput, deleteTestInput, setTestInputs } from '../store/flowSlice';
+import TextEditor from '../textEditor/TextEditor';
+import { addTestInput, deleteTestInput, setTestInputs } from '../../store/flowSlice';
 
 const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
