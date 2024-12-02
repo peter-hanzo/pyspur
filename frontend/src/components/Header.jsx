@@ -14,8 +14,9 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Code,
   Tooltip,
+  Select,
+  SelectItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './settings/Settings';
@@ -23,6 +24,8 @@ import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; /
 import RunModal from './RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
+import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism';
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
@@ -157,15 +160,108 @@ const Header = ({ activePage }) => {
   const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
 
   const DeployModal = () => {
+    const [selectedLanguage, setSelectedLanguage] = useState("python");
+
     // Create example request body with the actual input variables
     const exampleRequestBody = {
       initial_inputs: Object.keys(workflowInputVariables).reduce((acc, key) => {
-        // Create an example value based on the variable type
         acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
           workflowInputVariables[key].type === 'boolean' ? false :
             "example_value";
         return acc;
       }, {})
+    };
+
+    const codeExamples = {
+      python: `import requests
+
+url = '${getApiEndpoint()}'
+data = ${JSON.stringify(exampleRequestBody, null, 2)}
+
+response = requests.post(url, json=data)
+
+print(response.status_code)
+print(response.json())`,
+
+      javascript: `fetch('${getApiEndpoint()}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(${JSON.stringify(exampleRequestBody)})
+})
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));`,
+
+      typescript: `async function runWorkflow() {
+  const response = await fetch('${getApiEndpoint()}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(${JSON.stringify(exampleRequestBody)})
+  });
+
+  const data = await response.json();
+  console.log(data);
+}`,
+
+      rust: `use reqwest;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("${getApiEndpoint()}")
+        .json(&${JSON.stringify(exampleRequestBody)})
+        .send()
+        .await?;
+
+    println!("Status: {}", response.status());
+    println!("Response: {}", response.text().await?);
+    Ok(())
+}`,
+
+      java: `import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+
+public class WorkflowClient {
+    public static void main(String[] args) throws Exception {
+        String requestBody = ${JSON.stringify(JSON.stringify(exampleRequestBody))};
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("${getApiEndpoint()}"))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .build();
+
+        HttpResponse<String> response = client.send(request,
+            HttpResponse.BodyHandlers.ofString());
+
+        System.out.println(response.statusCode());
+        System.out.println(response.body());
+    }
+}`,
+
+      cpp: `#include <cpr/cpr.h>
+#include <iostream>
+
+int main() {
+    cpr::Response r = cpr::Post(
+        cpr::Url{"${getApiEndpoint()}"},
+        cpr::Header{{"Content-Type", "application/json"}},
+        cpr::Body{R"(${JSON.stringify(exampleRequestBody)})"});
+
+    std::cout << "Status code: " << r.status_code << std::endl;
+    std::cout << "Response: " << r.text << std::endl;
+
+    return 0;
+}`
     };
 
     return (
@@ -179,9 +275,18 @@ const Header = ({ activePage }) => {
           <ModalBody>
             <p>Use this endpoint to run your workflow in a non-blocking way:</p>
             <div className="flex items-center gap-2 w-full">
-              <Code className="w-full overflow-x-auto whitespace-nowrap">
+              <SyntaxHighlighter
+                language="bash"
+                style={oneDark}
+                customStyle={{
+                  margin: 0,
+                  borderRadius: '8px',
+                  padding: '12px',
+                  flex: 1,
+                }}
+              >
                 {getApiEndpoint()}
-              </Code>
+              </SyntaxHighlighter>
               <Tooltip content="Copy to clipboard">
                 <Button
                   isIconOnly
@@ -197,9 +302,18 @@ const Header = ({ activePage }) => {
             </div>
             <p className="mt-2">Send a POST request with the following body:</p>
             <div className="flex items-center gap-2 w-full">
-              <Code className="w-full overflow-x-auto whitespace-pre">
+              <SyntaxHighlighter
+                language="json"
+                style={oneDark}
+                customStyle={{
+                  margin: 0,
+                  borderRadius: '8px',
+                  padding: '12px',
+                  flex: 1,
+                }}
+              >
                 {JSON.stringify(exampleRequestBody, null, 2)}
-              </Code>
+              </SyntaxHighlighter>
               <Tooltip content="Copy to clipboard">
                 <Button
                   isIconOnly
@@ -212,6 +326,49 @@ const Header = ({ activePage }) => {
                   <Icon icon="solar:copy-linear" width={20} />
                 </Button>
               </Tooltip>
+            </div>
+
+            <div className="mt-4">
+              <p>Code example:</p>
+              <Select
+                label="Select Language"
+                className="max-w-xs mb-2"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                defaultSelectedKeys={["python"]}
+              >
+                {Object.keys(codeExamples).map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                  </SelectItem>
+                ))}
+              </Select>
+              <div className="flex items-center gap-2 w-full">
+                <SyntaxHighlighter
+                  language={selectedLanguage}
+                  style={oneDark}
+                  customStyle={{
+                    margin: 0,
+                    borderRadius: '8px',
+                    padding: '12px',
+                    flex: 1,
+                  }}
+                >
+                  {codeExamples[selectedLanguage]}
+                </SyntaxHighlighter>
+                <Tooltip content="Copy to clipboard">
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(codeExamples[selectedLanguage]);
+                    }}
+                  >
+                    <Icon icon="solar:copy-linear" width={20} />
+                  </Button>
+                </Tooltip>
+              </div>
             </div>
           </ModalBody>
           <ModalFooter>
