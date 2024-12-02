@@ -3,17 +3,22 @@ import { useRouter } from "next/router";
 import Header from "../components/Header";
 import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils/api";
 import EvalCard from "../components/cards/EvalCard";
-import { Spinner, Button, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@nextui-org/react";
+import { Spinner, Button, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip } from "@nextui-org/react";
 import { toast } from "sonner";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
+
+const statusColorMap = {
+  PENDING: "warning",
+  RUNNING: "primary",
+  COMPLETED: "success",
+  FAILED: "danger",
+};
 
 const EvalsPage = () => {
   const [evals, setEvals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [evalResults, setEvalResults] = useState(null);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
   const router = useRouter();
-  const { id: workflowId } = router.query;
   const [evalRuns, setEvalRuns] = useState([]);
 
   useEffect(() => {
@@ -132,7 +137,16 @@ const EvalsPage = () => {
                   <TableCell>{run.run_id}</TableCell>
                   <TableCell>{run.eval_name}</TableCell>
                   <TableCell>{run.workflow_id}</TableCell>
-                  <TableCell>{run.status}</TableCell>
+                  <TableCell>
+                    <Chip
+                      className="capitalize"
+                      color={statusColorMap[run.status]}
+                      size="sm"
+                      variant="flat"
+                    >
+                      {run.status}
+                    </Chip>
+                  </TableCell>
                   <TableCell>
                     {run.results && run.results.accuracy !== undefined ? (
                       <div style={{ width: 50, height: 50 }}>
@@ -177,7 +191,7 @@ const EvalsPage = () => {
                   <TableCell>
                     {run.status === "COMPLETED" ? (
                       <Button size="sm" onPress={() => handleViewResults(run.run_id)}>
-                        View Results
+                        View Examples
                       </Button>
                     ) : (
                       <p>--</p>

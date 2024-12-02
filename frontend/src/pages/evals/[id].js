@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Header from "../../components/Header";
 import { getEvalRunStatus } from "../../utils/api";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Spinner, Chip } from "@nextui-org/react";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, Button, useDisclosure } from "@nextui-org/react";
+import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 
 const EvalResultsPage = () => {
@@ -10,6 +11,8 @@ const EvalResultsPage = () => {
   const { id } = router.query;
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -38,42 +41,24 @@ const EvalResultsPage = () => {
     fetchResults();
   }, [id]);
 
-  const renderProblemContent = (problem) => {
-    // If it's a multiple choice question (has choices)
-    if (problem.choice1 || problem.choice2 || problem.choice3 || problem.choice4) {
-      return (
-        <>
-          <p className="text-sm">{problem.Question}</p>
-          <div className="mt-2 text-sm text-gray-600">
-            {problem.choice1 && <div>A. {problem.choice1}</div>}
-            {problem.choice2 && <div>B. {problem.choice2}</div>}
-            {problem.choice3 && <div>C. {problem.choice3}</div>}
-            {problem.choice4 && <div>D. {problem.choice4}</div>}
-          </div>
-        </>
-      );
-    }
-
-    // For non-multiple choice questions
+  const renderPrompt = (prompt) => {
     return (
-      <div className="text-sm">
-        {/* Display the question if it exists */}
-        {problem.Question && <p>{problem.Question}</p>}
-
-        {/* If there's no Question field, display the problem text directly */}
-        {!problem.Question && typeof problem === 'string' && <p>{problem}</p>}
-
-        {/* If the problem is an object without a Question field, display relevant fields */}
-        {!problem.Question && typeof problem === 'object' && (
-          Object.entries(problem)
-            .filter(([key]) => key !== 'answer' && key !== 'explanation')
-            .map(([key, value]) => (
-              <div key={key} className="mb-2">
-                <span className="font-medium">{key}: </span>
-                <span>{value}</span>
-              </div>
-            ))
-        )}
+      <div className="flex items-center gap-2">
+        <div className="text-sm max-h-32 overflow-y-auto flex-grow">
+          <p>{prompt}</p>
+        </div>
+        <Button
+          isIconOnly
+          size="sm"
+          variant="light"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedPrompt(prompt);
+            onOpen();
+          }}
+        >
+          <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
+        </Button>
       </div>
     );
   };
@@ -124,7 +109,7 @@ const EvalResultsPage = () => {
         <Table aria-label="Eval results table" isHeaderSticky isStriped fullWidth>
           <TableHeader>
             <TableColumn>Example ID</TableColumn>
-            <TableColumn width="40%">Problem</TableColumn>
+            <TableColumn width="40%">Prompt</TableColumn>
             <TableColumn>Predicted</TableColumn>
             <TableColumn>Ground Truth</TableColumn>
             <TableColumn>Status</TableColumn>
@@ -135,7 +120,7 @@ const EvalResultsPage = () => {
                 <TableCell>{item.example_id || item.task_id}</TableCell>
                 <TableCell>
                   <div className="max-h-32 overflow-y-auto">
-                    {renderProblemContent(item.problem)}
+                    {renderPrompt(item.prompt)}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -157,6 +142,29 @@ const EvalResultsPage = () => {
           </TableBody>
         </Table>
       </div>
+
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        classNames={{
+          base: "max-w-[90%] h-[75vh] m-auto",
+          wrapper: "w-[90%]",
+          body: "p-5"
+        }}
+        scrollBehavior="inside"
+        placement="center"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Prompt</ModalHeader>
+              <ModalBody className="whitespace-pre-wrap overflow-y-auto">
+                {selectedPrompt}
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };
