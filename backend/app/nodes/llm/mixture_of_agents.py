@@ -23,7 +23,7 @@ class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
     user_message: str = Field(
         "What would you like to ask?", description="The user message for the LLM"
     )
-    samples: int = 3
+    samples: int = Field(3, ge=1, le=1000, description="Number of samples to generate")
     critique_prompt_template: str = (
         "Original query: {initial_query}\n\n"
         "I will present you with {num_candidates} candidate responses to the original query. "

@@ -44,7 +44,7 @@ class MCTSTreeNode:
 class MCTSNodeConfig(BaseModel):
     llm_info: ModelInfo = Field(
         ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
-        description="The default LLM model to use"
+        description="The default LLM model to use",
     )
     system_message: str = Field(
         "You are a helpful assistant.", description="The system message for the LLM"
@@ -53,7 +53,7 @@ class MCTSNodeConfig(BaseModel):
         "What would you like to ask?", description="The user message for the LLM"
     )
     num_simulations: int = Field(
-        10, ge=1, le=100, description="Number of simulations to run"
+        10, ge=1, le=1000, description="Number of simulations to run"
     )
     simulation_depth: int = Field(5, ge=1, le=10, description="Simulation depth")
     exploration_weight: float = Field(
