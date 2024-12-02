@@ -8,7 +8,7 @@ import { useDispatch } from 'react-redux'; // Import useDispatch from react-redu
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { fetchNodeTypes } from '../../store/nodeTypesSlice';
 import { setTestInputs } from '../../store/flowSlice'; // Import setTestInputs action
-import { getRun } from '../../utils/api';
+import { getRunStatus } from '../../utils/api';
 
 const TracePage = () => {
 
@@ -23,7 +23,7 @@ const TracePage = () => {
     dispatch(fetchNodeTypes());
     const fetchRun = async () => {
       try {
-        const data = await getRun(id);
+        const data = await getRunStatus(id);
         console.log('Run Data:', data);
         setWorkflowId(data.workflow_id);
         setWorkflowData(data.workflow_version);

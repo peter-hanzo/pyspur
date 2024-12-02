@@ -80,4 +80,7 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
         outputs=combined_task_outputs,
         tasks=tasks_meta,
         output_file_id=output_file_id,
+        workflow_id=run.workflow_id,
+        workflow_version_id=run.workflow_version_id,
+        workflow_version=run.workflow_version,
     )

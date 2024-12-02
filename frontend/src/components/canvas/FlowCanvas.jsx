@@ -33,10 +33,11 @@ import LoadingSpinner from '../LoadingSpinner'; // Updated import
 import ConditionalNode from '../nodes/ConditionalNode';
 import dagre from '@dagrejs/dagre';
 
+
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
     if (!nodeTypesConfig) return {};
-    const types = Object.keys(nodeTypesConfig).reduce((acc, category) => {
+    return Object.keys(nodeTypesConfig).reduce((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
@@ -50,11 +51,6 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
       });
       return acc;
     }, {});
-
-    // Add the OutputNode component
-    // types['OutputNode'] = OutputNode;
-    return types;
-  
   }, [nodeTypesConfig]);
 
   const isLoading = !nodeTypesConfig;

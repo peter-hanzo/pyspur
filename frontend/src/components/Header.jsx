@@ -35,7 +35,7 @@ const Header = ({ activePage }) => {
 
   const router = useRouter();
   const { id } = router.query;
-  const isRun = id[0] == 'R';
+  const isRun = id && id[0] == 'R';
 
   let currentStatusInterval = null;
 
@@ -270,7 +270,7 @@ const Header = ({ activePage }) => {
                   {workflowRuns.map((run, index) => (
                     <DropdownItem
                       key={index}
-                      onClick={() => window.open(`/traces/${run.id}`, '_blank')}
+                      onClick={() => window.open(`/trace/${run.id}`, '_blank')}
                       textValue={`Version ${index + 1}`}
                     >
                       Run {workflowRuns.length - index}
