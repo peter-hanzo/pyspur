@@ -9,14 +9,7 @@ import {
   Link,
   Button,
   Spinner,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Tooltip,
-  Select,
-  SelectItem,
+
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
@@ -24,8 +17,6 @@ import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; /
 import RunModal from './modals/RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism';
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import DeployModal from './modals/DeployModal';
 
 const Header = ({ activePage }) => {

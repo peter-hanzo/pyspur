@@ -121,7 +121,7 @@ const EvalResultsPage = () => {
           </Chip>
         </div>
 
-        <Table aria-label="Eval results table" isHeaderSticky>
+        <Table aria-label="Eval results table" isHeaderSticky isStriped fullWidth>
           <TableHeader>
             <TableColumn>Example ID</TableColumn>
             <TableColumn width="40%">Problem</TableColumn>
