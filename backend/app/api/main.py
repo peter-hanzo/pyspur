@@ -19,6 +19,7 @@ from .output_file_management import router as output_file_management_router
 from .key_management import router as key_management_router
 from .template_management import router as template_management_router
 from .openai_compatible_api import router as openai_compatible_api_router
+from .evals_management import router as evals_management_router
 
 load_dotenv()
 
@@ -50,6 +51,7 @@ app.include_router(output_file_management_router, prefix="/of")
 app.include_router(key_management_router, prefix="/env-mgmt")
 app.include_router(template_management_router, prefix="/templates")
 app.include_router(openai_compatible_api_router, prefix="/api")
+app.include_router(evals_management_router, prefix="/evals")
 
 
 @app.post("/run_node/")

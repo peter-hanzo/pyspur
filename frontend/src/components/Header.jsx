@@ -9,6 +9,13 @@ import {
   Link,
   Button,
   Spinner,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Code,
+  Tooltip,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
@@ -29,6 +36,7 @@ const Header = ({ activePage }) => {
   const projectName = useSelector((state) => state.flow.projectName);
   const [isRunning, setIsRunning] = useState(false);
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [workflowRuns, setWorkflowRuns] = useState([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const workflowId = useSelector((state) => state.flow.workflowID);
@@ -163,6 +171,88 @@ const Header = ({ activePage }) => {
     }
   };
 
+  const handleDeploy = () => {
+    setIsDeployModalOpen(true);
+  };
+
+  const getApiEndpoint = () => {
+    if (typeof window === 'undefined') {
+      return ''; // Return empty string during server-side rendering
+    }
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/api/wf/${workflowID}/start_run/?run_type=non_blocking`;
+  };
+
+  const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
+
+  const DeployModal = () => {
+    // Create example request body with the actual input variables
+    const exampleRequestBody = {
+      initial_inputs: Object.keys(workflowInputVariables).reduce((acc, key) => {
+        // Create an example value based on the variable type
+        acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
+          workflowInputVariables[key].type === 'boolean' ? false :
+            "example_value";
+        return acc;
+      }, {})
+    };
+
+    return (
+      <Modal
+        isOpen={isDeployModalOpen}
+        onOpenChange={setIsDeployModalOpen}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader>API Endpoint Information</ModalHeader>
+          <ModalBody>
+            <p>Use this endpoint to run your workflow in a non-blocking way:</p>
+            <div className="flex items-center gap-2 w-full">
+              <Code className="w-full overflow-x-auto whitespace-nowrap">
+                {getApiEndpoint()}
+              </Code>
+              <Tooltip content="Copy to clipboard">
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getApiEndpoint());
+                  }}
+                >
+                  <Icon icon="solar:copy-linear" width={20} />
+                </Button>
+              </Tooltip>
+            </div>
+            <p className="mt-2">Send a POST request with the following body:</p>
+            <div className="flex items-center gap-2 w-full">
+              <Code className="w-full overflow-x-auto whitespace-pre">
+                {JSON.stringify(exampleRequestBody, null, 2)}
+              </Code>
+              <Tooltip content="Copy to clipboard">
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(exampleRequestBody, null, 2));
+                  }}
+                >
+                  <Icon icon="solar:copy-linear" width={20} />
+                </Button>
+              </Tooltip>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="primary" onPress={() => setIsDeployModalOpen(false)}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    );
+  };
+
   return (
     <>
       <Toaster richColors position="bottom-right" />
@@ -225,11 +315,16 @@ const Header = ({ activePage }) => {
               Home
             </Link>
           </NavbarItem>
-          {activePage !== "home" && (
+          {activePage === "workflow" && (
             <NavbarItem isActive={activePage === "workflow"}>
               Editor
             </NavbarItem>
           )}
+          <NavbarItem isActive={activePage === "evals"}>
+            <Link className="flex gap-2 text-inherit" href="/evals">
+              Evals
+            </Link>
+          </NavbarItem>
         </NavbarContent>
         {activePage === "workflow" && (
           <NavbarContent
@@ -294,6 +389,20 @@ const Header = ({ activePage }) => {
               </Button>
             </NavbarItem>
             <NavbarItem className="hidden sm:flex">
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                onClick={handleDeploy}
+              >
+                <Icon
+                  className="text-default-500"
+                  icon="solar:cloud-upload-linear"
+                  width={24}
+                />
+              </Button>
+            </NavbarItem>
+            <NavbarItem className="hidden sm:flex">
               <SettingsCard />
             </NavbarItem>
           </NavbarContent>
@@ -307,6 +416,7 @@ const Header = ({ activePage }) => {
           setIsDebugModalOpen(false);
         }}
       />
+      <DeployModal />
     </>
   );
 };

@@ -211,7 +211,7 @@ const NodeSidebar = ({ nodeID }) => {
                 </div>
             );
         }
-        else if (key.endsWith('_prompt')) {
+        else if (key.endsWith('_prompt') || key.endsWith('_message')) {
             return (
                 <div key={key} >
                     <TextEditor

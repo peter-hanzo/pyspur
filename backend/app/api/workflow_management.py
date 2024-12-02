@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -12,6 +12,7 @@ from ..schemas.workflow_schemas import (
 )
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
+from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
 
 router = APIRouter()
 
@@ -31,7 +32,9 @@ def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
 
 
 def generate_unique_workflow_name(db: Session, base_name: str) -> str:
-    existing_workflow = db.query(WorkflowModel).filter(WorkflowModel.name == base_name).first()
+    existing_workflow = (
+        db.query(WorkflowModel).filter(WorkflowModel.name == base_name).first()
+    )
     if existing_workflow:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return f"{base_name} {timestamp}"
@@ -46,7 +49,9 @@ def create_workflow(
 ) -> WorkflowResponseSchema:
     if not workflow_request.definition:
         workflow_request.definition = create_a_new_workflow_definition()
-    workflow_name = generate_unique_workflow_name(db, workflow_request.name or "Untitled Workflow")
+    workflow_name = generate_unique_workflow_name(
+        db, workflow_request.name or "Untitled Workflow"
+    )
     new_workflow = WorkflowModel(
         name=workflow_name,
         description=workflow_request.description,
@@ -97,7 +102,14 @@ def list_workflows(db: Session = Depends(get_db)):
         .slice(0, 10)
         .all()
     )
-    return workflows
+    valid_workflows: List[WorkflowModel] = []
+    for workflow in workflows:
+        try:
+            WorkflowResponseSchema.model_validate(workflow)
+            valid_workflows.append(workflow)
+        except Exception:
+            continue
+    return valid_workflows
 
 
 @router.get(
@@ -196,3 +208,44 @@ def duplicate_workflow(
 
     # Return the duplicated workflow
     return new_workflow
+
+
+@router.get(
+    "/{workflow_id}/output_variables/",
+    response_model=List[Dict[str, str]],
+    description="Get the output variables (leaf nodes) of a workflow",
+)
+def get_workflow_output_variables(
+    workflow_id: str, db: Session = Depends(get_db)
+) -> List[Dict[str, str]]:
+    """
+    Fetch the output variables (leaf nodes) of a workflow.
+    """
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
+
+    # Find leaf nodes (nodes without outgoing links)
+    all_source_ids = {link.source_id for link in workflow_definition.links}
+    all_node_ids = {node.id for node in workflow_definition.nodes}
+    leaf_nodes = all_node_ids - all_source_ids
+
+    # Collect output variables as a list of dictionaries
+    output_variables: List[Dict[str, str]] = []
+    for node in workflow_definition.nodes:
+        if node.id in leaf_nodes:
+            # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
+            node_config = DynamicSchemaNodeConfig(**node.config)
+            for var_name in node_config.output_schema.keys():
+                # Include the node_id as a prefix in the output variable
+                output_variables.append(
+                    {
+                        "node_id": node.id,
+                        "variable_name": var_name,
+                        "prefixed_variable": f"{node.id}-{var_name}",  # Add prefixed format
+                    }
+                )
+
+    return output_variables
