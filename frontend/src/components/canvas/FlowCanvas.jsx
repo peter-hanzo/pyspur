@@ -610,5 +610,4 @@ const FlowCanvas = ({ workflowData, workflowID }) => {
   );
 };
 
-
 export default FlowCanvas;
