@@ -107,14 +107,7 @@ const EvalsPage = () => {
   };
 
   const handleViewResults = async (evalRunId) => {
-    try {
-      const evalRunData = await getEvalRunStatus(evalRunId);
-      setEvalResults(evalRunData.results);
-      onOpen();
-    } catch (error) {
-      console.error("Error fetching eval results:", error);
-      toast.error("Failed to fetch eval results.");
-    }
+    router.push(`/evals/${evalRunId}`);
   };
 
   return (
@@ -226,31 +219,6 @@ const EvalsPage = () => {
         ) : (
           <p>No evals available.</p>
         )}
-
-        {/* Modal for displaying eval results */}
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-          <ModalContent>
-            {() => (
-              <>
-                <ModalHeader className="flex flex-col gap-1">Evaluation Results</ModalHeader>
-                <ModalBody>
-                  {evalResults ? (
-                    <pre className="text-sm bg-gray-100 p-4 rounded">
-                      {JSON.stringify(evalResults, null, 2)}
-                    </pre>
-                  ) : (
-                    <p>No results available.</p>
-                  )}
-                </ModalBody>
-                <ModalFooter>
-                  <Button color="danger" variant="light" onPress={onOpenChange}>
-                    Close
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
       </div>
     </div>
   );

@@ -198,8 +198,8 @@ def extract_output_variable(outputs: dict, workflow_output_variable: str) -> Any
         current_level = current_level[matched_key]
 
         # Remove the matched key and the delimiter from the remaining variable
-        remaining_variable = remaining_variable[len(matched_key):]
-        if remaining_variable.startswith('-'):
+        remaining_variable = remaining_variable[len(matched_key) :]
+        if remaining_variable.startswith("-"):
             remaining_variable = remaining_variable[1:]
 
         # If the remaining variable is empty, return the current level
@@ -379,7 +379,7 @@ async def evaluate_dataset_batch(
     short_responses = {}
     total = len(dataset)
     correct = 0
-    task_id = 0
+    example_id = 0
     per_example_results = []
 
     # Initialize category tracking if needed
@@ -407,8 +407,8 @@ async def evaluate_dataset_batch(
         )
 
         # Process responses and update metrics
-        for idx, (problem, response_text) in enumerate(
-            zip(transformed_batch, responses)
+        for idx, (problem, full_prompt, response_text) in enumerate(
+            zip(transformed_batch, full_prompts, responses)
         ):
             predicted_answer = extract_answer(
                 response_text, predicted_answer_extraction
@@ -419,8 +419,8 @@ async def evaluate_dataset_batch(
             )
 
             # Store responses
-            all_responses[task_id] = response_text
-            short_responses[task_id] = predicted_answer
+            all_responses[example_id] = response_text
+            short_responses[example_id] = predicted_answer
 
             # Evaluate correctness
             is_correct = await evaluate_answer(
@@ -429,12 +429,15 @@ async def evaluate_dataset_batch(
             correct += int(is_correct)
 
             # Add per-example results
-            per_example_results.append({
-                'task_id': task_id,
-                'predicted_answer': predicted_answer,
-                'ground_truth_answer': ground_truth_answer,
-                'is_correct': is_correct,
-            })
+            per_example_results.append(
+                {
+                    "example_id": example_id,
+                    "prompt": full_prompt,
+                    "predicted_answer": predicted_answer,
+                    "ground_truth_answer": ground_truth_answer,
+                    "is_correct": is_correct,
+                }
+            )
 
             # Update category metrics if needed
             if subject_category_mapping:
@@ -447,12 +450,12 @@ async def evaluate_dataset_batch(
                     category_correct[category] += 1
 
             # Log results
-            print(f"Task ID {task_id}")
+            print(f"Example ID {example_id}")
             print(f"Predicted answer: {predicted_answer}")
             print(f"Ground truth answer: {ground_truth_answer}")
             print(f"Correct: {is_correct}")
             print("=" * 40)
-            task_id += 1
+            example_id += 1
 
     # Calculate final metrics
     metrics = {
