@@ -180,7 +180,7 @@ const Header = ({ activePage }) => {
       return ''; // Return empty string during server-side rendering
     }
     const baseUrl = window.location.origin;
-    return `${baseUrl}/api/wf/${workflowID}/start_run/?run_type=non_blocking`;
+    return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`;
   };
 
   const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
