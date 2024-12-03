@@ -1,7 +1,32 @@
+import { ReactFlowInstance } from '@xyflow/react';
 import { addNode, connect, deleteEdge } from '../../store/flowSlice';
 import { createNode } from '../../utils/nodeFactory';
+import { AppDispatch } from '../../store/store';
 
-export const addNodeWithoutConnection = (nodeTypes, nodeType, reactFlowInstance, dispatch) => {
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface NodeData {
+  config?: {
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
+  };
+}
+
+interface Node {
+  id: string;
+  position: Position;
+  data?: NodeData;
+}
+
+export const addNodeWithoutConnection = (
+  nodeTypes: Record<string, any>,
+  nodeType: string,
+  reactFlowInstance: ReactFlowInstance,
+  dispatch: AppDispatch
+): void => {
   const id = `node_${Date.now()}`;
   const center = reactFlowInstance.screenToFlowPosition({
     x: window.innerWidth / 2,
@@ -17,7 +42,16 @@ export const addNodeWithoutConnection = (nodeTypes, nodeType, reactFlowInstance,
   dispatch(addNode({ node: newNode }));
 };
 
-export const addNodeBetweenNodes = (nodeTypes, nodeType, sourceNode, targetNode, edgeId, reactFlowInstance, dispatch, setVisible) => {
+export const addNodeBetweenNodes = (
+  nodeTypes: Record<string, any>,
+  nodeType: string,
+  sourceNode: Node,
+  targetNode: Node,
+  edgeId: string,
+  reactFlowInstance: ReactFlowInstance,
+  dispatch: AppDispatch,
+  setVisible: (visible: boolean) => void
+): void => {
   if (!sourceNode?.position || !targetNode?.position) {
     console.error('Invalid source or target node position');
     return;
@@ -33,7 +67,7 @@ export const addNodeBetweenNodes = (nodeTypes, nodeType, sourceNode, targetNode,
   const newNode = createNode(nodeTypes, nodeType, id, newPosition);
 
   // Special handling for input node as source
-  const getSourceOutputKey = (node) => {
+  const getSourceOutputKey = (node: Node): string => {
     if (node.id === 'input_node') {
       // For input node, use the first key from input_schema as the output key
       return Object.keys(node.data?.config?.input_schema || {})[0] || 'output';

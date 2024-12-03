@@ -34,7 +34,7 @@ const store = configureStore({
 
 // Define store types
 export type AppStore = typeof store;
-export type AppDispatch = AppStore['dispatch'];
+export type AppDispatch = typeof store.dispatch;
 
 export const persistor = persistStore(store);
 export default store;
