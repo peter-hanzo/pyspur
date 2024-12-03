@@ -3,15 +3,37 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
-  getSmoothStepPath,
   useReactFlow,
+  Edge,
+  Node,
+  Position,
+  EdgeProps
 } from '@xyflow/react';
 import { Button } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { useDispatch } from 'react-redux';
 import { deleteEdge } from '../../../store/flowSlice';
 
-const CustomEdge = ({
+interface CustomEdgeData {
+  onPopoverOpen: (params: {
+    sourceNode: {
+      id: string;
+      position: { x: number; y: number };
+      data: any;
+    };
+    targetNode: {
+      id: string;
+      position: { x: number; y: number };
+      data: any;
+    };
+    edgeId: string;
+  }) => void;
+  showPlusButton: boolean;
+}
+
+type CustomEdgeProps = EdgeProps<CustomEdgeData>;
+
+const CustomEdge: React.FC<CustomEdgeProps> = ({
   id,
   sourceX,
   sourceY,
@@ -53,7 +75,6 @@ const CustomEdge = ({
       edgeId: id
     });
   };
-  const borderRadius = 16;
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -62,10 +83,9 @@ const CustomEdge = ({
     targetX,
     targetY,
     targetPosition,
-    borderRadius,
   });
 
-  const handleDeleteEdge = (event) => {
+  const handleDeleteEdge = (event: React.MouseEvent) => {
     event.stopPropagation();
     dispatch(deleteEdge({ edgeId: id }));
   };
@@ -94,14 +114,12 @@ const CustomEdge = ({
             >
               <Button
                 isIconOnly
-                auto
                 onClick={handleAddNode}
               >
                 <Icon icon="solar:add-circle-linear" width={20} className="text-default-500" />
               </Button>
               <Button
                 isIconOnly
-                auto
                 onClick={handleDeleteEdge}
               >
                 <Icon icon="solar:trash-bin-trash-linear" width={20} />

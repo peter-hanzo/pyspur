@@ -10,13 +10,19 @@ import { Icon } from "@iconify/react";
 import TipPopup from '../../../TipPopUp';
 import { resetWorkflow } from '../../../../utils/api';
 import { resetFlow } from '../../../../store/flowSlice';
+import { RootState } from '../../../../store/store';
+import { AppDispatch } from '../../../../store/store';
 
-function Operator({handleLayout}) {
-  const dispatch = useDispatch();
-  const nodes = useSelector(state => state.flow.nodes);
+interface OperatorProps {
+  handleLayout: () => void;
+}
+
+function Operator({ handleLayout }: OperatorProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
-  const workflowID = useSelector(state => state.flow.workflowID);
+  const workflowID = useSelector((state: RootState) => state.flow.workflowID);
 
   const handleClearCanvas = async () => {
     if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
@@ -69,7 +75,7 @@ function Operator({handleLayout}) {
               />
             </Button>
           </TipPopup>
-          <UndoRedo handleUndo={null} handleRedo={null} />
+          <UndoRedo handleUndo={() => {}} handleRedo={() => {}} />
           <TipPopup title='Clear Canvas'>
             <Button
               size="sm"

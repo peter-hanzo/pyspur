@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getNodeTypes } from '../utils/api';
-import { RootState } from './index';
+import { RootState } from './store';
 
 // Define interfaces for the metadata structure
 interface NodeMetadata {
@@ -27,6 +27,11 @@ interface NodeTypesState {
 interface NodeTypesResponse {
   schema: any;  // Schema type could be more specific based on your needs
   metadata: MetadataCategories;
+}
+
+export interface NodeType {
+  name: string;
+  // add other properties that NodeType should have
 }
 
 const initialState: NodeTypesState = {
