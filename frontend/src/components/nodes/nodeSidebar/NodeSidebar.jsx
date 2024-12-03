@@ -6,7 +6,7 @@ import CodeEditor from '../../CodeEditor';
 import { jsonOptions } from '../../../constants/jsonOptions';
 import FewShotEditor from '../../textEditor/FewShotEditor';
 import TextEditor from '../../textEditor/TextEditor';
-import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion, AccordionItem } from '@nextui-org/react';
+import { Button, Slider, Switch, Textarea, Input, Select, SelectItem, Accordion, AccordionItem, Card } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import NodeOutput from "../NodeOutputDisplay";
 import SchemaEditor from './SchemaEditor';
@@ -440,71 +440,75 @@ const NodeSidebar = ({ nodeID }) => {
 
 
     return (
-        <div
-            className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 flex"
-            style={{
-                width: `${width}px`,
-                zIndex: 2,
-                userSelect: isResizing ? 'none' : 'auto'
-            }}
+        <Card
+            className="fixed top-16 bottom-4 right-4 w-96 p-4 bg-white rounded-xl border border-solid border-gray-200 overflow-auto"
         >
-            {/* Add resize handle */}
             <div
-                className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 hover:opacity-100 opacity-0 transition-opacity"
-                onMouseDown={handleMouseDown}
+                className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 flex"
                 style={{
-                    backgroundColor: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
-                    opacity: isResizing ? '1' : undefined
+                    width: `${width}px`,
+                    zIndex: 2,
+                    userSelect: isResizing ? 'none' : 'auto'
                 }}
-            />
+            >
+                {/* Add resize handle */}
+                <div
+                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 hover:opacity-100 opacity-0 transition-opacity"
+                    onMouseDown={handleMouseDown}
+                    style={{
+                        backgroundColor: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
+                        opacity: isResizing ? '1' : undefined
+                    }}
+                />
 
-            {/* Updated sidebar content */}
-            <div className="flex-1 px-4 py-1 overflow-auto max-h-screen" id="node-details">
-                <div className="flex justify-between items-center mb-2">
-                    <div>
-                        <h1 className="text-lg font-semibold">{node?.data?.config?.title || node?.id || 'Node Details'}</h1>
-                        <h2 className="text-xs font-semibold">{nodeType}</h2>
+                {/* Updated sidebar content */}
+                <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">
+                    <div className="flex justify-between items-center mb-2">
+                        <div>
+                            <h1 className="text-lg font-semibold">{node?.data?.config?.title || node?.id || 'Node Details'}</h1>
+                            <h2 className="text-xs font-semibold">{nodeType}</h2>
+                        </div>
+                        <Button
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onClick={() => dispatch(setSelectedNode({ nodeId: null }))}
+                        >
+                            <Icon
+                                className="text-default-500"
+                                icon="solar:close-circle-linear"
+                                width={24}
+                            />
+                        </Button>
                     </div>
-                    <Button
-                        isIconOnly
-                        radius="full"
-                        variant="light"
-                        onClick={() => dispatch(setSelectedNode({ nodeId: null }))}
-                    >
-                        <Icon
-                            className="text-default-500"
-                            icon="solar:close-circle-linear"
-                            width={24}
-                        />
-                    </Button>
-                </div>
 
-                <Accordion selectionMode="multiple" defaultExpandedKeys={hasRunOutput ? ["output"] : ["title", "config"]}>
-                    {nodeType !== 'InputNode' && (
-                        <AccordionItem key="output" aria-label='Output' title="Outputs">
-                            <NodeOutput node={node} />
+                    <Accordion selectionMode="multiple" defaultExpandedKeys={hasRunOutput ? ["output"] : ["title", "config"]}>
+                        {nodeType !== 'InputNode' && (
+                            <AccordionItem key="output" aria-label='Output' title="Outputs">
+                                <NodeOutput node={node} />
+                            </AccordionItem>
+                        )}
+
+                        <AccordionItem key="title" aria-label="Node Title" title="Node Title">
+                            <Input
+                                value={node?.data?.config?.title || ''}
+                                onChange={(e) => handleInputChange('title', e.target.value)}
+                                placeholder="Enter node title"
+                                maxRows={1}
+                                label="Node Title"
+                                fullWidth
+                            />
                         </AccordionItem>
-                    )}
 
-                    <AccordionItem key="title" aria-label="Node Title" title="Node Title">
-                        <Input
-                            value={node?.data?.config?.title || ''}
-                            onChange={(e) => handleInputChange('title', e.target.value)}
-                            placeholder="Enter node title"
-                            maxRows={1}
-                            label="Node Title"
-                            fullWidth
-                        />
-                    </AccordionItem>
-
-                    <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
-                        {renderConfigFields()}
-                    </AccordionItem>
+                        <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
+                            {renderConfigFields()}
+                        </AccordionItem>
 
 
-                </Accordion>
+                    </Accordion>
+                </div>
             </div>
-        </div>
+        </Card>
     );
 };
 
