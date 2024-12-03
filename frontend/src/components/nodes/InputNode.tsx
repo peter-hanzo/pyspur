@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
 import {
@@ -11,15 +11,30 @@ import { Input, Button } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import styles from './InputNode.module.css';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
+import { RootState } from '../../store/store';
 
-const InputNode = ({ id, data, ...props }) => {
+interface InputNodeProps {
+  id: string;
+  data?: {
+    title?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+interface WorkflowNode {
+  id: string;
+  [key: string]: any;
+}
+
+const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
-  const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
-  const nodeRef = useRef(null);
-  const [nodeWidth, setNodeWidth] = useState('auto');
-  const [editingField, setEditingField] = useState(null);
-  const [newFieldValue, setNewFieldValue] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const [nodeWidth, setNodeWidth] = useState<string>('auto');
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [newFieldValue, setNewFieldValue] = useState<string>('');
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
   const workflowInputKeys = Object.keys(workflowInputVariables);
 
@@ -38,10 +53,10 @@ const InputNode = ({ id, data, ...props }) => {
   }, [data, workflowInputKeys]);
 
   const saveWorkflow = useSaveWorkflow();
-  const nodes = useSelector((state) => state.flow.nodes);
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
 
   const syncAndSave = useCallback(() => {
-    const inputNode = nodes.find((node) => node.id === id);
+    const inputNode = nodes.find((node: WorkflowNode) => node.id === id);
     if (!inputNode) return;
     saveWorkflow();
   }, [id, nodes, saveWorkflow]);
@@ -64,14 +79,14 @@ const InputNode = ({ id, data, ...props }) => {
   }, [dispatch, newFieldValue]);
 
   const handleDeleteWorkflowInputVariable = useCallback(
-    (keyToDelete) => {
+    (keyToDelete: string) => {
       dispatch(deleteWorkflowInputVariable({ key: keyToDelete }));
     },
     [dispatch]
   );
 
   const handleWorkflowInputVariableKeyEdit = useCallback(
-    (oldKey, newKey) => {
+    (oldKey: string, newKey: string) => {
       if (oldKey === newKey || !newKey.trim()) {
         setEditingField(null);
         return;
@@ -90,7 +105,7 @@ const InputNode = ({ id, data, ...props }) => {
           {workflowInputKeys.length > 0 && (
             <table style={{ width: '100%' }}>
               <tbody>
-                {workflowInputKeys.map((key, index) => (
+                {workflowInputKeys.map((key) => (
                   <tr key={key} className="relative w-full px-4 py-2">
                     <td className={styles.handleLabelCell}>
                       {!isCollapsed && (
@@ -102,10 +117,14 @@ const InputNode = ({ id, data, ...props }) => {
                               size="sm"
                               variant="faded"
                               radius="lg"
-                              onBlur={(e) => handleWorkflowInputVariableKeyEdit(key, e.target.value)}
+                              onBlur={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                handleWorkflowInputVariableKeyEdit(key, target.value);
+                              }}
                               onKeyDown={(e) => {
+                                const target = e.target as HTMLInputElement;
                                 if (e.key === 'Enter') {
-                                  handleWorkflowInputVariableKeyEdit(key, e.target.value);
+                                  handleWorkflowInputVariableKeyEdit(key, target.value);
                                 } else if (e.key === 'Escape') {
                                   setEditingField(null);
                                 }
@@ -142,10 +161,11 @@ const InputNode = ({ id, data, ...props }) => {
                       <div className={styles.handleWrapper}>
                         <Handle
                           type="source"
-                          position="right"
+                          position={Position.Right}
                           id={key}
-                          className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-                            }`}
+                          className={`${styles.handle} ${styles.handleRight} ${
+                            isCollapsed ? styles.collapsedHandleOutput : ''
+                          }`}
                           isConnectable={!isCollapsed}
                         />
                       </div>
@@ -156,7 +176,7 @@ const InputNode = ({ id, data, ...props }) => {
             </table>
           )}
         </div>
-      </div >
+      </div>
     );
   };
 
