@@ -2,21 +2,37 @@ import React, { useState } from 'react';
 import { Button, Input, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useDispatch } from 'react-redux';
-import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'; // Import the deleteEdge action
+import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice';
 
-const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false, schemaType = 'input_schema', nodeId }) => {
-  const [newKey, setNewKey] = useState('');
-  const [newType, setNewType] = useState('str'); // Default to 'string'
-  const [editingField, setEditingField] = useState(null); // Track the field being edited
-  const dispatch = useDispatch(); // Initialize dispatch
+interface SchemaEditorProps {
+  jsonValue?: Record<string, string>;
+  onChange: (value: Record<string, string>) => void;
+  options?: string[];
+  disabled?: boolean;
+  schemaType?: 'input_schema' | 'output_schema';
+  nodeId: string;
+}
 
-  const getPlaceholderExample = () => {
+const SchemaEditor: React.FC<SchemaEditorProps> = ({
+  jsonValue = {},
+  onChange,
+  options = [],
+  disabled = false,
+  schemaType = 'input_schema',
+  nodeId
+}) => {
+  const [newKey, setNewKey] = useState<string>('');
+  const [newType, setNewType] = useState<string>('str');
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const dispatch = useDispatch();
+
+  const getPlaceholderExample = (): string => {
     return schemaType === 'input_schema'
       ? 'eg. article'
       : 'eg. summary';
   };
 
-  const handleAddKey = () => {
+  const handleAddKey = (): void => {
     if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
       const updatedJson = {
         ...jsonValue,
@@ -28,24 +44,20 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
     }
   };
 
-  const handleRemoveKey = (key) => {
+  const handleRemoveKey = (key: string): void => {
     const { [key]: _, ...updatedJson } = jsonValue;
-    console.log("after removing a key: ", key, updatedJson);
     onChange(updatedJson);
-    // Dispatch an action to remove the corresponding edge
     dispatch(deleteEdgeByHandle({ nodeId, handleKey: key }));
   };
 
-  // Helper function to extract the type from the value
-  const getType = (value) => {
+  const getType = (value: any): string => {
     if (typeof value === 'object' && value !== null) {
       return value.type || 'str';
     }
     return value;
   };
 
-  const handleKeyEdit = (oldKey, newKey) => {
-    // replace spaces with underscores
+  const handleKeyEdit = (oldKey: string, newKey: string): void => {
     newKey = newKey.replace(/\s+/g, '_');
     if (oldKey === newKey || !newKey.trim()) {
       setEditingField(null);
@@ -65,7 +77,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
         oldHandleId: oldKey,
         newHandleId: newKey,
         schemaType,
-      }))
+      }));
     }
     setEditingField(null);
   };
@@ -89,7 +101,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
         />
         <Select
           selectedValue={newType}
-          onChange={setNewType}
+          onChange={(e) => setNewType(e.target.value)}
           disabled={disabled}
           label="Type"
           defaultSelectedKeys={["str"]}
@@ -140,7 +152,7 @@ const SchemaEditor = ({ jsonValue = {}, onChange, options = [], disabled = false
             ) : (
               <span
                 className="mr-2 p-1 border rounded-full bg-gray-100 cursor-pointer"
-                onClick={() => setEditingField(key)} // Open the input on click
+                onClick={() => setEditingField(key)}
               >
                 {key}
               </span>
