@@ -3,8 +3,14 @@ import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
 
-const CodeEditor = ({ code, onChange, disabled }) => {
-  const [value, setValue] = useState('');
+interface CodeEditorProps {
+  code: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled }) => {
+  const [value, setValue] = useState<string>('');
 
   useEffect(() => {
     if (typeof code === 'string') {
@@ -12,7 +18,7 @@ const CodeEditor = ({ code, onChange, disabled }) => {
     }
   }, [code]);
 
-  const handleEditorChange = (newValue) => {
+  const handleEditorChange = (newValue: string) => {
     setValue(newValue);
     onChange(newValue);
   };
@@ -27,7 +33,7 @@ const CodeEditor = ({ code, onChange, disabled }) => {
         extensions={[python()]}
         onChange={handleEditorChange}
         className="border"
-        editable={!disabled} // Disable editing when not in editing mode
+        editable={!disabled}
       />
     </div>
   );

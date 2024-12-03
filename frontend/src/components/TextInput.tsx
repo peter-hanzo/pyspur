@@ -1,6 +1,14 @@
 import React from 'react';
 
-const TextInput = ({ label, value, placeholder, onChange, disabled }) => (
+interface TextInputProps {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}
+
+const TextInput: React.FC<TextInputProps> = ({ label, value, placeholder, onChange, disabled }) => (
   <div className="my-4">
     <label className="text-sm font-semibold mb-2 block">{label}</label>
     <input

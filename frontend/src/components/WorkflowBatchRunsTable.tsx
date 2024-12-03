@@ -1,16 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { getKeyValue, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress } from '@nextui-org/react';
+import { getKeyValue, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress, Key } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { getAllRuns, downloadOutputFile } from '../utils/api';
 
-const WorkflowBatchRunsTable = () => {
-  const [workflowBatchRuns, setWorkflowBatchRuns] = useState([]);
+interface Workflow {
+  name: string;
+}
+
+interface WorkflowRun {
+  id: string;
+  workflow: Workflow;
+  input_dataset_id: string | null;
+  status: 'COMPLETED' | 'FAILED' | 'IN_PROGRESS';
+  output_file_id: string;
+}
+
+interface FormattedRun {
+  key: string;
+  id: string;
+  workflow_name: string;
+  dataset: string;
+  progress: number;
+  output_file_id: string;
+}
+
+interface Column {
+  key: string;
+  label: string;
+}
+
+const WorkflowBatchRunsTable: React.FC = () => {
+  const [workflowBatchRuns, setWorkflowBatchRuns] = useState<FormattedRun[]>([]);
 
   useEffect(() => {
     const fetchRuns = async () => {
       try {
         const runs = await getAllRuns();
-        const formattedRuns = runs.map(run => ({
+        const formattedRuns = runs.map((run: WorkflowRun) => ({
           key: run.id,
           id: run.id,
           workflow_name: run.workflow.name,
@@ -30,7 +56,7 @@ const WorkflowBatchRunsTable = () => {
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
   }, []);
 
-  const activeColumns = [
+  const activeColumns: Column[] = [
     { key: "id", label: "RUN ID" },
     { key: "workflow_name", label: "WORKFLOW" },
     { key: "dataset", label: "DATASET" },
@@ -38,7 +64,7 @@ const WorkflowBatchRunsTable = () => {
     { key: "download", label: "DOWNLOAD" },
   ];
 
-  const handleDownload = (batchRun) => {
+  const handleDownload = (batchRun: FormattedRun) => {
     downloadOutputFile(batchRun.output_file_id);
   };
 
@@ -50,9 +76,9 @@ const WorkflowBatchRunsTable = () => {
             {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
           </TableHeader>
           <TableBody items={workflowBatchRuns}>
-            {(batchRun) => (
+            {(batchRun: FormattedRun) => (
               <TableRow key={batchRun.key}>
-                {(columnKey) => (
+                {(columnKey: Key) => (
                   <TableCell>
                     {columnKey === "progress" ? (
                       batchRun.progress === 100 ? (
