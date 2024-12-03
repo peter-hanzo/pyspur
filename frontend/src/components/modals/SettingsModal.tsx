@@ -24,7 +24,7 @@ import { listApiKeys, setApiKey, getApiKey } from "../../utils/api";
 
 // CellWrapper Component
 const CellWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({children, className, ...props}, ref) => (
+  ({ children, className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
@@ -65,7 +65,7 @@ type SwitchCellProps = Omit<SwitchProps, "color"> & {
 };
 
 const SwitchCell = React.forwardRef<HTMLInputElement, SwitchCellProps>(
-  ({label, description, classNames, ...props}, ref) => (
+  ({ label, description, classNames, ...props }, ref) => (
     <CustomSwitch
       ref={ref}
       classNames={{

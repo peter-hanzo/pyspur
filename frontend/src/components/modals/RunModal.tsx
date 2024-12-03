@@ -17,54 +17,65 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import TextEditor from '../textEditor/TextEditor';
-import { addTestInput, deleteTestInput, setTestInputs } from '../../store/flowSlice';
+import { addTestInput, deleteTestInput } from '../../store/flowSlice';
+import { RootState } from '../../store/store';
+import { AppDispatch } from '../../store/store';
 
-const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
-  const workflowInputVariables = useSelector(state => state.flow.workflowInputVariables);
+interface RunModalProps {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onRun: (initialInputs: Record<string, any>) => void;
+  onSave?: () => void;
+}
 
+interface TestInput {
+  id: number;
+  [key: string]: any;
+}
+
+interface EditingCell {
+  rowId: number;
+  field: string;
+}
+
+const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
   const workflowInputVariableNames = Object.keys(workflowInputVariables || {});
-  const [testData, setTestData] = useState([]);
-  const [newRow, setNewRow] = useState({});
-  const [editingCell, setEditingCell] = useState(null);
-  const [selectedRow, setSelectedRow] = useState(null);
-  const nodes = useSelector(state => state.flow.nodes);
-  const edges = useSelector(state => state.flow.edges);
 
-  // Add this new state to track editor contents
-  const [editorContents, setEditorContents] = useState({});
+  const [testData, setTestData] = useState<TestInput[]>([]);
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [editorContents, setEditorContents] = useState<Record<string, string>>({});
 
-  const dispatch = useDispatch();
-  const testInputs = useSelector((state) => state.flow.testInputs);
+  const dispatch = useDispatch<AppDispatch>();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const edges = useSelector((state: RootState) => state.flow.edges);
+  const testInputs = useSelector((state: RootState) => state.flow.testInputs);
 
   useEffect(() => {
-    // Load test inputs from Redux store
     setTestData(testInputs);
   }, [testInputs]);
 
   const handleAddRow = () => {
-    const newTestInput = {
-      id: Date.now(),  // Use a timestamp or UUID for unique IDs
+    const newTestInput: TestInput = {
+      id: Date.now(),
       ...editorContents,
     };
     setTestData([...testData, newTestInput]);
     setEditorContents({});
-
-    // Dispatch action to add test input to Redux
     dispatch(addTestInput(newTestInput));
   };
 
-  const handleDeleteRow = (id) => {
+  const handleDeleteRow = (id: number) => {
     setTestData(testData.filter((row) => row.id !== id));
-
-    // Dispatch action to remove test input from Redux
     dispatch(deleteTestInput({ id }));
   };
 
-  const handleDoubleClick = (rowId, field) => {
+  const handleDoubleClick = (rowId: number, field: string) => {
     setEditingCell({ rowId, field });
   };
 
-  const handleCellEdit = (rowId, field, value) => {
+  const handleCellEdit = (rowId: number, field: string, value: string) => {
     setTestData(testData.map(row =>
       row.id === rowId ? { ...row, [field]: value } : row
     ));
@@ -74,7 +85,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     setEditingCell(null);
   };
 
-  const renderCell = (row, field) => {
+  const renderCell = (row: TestInput, field: string) => {
     const isEditing = editingCell?.rowId === row.id && editingCell?.field === field;
 
     if (isEditing) {
@@ -96,38 +107,21 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
     );
   };
 
-  const handleKeyDown = (e) => {
-    // Check if any of the input fields have values before allowing row addition
-    const hasValues = Object.values(newRow).some(value => value !== "");
-    if (e.key === 'Enter' && hasValues) {
-      handleAddRow();
-    }
-  };
-
-
   const handleRun = () => {
     if (!selectedRow) return;
 
-    // Find the selected test data
-    const selectedTestCase = testData.find(row => row.id == selectedRow);
+    const selectedTestCase = testData.find(row => row.id.toString() === selectedRow);
     if (!selectedTestCase) return;
 
-    // Remove the id field from the test case
     const { id, ...inputValues } = selectedTestCase;
-
-    // Initialize the initialInputs structure
-    let initialInputs = {};
-
-    // InputNode id
     const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
 
-    initialInputs = {
+    if (!inputNodeId) return;
+
+    const initialInputs = {
       [inputNodeId]: inputValues
     };
 
-
-
-    // Call the onRun callback with the constructed initialInputs
     onRun(initialInputs);
   };
 
@@ -156,7 +150,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
                 selectionMode="single"
                 selectedKeys={selectedRow ? [selectedRow] : new Set()}
                 onSelectionChange={(selection) => {
-                  const selectedKey = Array.from(selection)[0];
+                  const selectedKey = Array.from(selection)[0]?.toString() || null;
                   setSelectedRow(selectedKey);
                 }}
               >
@@ -200,7 +194,7 @@ const RunModal = ({ isOpen, onOpenChange, onRun, onSave }) => {
                       fieldTitle={field}
                       inputSchema={{}}
                       content={editorContents[field] || ''}
-                      setContent={(value) => {
+                      setContent={(value: string) => {
                         setEditorContents(prev => ({
                           ...prev,
                           [field]: value

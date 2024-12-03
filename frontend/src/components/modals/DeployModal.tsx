@@ -15,13 +15,32 @@ import { Icon } from "@iconify/react";
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism';
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
-const DeployModal = ({ isOpen, onOpenChange, getApiEndpoint }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState("python");
-  const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
+interface DeployModalProps {
+  isOpen: boolean;
+  onOpenChange: () => void;
+  getApiEndpoint: () => string;
+}
+
+interface WorkflowInputVariable {
+  type: string;
+  [key: string]: any;
+}
+
+interface RootState {
+  flow: {
+    workflowInputVariables: Record<string, WorkflowInputVariable>;
+  };
+}
+
+type SupportedLanguages = 'python' | 'javascript' | 'typescript' | 'rust' | 'java' | 'cpp';
+
+const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, getApiEndpoint }) => {
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python');
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
 
   // Create example request body with the actual input variables
   const exampleRequestBody = {
-    initial_inputs: Object.keys(workflowInputVariables).reduce((acc, key) => {
+    initial_inputs: Object.keys(workflowInputVariables).reduce<Record<string, any>>((acc, key) => {
       acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
         workflowInputVariables[key].type === 'boolean' ? false :
           "example_value";
@@ -29,7 +48,7 @@ const DeployModal = ({ isOpen, onOpenChange, getApiEndpoint }) => {
     }, {})
   };
 
-  const codeExamples = {
+  const codeExamples: Record<SupportedLanguages, string> = {
     python: `import requests
 
 url = '${getApiEndpoint()}'
@@ -128,6 +147,7 @@ int main() {
       size="2xl"
     >
       <ModalContent>
+        {/* Rest of the component remains the same */}
         <ModalHeader>API Endpoint Information</ModalHeader>
         <ModalBody>
           <p>Use this endpoint to run your workflow in a non-blocking way:</p>
@@ -191,7 +211,7 @@ int main() {
               label="Select Language"
               className="max-w-xs mb-2"
               value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
+              onChange={(e) => setSelectedLanguage(e.target.value as SupportedLanguages)}
               defaultSelectedKeys={["python"]}
             >
               {Object.keys(codeExamples).map((lang) => (
