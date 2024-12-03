@@ -9,34 +9,64 @@ import {
   Link,
   Button,
   Spinner,
-
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
-import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; // Ensure updateNodeData is imported
+import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice';
 import RunModal from './modals/RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
 import DeployModal from './modals/DeployModal';
 
-const Header = ({ activePage }) => {
+interface HeaderProps {
+  activePage: 'home' | 'workflow' | 'evals';
+}
+
+interface Node {
+  id: string;
+  data: {
+    run?: Record<string, any>;
+  };
+}
+
+interface RootState {
+  flow: {
+    nodes: Node[];
+    projectName: string;
+    workflowInputVariables: Record<string, any>;
+  };
+}
+
+interface RunStatusResponse {
+  status: 'RUNNING' | 'FAILED' | string;
+  outputs?: Record<string, any>;
+  id: string;
+}
+
+interface WorkflowResponse {
+  name: string;
+  definition: any;
+  description: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const dispatch = useDispatch();
-  const nodes = useSelector((state) => state.flow.nodes);
-  const projectName = useSelector((state) => state.flow.projectName);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
-  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const projectName = useSelector((state: RootState) => state.flow.projectName);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [isDebugModalOpen, setIsDebugModalOpen] = useState<boolean>(false);
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false);
 
-  let currentStatusInterval = null;
+  let currentStatusInterval: NodeJS.Timeout | null = null;
 
-  const updateWorkflowStatus = async (runID) => {
+  const updateWorkflowStatus = async (runID: string): Promise<void> => {
     let pollCount = 0;
     if (currentStatusInterval) {
       clearInterval(currentStatusInterval);
     }
     currentStatusInterval = setInterval(async () => {
       try {
-        const statusResponse = await getRunStatus(runID);
+        const statusResponse: RunStatusResponse = await getRunStatus(runID);
         const outputs = statusResponse.outputs;
 
         if (statusResponse.status === 'FAILED') {
@@ -46,11 +76,10 @@ const Header = ({ activePage }) => {
           return;
         }
 
-        // Update nodes based on outputs
         if (outputs) {
           Object.entries(outputs).forEach(([nodeId, output_values]) => {
             const node = nodes.find((node) => node.id === nodeId);
-            if (output_values) {
+            if (output_values && node) {
               dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...output_values } } }));
             }
           });
@@ -70,10 +99,11 @@ const Header = ({ activePage }) => {
     }, 1000);
   };
 
-  // get the workflow ID from the URL
   const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
 
-  const executeWorkflow = async (inputValues) => {
+  const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
+    if (!workflowID) return;
+
     try {
       toast('Starting workflow run...');
       const result = await startRun(workflowID, inputValues, null, 'interactive');
@@ -86,11 +116,11 @@ const Header = ({ activePage }) => {
     }
   };
 
-  const handleRunWorkflow = async () => {
+  const handleRunWorkflow = async (): Promise<void> => {
     setIsDebugModalOpen(true);
   };
 
-  const handleStopWorkflow = () => {
+  const handleStopWorkflow = (): void => {
     setIsRunning(false);
     if (currentStatusInterval) {
       clearInterval(currentStatusInterval);
@@ -98,14 +128,15 @@ const Header = ({ activePage }) => {
     toast('Workflow run stopped.');
   };
 
-  const handleProjectNameChange = (e) => {
+  const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     dispatch(setProjectName(e.target.value));
   };
 
-  const handleDownloadWorkflow = async () => {
+  const handleDownloadWorkflow = async (): Promise<void> => {
+    if (!workflowID) return;
+
     try {
-      // Get the current workflow using the workflowID from Redux state
-      const workflow = await getWorkflow(workflowID);
+      const workflow: WorkflowResponse = await getWorkflow(workflowID);
 
       const workflowDetails = {
         name: workflow.name,
@@ -113,43 +144,38 @@ const Header = ({ activePage }) => {
         description: workflow.description
       };
 
-      // Create a JSON blob from the workflow data
       const blob = new Blob([JSON.stringify(workflowDetails, null, 2)], {
         type: 'application/json'
       });
 
-      // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${projectName.replace(/\s+/g, '_')}.json`; // Use project name for the file
+      a.download = `${projectName.replace(/\s+/g, '_')}.json`;
 
-      // Trigger download
       document.body.appendChild(a);
       a.click();
 
-      // Cleanup
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading workflow:', error);
-      // You might want to add some user feedback here
     }
   };
 
-  const handleDeploy = () => {
+  const handleDeploy = (): void => {
     setIsDeployModalOpen(true);
   };
 
-  const getApiEndpoint = () => {
+  const getApiEndpoint = (): string => {
     if (typeof window === 'undefined') {
-      return ''; // Return empty string during server-side rendering
+      return '';
     }
     const baseUrl = window.location.origin;
     return `${baseUrl}/api/wf/${workflowID}/start_run/?run_type=non_blocking`;
   };
 
-  const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
 
   return (
     <>
