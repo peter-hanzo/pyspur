@@ -9,7 +9,7 @@ from .llm_utils import LLMModels, ModelInfo
 
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig):
-    samples: int = Field(3, ge=1, le=10, description="Number of samples to generate")
+    samples: int = Field(3, ge=1, le=1000, description="Number of samples to generate")
     rating_prompt: str = Field(
         "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. "
         "Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",

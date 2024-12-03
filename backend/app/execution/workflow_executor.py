@@ -26,7 +26,13 @@ class WorkflowExecutor:
         context: Optional[WorkflowExecutionContext] = None,
     ):
         self.workflow = workflow
-        self.task_recorder = task_recorder
+        if task_recorder:
+            self.task_recorder = task_recorder
+        elif context and context.run_id and context.db_session:
+            print("Creating task recorder from context")
+            self.task_recorder = TaskRecorder(context.db_session, context.run_id)
+        else:
+            self.task_recorder = None
         self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}

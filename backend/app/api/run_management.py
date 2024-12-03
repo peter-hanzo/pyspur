@@ -1,13 +1,10 @@
-import json
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from trio import TaskStatus
 
-from ..schemas.run_schemas import RunResponseSchema, RunStatusResponseSchema
+from ..schemas.run_schemas import RunResponseSchema
 from ..database import get_db
-from ..models.run_model import RunModel, RunStatus
-from ..models.task_model import TaskStatus
+from ..models.run_model import RunModel
 
 router = APIRouter()
 
@@ -32,6 +29,7 @@ def list_runs(
     runs = query.order_by(RunModel.start_time.desc()).limit(last_k).all()
     return runs
 
+
 @router.get("/{run_id}/", response_model=RunResponseSchema)
 def get_run(run_id: str, db: Session = Depends(get_db)):
     run = db.query(RunModel).filter(RunModel.id == run_id).first()
@@ -39,53 +37,10 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Run not found")
     return run
 
-@router.get("/{run_id}/status/", response_model=RunStatusResponseSchema)
+
+@router.get("/{run_id}/status/", response_model=RunResponseSchema)
 def get_run_status(run_id: str, db: Session = Depends(get_db)):
     run = db.query(RunModel).filter(RunModel.id == run_id).first()
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
-    output_file_id = None
-    if run.status == RunStatus.COMPLETED:
-        # find output file id
-        output_file = run.output_file
-        if output_file:
-            output_file_id = output_file.id
-
-    tasks = run.tasks
-    tasks_meta = [
-        {
-            "node_id": task.node_id,
-            "status": task.status,
-            "inputs": task.inputs,
-            "outputs": task.outputs,
-            "run_time": task.run_time,
-            "subworkflow": json.loads(task.subworkflow) if task.subworkflow else None,
-            "subworkflow_output": (
-                json.loads(task.subworkflow_output) if task.subworkflow_output else None
-            ),
-        }
-        for task in tasks
-    ]
-    # fail if any task has failed
-    for task in tasks:
-        if task.status == TaskStatus.FAILED:
-            # update run status to failed
-            run.status = RunStatus.FAILED
-            db.commit()
-            break
-
-    combined_task_outputs: Dict[str, Any] = {}
-    for task in tasks:
-        combined_task_outputs[task.node_id] = task.outputs
-    return RunStatusResponseSchema(
-        id=run.id,
-        status=run.status,
-        start_time=run.start_time,
-        end_time=run.end_time,
-        outputs=combined_task_outputs,
-        tasks=tasks_meta,
-        output_file_id=output_file_id,
-        workflow_id=run.workflow_id,
-        workflow_version_id=run.workflow_version_id,
-        workflow_version=run.workflow_version,
-    )
+    return run

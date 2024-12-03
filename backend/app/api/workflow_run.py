@@ -22,7 +22,6 @@ from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
 from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
-from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
 from ..utils.workflow_version_utils import fetch_workflow_version
 from ..execution.workflow_execution_context import WorkflowExecutionContext
 

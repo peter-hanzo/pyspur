@@ -22,13 +22,14 @@ import {
   DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import SettingsCard from './settings/Settings';
+import SettingsCard from './modals/SettingsModal';
 import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; // Ensure updateNodeData is imported
-import RunModal from './RunModal';
+import RunModal from './modals/RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
 import { getWorkflowRuns } from '../utils/api';
 import { useRouter } from 'next/router';
+import DeployModal from './modals/DeployModal';
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
@@ -184,74 +185,6 @@ const Header = ({ activePage }) => {
   };
 
   const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
-
-  const DeployModal = () => {
-    // Create example request body with the actual input variables
-    const exampleRequestBody = {
-      initial_inputs: Object.keys(workflowInputVariables).reduce((acc, key) => {
-        // Create an example value based on the variable type
-        acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
-          workflowInputVariables[key].type === 'boolean' ? false :
-            "example_value";
-        return acc;
-      }, {})
-    };
-
-    return (
-      <Modal
-        isOpen={isDeployModalOpen}
-        onOpenChange={setIsDeployModalOpen}
-        size="2xl"
-      >
-        <ModalContent>
-          <ModalHeader>API Endpoint Information</ModalHeader>
-          <ModalBody>
-            <p>Use this endpoint to run your workflow in a non-blocking way:</p>
-            <div className="flex items-center gap-2 w-full">
-              <Code className="w-full overflow-x-auto whitespace-nowrap">
-                {getApiEndpoint()}
-              </Code>
-              <Tooltip content="Copy to clipboard">
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(getApiEndpoint());
-                  }}
-                >
-                  <Icon icon="solar:copy-linear" width={20} />
-                </Button>
-              </Tooltip>
-            </div>
-            <p className="mt-2">Send a POST request with the following body:</p>
-            <div className="flex items-center gap-2 w-full">
-              <Code className="w-full overflow-x-auto whitespace-pre">
-                {JSON.stringify(exampleRequestBody, null, 2)}
-              </Code>
-              <Tooltip content="Copy to clipboard">
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(exampleRequestBody, null, 2));
-                  }}
-                >
-                  <Icon icon="solar:copy-linear" width={20} />
-                </Button>
-              </Tooltip>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="primary" onPress={() => setIsDeployModalOpen(false)}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    );
-  };
 
   return (
     <>
@@ -416,7 +349,11 @@ const Header = ({ activePage }) => {
           setIsDebugModalOpen(false);
         }}
       />
-      <DeployModal />
+      <DeployModal
+        isOpen={isDeployModalOpen}
+        onOpenChange={setIsDeployModalOpen}
+        getApiEndpoint={getApiEndpoint}
+      />
     </>
   );
 };

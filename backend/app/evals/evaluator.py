@@ -198,8 +198,8 @@ def extract_output_variable(outputs: dict, workflow_output_variable: str) -> Any
         current_level = current_level[matched_key]
 
         # Remove the matched key and the delimiter from the remaining variable
-        remaining_variable = remaining_variable[len(matched_key):]
-        if remaining_variable.startswith('-'):
+        remaining_variable = remaining_variable[len(matched_key) :]
+        if remaining_variable.startswith("-"):
             remaining_variable = remaining_variable[1:]
 
         # If the remaining variable is empty, return the current level
@@ -245,10 +245,16 @@ async def execute_workflow(
     input_schema = input_node.config.get("input_schema", {})
     initial_inputs = {input_node.id: {key: full_prompt for key in input_schema.keys()}}
 
-    # Execute workflow
+    # Execute workflow with error handling
     executor = WorkflowExecutor(workflow_definition)
-    outputs = await executor(initial_inputs)
-    outputs = {k: v.model_dump() for k, v in outputs.items()}
+    try:
+        outputs = await executor(initial_inputs)
+        outputs = {k: v.model_dump() for k, v in outputs.items()}
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Workflow execution failed: {e}")
+        # Use an empty output to indicate failure
+        outputs = {}
 
     # Debugging: Log the outputs dictionary and workflow_output_variable
     print(f"Workflow Output Variable: {workflow_output_variable}")
@@ -274,6 +280,9 @@ def extract_answer(
     Returns:
         str: The extracted answer.
     """
+    if text is None:
+        return ""
+
     # Extract regexes and functions from the extraction configuration
     regexes = answer_extraction.get("regexes", [])
     functions = answer_extraction.get("functions", [])
@@ -303,6 +312,9 @@ async def evaluate_answer(
     predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]
 ):
     """Evaluates if the predicted answer matches the ground truth based on evaluation logic."""
+    if predicted_answer is None or ground_truth_answer is None:
+        return False
+
     evaluation_method = evaluation.get("method", "default").lower()
     if evaluation_method == "numeric":
         try:
@@ -379,7 +391,7 @@ async def evaluate_dataset_batch(
     short_responses = {}
     total = len(dataset)
     correct = 0
-    task_id = 0
+    example_id = 0
     per_example_results = []
 
     # Initialize category tracking if needed
@@ -407,8 +419,8 @@ async def evaluate_dataset_batch(
         )
 
         # Process responses and update metrics
-        for idx, (problem, response_text) in enumerate(
-            zip(transformed_batch, responses)
+        for idx, (problem, full_prompt, response_text) in enumerate(
+            zip(transformed_batch, full_prompts, responses)
         ):
             predicted_answer = extract_answer(
                 response_text, predicted_answer_extraction
@@ -419,8 +431,8 @@ async def evaluate_dataset_batch(
             )
 
             # Store responses
-            all_responses[task_id] = response_text
-            short_responses[task_id] = predicted_answer
+            all_responses[example_id] = response_text
+            short_responses[example_id] = predicted_answer
 
             # Evaluate correctness
             is_correct = await evaluate_answer(
@@ -429,12 +441,15 @@ async def evaluate_dataset_batch(
             correct += int(is_correct)
 
             # Add per-example results
-            per_example_results.append({
-                'task_id': task_id,
-                'predicted_answer': predicted_answer,
-                'ground_truth_answer': ground_truth_answer,
-                'is_correct': is_correct,
-            })
+            per_example_results.append(
+                {
+                    "example_id": example_id,
+                    "prompt": full_prompt,
+                    "predicted_answer": predicted_answer,
+                    "ground_truth_answer": ground_truth_answer,
+                    "is_correct": is_correct,
+                }
+            )
 
             # Update category metrics if needed
             if subject_category_mapping:
@@ -447,12 +462,12 @@ async def evaluate_dataset_batch(
                     category_correct[category] += 1
 
             # Log results
-            print(f"Task ID {task_id}")
+            print(f"Example ID {example_id}")
             print(f"Predicted answer: {predicted_answer}")
             print(f"Ground truth answer: {ground_truth_answer}")
             print(f"Correct: {is_correct}")
             print("=" * 40)
-            task_id += 1
+            example_id += 1
 
     # Calculate final metrics
     metrics = {

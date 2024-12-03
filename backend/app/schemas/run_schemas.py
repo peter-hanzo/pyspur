@@ -2,8 +2,9 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from datetime import datetime
 
-from ..schemas.workflow_schemas import WorkflowVersionResponseSchema
+from .workflow_schemas import WorkflowVersionResponseSchema
 from ..models.run_model import RunStatus
+from .task_schemas import TaskResponseSchema
 
 
 class StartRunRequestSchema(BaseModel):
@@ -24,6 +25,7 @@ class RunResponseSchema(BaseModel):
     output_file_id: Optional[str]
     start_time: Optional[datetime]
     end_time: Optional[datetime]
+    tasks: List[TaskResponseSchema]
 
     class Config:
         from_attributes = True
@@ -34,19 +36,6 @@ class PartialRunRequestSchema(BaseModel):
     rerun_predecessors: bool = False
     initial_inputs: Optional[Dict[str, Dict[str, Any]]] = None
     partial_outputs: Optional[Dict[str, Dict[str, Any]]] = None
-
-
-class RunStatusResponseSchema(BaseModel):
-    id: str
-    status: RunStatus
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    tasks: List[Dict[str, Any]]
-    outputs: Optional[Dict[str, Any]]
-    output_file_id: Optional[str]
-    workflow_id: str
-    workflow_version_id: int
-    workflow_version: WorkflowVersionResponseSchema
 
 
 class BatchRunRequestSchema(BaseModel):

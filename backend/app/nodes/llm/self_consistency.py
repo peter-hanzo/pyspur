@@ -17,7 +17,7 @@ from .string_output_llm import (
 class SelfConsistencyNodeConfig(StringOutputLLMNodeConfig):
     llm_info: ModelInfo = Field(
         ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
-        description="The default LLM model to use"
+        description="The default LLM model to use",
     )
     system_message: str = Field(
         "You are a helpful assistant.", description="The system message for the LLM"
@@ -25,7 +25,7 @@ class SelfConsistencyNodeConfig(StringOutputLLMNodeConfig):
     user_message: str = Field(
         "What would you like to ask?", description="The user message for the LLM"
     )
-    samples: int = Field(5, ge=1, le=10, description="Number of samples to generate")
+    samples: int = Field(5, ge=1, le=1000, description="Number of samples to generate")
     similarity_threshold: float = Field(
         0.8, ge=0.0, le=1.0, description="Similarity threshold"
     )
