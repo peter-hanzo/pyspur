@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ReactFlow, Background, ReactFlowProvider, useViewport } from '@xyflow/react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { ReactFlow, Background, ReactFlowProvider, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes, EdgeTypes, ReactFlowInstance, XYPosition } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/operator/Operator';
@@ -13,38 +13,77 @@ import {
   updateNodeData,
   setNodes,
 } from '../../store/flowSlice';
-// import ConnectionLine from './ConnectionLine';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
-import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; // Import the new hook
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
-import { initializeFlow } from '../../store/flowSlice'; // Import the new action
-// Import the new API function
+import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
-import LoadingSpinner from '../LoadingSpinner'; // Updated import
+import LoadingSpinner from '../LoadingSpinner';
 import ConditionalNode from '../nodes/ConditionalNode';
 import dagre from '@dagrejs/dagre';
 
+// Type definitions
+interface NodeTypesConfig {
+  [category: string]: Array<{
+    name: string;
+    [key: string]: any;
+  }>;
+}
 
-const useNodeTypes = ({ nodeTypesConfig }) => {
-  const nodeTypes = useMemo(() => {
+interface WorkflowData {
+  definition: {
+    nodes: Array<{
+      node_type: string;
+      config: {
+        input_schema?: {
+          [key: string]: string;
+        };
+      };
+    }>;
+  };
+}
+
+interface FlowCanvasProps {
+  workflowData?: WorkflowData;
+  workflowID?: string;
+}
+
+interface HelperLines {
+  horizontal: number | null;
+  vertical: number | null;
+}
+
+interface RootState {
+  nodeTypes: {
+    data: NodeTypesConfig;
+  };
+  flow: {
+    nodes: Node[];
+    edges: Edge[];
+    selectedNode: string | null;
+  };
+}
+
+const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {
+  const nodeTypes = useMemo<NodeTypes>(() => {
     if (!nodeTypesConfig) return {};
-    return Object.keys(nodeTypesConfig).reduce((acc, category) => {
+    return Object.keys(nodeTypesConfig).reduce<NodeTypes>((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
         } else if (node.name === 'ConditionalNode') {
           acc[node.name] = ConditionalNode;
         } else {
-          acc[node.name] = (props) => {
+          acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} />;
           };
         }
@@ -57,22 +96,20 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
   return { nodeTypes, isLoading };
 };
 
-const edgeTypes = {
+const edgeTypes: EdgeTypes = {
   custom: CustomEdge,
 };
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent = (props) => {
+const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   const { workflowData, workflowID } = props;
-
   const dispatch = useDispatch();
 
-  const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
+  const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data);
 
   useEffect(() => {
     if (workflowData) {
       console.log('workflowData', workflowData);
-      // if the input node already has a schema add it to the workflowInputVariables
       if (workflowData.definition.nodes) {
         const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
         if (inputNode.length > 0) {
@@ -89,27 +126,28 @@ const FlowCanvasContent = (props) => {
       }
       dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
     }
-
-  }, [dispatch, workflowData, workflowID]);
+  }, [dispatch, workflowData, workflowID, nodeTypesConfig]);
 
   const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
 
-  const nodes = useSelector((state) => state.flow.nodes);
-  const edges = useSelector((state) => state.flow.edges);
-  const selectedNodeID = useSelector((state) => state.flow.selectedNode);
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const edges = useSelector((state: RootState) => state.flow.edges);
+  const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const saveWorkflow = useSaveWorkflow([nodes, edges], 10000); // 10 second delay
+  const saveWorkflow = useSaveWorkflow([nodes, edges], 10000);
 
-  // Manage reactFlowInstance locally
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [helperLines, setHelperLines] = useState<HelperLines>({ horizontal: null, vertical: null });
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
+  const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
+  const [selectedEdge, setSelectedEdge] = useState<{ sourceNode: Node; targetNode: Node; edgeId: string } | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const [helperLines, setHelperLines] = useState({ horizontal: null, vertical: null });
+  const showHelperLines = false;
 
-  // Add a flag to control the visibility of helper lines
-  const showHelperLines = false; // Set to false for now
-
-  const onNodesChange = useCallback(
-    (changes) => {
+  const onNodesChange: OnNodesChange = useCallback(
+    (changes: NodeChange[]) => {
       if (!changes.some((c) => c.type === 'position')) {
         setHelperLines({ horizontal: null, vertical: null });
         dispatch(nodesChange({ changes }));
@@ -117,7 +155,8 @@ const FlowCanvasContent = (props) => {
       }
 
       const positionChange = changes.find(
-        (c) => c.type === 'position' && c.position
+        (c): c is NodeChange & { type: 'position'; position: XYPosition } =>
+          c.type === 'position' && c.position !== undefined
       );
 
       if (positionChange && showHelperLines) {
@@ -137,46 +176,42 @@ const FlowCanvasContent = (props) => {
     [dispatch, nodes, showHelperLines]
   );
 
-  const onEdgesChange = useCallback(
-    (changes) => dispatch(edgesChange({ changes })),
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
     [dispatch]
   );
-  const onConnect = useCallback(
-    (connection) => {
+
+  const onConnect: OnConnect = useCallback(
+    (connection: Connection) => {
       if (!connection.targetHandle || connection.targetHandle === 'node-body') {
-        // The user dropped the connection on the body of the node
         const sourceNode = nodes.find((n) => n.id === connection.source);
         const targetNode = nodes.find((n) => n.id === connection.target);
 
         if (sourceNode && targetNode) {
           const outputHandleName = connection.sourceHandle;
 
-          // Ensure the source handle (output variable) is specified
           if (!outputHandleName) {
             console.error('Source handle is not specified.');
             return;
           }
 
-          // Add a new input variable to the target node's input_schema
           const updatedInputSchema = {
-            ...targetNode.data.config.input_schema,
-            [outputHandleName]: 'str', // Assuming the type is 'str'
+            ...targetNode.data?.config?.input_schema,
+            [outputHandleName]: 'str',
           };
 
-          // Dispatch an action to update the target node's data
           dispatch(
             updateNodeData({
               id: targetNode.id,
               data: {
                 config: {
-                  ...targetNode.data.config,
+                  ...targetNode.data?.config,
                   input_schema: updatedInputSchema,
                 },
               },
             })
           );
 
-          // Update the connection to include the new targetHandle
           connection = {
             ...connection,
             targetHandle: outputHandleName,
@@ -184,8 +219,7 @@ const FlowCanvasContent = (props) => {
         }
       }
 
-      // Create the new edge with the updated connection
-      const newEdge = {
+      const newEdge: Edge = {
         ...connection,
         id: uuidv4(),
         key: uuidv4(),
@@ -195,23 +229,12 @@ const FlowCanvasContent = (props) => {
     [dispatch, nodes]
   );
 
+  const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }: { sourceNode: Node; targetNode: Node; edgeId: string }) => {
+    if (!reactFlowInstance) return;
 
-
-  const [hoveredNode, setHoveredNode] = useState(null);
-  const [hoveredEdge, setHoveredEdge] = useState(null);
-
-  // State to manage the visibility of the PopoverContent and the selected edge
-  const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
-  const [selectedEdge, setSelectedEdge] = useState(null);
-
-  const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
-
-  const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }) => {
-    // Calculate center position between nodes in flow coordinates
     const centerX = (sourceNode.position.x + targetNode.position.x) / 2;
     const centerY = (sourceNode.position.y + targetNode.position.y) / 2;
 
-    // Convert flow coordinates to screen coordinates
     const screenPos = reactFlowInstance.flowToScreenPosition({
       x: centerX,
       y: centerY,
@@ -251,7 +274,7 @@ const FlowCanvasContent = (props) => {
   }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
 
   const onEdgeMouseEnter = useCallback(
-    (event, edge) => {
+    (_: React.MouseEvent, edge: Edge) => {
       setHoveredEdge(edge.id);
     },
     []
@@ -261,13 +284,13 @@ const FlowCanvasContent = (props) => {
     setHoveredEdge(null);
   }, []);
 
-  const onInit = useCallback((instance) => {
+  const onInit = useCallback((instance: ReactFlowInstance) => {
     setReactFlowInstance(instance);
-    instance.setViewport({ x: 0, y: 0, zoom: 0.8 }); // Set zoom to 100%
+    instance.setViewport({ x: 0, y: 0, zoom: 0.8 });
   }, []);
 
   const onNodeClick = useCallback(
-    (event, node) => {
+    (_: React.MouseEvent, node: Node) => {
       dispatch(setSelectedNode({ nodeId: node.id }));
     },
     [dispatch]
@@ -280,7 +303,7 @@ const FlowCanvasContent = (props) => {
   }, [dispatch, selectedNodeID]);
 
   const onNodesDelete = useCallback(
-    (deletedNodes) => {
+    (deletedNodes: Node[]) => {
       deletedNodes.forEach((node) => {
         dispatch(deleteNode({ nodeId: node.id }));
 
@@ -292,11 +315,9 @@ const FlowCanvasContent = (props) => {
     [dispatch, selectedNodeID]
   );
 
-  // Add this new keyboard handler
   const handleKeyDown = useCallback(
-    (event) => {
-      // Check if the event target is within the ReactFlow container
-      const isFlowCanvasFocused = event.target.closest('.react-flow');
+    (event: KeyboardEvent) => {
+      const isFlowCanvasFocused = (event.target as HTMLElement).closest('.react-flow');
       if (!isFlowCanvasFocused) return;
 
       if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -309,7 +330,7 @@ const FlowCanvasContent = (props) => {
     [nodes, onNodesDelete]
   );
 
-  const getLayoutedNodes = (nodes, edges, direction = 'LR') => {
+  const getLayoutedNodes = (nodes: Node[], edges: Edge[], direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setGraph({
       rankdir: direction,
@@ -317,37 +338,35 @@ const FlowCanvasContent = (props) => {
       edgesep: 10,
       ranksep: 128,
       nodesep: 128,
-      // ranker: 'longest-path'
     });
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
     nodes.forEach((node) => {
-      dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
+      if (node.measured) {
+        dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
+      }
     });
 
-    const nodeWeights = {};
-    const edgeWeights = {};
+    const nodeWeights: { [key: string]: number } = {};
+    const edgeWeights: { [key: string]: number } = {};
 
-    // Initialize root nodes with weight 1024
     nodes.forEach(node => {
       const incomingEdges = edges.filter(edge => edge.target === node.id);
       if (incomingEdges.length === 0) {
         nodeWeights[node.id] = 1024;
-        // set weight for all outgoing edges to half of the node weight
         const outgoingEdges = edges.filter(edge => edge.source === node.id);
         outgoingEdges.forEach(edge => {
           edgeWeights[edge.id] = 512;
         });
       }
-
     });
 
     // Perform a topological sort to determine the order of processing nodes
-    let sortedNodes = [];
-    const visited = new Set();
-    const visiting = new Set();
+    let sortedNodes: Node[] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
 
-    const visit = (node) => {
+    const visit = (node: Node) => {
       if (visited.has(node.id)) {
         return;
       }
@@ -373,12 +392,8 @@ const FlowCanvasContent = (props) => {
       }
     });
 
-    // Reverse the sortedNodes to get the correct topological order
     sortedNodes = sortedNodes.reverse();
 
-    // Calculate weights for nodes and edges
-    // Each node weight is the maximum of the incoming edges' weights
-    // Each edge weight is twice its source node's weight
     sortedNodes.forEach(node => {
       const incomingEdges = edges.filter(edge => edge.target === node.id);
       let maxIncomingWeight = -Infinity;
@@ -390,7 +405,6 @@ const FlowCanvasContent = (props) => {
 
         nodeWeights[node.id] = (maxIncomingWeight !== -Infinity) ? maxIncomingWeight : 2;
       } else {
-        // Root nodes (no incoming edges) have weight 2
         nodeWeights[node.id] = 2;
       }
 
@@ -400,29 +414,25 @@ const FlowCanvasContent = (props) => {
       });
     });
 
-
     edges.forEach((edge) => {
-      const weight = edgeWeights[edge.id] || 1; // Use edgeWeights if available, default to 1
-      dagreGraph.setEdge(edge.source, edge.target, { weight: weight, height: 10, width: 10, labelpos: 'c', minlen: 1 });
+      const weight = edgeWeights[edge.id] || 1;
+      dagreGraph.setEdge(edge.source, edge.target, { weight, height: 10, width: 10, labelpos: 'c', minlen: 1 });
     });
 
     dagre.layout(dagreGraph);
 
-    const isHorizontal = direction === 'LR';
-
-    const layoutedNodes = nodes.map((node) => {
+    return nodes.map((node) => {
       const nodeWithPosition = dagreGraph.node(node.id);
+      if (!nodeWithPosition) return node;
 
       return {
         ...node,
         position: {
-          x: nodeWithPosition.x - node.measured.width / 2,
-          y: nodeWithPosition.y - node.measured.height / 2,
+          x: nodeWithPosition.x - (node.measured?.width || 0) / 2,
+          y: nodeWithPosition.y - (node.measured?.height || 0) / 2,
         },
       };
     });
-
-    return layoutedNodes;
   };
 
   const handleLayout = useCallback(() => {
@@ -430,8 +440,6 @@ const FlowCanvasContent = (props) => {
     dispatch(setNodes({ nodes: layoutedNodes }));
   }, [nodes, edges, dispatch]);
 
-
-  // Add effect to handle keyboard events
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -439,30 +447,20 @@ const FlowCanvasContent = (props) => {
     };
   }, [handleKeyDown]);
 
-  // Use the custom hook for keyboard shortcuts
   useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
 
   const { cut, copy, paste, bufferedNodes } = useCopyPaste();
-
-  // const canCopy = nodes.some(({ selected }) => selected);
-  // const canPaste = bufferedNodes.length > 0;
-
-  // Add this hook - it will handle the keyboard shortcuts automatically
   useCopyPaste();
 
-  // Add proOptions configuration
   const proOptions = {
     hideAttribution: true
   };
 
-
   const mode = useModeStore((state) => state.mode);
 
-
-  // Add this memoized nodes with mode
   const nodesWithMode = useMemo(() => {
     return nodes
-      .filter(Boolean) // Filters out null or undefined nodes
+      .filter(Boolean)
       .map(node => ({
         ...node,
         draggable: true,
@@ -473,8 +471,7 @@ const FlowCanvasContent = (props) => {
       }));
   }, [nodes, mode]);
 
-  // Add node hover handlers
-  const onNodeMouseEnter = useCallback((event, node) => {
+  const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
     setHoveredNode(node.id);
   }, []);
 
@@ -504,7 +501,7 @@ const FlowCanvasContent = (props) => {
             placement="bottom"
           >
             <DropdownMenu>
-              {Object.keys(nodeTypesConfig).map((category) => (
+              {nodeTypesConfig && Object.keys(nodeTypesConfig).map((category) => (
                 <DropdownSection key={category} title={category} showDivider>
                   {nodeTypesConfig[category].map((node) => (
                     <DropdownItem
@@ -535,7 +532,7 @@ const FlowCanvasContent = (props) => {
       <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <div
           style={{
-            height: `100%`,
+            height: '100%',
             overflow: 'auto',
             position: 'relative',
             zIndex: 1,
@@ -574,18 +571,13 @@ const FlowCanvasContent = (props) => {
             onEdgeMouseLeave={onEdgeMouseLeave}
           >
             <Background />
-
-            {/* Conditionally render HelperLinesRenderer based on the flag */}
             {showHelperLines && (
               <HelperLinesRenderer
                 horizontal={helperLines.horizontal}
                 vertical={helperLines.vertical}
               />
             )}
-
-
-
-            <Operator handleLayout={handleLayout}/>
+            <Operator handleLayout={handleLayout} />
           </ReactFlow>
         </div>
         {selectedNodeID && (
@@ -602,7 +594,7 @@ const FlowCanvasContent = (props) => {
 };
 
 // Main component that provides the ReactFlow context
-const FlowCanvas = ({ workflowData, workflowID }) => {
+const FlowCanvas: React.FC<FlowCanvasProps> = ({ workflowData, workflowID }) => {
   return (
     <ReactFlowProvider>
       <FlowCanvasContent workflowData={workflowData} workflowID={workflowID} />
