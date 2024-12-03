@@ -30,6 +30,14 @@ def list_runs(
     return runs
 
 
+@router.get("/{run_id}/", response_model=RunResponseSchema)
+def get_run(run_id: str, db: Session = Depends(get_db)):
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return run
+
+
 @router.get("/{run_id}/status/", response_model=RunResponseSchema)
 def get_run_status(run_id: str, db: Session = Depends(get_db)):
     run = db.query(RunModel).filter(RunModel.id == run_id).first()

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Input,
@@ -9,7 +9,17 @@ import {
   Link,
   Button,
   Spinner,
-
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Code,
+  Tooltip,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
@@ -17,6 +27,8 @@ import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice'; /
 import RunModal from './modals/RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
+import { getWorkflowRuns } from '../utils/api';
+import { useRouter } from 'next/router';
 import DeployModal from './modals/DeployModal';
 
 const Header = ({ activePage }) => {
@@ -26,8 +38,31 @@ const Header = ({ activePage }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+  const [workflowRuns, setWorkflowRuns] = useState([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const workflowId = useSelector((state) => state.flow.workflowID);
+
+  const router = useRouter();
+  const { id } = router.query;
+  const isRun = id && id[0] == 'R';
 
   let currentStatusInterval = null;
+
+  const fetchWorkflowRuns = async () => {
+    try {
+      const response = await getWorkflowRuns(workflowId);
+      setWorkflowRuns(response);
+    }
+    catch (error) {
+      console.error('Error fetching workflow runs:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (workflowId) {
+      fetchWorkflowRuns();
+    }
+  }, [workflowId]);
 
   const updateWorkflowStatus = async (runID) => {
     let pollCount = 0;
@@ -70,14 +105,14 @@ const Header = ({ activePage }) => {
     }, 1000);
   };
 
-  // get the workflow ID from the URL
-  const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
 
   const executeWorkflow = async (inputValues) => {
     try {
       toast('Starting workflow run...');
-      const result = await startRun(workflowID, inputValues, null, 'interactive');
+      const result = await startRun(workflowId, inputValues, null, 'interactive');
+      console.log('Workflow run started:', result);
       setIsRunning(true);
+      fetchWorkflowRuns();
       dispatch(resetRun());
       updateWorkflowStatus(result.id);
     } catch (error) {
@@ -105,7 +140,7 @@ const Header = ({ activePage }) => {
   const handleDownloadWorkflow = async () => {
     try {
       // Get the current workflow using the workflowID from Redux state
-      const workflow = await getWorkflow(workflowID);
+      const workflow = await getWorkflow(workflowId);
 
       const workflowDetails = {
         name: workflow.name,
@@ -146,7 +181,7 @@ const Header = ({ activePage }) => {
       return ''; // Return empty string during server-side rendering
     }
     const baseUrl = window.location.origin;
-    return `${baseUrl}/api/wf/${workflowID}/start_run/?run_type=non_blocking`;
+    return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`;
   };
 
   const workflowInputVariables = useSelector((state) => state.flow.workflowInputVariables);
@@ -230,24 +265,48 @@ const Header = ({ activePage }) => {
             justify="end"
             id="workflow-actions-buttons"
           >
-            {isRunning ? (
+            {!isRun && (
               <>
-                <NavbarItem className="hidden sm:flex">
-                  <Spinner size="sm" />
-                </NavbarItem>
-                <NavbarItem className="hidden sm:flex">
-                  <Button isIconOnly radius="full" variant="light" onClick={handleStopWorkflow}>
-                    <Icon className="text-default-500" icon="solar:stop-linear" width={22} />
-                  </Button>
-                </NavbarItem>
+                {isRunning ? (
+                  <>
+                    <NavbarItem className="hidden sm:flex">
+                      <Spinner size="sm" />
+                    </NavbarItem>
+                    <NavbarItem className="hidden sm:flex">
+                      <Button isIconOnly radius="full" variant="light" onClick={handleStopWorkflow}>
+                        <Icon className="text-default-500" icon="solar:stop-linear" width={22} />
+                      </Button>
+                    </NavbarItem>
+                  </>
+                ) : (
+                  <NavbarItem className="hidden sm:flex">
+                    <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
+                      <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+                    </Button>
+                  </NavbarItem>
+                )}
               </>
-            ) : (
-              <NavbarItem className="hidden sm:flex">
-                <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
-                  <Icon className="text-default-500" icon="solar:play-linear" width={22} />
-                </Button>
-              </NavbarItem>
             )}
+            <NavbarItem className="hidden sm:flex">
+              <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+                <DropdownTrigger>
+                  <Button isIconOnly radius="full" variant="light">
+                    <Icon className="text-default-500" icon="solar:history-linear" width={22} />
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu>
+                  {workflowRuns.map((run, index) => (
+                    <DropdownItem
+                      key={index}
+                      onClick={() => window.open(`/trace/${run.id}`, '_blank')}
+                      textValue={`Version ${index + 1}`}
+                    >
+                      Run {workflowRuns.length - index}
+                    </DropdownItem>
+                  ))}
+                </DropdownMenu>
+              </Dropdown>
+            </NavbarItem>
             <NavbarItem className="hidden sm:flex">
               <Button
                 isIconOnly
