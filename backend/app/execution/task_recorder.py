@@ -16,17 +16,11 @@ class TaskRecorder:
         self,
         node_id: str,
         inputs: Dict[str, Any],
-        subworkflow: Optional[WorkflowDefinitionSchema] = None,
     ):
-        if subworkflow:
-            subworkflow_val = subworkflow.model_dump()
-        else:
-            subworkflow_val = None
         task = TaskModel(
             run_id=self.run_id,
             node_id=node_id,
             inputs=inputs,
-            subworkflow=subworkflow_val,
         )
         self.db.add(task)
         self.db.commit()
@@ -61,5 +55,6 @@ class TaskRecorder:
             task.subworkflow_output = {
                 k: v.model_dump() for k, v in subworkflow_output.items()
             }
+        self.db.add(task)
         self.db.commit()
         return
