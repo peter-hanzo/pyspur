@@ -1,18 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Slider, DropdownSection } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from "../../utils/api"; // Import the new API function
+import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from "../../utils/api";
 import { toast } from "sonner";
+import { Key } from "@react-types/shared";
 
-export default function EvalCard({ title, description, type, numSamples, paperLink, onRun }) {
+interface EvalCardProps {
+  title: string;
+  description: string;
+  type: string;
+  numSamples: number;
+  paperLink?: string;
+  onRun?: () => void;
+}
+
+interface Workflow {
+  id: string;
+  name: string;
+}
+
+interface OutputVariable {
+  node_id: string;
+  variable_name: string;
+  prefixed_variable: string;
+}
+
+export default function EvalCard({ title, description, type, numSamples, paperLink, onRun }: EvalCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [workflows, setWorkflows] = useState([]);
-  const [selectedWorkflow, setSelectedWorkflow] = useState(null);
-  const [outputVariables, setOutputVariables] = useState([]);
-  const [selectedOutputVariable, setSelectedOutputVariable] = useState(null);
-  const [selectedNumSamples, setSelectedNumSamples] = useState(1); // State for slider value
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [outputVariables, setOutputVariables] = useState<OutputVariable[]>([]);
+  const [selectedOutputVariable, setSelectedOutputVariable] = useState<string | null>(null);
+  const [selectedNumSamples, setSelectedNumSamples] = useState(1);
 
-  // Fetch workflows when the modal opens
+  // Rest of the component remains the same, but now with proper typing
   useEffect(() => {
     if (isModalOpen) {
       console.log("eval information", title, description, type, numSamples, paperLink);
@@ -30,7 +51,6 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
     }
   }, [isModalOpen]);
 
-  // Fetch output variables when a workflow is selected
   useEffect(() => {
     if (selectedWorkflow) {
       const fetchOutputVariables = async () => {
@@ -58,15 +78,14 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
     }
 
     try {
-      // Start the eval run and get the run ID
       const evalRunResponse = await startEvalRun(
         selectedWorkflow.id,
-        title, // Assuming title is the eval name
+        title,
         selectedNumSamples,
         selectedOutputVariable
       );
       toast.success(`Eval run started with ID: ${evalRunResponse.run_id}`);
-      setIsModalOpen(false); // Close the modal
+      setIsModalOpen(false);
     } catch (error) {
       console.error("Error starting eval run:", error);
       toast.error("Failed to start eval run.");
@@ -91,7 +110,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
           <Button
             color="primary"
             variant="flat"
-            onPress={() => setIsModalOpen(true)} // Open the modal
+            onPress={() => setIsModalOpen(true)}
             startContent={<Icon icon="solar:play-linear" width={16} />}
           >
             Run Eval
@@ -99,14 +118,12 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
         </CardFooter>
       </Card>
 
-      {/* Modal for selecting a workflow, output variable, and number of samples */}
       <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
         <ModalContent>
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">Eval Configuration</ModalHeader>
               <ModalBody>
-                {/* Workflow selection */}
                 <h3 className="text-sm font-semibold mb-2">Select a Workflow</h3>
                 <Dropdown>
                   <DropdownTrigger>
@@ -116,10 +133,12 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                   </DropdownTrigger>
                   <DropdownMenu
                     aria-label="Workflows"
-                    onAction={(key) => {
-                      const workflow = workflows.find((wf) => wf.id === key);
-                      setSelectedWorkflow(workflow);
-                      setSelectedOutputVariable(null); // Reset output variable
+                    onAction={(key: Key) => {
+                      const workflow = workflows.find((wf) => wf.id === key.toString());
+                      if (workflow) {
+                        setSelectedWorkflow(workflow);
+                        setSelectedOutputVariable(null);
+                      }
                     }}
                   >
                     {workflows.map((workflow) => (
@@ -130,7 +149,6 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
 
                 {selectedWorkflow && (
                   <>
-                    {/* Output Variable selection */}
                     <h3 className="text-sm font-semibold mt-4 mb-2">Select an Output Variable</h3>
                     <Dropdown>
                       <DropdownTrigger>
@@ -140,10 +158,10 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                       </DropdownTrigger>
                       <DropdownMenu
                         aria-label="Output Variables"
-                        onAction={(key) => setSelectedOutputVariable(key)} // Use the full prefixed value as the key
+                        onAction={(key: Key) => setSelectedOutputVariable(key.toString())}
                       >
                         {Object.entries(
-                          outputVariables.reduce((acc, variable) => {
+                          outputVariables.reduce<Record<string, { variable_name: string; prefixed_variable: string }[]>>((acc, variable) => {
                             const { node_id, variable_name, prefixed_variable } = variable;
                             if (!acc[node_id]) acc[node_id] = [];
                             acc[node_id].push({ variable_name, prefixed_variable });
@@ -153,7 +171,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                           <DropdownSection key={nodeId} title={`Node: ${nodeId}`}>
                             {variables.map(({ variable_name, prefixed_variable }) => (
                               <DropdownItem key={prefixed_variable}>
-                                {variable_name} {/* Display only the variable name */}
+                                {variable_name}
                               </DropdownItem>
                             ))}
                           </DropdownSection>
@@ -163,16 +181,15 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                   </>
                 )}
 
-                {/* Slider for selecting number of samples */}
                 <h3 className="text-sm font-semibold mt-4 mb-2">Select Number of Samples</h3>
                 <Slider
                   label="Number of Samples"
                   step={1}
-                  maxValue={numSamples} // Use the maximum number of samples from the eval
+                  maxValue={numSamples}
                   minValue={1}
                   defaultValue={1}
                   value={selectedNumSamples}
-                  onChange={setSelectedNumSamples} // Update state on slider change
+                  onChange={(value) => setSelectedNumSamples(Number(value))}
                   className="max-w-md"
                 />
               </ModalBody>

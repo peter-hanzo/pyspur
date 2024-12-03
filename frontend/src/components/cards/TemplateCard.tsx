@@ -2,7 +2,19 @@ import React from "react";
 import { Card, CardBody, CardFooter, Button } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
-export default function TemplateCard({ title, description, features, onUse }) {
+interface TemplateCardProps {
+  title: string;
+  description: string;
+  features?: string[];
+  onUse: () => void;
+}
+
+export default function TemplateCard({
+  title,
+  description,
+  features,
+  onUse
+}: TemplateCardProps) {
   return (
     <Card className="relative w-full">
       <CardBody className="relative min-h-[180px] bg-gradient-to-br from-content1 to-default-100/50 p-6">
@@ -10,7 +22,7 @@ export default function TemplateCard({ title, description, features, onUse }) {
         <p className="text-default-500 text-sm mb-3">{description}</p>
         {features && features.length > 0 && (
           <ul className="list-disc pl-5 mb-2">
-            {features.map((feature, index) => (
+            {features.map((feature: string, index: number) => (
               <li key={index} className="flex items-center text-sm">
                 <Icon
                   icon="solar:check-circle-linear"
