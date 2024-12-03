@@ -27,6 +27,7 @@ class WorkflowNodeSchema(BaseModel):
     coordinates: Optional[WorkflowNodeCoordinatesSchema] = (
         None  # Position of the node in the workflow
     )
+    subworkflow: Optional["WorkflowDefinitionSchema"] = None  # Sub-workflow definition
 
     @field_validator("node_type")
     def type_must_be_in_factory(cls, v: str):
