@@ -1,7 +1,7 @@
 from sqlalchemy import Computed, Integer, String, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
-from typing import List, Optional, Any
+from typing import Optional, Any
 from .base_model import BaseModel
 
 
