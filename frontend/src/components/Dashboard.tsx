@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import {
   Table,
   TableHeader,
@@ -24,16 +24,17 @@ import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkf
 import { useRouter } from 'next/router';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
+import { Workflow, Template } from '../types/workflow';
 
-const Dashboard = () => {
+const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [selectedWorkflow, setSelectedWorkflow] = useState(null);
-  const [file, setFile] = useState(null);
-  const [progress, setProgress] = useState(0);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState<number>(0);
   const router = useRouter();
 
-  const [workflows, setWorkflows] = useState([]);
-  const [templates, setTemplates] = useState([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
@@ -51,8 +52,8 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const workflows = await getTemplates();
-        setTemplates(workflows);
+        const templates = await getTemplates();
+        setTemplates(templates);
       } catch (error) {
         console.error('Error fetching templates:', error);
       }
@@ -68,52 +69,34 @@ const Dashboard = () => {
     { key: "action", label: "Action" },
   ];
 
-  const handleRunClick = (workflow) => {
+  const handleRunClick = (workflow: Workflow) => {
     setSelectedWorkflow(workflow);
     onOpen();
   };
 
-  const handleEditClick = (workflow) => {
+  const handleEditClick = (workflow: Workflow) => {
     router.push({
       pathname: `/workflows/${workflow.id}`,
     });
   };
 
-  // const handleEditClick = (workflow) => {
-  //   router.push({
-  //     pathname: '/workflow',
-  //     query: { workflowId: workflow.key },
-  //   });
-  // };
-
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
   };
 
   const handleRunWorkflow = async () => {
-    if (!file) {
+    if (!file || !selectedWorkflow) {
       alert('Please upload a file');
       return;
     }
-    let uploadedDataset;
-    // upload file as dataset
+
     try {
-      // Generate a unique name for the dataset using the current timestamp
       const datasetName = `Dataset_${Date.now()}`;
       const datasetDescription = `Uploaded dataset for workflow ${selectedWorkflow.name}`;
+      const uploadedDataset = await uploadDataset(datasetName, datasetDescription, file);
 
-      // Call the API to upload the dataset
-      uploadedDataset = await uploadDataset(datasetName, datasetDescription, file);
-
-      console.log('Dataset uploaded successfully:', uploadedDataset);
-    } catch (error) {
-      console.error('Error uploading dataset:', error);
-      alert('Failed to upload dataset. Please try again.');
-      return;
-    }
-
-    try {
-      // Simulate workflow run and progress
       setProgress(0);
       const interval = setInterval(() => {
         setProgress((prev) => {
@@ -125,33 +108,21 @@ const Dashboard = () => {
         });
       }, 500);
 
-      // Call the API to start a batch workflow run
       await startBatchRun(selectedWorkflow.id, uploadedDataset.id);
     } catch (error) {
       console.error('Error running workflow:', error);
     }
   };
 
-  // const handleNewWorkflowClick = () => {
-  //   router.push('/workflow');
-  // };
-
   const handleNewWorkflowClick = async () => {
     try {
-      // Generate a unique name for the new workflow
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
-
-      // Create an empty workflow object
-      const newWorkflow = {
+      const newWorkflow: Partial<Workflow> = {
         name: uniqueName,
         description: '',
-
       };
 
-      // Call the API to create the workflow
       const createdWorkflow = await createWorkflow(newWorkflow);
-
-      // Navigate to the new workflow's page using its ID
       router.push(`/workflows/${createdWorkflow.id}`);
     } catch (error) {
       console.error('Error creating new workflow:', error);
@@ -160,48 +131,34 @@ const Dashboard = () => {
 
   const handleImportWorkflowClick = async () => {
     try {
-      // Ask the user to upload a JSON file
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = 'application/json';
-      fileInput.onchange = async (event) => {
-        const file = event.target.files[0];
+
+      fileInput.onchange = async (event: Event) => {
+        const target = event.target as HTMLInputElement;
+        const file = target.files?.[0];
         if (!file) {
           alert('No file selected. Please try again.');
           return;
         }
 
-        // Read the file content
         const reader = new FileReader();
-        reader.onload = async (e) => {
+        reader.onload = async (e: ProgressEvent<FileReader>) => {
           try {
-            let jsonContent = JSON.parse(e.target.result);
+            const result = e.target?.result;
+            if (typeof result !== 'string') return;
 
-            // Generate a unique name for the new workflow
+            const jsonContent = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
-            // Create an empty workflow object
-            const newWorkflow = {
-              name: uniqueName,
-              description: '',
+            const newWorkflow: Partial<Workflow> = {
+              name: jsonContent.name || uniqueName,
+              description: jsonContent.description || '',
+              definition: jsonContent.nodes ? jsonContent : jsonContent.definition
             };
-            // to support old style downloaded workflows
-            if (jsonContent.name) {
-              newWorkflow.name = jsonContent.name;
-            }
-            if (jsonContent.description) {
-              newWorkflow.description = jsonContent.description;
-            }
-            if (jsonContent.nodes) {
-              newWorkflow.definition = jsonContent;
-            }
-            if (jsonContent.definition) {
-              newWorkflow.definition = jsonContent.definition;
-            }
-            // Call the API to create the workflow
-            const createdWorkflow = await createWorkflow(newWorkflow);
 
-            // Navigate to the new workflow's page using its ID
+            const createdWorkflow = await createWorkflow(newWorkflow);
             router.push(`/workflows/${createdWorkflow.id}`);
           } catch (error) {
             console.error('Error processing the JSON file:', error);
@@ -216,7 +173,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleUseTemplate = async (template) => {
+  const handleUseTemplate = async (template: Template) => {
     try {
       const newWorkflow = await instantiateTemplate(template);
       router.push(`/workflows/${newWorkflow.id}`);
@@ -225,15 +182,11 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteClick = async (workflow) => {
+  const handleDeleteClick = async (workflow: Workflow) => {
     if (window.confirm(`Are you sure you want to delete workflow "${workflow.name}"?`)) {
       try {
-        // Call the API to delete the workflow
         await deleteWorkflow(workflow.id);
-
-        // Remove the deleted workflow from the state
         setWorkflows((prevWorkflows) => prevWorkflows.filter((w) => w.id !== workflow.id));
-
         console.log(`Workflow "${workflow.name}" deleted successfully.`);
       } catch (error) {
         console.error('Error deleting workflow:', error);
@@ -242,10 +195,9 @@ const Dashboard = () => {
     }
   };
 
-  const handleDuplicateClick = async (workflow) => {
+  const handleDuplicateClick = async (workflow: Workflow) => {
     try {
       const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
-      // Update the workflows state
       setWorkflows((prevWorkflows) => [duplicatedWorkflow, ...prevWorkflows]);
       console.log(`Workflow "${workflow.name}" duplicated successfully.`);
     } catch (error) {
@@ -257,7 +209,6 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col gap-2">
       <div className="w-3/4 mx-auto p-5">
-
         {/* Dashboard Header */}
         <header className="mb-6 flex w-full items-center">
           <div className="flex flex-col max-w-fit" id="dashboard-title">
