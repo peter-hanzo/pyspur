@@ -1,31 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import FlowCanvas from '../../components/canvas/FlowCanvas';
-import Header from '../../components/Header'; // Import the Header component
-import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
-import { persistor } from '../../store/store'; // Import the persistor
+import Header from '../../components/Header';
+import { PersistGate } from 'redux-persist/integration/react';
+import { persistor } from '../../store/store';
 import { getWorkflow } from '../../utils/api';
-import { useDispatch } from 'react-redux'; // Import useDispatch from react-redux
+import { useDispatch } from 'react-redux';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { fetchNodeTypes } from '../../store/nodeTypesSlice';
-import { setTestInputs } from '../../store/flowSlice'; // Import setTestInputs action
+import { setTestInputs } from '../../store/flowSlice';
+import { AppDispatch } from '../../store/store';
 
-const WorkflowPage = () => {
+interface WorkflowData {
+  id: string;
+  definition: {
+    test_inputs?: Record<string, any>;
+    // Add other workflow definition properties as needed
+  };
+  // Add other workflow properties as needed
+}
 
-    const dispatch = useDispatch(); // Initialize dispatch
+const WorkflowPage: React.FC = () => {
+    const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
-    const { id } = router.query; // Access the dynamic route parameter
-    const [workflowData, setWorkflowData] = useState(null);
+    const { id } = router.query;
+    const [workflowData, setWorkflowData] = useState<WorkflowData | null>(null);
 
     useEffect(() => {
         dispatch(fetchNodeTypes());
         const fetchWorkflow = async () => {
             try {
+                if (typeof id !== 'string') return;
                 const data = await getWorkflow(id);
                 setWorkflowData(data);
 
-                // Dispatch the test inputs to the Redux store
-                if (data.definition && data.definition.test_inputs) {
+                if (data.definition?.test_inputs) {
                     dispatch(setTestInputs(data.definition.test_inputs));
                 }
             } catch (error) {
@@ -36,7 +45,7 @@ const WorkflowPage = () => {
         if (id) {
             fetchWorkflow();
         }
-    }, [id, dispatch]); // Add dispatch to the dependency array
+    }, [id, dispatch]);
 
     if (!workflowData) {
         return <LoadingSpinner />;
@@ -45,9 +54,9 @@ const WorkflowPage = () => {
     return (
         <PersistGate loading={null} persistor={persistor}>
             <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-                <Header activePage="workflow" style={{ position: 'sticky', top: 0, zIndex: 10 }} />
+                <Header activePage="workflow" />
                 <div style={{ flexGrow: 1 }}>
-                    <FlowCanvas workflowData={workflowData} workflowID={id} />
+                    <FlowCanvas workflowData={workflowData} workflowID={id as string} />
                 </div>
             </div>
         </PersistGate>

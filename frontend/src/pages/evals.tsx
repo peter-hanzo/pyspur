@@ -6,6 +6,7 @@ import EvalCard from "../components/cards/EvalCard";
 import { Spinner, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip } from "@nextui-org/react";
 import { toast } from "sonner";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
+import { RadialBarProps } from 'recharts';
 
 interface EvalItem {
   name: string;
@@ -30,6 +31,12 @@ interface EvalRunData {
   run_id: string;
   results: string | null;
   status: string;
+}
+
+interface EvalCardRunProps {
+  workflowId: string;
+  numSamples: number;
+  outputVariable: string;
 }
 
 const statusColorMap: Record<string, "warning" | "primary" | "success" | "danger"> = {
@@ -247,7 +254,7 @@ const EvalsPage: React.FC = () => {
                 type={evalItem.type}
                 numSamples={evalItem.num_samples}
                 paperLink={evalItem.paper_link}
-                onRun={(workflowId, numSamples, outputVariable) =>
+                onRun={(workflowId: string, numSamples: number, outputVariable: string) =>
                   handleLaunchEval(workflowId, evalItem.name, numSamples, outputVariable)
                 }
               />

@@ -6,12 +6,41 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Spinne
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 
-const EvalResultsPage = () => {
+interface PerExampleResult {
+  example_id?: string;
+  task_id?: string;
+  prompt: string;
+  predicted_answer: string;
+  ground_truth_answer: string;
+  is_correct: boolean;
+}
+
+interface EvalResults {
+  run_id: string;
+  eval_name: string;
+  accuracy: number;
+  per_example_results: PerExampleResult[];
+}
+
+interface EvalRunData {
+  run_id: string;
+  eval_name: string;
+  results: {
+    accuracy: number;
+    subset_metrics?: {
+      default?: {
+        per_example_results: PerExampleResult[];
+      };
+    };
+  };
+}
+
+const EvalResultsPage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState<EvalResults | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
@@ -19,10 +48,10 @@ const EvalResultsPage = () => {
       if (!id) return;
 
       try {
-        const evalRunData = await getEvalRunStatus(id);
+        const evalRunData: EvalRunData = await getEvalRunStatus(id as string);
         console.log("Eval run data received:", evalRunData);
 
-        const normalizedResults = {
+        const normalizedResults: EvalResults = {
           run_id: evalRunData.run_id,
           eval_name: evalRunData.eval_name,
           accuracy: evalRunData.results.accuracy,
@@ -41,7 +70,7 @@ const EvalResultsPage = () => {
     fetchResults();
   }, [id]);
 
-  const renderPrompt = (prompt) => {
+  const renderPrompt = (prompt: string) => {
     return (
       <div className="flex items-center gap-2">
         <div className="text-sm max-h-32 overflow-y-auto flex-grow">
@@ -94,7 +123,7 @@ const EvalResultsPage = () => {
           <div>
             <h1 className="text-2xl font-bold">Eval Run Results</h1>
             <div className="text-gray-600 mt-2">
-              Run ID: {results?.run_id} • Eval: {results?.eval_name}
+              Run ID: {results.run_id} • Eval: {results.eval_name}
             </div>
           </div>
           <Chip
