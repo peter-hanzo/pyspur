@@ -111,6 +111,10 @@ const flowSlice = createSlice({
       }
     },
 
+    setNodes: (state, action: PayloadAction<{ nodes: Node[] }>) => {
+      state.nodes = action.payload.nodes;
+    },
+
     // // ... rest of the reducers with proper type annotations ...
     // I'll show a few more examples and you can follow the pattern:
 
