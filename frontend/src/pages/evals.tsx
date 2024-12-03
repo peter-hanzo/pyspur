@@ -3,23 +3,62 @@ import { useRouter } from "next/router";
 import Header from "../components/Header";
 import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils/api";
 import EvalCard from "../components/cards/EvalCard";
-import { Spinner, Button, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip } from "@nextui-org/react";
+import { Spinner, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip } from "@nextui-org/react";
 import { toast } from "sonner";
 import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 
-const statusColorMap = {
+interface EvalItem {
+  name: string;
+  description: string;
+  type: string;
+  num_samples: number;
+  paper_link?: string;
+}
+
+interface EvalRun {
+  run_id: string;
+  eval_name: string;
+  workflow_id: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  results?: {
+    accuracy: number;
+    [key: string]: any;
+  };
+}
+
+interface EvalRunData {
+  run_id: string;
+  results: string | null;
+  status: string;
+}
+
+const statusColorMap: Record<string, "warning" | "primary" | "success" | "danger"> = {
   PENDING: "warning",
   RUNNING: "primary",
   COMPLETED: "success",
   FAILED: "danger",
 };
 
-const EvalsPage = () => {
-  const [evals, setEvals] = useState([]);
-  const [loading, setLoading] = useState(true);
+const EvalsPage: React.FC = () => {
+  const [evals, setEvals] = useState<EvalItem[]>([]);
+  const [evalRuns, setEvalRuns] = useState<EvalRun[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const router = useRouter();
-  const [evalRuns, setEvalRuns] = useState([]);
+
+  // Helper function to safely parse results
+  const parseResults = (results: string | null): Record<string, any> | null => {
+    if (!results) return null;
+    if (typeof results === "string") {
+      try {
+        return JSON.parse(results);
+      } catch (error) {
+        console.error("Error parsing results:", error);
+        return null;
+      }
+    }
+    return results;
+  };
 
   useEffect(() => {
     const fetchEvals = async () => {
@@ -37,28 +76,13 @@ const EvalsPage = () => {
     fetchEvals();
   }, []);
 
-  // Helper function to safely parse results
-  const parseResults = (results) => {
-    if (!results) return null;
-    if (typeof results === "string") {
-      try {
-        return JSON.parse(results);
-      } catch (error) {
-        console.error("Error parsing results:", error);
-        return null;
-      }
-    }
-    return results; // If already an object
-  };
-
   useEffect(() => {
     const fetchEvalRuns = async () => {
       try {
         const runsData = await listEvalRuns();
 
-        // For each completed run, fetch the results
         const runsDataWithResults = await Promise.all(
-          runsData.map(async (run) => {
+          runsData.map(async (run: EvalRun) => {
             if (run.status === "COMPLETED") {
               try {
                 const evalRunData = await getEvalRunStatus(run.run_id);
@@ -69,12 +93,10 @@ const EvalsPage = () => {
                 };
               } catch (error) {
                 console.error(`Error fetching results for run ${run.run_id}:`, error);
-                return run; // Return run without results
+                return run;
               }
-            } else {
-              // For pending or running runs, just return the run as is
-              return run;
             }
+            return run;
           })
         );
 
@@ -85,11 +107,16 @@ const EvalsPage = () => {
       }
     };
     fetchEvalRuns();
-    const interval = setInterval(fetchEvalRuns, 5000); // Poll every 5 seconds
+    const interval = setInterval(fetchEvalRuns, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleLaunchEval = async (workflowId, evalName, numSamples, outputVariable) => {
+  const handleLaunchEval = async (
+    workflowId: string,
+    evalName: string,
+    numSamples: number,
+    outputVariable: string
+  ): Promise<void> => {
     if (!workflowId) {
       toast.error("Workflow ID is missing.");
       return;
@@ -101,9 +128,7 @@ const EvalsPage = () => {
 
     toast(`Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`);
     try {
-      const results = await startEvalRun(workflowId, evalName, numSamples, outputVariable);
-      setEvalResults(results);
-      onOpen();
+      await startEvalRun(workflowId, evalName, numSamples, outputVariable);
       toast.success(`Eval run started.`);
     } catch (error) {
       console.error(`Error launching eval:`, error);
@@ -111,7 +136,7 @@ const EvalsPage = () => {
     }
   };
 
-  const handleViewResults = async (evalRunId) => {
+  const handleViewResults = async (evalRunId: string): Promise<void> => {
     router.push(`/evals/${evalRunId}`);
   };
 
@@ -119,7 +144,7 @@ const EvalsPage = () => {
     <div className="App relative">
       <Header activePage="evals" />
       <div className="p-6">
-        {/* Eval Jobs Table Section */}
+        {/* Rest of the JSX remains the same, but now TypeScript-safe */}
         <h1 className="text-2xl font-bold mt-8 mb-4">Eval Jobs</h1>
         {evalRuns.length > 0 ? (
           <Table aria-label="Eval Jobs Table" isHeaderSticky>
@@ -132,7 +157,7 @@ const EvalsPage = () => {
               <TableColumn>Actions</TableColumn>
             </TableHeader>
             <TableBody items={evalRuns}>
-              {(run) => (
+              {(run: EvalRun) => (
                 <TableRow key={run.run_id}>
                   <TableCell>{run.run_id}</TableCell>
                   <TableCell>{run.eval_name}</TableCell>
@@ -205,10 +230,8 @@ const EvalsPage = () => {
           <p>No eval runs available.</p>
         )}
 
-        {/* Add spacing between sections */}
         <div className="my-8"></div>
 
-        {/* Available Evals Section */}
         <h1 className="text-2xl font-bold mt-8 mb-4">Available Evals</h1>
         {loading ? (
           <div className="flex justify-center items-center h-64">
