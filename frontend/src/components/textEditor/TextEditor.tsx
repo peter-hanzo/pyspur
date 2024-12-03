@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { Color } from "@tiptap/extension-color";
@@ -12,13 +12,32 @@ import { Icon } from "@iconify/react";
 import { List, ListOrdered } from "lucide-react";
 import styles from "./TextEditor.module.css";
 
-// Wrap the component with forwardRef
-const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, inputSchema = {}, fieldTitle }, ref) => {
+interface TextEditorProps {
+  content: string;
+  setContent: (content: string) => void;
+  isEditable?: boolean;
+  fullScreen?: boolean;
+  inputSchema?: Record<string, unknown>;
+  fieldTitle?: string;
+}
+
+interface TextEditorRef {
+  insertAtCursor: (text: string) => void;
+}
+
+const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
+  content,
+  setContent,
+  isEditable = true,
+  fullScreen = false,
+  inputSchema = {},
+  fieldTitle
+}, ref) => {
 
   const editor = useEditor({
     extensions: [
       Color.configure({ types: [TextStyle.name, ListItem.name] }),
-      TextStyle.configure({ types: [ListItem.name] }),
+      TextStyle.configure(),
       StarterKit.configure({
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
@@ -32,7 +51,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
           "w-full bg-content2 hover:bg-content3 transition-colors min-h-[40px] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500",
           isEditable ? "" : "rounded-medium",
           fullScreen ? styles.fullScreenEditor : styles.truncatedEditor
-        ].filter(Boolean).join(" "), // Join classes without extra spaces
+        ].filter(Boolean).join(" "),
       },
     },
     onUpdate: ({ editor }) => {
@@ -46,9 +65,8 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     },
   });
 
-  // Expose the insertAtCursor method to the parent component via ref
   useImperativeHandle(ref, () => ({
-    insertAtCursor: (text) => {
+    insertAtCursor: (text: string) => {
       if (editor) {
         editor.chain().focus().insertContent(text).run();
       }
@@ -60,7 +78,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
   const modalEditor = useEditor({
     extensions: [
       Color.configure({ types: [TextStyle.name, ListItem.name] }),
-      TextStyle.configure({ types: [ListItem.name] }),
+      TextStyle.configure(),
       StarterKit.configure({
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
@@ -107,8 +125,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     }
   }, [content, editor]);
 
-  // Add variable button rendering function
-  const renderVariableButtons = (editorInstance) => {
+  const renderVariableButtons = (editorInstance: Editor | null) => {
     if (!inputSchema || Object.keys(inputSchema).length === 0) return null;
 
     return (
@@ -132,8 +149,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     );
   };
 
-  // Modified renderToolbar to include variable buttons
-  const renderToolbar = (editorInstance, isFullScreen = false) => {
+  const renderToolbar = (editorInstance: Editor | null, isFullScreen = false) => {
     if (!editorInstance) return null;
 
     const buttonSize = isFullScreen ? "sm" : "md";
@@ -149,7 +165,6 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             color="primary"
             variant={editorInstance.isActive("bold") ? "solid" : "flat"}
             size={buttonSize}
-            auto
             isIconOnly
           >
             <Icon icon="solar:text-bold-linear" className={buttonClassName} />
@@ -160,7 +175,6 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             color="primary"
             variant={editorInstance.isActive("italic") ? "solid" : "flat"}
             size={buttonSize}
-            auto
             isIconOnly
           >
             <Icon icon="solar:text-italic-linear" className={buttonClassName} />
@@ -171,7 +185,6 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             color="primary"
             variant={editorInstance.isActive("underline") ? "solid" : "flat"}
             size={buttonSize}
-            auto
             isIconOnly
           >
             <Icon icon="solar:text-underline-linear" className={buttonClassName} />
@@ -181,7 +194,6 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             color="primary"
             variant={editorInstance.isActive("bulletList") ? "solid" : "flat"}
             size={buttonSize}
-            auto
             isIconOnly
           >
             <List className={buttonClassName} />
@@ -191,7 +203,6 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
             color="primary"
             variant={editorInstance.isActive("orderedList") ? "solid" : "flat"}
             size={buttonSize}
-            auto
             isIconOnly
           >
             <ListOrdered className={buttonClassName} />
@@ -202,26 +213,27 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     );
   };
 
-  // Add this new function to handle cancellation
-  const handleCancel = (onClose) => {
-    modalEditor.commands.setContent(content || '');
+  const handleCancel = (onClose: () => void) => {
+    if (modalEditor) {
+      modalEditor.commands.setContent(content || '');
+    }
     onClose();
   };
 
-  // Add this function to handle saving
-  const handleSave = (onClose) => {
-    setContent(modalEditor.getHTML());
+  const handleSave = (onClose: () => void) => {
+    if (modalEditor) {
+      setContent(modalEditor.getHTML());
+    }
     onClose();
   };
 
   return (
     <div>
-      {/* Render the field title if it exists */}
       {fieldTitle && (
         <div className="flex justify-between items-center mb-2 ml-2 font-semibold">
           <span>{fieldTitle}</span>
           {!fullScreen && (
-            <Button onPress={onOpen} isIconOnly >
+            <Button onPress={onOpen} isIconOnly>
               <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
             </Button>
           )}
@@ -267,5 +279,7 @@ const TextEditor = forwardRef(({ content, setContent, isEditable, fullScreen, in
     </div>
   );
 });
+
+TextEditor.displayName = 'TextEditor';
 
 export default TextEditor;

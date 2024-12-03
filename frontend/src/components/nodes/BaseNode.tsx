@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
-import { Handle, getConnectedEdges } from '@xyflow/react';
+import { Handle, getConnectedEdges, Node, Edge } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Card,
@@ -14,7 +14,47 @@ import {
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 
-const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style = {}, isInputNode = false }) => {
+interface NodeData {
+  run?: Record<string, any>;
+  status?: string;
+  acronym?: string;
+  color?: string;
+  title?: string;
+  config?: {
+    title?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+interface RootState {
+  flow: {
+    nodes: Node[];
+    edges: Edge[];
+    selectedNode: string | null;
+    testInputs?: Array<{ id: string; [key: string]: any }>;
+  };
+}
+
+interface BaseNodeProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+  id: string;
+  data?: NodeData;
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
+  isInputNode?: boolean;
+}
+
+const BaseNode: React.FC<BaseNodeProps> = ({
+  isCollapsed,
+  setIsCollapsed,
+  id,
+  data = {},
+  children,
+  style = {},
+  isInputNode = false
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
@@ -23,22 +63,23 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   const dispatch = useDispatch();
 
   // Retrieve the node's position and edges from the Redux store
-  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
-  const edges = useSelector((state) => state.flow.edges);
-  const selectedNodeId = useSelector((state) => state.flow.selectedNode);
+  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
+  const edges = useSelector((state: RootState) => state.flow.edges);
+  const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const initialInputs = useSelector((state) => {
+  const initialInputs = useSelector((state: RootState) => {
     const inputNodeId = state.flow?.nodes.find((node) => node.type === 'InputNode')?.id;
     let testInputs = state.flow?.testInputs;
     if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
       const { id, ...rest } = testInputs[0];
-      return {[inputNodeId]: rest};
+      return {[inputNodeId as string]: rest};
     }
-    return { [inputNodeId]: {} };
+    return { [inputNodeId as string]: {} };
   });
-  const availableOutputs = useSelector((state) => {
+
+  const availableOutputs = useSelector((state: RootState) => {
     const nodes = state.flow.nodes;
-    const availableOutputs = {};
+    const availableOutputs: Record<string, any> = {};
     nodes.forEach((node) => {
       if (node.data && node.data.run) {
         availableOutputs[node.id] = node.data.run;
@@ -131,7 +172,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
 
   const isSelected = String(id) === String(selectedNodeId);
 
-  const status = data.run && data.run ? 'completed' : (data.status || 'default').toLowerCase();
+  const status = data.run ? 'completed' : (data.status || 'default').toLowerCase();
 
   const borderColor = isRunning ? 'blue' :
     status === 'completed' ? '#4CAF50' :
@@ -139,7 +180,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
         status === 'default' ? 'black' :
           style.borderColor || '#ccc';
 
-  const cardStyle = {
+  const cardStyle: React.CSSProperties = {
     ...style,
     borderColor: borderColor,
     borderWidth: isSelected ? '3px' : status === 'completed' ? '2px' : isHovered ? '3px' : style.borderWidth || '1px',
@@ -150,7 +191,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
   const acronym = data.acronym || 'N/A';
   const color = data.color || '#ccc';
 
-  const tagStyle = {
+  const tagStyle: React.CSSProperties = {
     backgroundColor: color,
     color: '#fff',
     padding: '2px 8px',
@@ -227,7 +268,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
                         },
                       }));
                     }}
-                    onKeyDown={(e) => {
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Enter' || e.key === 'Escape') {
                         e.stopPropagation();
                         e.preventDefault();
@@ -238,7 +279,7 @@ const BaseNode = ({ isCollapsed, setIsCollapsed, id, data = {}, children, style 
                             data: {
                               config: {
                                 ...data.config,
-                                title: e.target.value,
+                                title: (e.target as HTMLInputElement).value,
                               },
                             },
                           }));

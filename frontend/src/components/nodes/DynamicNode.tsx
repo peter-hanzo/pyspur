@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle, useHandleConnections } from '@xyflow/react';
+import { Handle, useHandleConnections, NodeProps } from '@xyflow/react';
 import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
@@ -9,31 +9,59 @@ import {
   updateEdgesOnHandleRename,
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
+import { RootState } from '../../store/store';
 
-const updateMessageVariables = (message, oldKey, newKey) => {
+interface NodeData {
+  config?: {
+    input_schema?: Record<string, any>;
+    output_schema?: Record<string, any>;
+    system_message?: string;
+    user_message?: string;
+  };
+  title?: string;
+}
+
+interface SchemaMetadata {
+  required?: boolean;
+  title?: string;
+  type?: string;
+  [key: string]: any;
+}
+
+const updateMessageVariables = (message: string | undefined, oldKey: string, newKey: string): string | undefined => {
   if (!message) return message;
 
   const regex = new RegExp(`{{\\s*${oldKey}\\s*}}`, 'g');
   return message.replace(regex, `{{${newKey}}}`);
 };
 
-const DynamicNode = ({ id, type, data, position, ...props }) => {
-  const nodeRef = useRef(null);
-  const [nodeWidth, setNodeWidth] = useState('auto');
-  const [editingField, setEditingField] = useState(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+interface DynamicNodeProps extends NodeProps {
+  id: string;
+  type: string;
+  data: NodeData;
+  position: { x: number; y: number };
+  selected?: boolean;
+  parentNode?: string;
+}
 
-  const node = useSelector((state) => state.flow.nodes.find((n) => n.id === id));
+const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...props }) => {
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const [nodeWidth, setNodeWidth] = useState<string>('auto');
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+
+  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
   const nodeData = data || (node && node.data);
   const dispatch = useDispatch();
 
-  const edges = useSelector((state) => state.flow.edges);
+  const edges = useSelector((state: RootState) => state.flow.edges);
 
-  const inputMetadata = useSelector((state) => selectPropertyMetadata(state, `${type}.input`));
-  const outputMetadata = useSelector((state) => selectPropertyMetadata(state, `${type}.output`));
-  const excludeSchemaKeywords = (metadata) => {
-    const schemaKeywords = ['required', 'title', 'type' ];
-    return Object.keys(metadata).reduce((acc, key) => {
+  const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`));
+  const outputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.output`));
+
+  const excludeSchemaKeywords = (metadata: SchemaMetadata): Record<string, any> => {
+    const schemaKeywords = ['required', 'title', 'type'];
+    return Object.keys(metadata).reduce((acc: Record<string, any>, key) => {
       if (!schemaKeywords.includes(key)) {
         acc[key] = metadata[key];
       }
@@ -41,11 +69,11 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     }, {});
   };
 
-  const cleanedInputMetadata = excludeSchemaKeywords(inputMetadata);
-  const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata);
+  const cleanedInputMetadata = excludeSchemaKeywords(inputMetadata || {});
+  const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata || {});
 
   const handleSchemaKeyEdit = useCallback(
-    (oldKey, newKey, schemaType) => {
+    (oldKey: string, newKey: string, schemaType: 'input_schema' | 'output_schema') => {
       newKey = newKey.replace(/\s+/g, '_');
       if (oldKey === newKey || !newKey.trim()) {
         setEditingField(null);
@@ -54,7 +82,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
 
       const updatedSchema = {
         ...nodeData?.config?.[schemaType],
-        [newKey]: nodeData?.config?.[schemaType][oldKey],
+        [newKey]: nodeData?.config?.[schemaType]?.[oldKey],
       };
       delete updatedSchema[oldKey];
 
@@ -122,9 +150,13 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     const finalWidth = Math.min(calculatedWidth, 600);
 
     setNodeWidth(`${finalWidth}px`);
-  }, [nodeData]);
+  }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata]);
 
-  const InputHandleRow = ({ keyName }) => {
+  interface HandleRowProps {
+    keyName: string;
+  }
+
+  const InputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
     const connections = useHandleConnections({ type: 'target', id: keyName });
 
     return (
@@ -134,8 +166,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
             type="target"
             position="left"
             id={keyName}
-            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
-              }`}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
             isConnectable={!isCollapsed && connections.length === 0}
           />
         </td>
@@ -151,7 +182,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'input_schema')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, e.target.value, 'input_schema');
+                    handleSchemaKeyEdit(keyName, (e.target as HTMLInputElement).value, 'input_schema');
                   } else if (e.key === 'Escape') {
                     setEditingField(null);
                   }
@@ -175,8 +206,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
     );
   };
 
-  const OutputHandleRow = ({ keyName }) => {
-
+  const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
     return (
       <tr key={`output-${keyName}`} className="align-middle">
         {!isCollapsed && (
@@ -191,7 +221,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
                 onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'output_schema')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, e.target.value, 'output_schema');
+                    handleSchemaKeyEdit(keyName, (e.target as HTMLInputElement).value, 'output_schema');
                   } else if (e.key === 'Escape') {
                     setEditingField(null);
                   }
@@ -217,8 +247,7 @@ const DynamicNode = ({ id, type, data, position, ...props }) => {
               type="source"
               position="right"
               id={keyName}
-              className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-                }`}
+              className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
               isConnectable={!isCollapsed}
             />
           </div>
