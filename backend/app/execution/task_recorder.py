@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 from pydantic import BaseModel
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 from ..models.task_model import TaskModel, TaskStatus
@@ -17,17 +16,11 @@ class TaskRecorder:
         self,
         node_id: str,
         inputs: Dict[str, Any],
-        subworkflow: Optional[WorkflowDefinitionSchema] = None,
     ):
-        if subworkflow:
-            subworkflow_val = json.dumps(subworkflow.model_dump())
-        else:
-            subworkflow_val = None
         task = TaskModel(
             run_id=self.run_id,
             node_id=node_id,
             inputs=inputs,
-            subworkflow=subworkflow_val,
         )
         self.db.add(task)
         self.db.commit()
@@ -57,10 +50,11 @@ class TaskRecorder:
         if end_time:
             task.end_time = end_time
         if subworkflow:
-            task.subworkflow = json.dumps(subworkflow.model_dump())
+            task.subworkflow = subworkflow.model_dump()
         if subworkflow_output:
-            task.subworkflow_output = json.dumps(
-                {k: v.model_dump() for k, v in subworkflow_output.items()}
-            )
+            task.subworkflow_output = {
+                k: v.model_dump() for k, v in subworkflow_output.items()
+            }
+        self.db.add(task)
         self.db.commit()
         return
