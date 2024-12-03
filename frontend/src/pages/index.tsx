@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
 import Header from '../components/Header';
-import { useDispatch } from 'react-redux';
 import Dashboard from '../components/Dashboard';
 import { fetchNodeTypes } from '../store/nodeTypesSlice';
-import { AppDispatch } from '../store/store';
+import { useAppDispatch } from '../store/hooks';
 
 const Home: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(fetchNodeTypes());

@@ -3,8 +3,13 @@ import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import flowReducer from './flowSlice';
 import nodeTypesReducer from './nodeTypesSlice';
+import { PersistConfig } from 'redux-persist';
 
-const persistConfig = {
+// Define the RootState type
+export type RootState = ReturnType<typeof rootReducer>;
+
+// Define the persist config type
+const persistConfig: PersistConfig<RootState> = {
   key: 'root',
   storage,
   whitelist: ['nodes', 'edges', 'nodeTypes'],
@@ -26,6 +31,10 @@ const store = configureStore({
       },
     }),
 });
+
+// Define store types
+export type AppStore = typeof store;
+export type AppDispatch = AppStore['dispatch'];
 
 export const persistor = persistStore(store);
 export default store;
