@@ -10,13 +10,14 @@ import { Icon } from "@iconify/react";
 import TipPopup from '../../../TipPopUp';
 import { resetWorkflow } from '../../../../utils/api';
 import { resetFlow } from '../../../../store/flowSlice';
+import type { RootState } from '../../../../store/store';
 
 function Operator({ handleLayout }) {
   const dispatch = useDispatch();
-  const nodes = useSelector(state => state.flow.nodes);
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
-  const workflowID = useSelector(state => state.flow.workflowID);
+  const workflowID = useSelector((state: RootState) => state.flow.workflowID);
 
   const handleClearCanvas = async () => {
     if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
@@ -45,12 +46,12 @@ function Operator({ handleLayout }) {
             <Button
               size="sm"
               isIconOnly
-              onClick={() => setMode('pointer')}
-              className={mode === 'pointer' ? 'bg-default-200' : 'bg-white'}
+              onClick={() => setMode('pointer' as any)}
+              className={mode === 'pointer' as any ? 'bg-default-200' : 'bg-white'}
             >
               <Icon
-                className={`${mode === 'pointer' ? 'text-default-800' : 'text-default-500'}`}
-                icon={mode === 'pointer' ? "solar:cursor-bold" : "solar:cursor-linear"}
+                className={`${mode === 'pointer' as any ? 'text-default-800' : 'text-default-500'}`}
+                icon={mode === 'pointer' as any ? "solar:cursor-bold" : "solar:cursor-linear"}
                 width={16}
               />
             </Button>
@@ -69,21 +70,6 @@ function Operator({ handleLayout }) {
               />
             </Button>
           </TipPopup>
-          <UndoRedo handleUndo={null} handleRedo={null} />
-          <TipPopup title='Clear Canvas'>
-            <Button
-              size="sm"
-              isIconOnly
-              onClick={handleClearCanvas}
-              className='bg-white'
-            >
-              <Icon
-                className="text-default-500"
-                icon="solar:trash-bin-trash-linear"
-                width={16}
-              />
-            </Button>
-          </TipPopup>
           <TipPopup title='Layout Nodes'>
             <Button
               size="sm"
@@ -98,7 +84,9 @@ function Operator({ handleLayout }) {
               />
             </Button>
           </TipPopup>
-          <AddNodePopoverFooter />
+        </ButtonGroup>
+        <ButtonGroup>
+          <UndoRedo handleUndo={null} handleRedo={null} />
         </ButtonGroup>
       </div>
     </>

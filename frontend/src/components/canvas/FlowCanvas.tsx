@@ -29,6 +29,7 @@ import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
+import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -585,6 +586,9 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             <NodeSidebar nodeID={selectedNodeID} />
           </div>
         )}
+        <div className="bg-white border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
+          <CollapsibleNodePanel />
+        </div>
       </div>
     </div>
   );
