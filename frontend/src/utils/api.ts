@@ -103,6 +103,19 @@ export const getRunStatus = async (runID: string): Promise<RunStatusResponse> =>
   }
 };
 
+export const getRun = async (runID) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/run/${runID}/`);
+    console.log('Run Data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting run:', error);
+    throw error;
+  }
+};
+
+
+
 export const getWorkflows = async (): Promise<Workflow[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/`);
@@ -191,8 +204,21 @@ export const getWorkflow = async (workflowID: string): Promise<Workflow> => {
   }
 };
 
-export const downloadOutputFile = async (outputFileID: string): Promise<void> => {
+
+export const getWorkflowRuns = async (workflowID) => {
   try {
+    const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/runs/`);
+    return response.data;
+  }
+  catch (error) {
+    console.error('Error fetching workflow runs:', error);
+    throw error;
+  }
+}
+
+export const downloadOutputFile = async (outputFileID) => {
+  try {
+    // First, get the output file details to find the original filename
     const fileInfoResponse = await axios.get(`${API_BASE_URL}/of/${outputFileID}/`);
     const fileName = fileInfoResponse.data.file_name;
 

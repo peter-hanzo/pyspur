@@ -248,9 +248,27 @@ const flowSlice = createSlice({
     setTestInputs: (state, action: PayloadAction<TestInput[]>) => {
       state.testInputs = action.payload;
     },
+    setNodeOutputs: (state, action) => {
+      const nodeOutputs = action.payload;
 
-    addTestInput: (state, action: PayloadAction<TestInput>) => {
-      state.testInputs.push(action.payload);
+      state.nodes = state.nodes.map(node => {
+        if (node && nodeOutputs[node.id]) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              run: nodeOutputs[node.id],
+            },
+          };
+        }
+        return node;
+      });
+    },
+    addTestInput: (state, action) => {
+      state.testInputs = [
+        ...state.testInputs,
+        action.payload,
+      ];
     },
 
     updateTestInput: (state, action: PayloadAction<TestInput>) => {
@@ -294,6 +312,7 @@ export const {
   resetRun,
   clearCanvas,
   setTestInputs,
+  setNodeOutputs,
   addTestInput,
   updateTestInput,
   deleteTestInput,

@@ -42,8 +42,8 @@ class TaskModel(BaseModel):
         DateTime, default=datetime.now(timezone.utc)
     )
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    subworkflow: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    subworkflow_output: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    subworkflow: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+    subworkflow_output: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
 
     parent_task: Mapped[Optional["TaskModel"]] = relationship(
         "TaskModel", remote_side=[id], backref="subtasks"

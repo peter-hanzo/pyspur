@@ -49,7 +49,7 @@ interface BaseNodeProps {
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
-  id,
+  handleOpenModal, id,
   data = {},
   children,
   style = {},
@@ -418,6 +418,17 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             >
               <Icon className="text-default-500" icon="solar:copy-linear" width={22} />
             </Button>
+            {/* View Output Button */}
+            {handleOpenModal && (
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                onPress={handleOpenModal}
+              >
+                <Icon className="text-default-500" icon="solar:eye-linear" width={22} />
+              </Button>
+            )}
           </div>
         </Card>
       )}

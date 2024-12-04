@@ -44,6 +44,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.0",
     "codemirror": "^6.0.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^11.8.0",
     "install": "^0.13.0",
     "lodash.isequal": "^4.5.0",
