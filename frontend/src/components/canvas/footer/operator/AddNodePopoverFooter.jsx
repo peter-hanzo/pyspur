@@ -27,7 +27,7 @@ const AddNodePopoverFooter = () => {
             size="sm"
             className="bg-white"
           >
-            <Icon icon="solar:add-circle-linear" width={16} className="text-default-500" />
+            <Icon icon="solar:add-square-linear" width={"80%"} className="text-default-500" />
           </Button>
         </DropdownTrigger>
         <DropdownMenu aria-label="Add Node Options">

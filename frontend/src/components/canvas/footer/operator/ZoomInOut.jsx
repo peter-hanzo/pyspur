@@ -9,7 +9,7 @@ const ZoomInOut = () => {
   const { zoom } = useViewport();
 
   return (
-    <Card className='h-12 flex items-center justify-center'>
+    <Card className='flex items-center justify-center shadow-none'>
       <div className="zoom-controls flex items-center gap-2">
         <TipPopup title='Zoom Out' shortcuts={['ctrl', '-']}>
           <Button isIconOnly variant="light" onClick={zoomOut}>

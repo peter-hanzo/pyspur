@@ -30,7 +30,7 @@ function Operator({handleLayout}) {
   };
 
   return (
-    <>
+    <div className='flex flex-col gap-1'>
       <MiniMap
         style={{
           width: 102,
@@ -38,7 +38,7 @@ function Operator({handleLayout}) {
         }}
         className='!absolute !left-4 !bottom-14 z-[9] !m-0 !w-[102px] !h-[72px] !border-[0.5px] !border-black/8 !rounded-lg !shadow-lg'
       />
-      <div className='flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9]'>
+      <div className='flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9] bg-content2 px-1 rounded-lg shadow-sm'>
         <ZoomInOut />
         <ButtonGroup>
           <TipPopup title='Select' shortcuts={['v']}>
@@ -69,21 +69,6 @@ function Operator({handleLayout}) {
               />
             </Button>
           </TipPopup>
-          <UndoRedo handleUndo={null} handleRedo={null} />
-          <TipPopup title='Clear Canvas'>
-            <Button
-              size="sm"
-              isIconOnly
-              onClick={handleClearCanvas}
-              className='bg-white'
-            >
-              <Icon
-                className="text-default-500"
-                icon="solar:trash-bin-trash-linear"
-                width={16}
-              />
-            </Button>
-          </TipPopup>
           <TipPopup title='Layout Nodes'>
             <Button
               size="sm"
@@ -98,10 +83,31 @@ function Operator({handleLayout}) {
               />
             </Button>
           </TipPopup>
-          <AddNodePopoverFooter />
+        </ButtonGroup>
+        <ButtonGroup>
+          <UndoRedo handleUndo={null} handleRedo={null} />
+        </ButtonGroup>
+        <ButtonGroup>
+          <TipPopup title='Clear Canvas'>
+            <Button
+              size="sm"
+              isIconOnly
+              onClick={handleClearCanvas}
+              className='bg-white'
+            >
+              <Icon
+                className="text-default-500"
+                icon="solar:trash-bin-trash-linear"
+                width={16}
+              />
+            </Button>
+          </TipPopup>
         </ButtonGroup>
       </div>
-    </>
+      <div className='flex items-center mt-1 pt-1 px-1 justify-center absolute left-1/2 transform -translate-x-1/2 bottom-4 z-[9] shadow-sm rounded-sm bg-content2'>
+        <AddNodePopoverFooter className="flex-grow"/>
+      </div>
+    </div>
   );
 }
 
