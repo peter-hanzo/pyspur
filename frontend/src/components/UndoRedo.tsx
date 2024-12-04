@@ -30,13 +30,6 @@ const UndoRedo: FC<UndoRedoProps> = ({ handleUndo, handleRedo }) => {
           <Icon icon="solar:undo-right-linear" width={16} className="text-default-500" />
         </Button>
       </TipPopup>
-      <Button
-        size="sm"
-        isIconOnly
-        className="bg-white"
-      >
-        <Icon icon="solar:history-linear" width={16} className="text-default-500" />
-      </Button>
     </>
   )
 }
