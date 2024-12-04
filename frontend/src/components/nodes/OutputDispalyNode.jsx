@@ -31,13 +31,10 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
   const edges = useSelector((state) => state.flow.edges);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-
-  // Function to open modal
   const handleOpenModal = () => {
     setIsModalOpen(true);
   };
 
-  // Function to close modal
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
@@ -116,7 +113,7 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
       (nodeData?.title || '').length / 1.5
     );
 
-    const calculatedWidth = Math.max(300, maxLabelLength * 15);
+    const calculatedWidth = maxLabelLength * 25;
     const finalWidth = Math.min(calculatedWidth, 600);
 
     setNodeWidth(`${finalWidth}px`);
@@ -126,19 +123,19 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
     const connections = useHandleConnections({ type: 'target', id: keyName });
 
     return (
-      <tr key={keyName}>
-        <td className={`${styles.handleCell} border-r border-default-300 w-0 ml-2`}>
+      <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
+        <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
           <Handle
             type="target"
             position="left"
             id={keyName}
-            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
-              }`}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
             isConnectable={!isCollapsed && connections.length === 0}
           />
-        </td>
+        </div>
+        <div className="border-r border-gray-300 h-full mx-0"></div>
         {!isCollapsed && (
-          <td className="text-left align-middle pl-1">
+          <div className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden" id={`input-${keyName}-label`}>
             {editingField === keyName ? (
               <Input
                 autoFocus
@@ -161,24 +158,23 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
               />
             ) : (
               <span
-                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
                 onClick={() => setEditingField(keyName)}
               >
                 {keyName}
               </span>
             )}
-          </td>
+          </div>
         )}
-      </tr>
+      </div>
     );
   };
 
   const OutputHandleRow = ({ keyName }) => {
-
     return (
-      <tr key={`output-${keyName}`} className="align-middle">
+      <div className={`${styles.handleRow} w-full justify-end`} key={`output-${keyName}`} id={`output-${keyName}-row`}>
         {!isCollapsed && (
-          <td className="text-right align-middle pr-1">
+          <div className="align-center flex flex-grow flex-shrink mr-[0.5rem] max-w-full overflow-hidden" id={`output-${keyName}-label`}>
             {editingField === keyName ? (
               <Input
                 autoFocus
@@ -201,27 +197,25 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
               />
             ) : (
               <span
-                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
                 onClick={() => setEditingField(keyName)}
               >
                 {keyName}
               </span>
             )}
-          </td>
-        )}
-        <td className={`${styles.handleCell} ${styles.outputHandleCell} border-l border-default-300 w-0 pl-1`}>
-          <div className={styles.handleWrapper}>
-            <Handle
-              type="source"
-              position="right"
-              id={keyName}
-              className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-                }`}
-              isConnectable={!isCollapsed}
-            />
           </div>
-        </td>
-      </tr>
+        )}
+        <div className="border-l border-gray-300 h-full mx-0"></div>
+        <div className={`${styles.handleCell} ${styles.outputHandleCell}`} id={`output-${keyName}-handle`}>
+          <Handle
+            type="source"
+            position="right"
+            id={keyName}
+            className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
+            isConnectable={!isCollapsed}
+          />
+        </div>
+      </div>
     );
   };
 
@@ -231,35 +225,20 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
     const inputSchema = nodeData?.config?.['input_schema'] || {};
     const outputSchema = nodeData?.config?.['output_schema'] || {};
 
-    const inputs = Object.keys(inputSchema).length;
-    const outputs = Object.keys(outputSchema).length;
-
     return (
-      <div className={styles.handlesWrapper} id="handles">
+      <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
-        <div className={styles.handlesColumn}>
-          {inputs > 0 && (
-            <table style={{ width: '100%' }}>
-              <tbody>
-                {Object.keys(inputSchema).map((key) => (
-                  <InputHandleRow key={key} keyName={key} />
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
+          {Object.keys(inputSchema).map((key) => (
+            <InputHandleRow key={key} keyName={key} />
+          ))}
         </div>
 
         {/* Output Handles */}
-        <div className={styles.handlesColumn}>
-          {outputs > 0 && (
-            <table style={{ width: '100%' }}>
-              <tbody>
-                {Object.keys(outputSchema).map((key) => (
-                  <OutputHandleRow key={key} keyName={key} />
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handles">
+          {Object.keys(outputSchema).map((key) => (
+            <OutputHandleRow key={key} keyName={key} />
+          ))}
         </div>
       </div>
     );
@@ -269,7 +248,6 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
 
   return (
     <>
-
       <div
         className={styles.outputDisplayNodeWrapper}
         style={{ zIndex: props.parentNode ? 1 : 0 }}
