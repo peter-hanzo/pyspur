@@ -1,6 +1,15 @@
 import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
 import JSPydanticModel from './JSPydanticModel'; // Import the JSPydanticModel class
+import {
+  WorkflowNodeCoordinates,
+  WorkflowNode,
+  WorkflowLink,
+  WorkflowDefinition,
+  Workflow,
+  Template,
+  Dataset
+} from '../types/workflow';
 
 const API_BASE_URL = typeof window !== 'undefined'
   ? `http://${window.location.host}/api`
@@ -12,46 +21,11 @@ export interface NodeTypesResponse {
   metadata: Record<string, any>;
 }
 
-export interface WorkflowNodeCoordinates {
-  x: number;
-  y: number;
-}
-
-export interface WorkflowNode {
-  id: string;
-  title?: string;
-  node_type: string;
-  config: Record<string, any>;
-  coordinates?: WorkflowNodeCoordinates;
-}
-
-export interface WorkflowLink {
-  source_id: string;
-  source_output_key: string;
-  target_id: string;
-  target_input_key: string;
-}
-
-export interface WorkflowDefinition {
-  nodes: WorkflowNode[];
-  links: WorkflowLink[];
-  test_inputs: Record<string, any>[];
-}
-
-export interface Workflow {
-  id: string;
-  name: string;
-  description?: string;
-  definition: WorkflowDefinition;
-  created_at: string; // ISO datetime string
-  updated_at: string; // ISO datetime string
-}
-
 export interface WorkflowVersion {
   version: number;
   name: string;
   description?: string;
-  definition: any;
+  definition: WorkflowDefinition;
   definition_hash: string;
   created_at: string;
   updated_at: string;
@@ -70,13 +44,6 @@ export interface RunStatusResponse {
 export interface ApiKey {
   name: string;
   value: string;
-}
-
-export interface Dataset {
-  id: string;
-  name: string;
-  description: string;
-  [key: string]: any;
 }
 
 export const getNodeTypes = async (): Promise<NodeTypesResponse> => {

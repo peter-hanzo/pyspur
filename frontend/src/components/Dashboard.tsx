@@ -24,7 +24,7 @@ import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkf
 import { useRouter } from 'next/router';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
-import { Workflow, Template } from '../types/workflow';
+import { Workflow, Template, WorkflowDefinition } from '../types/workflow';
 
 const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
-        setWorkflows(workflows);
+        setWorkflows(workflows as Workflow[]);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -117,9 +117,12 @@ const Dashboard: React.FC = () => {
   const handleNewWorkflowClick = async () => {
     try {
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
-      const newWorkflow: Partial<Workflow> = {
+      const newWorkflow: WorkflowDefinition = {
         name: uniqueName,
         description: '',
+        nodes: [],
+        links: [],
+        test_inputs: []
       };
 
       const createdWorkflow = await createWorkflow(newWorkflow);
@@ -152,10 +155,12 @@ const Dashboard: React.FC = () => {
             const jsonContent = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
-            const newWorkflow: Partial<Workflow> = {
+            const newWorkflow: WorkflowDefinition = {
               name: jsonContent.name || uniqueName,
               description: jsonContent.description || '',
-              definition: jsonContent.nodes ? jsonContent : jsonContent.definition
+              nodes: jsonContent.nodes || [],
+              links: jsonContent.links || [],
+              test_inputs: jsonContent.test_inputs || []
             };
 
             const createdWorkflow = await createWorkflow(newWorkflow);
@@ -198,7 +203,7 @@ const Dashboard: React.FC = () => {
   const handleDuplicateClick = async (workflow: Workflow) => {
     try {
       const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
-      setWorkflows((prevWorkflows) => [duplicatedWorkflow, ...prevWorkflows]);
+      setWorkflows((prevWorkflows) => [...prevWorkflows, duplicatedWorkflow]);
       console.log(`Workflow "${workflow.name}" duplicated successfully.`);
     } catch (error) {
       console.error('Error duplicating workflow:', error);
