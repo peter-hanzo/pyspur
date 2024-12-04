@@ -38,7 +38,17 @@ const AddNodePopoverFooter = () => {
                   key={node.name}
                   onClick={() => handleAddNode(node.name)}
                 >
-                  {node.name}
+                  <div className='flex items-center'>
+                    <div className="w-16">
+                      <div 
+                        className={`node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block`}
+                        style={{ backgroundColor: node.visual_tag.color }}
+                      >
+                        {node.visual_tag.acronym}
+                      </div>
+                    </div>
+                    <span>{node.name}</span>
+                  </div>
                 </DropdownItem>
               ))}
             </DropdownSection>
