@@ -44,6 +44,7 @@ interface FlowState {
   projectName: string;
   workflowInputVariables: Record<string, any>;
   testInputs: TestInput[];
+  inputNodeValues: Record<string, any>;
 }
 
 const initialState: FlowState = {
@@ -56,6 +57,7 @@ const initialState: FlowState = {
   projectName: 'Untitled Project',
   workflowInputVariables: {},
   testInputs: [],
+  inputNodeValues: {},
 };
 
 const flowSlice = createSlice({
@@ -234,6 +236,15 @@ const flowSlice = createSlice({
       }));
     },
 
+    clearCanvas: (state) => {
+      state.nodes = [];
+      state.edges = [];
+      state.selectedNode = null;
+      state.workflowInputVariables = {};
+      state.testInputs = [];
+      state.inputNodeValues = {};
+    },
+
     setTestInputs: (state, action: PayloadAction<TestInput[]>) => {
       state.testInputs = action.payload;
     },
@@ -252,6 +263,10 @@ const flowSlice = createSlice({
     deleteTestInput: (state, action: PayloadAction<{ id: string }>) => {
       const { id } = action.payload;
       state.testInputs = state.testInputs.filter((input) => input.id !== id);
+    },
+
+    setEdges: (state, action) => {
+      state.edges = action.payload.edges;
     },
   },
 });
@@ -277,6 +292,7 @@ export const {
   resetFlow,
   updateEdgesOnHandleRename,
   resetRun,
+  clearCanvas,
   setTestInputs,
   addTestInput,
   updateTestInput,

@@ -1,24 +1,12 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
-import { updateNodeData, clearCanvas, setProjectName } from '../store/flowSlice';
+import { updateNodeData, setProjectName } from '../store/flowSlice';
 import { RootState } from '../store/store';
-import { Node, NodeData, WorkflowRunStatus } from '../types';
+import { Node, NodeData, RunOutputData, RunOutputs, RunStatusResponse } from '../types';
 
-interface RunOutputData {
-    status: string;
-    [key: string]: any;
-}
-
-interface RunOutputs {
-    [nodeId: string]: RunOutputData;
-}
-
-interface RunStatusResponse {
-    status: string;
-    outputs?: RunOutputs;
-    id: string;
-}
+// Import clearCanvas from flowSlice
+import { clearCanvas } from '../store/flowSlice';
 
 const useWorkflow = () => {
     const dispatch = useDispatch();

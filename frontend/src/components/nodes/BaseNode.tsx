@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
-import { Handle, getConnectedEdges, Node, Edge } from '@xyflow/react';
+import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Card,
@@ -119,12 +119,27 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const rerunPredecessors = false;
 
     const workflowId = window.location.pathname.split('/').pop();
+    if (!workflowId) return;
 
-    executePartialRun(workflowId, id, initialInputs, availableOutputs, rerunPredecessors).then((result) => {
+    executePartialRun({
+      workflowId,
+      nodeId: id,
+      inputs: initialInputs,
+      availableOutputs,
+      rerunPredecessors
+    }).then((result) => {
       if (result) {
         Object.entries(result).forEach(([nodeId, output_values]) => {
           if (output_values) {
-            dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...output_values } } }));
+            dispatch(updateNodeData({
+              id: nodeId,
+              data: {
+                run: {
+                  ...(node?.data?.run || {}),
+                  ...(output_values || {})
+                }
+              }
+            }));
             dispatch(setSelectedNode({ nodeId }));
           }
         });
@@ -210,7 +225,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         {/* Hidden target handle covering the entire node */}
         <Handle
           type="target"
-          position="top"
+          position={Position.Top}
           id="node-body"
           style={{
             position: 'absolute',
