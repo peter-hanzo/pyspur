@@ -217,7 +217,7 @@ class BaseNode(ABC):
             "#FF7F50",  # Coral
             "#40E0D0",  # Turquoise
             "#00BFFF",  # Deep Sky Blue
-            "#7FFF00",  # Chartreuse
+            "#FF5522",  # Orange
             "#FA8072",  # Salmon
             "#8A2BE2",  # Violet
         ]
