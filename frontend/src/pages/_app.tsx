@@ -1,0 +1,18 @@
+import React from 'react';
+import { Provider } from 'react-redux';
+import { NextUIProvider } from '@nextui-org/react';
+import { AppProps } from 'next/app';
+import store from '../store/store';
+import '../styles/globals.css';
+
+const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
+  return (
+    <Provider store={store}>
+      <NextUIProvider>
+        <Component {...pageProps} />
+      </NextUIProvider>
+    </Provider>
+  );
+}
+
+export default MyApp;
