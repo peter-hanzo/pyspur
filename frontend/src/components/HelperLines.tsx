@@ -1,7 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '@xyflow/react';
 
-const canvasStyle = {
+// Define the type for the store state
+interface StoreState {
+  width: number;
+  height: number;
+  transform: [number, number, number]; // Assuming transform is a tuple of three numbers
+}
+
+// Define the props for the component
+interface HelperLinesRendererProps {
+  horizontal?: number; // Optional number
+  vertical?: number;   // Optional number
+}
+
+const canvasStyle: React.CSSProperties = {
   width: '100%',
   height: '100%',
   position: 'absolute',
@@ -9,17 +22,17 @@ const canvasStyle = {
   pointerEvents: 'none',
 };
 
-const storeSelector = (state) => ({
+const storeSelector = (state: StoreState) => ({
   width: state.width,
   height: state.height,
   transform: state.transform,
 });
 
-// a simple component to display the helper lines
-// it puts a canvas on top of the React Flow pane and draws the lines using the canvas API
-function HelperLinesRenderer({ horizontal, vertical }) {
+// A simple component to display the helper lines
+// It puts a canvas on top of the React Flow pane and draws the lines using the canvas API
+function HelperLinesRenderer({ horizontal, vertical }: HelperLinesRendererProps) {
   const { width, height, transform } = useStore(storeSelector);
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;

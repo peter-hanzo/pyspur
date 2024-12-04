@@ -1,7 +1,45 @@
 // this utility function can be called with a position change (inside onNodesChange)
-// it checks all other nodes and calculated the helper line positions and the position where the current node should snap to
-export function getHelperLines(change, nodes, distance = 5) {
-  const defaultResult = {
+// it checks all other nodes and calculates the helper line positions and the position where the current node should snap to
+
+// Define types for the function parameters and return values
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface Measured {
+  width?: number;
+  height?: number;
+}
+
+interface Node {
+  id: string;
+  position: Position;
+  measured?: Measured;
+}
+
+interface Change {
+  id: string;
+  position: Position;
+}
+
+interface SnapPosition {
+  x: number | undefined;
+  y: number | undefined;
+}
+
+interface HelperLinesResult {
+  horizontal: number | undefined;
+  vertical: number | undefined;
+  snapPosition: SnapPosition;
+}
+
+export function getHelperLines(
+  change: Change,
+  nodes: Node[],
+  distance: number = 5
+): HelperLinesResult {
+  const defaultResult: HelperLinesResult = {
     horizontal: undefined,
     vertical: undefined,
     snapPosition: { x: undefined, y: undefined },
@@ -27,7 +65,7 @@ export function getHelperLines(change, nodes, distance = 5) {
 
   return nodes
     .filter((node) => node.id !== nodeA.id)
-    .reduce((result, nodeB) => {
+    .reduce<HelperLinesResult>((result, nodeB) => {
       const nodeBBounds = {
         left: nodeB.position.x,
         right: nodeB.position.x + (nodeB.measured?.width ?? 0),

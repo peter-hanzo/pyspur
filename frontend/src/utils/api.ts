@@ -2,12 +2,44 @@ import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
 import JSPydanticModel from './JSPydanticModel.js'; // Import the JSPydanticModel class
 
-
 const API_BASE_URL = typeof window !== 'undefined'
   ? `http://${window.location.host}/api`
   : 'http://localhost:6080/api';
 
-export const getNodeTypes = async () => {
+// Define types for API responses and request payloads
+export interface NodeTypesResponse {
+  schema: Record<string, any>;
+  metadata: Record<string, any>;
+}
+
+export interface WorkflowData {
+  [key: string]: any;
+}
+
+export interface RunStatusResponse {
+  status: string;
+  [key: string]: any;
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  [key: string]: any;
+}
+
+export interface ApiKey {
+  name: string;
+  value: string;
+}
+
+export interface Dataset {
+  id: string;
+  name: string;
+  description: string;
+  [key: string]: any;
+}
+
+export const getNodeTypes = async (): Promise<NodeTypesResponse> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/node/supported_types/`);
     console.log('Raw Node Types Response:', response.data);
@@ -23,7 +55,7 @@ export const getNodeTypes = async () => {
     // Return both schema and metadata
     return {
       schema,
-      metadata
+      metadata,
     };
   } catch (error) {
     console.error('Error getting node types:', error);
@@ -31,15 +63,12 @@ export const getNodeTypes = async () => {
   }
 };
 
-
-export const runWorkflow = async (workflowData) => {
+export const runWorkflow = async (workflowData: WorkflowData): Promise<any> => {
   try {
-    // save the work flow Data to a file
-    // Create a blob from the workflowData
+    // Save the workflow data to a file
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
-    // Create a link element and trigger a download
     const a = document.createElement('a');
     a.href = url;
     a.download = 'workflowData.json';
@@ -49,7 +78,7 @@ export const runWorkflow = async (workflowData) => {
     URL.revokeObjectURL(url);
     console.log('New Data:', testInput);
 
-    const response = await axios.post(`${API_BASE_URL}/run_workflow/`, workflowData); // Use the test input instead of the actual data
+    const response = await axios.post(`${API_BASE_URL}/run_workflow/`, workflowData);
     return response.data;
   } catch (error) {
     console.error('Error running workflow:', error);
@@ -57,7 +86,7 @@ export const runWorkflow = async (workflowData) => {
   }
 };
 
-export const getRunStatus = async (runID) => {
+export const getRunStatus = async (runID: string): Promise<RunStatusResponse> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/run/${runID}/status/`);
     return response.data;
@@ -67,7 +96,7 @@ export const getRunStatus = async (runID) => {
   }
 };
 
-export const getWorkflows = async () => {
+export const getWorkflows = async (): Promise<Workflow[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/`);
     return response.data;
@@ -75,9 +104,9 @@ export const getWorkflows = async () => {
     console.error('Error getting workflows:', error);
     throw error;
   }
-}
+};
 
-export const createWorkflow = async (workflowData) => {
+export const createWorkflow = async (workflowData: WorkflowData): Promise<Workflow> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/`, workflowData);
     return response.data;
@@ -85,9 +114,9 @@ export const createWorkflow = async (workflowData) => {
     console.error('Error creating workflow:', error);
     throw error;
   }
-}
+};
 
-export const updateWorkflow = async (workflowId, workflowData) => {
+export const updateWorkflow = async (workflowId: string, workflowData: WorkflowData): Promise<Workflow> => {
   try {
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/`, workflowData);
     return response.data;
@@ -95,9 +124,9 @@ export const updateWorkflow = async (workflowId, workflowData) => {
     console.error('Error updating workflow:', error);
     throw error;
   }
-}
+};
 
-export const resetWorkflow = async (workflowId) => {
+export const resetWorkflow = async (workflowId: string): Promise<any> => {
   try {
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/reset/`);
     return response.data;
@@ -105,14 +134,19 @@ export const resetWorkflow = async (workflowId) => {
     console.error('Error resetting workflow:', error);
     throw error;
   }
-}
+};
 
-export const startRun = async (workflowID, initialInputs = {}, parentRunId = null, runType = 'interactive') => {
+export const startRun = async (
+  workflowID: string,
+  initialInputs: Record<string, any> = {},
+  parentRunId: string | null = null,
+  runType: string = 'interactive'
+): Promise<any> => {
   console.log('workflowID', workflowID, 'runType', runType, 'initialInputs', initialInputs, 'parentRunId', parentRunId);
   try {
     const requestBody = {
       initial_inputs: initialInputs,
-      parent_run_id: parentRunId
+      parent_run_id: parentRunId,
     };
     const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_run/?run_type=${runType}`, requestBody);
     return response.data;
@@ -120,13 +154,17 @@ export const startRun = async (workflowID, initialInputs = {}, parentRunId = nul
     console.error('Error starting run:', error);
     throw error;
   }
-}
+};
 
-export const startBatchRun = async (workflowID, datasetID, miniBatchSize = 10) => {
+export const startBatchRun = async (
+  workflowID: string,
+  datasetID: string,
+  miniBatchSize: number = 10
+): Promise<any> => {
   try {
     const requestBody = {
       dataset_id: datasetID,
-      mini_batch_size: miniBatchSize
+      mini_batch_size: miniBatchSize,
     };
     const response = await axios.post(`${API_BASE_URL}/wf/${workflowID}/start_batch_run/`, requestBody);
     return response.data;
@@ -134,10 +172,9 @@ export const startBatchRun = async (workflowID, datasetID, miniBatchSize = 10) =
     console.error('Error starting batch run:', error);
     throw error;
   }
-}
+};
 
-
-export const getWorkflow = async (workflowID) => {
+export const getWorkflow = async (workflowID: string): Promise<Workflow> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/`);
     return response.data;
@@ -145,30 +182,13 @@ export const getWorkflow = async (workflowID) => {
     console.error('Error getting workflow:', error);
     throw error;
   }
-}
+};
 
-export const getAllRuns = async (lastK = 10, parentOnly = true, runType = "batch") => {
+export const downloadOutputFile = async (outputFileID: string): Promise<void> => {
   try {
-    const params = {
-      last_k: lastK,
-      parent_only: parentOnly,
-      run_type: runType
-    };
-    const response = await axios.get(`${API_BASE_URL}/run/`, { params });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching runs:', error);
-    throw error;
-  }
-}
-
-export const downloadOutputFile = async (outputFileID) => {
-  try {
-    // First, get the output file details to find the original filename
     const fileInfoResponse = await axios.get(`${API_BASE_URL}/of/${outputFileID}/`);
     const fileName = fileInfoResponse.data.file_name;
 
-    // Then, download the file
     const response = await axios.get(`${API_BASE_URL}/of/${outputFileID}/download/`, {
       responseType: 'blob',
     });
@@ -176,8 +196,6 @@ export const downloadOutputFile = async (outputFileID) => {
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
-
-    // Use the filename obtained from the output file details
     link.setAttribute('download', fileName);
 
     document.body.appendChild(link);
@@ -188,10 +206,28 @@ export const downloadOutputFile = async (outputFileID) => {
     console.error('Error downloading output file:', error);
     throw error;
   }
-}
+};
 
+export const getAllRuns = async (
+  lastK: number = 10,
+  parentOnly: boolean = true,
+  runType: string = "batch"
+): Promise<any> => {
+  try {
+    const params = {
+      last_k: lastK,
+      parent_only: parentOnly,
+      run_type: runType,
+    };
+    const response = await axios.get(`${API_BASE_URL}/run/`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching runs:', error);
+    throw error;
+  }
+};
 
-export const listApiKeys = async () => {
+export const listApiKeys = async (): Promise<ApiKey[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/env-mgmt/`);
     return response.data.keys;
@@ -199,9 +235,9 @@ export const listApiKeys = async () => {
     console.error('Error listing API keys:', error);
     throw error;
   }
-}
+};
 
-export const getApiKey = async (name) => {
+export const getApiKey = async (name: string): Promise<ApiKey> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/env-mgmt/${name}`);
     return response.data;
@@ -209,9 +245,9 @@ export const getApiKey = async (name) => {
     console.error(`Error getting API key for ${name}:`, error);
     throw error;
   }
-}
+};
 
-export const setApiKey = async (name, value) => {
+export const setApiKey = async (name: string, value: string): Promise<any> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/env-mgmt/`, { name, value });
     return response.data;
@@ -219,9 +255,9 @@ export const setApiKey = async (name, value) => {
     console.error(`Error setting API key for ${name}:`, error);
     throw error;
   }
-}
+};
 
-export const deleteApiKey = async (name) => {
+export const deleteApiKey = async (name: string): Promise<any> => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/env-mgmt/${name}`);
     return response.data;
@@ -229,27 +265,34 @@ export const deleteApiKey = async (name) => {
     console.error(`Error deleting API key for ${name}:`, error);
     throw error;
   }
-}
+};
 
-
-export const uploadDataset = async (name, description, file) => {
+export const uploadDataset = async (
+  name: string,
+  description: string,
+  file: File
+): Promise<Dataset> => {
   try {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axios.post(`${API_BASE_URL}/ds/?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/ds/?name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error('Error uploading dataset:', error);
     throw error;
   }
-}
+};
 
-export const listDatasets = async () => {
+export const listDatasets = async (): Promise<Dataset[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/ds/`);
     return response.data;
@@ -257,9 +300,9 @@ export const listDatasets = async () => {
     console.error('Error listing datasets:', error);
     throw error;
   }
-}
+};
 
-export const getDataset = async (datasetId) => {
+export const getDataset = async (datasetId: string): Promise<Dataset> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/ds/${datasetId}/`);
     return response.data;
@@ -267,9 +310,9 @@ export const getDataset = async (datasetId) => {
     console.error(`Error getting dataset with ID ${datasetId}:`, error);
     throw error;
   }
-}
+};
 
-export const deleteDataset = async (datasetId) => {
+export const deleteDataset = async (datasetId: string): Promise<any> => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/ds/${datasetId}/`);
     return response.data;
@@ -277,9 +320,9 @@ export const deleteDataset = async (datasetId) => {
     console.error(`Error deleting dataset with ID ${datasetId}:`, error);
     throw error;
   }
-}
+};
 
-export const listDatasetRuns = async (datasetId) => {
+export const listDatasetRuns = async (datasetId: string): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/ds/${datasetId}/list_runs/`);
     return response.data;
@@ -287,9 +330,9 @@ export const listDatasetRuns = async (datasetId) => {
     console.error(`Error listing runs for dataset with ID ${datasetId}:`, error);
     throw error;
   }
-}
+};
 
-export const deleteWorkflow = async (workflowId) => {
+export const deleteWorkflow = async (workflowId: string): Promise<number> => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/wf/${workflowId}/`);
     return response.status; // Should return 204 No Content
@@ -299,7 +342,7 @@ export const deleteWorkflow = async (workflowId) => {
   }
 };
 
-export const getTemplates = async () => {
+export const getTemplates = async (): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/templates/`);
     console.log('Templates:', response.data);
@@ -310,7 +353,7 @@ export const getTemplates = async () => {
   }
 };
 
-export const instantiateTemplate = async (template) => {
+export const instantiateTemplate = async (template: any): Promise<any> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/templates/instantiate/`, template);
     return response.data;
@@ -320,7 +363,7 @@ export const instantiateTemplate = async (template) => {
   }
 };
 
-export const duplicateWorkflow = async (workflowId) => {
+export const duplicateWorkflow = async (workflowId: string): Promise<Workflow> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/duplicate/`);
     return response.data;
@@ -330,13 +373,19 @@ export const duplicateWorkflow = async (workflowId) => {
   }
 };
 
-export const runPartialWorkflow = async (workflowId, nodeId, initialInputs, partialOutputs, rerunPredecessors) => {
+export const runPartialWorkflow = async (
+  workflowId: string,
+  nodeId: string,
+  initialInputs: Record<string, any>,
+  partialOutputs: Record<string, any>,
+  rerunPredecessors: boolean
+): Promise<any> => {
   try {
     const requestBody = {
       node_id: nodeId,
       initial_inputs: initialInputs,
       partial_outputs: partialOutputs,
-      rerun_predecessors: rerunPredecessors
+      rerun_predecessors: rerunPredecessors,
     };
     const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/run_partial/`, requestBody);
     return response.data;
@@ -346,17 +395,22 @@ export const runPartialWorkflow = async (workflowId, nodeId, initialInputs, part
   }
 };
 
-export const getEvals = async () => {
+export const getEvals = async (): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/evals/`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching evals:", error);
+    console.error('Error fetching evals:', error);
     throw error;
   }
 };
 
-export const startEvalRun = async (workflowId, evalName, numSamples = 10, outputVariable) => {
+export const startEvalRun = async (
+  workflowId: string,
+  evalName: string,
+  numSamples: number = 10,
+  outputVariable: string
+): Promise<any> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/evals/launch/`, {
       eval_name: evalName,
@@ -366,32 +420,32 @@ export const startEvalRun = async (workflowId, evalName, numSamples = 10, output
     });
     return response.data;
   } catch (error) {
-    console.error("Error starting eval run:", error);
+    console.error('Error starting eval run:', error);
     throw error;
   }
 };
 
-export const getEvalRunStatus = async (evalRunId) => {
+export const getEvalRunStatus = async (evalRunId: string): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/evals/runs/${evalRunId}`);
     return response.data;
   } catch (error) {
-    console.error("Error fetching eval run status:", error);
+    console.error('Error fetching eval run status:', error);
     throw error;
   }
 };
 
-export const listEvalRuns = async () => {
+export const listEvalRuns = async (): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/evals/runs/`);
     return response.data;
   } catch (error) {
-    console.error("Error listing eval runs:", error);
+    console.error('Error listing eval runs:', error);
     throw error;
   }
 };
 
-export const getWorkflowOutputVariables = async (workflowId) => {
+export const getWorkflowOutputVariables = async (workflowId: string): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowId}/output_variables/`);
     return response.data;
@@ -400,3 +454,5 @@ export const getWorkflowOutputVariables = async (workflowId) => {
     throw error;
   }
 };
+
+// Continue adding types for other functions similarly...
