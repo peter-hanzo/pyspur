@@ -26,7 +26,6 @@ import { useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice'; 
 import InputNode from '../nodes/InputNode';
 import LoadingSpinner from '../LoadingSpinner'; 
-import ConditionalNode from '../nodes/ConditionalNode';
 import dagre from '@dagrejs/dagre';
 import OutputDisplayNode from '../nodes/OutputDisplayNode';
 
