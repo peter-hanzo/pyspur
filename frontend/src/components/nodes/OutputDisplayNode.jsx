@@ -107,14 +107,22 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
     const inputLabels = Object.keys(inputSchema);
     const outputLabels = Object.keys(outputSchema);
 
+    const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0);
+    const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0);
+    const titleLength = ((nodeData?.title || '').length + 10) * 1.25;
+
     const maxLabelLength = Math.max(
-      ...inputLabels.map((label) => label.length),
-      ...outputLabels.map((label) => label.length),
-      (nodeData?.title || '').length / 1.5
+      (maxInputLabelLength + maxOutputLabelLength + 5),
+      titleLength 
     );
 
-    const calculatedWidth = maxLabelLength * 25;
-    const finalWidth = Math.min(calculatedWidth, 600);
+    const minNodeWidth = 300;
+    const maxNodeWidth = 600;
+
+    const finalWidth = Math.min(
+      Math.max(maxLabelLength * 10, minNodeWidth),
+      maxNodeWidth
+    );
 
     setNodeWidth(`${finalWidth}px`);
   }, [nodeData]);

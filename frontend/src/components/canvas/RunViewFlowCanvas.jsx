@@ -28,7 +28,7 @@ import InputNode from '../nodes/InputNode';
 import LoadingSpinner from '../LoadingSpinner'; 
 import ConditionalNode from '../nodes/ConditionalNode';
 import dagre from '@dagrejs/dagre';
-import OutputDisplayNode from '../nodes/OutputDispalyNode';
+import OutputDisplayNode from '../nodes/OutputDisplayNode';
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
