@@ -8,25 +8,16 @@ interface NodeMetadata {
   [key: string]: any;  // Allow for additional dynamic properties
 }
 
-interface MetadataCategories {
-  primitives: NodeMetadata[];
-  json: NodeMetadata[];
-  llm: NodeMetadata[];
-  python: NodeMetadata[];
-  subworkflow: NodeMetadata[];
-  [key: string]: NodeMetadata[];  // Allow for additional categories
-}
-
 interface NodeTypesState {
   data: any | null;  // Schema type could be more specific based on your needs
-  metadata: MetadataCategories | null;
+  metadata: Record<string, NodeMetadata[]> | null;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
 
 interface NodeTypesResponse {
   schema: any;  // Schema type could be more specific based on your needs
-  metadata: MetadataCategories;
+  metadata: Record<string, NodeMetadata[]>;
 }
 
 export interface NodeType {
@@ -45,6 +36,7 @@ export const fetchNodeTypes = createAsyncThunk<NodeTypesResponse>(
   'nodeTypes/fetchNodeTypes',
   async () => {
     const response = await getNodeTypes();
+    console.log("here is the response", response);
     return response;
   }
 );
@@ -72,14 +64,14 @@ const nodeTypesSlice = createSlice({
 
 // Helper function to find metadata in the nested structure
 const findMetadataInCategory = (
-  metadata: MetadataCategories | null,
+  metadata: Record<string, NodeMetadata[]> | null,
   nodeType: string,
   path: string
 ): any | null => {
   if (!metadata) return null;
 
   // Find which category the node belongs to
-  const categories: (keyof MetadataCategories)[] = ['primitives', 'json', 'llm', 'python'];
+  const categories: (keyof Record<string, NodeMetadata[]>)[] = ['primitives', 'json', 'llm', 'python'];
   for (const category of categories) {
     const nodes = metadata[category];
     if (!nodes) continue;

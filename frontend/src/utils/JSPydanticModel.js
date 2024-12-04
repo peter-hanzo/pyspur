@@ -17,7 +17,7 @@ class JSPydanticModel {
 
   createObjectFromSchema() {
     // Handle node types schema (primitives/llm/python)
-    if (this._schema.primitives || this._schema.json || this._schema.llm || this._schema.python || this._schema.subworkflow) {
+    if (this._schema.primitives || this._schema.json || this._schema.llm || this._schema.python || this._schema.subworkflow || this._schema.logic) {
       return this.processNodeTypesSchema(this._schema);
     }
 
@@ -54,7 +54,7 @@ class JSPydanticModel {
   processNodeTypesSchema(schema) {
     const result = {};
 
-    ['primitives', 'json', 'llm', 'python', 'subworkflow'].forEach(category => {
+    ['primitives', 'json', 'llm', 'python', 'subworkflow', 'logic'].forEach(category => {
       if (schema[category]) {
         result[category] = schema[category].map(node => {
           // Copy all fields from the original node
@@ -95,7 +95,8 @@ class JSPydanticModel {
       json: [],
       llm: [],
       python: [],
-      subworkflow: []
+      subworkflow: [],
+      logic: []
     };
     this._extractMetadata(this._schema);
   }
@@ -145,7 +146,7 @@ class JSPydanticModel {
     }
 
     // Handle root-level arrays (primitives, llm, python)
-    ['primitives', 'json', 'llm', 'python', 'subworkflow'].forEach(category => {
+    ['primitives', 'json', 'llm', 'python', 'subworkflow', 'logic'].forEach(category => {
       if (Array.isArray(schema[category])) {
         if (!this._metadata[category]) {
           this._metadata[category] = [];

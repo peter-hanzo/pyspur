@@ -26,6 +26,7 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
+import { ConditionalNode } from '../nodes/ConditionalNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
@@ -79,6 +80,8 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
+        } else if (node.name === 'conditional_node') {
+          acc['conditional_node'] = ConditionalNode;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} />;
