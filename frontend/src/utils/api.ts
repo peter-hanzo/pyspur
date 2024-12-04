@@ -1,6 +1,6 @@
 import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
-import JSPydanticModel from './JSPydanticModel.js'; // Import the JSPydanticModel class
+import JSPydanticModel from './JSPydanticModel'; // Import the JSPydanticModel class
 
 const API_BASE_URL = typeof window !== 'undefined'
   ? `http://${window.location.host}/api`
@@ -12,19 +12,59 @@ export interface NodeTypesResponse {
   metadata: Record<string, any>;
 }
 
-export interface WorkflowData {
-  [key: string]: any;
+export interface WorkflowNodeCoordinates {
+  x: number;
+  y: number;
 }
 
-export interface RunStatusResponse {
-  status: string;
-  [key: string]: any;
+export interface WorkflowNode {
+  id: string;
+  title?: string;
+  node_type: string;
+  config: Record<string, any>;
+  coordinates?: WorkflowNodeCoordinates;
+}
+
+export interface WorkflowLink {
+  source_id: string;
+  source_output_key: string;
+  target_id: string;
+  target_input_key: string;
+}
+
+export interface WorkflowDefinition {
+  nodes: WorkflowNode[];
+  links: WorkflowLink[];
+  test_inputs: Record<string, any>[];
 }
 
 export interface Workflow {
   id: string;
   name: string;
-  [key: string]: any;
+  description?: string;
+  definition: WorkflowDefinition;
+  created_at: string; // ISO datetime string
+  updated_at: string; // ISO datetime string
+}
+
+export interface WorkflowVersion {
+  version: number;
+  name: string;
+  description?: string;
+  definition: any;
+  definition_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RunStatusResponse {
+  id: string;
+  status: string;
+  start_time?: string;
+  end_time?: string;
+  tasks: Record<string, any>[];
+  outputs?: Record<string, any>;
+  output_file_id?: string;
 }
 
 export interface ApiKey {
@@ -63,7 +103,7 @@ export const getNodeTypes = async (): Promise<NodeTypesResponse> => {
   }
 };
 
-export const runWorkflow = async (workflowData: WorkflowData): Promise<any> => {
+export const runWorkflow = async (workflowData: WorkflowDefinition): Promise<any> => {
   try {
     // Save the workflow data to a file
     const blob = new Blob([JSON.stringify(workflowData, null, 2)], { type: 'application/json' });
@@ -106,7 +146,7 @@ export const getWorkflows = async (): Promise<Workflow[]> => {
   }
 };
 
-export const createWorkflow = async (workflowData: WorkflowData): Promise<Workflow> => {
+export const createWorkflow = async (workflowData: WorkflowDefinition): Promise<Workflow> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/`, workflowData);
     return response.data;
@@ -116,7 +156,7 @@ export const createWorkflow = async (workflowData: WorkflowData): Promise<Workfl
   }
 };
 
-export const updateWorkflow = async (workflowId: string, workflowData: WorkflowData): Promise<Workflow> => {
+export const updateWorkflow = async (workflowId: string, workflowData: WorkflowDefinition): Promise<Workflow> => {
   try {
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/`, workflowData);
     return response.data;
@@ -408,16 +448,17 @@ export const getEvals = async (): Promise<any> => {
 export const startEvalRun = async (
   workflowId: string,
   evalName: string,
-  numSamples: number = 10,
-  outputVariable: string
-): Promise<any> => {
+  outputVariable: string,
+  numSamples: number = 10
+): Promise<EvalRunResponse> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/evals/launch/`, {
-      eval_name: evalName,
+    const request: EvalRunRequest = {
       workflow_id: workflowId,
+      eval_name: evalName,
       output_variable: outputVariable,
       num_samples: numSamples,
-    });
+    };
+    const response = await axios.post(`${API_BASE_URL}/evals/launch/`, request);
     return response.data;
   } catch (error) {
     console.error('Error starting eval run:', error);
@@ -425,7 +466,7 @@ export const startEvalRun = async (
   }
 };
 
-export const getEvalRunStatus = async (evalRunId: string): Promise<any> => {
+export const getEvalRunStatus = async (evalRunId: string): Promise<EvalRunResponse> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/evals/runs/${evalRunId}`);
     return response.data;
@@ -456,3 +497,27 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
 };
 
 // Continue adding types for other functions similarly...
+
+export enum EvalRunStatus {
+  PENDING = "PENDING",
+  RUNNING = "RUNNING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED"
+}
+
+export interface EvalRunRequest {
+  workflow_id: string;
+  eval_name: string;
+  output_variable: string;
+  num_samples?: number;
+}
+
+export interface EvalRunResponse {
+  run_id: string;
+  eval_name: string;
+  workflow_id: string;
+  status: EvalRunStatus;
+  start_time?: string;
+  end_time?: string;
+  results?: Record<string, any>;
+}
