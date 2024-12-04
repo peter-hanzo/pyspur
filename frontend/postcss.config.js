@@ -1,11 +1,7 @@
-import { Config } from 'postcss-load-config'
-
-const config: Config = {
+module.exports = {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
     // ... other plugins if any ...
   },
 }
-
-export default config

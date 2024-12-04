@@ -1,8 +1,70 @@
 import cloneDeep from 'lodash/cloneDeep';
 
+// Define types for the node structure
+interface NodeType {
+  name: string;
+  visual_tag: {
+    acronym: string;
+    color: string;
+  };
+  config: Record<string, any>;
+  input?: {
+    properties: Record<string, any>;
+  };
+  output?: {
+    properties: Record<string, any>;
+  };
+}
+
+interface NodeTypes {
+  [category: string]: NodeType[];
+}
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface AdditionalData {
+  input?: {
+    properties?: Record<string, any>;
+  };
+  output?: {
+    properties?: Record<string, any>;
+  };
+  [key: string]: any;
+}
+
+interface Node {
+  id: string;
+  type: string;
+  position: Position;
+  data: {
+    title: string;
+    acronym: string;
+    color: string;
+    config: Record<string, any>;
+    input: {
+      properties: Record<string, any>;
+      [key: string]: any;
+    };
+    output: {
+      properties: Record<string, any>;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+}
+
 // Function to create a node based on its type
-export const createNode = (nodeTypes, type, id, position, additionalData = {}) => {
-  let nodeType = null;
+export const createNode = (
+  nodeTypes: NodeTypes,
+  type: string,
+  id: string,
+  position: Position,
+  additionalData: AdditionalData = {}
+): Node | null => {
+  let nodeType: NodeType | null = null;
 
   for (const category in nodeTypes) {
     const found = nodeTypes[category].find((node) => node.name === type);
@@ -41,7 +103,7 @@ export const createNode = (nodeTypes, type, id, position, additionalData = {}) =
     };
   }
 
-  const node = {
+  const node: Node = {
     id,
     type: nodeType.name,
     position,

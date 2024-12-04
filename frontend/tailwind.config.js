@@ -1,13 +1,11 @@
-import type { Config } from 'tailwindcss';
-import { nextui } from '@nextui-org/theme';
-
-const config: Config = {
+const { nextui } = require('@nextui-org/theme');
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   darkMode: ["class"],
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "// Or if using src directory:\\\\n    ./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./node_modules/@nextui-org/theme/dist/components/(button|navbar|table|ripple|spinner|checkbox|spacer).js",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
@@ -64,10 +62,6 @@ const config: Config = {
     }
   },
   plugins: [
-    require("@nextui-org/react"),
-    require('tailwindcss-animate'),
-    nextui()
-  ],
-};
-
-export default config;
+    require("@nextui-org/react"), // Add this line
+    require('tailwindcss-animate'), nextui()],
+}

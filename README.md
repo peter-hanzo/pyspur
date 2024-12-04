@@ -40,6 +40,7 @@ https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 - [X] Canvas
 - [X] ITC Nodes
 - [X] Async/Batch Execution
+- [X] Evals
 - [ ] Templates
 - [ ] Compile Spurs to Code
 - [ ] ITC Node Monitoring
@@ -47,7 +48,6 @@ https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
     - [ ] Tools
     - [ ] Loops
     - [ ] Conditionals
-- [ ] Evals
 - [ ] Multimodal
 - [ ] Spur API
 - [ ] Containerization of Code Verifiers

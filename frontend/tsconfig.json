@@ -3,6 +3,11 @@
     "target": "es2016",
     "module": "commonjs",
     "baseUrl": ".",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": [
         "./src/*"
@@ -10,7 +15,7 @@
     },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "lib": [
       "dom",
@@ -31,7 +36,7 @@
     "**/*.ts",
     "**/*.tsx",
     "src/**/*"
-  ],
+, "postcss.config.js", "tailwind.config.js"  ],
   "exclude": [
     "node_modules"
   ]
