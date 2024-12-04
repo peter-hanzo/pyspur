@@ -20,10 +20,11 @@
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
-    "jsx": "react",
+    "jsx": "preserve",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "incremental": true
   },
   "include": [
     "next-env.d.ts",

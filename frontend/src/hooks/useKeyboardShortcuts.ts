@@ -1,13 +1,38 @@
 import { useEffect, useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { addNode } from '../store/flowSlice';
-import { createNode } from '../utils/nodeFactory'; // Import createNode
+import { createNode } from '../utils/nodeFactory';
+import { Node } from 'reactflow'; // Import Node type from reactflow
+import { AppDispatch } from '../store/store'; // Import AppDispatch type
 
-export const useKeyboardShortcuts = (selectedNodeID, nodes, dispatch) => {
-  const [copiedNode, setCopiedNode] = useState(null); // State to store the copied node
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface CustomNode extends Node {
+  type: string;
+  position: Position;
+  data: {
+    title?: string;
+    acronym?: string;
+    color?: string;
+    config?: any; // You might want to define a more specific type
+    input?: any;  // You might want to define a more specific type
+    output?: any; // You might want to define a more specific type
+    [key: string]: any;
+  };
+}
+
+export const useKeyboardShortcuts = (
+  selectedNodeID: string | null,
+  nodes: CustomNode[],
+  dispatch: AppDispatch
+) => {
+  const [copiedNode, setCopiedNode] = useState<CustomNode | null>(null);
 
   const handleKeyDown = useCallback(
-    (event) => {
+    (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey) {
         switch (event.key) {
           case 'c': // CMD + C or CTRL + C
@@ -21,15 +46,15 @@ export const useKeyboardShortcuts = (selectedNodeID, nodes, dispatch) => {
           case 'v': // CMD + V or CTRL + V
             if (copiedNode) {
               const newNode = createNode(
-                copiedNode.type, // Use the type from the copied node
-                uuidv4(),        // Generate a new unique ID for the pasted node
+                copiedNode.type,
+                uuidv4(),
                 {
-                  x: copiedNode.position.x + 50, // Offset the position slightly
+                  x: copiedNode.position.x + 50,
                   y: copiedNode.position.y + 50,
                 },
-                copiedNode.data  // Pass the copied node's data as additionalData
+                copiedNode.data
               );
-              dispatch(addNode({ node: newNode })); // Dispatch action to add the new node
+              dispatch(addNode({ node: newNode }));
             }
             break;
           default:
@@ -41,10 +66,7 @@ export const useKeyboardShortcuts = (selectedNodeID, nodes, dispatch) => {
   );
 
   useEffect(() => {
-    // Add event listener for keydown
     window.addEventListener('keydown', handleKeyDown);
-
-    // Cleanup event listener on unmount
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };

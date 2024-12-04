@@ -28,7 +28,6 @@ import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
-import ConditionalNode from '../nodes/ConditionalNode';
 import dagre from '@dagrejs/dagre';
 
 // Type definitions
@@ -80,8 +79,6 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
-        } else if (node.name === 'ConditionalNode') {
-          acc[node.name] = ConditionalNode;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} />;

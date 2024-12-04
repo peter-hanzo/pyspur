@@ -3,13 +3,28 @@ import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import flowReducer from './flowSlice';
 import nodeTypesReducer from './nodeTypesSlice';
-import { PersistConfig } from 'redux-persist';
+import type { Node, Edge } from '@xyflow/react';
 
 // Define the RootState type
-export type RootState = ReturnType<typeof rootReducer>;
+export interface RootState {
+  flow: {
+    nodes: Node[];
+    edges: Edge[];
+    workflowID: string | null;
+    workflowInputVariables: Record<string, any>;
+    projectName: string;
+    testInputs: Record<string, any>;
+    selectedNode: string | null;
+    nodeTypes: string[];
+    sidebarWidth: number;
+  };
+  nodeTypes: {
+    data: Record<string, any>;
+  };
+}
 
-// Define the persist config type
-const persistConfig: PersistConfig<RootState> = {
+// Define the persist config
+const persistConfig = {
   key: 'root',
   storage,
   whitelist: ['nodes', 'edges', 'nodeTypes'],
