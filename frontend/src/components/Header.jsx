@@ -30,6 +30,7 @@ import { Toaster, toast } from 'sonner'
 import { getWorkflowRuns } from '../utils/api';
 import { useRouter } from 'next/router';
 import DeployModal from './modals/DeployModal';
+import { formatDistanceStrict } from 'date-fns';
 
 const Header = ({ activePage }) => {
   const dispatch = useDispatch();
@@ -301,7 +302,13 @@ const Header = ({ activePage }) => {
                       onClick={() => window.open(`/trace/${run.id}`, '_blank')}
                       textValue={`Version ${index + 1}`}
                     >
-                      Run {workflowRuns.length - index}
+                      {`${run.id} | ${run.status.toLowerCase()} ${
+                        (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
+                          ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                          : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
+                          ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                          : ''
+                      }`}
                     </DropdownItem>
                   ))}
                 </DropdownMenu>
