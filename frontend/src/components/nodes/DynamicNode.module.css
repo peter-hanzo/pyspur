@@ -1,51 +1,83 @@
+/* Node Wrapper */
 .nodeWrapper {
   position: relative;
   width: 100%;
   min-height: 20px;
 }
 
+/* Handles Wrapper */
 .handlesWrapper {
   display: flex;
   width: 100%;
 }
 
+/* Handles Columns */
 .handlesColumn {
   width: 50%;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+.inputHandlesColumn {
+  align-items: flex-start;
+}
+
+.outputHandlesColumn {
+  align-items: flex-end;
+}
+
+/* Handle Row */
+.handleRow {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 0.25rem;
+}
+
+/* Handle Cell */
 .handleCell {
-  width: 20px;
-  position: relative;
-  margin-left: 0.5rem;
-}
-
-.outputHandleCell {
-  vertical-align: middle;
-  text-align: center;
-  width: 0;
-  margin-left: 0.5rem;
-}
-
-.handleWrapper {
-
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
 }
 
+.inputHandleCell {
+  margin-right: 0.5rem;
+}
+
+.outputHandleCell {
+  margin-left: 0.5rem;
+}
+
+/* Handle Label Cell */
+.handleLabelCell {
+  display: flex;
+  align-items: center;
+}
+
+.inputHandlesColumn .handleLabelCell {
+  margin-left: 0.5rem;
+}
+
+.outputHandlesColumn .handleLabelCell {
+  margin-right: 0.5rem;
+}
+
+/* Handle Label */
 .handleLabel {
   font-size: 1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
-  display: inline-block;
-  position: relative;
+  max-width: 100%;
+  display: block;
   z-index: 1000;
 }
 
+/* Handle */
 .handle {
   width: 0.8rem !important;
   height: 0.8rem !important;
@@ -61,6 +93,16 @@
   background-color: #777;
 }
 
+/* Left and Right Handles */
+.handleLeft {
+  /* Additional styles for left handles if needed */
+}
+
+.handleRight {
+  /* Additional styles for right handles if needed */
+}
+
+/* Collapsed Handles */
 .collapsedHandleInput {
   position: absolute !important;
   top: 50% !important;
@@ -75,6 +117,12 @@
   transform: translateY(-50%) !important;
 }
 
+/* Dynamic Node Wrapper */
 .dynamicNodeWrapper {
   position: relative;
+}
+
+/* Adjustments for Conditional Node */
+.conditionalNode {
+  background-color: #e0f7fa;
 }
