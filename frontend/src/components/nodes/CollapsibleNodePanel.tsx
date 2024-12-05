@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Button, Accordion, AccordionItem, Input } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -21,6 +21,7 @@ const CollapsibleNodePanel: React.FC = () => {
   const reactFlowInstance = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
+  const [filteredNodeTypes, setFilteredNodeTypes] = useState<NodeTypesByCategory>({});
 
 
   const handleAddNode = (nodeName: string): void => {
@@ -29,8 +30,8 @@ const CollapsibleNodePanel: React.FC = () => {
     }
   };
 
-  const filteredNodeTypes = useMemo(() => {
-    return Object.keys(nodeTypes).reduce((acc, category) => {
+  useEffect(() => {
+    setFilteredNodeTypes(Object.keys(nodeTypes).reduce((acc, category) => {
       if (searchTerm.trim().length === 0) {
         return nodeTypes;
       }
@@ -48,7 +49,7 @@ const CollapsibleNodePanel: React.FC = () => {
         });
       }
       return acc;
-    }, {} as NodeTypesByCategory);
+    }, {} as NodeTypesByCategory));
   }, [nodeTypes, searchTerm]);
 
   return (
