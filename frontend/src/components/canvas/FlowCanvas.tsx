@@ -80,8 +80,8 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
-        } else if (node.name === 'conditional_node') {
-          acc['conditional_node'] = ConditionalNode;
+        } else if (node.name === 'ConditionalNode') {
+          acc[node.name] = ConditionalNode;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} />;

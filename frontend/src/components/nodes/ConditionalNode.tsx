@@ -8,12 +8,11 @@ import styles from './DynamicNode.module.css';
 
 interface ConditionalNodeData {
   condition?: string;
-  title?: string;
   color?: string;
   config?: {
     condition_schema?: Record<string, string>;
-    true_branch_schema?: Record<string, string>;
-    false_branch_schema?: Record<string, string>;
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
     title?: string;
   };
 }
@@ -32,11 +31,19 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
     dispatch(updateNodeData({
       id,
       data: {
+        ...data,
+        condition: value,
         config: {
           ...data.config,
           condition_schema: {
-            ...data.config?.condition_schema,
             condition: value
+          },
+          input_schema: {
+            input: 'any'  // The input data to be routed
+          },
+          output_schema: {
+            true: 'any',  // Output for true branch
+            false: 'any'  // Output for false branch
           }
         }
       }
@@ -49,9 +56,10 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
       isCollapsed={isCollapsed}
       setIsCollapsed={setIsCollapsed}
       data={{
-        title: data.config?.title || 'Conditional',
+        title: data.config?.title || 'Conditional Router',
         color: data.color || '#F6AD55',
-        acronym: 'IF'
+        acronym: 'IF',
+        config: data.config
       }}
       style={{ width: 240 }}
     >
@@ -63,7 +71,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
             position={Position.Left}
             id="input"
             className={`${styles.handle} ${styles.handleLeft}`}
-            style={{ background: '#718096' }}
+
           />
           <div className="align-center flex flex-grow flex-shrink ml-2">
             <Input
@@ -71,7 +79,9 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
               variant="faded"
               radius="lg"
               value={data.condition || ''}
-              placeholder="Enter condition..."
+              placeholder="x > 0"
+              label="Condition"
+              description="Use input variables in expression"
               onChange={(e) => handleConditionChange(e.target.value)}
               classNames={{
                 input: 'bg-default-100',
@@ -87,27 +97,26 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
         <div className="flex flex-col gap-4 mt-4">
           <div className={`${styles.handleRow} w-full justify-end`}>
             <div className="align-center flex flex-grow flex-shrink mr-2">
-              <span className="text-sm font-medium ml-auto">True</span>
+              <span className="text-sm font-medium ml-auto text-success">If True →</span>
             </div>
             <Handle
               type="source"
               position={Position.Right}
               id="true"
               className={`${styles.handle} ${styles.handleRight}`}
-              style={{ background: '#48BB78' }}
+
             />
           </div>
 
           <div className={`${styles.handleRow} w-full justify-end`}>
             <div className="align-center flex flex-grow flex-shrink mr-2">
-              <span className="text-sm font-medium ml-auto">False</span>
+              <span className="text-sm font-medium ml-auto text-danger">If False →</span>
             </div>
             <Handle
               type="source"
               position={Position.Right}
               id="false"
               className={`${styles.handle} ${styles.handleRight}`}
-              style={{ background: '#F56565' }}
             />
           </div>
         </div>

@@ -1,49 +1,64 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
 from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 
 
 class ConditionalNodeConfig(DynamicSchemaNodeConfig):
+    """Configuration for the conditional node."""
     condition_schema: Dict[str, str]  # Schema for the condition input
-    true_branch_schema: Dict[str, str]  # Schema for true branch
-    false_branch_schema: Dict[str, str]  # Schema for false branch
+    input_schema: Dict[str, str] = {
+        "input": "any"  # The input data to be routed
+    }
+    output_schema: Dict[str, str] = {
+        "true": "any",  # Output for true branch
+        "false": "any"  # Output for false branch
+    }
 
 
 class ConditionalNodeInput(BaseModel):
-    condition: bool
-    data: Dict[str, Any]
+    """Input model for the conditional node."""
+    input: Any  # The data to be routed
+    condition: str  # The condition expression to evaluate
 
 
 class ConditionalNodeOutput(BaseModel):
-    paths: Dict[str, Dict[str, Any]]  # Multiple paths for branching logic
+    """Output model for the conditional node."""
+    true: Optional[Any] = None  # Data routed to true branch
+    false: Optional[Any] = None  # Data routed to false branch
 
 
 class ConditionalNode(DynamicSchemaNode):
     """
-    Node for implementing if-else branching logic based on a condition.
-    Routes the input data to one or more paths based on the condition.
+    A routing node that directs input data to either the true or false branch
+    based on the evaluation of a condition.
     """
 
     name = "conditional_node"
     config_model = ConditionalNodeConfig
-    input_model = ConditionalNodeInput
-    output_model = ConditionalNodeOutput
 
-    async def run(self, input_data: ConditionalNodeInput) -> BaseModel:
+    async def run(self, input_data: ConditionalNodeInput) -> ConditionalNodeOutput:
         """
-        Routes the input data to one or more paths based on the condition.
+        Evaluates the condition and routes the input data to the appropriate branch.
         """
-        # Initialize paths
-        paths = {}
+        try:
+            # Create a context with the input data for condition evaluation
+            eval_context = {"__builtins__": {}, **input_data.dict()}
 
-        # Example logic for true/false paths
-        if input_data.condition:
-            paths["true"] = input_data.data
-        else:
-            paths["false"] = input_data.data
+            # Evaluate the condition in a safe context
+            condition_result = eval(input_data.condition, {"__builtins__": {}}, eval_context)
 
-        # Add additional paths if needed (e.g., switch/case logic)
-        # Example: paths["case_1"] = {...}, paths["case_2"] = {...}
+            if condition_result:
+                return ConditionalNodeOutput(
+                    true=input_data.input,
+                    false=None
+                )
+            else:
+                return ConditionalNodeOutput(
+                    true=None,
+                    false=input_data.input
+                )
 
-        return self.output_model(paths=paths)
+        except Exception as e:
+            # Handle evaluation errors
+            raise ValueError(f"Error evaluating condition: {str(e)}")
