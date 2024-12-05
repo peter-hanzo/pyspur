@@ -192,7 +192,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const borderColor = isRunning ? 'blue' :
     status === 'completed' ? '#4CAF50' :
       status === 'failed' ? 'red' :
-        status === 'default' ? 'black' :
+        status === 'default' ? 'gray' :
           style.borderColor || '#ccc';
 
   const cardStyle: React.CSSProperties = {

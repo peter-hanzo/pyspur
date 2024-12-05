@@ -251,11 +251,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       ...edge,
       type: 'custom',
       style: {
-        stroke: edge.id === hoveredEdge
-          ? 'black'
-          : edge.source === hoveredNode || edge.target === hoveredNode
-            ? 'black'
-            : '#555',
+        stroke: 'gray',
         strokeWidth: edge.id === hoveredEdge
           ? 4
           : edge.source === hoveredNode || edge.target === hoveredNode
