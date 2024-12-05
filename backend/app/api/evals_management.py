@@ -151,7 +151,7 @@ async def launch_eval(
             run_id=new_eval_run.id,
             eval_name=new_eval_run.eval_name,
             workflow_id=new_eval_run.workflow_id,
-            status=new_eval_run.status,
+            status=EvalRunStatusEnum(new_eval_run.status.value),
             start_time=new_eval_run.start_time,
             end_time=new_eval_run.end_time,
         )
@@ -174,7 +174,7 @@ async def get_eval_run_status(
         run_id=eval_run.id,
         eval_name=eval_run.eval_name,
         workflow_id=eval_run.workflow_id,
-        status=eval_run.status,
+        status=EvalRunStatusEnum(eval_run.status.value),
         start_time=eval_run.start_time,
         end_time=eval_run.end_time,
         results=eval_run.results,
@@ -193,7 +193,7 @@ async def list_eval_runs(db: Session = Depends(get_db)) -> List[EvalRunResponse]
             run_id=eval_run.id,
             eval_name=eval_run.eval_name,
             workflow_id=eval_run.workflow_id,
-            status=eval_run.status,
+            status=EvalRunStatusEnum(eval_run.status.value),
             start_time=eval_run.start_time,
             end_time=eval_run.end_time,
         )
