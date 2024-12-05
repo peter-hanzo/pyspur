@@ -8,6 +8,7 @@ import { AppDispatch, RootState } from '../../store/store';
 import type { NodeType } from '../../store/nodeTypesSlice';
 import { createNode } from '@/utils/nodeFactory';
 import { addNode } from '@/store/flowSlice';
+import { addNodeWithoutConnection } from '../canvas/AddNodePopoverCanvas';
 
 interface NodeTypesByCategory {
   [category: string]: NodeType[];
@@ -21,26 +22,6 @@ const CollapsibleNodePanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
 
-  const addNodeWithoutConnection = (
-    nodeTypes: Record<string, any>,
-    nodeType: string,
-    reactFlowInstance: ReactFlowInstance,
-    dispatch: AppDispatch
-  ): void => {
-    const id = `node_${Date.now()}`;
-    const center = reactFlowInstance.screenToFlowPosition({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-    });
-  
-    const position = {
-      x: center.x,
-      y: center.y,
-    };
-  
-    const newNode = createNode(nodeTypes, nodeType, id, position);
-    dispatch(addNode({ node: newNode }));
-  };
 
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
@@ -71,7 +52,6 @@ const CollapsibleNodePanel: React.FC = () => {
   }, [nodeTypes, searchTerm]);
 
   return (
-    // className="fixed top-16 bottom-4 right-4 w-96 p-4 bg-white rounded-xl border border-solid border-gray-200 overflow-auto"
     <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-gray-200 bg-white transition-width duration-300 transition-height duration-300`}>
       <Button
         isIconOnly
