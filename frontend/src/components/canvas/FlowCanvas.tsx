@@ -586,7 +586,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             <NodeSidebar nodeID={selectedNodeID} />
           </div>
         )}
-        <div className="bg-white border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
+        <div className="border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
           <CollapsibleNodePanel />
         </div>
       </div>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Icon } from '@iconify/react';
-import { Button, Accordion, AccordionItem, Divider } from '@nextui-org/react';
+import { Button, Accordion, AccordionItem, Input } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ReactFlowInstance, useReactFlow } from '@xyflow/react';
 import TipPopup from '../TipPopUp';
@@ -18,6 +18,8 @@ const CollapsibleNodePanel: React.FC = () => {
   const dispatch = useDispatch();
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data as NodeTypesByCategory);
   const reactFlowInstance = useReactFlow();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
 
   const addNodeWithoutConnection = (
     nodeTypes: Record<string, any>,
@@ -46,9 +48,31 @@ const CollapsibleNodePanel: React.FC = () => {
     }
   };
 
+  const filteredNodeTypes = useMemo(() => {
+    return Object.keys(nodeTypes).reduce((acc, category) => {
+      if (searchTerm.trim().length === 0) {
+        return nodeTypes;
+      }
+      const filteredNodes = nodeTypes[category].filter((node: NodeType) =>
+        node.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      if (filteredNodes.length > 0) {
+        acc[category] = filteredNodes;
+        setSelectedCategory((prev) => {
+          const newSet = new Set(prev);
+          if (!newSet.has(category)) {
+            newSet.add(category);
+          }
+          return newSet;
+        });
+      }
+      return acc;
+    }, {} as NodeTypesByCategory);
+  }, [nodeTypes, searchTerm]);
+
   return (
     // className="fixed top-16 bottom-4 right-4 w-96 p-4 bg-white rounded-xl border border-solid border-gray-200 overflow-auto"
-    <div className={`${!isExpanded ? 'w-24 h-24' : 'w-64 rounded-xl border border-solid border-gray-200'} transition-width duration-300 transition-height duration-300`}>
+    <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-gray-200 bg-white transition-width duration-300 transition-height duration-300`}>
       <Button
         isIconOnly
         size="md"
@@ -59,12 +83,20 @@ const CollapsibleNodePanel: React.FC = () => {
       </Button>
       {isExpanded && (
         <>
-          <Divider />
+          <Input
+            type="search"
+            placeholder="Search nodes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            fullWidth
+            className="px-2 rounded"
+            startContent={<Icon icon="akar-icons:search" className="text-default-500" />}
+          />
           <div className="mt-4 max-h-[calc(100vh-16rem)] overflow-auto" id="node-type-accordion">
-            <Accordion selectionMode="multiple">
-              {Object.keys(nodeTypes).map((category) => (
+            <Accordion selectionMode="multiple" selectedKeys={Array.from(selectedCategory)} onSelectionChange={setSelectedCategory}>
+              {Object.keys(filteredNodeTypes).map((category) => (
                 <AccordionItem key={category} title={category}>
-                  {nodeTypes[category].map((node: NodeType) => (
+                  {filteredNodeTypes[category].map((node: NodeType) => (
                     <div
                       key={node.name}
                       className="flex items-center cursor-pointer p-2 hover:bg-gray-100"
