@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import BaseNode from './BaseNode';
 import { Input, Card, Divider } from '@nextui-org/react';
@@ -25,7 +25,27 @@ interface ConditionalNodeProps {
 
 export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [nodeWidth, setNodeWidth] = useState<string>('auto');
+  const nodeRef = useRef<HTMLDivElement | null>(null);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!nodeRef.current || !data) return;
+
+    const condition = data.condition || '';
+    const titleLength = ((data.config?.title || 'Conditional Router').length + 10) * 1.25;
+    const conditionLength = (condition.length + 15) * 1.25;
+
+    const minNodeWidth = 300;
+    const maxNodeWidth = 600;
+
+    const finalWidth = Math.min(
+      Math.max(Math.max(conditionLength * 8, titleLength * 8), minNodeWidth),
+      maxNodeWidth
+    );
+
+    setNodeWidth(`${finalWidth}px`);
+  }, [data]);
 
   const handleConditionChange = (value: string) => {
     dispatch(updateNodeData({
@@ -61,9 +81,9 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
         acronym: 'IF',
         config: data.config
       }}
-      style={{ width: 240 }}
+      style={{ width: nodeWidth }}
     >
-      <div className="p-3">
+      <div className="p-3" ref={nodeRef}>
         {/* Input handle */}
         <div className={`${styles.handleRow} w-full justify-end mb-4`}>
           <Handle
@@ -71,7 +91,6 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
             position={Position.Left}
             id="input"
             className={`${styles.handle} ${styles.handleLeft}`}
-
           />
           <div className="align-center flex flex-grow flex-shrink ml-2">
             <Input
