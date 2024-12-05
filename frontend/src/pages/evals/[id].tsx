@@ -49,8 +49,6 @@ const EvalResultsPage: React.FC = () => {
 
       try {
         const evalRunData: EvalRunData = await getEvalRunStatus(id as string);
-        console.log("Eval run data received:", evalRunData);
-
         const normalizedResults: EvalResults = {
           run_id: evalRunData.run_id,
           eval_name: evalRunData.eval_name,

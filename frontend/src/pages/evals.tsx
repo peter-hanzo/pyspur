@@ -40,8 +40,8 @@ interface EvalCardRunProps {
 }
 
 const statusColorMap: Record<string, "warning" | "primary" | "success" | "danger"> = {
-  PENDING: "warning",
-  RUNNING: "primary",
+  PENDING: "primary",
+  RUNNING: "warning",
   COMPLETED: "success",
   FAILED: "danger",
 };
@@ -135,7 +135,7 @@ const EvalsPage: React.FC = () => {
 
     toast(`Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`);
     try {
-      await startEvalRun(workflowId, evalName, numSamples, outputVariable);
+      await startEvalRun(workflowId, evalName, outputVariable, numSamples);
       toast.success(`Eval run started.`);
     } catch (error) {
       console.error(`Error launching eval:`, error);
@@ -176,7 +176,14 @@ const EvalsPage: React.FC = () => {
                       size="sm"
                       variant="flat"
                     >
-                      {run.status}
+                      {run.status === "RUNNING" ? (
+                        <div className="flex items-center gap-2">
+                          <Spinner size="sm" />
+                          {run.status}
+                        </div>
+                      ) : (
+                        run.status
+                      )}
                     </Chip>
                   </TableCell>
                   <TableCell>
