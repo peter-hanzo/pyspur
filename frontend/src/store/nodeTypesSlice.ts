@@ -31,7 +31,11 @@ interface NodeTypesResponse {
 
 export interface NodeType {
   name: string;
-  // add other properties that NodeType should have
+  type: string;
+  visual_tag: {
+    color: string;
+    acronym: string;
+  };
 }
 
 const initialState: NodeTypesState = {

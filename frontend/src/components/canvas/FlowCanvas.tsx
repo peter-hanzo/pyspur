@@ -29,6 +29,7 @@ import InputNode from '../nodes/InputNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
+import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -250,11 +251,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       ...edge,
       type: 'custom',
       style: {
-        stroke: edge.id === hoveredEdge
-          ? 'black'
-          : edge.source === hoveredNode || edge.target === hoveredNode
-            ? 'black'
-            : '#555',
+        stroke: 'gray',
         strokeWidth: edge.id === hoveredEdge
           ? 4
           : edge.source === hoveredNode || edge.target === hoveredNode
@@ -585,6 +582,9 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             <NodeSidebar nodeID={selectedNodeID} />
           </div>
         )}
+        <div className="border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
+          <CollapsibleNodePanel />
+        </div>
       </div>
     </div>
   );
