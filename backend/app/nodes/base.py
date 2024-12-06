@@ -21,8 +21,10 @@ class VisualTag(BaseModel):
 class NodeConfigModel(BaseModel):
     """
     Base class for node configuration models.
-    Each node type will define its own configuration model that inherits from this.
+    Each node must define its output_schema.
     """
+
+    output_schema: Dict[str, str] = {"response": "str"}
 
     pass
 
@@ -72,6 +74,7 @@ class BaseNode(ABC):
     ) -> None:
         self._config = config
         self.context = context
+        self.output_model = self.create_output_model_class(config.output_schema)
         self.subworkflow = None
         self.subworkflow_output = None
         if not hasattr(self, "visual_tag"):
@@ -104,6 +107,18 @@ class BaseNode(ABC):
                 for node_id, output in input.items()  # type: ignore
             },
             __base__=NodeInputModel,
+        )
+
+    def create_output_model_class(
+        self, output_schema: Dict[str, str]
+    ) -> Type[NodeOutputModel]:
+        """
+        Dynamically creates an output model based on the node's output schema.
+        """
+        return create_model(
+            f"{self.name}Output",
+            **{field_name: (field_type, ...) for field_name, field_type in output_schema.items()},  # type: ignore
+            __base__=NodeOutputModel,
         )
 
     async def __call__(
