@@ -1,16 +1,10 @@
 from abc import ABC, abstractmethod
 from hashlib import md5
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Optional, Type
 
-from jinja2 import Template
-from pydantic import BaseModel, Field, ValidationError, create_model
+from pydantic import BaseModel, Field, create_model
 from ..execution.workflow_execution_context import WorkflowExecutionContext
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
-
-DynamicSchemaValueType = str
-TSchemaValue = Type[
-    Union[int, float, str, bool, List[Any], Dict[Any, Any], Tuple[Any, ...]]
-]
 
 
 class VisualTag(BaseModel):
@@ -24,30 +18,62 @@ class VisualTag(BaseModel):
     )  # Hex color code validation using regex
 
 
+class NodeConfigModel(BaseModel):
+    """
+    Base class for node configuration models.
+    Each node type will define its own configuration model that inherits from this.
+    """
+
+    pass
+
+
+class NodeOutputModel(BaseModel):
+    """
+    Base class for all node outputs.
+    Each node type will define its own output model that inherits from this.
+    """
+
+    pass
+
+
+class NodeInputModel(BaseModel):
+    """
+    Base class for node inputs.
+    Each node's input model will be dynamically created based on its predecessor nodes,
+    with fields named after node IDs and types being the corresponding NodeOutputModels.
+    """
+
+    pass
+
+
 class BaseNode(ABC):
     """
     Base class for all nodes.
+    Each node receives inputs as a Pydantic model where:
+    - Field names are predecessor node IDs
+    - Field types are the corresponding NodeOutputModels
     """
 
     name: str
-
     config_model: Type[BaseModel]
-    input_model: Type[BaseModel]
-    output_model: Type[BaseModel]
-
-    _config: Any
+    output_model: Type[NodeOutputModel]
+    input_model: Type[NodeInputModel]
+    _config: NodeConfigModel
+    _input: NodeInputModel
+    _output: NodeOutputModel
     visual_tag: VisualTag
     subworkflow: Optional[WorkflowDefinitionSchema]
     subworkflow_output: Optional[Dict[str, Any]]
 
     def __init__(
-        self, config: Any, context: Optional[WorkflowExecutionContext] = None
+        self,
+        config: NodeConfigModel,
+        context: Optional[WorkflowExecutionContext] = None,
     ) -> None:
         self._config = config
         self.context = context
         self.subworkflow = None
         self.subworkflow_output = None
-        # if visual tag is not set by the node, set a default visual tag
         if not hasattr(self, "visual_tag"):
             self.visual_tag = self.get_default_visual_tag()
         self.setup()
@@ -55,36 +81,68 @@ class BaseNode(ABC):
     @abstractmethod
     def setup(self) -> None:
         """
-        Setup method to define `config_model`, `input_model`, and `output_model`.
-        For dynamic schemas, these can be created based on `self.config`.
+        Setup method to define output_model and any other initialization.
+        For dynamic schema nodes, these can be created based on self.config.
         """
 
-    async def __call__(self, input_data: Any) -> BaseModel:
+    def create_input_model_class(
+        self, input: Dict[str, NodeOutputModel]
+    ) -> Type[NodeInputModel]:
         """
-        Validates `input_data` against `input_model`, runs the node's logic,
-        and validates the output against `output_model`.
-        """
-        try:
-            input_validated = self.input_model.model_validate(input_data.model_dump())
-        except ValidationError as e:
-            raise ValueError(f"Input data validation error in {self.name}: {e}")
-        except AttributeError:
-            input_validated = self.input_model.model_validate(input_data)
+        Dynamically creates an input model based on predecessor nodes.
 
-        result = await self.run(input_validated)
+        Args:
+            predecessor_outputs: Dictionary mapping predecessor node IDs to their output model types
+
+        Returns:
+            A new Pydantic model type with fields for each predecessor node.
+        """
+        return create_model(
+            f"{self.name}Input",
+            **{
+                node_id: (type(output), ...)
+                for node_id, output in input.items()  # type: ignore
+            },
+            __base__=NodeInputModel,
+        )
+
+    async def __call__(
+        self, inputs: Dict[str, NodeOutputModel] | NodeInputModel
+    ) -> NodeOutputModel:
+        """
+        Validates inputs and runs the node's logic.
+
+        Args:
+            inputs: Pydantic model containing predecessor outputs or a dictionary of node_id : NodeOutputModels
+
+        Returns:
+            The node's output model
+        """
+        if isinstance(inputs, dict):
+            input_model_class = self.create_input_model_class(inputs)
+            inputs = input_model_class.model_validate(inputs)
+
+        result = await self.run(inputs)
 
         try:
             output_validated = self.output_model.model_validate(result.model_dump())
-        except ValidationError as e:
-            raise ValueError(f"Output data validation error in {self.name}: {e}")
+        except AttributeError:
+            output_validated = self.output_model.model_validate(result)
+        except Exception as e:
+            raise ValueError(f"Output validation error in {self.name}: {e}")
 
         return output_validated
 
     @abstractmethod
-    async def run(self, input_data: Any) -> Any:
+    async def run(self, inputs: NodeInputModel) -> NodeOutputModel:
         """
         Abstract method where the node's core logic is implemented.
-        Should return an instance compatible with `output_model`.
+
+        Args:
+            inputs: Pydantic model containing predecessor outputs
+
+        Returns:
+            An instance compatible with output_model
         """
         pass
 
@@ -93,103 +151,21 @@ class BaseNode(ABC):
         """
         Return the node's configuration.
         """
-        if type(self._config) == dict:
-            return self.config_model.model_validate(self._config)  # type: ignore
         return self.config_model.model_validate(self._config.model_dump())
 
-    @staticmethod
-    def _get_python_type(
-        value_type: DynamicSchemaValueType,
-    ) -> Type[Union[int, float, str, bool, List[Any], Dict[Any, Any], Tuple[Any, ...]]]:
+    @property
+    def input(self) -> Any:
         """
-        Parse the value_type string into an actual Python type.
-        Supports arbitrarily nested types like 'int', 'list[int]', 'dict[str, int]', 'list[dict[str, list[int]]]', etc.
+        Return the node's input.
         """
+        return self.input_model.model_validate(self._input.model_dump())
 
-        def parse_type(
-            s: str,
-        ) -> TSchemaValue:
-            s = s.strip().lower()
-            if s == "int":
-                return int
-            elif s in ("int", "float", "str", "bool", "string", "boolean"):
-                return {
-                    "int": int,
-                    "float": float,
-                    "str": str,
-                    "bool": bool,
-                    "string": str,
-                    "boolean": bool,
-                }[s]
-            elif s == "dict":
-                return Dict[Any, Any]
-            elif s == "list":
-                return List[Any]
-            elif s.startswith("list[") and s.endswith("]"):
-                inner_type_str = s[5:-1]
-                inner_type = parse_type(inner_type_str)
-                return List[inner_type]
-            elif s.startswith("dict[") and s.endswith("]"):
-                inner_types_str = s[5:-1]
-                key_type_str, value_type_str = split_types(inner_types_str)
-                key_type = parse_type(key_type_str)
-                value_type = parse_type(value_type_str)
-                return Dict[key_type, value_type]
-            else:
-                raise ValueError(f"Unsupported type: {s}")
-
-        def split_types(s: str) -> Tuple[str, str]:
-            """
-            Splits the string s at the top-level comma, correctly handling nested brackets.
-            """
-            depth = 0
-            start = 0
-            splits: List[str] = []
-            for i, c in enumerate(s):
-                if c == "[":
-                    depth += 1
-                elif c == "]":
-                    depth -= 1
-                elif c == "," and depth == 0:
-                    splits.append(s[start:i].strip())
-                    start = i + 1
-            splits.append(s[start:].strip())
-            if len(splits) != 2:
-                raise ValueError(f"Invalid dict type specification: {s}")
-            return splits[0], splits[1]
-
-        return parse_type(value_type)
-
-    @classmethod
-    def get_model_for_schema_dict(
-        cls,
-        schema: Dict[str, DynamicSchemaValueType],
-        schema_name: str,
-        base_model: Type[BaseModel] = BaseModel,
-    ) -> Type[BaseModel]:
+    @property
+    def output(self) -> Any:
         """
-        Create a Pydantic model from a schema dictionary.
+        Return the node's output.
         """
-        schema_processed = {k: cls._get_python_type(v) for k, v in schema.items()}
-        schema_type_dict = {k: (v, ...) for k, v in schema_processed.items()}
-        return create_model(
-            schema_name,
-            **schema_type_dict,  # type: ignore
-            __base__=base_model,
-        )
-
-    @classmethod
-    def get_model_for_value_dict(
-        cls,
-        values: Dict[str, Any],
-        schema_name: str,
-        base_model: Type[BaseModel] = BaseModel,
-    ) -> Type[BaseModel]:
-        """
-        Create a Pydantic model from a dictionary of values.
-        """
-        schema = {k: type(v).__name__ for k, v in values.items()}
-        return cls.get_model_for_schema_dict(schema, schema_name, base_model)
+        return self.output_model.model_validate(self._output.model_dump())
 
     @classmethod
     def get_default_visual_tag(cls) -> VisualTag:
@@ -224,17 +200,3 @@ class BaseNode(ABC):
         color = colors[int(md5(cls.__name__.encode()).hexdigest(), 16) % len(colors)]
 
         return VisualTag(acronym=acronym, color=color)
-
-    @classmethod
-    def get_jinja2_template_for_fields(cls, fields: List[str]) -> str:
-        """
-        Create a default Jinja2 template for a list of fields in YAML format.
-        """
-        return "\n".join([f"{field}: {{{{{field}}}}}" for field in fields])
-
-    @classmethod
-    def hydrate_jinja2_template(cls, template: str, data: Dict[str, Any]) -> str:
-        """
-        Hydrate a Jinja2 template with data.
-        """
-        return Template(template).render(data)
