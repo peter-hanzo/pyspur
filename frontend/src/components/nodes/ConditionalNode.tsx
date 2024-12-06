@@ -1,16 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import BaseNode from './BaseNode';
-import { Input, Card, Divider } from '@nextui-org/react';
+import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react';
 import { useDispatch } from 'react-redux';
 import { updateNodeData } from '../../store/flowSlice';
 import styles from './DynamicNode.module.css';
+import { Icon } from "@iconify/react";
+
+interface Condition {
+  variable: string;
+  operator: string;
+  value: string;
+  logicalOperator?: 'AND' | 'OR';
+}
+
+interface Branch {
+  conditions: Condition[];
+}
 
 interface ConditionalNodeData {
-  condition?: string;
+  branches: Branch[];
   color?: string;
   config?: {
-    condition_schema?: Record<string, string>;
+    branches?: Branch[];
     input_schema?: Record<string, string>;
     output_schema?: Record<string, string>;
     title?: string;
@@ -23,51 +35,147 @@ interface ConditionalNodeProps {
   selected?: boolean;
 }
 
+const OPERATORS = [
+  { value: 'contains', label: 'Contains' },
+  { value: 'equals', label: 'Equals' },
+  { value: 'number_equals', label: 'Number Equals' },
+  { value: 'greater_than', label: 'Greater Than' },
+  { value: 'less_than', label: 'Less Than' },
+  { value: 'starts_with', label: 'Starts With' },
+  { value: 'not_starts_with', label: 'Does Not Start With' },
+  { value: 'is_empty', label: 'Is Empty' },
+  { value: 'is_not_empty', label: 'Is Not Empty' },
+];
+
+const DEFAULT_CONDITION: Condition = {
+  variable: '',
+  operator: 'contains',
+  value: ''
+};
+
+const DEFAULT_BRANCH: Branch = {
+  conditions: [{ ...DEFAULT_CONDITION }]
+};
+
 export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const dispatch = useDispatch();
 
+  // Get available input variables from the schema
+  const inputVariables = Object.entries(data.config?.input_schema || {}).map(([key, type]) => ({
+    value: key,
+    label: `${key} (${type})`,
+  }));
+
+  // Initialize branches if they don't exist or are invalid
+  useEffect(() => {
+    if (!data.branches || !Array.isArray(data.branches) || data.branches.length === 0) {
+      handleUpdateBranches([{ ...DEFAULT_BRANCH }]);
+    } else {
+      // Ensure each branch has valid conditions
+      const validBranches = data.branches.map(branch => ({
+        conditions: Array.isArray(branch.conditions) && branch.conditions.length > 0
+          ? branch.conditions.map((condition, index) => ({
+              ...condition,
+              logicalOperator: index > 0 ? (condition.logicalOperator || 'AND') : undefined
+            }))
+          : [{ ...DEFAULT_CONDITION }]
+      }));
+      if (JSON.stringify(validBranches) !== JSON.stringify(data.branches)) {
+        handleUpdateBranches(validBranches);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!nodeRef.current || !data) return;
-
-    const condition = data.condition || '';
-    const titleLength = ((data.config?.title || 'Conditional Router').length + 10) * 1.25;
-    const conditionLength = (condition.length + 15) * 1.25;
-
-    const minNodeWidth = 300;
-    const maxNodeWidth = 600;
-
-    const finalWidth = Math.min(
-      Math.max(Math.max(conditionLength * 8, titleLength * 8), minNodeWidth),
-      maxNodeWidth
-    );
-
-    setNodeWidth(`${finalWidth}px`);
+    const minNodeWidth = 400;
+    const maxNodeWidth = 800;
+    setNodeWidth(`${Math.min(Math.max(minNodeWidth, nodeRef.current.scrollWidth), maxNodeWidth)}px`);
   }, [data]);
 
-  const handleConditionChange = (value: string) => {
+  const handleUpdateBranches = (newBranches: Branch[]) => {
+    const output_schema: Record<string, string> = {};
+    newBranches.forEach((_, index) => {
+      output_schema[`branch${index + 1}`] = 'any';
+    });
+
     dispatch(updateNodeData({
       id,
       data: {
         ...data,
-        condition: value,
+        branches: newBranches,
         config: {
           ...data.config,
-          condition_schema: {
-            condition: value
-          },
-          input_schema: {
-            input: 'any'  // The input data to be routed
-          },
-          output_schema: {
-            true: 'any',  // Output for true branch
-            false: 'any'  // Output for false branch
-          }
+          branches: newBranches,
+          input_schema: data.config?.input_schema || { input: 'any' },
+          output_schema
         }
       }
     }));
+  };
+
+  const addBranch = () => {
+    const newBranches = [
+      ...(data.branches || []),
+      { ...DEFAULT_BRANCH }
+    ];
+    handleUpdateBranches(newBranches);
+  };
+
+  const removeBranch = (index: number) => {
+    const newBranches = [...(data.branches || [])];
+    newBranches.splice(index, 1);
+    handleUpdateBranches(newBranches);
+  };
+
+  const addCondition = (branchIndex: number) => {
+    const newBranches = [...(data.branches || [])].map((branch, index) => {
+      if (index === branchIndex) {
+        return {
+          ...branch,
+          conditions: [
+            ...(branch.conditions || []),
+            { ...DEFAULT_CONDITION, logicalOperator: 'AND' }
+          ]
+        };
+      }
+      return branch;
+    });
+    handleUpdateBranches(newBranches);
+  };
+
+  const removeCondition = (branchIndex: number, conditionIndex: number) => {
+    const newBranches = [...(data.branches || [])].map((branch, index) => {
+      if (index === branchIndex && branch.conditions?.length > 1) {
+        return {
+          ...branch,
+          conditions: branch.conditions.filter((_, i) => i !== conditionIndex)
+        };
+      }
+      return branch;
+    });
+    handleUpdateBranches(newBranches);
+  };
+
+  const updateCondition = (branchIndex: number, conditionIndex: number, field: keyof Condition, value: string) => {
+    const newBranches = [...(data.branches || [])].map((branch, index) => {
+      if (index === branchIndex) {
+        return {
+          ...branch,
+          conditions: (branch.conditions || []).map((condition, i) => {
+            if (i === conditionIndex) {
+              return { ...condition, [field]: value };
+            }
+            return condition;
+          })
+        };
+      }
+      return branch;
+    });
+    handleUpdateBranches(newBranches);
   };
 
   return (
@@ -85,60 +193,146 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
     >
       <div className="p-3" ref={nodeRef}>
         {/* Input handle */}
-        <div className={`${styles.handleRow} w-full justify-end mb-4`}>
+        <div className={`${styles.handleRow} w-full justify-start mb-4`}>
           <Handle
             type="target"
             position={Position.Left}
             id="input"
-            className={`${styles.handle} ${styles.handleLeft}`}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
           />
-          <div className="align-center flex flex-grow flex-shrink ml-2">
-            <Input
-              size="sm"
-              variant="faded"
-              radius="lg"
-              value={data.condition || ''}
-              placeholder="x > 0"
-              label="Condition"
-              description="Use input variables in expression"
-              onChange={(e) => handleConditionChange(e.target.value)}
-              classNames={{
-                input: 'bg-default-100',
-                inputWrapper: 'shadow-none',
-              }}
-            />
-          </div>
+          {!isCollapsed && <span className="text-sm font-medium ml-2">Input →</span>}
         </div>
 
-        <Divider className="my-2" />
+        {!isCollapsed && (
+          <>
+            <Divider className="my-2" />
 
-        {/* Output handles with labels */}
-        <div className="flex flex-col gap-4 mt-4">
-          <div className={`${styles.handleRow} w-full justify-end`}>
-            <div className="align-center flex flex-grow flex-shrink mr-2">
-              <span className="text-sm font-medium ml-auto text-success">If True →</span>
+            {/* Expressions Header */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm font-medium">Expressions</span>
+              <Divider className="flex-grow" />
             </div>
+
+            {/* Branches */}
+            <div className="flex flex-col gap-4">
+              {(data.branches || []).map((branch, branchIndex) => (
+                <Card key={branchIndex} className="p-3">
+                  <div className="flex flex-col gap-3">
+                    {/* Conditions */}
+                    {(branch.conditions || []).map((condition, conditionIndex) => (
+                      <div key={conditionIndex} className="flex flex-col gap-2">
+                        {conditionIndex > 0 && (
+                          <div className="flex items-center gap-2 justify-center">
+                            <RadioGroup
+                              orientation="horizontal"
+                              value={condition.logicalOperator}
+                              onValueChange={(value) => updateCondition(branchIndex, conditionIndex, 'logicalOperator', value)}
+                              size="sm"
+                            >
+                              <Radio value="AND">AND</Radio>
+                              <Radio value="OR">OR</Radio>
+                            </RadioGroup>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Select
+                            size="sm"
+                            value={condition.variable}
+                            onChange={(e) => updateCondition(branchIndex, conditionIndex, 'variable', e.target.value)}
+                            placeholder="Select variable"
+                            className="flex-1"
+                          >
+                            {inputVariables.map((variable) => (
+                              <SelectItem key={variable.value} value={variable.value}>
+                                {variable.label}
+                              </SelectItem>
+                            ))}
+                          </Select>
+                          <Select
+                            size="sm"
+                            value={condition.operator}
+                            onChange={(e) => updateCondition(branchIndex, conditionIndex, 'operator', e.target.value)}
+                            className="flex-1"
+                          >
+                            {OPERATORS.map((op) => (
+                              <SelectItem key={op.value} value={op.value}>
+                                {op.label}
+                              </SelectItem>
+                            ))}
+                          </Select>
+                          {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
+                            <Input
+                              size="sm"
+                              value={condition.value}
+                              onChange={(e) => updateCondition(branchIndex, conditionIndex, 'value', e.target.value)}
+                              placeholder="Value"
+                              className="flex-1"
+                            />
+                          )}
+                          <Button
+                            size="sm"
+                            color="danger"
+                            isIconOnly
+                            onClick={() => removeCondition(branchIndex, conditionIndex)}
+                            disabled={branch.conditions?.length === 1}
+                          >
+                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Condition Button */}
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onClick={() => addCondition(branchIndex)}
+                      startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                    >
+                      Add Condition
+                    </Button>
+
+                    {/* Branch Output Handle */}
+                    <div className={`${styles.handleRow} w-full justify-end mt-2`}>
+                      <div className="align-center flex flex-grow flex-shrink mr-2">
+                        <span className="text-sm font-medium ml-auto">Branch {branchIndex + 1} →</span>
+                      </div>
+                      <Handle
+                        type="source"
+                        position={Position.Right}
+                        id={`branch${branchIndex + 1}`}
+                        className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+              {/* Add Branch Button */}
+              <Button
+                size="sm"
+                color="primary"
+                variant="flat"
+                onClick={addBranch}
+                startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+              >
+                Add Branch
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Output handles when collapsed */}
+        {isCollapsed && (data.branches || []).map((_, branchIndex) => (
+          <div key={branchIndex} className={`${styles.handleRow} w-full justify-end mt-2`}>
             <Handle
               type="source"
               position={Position.Right}
-              id="true"
-              className={`${styles.handle} ${styles.handleRight}`}
-
+              id={`branch${branchIndex + 1}`}
+              className={`${styles.handle} ${styles.handleRight} ${styles.collapsedHandleOutput}`}
             />
           </div>
-
-          <div className={`${styles.handleRow} w-full justify-end`}>
-            <div className="align-center flex flex-grow flex-shrink mr-2">
-              <span className="text-sm font-medium ml-auto text-danger">If False →</span>
-            </div>
-            <Handle
-              type="source"
-              position={Position.Right}
-              id="false"
-              className={`${styles.handle} ${styles.handleRight}`}
-            />
-          </div>
-        </div>
+        ))}
       </div>
     </BaseNode>
   );
