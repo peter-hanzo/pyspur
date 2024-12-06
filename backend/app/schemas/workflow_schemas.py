@@ -18,12 +18,17 @@ class WorkflowNodeCoordinatesSchema(BaseModel):
 class WorkflowNodeSchema(BaseModel):
     """
     A node represents a single step in a workflow.
+    Each node receives a dictionary mapping predecessor node IDs to their outputs.
+    For dynamic schema nodes, the output schema is defined in the config dictionary.
+    For static schema nodes, the output schema is defined in the node class implementation.
     """
 
     id: str  # ID in the workflow
     title: Optional[str] = ""  # Display name
     node_type: str  # Name of the node type
-    config: Dict[str, Any] = {}  # Configuration parameters
+    config: Dict[str, Any] = (
+        {}
+    )  # Configuration parameters including dynamic output schema if needed
     coordinates: Optional[WorkflowNodeCoordinatesSchema] = (
         None  # Position of the node in the workflow
     )
