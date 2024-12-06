@@ -38,13 +38,12 @@ class WorkflowNodeSchema(BaseModel):
 
 class WorkflowLinkSchema(BaseModel):
     """
-    A link connects an output key of a source node to an input key of a target node.
+    A link simply connects a source node to a target node.
+    The target node will receive the source node's output in its input dictionary.
     """
 
     source_id: str
-    source_output_key: str
     target_id: str
-    target_input_key: str
 
 
 class WorkflowDefinitionSchema(BaseModel):
