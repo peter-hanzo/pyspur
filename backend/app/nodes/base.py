@@ -18,7 +18,7 @@ class VisualTag(BaseModel):
     )  # Hex color code validation using regex
 
 
-class NodeConfigModel(BaseModel):
+class BaseNodeConfig(BaseModel):
     """
     Base class for node configuration models.
     Each node must define its output_schema.
@@ -29,7 +29,7 @@ class NodeConfigModel(BaseModel):
     pass
 
 
-class NodeOutputModel(BaseModel):
+class BaseNodeOutput(BaseModel):
     """
     Base class for all node outputs.
     Each node type will define its own output model that inherits from this.
@@ -38,7 +38,7 @@ class NodeOutputModel(BaseModel):
     pass
 
 
-class NodeInputModel(BaseModel):
+class BaseNodeInput(BaseModel):
     """
     Base class for node inputs.
     Each node's input model will be dynamically created based on its predecessor nodes,
@@ -58,18 +58,18 @@ class BaseNode(ABC):
 
     name: str
     config_model: Type[BaseModel]
-    output_model: Type[NodeOutputModel]
-    input_model: Type[NodeInputModel]
-    _config: NodeConfigModel
-    _input: NodeInputModel
-    _output: NodeOutputModel
+    output_model: Type[BaseNodeOutput]
+    input_model: Type[BaseNodeInput]
+    _config: BaseNodeConfig
+    _input: BaseNodeInput
+    _output: BaseNodeOutput
     visual_tag: VisualTag
     subworkflow: Optional[WorkflowDefinitionSchema]
     subworkflow_output: Optional[Dict[str, Any]]
 
     def __init__(
         self,
-        config: NodeConfigModel,
+        config: BaseNodeConfig,
         context: Optional[WorkflowExecutionContext] = None,
     ) -> None:
         self._config = config
@@ -89,8 +89,8 @@ class BaseNode(ABC):
         """
 
     def create_input_model_class(
-        self, input: Dict[str, NodeOutputModel]
-    ) -> Type[NodeInputModel]:
+        self, input: Dict[str, BaseNodeOutput]
+    ) -> Type[BaseNodeInput]:
         """
         Dynamically creates an input model based on predecessor nodes.
 
@@ -106,24 +106,24 @@ class BaseNode(ABC):
                 node_id: (type(output), ...)
                 for node_id, output in input.items()  # type: ignore
             },
-            __base__=NodeInputModel,
+            __base__=BaseNodeInput,
         )
 
     def create_output_model_class(
         self, output_schema: Dict[str, str]
-    ) -> Type[NodeOutputModel]:
+    ) -> Type[BaseNodeOutput]:
         """
         Dynamically creates an output model based on the node's output schema.
         """
         return create_model(
             f"{self.name}Output",
             **{field_name: (field_type, ...) for field_name, field_type in output_schema.items()},  # type: ignore
-            __base__=NodeOutputModel,
+            __base__=BaseNodeOutput,
         )
 
     async def __call__(
-        self, inputs: Dict[str, NodeOutputModel] | NodeInputModel
-    ) -> NodeOutputModel:
+        self, inputs: Dict[str, BaseNodeOutput] | BaseNodeInput
+    ) -> BaseNodeOutput:
         """
         Validates inputs and runs the node's logic.
 
@@ -149,7 +149,7 @@ class BaseNode(ABC):
         return output_validated
 
     @abstractmethod
-    async def run(self, inputs: NodeInputModel) -> NodeOutputModel:
+    async def run(self, inputs: BaseNodeInput) -> BaseNodeOutput:
         """
         Abstract method where the node's core logic is implemented.
 
