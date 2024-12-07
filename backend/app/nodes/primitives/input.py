@@ -1,5 +1,5 @@
 from typing import Dict
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 from ..base import (
     BaseNode,
     BaseNodeConfig,
@@ -13,12 +13,8 @@ class InputNodeConfig(BaseNodeConfig):
     Configuration for the InputNode.
     """
 
-    input_schema: Dict[str, str] = {"input_1": "str"}
-
-    @model_validator(mode="before")
-    def set_output_schema_same_as_input(cls, data: Dict[str, str]) -> Dict[str, str]:
-        data["output_schema"] = data["input_schema"]
-        return data
+    output_schema: Dict[str, str] = {"input_1": "str"}
+    pass
 
 
 class InputNodeInput(BaseNodeInput):

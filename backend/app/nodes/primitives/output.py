@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 from pydantic import BaseModel, Field
 from ..base import (
     BaseNode,
@@ -13,9 +13,9 @@ class OutputNodeConfig(BaseNodeConfig):
     Configuration for the OutputNode.
     """
 
-    input_rename_map: Dict[str, str] = Field(
+    input_output_map: Dict[str, str] = Field(
         default={},
-        title="Input Rename Map",
+        title="Input Output Map",
         description="A dictionary mapping input field names to output field names.",
     )
 
@@ -38,9 +38,22 @@ class OutputNode(BaseNode):
     input_model = OutputNodeInput
     output_model = OutputNodeOutput
 
+    def get_nested_field(self, field_name_with_dots: str, model: BaseModel) -> Any:
+        """
+        Get the value of a nested field from a Pydantic model.
+        """
+        field_names = field_name_with_dots.split(".")
+        value = model
+        for field_name in field_names:
+            value = getattr(value, field_name)
+        return value
+
     async def run(self, input: BaseModel) -> BaseModel:
         output = {}
-        if self.config.input_rename_map:
-            for key, value in self.config.input_rename_map.items():
-                output[value] = getattr(input, key)
-        return self.output_model.model_validate(**output)  # type: ignore
+        if self.config.input_output_map:
+            for input_key, output_key in self.config.input_output_map.items():
+                # input_key is the field name with dot notation to access nested fields
+                output[output_key] = self.get_nested_field(input_key, input)
+        else:
+            output = input.model_dump()
+        return self.output_model(**output)

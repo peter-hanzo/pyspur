@@ -81,12 +81,12 @@ class BaseNode(ABC):
             self.visual_tag = self.get_default_visual_tag()
         self.setup()
 
-    @abstractmethod
     def setup(self) -> None:
         """
         Setup method to define output_model and any other initialization.
         For dynamic schema nodes, these can be created based on self.config.
         """
+        self.output_model = self.create_output_model_class(self.config.output_schema)
 
     def create_input_model_class(
         self, input: Dict[str, BaseNodeOutput]
