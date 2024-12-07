@@ -1,13 +1,6 @@
-from contextlib import asynccontextmanager
-from typing import Any, Dict
-
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from ..execution.dask_cluster_manager import DaskClusterManager
-from ..execution.workflow_executor_dask import WorkflowExecutorDask
-from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 
 from .node_management import router as node_management_router
 from .workflow_management import router as workflow_management_router
@@ -23,14 +16,7 @@ from .evals_management import router as evals_management_router
 load_dotenv()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    DaskClusterManager.get_client()
-    yield
-    DaskClusterManager.shutdown()
-
-
-app = FastAPI(lifespan=lifespan, root_path="/api")
+app = FastAPI(root_path="/api")
 
 # Add CORS middleware
 app.add_middleware(
@@ -51,14 +37,3 @@ app.include_router(key_management_router, prefix="/env-mgmt")
 app.include_router(template_management_router, prefix="/templates")
 app.include_router(openai_compatible_api_router, prefix="/api")
 app.include_router(evals_management_router, prefix="/evals")
-
-
-@app.post("/run_workflow/")
-async def run_workflow(
-    workflow: WorkflowDefinitionSchema, initial_inputs: Dict[str, Any] = {}
-) -> Dict[str, Any]:
-    """
-    Runs a workflow with the given nodes and edges.
-    """
-    executor = WorkflowExecutorDask(workflow)
-    return await executor(initial_inputs)
