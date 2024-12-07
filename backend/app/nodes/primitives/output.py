@@ -1,24 +1,34 @@
 from typing import Dict
-from pydantic import BaseModel, model_validator
-from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
+from pydantic import BaseModel, Field
+from ..base import (
+    BaseNode,
+    BaseNodeConfig,
+    BaseNodeInput,
+    BaseNodeOutput,
+)
 
 
-class OutputNodeConfig(DynamicSchemaNodeConfig):
-    @model_validator(mode="before")
-    def set_input_schema_same_as_output(cls, data: Dict[str, str]) -> Dict[str, str]:
-        data["input_schema"] = data["output_schema"]
-        return data
+class OutputNodeConfig(BaseNodeConfig):
+    """
+    Configuration for the OutputNode.
+    """
+
+    input_rename_map: Dict[str, str] = Field(
+        default={},
+        title="Input Rename Map",
+        description="A dictionary mapping input field names to output field names.",
+    )
 
 
-class OutputNodeInput(BaseModel):
+class OutputNodeInput(BaseNodeInput):
     pass
 
 
-class OutputNodeOutput(BaseModel):
+class OutputNodeOutput(BaseNodeOutput):
     pass
 
 
-class OutputNode(DynamicSchemaNode):
+class OutputNode(BaseNode):
     """
     Node for defining output schema and using the input from other nodes.
     """
@@ -28,5 +38,9 @@ class OutputNode(DynamicSchemaNode):
     input_model = OutputNodeInput
     output_model = OutputNodeOutput
 
-    async def run(self, input_data: BaseModel) -> BaseModel:
-        return input_data
+    async def run(self, input: BaseModel) -> BaseModel:
+        output = {}
+        if self.config.input_rename_map:
+            for key, value in self.config.input_rename_map.items():
+                output[value] = getattr(input, key)
+        return self.output_model.model_validate(**output)  # type: ignore
