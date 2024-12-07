@@ -6,9 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..execution.dask_cluster_manager import DaskClusterManager
-from ..execution.node_executor import NodeExecutor
 from ..execution.workflow_executor_dask import WorkflowExecutorDask
-from ..schemas.workflow_schemas import WorkflowDefinitionSchema, WorkflowNodeSchema
+from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 
 from .node_management import router as node_management_router
 from .workflow_management import router as workflow_management_router
@@ -52,19 +51,6 @@ app.include_router(key_management_router, prefix="/env-mgmt")
 app.include_router(template_management_router, prefix="/templates")
 app.include_router(openai_compatible_api_router, prefix="/api")
 app.include_router(evals_management_router, prefix="/evals")
-
-
-@app.post("/run_node/")
-async def run_node(
-    node: WorkflowNodeSchema, input_data: Dict[str, Any]
-) -> Dict[str, Any]:
-    """
-    Runs a node with the given name, configuration, and input data.
-    """
-    executor = NodeExecutor(node)
-    output_data = await executor(input_data)
-
-    return output_data.model_dump()
 
 
 @app.post("/run_workflow/")
