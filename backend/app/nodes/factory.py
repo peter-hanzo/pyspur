@@ -72,4 +72,4 @@ class NodeFactory:
 
         module = importlib.import_module(module_name, package="app")
         node_class = getattr(module, class_name)
-        return node_class(config)
+        return node_class(node_class.config_model(**config))
