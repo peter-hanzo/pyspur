@@ -29,6 +29,7 @@ import NodeOutput from '../NodeOutputDisplay';
 import SchemaEditor from './SchemaEditor';
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 import { cloneDeep, set, debounce } from 'lodash';
+import ConditionalsEditor from './ConditionalsEditor';
 
 // Define types for props and state
 interface NodeSidebarProps {
@@ -243,6 +244,24 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             options={jsonOptions}
             schemaType="input_schema"
             nodeId={nodeID}
+          />
+          {!isLast && <hr className="my-2" />}
+        </div>
+      );
+    }
+
+    // Add branches editor for conditional nodes
+    if (key === 'branches') {
+      return (
+        <div key={key} className="my-2">
+          <label className="font-semibold mb-1 block">Conditional Branches</label>
+          <ConditionalsEditor
+            branches={dynamicModel.branches || []}
+            onChange={(newBranches) => {
+              handleInputChange('branches', newBranches);
+            }}
+            inputSchema={dynamicModel.input_schema || {}}
+            disabled={false}
           />
           {!isLast && <hr className="my-2" />}
         </div>

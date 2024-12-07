@@ -2,32 +2,77 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getNodeTypes } from '../utils/api';
 import { RootState } from './store';
 
+// Define the types for the conditional node
+type ComparisonOperator =
+  | "contains"
+  | "equals"
+  | "greater_than"
+  | "less_than"
+  | "starts_with"
+  | "not_starts_with"
+  | "is_empty"
+  | "is_not_empty"
+  | "number_equals";
+
+type LogicalOperator = "AND" | "OR";
+
+interface Condition {
+  variable: string;
+  operator: ComparisonOperator;
+  value: string;
+  logicalOperator?: LogicalOperator;
+}
+
+interface BranchCondition {
+  conditions: Condition[];
+}
+
+interface ConditionalNodeConfig {
+  branches: BranchCondition[];
+  input_schema: Record<string, string>;
+  output_schema: Record<string, string>;
+  title?: string;
+}
+
 // Define interfaces for the metadata structure
 interface NodeMetadata {
   name: string;
-  [key: string]: any;  // Allow for additional dynamic properties
+  config?: {
+    branches?: BranchCondition[];
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
+    title?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
 }
 
 interface NodeTypesState {
-  data: any | null;  // Schema type could be more specific based on your needs
-  metadata: Record<string, NodeMetadata[]> | null;
+  data: Record<string, any>;
+  metadata: Record<string, NodeMetadata[]>;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
 
 interface NodeTypesResponse {
-  schema: any;  // Schema type could be more specific based on your needs
+  schema: Record<string, any>;
   metadata: Record<string, NodeMetadata[]>;
 }
 
 export interface NodeType {
   name: string;
-  // add other properties that NodeType should have
+  config: {
+    branches?: BranchCondition[];
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
+    title?: string;
+    [key: string]: any;
+  };
 }
 
 const initialState: NodeTypesState = {
-  data: null,
-  metadata: null,
+  data: {},
+  metadata: {},
   status: 'idle',
   error: null,
 };
@@ -71,7 +116,7 @@ const findMetadataInCategory = (
   if (!metadata) return null;
 
   // Find which category the node belongs to
-  const categories: (keyof Record<string, NodeMetadata[]>)[] = ['primitives', 'json', 'llm', 'python'];
+  const categories: (keyof Record<string, NodeMetadata[]>)[] = ['primitives', 'json', 'llm', 'python', 'logic'];
   for (const category of categories) {
     const nodes = metadata[category];
     if (!nodes) continue;

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Literal
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -17,23 +17,24 @@ class ComparisonOperator(str, Enum):
     NUMBER_EQUALS = "number_equals"
 
 
+LogicalOperator = Literal["AND", "OR"]
+
+
 class Condition(BaseModel):
     """Configuration for a single condition"""
-
     variable: str
     operator: ComparisonOperator = Field(default=ComparisonOperator.CONTAINS)
     value: Any
+    logicalOperator: Optional[LogicalOperator] = Field(default="AND")
 
 
 class BranchCondition(BaseModel):
     """Configuration for a branch with multiple conditions"""
-
     conditions: List[Condition]
 
 
 class ConditionalNodeConfig(DynamicSchemaNodeConfig):
     """Configuration for the conditional node."""
-
     branches: List[BranchCondition]
     input_schema: Dict[str, str] = {"input": "any"}  # The input data to be routed
     output_schema: Dict[str, str] = Field(
@@ -43,15 +44,11 @@ class ConditionalNodeConfig(DynamicSchemaNodeConfig):
 
 class ConditionalNodeInput(BaseModel):
     """Input model for the conditional node."""
-
-    input: Dict[
-        str, Any
-    ]  # The input data to be routed, now expecting a dictionary of variables
+    input: Dict[str, Any]  # The input data to be routed, now expecting a dictionary of variables
 
 
 class ConditionalNodeOutput(BaseModel):
     """Output model for the conditional node."""
-
     outputs: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -103,11 +100,24 @@ class ConditionalNode(DynamicSchemaNode):
     def _evaluate_branch_conditions(
         self, input_value: Dict[str, Any], branch: BranchCondition
     ) -> bool:
-        """Evaluate all conditions in a branch (AND logic)"""
-        return all(
-            self._evaluate_single_condition(input_value, condition)
-            for condition in branch.conditions
-        )
+        """Evaluate all conditions in a branch with support for AND/OR logic"""
+        if not branch.conditions:
+            return True
+
+        # First condition is always evaluated
+        result = self._evaluate_single_condition(input_value, branch.conditions[0])
+
+        # Evaluate subsequent conditions with their logical operators
+        for i in range(1, len(branch.conditions)):
+            condition = branch.conditions[i]
+            current_result = self._evaluate_single_condition(input_value, condition)
+
+            if condition.logicalOperator == "OR":
+                result = result or current_result
+            else:  # AND is default
+                result = result and current_result
+
+        return result
 
     async def run(self, input_data: ConditionalNodeInput) -> ConditionalNodeOutput:
         """

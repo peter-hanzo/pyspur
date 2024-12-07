@@ -67,11 +67,78 @@ class JSPydanticModel {
                 const validator = this.ajv.compile(node[key]);
                 const obj = {};
                 validator(obj);
+
+                // Special handling for conditional node
+                if (node.name === 'ConditionalNode' && key === 'config') {
+                  obj.branches = [
+                    {
+                      conditions: [
+                        {
+                          variable: '',
+                          operator: 'contains',
+                          value: '',
+                          logicalOperator: 'AND'
+                        }
+                      ]
+                    }
+                  ];
+                }
+
                 // Merge the validated object with any existing fields
                 processedNode[key] = {
                   ...node[key],  // Keep original fields like title, description etc
                   ...obj         // Add validated default values
                 };
+
+                // Keep schema-specific properties for conditional node
+                if (node.name === 'conditional_node' && key === 'config') {
+                  processedNode[key] = {
+                    ...processedNode[key],
+                    required: ['branches'],
+                    properties: {
+                      ...node[key].properties,
+                      branches: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            conditions: {
+                              type: 'array',
+                              items: {
+                                type: 'object',
+                                properties: {
+                                  variable: { type: 'string' },
+                                  operator: {
+                                    type: 'string',
+                                    enum: [
+                                      'contains',
+                                      'equals',
+                                      'greater_than',
+                                      'less_than',
+                                      'starts_with',
+                                      'not_starts_with',
+                                      'is_empty',
+                                      'is_not_empty',
+                                      'number_equals'
+                                    ]
+                                  },
+                                  value: { type: 'string' },
+                                  logicalOperator: {
+                                    type: 'string',
+                                    enum: ['AND', 'OR']
+                                  }
+                                },
+                                required: ['variable', 'operator', 'value']
+                              }
+                            }
+                          },
+                          required: ['conditions']
+                        }
+                      }
+                    }
+                  };
+                }
+
                 // Exclude JSON Schema keywords from the resulting object
                 processedNode[key] = this.excludeSchemaKeywords(processedNode[key]);
               } catch (error) {

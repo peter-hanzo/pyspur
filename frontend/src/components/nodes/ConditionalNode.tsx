@@ -8,10 +8,10 @@ import styles from './DynamicNode.module.css';
 import { Icon } from "@iconify/react";
 
 interface Condition {
+  logicalOperator?: 'AND' | 'OR';
   variable: string;
   operator: string;
   value: string;
-  logicalOperator?: 'AND' | 'OR';
 }
 
 interface Branch {
@@ -19,10 +19,9 @@ interface Branch {
 }
 
 interface ConditionalNodeData {
-  branches: Branch[];
   color?: string;
-  config?: {
-    branches?: Branch[];
+  config: {
+    branches: Branch[];
     input_schema?: Record<string, string>;
     output_schema?: Record<string, string>;
     title?: string;
@@ -71,11 +70,11 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
 
   // Initialize branches if they don't exist or are invalid
   useEffect(() => {
-    if (!data.branches || !Array.isArray(data.branches) || data.branches.length === 0) {
+    if (!data.config?.branches || !Array.isArray(data.config.branches) || data.config.branches.length === 0) {
       handleUpdateBranches([{ ...DEFAULT_BRANCH }]);
     } else {
       // Ensure each branch has valid conditions
-      const validBranches = data.branches.map(branch => ({
+      const validBranches = data.config.branches.map(branch => ({
         conditions: Array.isArray(branch.conditions) && branch.conditions.length > 0
           ? branch.conditions.map((condition, index) => ({
               ...condition,
@@ -83,7 +82,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
             }))
           : [{ ...DEFAULT_CONDITION }]
       }));
-      if (JSON.stringify(validBranches) !== JSON.stringify(data.branches)) {
+      if (JSON.stringify(validBranches) !== JSON.stringify(data.config.branches)) {
         handleUpdateBranches(validBranches);
       }
     }
@@ -102,37 +101,47 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
       output_schema[`branch${index + 1}`] = 'any';
     });
 
+    const updatedData: ConditionalNodeData = {
+      ...data,
+      config: {
+        ...data.config,
+        branches: newBranches,
+        input_schema: data.config?.input_schema || { input: 'any' },
+        output_schema
+      }
+    };
+
     dispatch(updateNodeData({
       id,
-      data: {
-        ...data,
-        branches: newBranches,
-        config: {
-          ...data.config,
-          branches: newBranches,
-          input_schema: data.config?.input_schema || { input: 'any' },
-          output_schema
-        }
-      }
+      data: updatedData
     }));
   };
 
   const addBranch = () => {
-    const newBranches = [
-      ...(data.branches || []),
-      { ...DEFAULT_BRANCH }
+    const newBranch: Branch = {
+      conditions: [{
+        variable: '',
+        operator: 'contains',
+        value: ''
+      }]
+    };
+
+    const newBranches: Branch[] = [
+      ...(data.config?.branches || []),
+      newBranch
     ];
+
     handleUpdateBranches(newBranches);
   };
 
   const removeBranch = (index: number) => {
-    const newBranches = [...(data.branches || [])];
+    const newBranches = [...(data.config?.branches || [])];
     newBranches.splice(index, 1);
     handleUpdateBranches(newBranches);
   };
 
   const addCondition = (branchIndex: number) => {
-    const newBranches = [...(data.branches || [])].map((branch, index) => {
+    const newBranches = [...(data.config?.branches || [])].map((branch, index) => {
       if (index === branchIndex) {
         return {
           ...branch,
@@ -148,7 +157,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
   };
 
   const removeCondition = (branchIndex: number, conditionIndex: number) => {
-    const newBranches = [...(data.branches || [])].map((branch, index) => {
+    const newBranches = [...(data.config?.branches || [])].map((branch, index) => {
       if (index === branchIndex && branch.conditions?.length > 1) {
         return {
           ...branch,
@@ -161,7 +170,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
   };
 
   const updateCondition = (branchIndex: number, conditionIndex: number, field: keyof Condition, value: string) => {
-    const newBranches = [...(data.branches || [])].map((branch, index) => {
+    const newBranches = [...(data.config?.branches || [])].map((branch, index) => {
       if (index === branchIndex) {
         return {
           ...branch,
@@ -215,7 +224,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
 
             {/* Branches */}
             <div className="flex flex-col gap-4">
-              {(data.branches || []).map((branch, branchIndex) => (
+              {(data.config?.branches || []).map((branch, branchIndex) => (
                 <Card key={branchIndex} className="p-3">
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
@@ -323,7 +332,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
         )}
 
         {/* Output handles when collapsed */}
-        {isCollapsed && (data.branches || []).map((_, branchIndex) => (
+        {isCollapsed && (data.config?.branches || []).map((_, branchIndex) => (
           <div key={branchIndex} className={`${styles.handleRow} w-full justify-end mt-2`}>
             <Handle
               type="source"
