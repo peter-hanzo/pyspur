@@ -122,7 +122,7 @@ class BaseNode(ABC):
         )
 
     async def __call__(
-        self, inputs: Dict[str, BaseNodeOutput] | BaseNodeInput
+        self, input: Dict[str, BaseNodeOutput] | BaseNodeInput
     ) -> BaseNodeOutput:
         """
         Validates inputs and runs the node's logic.
@@ -133,11 +133,11 @@ class BaseNode(ABC):
         Returns:
             The node's output model
         """
-        if isinstance(inputs, dict):
-            input_model_class = self.create_input_model_class(inputs)
-            inputs = input_model_class.model_validate(inputs)
+        if isinstance(input, dict):
+            input_model_class = self.create_input_model_class(input)
+            input = input_model_class.model_validate(input)
 
-        result = await self.run(inputs)
+        result = await self.run(input)
 
         try:
             output_validated = self.output_model.model_validate(result.model_dump())
@@ -149,7 +149,7 @@ class BaseNode(ABC):
         return output_validated
 
     @abstractmethod
-    async def run(self, inputs: BaseNodeInput) -> BaseNodeOutput:
+    async def run(self, input: BaseModel) -> BaseModel:
         """
         Abstract method where the node's core logic is implemented.
 
