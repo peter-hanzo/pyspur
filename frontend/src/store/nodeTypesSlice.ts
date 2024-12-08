@@ -86,7 +86,6 @@ export const fetchNodeTypes = createAsyncThunk<NodeTypesResponse>(
   'nodeTypes/fetchNodeTypes',
   async () => {
     const response = await getNodeTypes();
-    console.log("here is the response", response);
     return response;
   }
 );
