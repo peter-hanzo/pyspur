@@ -68,6 +68,11 @@ export interface NodeType {
     title?: string;
     [key: string]: any;
   };
+  type: string;
+  visual_tag: {
+    color: string;
+    acronym: string;
+  };
 }
 
 const initialState: NodeTypesState = {
