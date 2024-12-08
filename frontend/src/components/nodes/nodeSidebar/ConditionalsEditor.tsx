@@ -143,7 +143,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                 radius="full"
                 variant="light"
                 onClick={() => handleAddCondition(branchIndex)}
-                disabled={disabled || branchIndex === 0}
+                disabled={disabled}
                 size="sm"
               >
                 <Icon icon="solar:add-circle-linear" width={20} />
@@ -174,7 +174,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                     }
                     size="sm"
                     className="justify-center"
-                    isDisabled={disabled || branchIndex === 0}
+                    isDisabled={disabled}
                   >
                     <Radio value="AND">AND</Radio>
                     <Radio value="OR">OR</Radio>
@@ -190,7 +190,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                     }
                     placeholder="Select variable"
                     className="flex-1"
-                    isDisabled={disabled || branchIndex === 0}
+                    isDisabled={disabled}
                   >
                     {inputVariables.map(({ value, label }) => (
                       <SelectItem key={value} value={value}>
@@ -207,7 +207,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                     }
                     placeholder="Select operator"
                     className="flex-1"
-                    isDisabled={disabled || branchIndex === 0}
+                    isDisabled={disabled}
                   >
                     {OPERATORS.map(({ value, label }) => (
                       <SelectItem key={value} value={value}>
@@ -224,7 +224,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                     }
                     placeholder="Value"
                     className="flex-1"
-                    isDisabled={disabled || branchIndex === 0 || ['is_empty', 'is_not_empty'].includes(condition.operator)}
+                    isDisabled={disabled || ['is_empty', 'is_not_empty'].includes(condition.operator)}
                   />
 
                   <Button

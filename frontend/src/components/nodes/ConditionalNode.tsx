@@ -176,7 +176,8 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
           ...branch,
           conditions: (branch.conditions || []).map((condition, i) => {
             if (i === conditionIndex) {
-              return { ...condition, [field]: value };
+              const updatedValue = field === 'logicalOperator' ? (value as 'AND' | 'OR') : value;
+              return { ...condition, [field]: updatedValue };
             }
             return condition;
           })
@@ -184,7 +185,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
       }
       return branch;
     });
-    handleUpdateBranches(newBranches);
+    handleUpdateBranches(newBranches as Branch[]);
   };
 
   return (
