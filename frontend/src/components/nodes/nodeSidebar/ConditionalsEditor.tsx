@@ -154,7 +154,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                 variant="light"
                 color="danger"
                 onClick={() => handleRemoveBranch(branchIndex)}
-                disabled={disabled || branches.length <= 1 || branchIndex === 0}
+                disabled={disabled || branches.length <= 1}
                 size="sm"
               >
                 <Icon icon="solar:trash-bin-trash-linear" width={20} />
@@ -233,7 +233,7 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
                     variant="light"
                     color="danger"
                     onClick={() => handleRemoveCondition(branchIndex, conditionIndex)}
-                    disabled={disabled || branch.conditions.length <= 1 || branchIndex === 0}
+                    disabled={disabled || branch.conditions.length <= 1}
                     size="sm"
                   >
                     <Icon icon="solar:trash-bin-trash-linear" width={20} />
