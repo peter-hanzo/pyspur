@@ -28,11 +28,6 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "ConditionalNode",
         },
         {
-            "node_type_name": "FilterNode",
-            "module": ".nodes.logic.filter",
-            "class_name": "FilterNode",
-        },
-        {
             "node_type_name": "MergeNode",
             "module": ".nodes.logic.merge",
             "class_name": "MergeNode",

@@ -183,7 +183,7 @@ class WorkflowExecutor:
         node = self._node_dict[node_id]
         node_executor = NodeExecutor(node)
 
-        if node.node_type == "merge_node":
+        if node.node_type == "MergeNode":
             # Handle MergeNode input by collecting outputs from the source nodes
             paths_input: Dict[str, Any] = {}
             for link in self.workflow.links:
@@ -211,7 +211,11 @@ class WorkflowExecutor:
                         raise ValueError(
                             f"Node '{link.source_id}' has not produced an output yet."
                         )
-                    source_value = getattr(source_output, link.source_output_key)
+                    if source_node.node_type == "MergeNode":
+                        # If the source node is a MergeNode, access the appropriate output
+                        source_value = source_output.outputs.get(link.source_output_key)
+                    else:
+                        source_value = getattr(source_output, link.source_output_key)
                     input_data[link.target_input_key] = source_value
 
         # Include initial inputs if available

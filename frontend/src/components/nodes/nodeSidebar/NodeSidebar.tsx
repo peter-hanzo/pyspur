@@ -30,7 +30,7 @@ import SchemaEditor from './SchemaEditor';
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 import { cloneDeep, set, debounce } from 'lodash';
 import ConditionalsEditor from './ConditionalsEditor';
-
+import MergeEditor from './MergeEditor';
 // Define types for props and state
 interface NodeSidebarProps {
   nodeID: string;
@@ -65,6 +65,7 @@ interface DynamicModel {
     input: string;
     output: string;
   }>;
+  branch_refs: string[];
 }
 
 interface FieldMetadata {
@@ -268,6 +269,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
+    if (key === 'input_schemas' && nodeType === 'MergeNode') {
+      return (
+        <div key={key} className="my-2">
+          <label className="font-semibold mb-1 block">Input Schemas</label>
+          <MergeEditor
+            inputSchemas={dynamicModel.input_schemas || {}}
+            onChange={(newValue) => {
+              handleInputChange('input_schemas', newValue);
+            }}
+            nodeId={nodeID}
+          />
+          {!isLast && <hr className="my-2" />}
+        </div>
+      );
+    }
+
     if (key === 'output_schema') {
       return (
         <div key={key} className="my-2">
@@ -436,6 +453,24 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
     const properties = nodeSchema.config;
     const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type');
+
+    // Special handling for MergeNode
+    if (nodeType === 'MergeNode') {
+      return (
+        <MergeEditor
+          branchRefs={dynamicModel.branch_refs || []}
+          onChange={(newBranchRefs) => {
+            const updatedModel = {
+              ...dynamicModel,
+              branch_refs: newBranchRefs,
+            };
+            setDynamicModel(updatedModel);
+            dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+          }}
+          nodeId={nodeID}
+        />
+      );
+    }
 
     return keys.map((key, index) => {
       const field = properties[key];

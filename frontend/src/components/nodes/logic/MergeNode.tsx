@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Handle, Position, useHandleConnections } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
-import { Tooltip } from '@nextui-org/react';
-
 import BaseNode from '../BaseNode';
 import styles from '../DynamicNode.module.css';
 
+interface NodeConfig {
+  branch_refs: string[];
+  [key: string]: any;
+}
+
 interface NodeData {
-  config?: {
-    input_schemas?: Record<string, Record<string, string>>;
-  };
+  config?: NodeConfig;
   title?: string;
   color?: string;
   [key: string]: any;
@@ -22,32 +23,39 @@ interface MergeNodeProps {
   selected?: boolean;
 }
 
+interface Node {
+  id: string;
+  data: NodeData;
+  [key: string]: any;
+}
+
 const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
   const edges = useSelector((state: RootState) => state.flow.edges);
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const nodes = useSelector((state: RootState) => state.flow.nodes) as Node[];
   const [isCollapsed, setIsCollapsed] = useState(false);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
 
-  // Get connection status for the input handle
-  const inputConnections = useHandleConnections({
-    type: 'target',
-    id: 'input'
-  });
-
-  // Get incoming edges and their source nodes - recalculate when nodes or edges change
+  // Get incoming branches based on connected edges, ensuring uniqueness
   const incomingBranches = useMemo(() => {
-    return edges
+    const branchMap = new Map();
+
+    edges
       .filter(edge => edge.target === id)
-      .map(edge => {
+      .forEach(edge => {
         const sourceNode = nodes.find(node => node.id === edge.source);
-        return {
-          id: edge.source,
-          sourceHandle: edge.sourceHandle,
-          label: sourceNode?.data?.config.title || sourceNode?.id || 'Unknown Source'
-        };
+        // Only add if we haven't seen this source ID before
+        if (!branchMap.has(edge.source)) {
+          branchMap.set(edge.source, {
+            id: edge.source,
+            sourceHandle: edge.sourceHandle,
+            label: sourceNode?.data?.config?.title || sourceNode?.id || 'Unknown Source'
+          });
+        }
       });
-  }, [edges, nodes, id]); // Recompute when edges, nodes, or id changes
+
+    return Array.from(branchMap.values());
+  }, [edges, nodes, id]);
 
   // Calculate nodeWidth based on title length
   useEffect(() => {
@@ -84,8 +92,8 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
                     <div className="text-xs font-semibold text-gray-500">
                       Incoming Branches ({incomingBranches.length})
                     </div>
-
                   </div>
+
                   {incomingBranches.length === 0 ? (
                     <div className="text-xs text-gray-400 italic p-2 border border-dashed border-gray-200 rounded-md text-center">
                       Connect branches to continue the flow
@@ -95,7 +103,6 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
                       <div key={branch.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
                         <div className="text-sm">
                           <span className="font-medium">{branch.label}</span>
-
                         </div>
                       </div>
                     ))
@@ -104,31 +111,28 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
               </>
             )}
 
-            {/* Input and Output Handles */}
-            <div className={`${styles.handlesWrapper}`}>
-              {/* Input Handle */}
+            {/* Handles - now always visible */}
+            <div className={styles.handlesWrapper}>
               <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`}>
-                <div className={`${styles.handleRow} w-full`}>
+                <div className={`${styles.handleRow} w-full justify-start`}>
                   <div className={`${styles.handleCell} ${styles.inputHandleCell}`}>
                     <Handle
                       type="target"
                       position={Position.Left}
                       id="input"
                       className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-                      style={{ left: '0px' }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Output Handle */}
               <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`}>
                 <div className={`${styles.handleRow} w-full justify-end`}>
                   <div className={`${styles.handleCell} ${styles.outputHandleCell}`}>
                     <Handle
                       type="source"
                       position={Position.Right}
-                      id="output"
+                      id="result"
                       className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
                     />
                   </div>
