@@ -180,26 +180,39 @@ class WorkflowExecutor:
 
     def _prepare_node_input(self, node_id: str) -> Dict[str, Any]:
         input_data: Dict[str, Any] = {}
+        node = self._node_dict[node_id]
+        node_executor = NodeExecutor(node)
 
-        # Collect inputs from source nodes, respecting conditional branching
-        for link in self.workflow.links:
-            if link.target_id == node_id:
-                source_node = self._node_dict[link.source_id]
-                source_executor = NodeExecutor(source_node)
+        if node.node_type == "merge_node":
+            # Handle MergeNode input by collecting outputs from the source nodes
+            paths_input: Dict[str, Any] = {}
+            for link in self.workflow.links:
+                if link.target_id == node_id:
+                    source_output = self._outputs.get(link.source_id)
+                    if source_output is not None:
+                        source_value = getattr(source_output, link.source_output_key)
+                        paths_input[link.source_id] = source_value
+            input_data['paths'] = paths_input
+        else:
+            # Collect inputs from source nodes, respecting conditional branching
+            for link in self.workflow.links:
+                if link.target_id == node_id:
+                    source_node = self._node_dict[link.source_id]
+                    source_executor = NodeExecutor(source_node)
 
-                # Skip if this link is not in the active branch of a conditional node
-                if source_executor.is_conditional:
-                    active_links = source_executor.get_active_branch_links([link])
-                    if not active_links:
-                        continue
+                    # Skip if this link is not in the active branch of a conditional node
+                    if source_executor.is_conditional:
+                        active_links = source_executor.get_active_branch_links([link])
+                        if not active_links:
+                            continue
 
-                source_output = self._outputs.get(link.source_id)
-                if source_output is None:
-                    raise ValueError(
-                        f"Node '{link.source_id}' has not produced an output yet."
-                    )
-                source_value = getattr(source_output, link.source_output_key)
-                input_data[link.target_input_key] = source_value
+                    source_output = self._outputs.get(link.source_id)
+                    if source_output is None:
+                        raise ValueError(
+                            f"Node '{link.source_id}' has not produced an output yet."
+                        )
+                    source_value = getattr(source_output, link.source_output_key)
+                    input_data[link.target_input_key] = source_value
 
         # Include initial inputs if available
         if node_id in self._initial_inputs:
