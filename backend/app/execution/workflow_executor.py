@@ -86,7 +86,9 @@ class WorkflowExecutor:
 
         node_input = dict(zip(dependency_ids, predecessor_outputs))
 
-        node_instance = NodeFactory.create_node(node.node_type, node.config)
+        node_instance = NodeFactory.create_node(
+            node_name=node.title, node_type_name=node.node_type, config=node.config
+        )
         # Update task recorder
         if self.task_recorder:
             self.task_recorder.update_task(
@@ -132,9 +134,14 @@ class WorkflowExecutor:
         input_node = next(
             (node for node in self.workflow.nodes if node.node_type == "InputNode")
         )
-        self._outputs[input_node.id] = await NodeFactory.create_node(
-            input_node.node_type, input_node.config
-        )(input)
+        input_node_instance = NodeFactory.create_node(
+            node_name=input_node.title,
+            node_type_name=input_node.node_type,
+            config=input_node.config,
+        )
+        self._outputs[input_node.id] = input_node_instance.output_model.model_validate(
+            input
+        )
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
@@ -143,7 +150,9 @@ class WorkflowExecutor:
         if precomputed_outputs:
             for node_id, output in precomputed_outputs.items():
                 self._outputs[node_id] = NodeFactory.create_node(
-                    self._node_dict[node_id].node_type, self._node_dict[node_id].config
+                    node_name=self._node_dict[node_id].title,
+                    node_type_name=self._node_dict[node_id].node_type,
+                    config=self._node_dict[node_id].config,
                 ).output_model.model_validate(output)
 
         # Start tasks for all nodes
@@ -163,7 +172,7 @@ class WorkflowExecutor:
     ) -> Dict[str, BaseNodeOutput]:
         """
         Execute the workflow with the given input data.
-        input: input for the input node of the workflow
+        input: input for the input node of the workflow. Dict[<field_name>: <value>]
         node_ids: list of node_ids to run. If empty, run all nodes.
         precomputed_outputs: precomputed outputs for the nodes. These nodes will not be executed again.
         """
@@ -229,9 +238,9 @@ if __name__ == "__main__":
                         "title": "OutputNodeConfig",
                         "type": "object",
                         "output_schema": {"question": "str", "response": "str"},
-                        "input_output_map": {
-                            "llm_node.next_potential_question": "question",
-                            "llm_node.response": "response",
+                        "output_map": {
+                            "question": "llm_node.next_potential_question",
+                            "response": "llm_node.response",
                         },
                     },
                     "coordinates": {"x": 1187.5, "y": 203.75},
