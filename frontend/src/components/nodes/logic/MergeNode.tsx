@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Handle, Position, useHandleConnections } from '@xyflow/react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
@@ -26,6 +26,8 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
   const edges = useSelector((state: RootState) => state.flow.edges);
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const [nodeWidth, setNodeWidth] = useState<string>('auto');
 
   // Get connection status for the input handle
   const inputConnections = useHandleConnections({
@@ -47,6 +49,23 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
       });
   }, [edges, nodes, id]); // Recompute when edges, nodes, or id changes
 
+  // Calculate nodeWidth based on title length
+  useEffect(() => {
+    if (!nodeRef.current || !data) return;
+
+    const titleLength = ((data?.title || data?.config?.title || '').length + 10) * 1.25;
+
+    const minNodeWidth = 300;
+    const maxNodeWidth = 600;
+
+    const finalWidth = Math.min(
+      Math.max(titleLength * 10, minNodeWidth),
+      maxNodeWidth
+    );
+
+    setNodeWidth(`${finalWidth}px`);
+  }, [data]);
+
   return (
     <div className={styles.dynamicNodeWrapper}>
       <BaseNode
@@ -54,8 +73,9 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
         data={data}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
+        style={{ width: nodeWidth }}
       >
-        <div className={styles.nodeWrapper}>
+        <div className={styles.nodeWrapper} ref={nodeRef}>
           <div className="flex flex-col gap-3">
             {!isCollapsed && (
               <>
