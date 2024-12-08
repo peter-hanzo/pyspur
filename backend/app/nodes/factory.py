@@ -48,7 +48,7 @@ class NodeFactory:
         return get_all_node_types()
 
     @staticmethod
-    def create_node(node_type_name: str, config: Any) -> BaseNode:
+    def create_node(node_name: str, node_type_name: str, config: Any) -> BaseNode:
         """
         Creates a node instance from a configuration.
         """
@@ -72,4 +72,4 @@ class NodeFactory:
 
         module = importlib.import_module(module_name, package="app")
         node_class = getattr(module, class_name)
-        return node_class(node_class.config_model(**config))
+        return node_class(name=node_name, config=node_class.config_model(**config))
