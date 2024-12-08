@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from hashlib import md5
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
 from ..execution.workflow_execution_context import WorkflowExecutionContext
@@ -23,8 +23,6 @@ class BaseNodeConfig(BaseModel):
     Base class for node configuration models.
     Each node must define its output_schema.
     """
-
-    output_schema: Dict[str, str] = {"response": "str"}
 
     pass
 
@@ -69,12 +67,13 @@ class BaseNode(ABC):
 
     def __init__(
         self,
+        name: str,
         config: BaseNodeConfig,
         context: Optional[WorkflowExecutionContext] = None,
     ) -> None:
+        self.name = name
         self._config = config
         self.context = context
-        self.output_model = self.create_output_model_class(config.output_schema)
         self.subworkflow = None
         self.subworkflow_output = None
         if not hasattr(self, "visual_tag"):
@@ -86,28 +85,7 @@ class BaseNode(ABC):
         Setup method to define output_model and any other initialization.
         For dynamic schema nodes, these can be created based on self.config.
         """
-        self.output_model = self.create_output_model_class(self.config.output_schema)
-
-    def create_input_model_class(
-        self, input: Dict[str, BaseNodeOutput]
-    ) -> Type[BaseNodeInput]:
-        """
-        Dynamically creates an input model based on predecessor nodes.
-
-        Args:
-            predecessor_outputs: Dictionary mapping predecessor node IDs to their output model types
-
-        Returns:
-            A new Pydantic model type with fields for each predecessor node.
-        """
-        return create_model(
-            f"{self.name}Input",
-            **{
-                node_id: (type(output), ...)
-                for node_id, output in input.items()  # type: ignore
-            },
-            __base__=BaseNodeInput,
-        )
+        pass
 
     def create_output_model_class(
         self, output_schema: Dict[str, str]
@@ -116,9 +94,32 @@ class BaseNode(ABC):
         Dynamically creates an output model based on the node's output schema.
         """
         return create_model(
-            f"{self.name}Output",
+            f"{self.name}",
             **{field_name: (field_type, ...) for field_name, field_type in output_schema.items()},  # type: ignore
             __base__=BaseNodeOutput,
+        )
+
+    def create_composite_model_instance(
+        self, model_name: str, instances: List[BaseModel]
+    ) -> Type[BaseNodeInput]:
+        """
+        Create a new Pydantic model that combines all the given models based on their instances.
+
+        Args:
+            instances: A list of Pydantic model instances.
+
+        Returns:
+            A new Pydantic model with fields named after the class names of the instances.
+        """
+
+        # Create the new model class
+        return create_model(
+            model_name,
+            **{
+                instance.__class__.__name__: (instance.__class__, ...)  # type: ignore
+                for instance in instances
+            },
+            __base__=BaseNodeInput,
         )
 
     async def __call__(
@@ -134,8 +135,15 @@ class BaseNode(ABC):
             The node's output model
         """
         if isinstance(input, dict):
-            input_model_class = self.create_input_model_class(input)
-            input = input_model_class.model_validate(input)
+            self.input_model = self.create_composite_model_instance(
+                model_name=self.input_model.__name__,
+                instances=list(input.values()),
+            )
+            data = {
+                instance.__class__.__name__: instance.model_dump()
+                for instance in input.values()
+            }
+            input = self.input_model.model_validate(data)
 
         result = await self.run(input)
 
@@ -215,3 +223,50 @@ class BaseNode(ABC):
         color = colors[int(md5(cls.__name__.encode()).hexdigest(), 16) % len(colors)]
 
         return VisualTag(acronym=acronym, color=color)
+
+
+class FixedOutputBaseNodeConfig(BaseNodeConfig):
+    pass
+
+
+class FixedOutputBaseNode(BaseNode, ABC):
+    name = "fixed_output_node"
+    config_model = FixedOutputBaseNodeConfig
+    input_model = BaseNodeInput
+    output_model = BaseNodeOutput
+
+    @property
+    @abstractmethod
+    def output_schema(self) -> Dict[str, str]:
+        pass
+
+    def setup(self) -> None:
+        self.output_model = self.create_output_model_class(self.output_schema)
+        super().setup()
+
+    @abstractmethod
+    async def run(self, input: BaseModel) -> BaseModel:
+        pass
+
+
+class VariableOutputBaseNodeConfig(BaseNodeConfig):
+    output_schema: Dict[str, str] = Field(
+        default={},
+        title="Output schema",
+        description="The schema for the output of the node",
+    )
+
+
+class VariableOutputBaseNode(BaseNode, ABC):
+    name = "variable_output_node"
+    config_model = VariableOutputBaseNodeConfig
+    input_model = BaseNodeInput
+    output_model = BaseNodeOutput
+
+    def setup(self) -> None:
+        self.output_model = self.create_output_model_class(self.config.output_schema)
+        super().setup()
+
+    @abstractmethod
+    async def run(self, input: BaseModel) -> BaseModel:
+        pass
