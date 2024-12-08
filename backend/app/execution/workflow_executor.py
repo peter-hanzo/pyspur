@@ -97,6 +97,17 @@ class WorkflowExecutor:
             dependencies[link.target_id].add(link.source_id)
         self._dependencies = dependencies
 
+    def _get_active_links(self, node_id: str) -> List[WorkflowLinkSchema]:
+        """Get the active links for a node, taking into account conditional branching"""
+        node_executor = NodeExecutor(self._node_dict[node_id])
+        relevant_links = [link for link in self.workflow.links if link.source_id == node_id]
+        return node_executor.get_active_branch_links(relevant_links)
+
+    def _get_dependent_nodes(self, node_id: str) -> Set[str]:
+        """Get nodes that depend on the given node, taking into account conditional branching"""
+        active_links = self._get_active_links(node_id)
+        return {link.target_id for link in active_links}
+
     def _get_node_task(self, node_id: str) -> asyncio.Task[None]:
         if node_id in self._node_tasks:
             return self._node_tasks[node_id]
@@ -111,7 +122,7 @@ class WorkflowExecutor:
 
     async def _execute_node(self, node_id: str):
         node = self._node_dict[node_id]
-        node_executor = NodeExecutor(node)
+        node_executor = NodeExecutor(node, self.context)
 
         # Wait for dependencies
         dependency_ids = self._dependencies.get(node_id, set())
@@ -134,9 +145,19 @@ class WorkflowExecutor:
                 inputs=input_data_dict,
                 subworkflow=node_executor.subworkflow,
             )
+
         # Execute node
         try:
             output = await node_executor(node_input_data)
+
+            # Get dependent nodes based on conditional branching
+            dependent_nodes = self._get_dependent_nodes(node_id)
+
+            # Start tasks for dependent nodes that should be executed based on branching
+            for dependent_node_id in dependent_nodes:
+                if dependent_node_id not in self._node_tasks:
+                    self._get_node_task(dependent_node_id)
+
         except Exception as e:
             if self.task_recorder:
                 self.task_recorder.update_task(
@@ -159,17 +180,43 @@ class WorkflowExecutor:
 
     def _prepare_node_input(self, node_id: str) -> Dict[str, Any]:
         input_data: Dict[str, Any] = {}
+        node = self._node_dict[node_id]
+        node_executor = NodeExecutor(node)
 
-        # Collect inputs from source nodes
-        for link in self.workflow.links:
-            if link.target_id == node_id:
-                source_output = self._outputs.get(link.source_id)
-                if source_output is None:
-                    raise ValueError(
-                        f"Node '{link.source_id}' has not produced an output yet."
-                    )
-                source_value = getattr(source_output, link.source_output_key)
-                input_data[link.target_input_key] = source_value
+        if node.node_type == "MergeNode":
+            # Handle MergeNode input by collecting outputs from the source nodes
+            paths_input: Dict[str, Any] = {}
+            for link in self.workflow.links:
+                if link.target_id == node_id:
+                    source_output = self._outputs.get(link.source_id)
+                    if source_output is not None:
+                        source_value = getattr(source_output, link.source_output_key)
+                        paths_input[link.source_id] = source_value
+            input_data['paths'] = paths_input
+        else:
+            # Collect inputs from source nodes, respecting conditional branching
+            for link in self.workflow.links:
+                if link.target_id == node_id:
+                    source_node = self._node_dict[link.source_id]
+                    source_executor = NodeExecutor(source_node)
+
+                    # Skip if this link is not in the active branch of a conditional node
+                    if source_executor.is_conditional:
+                        active_links = source_executor.get_active_branch_links([link])
+                        if not active_links:
+                            continue
+
+                    source_output = self._outputs.get(link.source_id)
+                    if source_output is None:
+                        raise ValueError(
+                            f"Node '{link.source_id}' has not produced an output yet."
+                        )
+                    if source_node.node_type == "MergeNode":
+                        # If the source node is a MergeNode, access the appropriate output
+                        source_value = source_output.outputs.get(link.source_output_key)
+                    else:
+                        source_value = getattr(source_output, link.source_output_key)
+                    input_data[link.target_input_key] = source_value
 
         # Include initial inputs if available
         if node_id in self._initial_inputs:

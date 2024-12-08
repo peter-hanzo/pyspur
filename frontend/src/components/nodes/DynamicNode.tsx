@@ -19,6 +19,7 @@ interface NodeData {
     user_message?: string;
   };
   title?: string;
+  [key: string]: any;
 }
 
 interface SchemaMetadata {
@@ -174,9 +175,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             type="target"
             position="left"
             id={keyName}
-            className={`${styles.handle} ${styles.handleLeft} ${
-              isCollapsed ? styles.collapsedHandleInput : ''
-            }`}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+              }`}
             isConnectable={!isCollapsed && connections.length === 0}
           />
         </div>
@@ -258,9 +258,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             type="source"
             position="right"
             id={keyName}
-            className={`${styles.handle} ${styles.handleRight} ${
-              isCollapsed ? styles.collapsedHandleOutput : ''
-            }`}
+            className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+              }`}
             isConnectable={!isCollapsed}
           />
         </div>
@@ -293,7 +292,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
     );
   };
 
-  const isConditionalNode = type === 'ConditionalNode';
+  const isIfElseNode = type === 'IfElseNode';
 
   return (
     <div
@@ -305,14 +304,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
         data={nodeData}
         style={{
           width: nodeWidth,
-          backgroundColor: isConditionalNode ? '#e0f7fa' : undefined,
+          backgroundColor: isIfElseNode ? '#e0f7fa' : undefined,
         }}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         selected={props.selected}
       >
         <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-          {isConditionalNode ? (
+          {isIfElseNode ? (
             <div>
               <strong>Conditional Node</strong>
             </div>

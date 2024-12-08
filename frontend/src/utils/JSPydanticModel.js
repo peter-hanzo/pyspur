@@ -17,7 +17,7 @@ class JSPydanticModel {
 
   createObjectFromSchema() {
     // Handle node types schema (primitives/llm/python)
-    if (this._schema.primitives || this._schema.json || this._schema.llm || this._schema.python || this._schema.subworkflow) {
+    if (this._schema.primitives || this._schema.json || this._schema.llm || this._schema.python || this._schema.subworkflow || this._schema.logic) {
       return this.processNodeTypesSchema(this._schema);
     }
 
@@ -54,7 +54,7 @@ class JSPydanticModel {
   processNodeTypesSchema(schema) {
     const result = {};
 
-    ['primitives', 'json', 'llm', 'python', 'subworkflow'].forEach(category => {
+    ['primitives', 'json', 'llm', 'python', 'subworkflow', 'logic'].forEach(category => {
       if (schema[category]) {
         result[category] = schema[category].map(node => {
           // Copy all fields from the original node
@@ -67,11 +67,78 @@ class JSPydanticModel {
                 const validator = this.ajv.compile(node[key]);
                 const obj = {};
                 validator(obj);
+
+                // Special handling for conditional node
+                if (node.name === 'IfElseNode' && key === 'config') {
+                  obj.branches = [
+                    {
+                      conditions: [
+                        {
+                          variable: '',
+                          operator: 'contains',
+                          value: '',
+                          logicalOperator: 'AND'
+                        }
+                      ]
+                    }
+                  ];
+                }
+
                 // Merge the validated object with any existing fields
                 processedNode[key] = {
                   ...node[key],  // Keep original fields like title, description etc
                   ...obj         // Add validated default values
                 };
+
+                // Keep schema-specific properties for conditional node
+                if (node.name === 'conditional_node' && key === 'config') {
+                  processedNode[key] = {
+                    ...processedNode[key],
+                    required: ['branches'],
+                    properties: {
+                      ...node[key].properties,
+                      branches: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            conditions: {
+                              type: 'array',
+                              items: {
+                                type: 'object',
+                                properties: {
+                                  variable: { type: 'string' },
+                                  operator: {
+                                    type: 'string',
+                                    enum: [
+                                      'contains',
+                                      'equals',
+                                      'greater_than',
+                                      'less_than',
+                                      'starts_with',
+                                      'not_starts_with',
+                                      'is_empty',
+                                      'is_not_empty',
+                                      'number_equals'
+                                    ]
+                                  },
+                                  value: { type: 'string' },
+                                  logicalOperator: {
+                                    type: 'string',
+                                    enum: ['AND', 'OR']
+                                  }
+                                },
+                                required: ['variable', 'operator', 'value']
+                              }
+                            }
+                          },
+                          required: ['conditions']
+                        }
+                      }
+                    }
+                  };
+                }
+
                 // Exclude JSON Schema keywords from the resulting object
                 processedNode[key] = this.excludeSchemaKeywords(processedNode[key]);
               } catch (error) {
@@ -95,7 +162,8 @@ class JSPydanticModel {
       json: [],
       llm: [],
       python: [],
-      subworkflow: []
+      subworkflow: [],
+      logic: []
     };
     this._extractMetadata(this._schema);
   }
@@ -145,7 +213,7 @@ class JSPydanticModel {
     }
 
     // Handle root-level arrays (primitives, llm, python)
-    ['primitives', 'json', 'llm', 'python', 'subworkflow'].forEach(category => {
+    ['primitives', 'json', 'llm', 'python', 'subworkflow', 'logic'].forEach(category => {
       if (Array.isArray(schema[category])) {
         if (!this._metadata[category]) {
           this._metadata[category] = [];

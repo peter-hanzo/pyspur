@@ -21,6 +21,18 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "StaticValueNode",
         },
     ],
+    "logic": [
+        {
+            "node_type_name": "IfElseNode",
+            "module": ".nodes.logic.if_else",
+            "class_name": "IfElseNode",
+        },
+        {
+            "node_type_name": "MergeNode",
+            "module": ".nodes.logic.merge",
+            "class_name": "MergeNode",
+        },
+    ],
     "json": [
         {
             "node_type_name": "JsonifyNode",
