@@ -84,8 +84,7 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
                     <div className="text-xs font-semibold text-gray-500">
                       Incoming Branches ({incomingBranches.length})
                     </div>
-                    <Tooltip content={incomingBranches.length === 0 ? "Connect input branches" : "Add more branches"}>
-                    </Tooltip>
+
                   </div>
                   {incomingBranches.length === 0 ? (
                     <div className="text-xs text-gray-400 italic p-2 border border-dashed border-gray-200 rounded-md text-center">
@@ -94,11 +93,9 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
                   ) : (
                     incomingBranches.map((branch) => (
                       <div key={branch.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
-                        <div className="text-xs">
+                        <div className="text-sm">
                           <span className="font-medium">{branch.label}</span>
-                          {branch.sourceHandle && (
-                            <span className="text-gray-500"> → {branch.sourceHandle}</span>
-                          )}
+
                         </div>
                       </div>
                     ))
