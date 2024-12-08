@@ -26,7 +26,7 @@ import { useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
 import LoadingSpinner from '../LoadingSpinner';
-import ConditionalNode from '../nodes/logic/ConditionalNode';
+import IfElseNode from '../nodes/logic/IfElseNode';
 import dagre from '@dagrejs/dagre';
 import OutputDisplayNode from '../nodes/OutputDisplayNode';
 
@@ -37,8 +37,8 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
-        } else if (node.name === 'ConditionalNode') {
-          acc[node.name] = ConditionalNode;
+        } else if (node.name === 'IfElseNode') {
+          acc[node.name] = IfElseNode;
         } else {
           acc[node.name] = (props) => {
             return <OutputDisplayNode {...props} type={node.name} />;

@@ -26,7 +26,7 @@ interface BranchCondition {
   conditions: Condition[];
 }
 
-interface ConditionalsEditorProps {
+interface IfElseEditorProps {
   branches: BranchCondition[];
   onChange: (branches: BranchCondition[]) => void;
   inputSchema?: Record<string, string>;
@@ -56,7 +56,7 @@ const DEFAULT_BRANCH: BranchCondition = {
   conditions: [{ ...DEFAULT_CONDITION }]
 };
 
-const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
+const IfElseEditor: React.FC<IfElseEditorProps> = ({
   branches = [],
   onChange,
   inputSchema = {},
@@ -259,4 +259,4 @@ const ConditionalsEditor: React.FC<ConditionalsEditorProps> = ({
   );
 };
 
-export default ConditionalsEditor;
+export default IfElseEditor;

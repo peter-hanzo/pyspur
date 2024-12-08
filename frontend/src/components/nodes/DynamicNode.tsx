@@ -292,7 +292,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
     );
   };
 
-  const isConditionalNode = type === 'ConditionalNode';
+  const isIfElseNode = type === 'IfElseNode';
 
   return (
     <div
@@ -304,14 +304,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
         data={nodeData}
         style={{
           width: nodeWidth,
-          backgroundColor: isConditionalNode ? '#e0f7fa' : undefined,
+          backgroundColor: isIfElseNode ? '#e0f7fa' : undefined,
         }}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         selected={props.selected}
       >
         <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-          {isConditionalNode ? (
+          {isIfElseNode ? (
             <div>
               <strong>Conditional Node</strong>
             </div>

@@ -69,7 +69,7 @@ class JSPydanticModel {
                 validator(obj);
 
                 // Special handling for conditional node
-                if (node.name === 'ConditionalNode' && key === 'config') {
+                if (node.name === 'IfElseNode' && key === 'config') {
                   obj.branches = [
                     {
                       conditions: [

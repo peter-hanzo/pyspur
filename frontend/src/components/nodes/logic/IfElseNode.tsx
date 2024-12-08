@@ -18,7 +18,7 @@ interface Branch {
   conditions: Condition[];
 }
 
-interface ConditionalNodeData {
+interface IfElseNodeData {
   color?: string;
   config: {
     branches: Branch[];
@@ -28,9 +28,9 @@ interface ConditionalNodeData {
   };
 }
 
-interface ConditionalNodeProps {
+interface IfElseNodeProps {
   id: string;
-  data: ConditionalNodeData;
+  data: IfElseNodeData;
   selected?: boolean;
 }
 
@@ -56,7 +56,7 @@ const DEFAULT_BRANCH: Branch = {
   conditions: [{ ...DEFAULT_CONDITION }]
 };
 
-export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) => {
+export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const nodeRef = useRef<HTMLDivElement | null>(null);
@@ -101,7 +101,7 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
       output_schema[`branch${index + 1}`] = 'any';
     });
 
-    const updatedData: ConditionalNodeData = {
+    const updatedData: IfElseNodeData = {
       ...data,
       config: {
         ...data.config,

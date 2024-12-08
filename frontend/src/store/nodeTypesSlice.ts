@@ -27,7 +27,7 @@ interface BranchCondition {
   conditions: Condition[];
 }
 
-interface ConditionalNodeConfig {
+interface IfElseNodeConfig {
   branches: BranchCondition[];
   input_schema: Record<string, string>;
   output_schema: Record<string, string>;

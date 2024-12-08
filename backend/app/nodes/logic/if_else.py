@@ -33,8 +33,8 @@ class BranchCondition(BaseModel):
     conditions: List[Condition]
 
 
-class ConditionalNodeConfig(DynamicSchemaNodeConfig):
-    """Configuration for the conditional node."""
+class IfElseNodeConfig(DynamicSchemaNodeConfig):
+    """Configuration for the if-else node."""
     branches: List[BranchCondition]
     input_schema: Dict[str, str] = {"input": "any"}  # The input data to be routed
     output_schema: Dict[str, str] = Field(
@@ -42,25 +42,25 @@ class ConditionalNodeConfig(DynamicSchemaNodeConfig):
     )  # Will be dynamically populated
 
 
-class ConditionalNodeInput(BaseModel):
-    """Input model for the conditional node."""
+class IfElseNodeInput(BaseModel):
+    """Input model for the if-else node."""
     input: Dict[str, Any]  # The input data to be routed, now expecting a dictionary of variables
 
 
-class ConditionalNodeOutput(BaseModel):
-    """Output model for the conditional node."""
+class IfElseNodeOutput(BaseModel):
+    """Output model for the if-else node."""
     outputs: Dict[str, Any] = Field(default_factory=dict)
 
 
-class ConditionalNode(DynamicSchemaNode):
+class IfElseNode(DynamicSchemaNode):
     """
     A routing node that directs input data to different branches
     based on the evaluation of multiple conditions per branch. The first branch acts as the default
     if no other conditions match.
     """
 
-    name = "conditional_node"
-    config_model = ConditionalNodeConfig
+    name = "if_else_node"
+    config_model = IfElseNodeConfig
 
     def _evaluate_single_condition(
         self, input_value: Any, condition: Condition
@@ -119,7 +119,7 @@ class ConditionalNode(DynamicSchemaNode):
 
         return result
 
-    async def run(self, input_data: ConditionalNodeInput) -> ConditionalNodeOutput:
+    async def run(self, input_data: IfElseNodeInput) -> IfElseNodeOutput:
         """
         Evaluates conditions and routes the input data to the matching branch.
         The first branch acts as the default if no other conditions match.
@@ -130,7 +130,7 @@ class ConditionalNode(DynamicSchemaNode):
         # Always route to first branch if it's the only one
         if len(self.config.branches) == 1:
             outputs["branch1"] = input_value
-            return ConditionalNodeOutput(outputs=outputs)
+            return IfElseNodeOutput(outputs=outputs)
 
         # Evaluate conditions for all branches except the first one
         matched = False
@@ -144,7 +144,7 @@ class ConditionalNode(DynamicSchemaNode):
         if not matched:
             outputs["branch1"] = input_value
 
-        return ConditionalNodeOutput(outputs=outputs)
+        return IfElseNodeOutput(outputs=outputs)
 
     def initialize(self) -> None:
         """Initialize the node and set up the output schema"""

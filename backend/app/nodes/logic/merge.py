@@ -7,7 +7,7 @@ from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
 class MergeNodeConfig(DynamicSchemaNodeConfig):
     branch_refs: List[str] = Field(
         default_factory=list,
-        description="References to conditional branches that this node merges"
+        description="References to conditional branches that this node merges",
     )
     merge_strategy: str = Field(
         default="first_active",

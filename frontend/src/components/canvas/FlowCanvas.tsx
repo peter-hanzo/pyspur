@@ -26,7 +26,7 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
-import { ConditionalNode } from '../nodes/logic/ConditionalNode';
+import { IfElseNode } from '../nodes/logic/IfElseNode';
 import MergeNode from '../nodes/logic/MergeNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
@@ -81,8 +81,8 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
-        } else if (node.name === 'ConditionalNode') {
-          acc[node.name] = ConditionalNode;
+        } else if (node.name === 'IfElseNode') {
+          acc[node.name] = IfElseNode;
         } else if (node.name === 'MergeNode') {
           acc[node.name] = MergeNode;
         } else {

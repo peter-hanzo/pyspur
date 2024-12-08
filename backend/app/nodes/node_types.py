@@ -23,9 +23,9 @@ SUPPORTED_NODE_TYPES = {
     ],
     "logic": [
         {
-            "node_type_name": "ConditionalNode",
-            "module": ".nodes.logic.conditional",
-            "class_name": "ConditionalNode",
+            "node_type_name": "IfElseNode",
+            "module": ".nodes.logic.if_else",
+            "class_name": "IfElseNode",
         },
         {
             "node_type_name": "MergeNode",
