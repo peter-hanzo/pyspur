@@ -26,7 +26,8 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
-import { ConditionalNode } from '../nodes/ConditionalNode';
+import { ConditionalNode } from '../nodes/logic/ConditionalNode';
+import MergeNode from '../nodes/logic/MergeNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
@@ -82,6 +83,8 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
           acc[node.name] = InputNode;
         } else if (node.name === 'ConditionalNode') {
           acc[node.name] = ConditionalNode;
+        } else if (node.name === 'MergeNode') {
+          acc[node.name] = MergeNode;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} />;
@@ -569,6 +572,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             onNodeMouseLeave={onNodeMouseLeave}
             onEdgeMouseEnter={onEdgeMouseEnter}
             onEdgeMouseLeave={onEdgeMouseLeave}
+            snapToGrid={true}
+            snapGrid={[25, 25]}
           >
             <Background />
             {showHelperLines && (

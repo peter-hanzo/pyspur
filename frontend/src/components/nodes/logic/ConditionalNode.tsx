@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import BaseNode from './BaseNode';
+import BaseNode from '../BaseNode';
 import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react';
 import { useDispatch } from 'react-redux';
-import { updateNodeData } from '../../store/flowSlice';
-import styles from './DynamicNode.module.css';
+import { updateNodeData } from '../../../store/flowSlice';
+import styles from '../DynamicNode.module.css';
 import { Icon } from "@iconify/react";
 
 interface Condition {
@@ -77,9 +77,9 @@ export const ConditionalNode: React.FC<ConditionalNodeProps> = ({ id, data }) =>
       const validBranches = data.config.branches.map(branch => ({
         conditions: Array.isArray(branch.conditions) && branch.conditions.length > 0
           ? branch.conditions.map((condition, index) => ({
-              ...condition,
-              logicalOperator: index > 0 ? (condition.logicalOperator || 'AND') : undefined
-            }))
+            ...condition,
+            logicalOperator: index > 0 ? (condition.logicalOperator || 'AND') : undefined
+          }))
           : [{ ...DEFAULT_CONDITION }]
       }));
       if (JSON.stringify(validBranches) !== JSON.stringify(data.config.branches)) {
