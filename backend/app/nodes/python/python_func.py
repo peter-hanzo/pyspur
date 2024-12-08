@@ -2,10 +2,15 @@ from typing import Dict, Any
 
 from pydantic import BaseModel
 
-from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ..base import (
+    VariableOutputBaseNode,
+    VariableOutputBaseNodeConfig,
+    BaseNodeInput,
+    BaseNodeOutput,
+)
 
 
-class PythonFuncNodeConfig(BaseNodeConfig):
+class PythonFuncNodeConfig(VariableOutputBaseNodeConfig):
     code: str = "\n".join(
         [
             "# Write your Python code here.",
@@ -23,7 +28,7 @@ class PythonFuncNodeOutput(BaseNodeOutput):
     pass
 
 
-class PythonFuncNode(BaseNode):
+class PythonFuncNode(VariableOutputBaseNode):
     """
     Node type for executing Python code on the input data.
     """
@@ -39,8 +44,7 @@ class PythonFuncNode(BaseNode):
     async def run(self, input: BaseModel) -> BaseModel:
         # Prepare the execution environment
         exec_globals: Dict[str, Any] = {}
-        exec_locals: Dict[str, Any] = {"input": input}
-        print("input", input.model_dump())
+        exec_locals: Dict[str, Any] = {"input_model": input}
 
         # Execute the user-defined code
         exec(self.config.code, exec_globals, exec_locals)
@@ -62,9 +66,9 @@ if __name__ == "__main__":
         code="\n".join(
             [
                 "# Write your Python code here.",
-                '# The input data is available as "input" pydantic model.',
+                '# The input data is available as "input_model" pydantic model.',
                 "# The output will be the local variables that are also in the output schema.",
-                "output = input.A.number ** 2",
+                "output = input_model.Input.number ** 2",
             ]
         ),
         output_schema={"output": "int"},
@@ -72,8 +76,8 @@ if __name__ == "__main__":
     A = create_model(
         "Input", number=(int, ...), __base__=BaseNodeOutput
     ).model_validate({"number": 5})
-    input = {"A": A}
-    node = PythonFuncNode(config=config)
+    input = {"Input": A}
+    node = PythonFuncNode(config=config, name="PythonFuncTest")
 
     output = asyncio.run(node(input))
     print(output)

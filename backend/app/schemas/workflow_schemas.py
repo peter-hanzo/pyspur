@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ValidationInfo, field_validator
 
 from ..nodes.node_types import is_valid_node_type
 
@@ -24,7 +24,7 @@ class WorkflowNodeSchema(BaseModel):
     """
 
     id: str  # ID in the workflow
-    title: Optional[str] = ""  # Display name
+    title: str = ""  # Display name
     node_type: str  # Name of the node type
     config: Dict[str, Any] = (
         {}
@@ -33,6 +33,12 @@ class WorkflowNodeSchema(BaseModel):
         None  # Position of the node in the workflow
     )
     subworkflow: Optional["WorkflowDefinitionSchema"] = None  # Sub-workflow definition
+
+    @field_validator("title")
+    def default_title_to_id(cls, v: str, info: ValidationInfo):
+        if v == "":
+            return info.data.get("id", "")
+        return v
 
     @field_validator("node_type")
     def type_must_be_in_factory(cls, v: str):

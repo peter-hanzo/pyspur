@@ -1,14 +1,14 @@
 from typing import Dict
 from pydantic import BaseModel
 from ..base import (
-    BaseNode,
-    BaseNodeConfig,
     BaseNodeInput,
     BaseNodeOutput,
+    VariableOutputBaseNode,
+    VariableOutputBaseNodeConfig,
 )
 
 
-class InputNodeConfig(BaseNodeConfig):
+class InputNodeConfig(VariableOutputBaseNodeConfig):
     """
     Configuration for the InputNode.
     """
@@ -25,7 +25,7 @@ class InputNodeOutput(BaseNodeOutput):
     pass
 
 
-class InputNode(BaseNode):
+class InputNode(VariableOutputBaseNode):
     """
     Node for defining dataset schema and using the output as input for other nodes.
     """

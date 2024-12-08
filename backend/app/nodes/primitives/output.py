@@ -1,21 +1,22 @@
 from typing import Any, Dict
 from pydantic import BaseModel, Field
 from ..base import (
-    BaseNode,
-    BaseNodeConfig,
     BaseNodeInput,
     BaseNodeOutput,
+    VariableOutputBaseNode,
+    VariableOutputBaseNodeConfig,
 )
+from ...utils.pydantic_utils import get_nested_field
 
 
-class OutputNodeConfig(BaseNodeConfig):
+class OutputNodeConfig(VariableOutputBaseNodeConfig):
     """
     Configuration for the OutputNode.
     """
 
-    input_output_map: Dict[str, str] = Field(
+    output_map: Dict[str, str] = Field(
         default={},
-        title="Input Output Map",
+        title="Output Map",
         description="A dictionary mapping input field names to output field names.",
     )
 
@@ -28,7 +29,7 @@ class OutputNodeOutput(BaseNodeOutput):
     pass
 
 
-class OutputNode(BaseNode):
+class OutputNode(VariableOutputBaseNode):
     """
     Node for defining output schema and using the input from other nodes.
     """
@@ -38,22 +39,12 @@ class OutputNode(BaseNode):
     input_model = OutputNodeInput
     output_model = OutputNodeOutput
 
-    def get_nested_field(self, field_name_with_dots: str, model: BaseModel) -> Any:
-        """
-        Get the value of a nested field from a Pydantic model.
-        """
-        field_names = field_name_with_dots.split(".")
-        value = model
-        for field_name in field_names:
-            value = getattr(value, field_name)
-        return value
-
     async def run(self, input: BaseModel) -> BaseModel:
-        output = {}
-        if self.config.input_output_map:
-            for input_key, output_key in self.config.input_output_map.items():
+        output: Dict[str, Any] = {}
+        if self.config.output_map:
+            for output_key, input_key in self.config.output_map.items():
                 # input_key is the field name with dot notation to access nested fields
-                output[output_key] = self.get_nested_field(input_key, input)
+                output[output_key] = get_nested_field(input_key, input)
         else:
             output = input.model_dump()
         return self.output_model(**output)
