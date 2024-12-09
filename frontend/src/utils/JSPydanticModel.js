@@ -215,52 +215,51 @@ class JSPydanticModel {
       this.setNestedMetadata(path, metadata);
     }
 
-    // Handle root-level arrays (primitives, llm, python)
-    ['primitives', 'json', 'llm', 'python', 'subworkflow', 'logic'].forEach(category => {
-      if (Array.isArray(schema[category])) {
-        if (!this._metadata[category]) {
-          this._metadata[category] = [];
+    // Handle root-level arrays (any category)
+    const categories = Object.keys(schema).filter(key => Array.isArray(schema[key]));
+    categories.forEach(category => {
+      if (!this._metadata[category]) {
+        this._metadata[category] = [];
+      }
+
+      schema[category].forEach((node, index) => {
+        // Store the node's name and visual_tag at the category level
+        if (!this._metadata[category][index]) {
+          this._metadata[category][index] = {
+            name: node.name,
+            visual_tag: node.visual_tag,
+            input: {},
+            output: {},
+            config: {}
+          };
+        } else {
+          // Update existing metadata with name and visual_tag
+          this._metadata[category][index].name = node.name;
+          this._metadata[category][index].visual_tag = node.visual_tag;
         }
 
-        schema[category].forEach((node, index) => {
-          // Store the node's name and visual_tag at the category level
-          if (!this._metadata[category][index]) {
-            this._metadata[category][index] = {
-              name: node.name,
-              visual_tag: node.visual_tag,
-              input: {},
-              output: {},
-              config: {}
-            };
-          } else {
-            // Update existing metadata with name and visual_tag
-            this._metadata[category][index].name = node.name;
-            this._metadata[category][index].visual_tag = node.visual_tag;
-          }
+        ['input', 'output', 'config'].forEach(schemaType => {
+          if (node[schemaType]) {
+            const newPath = [category, index, schemaType];
+            this._extractMetadata(node[schemaType], newPath);
 
-          ['input', 'output', 'config'].forEach(schemaType => {
-            if (node[schemaType]) {
-              const newPath = [category, index, schemaType];
-              this._extractMetadata(node[schemaType], newPath);
-
-              // Handle $defs without including it in path
-              if (schemaType === 'config' && node[schemaType].$defs) {
-                Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
-                  // Remove '$defs' from path
-                  this._extractMetadata(value, [...newPath, key]);
-                });
-              }
-
-              if (node[schemaType].properties) {
-                Object.entries(node[schemaType].properties).forEach(([key, value]) => {
-                  // Remove 'properties' from path
-                  this._extractMetadata(value, [...newPath, key]);
-                });
-              }
+            // Handle $defs without including it in path
+            if (schemaType === 'config' && node[schemaType].$defs) {
+              Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
+                // Remove '$defs' from path
+                this._extractMetadata(value, [...newPath, key]);
+              });
             }
-          });
+
+            if (node[schemaType].properties) {
+              Object.entries(node[schemaType].properties).forEach(([key, value]) => {
+                // Remove 'properties' from path
+                this._extractMetadata(value, [...newPath, key]);
+              });
+            }
+          }
         });
-      }
+      });
     });
 
     // Handle $ref to definitions

@@ -119,8 +119,8 @@ const findMetadataInCategory = (
 ): any | null => {
   if (!metadata) return null;
 
-  // Find which category the node belongs to
-  const categories: (keyof Record<string, NodeMetadata[]>)[] = ['primitives', 'json', 'llm', 'python', 'logic'];
+  // Get categories dynamically from metadata object
+  const categories = Object.keys(metadata);
   for (const category of categories) {
     const nodes = metadata[category];
     if (!nodes) continue;
