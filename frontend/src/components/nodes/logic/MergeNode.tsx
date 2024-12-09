@@ -82,6 +82,7 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         style={{ width: nodeWidth }}
+        className="hover:!bg-background"
       >
         <div className={styles.nodeWrapper} ref={nodeRef}>
           <div className="flex flex-col gap-3">

@@ -310,11 +310,11 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
         data={nodeData}
         style={{
           width: nodeWidth,
-          backgroundColor: isIfElseNode ? '#e0f7fa' : undefined,
         }}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         selected={props.selected}
+        className="hover:!bg-background"
       >
         <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
           {isIfElseNode ? (

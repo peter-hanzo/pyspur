@@ -200,6 +200,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
         config: data.config
       }}
       style={{ width: nodeWidth }}
+      className="hover:!bg-background"
     >
       <div className="p-3" ref={nodeRef}>
         {/* Input handle */}
