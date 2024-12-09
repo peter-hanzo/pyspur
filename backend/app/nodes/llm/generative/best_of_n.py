@@ -49,6 +49,7 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig):
 
 class BestOfNNode(EphemeralSubworkflowNode):
     name = "best_of_n_node"
+    display_name = "Best of N"
     config_model = BestOfNNodeConfig
     workflow: WorkflowDefinitionSchema
 

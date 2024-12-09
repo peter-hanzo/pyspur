@@ -35,6 +35,7 @@ class BranchSolveMergeNodeConfig(DynamicSchemaNodeConfig):
 
 class BranchSolveMergeNode(EphemeralSubworkflowNode):
     name = "branch_solve_merge_node"
+    display_name = "Branch Solve Merge"
     config_model = BranchSolveMergeNodeConfig
 
     def generate_branch_solve_merge_workflow(self) -> WorkflowDefinitionSchema:
