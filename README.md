@@ -38,18 +38,19 @@ https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 # 🗺️ Roadmap
 
 - [X] Canvas
-- [X] ITC Nodes
 - [X] Async/Batch Execution
 - [X] Evals
-- [ ] Templates
-- [ ] Compile Spurs to Code
-- [ ] ITC Node Monitoring
+- [X] Spur API
 - [ ] New Nodes
+    - [X] LLM Nodes
+    - [X] If-Else
+    - [X] Merge Branches
     - [ ] Tools
     - [ ] Loops
-    - [ ] Conditionals
+- [ ] Pipeline optimization via DSPy and related methods
+- [ ] Templates
+- [ ] Compile Spurs to Code
 - [ ] Multimodal
-- [ ] Spur API
 - [ ] Containerization of Code Verifiers
 - [ ] Leaderboard
 - [ ] Generate Spurs via AI
