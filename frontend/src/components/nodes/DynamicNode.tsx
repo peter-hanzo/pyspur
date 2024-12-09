@@ -81,11 +81,17 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
         return;
       }
 
-      const updatedSchema = {
-        ...nodeData?.config?.[schemaType],
-        [newKey]: nodeData?.config?.[schemaType]?.[oldKey],
-      };
-      delete updatedSchema[oldKey];
+      const currentSchema = nodeData?.config?.[schemaType] || {};
+      // Convert to array of entries to preserve order
+      const schemaEntries = Object.entries(currentSchema);
+      // Find the index of the old key
+      const keyIndex = schemaEntries.findIndex(([key]) => key === oldKey);
+      if (keyIndex !== -1) {
+        // Replace the old key with new key while maintaining the value and position
+        schemaEntries[keyIndex] = [newKey, currentSchema[oldKey]];
+      }
+      // Reconstruct the object maintaining order
+      const updatedSchema = Object.fromEntries(schemaEntries);
 
       let updatedConfig = {
         ...nodeData?.config,
