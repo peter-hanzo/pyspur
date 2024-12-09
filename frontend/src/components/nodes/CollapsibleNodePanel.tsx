@@ -23,7 +23,6 @@ const CollapsibleNodePanel: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
   const [filteredNodeTypes, setFilteredNodeTypes] = useState<NodeTypesByCategory>({});
 
-
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
       addNodeWithoutConnection(nodeTypes, nodeName, reactFlowInstance, dispatch);
@@ -53,11 +52,11 @@ const CollapsibleNodePanel: React.FC = () => {
   }, [nodeTypes, searchTerm]);
 
   return (
-    <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-gray-200 bg-white transition-width duration-300 transition-height duration-300`}>
+    <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}>
       <Button
         isIconOnly
         size="md"
-        className="bg-white"
+        className="bg-background"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <Icon icon={isExpanded ? "solar:minus-square-linear" : "solar:widget-add-linear"} width={"80%"} className="text-default-500" />
@@ -80,7 +79,7 @@ const CollapsibleNodePanel: React.FC = () => {
                   {filteredNodeTypes[category].map((node: NodeType) => (
                     <div
                       key={node.name}
-                      className="flex items-center cursor-pointer p-2 hover:bg-gray-100"
+                      className="flex items-center cursor-pointer p-2 hover:bg-default-100"
                       onClick={() => handleAddNode(node.name)}
                     >
                       <div className="w-16 flex-shrink-0">
@@ -92,7 +91,7 @@ const CollapsibleNodePanel: React.FC = () => {
                         </div>
                       </div>
                       <span
-                        className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
                         title={node.config.title}
                       >
                         {node.config.title}
