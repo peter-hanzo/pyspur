@@ -16,8 +16,9 @@ class JSPydanticModel {
   }
 
   createObjectFromSchema() {
-    // Handle node types schema (primitives/llm/python)
-    if (this._schema.primitives || this._schema.json || this._schema.llm || this._schema.python || this._schema.subworkflow || this._schema.logic) {
+    // Handle node types schema (any category)
+    const categories = Object.keys(this._schema).filter(key => Array.isArray(this._schema[key]));
+    if (categories.length > 0) {
       return this.processNodeTypesSchema(this._schema);
     }
 
@@ -54,7 +55,10 @@ class JSPydanticModel {
   processNodeTypesSchema(schema) {
     const result = {};
 
-    ['primitives', 'json', 'llm', 'python', 'subworkflow', 'logic'].forEach(category => {
+    // Get all array-type properties from the schema
+    const categories = Object.keys(schema).filter(key => Array.isArray(schema[key]));
+
+    categories.forEach(category => {
       if (schema[category]) {
         result[category] = schema[category].map(node => {
           // Copy all fields from the original node
@@ -157,14 +161,13 @@ class JSPydanticModel {
   }
 
   extractMetadata() {
-    this._metadata = {
-      primitives: [],
-      json: [],
-      llm: [],
-      python: [],
-      subworkflow: [],
-      logic: []
-    };
+    // Initialize metadata with existing categories from schema
+    this._metadata = {};
+    const categories = Object.keys(this._schema).filter(key => Array.isArray(this._schema[key]));
+    categories.forEach(category => {
+      this._metadata[category] = [];
+    });
+
     this._extractMetadata(this._schema);
   }
 
