@@ -25,11 +25,10 @@ class PythonFuncNodeOutput(BaseModel):
 
 
 class PythonFuncNode(DynamicSchemaNode):
-    """
-    Node type for executing Python code on the input data.
-    """
+    """Node type for executing Python functions."""
 
     name = "python_func_node"
+    display_name = "Python Function"
     config_model = PythonFuncNodeConfig
     input_model = PythonFuncNodeInput
     output_model = PythonFuncNodeOutput

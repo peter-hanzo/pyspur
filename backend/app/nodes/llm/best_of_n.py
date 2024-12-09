@@ -31,7 +31,10 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig):
 
 
 class BestOfNNode(DynamicSchemaNode):
+    """Node type for running multiple LLM calls and selecting the best result."""
+
     name = "best_of_n_node"
+    display_name = "Best of N"
     config_model = BestOfNNodeConfig
     input_model = BaseModel
     output_model = BaseModel

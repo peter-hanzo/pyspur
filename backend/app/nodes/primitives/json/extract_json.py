@@ -29,6 +29,7 @@ class ExtractJsonNode(FixedInputDynamicOutputNode):
     """
 
     name = "extract_json_node"
+    display_name = "Extract JSON"
     config_model = ExtractJsonNodeConfig
     input_model = ExtractJsonNodeInput
     output_model = ExtractJsonNodeOutput

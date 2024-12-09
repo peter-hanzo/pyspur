@@ -24,6 +24,7 @@ class OutputNode(DynamicSchemaNode):
     """
 
     name = "output_node"
+    display_name = "Output"
     config_model = OutputNodeConfig
     input_model = OutputNodeInput
     output_model = OutputNodeOutput

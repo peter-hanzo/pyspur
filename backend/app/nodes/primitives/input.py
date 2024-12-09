@@ -24,6 +24,7 @@ class InputNode(DynamicSchemaNode):
     """
 
     name = "input_node"
+    display_name = "Input"
     config_model = InputNodeConfig
     input_model = InputNodeInput
     output_model = InputNodeOutput

@@ -27,7 +27,10 @@ class BranchSolveMergeNodeConfig(DynamicSchemaNodeConfig):
 
 
 class BranchSolveMergeNode(DynamicSchemaNode):
+    """Node type for branching problem solving with LLM."""
+
     name = "branch_solve_merge_node"
+    display_name = "Branch Solve Merge"
     config_model = BranchSolveMergeNodeConfig
     input_model = BaseModel
     output_model = BaseModel

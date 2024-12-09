@@ -37,6 +37,7 @@ class StructuredOutputNode(BaseNode):
     """
 
     name = "structured_output_llm_node"
+    display_name = "Structured Output LLM"
     config_model = StructuredOutputNodeConfig
     input_model = StructuredOutputNodeInput
     output_model = StructuredOutputNodeOutput

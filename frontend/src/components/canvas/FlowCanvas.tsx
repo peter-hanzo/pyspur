@@ -519,7 +519,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                         )
                       }
                     >
-                      {node.name}
+                      {node.config.title}
                     </DropdownItem>
                   ))}
                 </DropdownSection>

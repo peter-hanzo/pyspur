@@ -30,6 +30,7 @@ class BaseNode(ABC):
     """
 
     name: str
+    display_name: str = ""  # Will be used for config title, defaults to class name if not set
 
     config_model: Type[BaseModel]
     input_model: Type[BaseModel]

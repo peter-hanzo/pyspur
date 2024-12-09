@@ -33,6 +33,7 @@ class PickOneNode(DynamicInputFixedOutputNode):
     """
 
     name = "pick_one_node"
+    display_name = "Pick One"
     config_model = PickOneNodeConfig
     input_model = PickOneNodeInput
     output_model = PickOneNodeOutput

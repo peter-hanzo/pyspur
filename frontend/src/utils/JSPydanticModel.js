@@ -86,18 +86,11 @@ class JSPydanticModel {
                       ]
                     }
                   ];
-                }
 
-                // Merge the validated object with any existing fields
-                processedNode[key] = {
-                  ...node[key],  // Keep original fields like title, description etc
-                  ...obj         // Add validated default values
-                };
-
-                // Keep schema-specific properties for conditional node
-                if (node.name === 'conditional_node' && key === 'config') {
+                  // Merge the validated object with any existing fields
                   processedNode[key] = {
-                    ...processedNode[key],
+                    ...node[key],  // Keep original fields like title, description etc
+                    ...obj,        // Add validated default values
                     required: ['branches'],
                     properties: {
                       ...node[key].properties,
@@ -140,6 +133,12 @@ class JSPydanticModel {
                         }
                       }
                     }
+                  };
+                } else {
+                  // Merge the validated object with any existing fields for non-conditional nodes
+                  processedNode[key] = {
+                    ...node[key],  // Keep original fields like title, description etc
+                    ...obj         // Add validated default values
                   };
                 }
 

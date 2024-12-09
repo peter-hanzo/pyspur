@@ -34,6 +34,7 @@ class MergeNode(DynamicSchemaNode):
     """
 
     name = "merge_node"
+    display_name = "Merge"
     config_model = MergeNodeConfig
     input_model = MergeNodeInput
     output_model = MergeNodeOutput

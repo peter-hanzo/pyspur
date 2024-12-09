@@ -42,7 +42,10 @@ class MixtureOfAgentsNodeConfig(StringOutputLLMNodeConfig):
 
 
 class MixtureOfAgentsNode(StringOutputLLMNode):
-    name: str = "mixture_of_agents_node"
+    """Node type for using multiple agents with different prompts."""
+
+    name = "mixture_of_agents_node"
+    display_name = "Mixture of Agents"
     config_model = MixtureOfAgentsNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput

@@ -60,6 +60,7 @@ class IfElseNode(DynamicSchemaNode):
     """
 
     name = "if_else_node"
+    display_name = "If-Else"
     config_model = IfElseNodeConfig
 
     def _evaluate_single_condition(

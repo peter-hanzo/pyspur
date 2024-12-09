@@ -91,11 +91,11 @@ const CollapsibleNodePanel: React.FC = () => {
                           {node.visual_tag.acronym}
                         </div>
                       </div>
-                      <span 
+                      <span
                         className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                        title={node.name}
+                        title={node.config.title}
                       >
-                        {node.name}
+                        {node.config.title}
                       </span>
                     </div>
                   ))}
@@ -110,4 +110,3 @@ const CollapsibleNodePanel: React.FC = () => {
 };
 
 export default CollapsibleNodePanel;
-
