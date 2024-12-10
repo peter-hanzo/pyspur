@@ -60,15 +60,11 @@ class BaseSubworkflowNode(BaseNode, ABC):
         if self.subworkflow_output is None:
             self.subworkflow_output = {}
         mapped_input = self._map_input(input)
-        input_node = next(
-            (node for node in self.subworkflow.nodes if node.node_type == "InputNode")
-        )
-        input_dict = {input_node.id: mapped_input}
         workflow_executor = WorkflowExecutor(
             workflow=self.subworkflow, context=self.context
         )
         outputs = await workflow_executor.run(
-            input_dict, precomputed_outputs=self.subworkflow_output
+            mapped_input, precomputed_outputs=self.subworkflow_output
         )
         self.subworkflow_output.update(outputs)
         return self.subworkflow_output[self._subworkflow_output_node.id]
