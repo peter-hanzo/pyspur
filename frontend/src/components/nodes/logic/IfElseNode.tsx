@@ -200,7 +200,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
         config: data.config
       }}
       style={{ width: nodeWidth }}
-      className="hover:!bg-content2"
+      className="hover:!bg-background"
     >
       <div className="p-3" ref={nodeRef}>
         {/* Input handle */}
@@ -229,13 +229,8 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
               {(data.config?.branches || []).map((branch, branchIndex) => (
                 <Card
                   key={branchIndex}
-                  className="p-3"
                   classNames={{
-                    base: [
-                      "border-none",
-                      "bg-content1 dark:bg-content1",
-                      "shadow-small"
-                    ].join(" ")
+                    base: "bg-background border-default-200"
                   }}
                 >
                   <div className="flex flex-col gap-3">
@@ -349,7 +344,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                 variant="flat"
                 onClick={addBranch}
                 startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                className="bg-primary/20 hover:bg-primary/30"
+                className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
               >
                 Add Branch
               </Button>
