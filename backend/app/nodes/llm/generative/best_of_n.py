@@ -45,9 +45,7 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig, BaseSubworkflowNodeConfig):
         default="You are a helpful assistant.",
         description="System message for the generation LLM",
     )
-    user_message: str = Field(
-        default="{{ user_input }}", description="User message template"
-    )
+    user_message: str = Field(default="", description="User message template")
     output_schema: Dict[str, str] = Field(default={"response": "str"})
 
 
@@ -76,10 +74,9 @@ class BestOfNNode(BaseSubworkflowNode):
         links: List[WorkflowLinkSchema] = []
 
         # Input node
-        input_node_id = "input_node"
+        input_node_id = "best_of_n_input_node"
         input_node = WorkflowNodeSchema(
             id=input_node_id,
-            title="Input",
             node_type="InputNode",
             config={"enforce_schema": False},
         )
@@ -147,8 +144,7 @@ class BestOfNNode(BaseSubworkflowNode):
                     """highest_rating_key = max(ratings, key=ratings.get)\n"""
                     """print(highest_rating_key)\n"""
                     """corresponding_gen_key = highest_rating_key.replace('rating_node', 'generation_node')\n"""
-                    """corresponding_gen = gen_and_ratings[corresponding_gen_key]\n"""
-                    """response = corresponding_gen['response']\n"""
+                    """return gen_and_ratings[corresponding_gen_key]\n"""
                 ),
             },
         )
