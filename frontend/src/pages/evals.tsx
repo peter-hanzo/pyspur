@@ -4,7 +4,8 @@ import { useTheme } from "next-themes";
 import Header from "../components/Header";
 import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils/api";
 import EvalCard from "../components/cards/EvalCard";
-import { Spinner, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Alert } from "@nextui-org/react";
+import { Spinner, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Alert } from "@nextui-org/react";
+import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 
 interface EvalItem {
   name: string;

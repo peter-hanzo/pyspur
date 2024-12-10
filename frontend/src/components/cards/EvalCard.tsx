@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, CardHeader, Button, Select, SelectItem, Input, Alert } from "@nextui-org/react";
+import { Card, CardBody, CardHeader, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Alert, Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem, Slider } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from "../../utils/api";
-
+import { Radio, RadioGroup, RadioValue } from "@nextui-org/react";
 interface EvalCardProps {
   title: string;
   description: string;
