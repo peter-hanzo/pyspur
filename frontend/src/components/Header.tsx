@@ -368,22 +368,27 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             <NavbarItem className="hidden sm:flex">
               <SettingsCard />
             </NavbarItem>
-            <NavbarItem className="hidden sm:flex">
-              <Button
-                isIconOnly
-                radius="full"
-                variant="light"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              >
-                <Icon
-                  className="text-default-500"
-                  icon={theme === 'dark' ? 'solar:sun-linear' : 'solar:moon-linear'}
-                  width={24}
-                />
-              </Button>
-            </NavbarItem>
           </NavbarContent>
         )}
+        <NavbarContent
+          className="ml-2 flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+          justify="end"
+        >
+          <NavbarItem className="hidden sm:flex">
+            <Button
+              isIconOnly
+              radius="full"
+              variant="light"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              <Icon
+                className="text-default-500"
+                icon={theme === 'dark' ? 'solar:sun-linear' : 'solar:moon-linear'}
+                width={24}
+              />
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
       </Navbar>
       <RunModal
         isOpen={isDebugModalOpen}
