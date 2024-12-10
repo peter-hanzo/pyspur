@@ -45,6 +45,10 @@ interface FlowState {
   workflowInputVariables: Record<string, any>;
   testInputs: TestInput[];
   inputNodeValues: Record<string, any>;
+  history: {
+    past: Array<{nodes: Node[], edges: Edge[]}>;
+    future: Array<{nodes: Node[], edges: Edge[]}>;
+  };
 }
 
 const initialState: FlowState = {
@@ -58,6 +62,18 @@ const initialState: FlowState = {
   workflowInputVariables: {},
   testInputs: [],
   inputNodeValues: {},
+  history: {
+    past: [],
+    future: []
+  }
+};
+
+const saveToHistory = (state: FlowState) => {
+  state.history.past.push({
+    nodes: JSON.parse(JSON.stringify(state.nodes)),
+    edges: JSON.parse(JSON.stringify(state.edges))
+  });
+  state.history.future = [];
 };
 
 const flowSlice = createSlice({
@@ -104,11 +120,13 @@ const flowSlice = createSlice({
     },
 
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
+      saveToHistory(state);
       state.edges = addEdge(action.payload.connection, state.edges);
     },
 
     addNode: (state, action: PayloadAction<{ node: Node }>) => {
       if (action.payload.node) {
+        saveToHistory(state);
         state.nodes = [...state.nodes, action.payload.node];
       }
     },
@@ -134,6 +152,7 @@ const flowSlice = createSlice({
 
     deleteNode: (state, action: PayloadAction<{ nodeId: string }>) => {
       const nodeId = action.payload.nodeId;
+      saveToHistory(state);
       state.nodes = state.nodes.filter((node) => node.id !== nodeId);
       state.edges = state.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
       if (state.selectedNode === nodeId) {
@@ -142,6 +161,7 @@ const flowSlice = createSlice({
     },
 
     deleteEdge: (state, action: PayloadAction<{ edgeId: string }>) => {
+      saveToHistory(state);
       const edgeId = action.payload.edgeId;
       state.edges = state.edges.filter((edge) => edge.id !== edgeId);
     },
@@ -291,6 +311,30 @@ const flowSlice = createSlice({
     setEdges: (state, action) => {
       state.edges = action.payload.edges;
     },
+
+    undo: (state) => {
+      const previous = state.history.past.pop();
+      if (previous) {
+        state.history.future.push({
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          edges: JSON.parse(JSON.stringify(state.edges))
+        });
+        state.nodes = previous.nodes;
+        state.edges = previous.edges;
+      }
+    },
+
+    redo: (state) => {
+      const next = state.history.future.pop();
+      if (next) {
+        state.history.past.push({
+          nodes: JSON.parse(JSON.stringify(state.nodes)),
+          edges: JSON.parse(JSON.stringify(state.edges))
+        });
+        state.nodes = next.nodes;
+        state.edges = next.edges;
+      }
+    },
   },
 });
 
@@ -322,6 +366,8 @@ export const {
   addTestInput,
   updateTestInput,
   deleteTestInput,
+  undo,
+  redo,
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
