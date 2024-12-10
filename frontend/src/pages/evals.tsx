@@ -4,10 +4,7 @@ import { useTheme } from "next-themes";
 import Header from "../components/Header";
 import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils/api";
 import EvalCard from "../components/cards/EvalCard";
-import { Spinner, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip } from "@nextui-org/react";
-import { toast } from "sonner";
-import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
-import { RadialBarProps } from 'recharts';
+import { Spinner, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Alert } from "@nextui-org/react";
 
 interface EvalItem {
   name: string;
@@ -47,11 +44,18 @@ const statusColorMap: Record<string, "warning" | "primary" | "success" | "danger
   FAILED: "danger",
 };
 
+interface AlertState {
+  message: string;
+  color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
+  isVisible: boolean;
+}
+
 const EvalsPage: React.FC = () => {
   const [evals, setEvals] = useState<EvalItem[]>([]);
   const [evalRuns, setEvalRuns] = useState<EvalRun[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { theme } = useTheme();
+  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
 
   const router = useRouter();
 
@@ -69,6 +73,11 @@ const EvalsPage: React.FC = () => {
     return results;
   };
 
+  const showAlert = (message: string, color: AlertState['color']) => {
+    setAlert({ message, color, isVisible: true });
+    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+  };
+
   useEffect(() => {
     const fetchEvals = async () => {
       try {
@@ -76,7 +85,7 @@ const EvalsPage: React.FC = () => {
         setEvals(evalsData);
       } catch (error) {
         console.error("Error fetching evals:", error);
-        toast.error("Failed to load evals.");
+        showAlert("Failed to load evals.", "danger");
       } finally {
         setLoading(false);
       }
@@ -112,7 +121,7 @@ const EvalsPage: React.FC = () => {
         setEvalRuns(runsDataWithResults);
       } catch (error) {
         console.error("Error fetching eval runs:", error);
-        toast.error("Failed to load eval runs.");
+        showAlert("Failed to load eval runs.", "danger");
       }
     };
     fetchEvalRuns();
@@ -127,21 +136,22 @@ const EvalsPage: React.FC = () => {
     outputVariable: string
   ): Promise<void> => {
     if (!workflowId) {
-      toast.error("Workflow ID is missing.");
+      showAlert("Workflow ID is missing.", "danger");
       return;
     }
     if (!outputVariable) {
-      toast.error("Output variable is missing.");
+      showAlert("Output variable is missing.", "danger");
       return;
     }
 
-    toast(`Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`);
     try {
-      await startEvalRun(workflowId, evalName, outputVariable, numSamples);
-      toast.success(`Eval run started.`);
+      showAlert(`Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`, "default");
+      const evalRunResponse = await startEvalRun(workflowId, evalName, outputVariable, numSamples);
+      showAlert(`Eval run started.`, "success");
+      setEvalRuns((prevRuns) => [...prevRuns, evalRunResponse]);
     } catch (error) {
-      console.error(`Error launching eval:`, error);
-      toast.error(`Failed to launch eval.`);
+      console.error("Error launching eval:", error);
+      showAlert(`Failed to launch eval.`, "danger");
     }
   };
 
@@ -276,6 +286,13 @@ const EvalsPage: React.FC = () => {
           <p>No evals available.</p>
         )}
       </div>
+      {alert.isVisible && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Alert color={alert.color}>
+            {alert.message}
+          </Alert>
+        </div>
+      )}
     </div>
   );
 };

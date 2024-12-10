@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, CardFooter, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Slider, DropdownSection } from "@nextui-org/react";
+import { Card, CardBody, CardHeader, Button, Select, SelectItem, Input, Alert } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from "../../utils/api";
-import { toast } from "sonner";
-import { Key } from "@react-types/shared";
 
 interface EvalCardProps {
   title: string;
@@ -25,6 +23,12 @@ interface OutputVariable {
   prefixed_variable: string;
 }
 
+interface AlertState {
+  message: string;
+  color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
+  isVisible: boolean;
+}
+
 export default function EvalCard({ title, description, type, numSamples, paperLink, onRun }: EvalCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -32,8 +36,13 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
   const [outputVariables, setOutputVariables] = useState<OutputVariable[]>([]);
   const [selectedOutputVariable, setSelectedOutputVariable] = useState<string | null>(null);
   const [selectedNumSamples, setSelectedNumSamples] = useState(1);
+  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
 
-  // Rest of the component remains the same, but now with proper typing
+  const showAlert = (message: string, color: AlertState['color']) => {
+    setAlert({ message, color, isVisible: true });
+    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+  };
+
   useEffect(() => {
     if (isModalOpen) {
       console.log("eval information", title, description, type, numSamples, paperLink);
@@ -43,7 +52,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
           setWorkflows(workflowsData);
         } catch (error) {
           console.error("Error fetching workflows:", error);
-          toast.error("Failed to load workflows.");
+          showAlert("Failed to load workflows.", "danger");
         }
       };
 
@@ -59,7 +68,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
           setOutputVariables(variables);
         } catch (error) {
           console.error("Error fetching output variables:", error);
-          toast.error("Failed to load output variables.");
+          showAlert("Failed to load output variables.", "danger");
         }
       };
 
@@ -69,11 +78,11 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
 
   const handleRunEval = async () => {
     if (!selectedWorkflow) {
-      toast.error("Please select a workflow.");
+      showAlert("Please select a workflow.", "danger");
       return;
     }
     if (!selectedOutputVariable) {
-      toast.error("Please select an output variable.");
+      showAlert("Please select an output variable.", "danger");
       return;
     }
 
@@ -84,16 +93,23 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
         selectedOutputVariable,
         selectedNumSamples
       );
-      toast.success(`Eval run started with ID: ${evalRunResponse.run_id}`);
+      showAlert(`Eval run started with ID: ${evalRunResponse.run_id}`, "success");
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error starting eval run:", error);
-      toast.error("Failed to start eval run.");
+      showAlert("Failed to start eval run.", "danger");
     }
   };
 
   return (
     <>
+      {alert.isVisible && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Alert color={alert.color}>
+            {alert.message}
+          </Alert>
+        </div>
+      )}
       <Card className="relative w-full">
         <CardBody className="relative min-h-[220px] bg-gradient-to-br from-content1 to-default-100/50 p-6">
           <h2 className="text-xl font-semibold mb-2">{title}</h2>
@@ -106,7 +122,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
             </a>
           )}
         </CardBody>
-        <CardFooter className="border-t-1 border-default-100 justify-end py-2 px-4">
+        <CardHeader className="border-t-1 border-default-100 justify-end py-2 px-4">
           <Button
             color="primary"
             variant="flat"
@@ -115,7 +131,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
           >
             Run Eval
           </Button>
-        </CardFooter>
+        </CardHeader>
       </Card>
 
       <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
