@@ -206,13 +206,11 @@ if __name__ == "__main__":
                     "coordinates": {"x": 281.25, "y": 128.75},
                 },
                 {
-                    "id": "llm_node",
+                    "id": "bon_node",
                     "title": "",
-                    "node_type": "SingleLLMCallNode",
+                    "node_type": "BestOfNNode",
                     "config": {
-                        "title": "SingleLLMCallNodeConfig",
-                        "type": "object",
-                        "input_schema": {"question": "str"},
+                        "samples": 1,
                         "output_schema": {
                             "response": "str",
                             "next_potential_question": "str",
@@ -224,7 +222,7 @@ if __name__ == "__main__":
                             "top_p": 1,
                         },
                         "system_message": "You are a helpful assistant.",
-                        "user_message": "{{input_node.question}}",
+                        "user_message": "",
                     },
                     "coordinates": {"x": 722.5, "y": 228.75},
                 },
@@ -237,8 +235,8 @@ if __name__ == "__main__":
                         "type": "object",
                         "output_schema": {"question": "str", "response": "str"},
                         "output_map": {
-                            "question": "llm_node.next_potential_question",
-                            "response": "llm_node.response",
+                            "question": "bon_node.next_potential_question",
+                            "response": "bon_node.response",
                         },
                     },
                     "coordinates": {"x": 1187.5, "y": 203.75},
@@ -247,10 +245,10 @@ if __name__ == "__main__":
             "links": [
                 {
                     "source_id": "input_node",
-                    "target_id": "llm_node",
+                    "target_id": "bon_node",
                 },
                 {
-                    "source_id": "llm_node",
+                    "source_id": "bon_node",
                     "target_id": "output_node",
                 },
             ],
