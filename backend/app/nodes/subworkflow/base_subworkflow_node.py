@@ -46,6 +46,8 @@ class BaseSubworkflowNode(BaseNode, ABC):
         return dependencies
 
     def _map_input(self, input: BaseModel) -> Dict[str, Any]:
+        if self.config.input_map == {}:
+            return input.model_dump()
         mapped_input: Dict[str, Any] = {}
         for subworkflow_input_field, input_var_path in self.config.input_map.items():
             input_var = get_nested_field(input_var_path, input)
@@ -53,16 +55,20 @@ class BaseSubworkflowNode(BaseNode, ABC):
         return mapped_input
 
     async def run(self, input: BaseModel) -> BaseModel:
-        assert self.subworkflow is not None
         self.setup_subworkflow()
+        assert self.subworkflow is not None
         if self.subworkflow_output is None:
             self.subworkflow_output = {}
         mapped_input = self._map_input(input)
+        input_node = next(
+            (node for node in self.subworkflow.nodes if node.node_type == "InputNode")
+        )
+        input_dict = {input_node.id: mapped_input}
         workflow_executor = WorkflowExecutor(
             workflow=self.subworkflow, context=self.context
         )
         outputs = await workflow_executor.run(
-            mapped_input, precomputed_outputs=self.subworkflow_output
+            input_dict, precomputed_outputs=self.subworkflow_output
         )
         self.subworkflow_output.update(outputs)
         return self.subworkflow_output[self._subworkflow_output_node.id]
