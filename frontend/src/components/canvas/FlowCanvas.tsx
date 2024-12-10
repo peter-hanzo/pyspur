@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { ReactFlow, Background, ReactFlowProvider, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes, EdgeTypes, ReactFlowInstance, XYPosition } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
-import Operator from './footer/operator/Operator';
+import Operator from './footer/Operator';
 import {
   nodesChange,
   edgesChange,

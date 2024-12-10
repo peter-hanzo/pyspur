@@ -211,7 +211,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
             id="input"
             className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
           />
-          {!isCollapsed && <span className="text-sm font-medium ml-2">Input →</span>}
+          {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">Input →</span>}
         </div>
 
         {!isCollapsed && (
@@ -220,14 +220,19 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
 
             {/* Expressions Header */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm font-medium">Expressions</span>
+              <span className="text-sm font-medium text-foreground">Expressions</span>
               <Divider className="flex-grow" />
             </div>
 
             {/* Branches */}
             <div className="flex flex-col gap-4">
               {(data.config?.branches || []).map((branch, branchIndex) => (
-                <Card key={branchIndex} className="p-3">
+                <Card
+                  key={branchIndex}
+                  classNames={{
+                    base: "bg-background border-default-200"
+                  }}
+                >
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
                     {(branch.conditions || []).map((condition, conditionIndex) => (
@@ -252,6 +257,10 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                             onChange={(e) => updateCondition(branchIndex, conditionIndex, 'variable', e.target.value)}
                             placeholder="Select variable"
                             className="flex-1"
+                            classNames={{
+                              trigger: "bg-default-100 dark:bg-default-50",
+                              popoverContent: "bg-background dark:bg-background"
+                            }}
                           >
                             {inputVariables.map((variable) => (
                               <SelectItem key={variable.value} value={variable.value}>
@@ -264,6 +273,10 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                             value={condition.operator}
                             onChange={(e) => updateCondition(branchIndex, conditionIndex, 'operator', e.target.value)}
                             className="flex-1"
+                            classNames={{
+                              trigger: "bg-default-100 dark:bg-default-50",
+                              popoverContent: "bg-background dark:bg-background"
+                            }}
                           >
                             {OPERATORS.map((op) => (
                               <SelectItem key={op.value} value={op.value}>
@@ -278,6 +291,10 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                               onChange={(e) => updateCondition(branchIndex, conditionIndex, 'value', e.target.value)}
                               placeholder="Value"
                               className="flex-1"
+                              classNames={{
+                                input: "bg-default-100 dark:bg-default-50",
+                                inputWrapper: "shadow-none"
+                              }}
                             />
                           )}
                           <Button
@@ -299,6 +316,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                       variant="flat"
                       onClick={() => addCondition(branchIndex)}
                       startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                      className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
                     >
                       Add Condition
                     </Button>
@@ -306,7 +324,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                     {/* Branch Output Handle */}
                     <div className={`${styles.handleRow} w-full justify-end mt-2`}>
                       <div className="align-center flex flex-grow flex-shrink mr-2">
-                        <span className="text-sm font-medium ml-auto">Branch {branchIndex + 1} →</span>
+                        <span className="text-sm font-medium ml-auto text-foreground">Branch {branchIndex + 1} →</span>
                       </div>
                       <Handle
                         type="source"
@@ -326,6 +344,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
                 variant="flat"
                 onClick={addBranch}
                 startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
               >
                 Add Branch
               </Button>

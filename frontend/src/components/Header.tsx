@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useTheme } from "next-themes";
 import {
   Input,
   Navbar,
@@ -14,6 +13,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  Alert,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
@@ -56,8 +56,13 @@ interface WorkflowResponse {
   description: string;
 }
 
+interface AlertState {
+  message: string;
+  color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
+  isVisible: boolean;
+}
+
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
-  const { theme, setTheme } = useTheme();
   const dispatch = useDispatch();
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const projectName = useSelector((state: RootState) => state.flow.projectName);
@@ -67,6 +72,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const [workflowRuns, setWorkflowRuns] = useState<any[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const workflowId = useSelector((state: RootState) => state.flow.workflowID);
+  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
 
   const router = useRouter();
   const { id } = router.query;
@@ -90,6 +96,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
   }, [workflowId]);
 
+  const showAlert = (message: string, color: AlertState['color']) => {
+    setAlert({ message, color, isVisible: true });
+    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+  };
+
   const updateWorkflowStatus = async (runID: string): Promise<void> => {
     let pollCount = 0;
     if (currentStatusInterval) {
@@ -103,7 +114,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         if (statusResponse.status === 'FAILED') {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
-          toast.error('Workflow run failed.');
+          showAlert('Workflow run failed.', 'danger');
           return;
         }
 
@@ -119,7 +130,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
-          toast.success('Workflow run completed.');
+          showAlert('Workflow run completed.', 'success');
         }
 
         pollCount += 1;
@@ -136,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     if (!workflowID) return;
 
     try {
-      toast('Starting workflow run...');
+      showAlert('Starting workflow run...', 'default');
       const result = await startRun(workflowId, inputValues, null, 'interactive');
       console.log('Workflow run started:', result);
       setIsRunning(true);
@@ -145,7 +156,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
       updateWorkflowStatus(result.id);
     } catch (error) {
       console.error('Error starting workflow run:', error);
-      toast.error('Error starting workflow run.');
+      showAlert('Error starting workflow run.', 'danger');
     }
   };
 
@@ -158,7 +169,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     if (currentStatusInterval) {
       clearInterval(currentStatusInterval);
     }
-    toast('Workflow run stopped.');
+    showAlert('Workflow run stopped.', 'warning');
   };
 
   const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -212,7 +223,13 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
   return (
     <>
-      <Toaster richColors position="bottom-right" />
+      {alert.isVisible && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Alert color={alert.color}>
+            {alert.message}
+          </Alert>
+        </div>
+      )}
       <Navbar
         classNames={{
           base: "lg:bg-background lg:backdrop-filter-none h-12 mt-1 shadow-sm",
@@ -230,7 +247,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             "data-[active=true]:after:h-[2px]",
             "data-[active=true]:after:rounded-[2px]",
             "data-[active=true]:after:bg-primary",
-            "data-[active=true]:text-primary",
+            "data-[active=true]:after:text-primary",
           ],
         }}
       >
@@ -289,7 +306,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             justify="end"
             id="workflow-actions-buttons"
           >
-
             {!isRun && (
               <>
                 {isRunning ? (
@@ -365,9 +381,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                 />
               </Button>
             </NavbarItem>
-            <NavbarItem className="hidden sm:flex">
-              <SettingsCard />
-            </NavbarItem>
           </NavbarContent>
         )}
         <NavbarContent
@@ -375,18 +388,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           justify="end"
         >
           <NavbarItem className="hidden sm:flex">
-            <Button
-              isIconOnly
-              radius="full"
-              variant="light"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <Icon
-                className="text-default-500"
-                icon={theme === 'dark' ? 'solar:sun-linear' : 'solar:moon-linear'}
-                width={24}
-              />
-            </Button>
+            <SettingsCard />
           </NavbarItem>
         </NavbarContent>
       </Navbar>

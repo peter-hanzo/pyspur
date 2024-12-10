@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Header from "../../components/Header";
 import { getEvalRunStatus } from "../../utils/api";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, Button, useDisclosure } from "@nextui-org/react";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, Button, useDisclosure, Alert } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { toast } from "sonner";
 
 interface PerExampleResult {
   example_id?: string;
@@ -35,6 +34,12 @@ interface EvalRunData {
   };
 }
 
+interface AlertState {
+  message: string;
+  color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
+  isVisible: boolean;
+}
+
 const EvalResultsPage: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
@@ -42,6 +47,12 @@ const EvalResultsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
+
+  const showAlert = (message: string, color: AlertState['color']) => {
+    setAlert({ message, color, isVisible: true });
+    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+  };
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -59,7 +70,7 @@ const EvalResultsPage: React.FC = () => {
         setResults(normalizedResults);
       } catch (error) {
         console.error("Error fetching eval results:", error);
-        toast.error("Failed to fetch eval results");
+        showAlert("Failed to fetch eval results", "danger");
       } finally {
         setLoading(false);
       }
@@ -192,6 +203,14 @@ const EvalResultsPage: React.FC = () => {
           )}
         </ModalContent>
       </Modal>
+
+      {alert.isVisible && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Alert color={alert.color}>
+            {alert.message}
+          </Alert>
+        </div>
+      )}
     </div>
   );
 };

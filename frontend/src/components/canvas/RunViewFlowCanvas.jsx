@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { ReactFlow, Background, ReactFlowProvider, useViewport } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
-import Operator from './footer/operator/Operator';
+import Operator from './footer/Operator';
 import {
   nodesChange,
   edgesChange,
@@ -28,7 +28,7 @@ import InputNode from '../nodes/InputNode';
 
 import LoadingSpinner from '../LoadingSpinner';
 import IfElseNode from '../nodes/logic/IfElseNode';
-import LoadingSpinner from '../LoadingSpinner'; 
+import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
 import OutputDisplayNode from '../nodes/OutputDisplayNode';
 

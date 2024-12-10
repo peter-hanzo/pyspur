@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Dispatch, SetStateAction } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Modal,
@@ -17,7 +17,7 @@ import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
 interface DeployModalProps {
   isOpen: boolean;
-  onOpenChange: () => void;
+  onOpenChange: Dispatch<SetStateAction<boolean>>;
   getApiEndpoint: () => string;
 }
 
@@ -255,7 +255,7 @@ int main() {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button color="primary" onPress={onOpenChange}>
+          <Button color="primary" onPress={() => onOpenChange(false)}>
             Close
           </Button>
         </ModalFooter>
