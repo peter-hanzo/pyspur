@@ -567,10 +567,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
   return (
     <Card
-      className="fixed top-16 bottom-4 right-4 w-96 p-4 bg-white rounded-xl border border-solid border-gray-200 overflow-auto"
+      className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
     >
       <div
-        className="absolute top-0 right-0 h-full bg-white border-l border-gray-200 flex"
+        className="absolute top-0 right-0 h-full flex"
         style={{
           width: `${width}px`,
           zIndex: 2,
@@ -578,10 +578,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }}
       >
         <div
-          className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-blue-500 hover:opacity-100 opacity-0 transition-opacity"
+          className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary hover:opacity-100 opacity-0 transition-opacity"
           onMouseDown={handleMouseDown}
           style={{
-            backgroundColor: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
+            backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : 'transparent',
             opacity: isResizing ? '1' : undefined
           }}
         />

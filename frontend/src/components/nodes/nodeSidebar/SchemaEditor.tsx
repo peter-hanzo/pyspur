@@ -151,7 +151,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
               />
             ) : (
               <span
-                className="mr-2 p-1 border rounded-full bg-gray-100 cursor-pointer"
+                className="mr-2 p-1 border rounded-full bg-default-100 hover:bg-default-200 cursor-pointer"
                 onClick={() => setEditingField(key)}
               >
                 {key}
