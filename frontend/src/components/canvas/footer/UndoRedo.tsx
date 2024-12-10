@@ -14,20 +14,20 @@ const UndoRedo: FC<UndoRedoProps> = ({ handleUndo, handleRedo }) => {
         <Button
           size="sm"
           isIconOnly
-          className="bg-white"
+          className="bg-background"
           data-tooltip-id='workflow.undo'
         >
-          <Icon icon="solar:undo-left-linear" width={16} className="text-default-500" />
+          <Icon icon="solar:undo-left-linear" width={16} className="text-default-600" />
         </Button>
       </TipPopup>
       <TipPopup title='Redo' shortcuts={['ctrl', 'y']}>
         <Button
           size="sm"
           isIconOnly
-          className="bg-white"
+          className="bg-background"
           data-tooltip-id='workflow.redo'
         >
-          <Icon icon="solar:undo-right-linear" width={16} className="text-default-500" />
+          <Icon icon="solar:undo-right-linear" width={16} className="text-default-600" />
         </Button>
       </TipPopup>
     </>

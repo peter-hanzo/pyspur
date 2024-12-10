@@ -2,11 +2,11 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addNodeWithoutConnection } from '../../AddNodePopoverCanvas';
+import { addNodeWithoutConnection } from '../AddNodePopoverCanvas';
 import { useReactFlow } from '@xyflow/react';
-import TipPopup from '../../../TipPopUp';
-import { RootState } from '../../../../store/store';
-import type { NodeType } from '../../../../store/nodeTypesSlice';
+import TipPopup from './TipPopUp';
+import { RootState } from '../../../store/store';
+import type { NodeType } from '../../../store/nodeTypesSlice';
 
 interface NodeTypesByCategory {
   [category: string]: NodeType[];
@@ -46,7 +46,7 @@ const AddNodePopoverFooter: React.FC = () => {
                 >
                   <div className='flex items-center'>
                     <div className="w-16">
-                      <div 
+                      <div
                         className={`node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block`}
                         style={{ backgroundColor: node.visual_tag.color }}
                       >

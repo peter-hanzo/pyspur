@@ -3,11 +3,9 @@ import { Icon } from '@iconify/react';
 import { Button, Accordion, AccordionItem, Input } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ReactFlowInstance, useReactFlow } from '@xyflow/react';
-import TipPopup from '../TipPopUp';
+
 import { AppDispatch, RootState } from '../../store/store';
 import type { NodeType } from '../../store/nodeTypesSlice';
-import { createNode } from '@/utils/nodeFactory';
-import { addNode } from '@/store/flowSlice';
 import { addNodeWithoutConnection } from '../canvas/AddNodePopoverCanvas';
 
 interface NodeTypesByCategory {
