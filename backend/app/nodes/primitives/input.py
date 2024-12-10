@@ -52,7 +52,7 @@ class InputNode(VariableOutputBaseNode):
                 # create a new model based on the input dictionary
                 fields = {key: (type(value), ...) for key, value in input.items()}
                 self.output_model = create_model(  # type: ignore
-                    "InputNodeOutput",
+                    self.name,
                     __base__=BaseNodeOutput,
                     **fields,  # type: ignore
                 )
