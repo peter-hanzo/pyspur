@@ -45,17 +45,19 @@ class PythonFuncNode(VariableOutputBaseNode):
     async def run(self, input: BaseModel) -> BaseModel:
         # Prepare the execution environment
         exec_globals: Dict[str, Any] = {}
-        exec_locals: Dict[str, Any] = {"input_model": input}
+        exec_locals: Dict[str, Any] = {}
 
-        # Execute the user-defined code
-        exec(self.config.code, exec_globals, exec_locals)
+        # Indent user code properly
+        code_body = "\n".join("    " + line for line in self.config.code.split("\n"))
 
-        # Retrieve the output data, select all keys that are also in the output schema
-        output_data = {
-            key: value
-            for key, value in exec_locals.items()
-            if key in self.config.output_schema
-        }
+        # Build the code to execute
+        function_code = f"def user_function(input_model):\n{code_body}\n"
+
+        # Execute the user-defined function code
+        exec(function_code, exec_globals, exec_locals)
+
+        # Call the user-defined function and retrieve the output
+        output_data = exec_locals["user_function"](input)
         return self.output_model.model_validate(output_data)
 
 
@@ -70,6 +72,7 @@ if __name__ == "__main__":
                 '# The input data is available as "input_model" pydantic model.',
                 "# The output will be the local variables that are also in the output schema.",
                 "output = input_model.Input.number ** 2",
+                "return {'output': output}",
             ]
         ),
         output_schema={"output": "int"},
