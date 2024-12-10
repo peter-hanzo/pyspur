@@ -69,7 +69,7 @@ async def run_workflow_blocking(
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    workflow_version = fetch_workflow_version(workflow_id, workflow.definition, db)
+    workflow_version = fetch_workflow_version(workflow_id, workflow, db)
 
     initial_inputs = request.initial_inputs or {}
     new_run = await create_run_model(
