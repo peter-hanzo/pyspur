@@ -147,8 +147,10 @@ int main() {
       size="2xl"
     >
       <ModalContent>
-        {/* Rest of the component remains the same */}
-        <ModalHeader>API Endpoint Information</ModalHeader>
+        <ModalHeader>
+          <div>API Endpoint Information</div>
+        </ModalHeader>
+
         <ModalBody>
           <p>Use this endpoint to run your workflow in a non-blocking way:</p>
           <div className="flex items-center gap-2 w-full">
@@ -206,20 +208,24 @@ int main() {
           </div>
 
           <div className="mt-4">
-            <p>Code example:</p>
-            <Select
-              label="Select Language"
-              className="max-w-xs mb-2"
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value as SupportedLanguages)}
-              defaultSelectedKeys={["python"]}
-            >
-              {Object.keys(codeExamples).map((lang) => (
-                <SelectItem key={lang} value={lang}>
-                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                </SelectItem>
-              ))}
-            </Select>
+            <div className="flex justify-between items-center mb-2">
+              <p>Code example:</p>
+              <Select
+                label="Language"
+                className="max-w-[150px]"
+                size="sm"
+                variant="bordered"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value as SupportedLanguages)}
+                defaultSelectedKeys={["python"]}
+              >
+                {Object.keys(codeExamples).map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
             <div className="flex items-center gap-2 w-full">
               <SyntaxHighlighter
                 language={selectedLanguage}

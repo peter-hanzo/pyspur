@@ -17,14 +17,17 @@ import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { v4 as uuidv4 } from 'uuid';
 import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
-import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'; 
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
-import { initializeFlow, setNodeOutputs } from '../../store/flowSlice'; 
+import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
+
+import LoadingSpinner from '../LoadingSpinner';
+import IfElseNode from '../nodes/logic/IfElseNode';
 import LoadingSpinner from '../LoadingSpinner'; 
 import dagre from '@dagrejs/dagre';
 import OutputDisplayNode from '../nodes/OutputDisplayNode';
@@ -36,8 +39,8 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
-        } else if (node.name === 'ConditionalNode') {
-          acc[node.name] = ConditionalNode;
+        } else if (node.name === 'IfElseNode') {
+          acc[node.name] = IfElseNode;
         } else {
           acc[node.name] = (props) => {
             return <OutputDisplayNode {...props} type={node.name} />;
@@ -48,7 +51,7 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
     }, {});
 
     return types;
-  
+
   }, [nodeTypesConfig]);
 
   const isLoading = !nodeTypesConfig;
@@ -573,7 +576,7 @@ const RunViewFlowCanvasContent = (props) => {
                 vertical={helperLines.vertical}
               />
             )}
-            <Operator handleLayout={handleLayout}/>
+            <Operator handleLayout={handleLayout} />
           </ReactFlow>
         </div>
         {selectedNodeID && (

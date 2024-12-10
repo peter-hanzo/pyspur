@@ -49,6 +49,7 @@ class BranchSolveMergeNodeOutput(BaseNodeOutput):
 
 class BranchSolveMergeNode(BaseSubworkflowNode):
     name = "branch_solve_merge_node"
+    display_name = "Branch Solve Merge"
     config_model = BranchSolveMergeNodeConfig
     input_model = BranchSolveMergeNodeInput
     output_model = BranchSolveMergeNodeOutput

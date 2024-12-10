@@ -21,11 +21,10 @@ class JsonifyNodeOutput(BaseModel):
 
 
 class JsonifyNode(DynamicInputFixedOutputNode):
-    """
-    Node that takes structured input and outputs a JSON string representation of the input.
-    """
+    """Node type for converting input to JSON string."""
 
     name = "jsonify_node"
+    display_name = "Jsonify"
     config_model = JsonifyNodeConfig
     input_model = JsonifyNodeInput
     output_model = JsonifyNodeOutput

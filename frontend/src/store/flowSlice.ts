@@ -159,6 +159,11 @@ const flowSlice = createSlice({
       });
     },
 
+    deleteEdgesBySource: (state, action: PayloadAction<{ sourceId: string }>) => {
+      const { sourceId } = action.payload;
+      state.edges = state.edges.filter((edge) => edge.source !== sourceId);
+    },
+
     setSidebarWidth: (state, action: PayloadAction<number>) => {
       state.sidebarWidth = action.payload;
     },
@@ -302,6 +307,7 @@ export const {
   deleteNode,
   deleteEdge,
   deleteEdgeByHandle,
+  deleteEdgesBySource,
   setSidebarWidth,
   setProjectName,
   setWorkflowInputVariable,

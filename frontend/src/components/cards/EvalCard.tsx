@@ -81,8 +81,8 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
       const evalRunResponse = await startEvalRun(
         selectedWorkflow.id,
         title,
-        selectedNumSamples,
-        selectedOutputVariable
+        selectedOutputVariable,
+        selectedNumSamples
       );
       toast.success(`Eval run started with ID: ${evalRunResponse.run_id}`);
       setIsModalOpen(false);

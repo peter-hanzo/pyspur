@@ -61,6 +61,7 @@ class BestOfNNodeOutput(BaseNodeOutput):
 
 class BestOfNNode(BaseSubworkflowNode):
     name = "best_of_n_node"
+    display_name = "Best of N"
     config_model = BestOfNNodeConfig
     workflow: WorkflowDefinitionSchema
 

@@ -42,6 +42,7 @@ class SingleLLMCallNode(VariableOutputBaseNode):
     """
 
     name = "single_llm_call_node"
+    display_name = "Single LLM Call"
     config_model = SingleLLMCallNodeConfig
     input_model = SingleLLMCallNodeInput
     output_model = SingleLLMCallNodeOutput

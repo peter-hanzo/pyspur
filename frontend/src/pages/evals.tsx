@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useTheme } from "next-themes";
 import Header from "../components/Header";
 import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils/api";
 import EvalCard from "../components/cards/EvalCard";
@@ -40,8 +41,8 @@ interface EvalCardRunProps {
 }
 
 const statusColorMap: Record<string, "warning" | "primary" | "success" | "danger"> = {
-  PENDING: "warning",
-  RUNNING: "primary",
+  PENDING: "primary",
+  RUNNING: "warning",
   COMPLETED: "success",
   FAILED: "danger",
 };
@@ -50,6 +51,7 @@ const EvalsPage: React.FC = () => {
   const [evals, setEvals] = useState<EvalItem[]>([]);
   const [evalRuns, setEvalRuns] = useState<EvalRun[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { theme } = useTheme();
 
   const router = useRouter();
 
@@ -135,7 +137,7 @@ const EvalsPage: React.FC = () => {
 
     toast(`Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`);
     try {
-      await startEvalRun(workflowId, evalName, numSamples, outputVariable);
+      await startEvalRun(workflowId, evalName, outputVariable, numSamples);
       toast.success(`Eval run started.`);
     } catch (error) {
       console.error(`Error launching eval:`, error);
@@ -151,7 +153,6 @@ const EvalsPage: React.FC = () => {
     <div className="App relative">
       <Header activePage="evals" />
       <div className="p-6">
-        {/* Rest of the JSX remains the same, but now TypeScript-safe */}
         <h1 className="text-2xl font-bold mt-8 mb-4">Eval Jobs</h1>
         {evalRuns.length > 0 ? (
           <Table aria-label="Eval Jobs Table" isHeaderSticky>
@@ -176,7 +177,14 @@ const EvalsPage: React.FC = () => {
                       size="sm"
                       variant="flat"
                     >
-                      {run.status}
+                      {run.status === "RUNNING" ? (
+                        <div className="flex items-center gap-2">
+                          <Spinner size="sm" />
+                          {run.status}
+                        </div>
+                      ) : (
+                        run.status
+                      )}
                     </Chip>
                   </TableCell>
                   <TableCell>
@@ -187,20 +195,20 @@ const EvalsPage: React.FC = () => {
                           height={50}
                           cx={25}
                           cy={25}
-                          innerRadius={20}
+                          innerRadius={18}
                           outerRadius={25}
-                          barSize={5}
+                          barSize={7}
                           data={[{ name: 'Accuracy', value: run.results.accuracy * 100 }]}
                           startAngle={90}
                           endAngle={-270}
                         >
                           <RadialBar
-                            minAngle={15}
-                            background
-                            clockWise
                             dataKey="value"
-                            cornerRadius={10}
-                            fill="#4ade80"
+                            cornerRadius={12}
+                            fill={theme === 'dark' ? "hsl(143 55% 62%)" : "hsl(143 55% 42%)"}
+                            background={{
+                              fill: theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
+                            }}
                           />
                           <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                           <text
@@ -208,7 +216,11 @@ const EvalsPage: React.FC = () => {
                             y={25}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            style={{ fontSize: "10px", fill: "#333" }}
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "600",
+                              fill: theme === 'dark' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.9)'
+                            }}
                           >
                             {`${(run.results.accuracy * 100).toFixed(1)}%`}
                           </text>

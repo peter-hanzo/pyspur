@@ -32,7 +32,10 @@ class SelfConsistencyNodeConfig(StringOutputLLMNodeConfig):
 
 
 class SelfConsistencyNode(BaseNode):
+    """Node type for self-consistency checking with multiple LLM calls."""
+
     name = "self_consistency_node"
+    display_name = "Self Consistency"
     config_model = SelfConsistencyNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput

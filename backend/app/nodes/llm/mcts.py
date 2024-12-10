@@ -71,7 +71,10 @@ class MCTSNodeOutput(BaseModel):
 
 
 class MCTSNode(BaseNode):
+    """Node type for Monte Carlo Tree Search with LLM."""
+
     name = "mcts_node"
+    display_name = "Monte Carlo Tree Search"
     config_model = MCTSNodeConfig
     input_model = MCTSNodeInput
     output_model = MCTSNodeOutput

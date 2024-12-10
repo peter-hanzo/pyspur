@@ -113,7 +113,7 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
 
     const maxLabelLength = Math.max(
       (maxInputLabelLength + maxOutputLabelLength + 5),
-      titleLength 
+      titleLength
     );
 
     const minNodeWidth = 300;
@@ -252,7 +252,7 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
     );
   };
 
-  const isConditionalNode = type === 'ConditionalNode';
+  const isIfElseNode = type === 'IfElseNode';
 
   return (
     <>
@@ -265,7 +265,7 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
           data={nodeData}
           style={{
             width: nodeWidth,
-            backgroundColor: isConditionalNode ? '#e0f7fa' : undefined,
+            backgroundColor: isIfElseNode ? '#e0f7fa' : undefined,
           }}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
@@ -273,7 +273,7 @@ const OutputDisplayNode = ({ id, type, data, position, ...props }) => {
           selected={props.selected}
         >
           <div className={styles.nodeWrapper} ref={nodeRef}>
-            {isConditionalNode ? (
+            {isIfElseNode ? (
               <div>
                 <strong>Conditional Node</strong>
               </div>

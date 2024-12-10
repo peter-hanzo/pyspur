@@ -35,6 +35,7 @@ class StringOutputLLMNode(BaseNode):
     """
 
     name = "string_output_llm_node"
+    display_name = "String Output LLM"
     config_model = StringOutputLLMNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput

@@ -228,6 +228,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
           color: '#2196F3',
         }}
         style={{ width: nodeWidth }}
+        className="hover:!bg-background"
         {...props}
       >
         <div className={styles.nodeWrapper} ref={nodeRef}>

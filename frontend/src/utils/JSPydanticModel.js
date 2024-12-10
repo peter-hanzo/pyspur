@@ -16,8 +16,9 @@ class JSPydanticModel {
   }
 
   createObjectFromSchema() {
-    // Handle node types schema (primitives/llm/python)
-    if (this._schema.primitives || this._schema.json || this._schema.llm || this._schema.python || this._schema.subworkflow) {
+    // Handle node types schema (any category)
+    const categories = Object.keys(this._schema).filter(key => Array.isArray(this._schema[key]));
+    if (categories.length > 0) {
       return this.processNodeTypesSchema(this._schema);
     }
 
@@ -54,7 +55,10 @@ class JSPydanticModel {
   processNodeTypesSchema(schema) {
     const result = {};
 
-    ['primitives', 'json', 'llm', 'python', 'subworkflow'].forEach(category => {
+    // Get all array-type properties from the schema
+    const categories = Object.keys(schema).filter(key => Array.isArray(schema[key]));
+
+    categories.forEach(category => {
       if (schema[category]) {
         result[category] = schema[category].map(node => {
           // Copy all fields from the original node
@@ -67,11 +71,77 @@ class JSPydanticModel {
                 const validator = this.ajv.compile(node[key]);
                 const obj = {};
                 validator(obj);
-                // Merge the validated object with any existing fields
-                processedNode[key] = {
-                  ...node[key],  // Keep original fields like title, description etc
-                  ...obj         // Add validated default values
-                };
+
+                // Special handling for conditional node
+                if (node.name === 'IfElseNode' && key === 'config') {
+                  obj.branches = [
+                    {
+                      conditions: [
+                        {
+                          variable: '',
+                          operator: 'contains',
+                          value: '',
+                          logicalOperator: 'AND'
+                        }
+                      ]
+                    }
+                  ];
+
+                  // Merge the validated object with any existing fields
+                  processedNode[key] = {
+                    ...node[key],  // Keep original fields like title, description etc
+                    ...obj,        // Add validated default values
+                    required: ['branches'],
+                    properties: {
+                      ...node[key].properties,
+                      branches: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            conditions: {
+                              type: 'array',
+                              items: {
+                                type: 'object',
+                                properties: {
+                                  variable: { type: 'string' },
+                                  operator: {
+                                    type: 'string',
+                                    enum: [
+                                      'contains',
+                                      'equals',
+                                      'greater_than',
+                                      'less_than',
+                                      'starts_with',
+                                      'not_starts_with',
+                                      'is_empty',
+                                      'is_not_empty',
+                                      'number_equals'
+                                    ]
+                                  },
+                                  value: { type: 'string' },
+                                  logicalOperator: {
+                                    type: 'string',
+                                    enum: ['AND', 'OR']
+                                  }
+                                },
+                                required: ['variable', 'operator', 'value']
+                              }
+                            }
+                          },
+                          required: ['conditions']
+                        }
+                      }
+                    }
+                  };
+                } else {
+                  // Merge the validated object with any existing fields for non-conditional nodes
+                  processedNode[key] = {
+                    ...node[key],  // Keep original fields like title, description etc
+                    ...obj         // Add validated default values
+                  };
+                }
+
                 // Exclude JSON Schema keywords from the resulting object
                 processedNode[key] = this.excludeSchemaKeywords(processedNode[key]);
               } catch (error) {
@@ -90,13 +160,13 @@ class JSPydanticModel {
   }
 
   extractMetadata() {
-    this._metadata = {
-      primitives: [],
-      json: [],
-      llm: [],
-      python: [],
-      subworkflow: []
-    };
+    // Initialize metadata with existing categories from schema
+    this._metadata = {};
+    const categories = Object.keys(this._schema).filter(key => Array.isArray(this._schema[key]));
+    categories.forEach(category => {
+      this._metadata[category] = [];
+    });
+
     this._extractMetadata(this._schema);
   }
 
@@ -144,52 +214,51 @@ class JSPydanticModel {
       this.setNestedMetadata(path, metadata);
     }
 
-    // Handle root-level arrays (primitives, llm, python)
-    ['primitives', 'json', 'llm', 'python', 'subworkflow'].forEach(category => {
-      if (Array.isArray(schema[category])) {
-        if (!this._metadata[category]) {
-          this._metadata[category] = [];
+    // Handle root-level arrays (any category)
+    const categories = Object.keys(schema).filter(key => Array.isArray(schema[key]));
+    categories.forEach(category => {
+      if (!this._metadata[category]) {
+        this._metadata[category] = [];
+      }
+
+      schema[category].forEach((node, index) => {
+        // Store the node's name and visual_tag at the category level
+        if (!this._metadata[category][index]) {
+          this._metadata[category][index] = {
+            name: node.name,
+            visual_tag: node.visual_tag,
+            input: {},
+            output: {},
+            config: {}
+          };
+        } else {
+          // Update existing metadata with name and visual_tag
+          this._metadata[category][index].name = node.name;
+          this._metadata[category][index].visual_tag = node.visual_tag;
         }
 
-        schema[category].forEach((node, index) => {
-          // Store the node's name and visual_tag at the category level
-          if (!this._metadata[category][index]) {
-            this._metadata[category][index] = {
-              name: node.name,
-              visual_tag: node.visual_tag,
-              input: {},
-              output: {},
-              config: {}
-            };
-          } else {
-            // Update existing metadata with name and visual_tag
-            this._metadata[category][index].name = node.name;
-            this._metadata[category][index].visual_tag = node.visual_tag;
-          }
+        ['input', 'output', 'config'].forEach(schemaType => {
+          if (node[schemaType]) {
+            const newPath = [category, index, schemaType];
+            this._extractMetadata(node[schemaType], newPath);
 
-          ['input', 'output', 'config'].forEach(schemaType => {
-            if (node[schemaType]) {
-              const newPath = [category, index, schemaType];
-              this._extractMetadata(node[schemaType], newPath);
-
-              // Handle $defs without including it in path
-              if (schemaType === 'config' && node[schemaType].$defs) {
-                Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
-                  // Remove '$defs' from path
-                  this._extractMetadata(value, [...newPath, key]);
-                });
-              }
-
-              if (node[schemaType].properties) {
-                Object.entries(node[schemaType].properties).forEach(([key, value]) => {
-                  // Remove 'properties' from path
-                  this._extractMetadata(value, [...newPath, key]);
-                });
-              }
+            // Handle $defs without including it in path
+            if (schemaType === 'config' && node[schemaType].$defs) {
+              Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
+                // Remove '$defs' from path
+                this._extractMetadata(value, [...newPath, key]);
+              });
             }
-          });
+
+            if (node[schemaType].properties) {
+              Object.entries(node[schemaType].properties).forEach(([key, value]) => {
+                // Remove 'properties' from path
+                this._extractMetadata(value, [...newPath, key]);
+              });
+            }
+          }
         });
-      }
+      });
     });
 
     // Handle $ref to definitions

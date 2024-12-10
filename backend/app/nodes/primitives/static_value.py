@@ -23,6 +23,7 @@ class StaticValueNode(BaseNode):
     """
 
     name = "constant_value_node"
+    display_name = "Static Value"
     config_model = StaticValueNodeConfig
     input_model = StaticValueNodeInput
     output_model = StaticValueNodeOutput

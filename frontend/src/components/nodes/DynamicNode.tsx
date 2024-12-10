@@ -19,6 +19,7 @@ interface NodeData {
     user_message?: string;
   };
   title?: string;
+  [key: string]: any;
 }
 
 interface SchemaMetadata {
@@ -80,11 +81,17 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
         return;
       }
 
-      const updatedSchema = {
-        ...nodeData?.config?.[schemaType],
-        [newKey]: nodeData?.config?.[schemaType]?.[oldKey],
-      };
-      delete updatedSchema[oldKey];
+      const currentSchema = nodeData?.config?.[schemaType] || {};
+      // Convert to array of entries to preserve order
+      const schemaEntries = Object.entries(currentSchema);
+      // Find the index of the old key
+      const keyIndex = schemaEntries.findIndex(([key]) => key === oldKey);
+      if (keyIndex !== -1) {
+        // Replace the old key with new key while maintaining the value and position
+        schemaEntries[keyIndex] = [newKey, currentSchema[oldKey]];
+      }
+      // Reconstruct the object maintaining order
+      const updatedSchema = Object.fromEntries(schemaEntries);
 
       let updatedConfig = {
         ...nodeData?.config,
@@ -174,9 +181,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             type="target"
             position="left"
             id={keyName}
-            className={`${styles.handle} ${styles.handleLeft} ${
-              isCollapsed ? styles.collapsedHandleInput : ''
-            }`}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+              }`}
             isConnectable={!isCollapsed && connections.length === 0}
           />
         </div>
@@ -258,9 +264,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             type="source"
             position="right"
             id={keyName}
-            className={`${styles.handle} ${styles.handleRight} ${
-              isCollapsed ? styles.collapsedHandleOutput : ''
-            }`}
+            className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+              }`}
             isConnectable={!isCollapsed}
           />
         </div>
@@ -293,7 +298,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
     );
   };
 
-  const isConditionalNode = type === 'ConditionalNode';
+  const isIfElseNode = type === 'IfElseNode';
 
   return (
     <div
@@ -305,14 +310,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
         data={nodeData}
         style={{
           width: nodeWidth,
-          backgroundColor: isConditionalNode ? '#e0f7fa' : undefined,
         }}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         selected={props.selected}
+        className="hover:!bg-background"
       >
         <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-          {isConditionalNode ? (
+          {isIfElseNode ? (
             <div>
               <strong>Conditional Node</strong>
             </div>

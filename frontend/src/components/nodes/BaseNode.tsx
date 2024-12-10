@@ -44,6 +44,7 @@ interface BaseNodeProps {
   children?: React.ReactNode;
   style?: React.CSSProperties;
   isInputNode?: boolean;
+  className?: string;
 }
 
 const BaseNode: React.FC<BaseNodeProps> = ({
@@ -53,7 +54,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   data = {},
   children,
   style = {},
-  isInputNode = false
+  isInputNode = false,
+  className = ''
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
@@ -195,10 +197,18 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         status === 'default' ? 'gray' :
           style.borderColor || '#ccc';
 
+  const { backgroundColor, ...restStyle } = style || {};
+
   const cardStyle: React.CSSProperties = {
-    ...style,
+    ...restStyle,
     borderColor: borderColor,
-    borderWidth: isSelected ? '3px' : status === 'completed' ? '2px' : isHovered ? '3px' : style.borderWidth || '1px',
+    borderWidth: isSelected
+      ? '3px'
+      : status === 'completed'
+      ? '2px'
+      : isHovered
+      ? '3px'
+      : restStyle.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
   };
@@ -250,11 +260,14 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           }}
         >
           <Card
-            className="base-node"
+            className={`base-node ${className || ''}`}
             style={{ ...cardStyle, pointerEvents: 'auto' }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             isHoverable
+            classNames={{
+              base: "bg-background border-default-200"
+            }}
           >
             {data && data.title && (
               <CardHeader
@@ -384,9 +397,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             top: '-50px',
             right: '0px',
             padding: '4px',
-            backgroundColor: 'white',
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             pointerEvents: 'auto',
+          }}
+          classNames={{
+            base: "bg-background border-default-200"
           }}
         >
           <div className="flex flex-row gap-1">

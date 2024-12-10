@@ -4,7 +4,7 @@ from ..schemas.node_type_schemas import NodeTypeSchema
 
 # Simple lists of supported and deprecated node types
 SUPPORTED_NODE_TYPES = {
-    "primitives": [
+    "Input/Output": [
         {
             "node_type_name": "InputNode",
             "module": ".nodes.primitives.input",
@@ -21,7 +21,19 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "StaticValueNode",
         },
     ],
-    "json": [
+    "Logic": [
+        {
+            "node_type_name": "IfElseNode",
+            "module": ".nodes.logic.if_else",
+            "class_name": "IfElseNode",
+        },
+        {
+            "node_type_name": "MergeNode",
+            "module": ".nodes.logic.merge",
+            "class_name": "MergeNode",
+        },
+    ],
+    "JSON": [
         {
             "node_type_name": "JsonifyNode",
             "module": ".nodes.primitives.json.jsonify",
@@ -38,7 +50,7 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "PickOneNode",
         },
     ],
-    "llm": [
+    "AI": [
         {
             "node_type_name": "SingleLLMCallNode",
             "module": ".nodes.llm.single_llm_call",
@@ -75,7 +87,7 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "TreeOfThoughtsNode",
         },
     ],
-    "python": [
+    "Code Execution": [
         {
             "node_type_name": "PythonFuncNode",
             "module": ".nodes.python.python_func",

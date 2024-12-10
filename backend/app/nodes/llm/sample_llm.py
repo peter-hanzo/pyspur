@@ -23,7 +23,10 @@ class SampleLLMNodeConfig(SingleLLMCallNodeConfig):
 
 
 class SampleLLMNode(DynamicSchemaNode):
+    """Node type for sampling multiple outputs from an LLM."""
+
     name = "sample_llm_node"
+    display_name = "Sample LLM"
     _llm_node: SingleLLMCallNode
     config_model = SampleLLMNodeConfig
     input_model = BaseModel

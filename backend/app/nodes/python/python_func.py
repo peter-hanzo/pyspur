@@ -34,6 +34,7 @@ class PythonFuncNode(VariableOutputBaseNode):
     """
 
     name = "python_func_node"
+    display_name = "Python Function"
     config_model = PythonFuncNodeConfig
     input_model = PythonFuncNodeInput
     output_model = PythonFuncNodeOutput

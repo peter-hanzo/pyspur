@@ -55,7 +55,10 @@ class TreeOfThoughtsNodeConfig(StringOutputLLMNodeConfig):
 
 
 class TreeOfThoughtsNode(BaseNode):
+    """Node type for Tree of Thoughts reasoning."""
+
     name = "tree_of_thoughts_node"
+    display_name = "Tree of Thoughts"
     config_model = TreeOfThoughtsNodeConfig
     input_model = StringOutputLLMNodeInput
     output_model = StringOutputLLMNodeOutput
