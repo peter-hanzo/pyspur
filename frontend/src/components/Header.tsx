@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useTheme } from "next-themes";
 import {
   Input,
   Navbar,
@@ -57,7 +56,6 @@ interface WorkflowResponse {
 }
 
 const Header: React.FC<HeaderProps> = ({ activePage }) => {
-  const { theme, setTheme } = useTheme();
   const dispatch = useDispatch();
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const projectName = useSelector((state: RootState) => state.flow.projectName);
@@ -230,7 +228,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             "data-[active=true]:after:h-[2px]",
             "data-[active=true]:after:rounded-[2px]",
             "data-[active=true]:after:bg-primary",
-            "data-[active=true]:text-primary",
+            "data-[active=true]:after:text-primary",
           ],
         }}
       >
@@ -289,7 +287,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             justify="end"
             id="workflow-actions-buttons"
           >
-
             {!isRun && (
               <>
                 {isRunning ? (
@@ -365,9 +362,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                 />
               </Button>
             </NavbarItem>
-            <NavbarItem className="hidden sm:flex">
-              <SettingsCard />
-            </NavbarItem>
           </NavbarContent>
         )}
         <NavbarContent
@@ -375,18 +369,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           justify="end"
         >
           <NavbarItem className="hidden sm:flex">
-            <Button
-              isIconOnly
-              radius="full"
-              variant="light"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <Icon
-                className="text-default-500"
-                icon={theme === 'dark' ? 'solar:sun-linear' : 'solar:moon-linear'}
-                width={24}
-              />
-            </Button>
+            <SettingsCard />
           </NavbarItem>
         </NavbarContent>
       </Navbar>

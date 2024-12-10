@@ -21,6 +21,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { listApiKeys, setApiKey, getApiKey } from "../../utils/api";
+import { useTheme } from "next-themes";
 
 // CellWrapper Component
 const CellWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -182,6 +183,7 @@ function APIKeys(props: CardProps) {
 // Main SettingsModal Component
 export default function SettingsModal(props: CardProps) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { theme, setTheme } = useTheme();
 
   return (
     <>
@@ -203,6 +205,25 @@ export default function SettingsModal(props: CardProps) {
                     }}
                     size="lg"
                   >
+                    <Tab
+                      key="appearance"
+                      textValue="Appearance"
+                      title={
+                        <div className="flex items-center gap-1.5">
+                          <Icon icon="solar:palette-bold" width={20} />
+                          <p>Appearance</p>
+                        </div>
+                      }
+                    >
+                      <div className="p-4">
+                        <SwitchCell
+                          label="Dark Mode"
+                          description="Toggle between light and dark theme"
+                          isSelected={theme === 'dark'}
+                          onValueChange={(isSelected) => setTheme(isSelected ? 'dark' : 'light')}
+                        />
+                      </div>
+                    </Tab>
                     <Tab
                       key="api-keys"
                       textValue="API Keys"
