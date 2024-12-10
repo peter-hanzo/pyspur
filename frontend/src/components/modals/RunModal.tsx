@@ -90,19 +90,48 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     if (isEditing) {
       return (
-        <Input
-          autoFocus
-          size="sm"
-          value={row[field]}
-          onChange={(e) => handleCellEdit(row.id, field, e.target.value)}
-          onBlur={handleBlur}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <Input
+            autoFocus
+            size="sm"
+            defaultValue={row[field]}
+            onBlur={(e) => {
+              handleCellEdit(row.id, field, e.target.value);
+              handleBlur();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCellEdit(row.id, field, e.currentTarget.value);
+                handleBlur();
+              }
+            }}
+            endContent={
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                color="success"
+                onPress={handleBlur}
+              >
+                <Icon icon="material-symbols:check" />
+              </Button>
+            }
+          />
+        </div>
       );
     }
 
     return (
-      <div onDoubleClick={() => handleDoubleClick(row.id, field)}>
-        <div dangerouslySetInnerHTML={{ __html: row[field] }} />
+      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <span>{row[field]}</span>
+        <Button
+          isIconOnly
+          size="sm"
+          variant="light"
+          onPress={() => handleDoubleClick(row.id, field)}
+        >
+          <Icon icon="solar:pen-linear" />
+        </Button>
       </div>
     );
   };
@@ -148,6 +177,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
               <Table
                 aria-label="Test cases table"
                 selectionMode="single"
+                disabledKeys={editingCell ? new Set([editingCell.rowId.toString()]) : new Set()}
                 selectedKeys={selectedRow ? [selectedRow] : new Set()}
                 onSelectionChange={(selection) => {
                   const selectedKey = Array.from(selection)[0]?.toString() || null;
