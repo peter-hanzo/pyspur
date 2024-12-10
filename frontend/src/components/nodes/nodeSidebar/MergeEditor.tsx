@@ -61,12 +61,12 @@ const MergeEditor: React.FC<MergeEditorProps> = ({ branchRefs, onChange, nodeId 
           <h3 className="text-sm font-semibold">Connected Branches ({connectedBranches.length})</h3>
         </div>
         {connectedBranches.length === 0 ? (
-          <div className="text-xs text-gray-400 italic p-2 border border-dashed border-gray-200 rounded-md text-center">
+          <div className="text-xs text-default-400 italic p-2 border border-dashed border-default-200 rounded-md text-center">
             Connect branches to continue the flow
           </div>
         ) : (
           connectedBranches.map((branch) => (
-            <div key={branch.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md mb-2">
+            <div key={branch.id} className="flex items-center justify-between p-2 bg-default-100 rounded-md mb-2">
               <span className="text-sm font-medium">{branch.label}</span>
               <Button
                 isIconOnly

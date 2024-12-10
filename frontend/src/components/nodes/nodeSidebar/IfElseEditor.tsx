@@ -132,7 +132,7 @@ const IfElseEditor: React.FC<IfElseEditorProps> = ({
   return (
     <div className="conditionals-editor space-y-4">
       {branches.map((branch, branchIndex) => (
-        <div key={branchIndex} className="branch-container p-4 border rounded-lg bg-default-100">
+        <div key={branchIndex} className="branch-container p-4 border border-default-200 rounded-lg bg-default-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold">
               {branchIndex === 0 ? "Default Branch" : `Branch ${branchIndex + 1}`}
