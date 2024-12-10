@@ -123,7 +123,12 @@ class BaseNode(ABC):
         )
 
     async def __call__(
-        self, input: Dict[str, BaseNodeOutput] | BaseNodeInput
+        self,
+        input: (
+            Dict[str, str | int | bool | float | Dict[str, Any] | List[Any]]
+            | Dict[str, BaseNodeOutput]
+            | BaseNodeInput
+        ),
     ) -> BaseNodeOutput:
         """
         Validates inputs and runs the node's logic.
@@ -135,16 +140,22 @@ class BaseNode(ABC):
             The node's output model
         """
         if isinstance(input, dict):
-            self.input_model = self.create_composite_model_instance(
-                model_name=self.input_model.__name__,
-                instances=list(input.values()),
-            )
-            data = {
-                instance.__class__.__name__: instance.model_dump()
-                for instance in input.values()
-            }
-            input = self.input_model.model_validate(data)
+            if all(isinstance(value, BaseNodeOutput) for value in input.values()):
+                # Input is a dictionary of BaseNodeOutput instances, creating a composite model
+                self.input_model = self.create_composite_model_instance(
+                    model_name=self.input_model.__name__,
+                    instances=list(input.values()),  # type: ignore we already checked that all values are BaseNodeOutput instances
+                )
+                data = {  # type: ignore
+                    instance.__class__.__name__: instance.model_dump()  # type: ignore
+                    for instance in input.values()
+                }
+                input = self.input_model.model_validate(data)
+            else:
+                # Input is not a dictionary of BaseNodeOutput instances, validating as BaseNodeInput
+                input = self.input_model.model_validate(input)
 
+        self._input = input
         result = await self.run(input)
 
         try:
@@ -154,6 +165,7 @@ class BaseNode(ABC):
         except Exception as e:
             raise ValueError(f"Output validation error in {self.name}: {e}")
 
+        self._output = output_validated
         return output_validated
 
     @abstractmethod

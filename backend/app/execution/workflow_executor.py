@@ -139,9 +139,7 @@ class WorkflowExecutor:
             node_type_name=input_node.node_type,
             config=input_node.config,
         )
-        self._outputs[input_node.id] = input_node_instance.output_model.model_validate(
-            input
-        )
+        self._outputs[input_node.id] = await input_node_instance(input[input_node.id])
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
