@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import { Button, Accordion, AccordionItem, Input } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -22,10 +22,17 @@ const CollapsibleNodePanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
   const [filteredNodeTypes, setFilteredNodeTypes] = useState<NodeTypesByCategory>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useHotkeys(['ctrl+b', 'cmd+b'], (event) => {
     event.preventDefault();
     dispatch(setNodePanelExpanded(!isExpanded));
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (isExpanded && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   }, [isExpanded]);
 
   const handleAddNode = (nodeName: string): void => {
@@ -73,6 +80,8 @@ const CollapsibleNodePanel: React.FC = () => {
       {isExpanded && (
         <>
           <Input
+            ref={searchInputRef}
+            id="node-search-input"
             type="search"
             placeholder="Search nodes..."
             value={searchTerm}
