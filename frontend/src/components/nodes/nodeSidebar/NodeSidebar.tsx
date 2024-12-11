@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import {
   updateNodeData,
+  updateTitleInEdges,
   selectNodeById,
   setSidebarWidth,
   setSelectedNode,
@@ -170,6 +171,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     } else {
       dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     }
+  };
+
+  const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange('title', e.target.value);
+    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: e.target.value }));
   };
 
   const renderEnumSelect = (
@@ -621,7 +627,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
                 value={node?.data?.config?.title || ''}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={(e) => handleNodeTitleChange(e)}
                 placeholder="Enter node title"
                 maxRows={1}
                 label="Node Title"

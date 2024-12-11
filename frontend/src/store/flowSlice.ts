@@ -146,6 +146,16 @@ const flowSlice = createSlice({
       }
     },
 
+    updateTitleInEdges: (state, action: PayloadAction<{ nodeId: string; newTitle: string }>) => {
+      const { nodeId, newTitle } = action.payload;
+      state.edges = state.edges.map((edge) => {
+        if (edge.source === nodeId) {
+          return { ...edge, sourceHandle: newTitle, targetHandle: newTitle };
+        }
+        return edge;
+      });
+    },
+
     setSelectedNode: (state, action: PayloadAction<{ nodeId: string | null }>) => {
       state.selectedNode = action.payload.nodeId;
     },
@@ -347,6 +357,7 @@ export const {
   setNodes,
   setEdges,
   updateNodeData,
+  updateTitleInEdges,
   setSelectedNode,
   deleteNode,
   deleteEdge,
