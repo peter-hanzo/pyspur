@@ -23,11 +23,18 @@ const CollapsibleNodePanel: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
   const [filteredNodeTypes, setFilteredNodeTypes] = useState<NodeTypesByCategory>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useHotkeys(['ctrl+b', 'cmd+b'], (event) => {
+  useHotkeys('ctrl+n, n', (event) => {
     event.preventDefault();
     dispatch(setNodePanelExpanded(!isExpanded));
   }, [isExpanded]);
+
+  useHotkeys('esc', () => {
+    if (isExpanded && panelRef.current?.contains(document.activeElement)) {
+      dispatch(setNodePanelExpanded(false));
+    }
+  }, { enableOnFormTags: true }, [isExpanded]);
 
   useEffect(() => {
     if (isExpanded && searchInputRef.current) {
@@ -68,7 +75,7 @@ const CollapsibleNodePanel: React.FC = () => {
   };
 
   return (
-    <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}>
+    <div ref={panelRef} className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}>
       <Button
         isIconOnly
         size="md"
