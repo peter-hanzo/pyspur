@@ -98,87 +98,85 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
     [dispatch]
   );
 
-  const renderWorkflowInputs = () => {
-    return (
-      <div className={styles.handlesWrapper} id="handles">
-        <div className={styles.handlesColumn}>
-          {workflowInputKeys.length > 0 && (
-            <table style={{ width: '100%' }}>
-              <tbody>
-                {workflowInputKeys.map((key) => (
-                  <tr key={key} className="relative w-full px-4 py-2">
-                    <td className={styles.handleLabelCell}>
-                      {!isCollapsed && (
-                        <div className="flex items-center gap-2">
-                          {editingField === key ? (
-                            <Input
-                              autoFocus
-                              defaultValue={key}
-                              size="sm"
-                              variant="faded"
-                              radius="lg"
-                              onBlur={(e) => {
-                                const target = e.target as HTMLInputElement;
+const renderWorkflowInputs = () => {
+  return (
+    <div className="flex w-full flex-row" id="handles">
+      <div className={styles.handlesColumn}>
+        {workflowInputKeys.length > 0 && (
+          <table style={{ width: '100%' }}>
+            <tbody>
+              {workflowInputKeys.map((key) => (
+                <tr key={key} className="relative w-full px-4 py-2">
+                  <td className={styles.handleLabelCell}>
+                    {!isCollapsed && (
+                      <div className="flex items-center gap-2">
+                        {editingField === key ? (
+                          <Input
+                            autoFocus
+                            defaultValue={key}
+                            size="sm"
+                            variant="faded"
+                            radius="lg"
+                            onBlur={(e) => {
+                              const target = e.target as HTMLInputElement;
+                              handleWorkflowInputVariableKeyEdit(key, target.value);
+                            }}
+                            onKeyDown={(e) => {
+                              const target = e.target as HTMLInputElement;
+                              if (e.key === 'Enter') {
                                 handleWorkflowInputVariableKeyEdit(key, target.value);
-                              }}
-                              onKeyDown={(e) => {
-                                const target = e.target as HTMLInputElement;
-                                if (e.key === 'Enter') {
-                                  handleWorkflowInputVariableKeyEdit(key, target.value);
-                                } else if (e.key === 'Escape') {
-                                  setEditingField(null);
-                                }
-                              }}
-                              classNames={{
-                                input: 'bg-default-100',
-                                inputWrapper: 'shadow-none',
-                              }}
-                            />
-                          ) : (
-                            <div className="flex flex-col w-full gap-1">
-                              <div className="flex items-center justify-between">
-                                <span
-                                  className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
-                                  onClick={() => setEditingField(key)}
-                                >
-                                  {key}
-                                </span>
-                                <Button
-                                  isIconOnly
-                                  size="sm"
-                                  variant="light"
-                                  onClick={() => handleDeleteWorkflowInputVariable(key)}
-                                >
-                                  <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
-                                </Button>
-                              </div>
+                              } else if (e.key === 'Escape') {
+                                setEditingField(null);
+                              }
+                            }}
+                            classNames={{
+                              input: 'bg-default-100',
+                              inputWrapper: 'shadow-none',
+                            }}
+                          />
+                        ) : (
+                          <div className="flex flex-col w-full gap-1">
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
+                                onClick={() => setEditingField(key)}
+                              >
+                                {key}
+                              </span>
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onClick={() => handleDeleteWorkflowInputVariable(key)}
+                              >
+                                <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
+                              </Button>
                             </div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className={`${styles.handleCell} border-l border-default-300 w-0 ml-2`}>
-                      <div className={styles.handleWrapper}>
-                        <Handle
-                          type="source"
-                          position={Position.Right}
-                          id={key}
-                          className={`${styles.handle} ${styles.handleRight} ${
-                            isCollapsed ? styles.collapsedHandleOutput : ''
-                          }`}
-                          isConnectable={!isCollapsed}
-                        />
+                          </div>
+                        )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
-    );
-  };
+      <div className="right-0 w-4 items-center justify-center flex">
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="output"
+          className={`${styles.handle} ${styles.handleRight} ${
+            isCollapsed ? styles.collapsedHandleOutput : ''
+          }`}
+          isConnectable={!isCollapsed}
+        />
+      </div>
+    </div>
+  );
+};
 
   const renderAddField = () =>
     !isCollapsed && (
