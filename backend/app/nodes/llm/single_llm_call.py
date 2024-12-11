@@ -22,7 +22,7 @@ class SingleLLMCallNodeConfig(VariableOutputBaseNodeConfig):
         "You are a helpful assistant.", description="The system message for the LLM"
     )
     user_message: str = Field(
-        "{{ input_field_1 }}",
+        "",
         description="The user message for the LLM, serialized from input_schema",
     )
     few_shot_examples: Optional[List[Dict[str, str]]] = None
@@ -62,7 +62,11 @@ class SingleLLMCallNode(VariableOutputBaseNode):
         if self.config.user_message is None or self.config.user_message.strip() == "":
             user_message = json.dumps(input.model_dump(), indent=2)
         else:
-            user_message = Template(self.config.user_message).render(input)
+            print(input)
+            user_message = Template(self.config.user_message).render(
+                **input.model_dump()
+            )
+            print("User Message:", user_message)
         messages = create_messages(
             system_message=system_message,
             user_message=user_message,
