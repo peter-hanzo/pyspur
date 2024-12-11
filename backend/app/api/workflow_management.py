@@ -12,6 +12,7 @@ from ..schemas.workflow_schemas import (
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
+from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
 
@@ -24,7 +25,7 @@ def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
                     "id": "input_node",
                     "node_type": "InputNode",
                     "coordinates": {"x": 100, "y": 100},
-                    "config": {},
+                    "config": InputNodeConfig().model_dump(),
                 }
             )
         ],
