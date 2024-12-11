@@ -29,19 +29,19 @@ interface WorkflowNode {
 
 const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [newFieldValue, setNewFieldValue] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
-  const workflowInputKeys = Object.keys(workflowInputVariables);
+  const outputSchema = data?.config?.output_schema || {};
+  const outputSchemaKeys = Object.keys(outputSchema);
 
   useEffect(() => {
     if (nodeRef.current) {
       const maxLabelLength = Math.max(
-        ...workflowInputKeys.map((label) => label.length),
+        ...outputSchemaKeys.map((label) => label.length),
         (data?.title || '').length / 1.5
       );
 
@@ -50,7 +50,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
 
       setNodeWidth(`${finalWidth}px`);
     }
-  }, [data, workflowInputKeys]);
+  }, [data, outputSchemaKeys]);
 
   const saveWorkflow = useSaveWorkflow();
   const nodes = useSelector((state: RootState) => state.flow.nodes);
@@ -63,7 +63,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
 
   useEffect(() => {
     syncAndSave();
-  }, [workflowInputVariables]);
+  }, [outputSchema]);
 
   const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
@@ -101,11 +101,11 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
 const renderWorkflowInputs = () => {
   return (
     <div className="flex w-full flex-row" id="handles">
-      <div className={styles.handlesColumn}>
-        {workflowInputKeys.length > 0 && (
+      <div className={`${styles.handlesColumn} border-r mr-1`}>
+        {outputSchemaKeys.length > 0 && (
           <table style={{ width: '100%' }}>
             <tbody>
-              {workflowInputKeys.map((key) => (
+              {outputSchemaKeys.map((key) => (
                 <tr key={key} className="relative w-full px-4 py-2">
                   <td className={styles.handleLabelCell}>
                     {!isCollapsed && (

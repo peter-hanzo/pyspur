@@ -211,6 +211,19 @@ const flowSlice = createSlice({
     setWorkflowInputVariable: (state, action: PayloadAction<{ key: string; value: any }>) => {
       const { key, value } = action.payload;
       state.workflowInputVariables[key] = value;
+      // Set the output schema for the input node
+      const inputNode = state.nodes.find(node => node.type === 'InputNode');
+      if (inputNode && inputNode.data) {
+        const currentConfig = inputNode.data.config || {};
+        const currentSchema = currentConfig.output_schema || {};
+        inputNode.data.config = {
+          ...currentConfig,
+          output_schema: {
+            ...currentSchema,
+            [key]: value
+          }
+        };
+      }
     },
 
     deleteWorkflowInputVariable: (state, action: PayloadAction<{ key: string }>) => {
