@@ -7,6 +7,7 @@ import { Input } from '@nextui-org/react';
 import {
   updateNodeData,
   updateEdgesOnHandleRename,
+  nodesChange,
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
 import { RootState } from '../../store/store';
@@ -52,6 +53,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
   const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeData = data || (node && node.data);
   const dispatch = useDispatch();
 
@@ -196,14 +198,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
                 size="sm"
                 variant="faded"
                 radius="lg"
-                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'input_schema')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, (e.target as HTMLInputElement).value, 'input_schema');
-                  } else if (e.key === 'Escape') {
-                    setEditingField(null);
-                  }
-                }}
                 classNames={{
                   input: 'bg-default-100',
                   inputWrapper: 'shadow-none',
@@ -212,7 +206,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             ) : (
               <span
                 className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                onClick={() => setEditingField(keyName)}
               >
                 {keyName}
               </span>
@@ -235,14 +228,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
                 size="sm"
                 variant="faded"
                 radius="lg"
-                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'output_schema')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, (e.target as HTMLInputElement).value, 'output_schema');
-                  } else if (e.key === 'Escape') {
-                    setEditingField(null);
-                  }
-                }}
                 classNames={{
                   input: 'bg-default-100',
                   inputWrapper: 'shadow-none',
@@ -251,7 +236,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             ) : (
               <span
                 className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                onClick={() => setEditingField(keyName)}
               >
                 {keyName}
               </span>
@@ -276,23 +260,23 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
   const renderHandles = () => {
     if (!nodeData) return null;
 
-    const inputSchema = nodeData?.config?.['input_schema'] || cleanedInputMetadata || {};
-    const outputSchema = nodeData?.config?.['output_schema'] || cleanedOutputMetadata || {};
+    const incomingEdges = edges.filter((edge) => edge.target === id);
+    let predecessorNodes = incomingEdges.map((edge) => {
+      return nodes.find((node) => node.id === edge.source);
+    });
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
-          {Object.keys(inputSchema).map((key) => (
-            <InputHandleRow key={key} keyName={key} />
+          {predecessorNodes.map((node) => (
+            <InputHandleRow key={node?.data?.config?.title || node?.id} keyName={node?.data?.config?.title || node?.id} />
           ))}
         </div>
 
         {/* Output Handles */}
-        <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handles">
-          {Object.keys(outputSchema).map((key) => (
-            <OutputHandleRow key={key} keyName={key} />
-          ))}
+        <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
+          {nodeData?.title && <OutputHandleRow key={nodeData.config.title} keyName={nodeData.config.title} />}
         </div>
       </div>
     );
