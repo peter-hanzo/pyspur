@@ -36,6 +36,13 @@ class BranchSolveMergeNodeConfig(BaseSubworkflowNodeConfig):
         default="Please combine the following solutions into a coherent and comprehensive final answer.",
         description="The prompt for the merge LLM",
     )
+    llm_info: ModelInfo = Field(
+        default_factory=lambda: ModelInfo(
+            model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7
+        ),
+        description="The default LLM model to use",
+    )
+    input_schema: Dict[str, str] = Field(default={"task": "str"})
     output_schema: Dict[str, str] = Field(default={"response": "str"})
 
 

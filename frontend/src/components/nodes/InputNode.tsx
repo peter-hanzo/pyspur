@@ -194,8 +194,8 @@ const renderWorkflowInputs = () => {
             }
           }}
           classNames={{
-            input: 'bg-default-100',
-            inputWrapper: 'shadow-none',
+            input: "bg-background",
+            inputWrapper: "shadow-none bg-background"
           }}
           endContent={
             <Button

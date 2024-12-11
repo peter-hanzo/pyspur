@@ -28,8 +28,6 @@ import InputNode from '../nodes/InputNode';
 
 import LoadingSpinner from '../LoadingSpinner';
 import IfElseNode from '../nodes/logic/IfElseNode';
-import LoadingSpinner from '../LoadingSpinner';
-import dagre from '@dagrejs/dagre';
 import OutputDisplayNode from '../nodes/OutputDisplayNode';
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
