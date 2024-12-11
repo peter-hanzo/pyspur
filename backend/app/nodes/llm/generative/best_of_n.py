@@ -13,6 +13,19 @@ from ..llm_utils import LLMModels, ModelInfo
 
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig):
+    system_message: str = Field(
+        default="You are a helpful assistant.",
+        description="System message for the generation LLM",
+    )
+    user_message: str = Field(
+        default="{{ user_input }}", description="User message template"
+    )
+    generation_llm_info: ModelInfo = Field(
+        default_factory=lambda: ModelInfo(
+            model=LLMModels.GPT_4O, max_tokens=150, temperature=0.7
+        ),
+        description="Model info for the generation LLM",
+    )
     samples: int = Field(
         default=3, ge=1, le=10, description="Number of samples to generate"
     )
@@ -29,19 +42,6 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig):
             model=LLMModels.GPT_4O, max_tokens=16, temperature=0.1
         ),
         description="Model info for the rating LLM",
-    )
-    generation_llm_info: ModelInfo = Field(
-        default_factory=lambda: ModelInfo(
-            model=LLMModels.GPT_4O, max_tokens=150, temperature=0.7
-        ),
-        description="Model info for the generation LLM",
-    )
-    system_message: str = Field(
-        default="You are a helpful assistant.",
-        description="System message for the generation LLM",
-    )
-    user_message: str = Field(
-        default="{{ user_input }}", description="User message template"
     )
     input_schema: Dict[str, str] = Field(default={"user_input": "str"})
     output_schema: Dict[str, str] = Field(default={"response": "str"})

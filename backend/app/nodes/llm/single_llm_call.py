@@ -8,16 +8,16 @@ from .llm_utils import LLMModels, ModelInfo, create_messages, generate_text
 
 
 class SingleLLMCallNodeConfig(DynamicSchemaNodeConfig):
-    llm_info: ModelInfo = Field(
-        ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
-        description="The default LLM model to use",
-    )
     system_message: str = Field(
         "You are a helpful assistant.", description="The system message for the LLM"
     )
     user_message: str = Field(
         "{{ input_field_1 }}",
         description="The user message for the LLM, serialized from input_schema",
+    )
+    llm_info: ModelInfo = Field(
+        ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
+        description="The default LLM model to use",
     )
     input_schema: Dict[str, str] = {"input_field_1": "str"}
     few_shot_examples: Optional[List[Dict[str, str]]] = None
