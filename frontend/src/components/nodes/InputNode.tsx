@@ -167,7 +167,7 @@ const renderWorkflowInputs = () => {
         <Handle
           type="source"
           position={Position.Right}
-          id="output"
+          id={id}
           className={`${styles.handle} ${styles.handleRight} ${
             isCollapsed ? styles.collapsedHandleOutput : ''
           }`}

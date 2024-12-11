@@ -121,7 +121,10 @@ const flowSlice = createSlice({
 
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
       saveToHistory(state);
-      state.edges = addEdge(action.payload.connection, state.edges);
+      let { connection } = action.payload;
+      // make target handle the same as source handle
+      connection = { ...connection, targetHandle: connection.sourceHandle };
+      state.edges = addEdge(connection, state.edges);
     },
 
     addNode: (state, action: PayloadAction<{ node: Node }>) => {
