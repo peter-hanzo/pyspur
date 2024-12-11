@@ -25,6 +25,8 @@ import { getWorkflowRuns } from '../utils/api';
 import { useRouter } from 'next/router';
 import DeployModal from './modals/DeployModal';
 import { formatDistanceStrict } from 'date-fns';
+import { useHotkeys } from 'react-hotkeys-hook';
+
 interface HeaderProps {
   activePage: 'home' | 'workflow' | 'evals';
 }
@@ -36,13 +38,7 @@ interface Node {
   };
 }
 
-interface RootState {
-  flow: {
-    nodes: Node[];
-    projectName: string;
-    workflowInputVariables: Record<string, any>;
-  };
-}
+import { RootState } from '../store/store';
 
 interface RunStatusResponse {
   status: 'RUNNING' | 'FAILED' | string;
@@ -73,6 +69,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const workflowId = useSelector((state: RootState) => state.flow.workflowID);
   const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
+  const testInputs = useSelector((state: RootState) => state.flow.testInputs);
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
   const router = useRouter();
   const { id } = router.query;
@@ -95,6 +93,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
       fetchWorkflowRuns();
     }
   }, [workflowId]);
+
+  useEffect(() => {
+    if (testInputs.length > 0 && !selectedRow) {
+      setSelectedRow(testInputs[0].id);
+    }
+  }, [testInputs]);
 
   const showAlert = (message: string, color: AlertState['color']) => {
     setAlert({ message, color, isVisible: true });
@@ -220,6 +224,38 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   };
 
   const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
+
+  useHotkeys(
+    ['mod+enter', 'ctrl+enter'],
+    (e) => {
+      e.preventDefault();
+      console.log('Run workflow');
+      
+      if (testInputs.length === 0) {
+        setIsDebugModalOpen(true);
+        return;
+      }
+
+      const testCase = testInputs.find(row => row.id === selectedRow)
+        ?? testInputs[0];
+      
+      if (testCase) {
+        const { id, ...inputValues } = testCase;
+        const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
+
+        if (inputNodeId) {
+          const initialInputs = {
+            [inputNodeId]: inputValues
+          };
+          executeWorkflow(initialInputs);
+        }
+      }
+    },
+    { 
+      enableOnFormTags: true,
+      enabled: activePage === 'workflow'
+    }
+  );
 
   return (
     <>

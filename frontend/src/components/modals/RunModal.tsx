@@ -56,6 +56,18 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     setTestData(testInputs);
   }, [testInputs]);
 
+  useEffect(() => {
+    if (testData.length > 0 && !selectedRow) {
+      setSelectedRow(testData[0].id.toString());
+    }
+  }, [testData]);
+
+  useEffect(() => {
+    if (isOpen && testData.length > 0) {
+      setSelectedRow(testData[0].id.toString());
+    }
+  }, [isOpen, testData]);
+
   const handleAddRow = () => {
     const newTestInput: TestInput = {
       id: Date.now(),
