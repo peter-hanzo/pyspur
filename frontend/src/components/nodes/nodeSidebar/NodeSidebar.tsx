@@ -65,7 +65,8 @@ interface DynamicModel {
     input: string;
     output: string;
   }>;
-  branch_refs: string[];
+  branch_refs?: string[];
+  input_schemas?: Record<string, any>;
 }
 
 interface FieldMetadata {
@@ -83,7 +84,7 @@ interface NodeType {
 }
 
 interface NodeData {
-  config?: DynamicModel;
+  config: DynamicModel;
   run?: any;
   type?: string;
   id?: string;
@@ -268,15 +269,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         </div>
       );
     }
-
     if (key === 'input_schemas' && nodeType === 'MergeNode') {
       return (
         <div key={key} className="my-2">
           <label className="font-semibold mb-1 block">Input Schemas</label>
           <MergeEditor
-            inputSchemas={dynamicModel.input_schemas || {}}
+            branchRefs={dynamicModel.branch_refs || []}
             onChange={(newValue) => {
-              handleInputChange('input_schemas', newValue);
+              handleInputChange('branch_refs', newValue);
             }}
             nodeId={nodeID}
           />
@@ -472,10 +472,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    return keys.map((key, index) => {
+    // Prioritize system_message and user_message to appear first
+    const priorityFields = ['system_message', 'user_message'];
+    const remainingKeys = keys.filter(key => !priorityFields.includes(key));
+    const orderedKeys = [...priorityFields.filter(key => keys.includes(key)), ...remainingKeys];
+
+    return orderedKeys.map((key, index) => {
       const field = properties[key];
       const value = dynamicModel[key];
-      const isLast = index === keys.length - 1;
+      const isLast = index === orderedKeys.length - 1;
       return renderField(key, field, value, `${nodeType}.config`, isLast);
     });
   };
