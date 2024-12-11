@@ -7,13 +7,14 @@ import { ReactFlowInstance, useReactFlow } from '@xyflow/react';
 import { AppDispatch, RootState } from '../../store/store';
 import type { NodeType } from '../../store/nodeTypesSlice';
 import { addNodeWithoutConnection } from '../canvas/AddNodePopoverCanvas';
+import { setNodePanelExpanded } from '../../store/panelSlice';
 
 interface NodeTypesByCategory {
   [category: string]: NodeType[];
 }
 
 const CollapsibleNodePanel: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded);
   const dispatch = useDispatch();
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data as NodeTypesByCategory);
   const reactFlowInstance = useReactFlow();
@@ -49,13 +50,17 @@ const CollapsibleNodePanel: React.FC = () => {
     }, {} as NodeTypesByCategory));
   }, [nodeTypes, searchTerm]);
 
+  const handleToggleExpand = () => {
+    dispatch(setNodePanelExpanded(!isExpanded));
+  };
+
   return (
     <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}>
       <Button
         isIconOnly
         size="md"
         className="bg-background"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggleExpand}
       >
         <Icon icon={isExpanded ? "solar:minus-square-linear" : "solar:widget-add-linear"} width={"80%"} className="text-default-500" />
       </Button>

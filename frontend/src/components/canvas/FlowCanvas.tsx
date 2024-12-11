@@ -32,6 +32,7 @@ import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
+import { setNodePanelExpanded } from '../../store/panelSlice';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -72,6 +73,9 @@ interface RootState {
     nodes: Node[];
     edges: Edge[];
     selectedNode: string | null;
+  };
+  panel: {
+    isNodePanelExpanded: boolean;
   };
 }
 
@@ -283,6 +287,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     if (selectedNodeID) {
       dispatch(setSelectedNode({ nodeId: null }));
     }
+    dispatch(setNodePanelExpanded(false));
   }, [dispatch, selectedNodeID]);
 
   const onNodesDelete = useCallback(
