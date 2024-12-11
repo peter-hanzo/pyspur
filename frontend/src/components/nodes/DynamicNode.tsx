@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle, useHandleConnections, NodeProps } from '@xyflow/react';
+import { Handle, useHandleConnections, NodeProps, useConnection } from '@xyflow/react';
 import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
@@ -257,13 +257,12 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
     );
   };
 
+  const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
+    return nodes.find((node) => node.id === edge.source);
+  }));
+
   const renderHandles = () => {
     if (!nodeData) return null;
-
-    const incomingEdges = edges.filter((edge) => edge.target === id);
-    let predecessorNodes = incomingEdges.map((edge) => {
-      return nodes.find((node) => node.id === edge.source);
-    });
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
@@ -281,6 +280,35 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
       </div>
     );
   };
+
+  const connection = useConnection();
+
+  useEffect(() => {
+    // If a connection is in progress and the target node is this node
+    // temporarily show a handle for the source node as the connection is being made
+    if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+      let predecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      // Check if the source node is not already included
+      if (!predecessorNodes.find((node) => node?.id === connection.fromNode.id)) {
+        const fromNode = nodes.find((node) => node.id === connection.fromNode.id);
+        if (fromNode) {
+          predecessorNodes = predecessorNodes.concat(fromNode);
+        }
+      }
+
+      setPredcessorNodes(predecessorNodes);
+    } else {
+      // Update predecessor nodes when no connection is in progress
+      const updatedPredecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      setPredcessorNodes(updatedPredecessorNodes);
+    }
+  }, [connection, nodes, edges, id]);
 
   const isIfElseNode = type === 'IfElseNode';
 
