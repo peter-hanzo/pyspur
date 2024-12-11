@@ -231,16 +231,15 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       draggable={false}
     >
       {/* Container to hold the Handle and the content */}
-      <div style={{ position: 'relative' }}>
+      <div>
         {/* Hidden target handle covering the entire node */}
         <Handle
           type="target"
-          position={Position.Top}
-          id="node-body"
+          position={Position.Left}
+          id={`node-body-${id}`}
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
+            top: '50%',
+            left: '25%',
             width: '100%',
             height: '100%',
             zIndex: 10,
