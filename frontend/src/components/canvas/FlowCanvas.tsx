@@ -199,23 +199,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             return;
           }
 
-          const updatedInputSchema = {
-            ...targetNode.data?.config?.input_schema,
-            [outputHandleName]: 'str',
-          };
-
-          dispatch(
-            updateNodeData({
-              id: targetNode.id,
-              data: {
-                config: {
-                  ...targetNode.data?.config,
-                  input_schema: updatedInputSchema,
-                },
-              },
-            })
-          );
-
           connection = {
             ...connection,
             targetHandle: outputHandleName,
