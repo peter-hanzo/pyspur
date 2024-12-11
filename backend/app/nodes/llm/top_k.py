@@ -3,6 +3,8 @@ from typing import Dict, List
 from pydantic import Field
 
 from .single_llm_call import SingleLLMCallNodeConfig
+from ..logic.sort import SortNode
+from ..logic.rank import RankNode
 from ...subworkflow.ephemeral_subworkflow_node import EphemeralSubworkflowNode
 from ....schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
@@ -122,30 +124,28 @@ class TopKNode(EphemeralSubworkflowNode):
                 )
             )
 
-            # Python node to parse batch ratings and combine with texts
-            parse_node_id = "parse_node"
-            parse_node = WorkflowNodeSchema(
-                id=parse_node_id,
+            # Python node to parse batch ratings
+            parse_ratings_node_id = "parse_ratings_node"
+            parse_ratings_node = WorkflowNodeSchema(
+                id=parse_ratings_node_id,
                 node_type="PythonFuncNode",
                 config={
                     "code": """def run(texts, ratings):
                         import re
                         scores = [float(score) for score in re.findall(r'\\d+', ratings)]
-                        text_scores = list(zip(texts, scores))
-                        sorted_texts = [text for text, score in sorted(text_scores, key=lambda x: x[1], reverse=True)]
-                        return {"top_texts": sorted_texts[:k]}""",
+                        return {"items": [{"text": text, "score": score} for text, score in zip(texts, scores)]}""",
                     "input_schema": {"texts": "list[str]", "ratings": "str"},
-                    "output_schema": {"top_texts": "list[str]"}
+                    "output_schema": {"items": "list[dict]"}
                 }
             )
-            nodes.append(parse_node)
+            nodes.append(parse_ratings_node)
 
-            # Link input and batch rate nodes to parse node
+            # Link input and batch rate nodes to parse ratings node
             links.append(
                 WorkflowLinkSchema(
                     source_id=input_node_id,
                     source_output_key="texts",
-                    target_id=parse_node_id,
+                    target_id=parse_ratings_node_id,
                     target_input_key="texts",
                 )
             )
@@ -153,8 +153,80 @@ class TopKNode(EphemeralSubworkflowNode):
                 WorkflowLinkSchema(
                     source_id=batch_rate_node_id,
                     source_output_key="ratings",
-                    target_id=parse_node_id,
+                    target_id=parse_ratings_node_id,
                     target_input_key="ratings",
+                )
+            )
+
+            # Rank node to assign ranks based on scores
+            rank_node_id = "rank_node"
+            rank_node = WorkflowNodeSchema(
+                id=rank_node_id,
+                node_type="RankNode",
+                config={
+                    "reverse": True,  # Higher scores get better ranks
+                    "key_field": "score",
+                    "input_schema": {"items": "list[dict]"},
+                    "output_schema": {"items": "list[dict]", "ranks": "list[int]"}
+                }
+            )
+            nodes.append(rank_node)
+
+            # Link parse ratings node to rank node
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=parse_ratings_node_id,
+                    source_output_key="items",
+                    target_id=rank_node_id,
+                    target_input_key="items",
+                )
+            )
+
+            # Sort node to order by score
+            sort_node_id = "sort_node"
+            sort_node = WorkflowNodeSchema(
+                id=sort_node_id,
+                node_type="SortNode",
+                config={
+                    "reverse": True,  # Higher scores first
+                    "key_field": "score",
+                    "input_schema": {"items": "list[dict]"},
+                    "output_schema": {"sorted_items": "list[dict]"}
+                }
+            )
+            nodes.append(sort_node)
+
+            # Link rank node to sort node
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=rank_node_id,
+                    source_output_key="items",
+                    target_id=sort_node_id,
+                    target_input_key="items",
+                )
+            )
+
+            # Extract top K texts
+            extract_top_k_node_id = "extract_top_k_node"
+            extract_top_k_node = WorkflowNodeSchema(
+                id=extract_top_k_node_id,
+                node_type="PythonFuncNode",
+                config={
+                    "code": f"""def run(sorted_items):
+                        return {{"top_texts": [item["text"] for item in sorted_items[:k]]}}""",
+                    "input_schema": {"sorted_items": "list[dict]"},
+                    "output_schema": {"top_texts": "list[str]"}
+                }
+            )
+            nodes.append(extract_top_k_node)
+
+            # Link sort node to extract node
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=sort_node_id,
+                    source_output_key="sorted_items",
+                    target_id=extract_top_k_node_id,
+                    target_input_key="sorted_items",
                 )
             )
 
@@ -242,76 +314,78 @@ class TopKNode(EphemeralSubworkflowNode):
                     )
                 )
 
-            # Create pick nodes to select top K
-            pick_node_id = "pick_node"
-            pick_node = WorkflowNodeSchema(
-                id=pick_node_id,
-                node_type="PickTopKNode",
+            # Rank node to assign ranks based on ratings
+            rank_node_id = "rank_node"
+            rank_node = WorkflowNodeSchema(
+                id=rank_node_id,
+                node_type="RankNode",
                 config={
-                    "k": self.config.k,
-                    "based_on_key": "rating",
-                    "input_schema": {
-                        jsonify_node_id: "str" for jsonify_node_id in jsonify_node_ids
-                    },
+                    "reverse": True,  # Higher ratings get better ranks
+                    "key_field": "rating",
+                    "input_schema": {jsonify_node_id: "dict" for jsonify_node_id in jsonify_node_ids},
+                    "output_schema": {"items": "list[dict]", "ranks": "list[int]"}
                 }
             )
-            nodes.append(pick_node)
+            nodes.append(rank_node)
 
-            # Link jsonify nodes to pick node
+            # Link jsonify nodes to rank node
             for jsonify_node_id in jsonify_node_ids:
                 links.append(
                     WorkflowLinkSchema(
                         source_id=jsonify_node_id,
                         source_output_key="json_string",
-                        target_id=pick_node_id,
+                        target_id=rank_node_id,
                         target_input_key=jsonify_node_id,
                     )
                 )
 
-            # Extract node to get texts from JSON
-            extract_node_id = "extract_node"
-            extract_node = WorkflowNodeSchema(
-                id=extract_node_id,
-                node_type="ExtractJsonNode",
+            # Sort node to order by rating
+            sort_node_id = "sort_node"
+            sort_node = WorkflowNodeSchema(
+                id=sort_node_id,
+                node_type="SortNode",
                 config={
-                    "output_schema": {"text": "str"}
+                    "reverse": True,  # Higher ratings first
+                    "key_field": "rating",
+                    "input_schema": {"items": "list[dict]"},
+                    "output_schema": {"sorted_items": "list[dict]"}
                 }
             )
-            nodes.append(extract_node)
+            nodes.append(sort_node)
 
-            # Link pick node to extract node
+            # Link rank node to sort node
             links.append(
                 WorkflowLinkSchema(
-                    source_id=pick_node_id,
-                    source_output_key="picked_json_strings",
-                    target_id=extract_node_id,
-                    target_input_key="json_string",
+                    source_id=rank_node_id,
+                    source_output_key="items",
+                    target_id=sort_node_id,
+                    target_input_key="items",
                 )
             )
 
-            # Python node to combine extracted texts into list
-            combine_node_id = "combine_node"
-            combine_node = WorkflowNodeSchema(
-                id=combine_node_id,
+            # Extract top K texts
+            extract_top_k_node_id = "extract_top_k_node"
+            extract_top_k_node = WorkflowNodeSchema(
+                id=extract_top_k_node_id,
                 node_type="PythonFuncNode",
                 config={
-                    "code": "def run(**kwargs):\n    return {'top_texts': [v['text'] for v in kwargs.values()]}",
-                    "input_schema": {f"text_{i}": "dict" for i in range(self.config.k)},
+                    "code": f"""def run(sorted_items):
+                        return {{"top_texts": [item["text"] for item in sorted_items[:k]]}}""",
+                    "input_schema": {"sorted_items": "list[dict]"},
                     "output_schema": {"top_texts": "list[str]"}
                 }
             )
-            nodes.append(combine_node)
+            nodes.append(extract_top_k_node)
 
-            # Link extract node outputs to combine node
-            for i in range(self.config.k):
-                links.append(
-                    WorkflowLinkSchema(
-                        source_id=extract_node_id,
-                        source_output_key=f"text_{i}",
-                        target_id=combine_node_id,
-                        target_input_key=f"text_{i}",
-                    )
+            # Link sort node to extract node
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=sort_node_id,
+                    source_output_key="sorted_items",
+                    target_id=extract_top_k_node_id,
+                    target_input_key="sorted_items",
                 )
+            )
 
         # Output node
         output_node_id = "output_node"
@@ -323,24 +397,14 @@ class TopKNode(EphemeralSubworkflowNode):
         nodes.append(output_node)
 
         # Link final node to output
-        if self.config.batch_scoring:
-            links.append(
-                WorkflowLinkSchema(
-                    source_id=parse_node_id,
-                    source_output_key="top_texts",
-                    target_id=output_node_id,
-                    target_input_key="top_texts",
-                )
+        links.append(
+            WorkflowLinkSchema(
+                source_id=extract_top_k_node_id,
+                source_output_key="top_texts",
+                target_id=output_node_id,
+                target_input_key="top_texts",
             )
-        else:
-            links.append(
-                WorkflowLinkSchema(
-                    source_id=combine_node_id,
-                    source_output_key="top_texts",
-                    target_id=output_node_id,
-                    target_input_key="top_texts",
-                )
-            )
+        )
 
         return WorkflowDefinitionSchema(
             nodes=nodes,
