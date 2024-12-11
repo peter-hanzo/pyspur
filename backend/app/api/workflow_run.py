@@ -96,7 +96,10 @@ async def run_workflow_blocking(
         task_recorder=task_recorder,
         context=context,
     )
-    outputs = await executor(initial_inputs)
+    input_node = next(
+        node for node in workflow_definition.nodes if node.node_type == "InputNode"
+    )
+    outputs = await executor(initial_inputs[input_node.id])
     new_run.status = RunStatus.COMPLETED
     new_run.end_time = datetime.now(timezone.utc)
     new_run.outputs = {k: v.model_dump() for k, v in outputs.items()}
@@ -160,7 +163,12 @@ async def run_workflow_non_blocking(
             )
             try:
                 assert run.initial_inputs
-                outputs = await executor(run.initial_inputs)
+                input_node = next(
+                    node
+                    for node in workflow_definition.nodes
+                    if node.node_type == "InputNode"
+                )
+                outputs = await executor(run.initial_inputs[input_node.id])
                 run.outputs = {k: v.model_dump() for k, v in outputs.items()}
                 run.status = RunStatus.COMPLETED
                 run.end_time = datetime.now(timezone.utc)
