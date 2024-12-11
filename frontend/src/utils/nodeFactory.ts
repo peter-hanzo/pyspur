@@ -108,7 +108,7 @@ export const createNode = (
     type: nodeType.name,
     position,
     data: {
-      title: nodeType.name,
+      title: nodeType.name === 'InputNode' ? id : nodeType.name,
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
       config: cloneDeep(nodeType.config),
