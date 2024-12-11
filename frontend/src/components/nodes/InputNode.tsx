@@ -130,8 +130,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
                                 }
                               }}
                               classNames={{
-                                input: 'bg-default-100',
-                                inputWrapper: 'shadow-none',
+                                input: "bg-background",
+                                inputWrapper: "shadow-none bg-background"
                               }}
                             />
                           ) : (
@@ -163,9 +163,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
                           type="source"
                           position={Position.Right}
                           id={key}
-                          className={`${styles.handle} ${styles.handleRight} ${
-                            isCollapsed ? styles.collapsedHandleOutput : ''
-                          }`}
+                          className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+                            }`}
                           isConnectable={!isCollapsed}
                         />
                       </div>
@@ -196,8 +195,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
             }
           }}
           classNames={{
-            input: 'bg-default-100',
-            inputWrapper: 'shadow-none',
+            input: "bg-background",
+            inputWrapper: "shadow-none bg-background"
           }}
           endContent={
             <Button
