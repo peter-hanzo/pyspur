@@ -239,14 +239,15 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           id={`node-body-${id}`}
           style={{
             top: '50%',
-            left: '25%',
-            width: '100%',
+            left: 0,
+            width: '30%',
             height: '100%',
             zIndex: 10,
             opacity: 0,
             pointerEvents: 'auto',
           }}
           isConnectable={true}
+          isConnectableStart={false}
         />
 
         {/* Node content wrapped in drag handle */}
