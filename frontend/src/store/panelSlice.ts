@@ -15,8 +15,11 @@ export const panelSlice = createSlice({
     setNodePanelExpanded: (state, action: PayloadAction<boolean>) => {
       state.isNodePanelExpanded = action.payload;
     },
+    toggleNodePanelExpanded: (state) => {
+      state.isNodePanelExpanded = !state.isNodePanelExpanded;
+    }
   },
 });
 
-export const { setNodePanelExpanded } = panelSlice.actions;
+export const { setNodePanelExpanded, toggleNodePanelExpanded  } = panelSlice.actions;
 export default panelSlice.reducer; 
