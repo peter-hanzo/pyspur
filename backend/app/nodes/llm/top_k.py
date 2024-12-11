@@ -19,6 +19,10 @@ class TopKNodeConfig(SingleLLMCallNodeConfig):
         ge=1,
         description="Number of top texts to return"
     )
+    batch_scoring: bool = Field(
+        default=False,
+        description="If True, score all texts in one LLM call. If False, score each text individually."
+    )
     rating_prompt: str = Field(
         default=(
             "Rate the following text on a scale from 0 to 10 based on quality and relevance. "
@@ -53,7 +57,6 @@ class TopKNode(EphemeralSubworkflowNode):
 
     def generate_top_k_workflow(self) -> WorkflowDefinitionSchema:
         """Generate workflow for ranking texts and selecting top K."""
-        # Initialize workflow components
         nodes: List[WorkflowNodeSchema] = []
         links: List[WorkflowLinkSchema] = []
 
@@ -66,159 +69,249 @@ class TopKNode(EphemeralSubworkflowNode):
         )
         nodes.append(input_node)
 
-        # Python node to split the input list into individual texts
-        split_node_id = "split_node"
-        split_node = WorkflowNodeSchema(
-            id=split_node_id,
-            node_type="PythonFuncNode",
-            config={
-                "code": "def run(texts):\n    return {f'text_{i}': text for i, text in enumerate(texts)}",
-                "input_schema": {"texts": "list[str]"},
-                "output_schema": {f"text_{i}": "str" for i in range(len(self.config.input_schema))}
-            }
-        )
-        nodes.append(split_node)
-
-        # Link input to split node
-        links.append(
-            WorkflowLinkSchema(
-                source_id=input_node_id,
-                source_output_key="texts",
-                target_id=split_node_id,
-                target_input_key="texts",
+        if self.config.batch_scoring:
+            # Python node to format texts for batch scoring
+            format_node_id = "format_node"
+            format_node = WorkflowNodeSchema(
+                id=format_node_id,
+                node_type="PythonFuncNode",
+                config={
+                    "code": """def run(texts):
+                        formatted_texts = []
+                        for i, text in enumerate(texts):
+                            formatted_texts.append(f"Text {i+1}:\\n{text}\\n\\nRate this text:")
+                        return {"formatted_text": "\\n\\n".join(formatted_texts)}""",
+                    "input_schema": {"texts": "list[str]"},
+                    "output_schema": {"formatted_text": "str"}
+                }
             )
-        )
+            nodes.append(format_node)
 
-        # Create rating nodes for each text
-        rating_node_ids = []
-        for i in range(len(self.config.input_schema)):
-            rate_node_id = f"rating_node_{i}"
-            rate_node = WorkflowNodeSchema(
-                id=rate_node_id,
+            # Link input to format node
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=input_node_id,
+                    source_output_key="texts",
+                    target_id=format_node_id,
+                    target_input_key="texts",
+                )
+            )
+
+            # Single LLM call for batch scoring
+            batch_rate_node_id = "batch_rate_node"
+            batch_rate_node = WorkflowNodeSchema(
+                id=batch_rate_node_id,
                 node_type="SingleLLMCallNode",
                 config={
                     "llm_info": self.config.rating_model_info.model_dump(),
                     "system_message": self.config.rating_prompt,
-                    "user_message": "{{ text }}",
-                    "input_schema": {"text": "str"},
-                    "output_schema": {"rating": "float"},
+                    "user_message": "{{ formatted_text }}",
+                    "input_schema": {"formatted_text": "str"},
+                    "output_schema": {"ratings": "str"}
                 }
             )
-            nodes.append(rate_node)
-            rating_node_ids.append(rate_node_id)
+            nodes.append(batch_rate_node)
 
-            # Link split node to rating node
+            # Link format node to batch rate node
             links.append(
                 WorkflowLinkSchema(
-                    source_id=split_node_id,
-                    source_output_key=f"text_{i}",
-                    target_id=rate_node_id,
-                    target_input_key="text",
+                    source_id=format_node_id,
+                    source_output_key="formatted_text",
+                    target_id=batch_rate_node_id,
+                    target_input_key="formatted_text",
                 )
             )
 
-        # Create jsonify nodes to combine text and rating
-        jsonify_node_ids = []
-        for i in range(len(self.config.input_schema)):
-            jsonify_node_id = f"jsonify_node_{i}"
-            jsonify_node = WorkflowNodeSchema(
-                id=jsonify_node_id,
-                node_type="JsonifyNode",
+            # Python node to parse batch ratings and combine with texts
+            parse_node_id = "parse_node"
+            parse_node = WorkflowNodeSchema(
+                id=parse_node_id,
+                node_type="PythonFuncNode",
                 config={
-                    "input_schema": {"text": "str", "rating": "float"}
+                    "code": """def run(texts, ratings):
+                        import re
+                        scores = [float(score) for score in re.findall(r'\\d+', ratings)]
+                        text_scores = list(zip(texts, scores))
+                        sorted_texts = [text for text, score in sorted(text_scores, key=lambda x: x[1], reverse=True)]
+                        return {"top_texts": sorted_texts[:k]}""",
+                    "input_schema": {"texts": "list[str]", "ratings": "str"},
+                    "output_schema": {"top_texts": "list[str]"}
                 }
             )
-            nodes.append(jsonify_node)
-            jsonify_node_ids.append(jsonify_node_id)
+            nodes.append(parse_node)
 
-            # Link original text and rating to jsonify node
+            # Link input and batch rate nodes to parse node
             links.append(
                 WorkflowLinkSchema(
-                    source_id=split_node_id,
-                    source_output_key=f"text_{i}",
-                    target_id=jsonify_node_id,
-                    target_input_key="text",
+                    source_id=input_node_id,
+                    source_output_key="texts",
+                    target_id=parse_node_id,
+                    target_input_key="texts",
                 )
             )
             links.append(
                 WorkflowLinkSchema(
-                    source_id=rating_node_ids[i],
-                    source_output_key="rating",
-                    target_id=jsonify_node_id,
-                    target_input_key="rating",
+                    source_id=batch_rate_node_id,
+                    source_output_key="ratings",
+                    target_id=parse_node_id,
+                    target_input_key="ratings",
                 )
             )
 
-        # Create pick nodes to select top K
-        pick_node_id = "pick_node"
-        pick_node = WorkflowNodeSchema(
-            id=pick_node_id,
-            node_type="PickTopKNode",
-            config={
-                "k": self.config.k,
-                "based_on_key": "rating",
-                "input_schema": {
-                    jsonify_node_id: "str" for jsonify_node_id in jsonify_node_ids
-                },
-            }
-        )
-        nodes.append(pick_node)
+        else:
+            # Python node to split the input list into individual texts
+            split_node_id = "split_node"
+            split_node = WorkflowNodeSchema(
+                id=split_node_id,
+                node_type="PythonFuncNode",
+                config={
+                    "code": "def run(texts):\n    return {f'text_{i}': text for i, text in enumerate(texts)}",
+                    "input_schema": {"texts": "list[str]"},
+                    "output_schema": {f"text_{i}": "str" for i in range(len(self.config.input_schema))}
+                }
+            )
+            nodes.append(split_node)
 
-        # Link jsonify nodes to pick node
-        for jsonify_node_id in jsonify_node_ids:
+            # Link input to split node
             links.append(
                 WorkflowLinkSchema(
-                    source_id=jsonify_node_id,
-                    source_output_key="json_string",
-                    target_id=pick_node_id,
-                    target_input_key=jsonify_node_id,
+                    source_id=input_node_id,
+                    source_output_key="texts",
+                    target_id=split_node_id,
+                    target_input_key="texts",
                 )
             )
 
-        # Extract node to get texts from JSON
-        extract_node_id = "extract_node"
-        extract_node = WorkflowNodeSchema(
-            id=extract_node_id,
-            node_type="ExtractJsonNode",
-            config={
-                "output_schema": {"text": "str"}
-            }
-        )
-        nodes.append(extract_node)
+            # Create rating nodes for each text
+            rating_node_ids = []
+            for i in range(len(self.config.input_schema)):
+                rate_node_id = f"rating_node_{i}"
+                rate_node = WorkflowNodeSchema(
+                    id=rate_node_id,
+                    node_type="SingleLLMCallNode",
+                    config={
+                        "llm_info": self.config.rating_model_info.model_dump(),
+                        "system_message": self.config.rating_prompt,
+                        "user_message": "{{ text }}",
+                        "input_schema": {"text": "str"},
+                        "output_schema": {"rating": "float"},
+                    }
+                )
+                nodes.append(rate_node)
+                rating_node_ids.append(rate_node_id)
 
-        # Link pick node to extract node
-        links.append(
-            WorkflowLinkSchema(
-                source_id=pick_node_id,
-                source_output_key="picked_json_strings",
-                target_id=extract_node_id,
-                target_input_key="json_string",
+                # Link split node to rating node
+                links.append(
+                    WorkflowLinkSchema(
+                        source_id=split_node_id,
+                        source_output_key=f"text_{i}",
+                        target_id=rate_node_id,
+                        target_input_key="text",
+                    )
+                )
+
+            # Create jsonify nodes to combine text and rating
+            jsonify_node_ids = []
+            for i in range(len(self.config.input_schema)):
+                jsonify_node_id = f"jsonify_node_{i}"
+                jsonify_node = WorkflowNodeSchema(
+                    id=jsonify_node_id,
+                    node_type="JsonifyNode",
+                    config={
+                        "input_schema": {"text": "str", "rating": "float"}
+                    }
+                )
+                nodes.append(jsonify_node)
+                jsonify_node_ids.append(jsonify_node_id)
+
+                # Link original text and rating to jsonify node
+                links.append(
+                    WorkflowLinkSchema(
+                        source_id=split_node_id,
+                        source_output_key=f"text_{i}",
+                        target_id=jsonify_node_id,
+                        target_input_key="text",
+                    )
+                )
+                links.append(
+                    WorkflowLinkSchema(
+                        source_id=rating_node_ids[i],
+                        source_output_key="rating",
+                        target_id=jsonify_node_id,
+                        target_input_key="rating",
+                    )
+                )
+
+            # Create pick nodes to select top K
+            pick_node_id = "pick_node"
+            pick_node = WorkflowNodeSchema(
+                id=pick_node_id,
+                node_type="PickTopKNode",
+                config={
+                    "k": self.config.k,
+                    "based_on_key": "rating",
+                    "input_schema": {
+                        jsonify_node_id: "str" for jsonify_node_id in jsonify_node_ids
+                    },
+                }
             )
-        )
+            nodes.append(pick_node)
 
-        # Python node to combine extracted texts into list
-        combine_node_id = "combine_node"
-        combine_node = WorkflowNodeSchema(
-            id=combine_node_id,
-            node_type="PythonFuncNode",
-            config={
-                "code": "def run(**kwargs):\n    return {'top_texts': [v['text'] for v in kwargs.values()]}",
-                "input_schema": {f"text_{i}": "dict" for i in range(self.config.k)},
-                "output_schema": {"top_texts": "list[str]"}
-            }
-        )
-        nodes.append(combine_node)
+            # Link jsonify nodes to pick node
+            for jsonify_node_id in jsonify_node_ids:
+                links.append(
+                    WorkflowLinkSchema(
+                        source_id=jsonify_node_id,
+                        source_output_key="json_string",
+                        target_id=pick_node_id,
+                        target_input_key=jsonify_node_id,
+                    )
+                )
 
-        # Link extract node outputs to combine node
-        for i in range(self.config.k):
+            # Extract node to get texts from JSON
+            extract_node_id = "extract_node"
+            extract_node = WorkflowNodeSchema(
+                id=extract_node_id,
+                node_type="ExtractJsonNode",
+                config={
+                    "output_schema": {"text": "str"}
+                }
+            )
+            nodes.append(extract_node)
+
+            # Link pick node to extract node
             links.append(
                 WorkflowLinkSchema(
-                    source_id=extract_node_id,
-                    source_output_key=f"text_{i}",
-                    target_id=combine_node_id,
-                    target_input_key=f"text_{i}",
+                    source_id=pick_node_id,
+                    source_output_key="picked_json_strings",
+                    target_id=extract_node_id,
+                    target_input_key="json_string",
                 )
             )
+
+            # Python node to combine extracted texts into list
+            combine_node_id = "combine_node"
+            combine_node = WorkflowNodeSchema(
+                id=combine_node_id,
+                node_type="PythonFuncNode",
+                config={
+                    "code": "def run(**kwargs):\n    return {'top_texts': [v['text'] for v in kwargs.values()]}",
+                    "input_schema": {f"text_{i}": "dict" for i in range(self.config.k)},
+                    "output_schema": {"top_texts": "list[str]"}
+                }
+            )
+            nodes.append(combine_node)
+
+            # Link extract node outputs to combine node
+            for i in range(self.config.k):
+                links.append(
+                    WorkflowLinkSchema(
+                        source_id=extract_node_id,
+                        source_output_key=f"text_{i}",
+                        target_id=combine_node_id,
+                        target_input_key=f"text_{i}",
+                    )
+                )
 
         # Output node
         output_node_id = "output_node"
@@ -229,15 +322,25 @@ class TopKNode(EphemeralSubworkflowNode):
         )
         nodes.append(output_node)
 
-        # Link combine node to output node
-        links.append(
-            WorkflowLinkSchema(
-                source_id=combine_node_id,
-                source_output_key="top_texts",
-                target_id=output_node_id,
-                target_input_key="top_texts",
+        # Link final node to output
+        if self.config.batch_scoring:
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=parse_node_id,
+                    source_output_key="top_texts",
+                    target_id=output_node_id,
+                    target_input_key="top_texts",
+                )
             )
-        )
+        else:
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=combine_node_id,
+                    source_output_key="top_texts",
+                    target_id=output_node_id,
+                    target_input_key="top_texts",
+                )
+            )
 
         return WorkflowDefinitionSchema(
             nodes=nodes,
