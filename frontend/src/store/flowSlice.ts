@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
+import { config } from 'process';
 
 interface Coordinates {
   x: number;
@@ -34,7 +35,7 @@ interface TestInput {
   [key: string]: any;
 }
 
-interface FlowState {
+export interface FlowState {
   nodeTypes: string[];
   nodes: Node[];
   edges: Edge[];
@@ -96,15 +97,17 @@ const flowSlice = createSlice({
         createNode(state.nodeTypes, node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { config: node.config })
       );
 
-      state.edges = links.map(link => ({
+      let edges = links.map(link => (
+        {
         id: uuidv4(),
         key: uuidv4(),
         selected: link.selected || false,
         source: link.source_id,
         target: link.target_id,
-        sourceHandle: link.source_output_key,
-        targetHandle: link.target_input_key
+        sourceHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
+        targetHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
       }));
+
 
       if (definition.input_variables) {
         state.workflowInputVariables = definition.input_variables;
