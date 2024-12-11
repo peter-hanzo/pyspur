@@ -118,20 +118,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   useEffect(() => {
     if (workflowData) {
       console.log('workflowData', workflowData);
-      if (workflowData.definition.nodes) {
-        const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
-        if (inputNode.length > 0) {
-          const inputSchema = inputNode[0].config.input_schema;
-          if (inputSchema) {
-            const workflowInputVariables = Object.entries(inputSchema).map(([key, type]) => {
-              return { key, value: '' };
-            });
-            workflowInputVariables.forEach(variable => {
-              dispatch(setWorkflowInputVariable(variable));
-            });
-          }
-        }
-      }
       dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
     }
   }, [dispatch, workflowData, workflowID, nodeTypesConfig]);
