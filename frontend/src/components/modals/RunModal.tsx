@@ -20,17 +20,12 @@ import TextEditor from '../textEditor/TextEditor';
 import { addTestInput, deleteTestInput } from '../../store/flowSlice';
 import { RootState } from '../../store/store';
 import { AppDispatch } from '../../store/store';
-
+import { TestInput } from '../../types/workflow';
 interface RunModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onRun: (initialInputs: Record<string, any>) => void;
   onSave?: () => void;
-}
-
-interface TestInput {
-  id: number;
-  [key: string]: any;
 }
 
 interface EditingCell {
