@@ -16,7 +16,7 @@ import {
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { v4 as uuidv4 } from 'uuid';
-import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
+import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
@@ -474,6 +474,19 @@ const RunViewFlowCanvasContent = (props) => {
     setHoveredNode(null);
   }, []);
 
+  const handleAddNodeBetween = (nodeName, sourceNode, targetNode, edgeId) => {
+    insertNodeBetweenNodes(
+      nodeTypesConfig,
+      nodeName,
+      sourceNode,
+      targetNode,
+      edgeId,
+      reactFlowInstance,
+      dispatch,
+      () => setPopoverContentVisible(false)
+    );
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -502,15 +515,11 @@ const RunViewFlowCanvasContent = (props) => {
                     <DropdownItem
                       key={node.name}
                       onClick={() =>
-                        addNodeBetweenNodes(
-                          nodeTypesConfig,
+                        handleAddNodeBetween(
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,
-                          selectedEdge.edgeId,
-                          reactFlowInstance,
-                          dispatch,
-                          setPopoverContentVisible
+                          selectedEdge.edgeId
                         )
                       }
                     >

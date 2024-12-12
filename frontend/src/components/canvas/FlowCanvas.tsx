@@ -17,7 +17,6 @@ import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
-import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
@@ -33,6 +32,7 @@ import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
 import { setNodePanelExpanded } from '../../store/panelSlice';
+import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -453,6 +453,19 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     setHoveredNode(null);
   }, []);
 
+  const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
+    insertNodeBetweenNodes(
+      nodeTypesConfig,
+      nodeName,
+      sourceNode,
+      targetNode,
+      edgeId,
+      reactFlowInstance,
+      dispatch,
+      () => setPopoverContentVisible(false)
+    );
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -481,15 +494,11 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                     <DropdownItem
                       key={node.name}
                       onClick={() =>
-                        addNodeBetweenNodes(
-                          nodeTypesConfig,
+                        handleAddNodeBetween(
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,
-                          selectedEdge.edgeId,
-                          reactFlowInstance,
-                          dispatch,
-                          setPopoverContentVisible
+                          selectedEdge.edgeId
                         )
                       }
                     >

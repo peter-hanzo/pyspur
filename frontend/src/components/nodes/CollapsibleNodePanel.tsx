@@ -9,6 +9,7 @@ import { AppDispatch, RootState } from '../../store/store';
 import type { NodeType } from '../../store/nodeTypesSlice';
 import { addNodeWithoutConnection } from '../canvas/AddNodePopoverCanvas';
 import { setNodePanelExpanded } from '../../store/panelSlice';
+import { createNodeAtCenter } from '../../utils/flowUtils';
 
 interface NodeTypesByCategory {
   [category: string]: NodeType[];
@@ -44,7 +45,8 @@ const CollapsibleNodePanel: React.FC = () => {
 
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
-      addNodeWithoutConnection(nodeTypes, nodeName, reactFlowInstance, dispatch);
+      createNodeAtCenter(nodeTypes, nodeName, reactFlowInstance, dispatch);
+      dispatch(setNodePanelExpanded(false));
     }
   };
 
