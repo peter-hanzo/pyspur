@@ -2,7 +2,8 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
-import { config } from 'process';
+import { config, title } from 'process';
+import { TestInput } from '@/types/workflow';
 
 interface Coordinates {
   x: number;
@@ -27,12 +28,7 @@ interface WorkflowLink {
 interface WorkflowDefinition {
   nodes: WorkflowNode[];
   links: WorkflowLink[];
-  input_variables?: Record<string, any>;
-}
-
-interface TestInput {
-  id: string;
-  [key: string]: any;
+  test_inputs: TestInput[];
 }
 
 export interface FlowState {
@@ -343,7 +339,7 @@ const flowSlice = createSlice({
       );
     },
 
-    deleteTestInput: (state, action: PayloadAction<{ id: string }>) => {
+    deleteTestInput: (state, action: PayloadAction<{ id: number }>) => {
       const { id } = action.payload;
       state.testInputs = state.testInputs.filter((input) => input.id !== id);
     },
