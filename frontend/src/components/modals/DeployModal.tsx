@@ -14,6 +14,7 @@ import {
 import { Icon } from "@iconify/react";
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism';
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { FlowState } from '@/store/flowSlice';
 
 interface DeployModalProps {
   isOpen: boolean;
@@ -27,16 +28,14 @@ interface WorkflowInputVariable {
 }
 
 interface RootState {
-  flow: {
-    workflowInputVariables: Record<string, WorkflowInputVariable>;
-  };
+  flow: FlowState;
 }
 
 type SupportedLanguages = 'python' | 'javascript' | 'typescript' | 'rust' | 'java' | 'cpp';
 
 const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, getApiEndpoint }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python');
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.nodes.find(node => node.type === 'InputNode')?.data.config.output_schema) || {};
 
   // Create example request body with the actual input variables
   const exampleRequestBody = {
