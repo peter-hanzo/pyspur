@@ -1,4 +1,4 @@
-# PySpur - LLM Workflow Builder
+# PySpur - AI Agents Builder
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
 
 # ✨ Core Benefits
 
-1. **Drag-and-drop LLM workflow builder**:
+1. **Drag-and-drop AI Agents Builder**:
     * **High-level, batteries-included prompting techniques** (MCTS, Self-Refinement, BoN, ToT, etc.)
     * **Low-level primitives for parallel/sequential sampling** (loops, if-else, merge branches)
     * **Verifiers** (Code nodes, LLM-as-a-judge, software integrations, etc.)
