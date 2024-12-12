@@ -47,6 +47,10 @@ interface BaseNodeProps {
   className?: string;
 }
 
+const getNodeTitle = (data: NodeData = {}): string => {
+  return data.config?.title || data.title || data.type || 'Untitled';
+};
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -269,7 +273,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               base: "bg-background border-default-200"
             }}
           >
-            {data && data.title && (
+            {data && (
               <CardHeader
                 style={{
                   position: 'relative',
@@ -280,7 +284,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 {editingTitle ? (
                   <Input
                     autoFocus
-                    defaultValue={data?.config?.title || data?.title || 'Untitled'}
+                    defaultValue={getNodeTitle(data)}
                     size="sm"
                     variant="faded"
                     radius="lg"
@@ -325,7 +329,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
                     onClick={() => setEditingTitle(true)}
                   >
-                    {data?.config?.title || data?.title || 'Untitled'}
+                    {getNodeTitle(data)}
                   </h3>
                 )}
 
