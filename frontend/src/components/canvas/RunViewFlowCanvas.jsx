@@ -25,7 +25,7 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
-
+import dagre from '@dagrejs/dagre';
 import LoadingSpinner from '../LoadingSpinner';
 import IfElseNode from '../nodes/logic/IfElseNode';
 import DynamicNode from '../nodes/DynamicNode';
