@@ -132,7 +132,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
 
     return (
       <div className="flex flex-wrap gap-2 mb-2 px-2">
-        {Array.isArray(inputSchema) ? inputSchema.map((variable) => (
+        {inputSchema.map((variable) => (
           <Button
             key={variable}
             size="sm"
@@ -146,7 +146,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
           >
             {variable}
           </Button>
-        )) : null}
+        ))}
       </div>
     );
   };
