@@ -107,6 +107,7 @@ const flowSlice = createSlice({
         sourceHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
         targetHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
       }));
+      state.edges = edges;
 
 
       if (definition.input_variables) {
