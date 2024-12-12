@@ -72,7 +72,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
     dispatch(
       setWorkflowInputVariable({
         key: newKey,
-        value: '',
+        value: 'str',
       })
     );
     setNewFieldValue('');
