@@ -476,6 +476,7 @@ const RunViewFlowCanvasContent = (props) => {
 
   const handleAddNodeBetween = (nodeName, sourceNode, targetNode, edgeId) => {
     insertNodeBetweenNodes(
+      nodes,
       nodeTypesConfig,
       nodeName,
       sourceNode,

@@ -14,13 +14,14 @@ interface NodeTypesByCategory {
 
 const AddNodePopoverFooter: React.FC = () => {
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data as NodeTypesByCategory);
 
   const reactFlowInstance = useReactFlow();
 
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
-      createNodeAtCenter(nodeTypes, nodeName, reactFlowInstance, dispatch);
+      createNodeAtCenter(nodes, nodeTypes, nodeName, reactFlowInstance, dispatch);
     }
   };
 

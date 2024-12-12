@@ -455,6 +455,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
   const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
     insertNodeBetweenNodes(
+      nodes,
       nodeTypesConfig,
       nodeName,
       sourceNode,

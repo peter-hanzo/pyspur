@@ -18,6 +18,7 @@ interface NodeTypesByCategory {
 const CollapsibleNodePanel: React.FC = () => {
   const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded);
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data as NodeTypesByCategory);
   const reactFlowInstance = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +46,7 @@ const CollapsibleNodePanel: React.FC = () => {
 
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
-      createNodeAtCenter(nodeTypes, nodeName, reactFlowInstance, dispatch);
+      createNodeAtCenter( nodes, nodeTypes, nodeName, reactFlowInstance, dispatch);
       dispatch(setNodePanelExpanded(false));
     }
   };
