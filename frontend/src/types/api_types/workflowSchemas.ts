@@ -3,6 +3,11 @@ export interface WorkflowNodeCoordinates {
   y: number;
 }
 
+export interface TestInput {
+  id: number;
+  [key: string]: any;
+}  
+
 export interface WorkflowNode {
   id: string;
   title: string;
@@ -20,7 +25,7 @@ export interface WorkflowLink {
 export interface WorkflowDefinition {
   nodes: WorkflowNode[];
   links: WorkflowLink[];
-  test_inputs: Record<string, any>[];
+  test_inputs: TestInput[];
 }
 
 export interface WorkflowCreateRequest {

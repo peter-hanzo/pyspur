@@ -24,23 +24,24 @@ import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkf
 import { useRouter } from 'next/router';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
-import { Workflow, Template, WorkflowDefinition } from '../types/workflow';
+import { Template } from '../types/workflow';
+import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas';
 
 const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowResponse | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const router = useRouter();
 
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
-        setWorkflows(workflows as Workflow[]);
+        setWorkflows(workflows as WorkflowResponse[]);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -69,12 +70,12 @@ const Dashboard: React.FC = () => {
     { key: "action", label: "Action" },
   ];
 
-  const handleRunClick = (workflow: Workflow) => {
+  const handleRunClick = (workflow: WorkflowResponse) => {
     setSelectedWorkflow(workflow);
     onOpen();
   };
 
-  const handleEditClick = (workflow: Workflow) => {
+  const handleEditClick = (workflow: WorkflowResponse) => {
     router.push({
       pathname: `/workflows/${workflow.id}`,
     });
@@ -117,12 +118,14 @@ const Dashboard: React.FC = () => {
   const handleNewWorkflowClick = async () => {
     try {
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
-      const newWorkflow: WorkflowDefinition = {
+      const newWorkflow: WorkflowCreateRequest = {
         name: uniqueName,
         description: '',
-        nodes: [],
-        links: [],
-        test_inputs: []
+        definition: {
+          nodes: [],
+          links: [],
+          test_inputs: []
+        }
       };
 
       const createdWorkflow = await createWorkflow(newWorkflow);
@@ -155,12 +158,14 @@ const Dashboard: React.FC = () => {
             const jsonContent = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
-            const newWorkflow: WorkflowDefinition = {
+            const newWorkflow: WorkflowCreateRequest = {
               name: jsonContent.name || uniqueName,
               description: jsonContent.description || '',
-              nodes: jsonContent.nodes || [],
-              links: jsonContent.links || [],
-              test_inputs: jsonContent.test_inputs || []
+              definition: {
+                nodes: jsonContent.nodes || [],
+                links: jsonContent.links || [],
+                test_inputs: jsonContent.test_inputs || []
+              }
             };
 
             const createdWorkflow = await createWorkflow(newWorkflow);
@@ -187,7 +192,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteClick = async (workflow: Workflow) => {
+  const handleDeleteClick = async (workflow: WorkflowResponse) => {
     if (window.confirm(`Are you sure you want to delete workflow "${workflow.name}"?`)) {
       try {
         await deleteWorkflow(workflow.id);
@@ -200,7 +205,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDuplicateClick = async (workflow: Workflow) => {
+  const handleDuplicateClick = async (workflow: WorkflowResponse) => {
     try {
       const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
       setWorkflows((prevWorkflows) => [...prevWorkflows, duplicatedWorkflow]);
@@ -284,7 +289,7 @@ const Dashboard: React.FC = () => {
                 </TableHeader>
                 <TableBody items={workflows}>
                   {(workflow) => (
-                    <TableRow key={workflow.key}>
+                    <TableRow key={workflow.id}>
                       {(columnKey) => (
                         <TableCell>
                           {columnKey === "action" ? (

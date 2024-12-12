@@ -2,51 +2,44 @@ import axios from 'axios';
 import testInput from '../constants/test_input.js'; // Import the test input directly
 import JSPydanticModel from './JSPydanticModel'; // Import the JSPydanticModel class
 import {
-  WorkflowNodeCoordinates,
-  WorkflowNode,
-  WorkflowLink,
+  WorkflowCreateRequest,
   WorkflowDefinition,
-  Workflow,
-  Template,
-  Dataset
-} from '../types/workflow';
+  WorkflowResponse,
+} from '@/types/api_types/workflowSchemas';
+import {
+  DatasetResponse,
+  DatasetListResponse
+} from '@/types/api_types/datasetSchemas';
+import {
+  EvalRunRequest,
+  EvalRunResponse,
+} from '@/types/api_types/evalSchemas';
+import {
+  NodeTypeSchema,
+  MinimumNodeConfigSchema
+} from '@/types/api_types/nodeTypeSchemas';
+import {
+  OutputFileResponse,
+  OutputFileCreate,
+  OutputFileUpdate
+} from '@/types/api_types/outputFileSchemas';
+import {
+  RunResponse,
+} from '@/types/api_types/runSchemas';
 
 const API_BASE_URL = typeof window !== 'undefined'
   ? `http://${window.location.host}/api`
   : 'http://localhost:6080/api';
-
-// Define types for API responses and request payloads
-export interface NodeTypesResponse {
-  schema: Record<string, any>;
-  metadata: Record<string, any>;
-}
-
-export interface WorkflowVersion {
-  version: number;
-  name: string;
-  description?: string;
-  definition: WorkflowDefinition;
-  definition_hash: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RunStatusResponse {
-  id: string;
-  status: string;
-  start_time?: string;
-  end_time?: string;
-  tasks: Record<string, any>[];
-  outputs?: Record<string, any>;
-  output_file_id?: string;
-}
 
 export interface ApiKey {
   name: string;
   value: string;
 }
 
-export const getNodeTypes = async (): Promise<NodeTypesResponse> => {
+export const getNodeTypes = async (): Promise<{
+  schema: Record<string, NodeTypeSchema>;
+  metadata: Record<string, any>;
+}> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/node/supported_types/`);
     console.log('Raw Node Types Response:', response.data);
@@ -93,7 +86,7 @@ export const runWorkflow = async (workflowData: WorkflowDefinition): Promise<any
   }
 };
 
-export const getRunStatus = async (runID: string): Promise<RunStatusResponse> => {
+export const getRunStatus = async (runID: string): Promise<RunResponse> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/run/${runID}/status/`);
     return response.data;
@@ -116,7 +109,7 @@ export const getRun = async (runID) => {
 
 
 
-export const getWorkflows = async (): Promise<Workflow[]> => {
+export const getWorkflows = async (): Promise<WorkflowResponse[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/`);
     return response.data;
@@ -126,7 +119,7 @@ export const getWorkflows = async (): Promise<Workflow[]> => {
   }
 };
 
-export const createWorkflow = async (workflowData: WorkflowDefinition): Promise<Workflow> => {
+export const createWorkflow = async (workflowData: WorkflowCreateRequest): Promise<WorkflowResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/`, workflowData);
     return response.data;
@@ -136,7 +129,7 @@ export const createWorkflow = async (workflowData: WorkflowDefinition): Promise<
   }
 };
 
-export const updateWorkflow = async (workflowId: string, workflowData: WorkflowDefinition): Promise<Workflow> => {
+export const updateWorkflow = async (workflowId: string, workflowData: WorkflowCreateRequest): Promise<WorkflowResponse> => {
   try {
     const response = await axios.put(`${API_BASE_URL}/wf/${workflowId}/`, workflowData);
     return response.data;
@@ -194,7 +187,7 @@ export const startBatchRun = async (
   }
 };
 
-export const getWorkflow = async (workflowID: string): Promise<Workflow> => {
+export const getWorkflow = async (workflowID: string): Promise<WorkflowResponse> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/`);
     return response.data;
@@ -216,10 +209,9 @@ export const getWorkflowRuns = async (workflowID) => {
   }
 }
 
-export const downloadOutputFile = async (outputFileID) => {
+export const downloadOutputFile = async (outputFileID: string): Promise<void> => {
   try {
-    // First, get the output file details to find the original filename
-    const fileInfoResponse = await axios.get(`${API_BASE_URL}/of/${outputFileID}/`);
+    const fileInfoResponse = await axios.get<OutputFileResponse>(`${API_BASE_URL}/of/${outputFileID}/`);
     const fileName = fileInfoResponse.data.file_name;
 
     const response = await axios.get(`${API_BASE_URL}/of/${outputFileID}/download/`, {
@@ -304,7 +296,7 @@ export const uploadDataset = async (
   name: string,
   description: string,
   file: File
-): Promise<Dataset> => {
+): Promise<DatasetResponse> => {
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -325,9 +317,9 @@ export const uploadDataset = async (
   }
 };
 
-export const listDatasets = async (): Promise<Dataset[]> => {
+export const listDatasets = async (): Promise<DatasetListResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/ds/`);
+    const response = await axios.get<DatasetListResponse>(`${API_BASE_URL}/ds/`);
     return response.data;
   } catch (error) {
     console.error('Error listing datasets:', error);
@@ -335,9 +327,9 @@ export const listDatasets = async (): Promise<Dataset[]> => {
   }
 };
 
-export const getDataset = async (datasetId: string): Promise<Dataset> => {
+export const getDataset = async (datasetId: string): Promise<DatasetResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/ds/${datasetId}/`);
+    const response = await axios.get<DatasetResponse>(`${API_BASE_URL}/ds/${datasetId}/`);
     return response.data;
   } catch (error) {
     console.error(`Error getting dataset with ID ${datasetId}:`, error);
@@ -396,7 +388,7 @@ export const instantiateTemplate = async (template: any): Promise<any> => {
   }
 };
 
-export const duplicateWorkflow = async (workflowId: string): Promise<Workflow> => {
+export const duplicateWorkflow = async (workflowId: string): Promise<WorkflowResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/${workflowId}/duplicate/`);
     return response.data;
@@ -451,7 +443,7 @@ export const startEvalRun = async (
       output_variable: outputVariable,
       num_samples: numSamples,
     };
-    const response = await axios.post(`${API_BASE_URL}/evals/launch/`, request);
+    const response = await axios.post<EvalRunResponse>(`${API_BASE_URL}/evals/launch/`, request);
     return response.data;
   } catch (error) {
     console.error('Error starting eval run:', error);
@@ -461,7 +453,7 @@ export const startEvalRun = async (
 
 export const getEvalRunStatus = async (evalRunId: string): Promise<EvalRunResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/evals/runs/${evalRunId}`);
+    const response = await axios.get<EvalRunResponse>(`${API_BASE_URL}/evals/runs/${evalRunId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching eval run status:', error);
@@ -469,9 +461,9 @@ export const getEvalRunStatus = async (evalRunId: string): Promise<EvalRunRespon
   }
 };
 
-export const listEvalRuns = async (): Promise<any> => {
+export const listEvalRuns = async (): Promise<EvalRunResponse[]> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/evals/runs/`);
+    const response = await axios.get<EvalRunResponse[]>(`${API_BASE_URL}/evals/runs/`);
     return response.data;
   } catch (error) {
     console.error('Error listing eval runs:', error);
@@ -490,27 +482,3 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
 };
 
 // Continue adding types for other functions similarly...
-
-export enum EvalRunStatus {
-  PENDING = "PENDING",
-  RUNNING = "RUNNING",
-  COMPLETED = "COMPLETED",
-  FAILED = "FAILED"
-}
-
-export interface EvalRunRequest {
-  workflow_id: string;
-  eval_name: string;
-  output_variable: string;
-  num_samples?: number;
-}
-
-export interface EvalRunResponse {
-  run_id: string;
-  eval_name: string;
-  workflow_id: string;
-  status: EvalRunStatus;
-  start_time?: string;
-  end_time?: string;
-  results?: Record<string, any>;
-}
