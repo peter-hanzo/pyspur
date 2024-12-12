@@ -44,14 +44,6 @@ interface Node {
     acronym: string;
     color: string;
     config: Record<string, any>;
-    input: {
-      properties: Record<string, any>;
-      [key: string]: any;
-    };
-    output: {
-      properties: Record<string, any>;
-      [key: string]: any;
-    };
     [key: string]: any;
   };
 }
@@ -112,14 +104,6 @@ export const createNode = (
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
       config: cloneDeep(nodeType.config),
-      input: {
-        properties: inputProperties,
-        ...processedAdditionalData.input,
-      },
-      output: {
-        properties: outputProperties,
-        ...processedAdditionalData.output,
-      },
       ...processedAdditionalData,
     },
   };
