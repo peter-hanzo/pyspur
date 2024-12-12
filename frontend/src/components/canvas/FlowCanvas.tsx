@@ -92,7 +92,7 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
           acc[node.name] = MergeNode;
         } else {
           acc[node.name] = (props: any) => {
-            return <DynamicNode {...props} type={node.name} />;
+            return <DynamicNode {...props} type={node.name} displayOutput={true} />;
           };
         }
       });

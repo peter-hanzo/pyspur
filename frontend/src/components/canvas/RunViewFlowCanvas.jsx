@@ -28,7 +28,7 @@ import InputNode from '../nodes/InputNode';
 
 import LoadingSpinner from '../LoadingSpinner';
 import IfElseNode from '../nodes/logic/IfElseNode';
-import OutputDisplayNode from '../nodes/OutputDisplayNode';
+import DynamicNode from '../nodes/DynamicNode';
 
 const useNodeTypes = ({ nodeTypesConfig }) => {
   const nodeTypes = useMemo(() => {
@@ -41,7 +41,7 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
           acc[node.name] = IfElseNode;
         } else {
           acc[node.name] = (props) => {
-            return <OutputDisplayNode {...props} type={node.name} />;
+            return <DynamicNode {...props} type={node.name} displayOutput={true}/>;
           };
         }
       });

@@ -11,6 +11,7 @@ import {
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
 import { RootState } from '../../store/store';
+import NodeOutputDisplay from './NodeOutputDisplay';
 
 interface NodeData {
   config?: {
@@ -44,9 +45,10 @@ interface DynamicNodeProps extends NodeProps {
   position: { x: number; y: number };
   selected?: boolean;
   parentNode?: string;
+  displayOutput?: boolean;
 }
 
-const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...props }) => {
+const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -336,6 +338,24 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
           ) : null}
           {renderHandles()}
         </div>
+        {displayOutput &&
+          <div
+              className='p-5'
+              style={{ maxHeight: '400px', overflowY: 'auto' }}
+              onWheel={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              {node ? (
+                <div>
+                  <NodeOutputDisplay node={node} />
+                </div>
+              ) : (
+                <div>No data available for this node</div>
+              )}
+            </div>
+          }
       </BaseNode>
     </div>
   );
