@@ -18,10 +18,15 @@ export interface WorkflowLink {
   target_input_key: string;
 }
 
+export interface TestInput {
+  id: number;
+  [key: string]: any;
+}
+
 export interface WorkflowDefinition {
   nodes: WorkflowNode[];
   links: WorkflowLink[];
-  test_inputs: Record<string, any>[];
+  test_inputs: TestInput[];
 }
 
 export interface Workflow {

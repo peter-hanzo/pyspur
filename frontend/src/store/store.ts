@@ -2,24 +2,19 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import flowReducer from './flowSlice';
+import { FlowState } from './flowSlice';
 import nodeTypesReducer from './nodeTypesSlice';
+import panelReducer from './panelSlice';
 import type { Node, Edge } from '@xyflow/react';
 
 // Define the RootState type
 export interface RootState {
-  flow: {
-    nodes: Node[];
-    edges: Edge[];
-    workflowID: string | null;
-    workflowInputVariables: Record<string, any>;
-    projectName: string;
-    testInputs: Record<string, any>;
-    selectedNode: string | null;
-    nodeTypes: string[];
-    sidebarWidth: number;
-  };
+  flow: FlowState;
   nodeTypes: {
     data: Record<string, any>;
+  };
+  panel: {
+    isNodePanelExpanded: boolean;
   };
 }
 
@@ -33,6 +28,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
   flow: flowReducer,
   nodeTypes: nodeTypesReducer,
+  panel: panelReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from ..nodes.node_types import is_valid_node_type
 
@@ -18,16 +18,27 @@ class WorkflowNodeCoordinatesSchema(BaseModel):
 class WorkflowNodeSchema(BaseModel):
     """
     A node represents a single step in a workflow.
+    Each node receives a dictionary mapping predecessor node IDs to their outputs.
+    For dynamic schema nodes, the output schema is defined in the config dictionary.
+    For static schema nodes, the output schema is defined in the node class implementation.
     """
 
     id: str  # ID in the workflow
-    title: Optional[str] = ""  # Display name
+    title: str = ""  # Display name
     node_type: str  # Name of the node type
-    config: Dict[str, Any] = {}  # Configuration parameters
+    config: Dict[str, Any] = (
+        {}
+    )  # Configuration parameters including dynamic output schema if needed
     coordinates: Optional[WorkflowNodeCoordinatesSchema] = (
         None  # Position of the node in the workflow
     )
     subworkflow: Optional["WorkflowDefinitionSchema"] = None  # Sub-workflow definition
+
+    @model_validator(mode="after")
+    def default_title_to_id(self):
+        if self.title.strip() == "":
+            self.title = self.id
+        return self
 
     @field_validator("node_type")
     def type_must_be_in_factory(cls, v: str):
@@ -38,13 +49,12 @@ class WorkflowNodeSchema(BaseModel):
 
 class WorkflowLinkSchema(BaseModel):
     """
-    A link connects an output key of a source node to an input key of a target node.
+    A link simply connects a source node to a target node.
+    The target node will receive the source node's output in its input dictionary.
     """
 
     source_id: str
-    source_output_key: str
     target_id: str
-    target_input_key: str
 
 
 class WorkflowDefinitionSchema(BaseModel):

@@ -2,11 +2,11 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addNodeWithoutConnection } from '../AddNodePopoverCanvas';
 import { useReactFlow } from '@xyflow/react';
 import TipPopup from './TipPopUp';
 import { RootState } from '../../../store/store';
 import type { NodeType } from '../../../store/nodeTypesSlice';
+import { createNodeAtCenter } from '../../../utils/flowUtils';
 
 interface NodeTypesByCategory {
   [category: string]: NodeType[];
@@ -14,13 +14,14 @@ interface NodeTypesByCategory {
 
 const AddNodePopoverFooter: React.FC = () => {
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data as NodeTypesByCategory);
 
   const reactFlowInstance = useReactFlow();
 
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
-      addNodeWithoutConnection(nodeTypes, nodeName, reactFlowInstance, dispatch);
+      createNodeAtCenter(nodes, nodeTypes, nodeName, reactFlowInstance, dispatch);
     }
   };
 

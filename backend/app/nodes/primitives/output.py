@@ -1,24 +1,35 @@
-from typing import Dict
-from pydantic import BaseModel, model_validator
-from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
+from typing import Any, Dict
+from pydantic import BaseModel, Field
+from ..base import (
+    BaseNodeInput,
+    BaseNodeOutput,
+    VariableOutputBaseNode,
+    VariableOutputBaseNodeConfig,
+)
+from ...utils.pydantic_utils import get_nested_field
 
 
-class OutputNodeConfig(DynamicSchemaNodeConfig):
-    @model_validator(mode="before")
-    def set_input_schema_same_as_output(cls, data: Dict[str, str]) -> Dict[str, str]:
-        data["input_schema"] = data["output_schema"]
-        return data
+class OutputNodeConfig(VariableOutputBaseNodeConfig):
+    """
+    Configuration for the OutputNode.
+    """
+
+    output_map: Dict[str, str] = Field(
+        default={},
+        title="Output Map",
+        description="A dictionary mapping input field names to output field names.",
+    )
 
 
-class OutputNodeInput(BaseModel):
+class OutputNodeInput(BaseNodeInput):
     pass
 
 
-class OutputNodeOutput(BaseModel):
+class OutputNodeOutput(BaseNodeOutput):
     pass
 
 
-class OutputNode(DynamicSchemaNode):
+class OutputNode(VariableOutputBaseNode):
     """
     Node for defining output schema and using the input from other nodes.
     """
@@ -29,5 +40,12 @@ class OutputNode(DynamicSchemaNode):
     input_model = OutputNodeInput
     output_model = OutputNodeOutput
 
-    async def run(self, input_data: BaseModel) -> BaseModel:
-        return input_data
+    async def run(self, input: BaseModel) -> BaseModel:
+        output: Dict[str, Any] = {}
+        if self.config.output_map:
+            for output_key, input_key in self.config.output_map.items():
+                # input_key is the field name with dot notation to access nested fields
+                output[output_key] = get_nested_field(input_key, input)
+        else:
+            output = input.model_dump()
+        return self.output_model(**output)

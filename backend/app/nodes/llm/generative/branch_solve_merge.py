@@ -1,18 +1,31 @@
-from typing import Dict
-from pydantic import Field
-from ..llm_utils import LLMModels, ModelInfo
-from ...subworkflow.ephemeral_subworkflow_node import EphemeralSubworkflowNode
-from ...dynamic_schema import DynamicSchemaNodeConfig
+from typing import Any, Dict, List
+from pydantic import Field, BaseModel
+from ....nodes.base import BaseNodeInput, BaseNodeOutput
+from ...subworkflow.base_subworkflow_node import (
+    BaseSubworkflowNode,
+    BaseSubworkflowNodeConfig,
+)
 from ....schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowNodeSchema,
     WorkflowLinkSchema,
 )
+from ..llm_utils import LLMModels, ModelInfo
+from ....execution.workflow_executor import WorkflowExecutor
 
 
-class BranchSolveMergeNodeConfig(DynamicSchemaNodeConfig):
+class BranchSolveMergeNodeConfig(BaseSubworkflowNodeConfig):
+    llm_info: ModelInfo = Field(
+        default_factory=lambda: ModelInfo(
+            model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7
+        ),
+        description="The default LLM model to use",
+    )
     branch_system_message: str = Field(
-        default="Please decompose the following task into logical subtasks that making solving overall task easier.",
+        default=(
+            "Please decompose the following task into logical subtasks "
+            "that make solving the overall task easier."
+        ),
         description="The prompt for the branch LLM",
     )
     solve_system_message: str = Field(
@@ -33,92 +46,183 @@ class BranchSolveMergeNodeConfig(DynamicSchemaNodeConfig):
     output_schema: Dict[str, str] = Field(default={"response": "str"})
 
 
-class BranchSolveMergeNode(EphemeralSubworkflowNode):
+class BranchSolveMergeNodeInput(BaseNodeInput):
+    pass
+
+
+class BranchSolveMergeNodeOutput(BaseNodeOutput):
+    pass
+
+
+class BranchSolveMergeNode(BaseSubworkflowNode):
     name = "branch_solve_merge_node"
     display_name = "Branch Solve Merge"
     config_model = BranchSolveMergeNodeConfig
+    input_model = BranchSolveMergeNodeInput
+    output_model = BranchSolveMergeNodeOutput
 
-    def generate_branch_solve_merge_workflow(self) -> WorkflowDefinitionSchema:
-        nodes: list[WorkflowNodeSchema] = []
-        links: list[WorkflowLinkSchema] = []
+    async def run(self, input: BaseModel) -> BaseModel:
+        """
+        Run the BranchSolveMergeNode in two steps:
+        Step 1: Run the branch node to get subtasks.
+        Step 2: Build the rest of the subworkflow based on the subtasks and execute it.
+        """
+        # Step 1: Run the branch node to get the subtasks
+        # Build subworkflow for step 1
+        self.setup_branch_subworkflow()
+        branch_output = await self.run_subworkflow(input)
+
+        # Extract subtasks from branch_output
+        subtasks: List[str] = branch_output["subtasks"]
+        assert isinstance(subtasks, list)
+
+        # Step 2: Build the subworkflow including solve nodes for each subtask
+        self.setup_full_subworkflow(subtasks)
+
+        # Prepare the inputs for the subworkflow, including passing the previous outputs
+        # We don't want the branch node to run again, so we pass its output
+        self.subworkflow_output = {self.branch_node_id: branch_output}
+
+        # Run the subworkflow starting from solve nodes
+        final_output = await self.run_subworkflow(input)
+
+        # Return the output of the output node
+        return self.output_model.model_validate(final_output)
+
+    def setup_branch_subworkflow(self) -> None:
+        """
+        Setup the subworkflow for Step 1: Running the branch node to get subtasks.
+        """
+        nodes: List[WorkflowNodeSchema] = []
+        links: List[WorkflowLinkSchema] = []
 
         # Input node
         input_node_id = "input_node"
+        self.input_node_id = input_node_id
         input_node = WorkflowNodeSchema(
             id=input_node_id,
             node_type="InputNode",
-            config={"input_schema": self.config.input_schema},
+            config={
+                "output_schema": {"task": "str"},
+                "enforce_schema": False,
+            },
         )
         nodes.append(input_node)
 
-        # Branch node
+        # Branch node: Decompose task into subtasks
         branch_node_id = "branch_node"
+        self.branch_node_id = branch_node_id
         branch_node = WorkflowNodeSchema(
             id=branch_node_id,
             node_type="SingleLLMCallNode",
             config={
                 "llm_info": self.config.llm_info.model_dump(),
                 "system_message": self.config.branch_system_message,
-                "user_message": self.get_jinja2_template_for_fields(
-                    list(self.config.input_schema.keys())
-                ),
-                "input_schema": self.config.input_schema,
-                "output_schema": {"subtasks": "list[str]"},
+                "user_message": "",
+                "output_schema": {
+                    "subtasks": "List[str]"
+                },  # Expecting list of subtasks
             },
         )
         nodes.append(branch_node)
 
         # Link input node to branch node
-        for input_key in self.config.input_schema.keys():
-            links.append(
-                WorkflowLinkSchema(
-                    source_id=input_node_id,
-                    source_output_key=input_key,
-                    target_id=branch_node_id,
-                    target_input_key=input_key,
-                )
+        links.append(
+            WorkflowLinkSchema(
+                source_id=input_node_id,
+                target_id=branch_node_id,
             )
+        )
 
-        # Solve node
-        solve_node_id = "solve_node"
-        solve_node = WorkflowNodeSchema(
-            id=solve_node_id,
-            node_type="SingleLLMCallNode",
+        # Output node
+        output_node_id = "output_node"
+        self.output_node_id = output_node_id
+        output_node = WorkflowNodeSchema(
+            id=output_node_id,
+            node_type="OutputNode",
             config={
-                "llm_info": self.config.llm_info.model_dump(),
-                "system_message": self.config.solve_system_message,
-                "user_message": self.get_jinja2_template_for_fields(
-                    list(branch_node.config["input_schema"].keys())
-                    + list(branch_node.config["output_schema"].keys())
-                ),
-                "input_schema": {"subtasks": "list[str]"}
-                | branch_node.config["input_schema"],
-                "output_schema": {"subtask_solutions": "list[str]"},
+                "output_schema": {"subtasks": "List[str]"},
+                "output_map": {"subtasks": f"{branch_node_id}.subtasks"},
             },
         )
-        nodes.append(solve_node)
+        nodes.append(output_node)
 
-        for input_key in branch_node.config["input_schema"].keys():
-            links.append(
-                WorkflowLinkSchema(
-                    source_id=input_node_id,
-                    source_output_key=input_key,
-                    target_id=solve_node_id,
-                    target_input_key=input_key,
-                )
-            )
-
-        # Link branch node to solve node
+        # Link branch node to output node
         links.append(
             WorkflowLinkSchema(
                 source_id=branch_node_id,
-                source_output_key="subtasks",
-                target_id=solve_node_id,
-                target_input_key="subtasks",
+                target_id=output_node_id,
             )
         )
 
-        # Merge node
+        self.subworkflow = WorkflowDefinitionSchema(nodes=nodes, links=links)
+        self.setup_subworkflow()
+
+    def setup_full_subworkflow(self, subtasks: List[str]) -> None:
+        """
+        Setup the subworkflow for Step 2: Solve subtasks and merge solutions.
+        This subworkflow reuses the branch node's output and adds solve nodes for each subtask.
+        """
+        nodes: List[WorkflowNodeSchema] = []
+        links: List[WorkflowLinkSchema] = []
+
+        # Input node (same as before)
+        input_node_id = self.input_node_id
+        input_node = WorkflowNodeSchema(
+            id=input_node_id,
+            node_type="InputNode",
+            config={"echo_mode": True},
+        )
+        nodes.append(input_node)
+
+        # Branch node (same as before)
+        branch_node_id = self.branch_node_id
+        branch_node = WorkflowNodeSchema(
+            id=branch_node_id,
+            node_type="SingleLLMCallNode",
+            config={
+                "llm_info": self.config.llm_info.model_dump(),
+                "system_message": self.config.branch_system_message,
+                "user_message": "",
+                "output_schema": {"subtasks": "List[str]"},
+            },
+        )
+        nodes.append(branch_node)
+
+        # Link input node to branch node
+        links.append(
+            WorkflowLinkSchema(
+                source_id=input_node_id,
+                target_id=branch_node_id,
+            )
+        )
+
+        # For each subtask, create a solve node
+        solve_node_ids: List[str] = []
+        for idx, _subtask in enumerate(subtasks):
+            solve_node_id = f"solve_node_{idx}"
+            solve_node_ids.append(solve_node_id)
+            solve_node = WorkflowNodeSchema(
+                id=solve_node_id,
+                node_type="SingleLLMCallNode",
+                config={
+                    "llm_info": self.config.llm_info.model_dump(),
+                    "system_message": self.config.solve_system_message,
+                    "user_message": f"{{{{branch_node.subtasks[{idx}]}}}}",
+                    "output_schema": {f"solution_{idx}": "str"},
+                },
+            )
+            nodes.append(solve_node)
+
+            # Link branch node to solve node
+            links.append(
+                WorkflowLinkSchema(
+                    source_id=branch_node_id,
+                    target_id=solve_node_id,
+                )
+            )
+
+        # Merge node: Combine solutions
         merge_node_id = "merge_node"
         merge_node = WorkflowNodeSchema(
             id=merge_node_id,
@@ -126,59 +230,116 @@ class BranchSolveMergeNode(EphemeralSubworkflowNode):
             config={
                 "llm_info": self.config.llm_info.model_dump(),
                 "system_message": self.config.merge_system_message,
-                "user_message": self.get_jinja2_template_for_fields(
-                    ["subtask_solutions"]
-                    + list(branch_node.config["input_schema"].keys())
+                "user_message": "\n".join(
+                    [
+                        f"{{{{solve_node_{i}.solution_{i}}}}}"
+                        for i in range(len(subtasks))
+                    ]
                 ),
-                "input_schema": {"subtask_solutions": "list[str]"}
-                | branch_node.config["input_schema"],
                 "output_schema": self.config.output_schema,
             },
         )
         nodes.append(merge_node)
 
-        for input_key in branch_node.config["input_schema"].keys():
+        # Link solve nodes to merge node
+        for solve_node_id in solve_node_ids:
             links.append(
                 WorkflowLinkSchema(
-                    source_id=input_node_id,
-                    source_output_key=input_key,
+                    source_id=solve_node_id,
                     target_id=merge_node_id,
-                    target_input_key=input_key,
                 )
             )
-
-        # Link solve node to merge node
-        links.append(
-            WorkflowLinkSchema(
-                source_id=solve_node_id,
-                source_output_key="subtask_solutions",
-                target_id=merge_node_id,
-                target_input_key="subtask_solutions",
-            )
-        )
 
         # Output node
         output_node_id = "output_node"
         output_node = WorkflowNodeSchema(
             id=output_node_id,
             node_type="OutputNode",
-            config={"output_schema": self.config.output_schema},
+            config={
+                "output_schema": self.config.output_schema,
+                "output_map": {
+                    key: f"{merge_node_id}.{key}"
+                    for key in self.config.output_schema.keys()
+                },
+            },
         )
         nodes.append(output_node)
 
         # Link merge node to output node
-        for output_key in self.config.output_schema.keys():
-            links.append(
-                WorkflowLinkSchema(
-                    source_id=merge_node_id,
-                    source_output_key=output_key,
-                    target_id=output_node_id,
-                    target_input_key=output_key,
-                )
+        links.append(
+            WorkflowLinkSchema(
+                source_id=merge_node_id,
+                target_id=output_node_id,
             )
+        )
 
-        return WorkflowDefinitionSchema(nodes=nodes, links=links)
+        # Update subworkflow
+        self.subworkflow = WorkflowDefinitionSchema(nodes=nodes, links=links)
+
+        # Since we have already run branch node, we don't want to run it again
+        # subworkflow_output stores outputs from previous runs
+        self.setup_subworkflow()
+
+    async def run_subworkflow(self, input: BaseModel) -> Dict[str, Any]:
+        """
+        Run the current subworkflow and return the output of the output node.
+        """
+        assert self.subworkflow is not None
+
+        # Map input
+        mapped_input = self._map_input(input)
+
+        # Prepare inputs for subworkflow
+        input_node = next(
+            (node for node in self.subworkflow.nodes if node.node_type == "InputNode")
+        )
+        input_dict = {input_node.id: mapped_input}
+
+        # Use stored outputs to avoid re-running nodes
+        precomputed_outputs = self.subworkflow_output or {}
+
+        # Execute the subworkflow
+        workflow_executor = WorkflowExecutor(
+            workflow=self.subworkflow, context=self.context
+        )
+        outputs = await workflow_executor.run(
+            input_dict, precomputed_outputs=precomputed_outputs
+        )
+
+        # Store outputs for potential reuse
+        if self.subworkflow_output is None:
+            self.subworkflow_output = outputs
+        else:
+            self.subworkflow_output.update(outputs)
+
+        # Get the output of the output node
+        output_node = next(
+            (node for node in self.subworkflow.nodes if node.node_type == "OutputNode")
+        )
+        return outputs[output_node.id].model_dump()
 
     def setup(self) -> None:
-        self.subworkflow = self.generate_branch_solve_merge_workflow()
+        # Initial setup
+        # We don't set up the subworkflow here because it depends on data available at runtime
         super().setup()
+
+
+if __name__ == "__main__":
+    import asyncio
+    from pprint import pprint
+
+    async def main():
+        node = BranchSolveMergeNode(
+            name="branch_solve_merge_node",
+            config=BranchSolveMergeNodeConfig(),
+        )
+
+        class TestInput(BranchSolveMergeNodeInput):
+            task: str = "Write a joke like Jimmy Carr about alternative medicine."
+
+        input_data = TestInput()
+        output = await node(input_data)
+        pprint(output)
+        pprint(node.subworkflow_output)
+
+    asyncio.run(main())

@@ -2,6 +2,8 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
+import { config, title } from 'process';
+import { TestInput } from '@/types/workflow';
 
 interface Coordinates {
   x: number;
@@ -26,15 +28,10 @@ interface WorkflowLink {
 interface WorkflowDefinition {
   nodes: WorkflowNode[];
   links: WorkflowLink[];
-  input_variables?: Record<string, any>;
+  test_inputs: TestInput[];
 }
 
-interface TestInput {
-  id: string;
-  [key: string]: any;
-}
-
-interface FlowState {
+export interface FlowState {
   nodeTypes: string[];
   nodes: Node[];
   edges: Edge[];
@@ -96,19 +93,19 @@ const flowSlice = createSlice({
         createNode(state.nodeTypes, node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { config: node.config })
       );
 
-      state.edges = links.map(link => ({
+      let edges = links.map(link => (
+        {
         id: uuidv4(),
         key: uuidv4(),
         selected: link.selected || false,
         source: link.source_id,
         target: link.target_id,
-        sourceHandle: link.source_output_key,
-        targetHandle: link.target_input_key
+        sourceHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
+        targetHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
       }));
+      state.edges = edges;
 
-      if (definition.input_variables) {
-        state.workflowInputVariables = definition.input_variables;
-      }
+
     },
 
     nodesChange: (state, action: PayloadAction<{ changes: NodeChange[] }>) => {
@@ -121,7 +118,10 @@ const flowSlice = createSlice({
 
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
       saveToHistory(state);
-      state.edges = addEdge(action.payload.connection, state.edges);
+      let { connection } = action.payload;
+      // make target handle the same as source handle
+      connection = { ...connection, targetHandle: connection.sourceHandle };
+      state.edges = addEdge(connection, state.edges);
     },
 
     addNode: (state, action: PayloadAction<{ node: Node }>) => {
@@ -144,6 +144,16 @@ const flowSlice = createSlice({
       if (node) {
         node.data = { ...node.data, ...data };
       }
+    },
+
+    updateTitleInEdges: (state, action: PayloadAction<{ nodeId: string; newTitle: string }>) => {
+      const { nodeId, newTitle } = action.payload;
+      state.edges = state.edges.map((edge) => {
+        if (edge.source === nodeId) {
+          return { ...edge, sourceHandle: newTitle, targetHandle: newTitle };
+        }
+        return edge;
+      });
     },
 
     setSelectedNode: (state, action: PayloadAction<{ nodeId: string | null }>) => {
@@ -195,6 +205,19 @@ const flowSlice = createSlice({
     setWorkflowInputVariable: (state, action: PayloadAction<{ key: string; value: any }>) => {
       const { key, value } = action.payload;
       state.workflowInputVariables[key] = value;
+      // Set the output schema for the input node
+      const inputNode = state.nodes.find(node => node.type === 'InputNode');
+      if (inputNode && inputNode.data) {
+        const currentConfig = inputNode.data.config || {};
+        const currentSchema = currentConfig.output_schema || {};
+        inputNode.data.config = {
+          ...currentConfig,
+          output_schema: {
+            ...currentSchema,
+            [key]: value
+          }
+        };
+      }
     },
 
     deleteWorkflowInputVariable: (state, action: PayloadAction<{ key: string }>) => {
@@ -207,6 +230,19 @@ const flowSlice = createSlice({
       const { oldKey, newKey } = action.payload;
       if (oldKey !== newKey) {
         state.workflowInputVariables[newKey] = state.workflowInputVariables[oldKey];
+        // Update the output schema in the input node
+        const inputNode = state.nodes.find(node => node.type === 'InputNode');
+        if (inputNode && inputNode.data) {
+          const currentConfig = inputNode.data.config || {};
+          const currentSchema = currentConfig.output_schema || {};
+          const updatedSchema = { ...currentSchema };
+          updatedSchema[newKey] = updatedSchema[oldKey];
+          delete updatedSchema[oldKey];
+          inputNode.data.config = {
+            ...currentConfig,
+            output_schema: updatedSchema
+          };
+        }
         delete state.workflowInputVariables[oldKey];
         state.edges = state.edges.map(edge => {
           if (edge.sourceHandle === oldKey) {
@@ -303,7 +339,7 @@ const flowSlice = createSlice({
       );
     },
 
-    deleteTestInput: (state, action: PayloadAction<{ id: string }>) => {
+    deleteTestInput: (state, action: PayloadAction<{ id: number }>) => {
       const { id } = action.payload;
       state.testInputs = state.testInputs.filter((input) => input.id !== id);
     },
@@ -347,6 +383,7 @@ export const {
   setNodes,
   setEdges,
   updateNodeData,
+  updateTitleInEdges,
   setSelectedNode,
   deleteNode,
   deleteEdge,

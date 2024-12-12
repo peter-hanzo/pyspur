@@ -47,6 +47,10 @@ interface BaseNodeProps {
   className?: string;
 }
 
+const getNodeTitle = (data: NodeData = {}): string => {
+  return data.config?.title || data.title || data.type || 'Untitled';
+};
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -231,23 +235,23 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       draggable={false}
     >
       {/* Container to hold the Handle and the content */}
-      <div style={{ position: 'relative' }}>
+      <div>
         {/* Hidden target handle covering the entire node */}
         <Handle
           type="target"
-          position={Position.Top}
-          id="node-body"
+          position={Position.Left}
+          id={`node-body-${id}`}
           style={{
-            position: 'absolute',
-            top: 0,
+            top: '50%',
             left: 0,
-            width: '100%',
+            width: '30%',
             height: '100%',
             zIndex: 10,
             opacity: 0,
             pointerEvents: 'auto',
           }}
           isConnectable={true}
+          isConnectableStart={false}
         />
 
         {/* Node content wrapped in drag handle */}
@@ -269,7 +273,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               base: "bg-background border-default-200"
             }}
           >
-            {data && data.title && (
+            {data && (
               <CardHeader
                 style={{
                   position: 'relative',
@@ -280,7 +284,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 {editingTitle ? (
                   <Input
                     autoFocus
-                    defaultValue={data?.config?.title || data?.title || 'Untitled'}
+                    defaultValue={getNodeTitle(data)}
                     size="sm"
                     variant="faded"
                     radius="lg"
@@ -325,7 +329,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
                     onClick={() => setEditingTitle(true)}
                   >
-                    {data?.config?.title || data?.title || 'Untitled'}
+                    {getNodeTitle(data)}
                   </h3>
                 )}
 

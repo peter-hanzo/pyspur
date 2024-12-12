@@ -15,6 +15,7 @@ interface NodeData {
       output_schema?: Record<string, string>;
     };
     input_schema?: Record<string, string>;
+    title?: string;
   };
   title?: string;
 }
@@ -31,8 +32,6 @@ interface Edge {
   id: string;
   source: string;
   target: string;
-  sourceHandle: string;
-  targetHandle: string;
 }
 
 interface UpdatedWorkflow {
@@ -46,11 +45,7 @@ interface UpdatedWorkflow {
     }[];
     links: {
       source_id: string;
-      source_output_key: string;
-      source_output_type: string;
       target_id: string;
-      target_input_key: string;
-      target_input_type: string;
     }[];
     test_inputs: Record<string, any>;
   };
@@ -69,45 +64,30 @@ export const useSaveWorkflow = (trigger: unknown, delay: number = 2000) => {
       const updatedNodes = nodes
         .filter((node: Node | null | undefined): node is Node => node !== null && node !== undefined)
         .map((node: Node) => {
-          if (node.type === 'InputNode') {
-            return {
-              ...node,
-              config: {
-                ...node.data.config,
-                input_schema: Object.fromEntries(
-                  Object.keys(workflowInputVariables).map(key => [key, "str"])
-                )
-              }
-            };
-          } else {
-            return {
-              ...node,
-              config: node.data?.config,
-              title: node.data?.title
-            };
-          }
+          return {
+            ...node,
+            config: node.data?.config,
+            title: node.data?.title,
+            new_id: node.data.config.title || node.data.title || node.type || 'Untitled',
+          };
         });
 
       const updatedWorkflow: UpdatedWorkflow = {
         name: workflowName,
         definition: {
           nodes: updatedNodes.map(node => ({
-            id: node.id,
+            id: node.new_id,
             node_type: node.type,
             config: node.config,
             coordinates: node.position,
           })),
           links: edges.map((edge: Edge) => {
-            const sourceNode = nodes.find(node => node?.id === edge.source);
-            const targetNode = nodes.find(node => node?.id === edge.target);
+            const sourceNode = updatedNodes.find(node => node?.id === edge.source);
+            const targetNode = updatedNodes.find(node => node?.id === edge.target);
 
             return {
-              source_id: edge.source,
-              source_output_key: edge.sourceHandle,
-              source_output_type: sourceNode?.data?.config?.data?.output_schema?.[edge.sourceHandle] || 'str',
-              target_id: edge.target,
-              target_input_key: edge.targetHandle,
-              target_input_type: targetNode?.data?.config?.data?.input_schema?.[edge.targetHandle] || 'str',
+              source_id: sourceNode?.new_id || '',
+              target_id: targetNode?.new_id || '',
             };
           }),
           test_inputs: testInputs,

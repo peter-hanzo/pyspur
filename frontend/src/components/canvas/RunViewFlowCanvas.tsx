@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ReactFlow, Background, ReactFlowProvider, useViewport } from '@xyflow/react';
+import { ReactFlow, Background, ReactFlowProvider, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes, EdgeTypes, ReactFlowInstance, XYPosition, SelectionMode, ConnectionMode, useViewport } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/Operator';
@@ -12,11 +12,11 @@ import {
   setWorkflowInputVariable,
   updateNodeData,
   setNodes,
+  FlowState,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { v4 as uuidv4 } from 'uuid';
-import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
@@ -25,15 +25,47 @@ import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
-
+import dagre from '@dagrejs/dagre';
 import LoadingSpinner from '../LoadingSpinner';
-import IfElseNode from '../nodes/logic/IfElseNode';
-import OutputDisplayNode from '../nodes/OutputDisplayNode';
+import { IfElseNode } from '../nodes/logic/IfElseNode';
+import DynamicNode from '../nodes/DynamicNode';
+import { WorkflowDefinition } from '../../types/workflow';
 
-const useNodeTypes = ({ nodeTypesConfig }) => {
-  const nodeTypes = useMemo(() => {
+interface NodeTypesConfig {
+  [category: string]: Array<{
+    name: string;
+    config?: {
+      title?: string;
+    };
+    [key: string]: any;
+  }>;
+}
+
+interface RunViewFlowCanvasProps {
+  workflowData?: {
+    definition: WorkflowDefinition;
+    name: string;
+  };
+  workflowID?: string;
+  nodeOutputs?: Record<string, any>;
+}
+
+interface HelperLines {
+  horizontal: number | null;
+  vertical: number | null;
+}
+
+interface RootState {
+  nodeTypes: {
+    data: NodeTypesConfig;
+  };
+  flow: FlowState;
+}
+
+const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {
+  const nodeTypes = useMemo<NodeTypes>(() => {
     if (!nodeTypesConfig) return {};
-    const types = Object.keys(nodeTypesConfig).reduce((acc, category) => {
+    const types = Object.keys(nodeTypesConfig).reduce<NodeTypes>((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
           acc[node.name] = InputNode;
@@ -41,7 +73,7 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
           acc[node.name] = IfElseNode;
         } else {
           acc[node.name] = (props) => {
-            return <OutputDisplayNode {...props} type={node.name} />;
+            return <DynamicNode {...props} type={node.name} displayOutput={true}/>;
           };
         }
       });
@@ -49,29 +81,130 @@ const useNodeTypes = ({ nodeTypesConfig }) => {
     }, {});
 
     return types;
-
   }, [nodeTypesConfig]);
 
   const isLoading = !nodeTypesConfig;
   return { nodeTypes, isLoading };
 };
 
-const edgeTypes = {
+const edgeTypes: EdgeTypes = {
   custom: CustomEdge,
 };
 
-// Create a wrapper component that includes ReactFlow logic
-const RunViewFlowCanvasContent = (props) => {
-  const { workflowData, workflowID, nodeOutputs } = props;
+const getLayoutedNodes = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setGraph({
+    rankdir: direction,
+    align: 'UL',
+    edgesep: 10,
+    ranksep: 128,
+    nodesep: 128,
+  });
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
 
+  nodes.forEach((node) => {
+    if (node.measured) {
+      dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
+    }
+  });
+
+  const nodeWeights: { [key: string]: number } = {};
+  const edgeWeights: { [key: string]: number } = {};
+
+  // Initialize root nodes with weight 1024
+  nodes.forEach(node => {
+    const incomingEdges = edges.filter(edge => edge.target === node.id);
+    if (incomingEdges.length === 0) {
+      nodeWeights[node.id] = 1024;
+      const outgoingEdges = edges.filter(edge => edge.source === node.id);
+      outgoingEdges.forEach(edge => {
+        edgeWeights[edge.id] = 512;
+      });
+    }
+  });
+
+  // Perform a topological sort
+  let sortedNodes: Node[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  const visit = (node: Node) => {
+    if (visited.has(node.id)) return;
+    if (visiting.has(node.id)) throw new Error('Graph has cycles');
+    
+    visiting.add(node.id);
+    const outgoingEdges = edges.filter(edge => edge.source === node.id);
+    outgoingEdges.forEach(edge => {
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (targetNode) visit(targetNode);
+    });
+    visiting.delete(node.id);
+    visited.add(node.id);
+    sortedNodes.push(node);
+  };
+
+  nodes.forEach(node => {
+    if (!visited.has(node.id)) visit(node);
+  });
+
+  sortedNodes = sortedNodes.reverse();
+
+  // Calculate weights for nodes and edges
+  sortedNodes.forEach(node => {
+    const incomingEdges = edges.filter(edge => edge.target === node.id);
+    let maxIncomingWeight = -Infinity;
+
+    if (incomingEdges.length > 0) {
+      maxIncomingWeight = incomingEdges.reduce((maxWeight, edge) => {
+        return Math.max(maxWeight, edgeWeights[edge.id] || -Infinity);
+      }, -Infinity);
+
+      nodeWeights[node.id] = (maxIncomingWeight !== -Infinity) ? maxIncomingWeight : 2;
+    } else {
+      nodeWeights[node.id] = 2;
+    }
+
+    const outgoingEdges = edges.filter(edge => edge.source === node.id);
+    outgoingEdges.forEach(edge => {
+      edgeWeights[edge.id] = nodeWeights[node.id] * 2;
+    });
+  });
+
+  edges.forEach((edge) => {
+    const weight = edgeWeights[edge.id] || 1;
+    dagreGraph.setEdge(edge.source, edge.target, { 
+      weight: weight, 
+      height: 10, 
+      width: 10, 
+      labelpos: 'c', 
+      minlen: 1 
+    });
+  });
+
+  dagre.layout(dagreGraph);
+
+  return nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    if (!nodeWithPosition) return node;
+
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - (node.measured?.width || 0) / 2,
+        y: nodeWithPosition.y - (node.measured?.height || 0) / 2,
+      },
+    };
+  });
+};
+
+const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
   const dispatch = useDispatch();
 
-  const nodeTypesConfig = useSelector((state) => state.nodeTypes.data);
+  const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data);
 
   useEffect(() => {
     if (workflowData) {
       console.log('workflowData', workflowData);
-      // if the input node already has a schema add it to the workflowInputVariables
       if (workflowData.definition.nodes) {
         const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
         if (inputNode.length > 0) {
@@ -89,28 +222,27 @@ const RunViewFlowCanvasContent = (props) => {
       dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
       console.log('Node Outputs:', nodeOutputs);
       dispatch(setNodeOutputs(nodeOutputs));
-
     }
-
   }, [dispatch, workflowData, workflowID]);
 
   const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
 
-  const nodes = useSelector((state) => state.flow.nodes);
-  const edges = useSelector((state) => state.flow.edges);
-  const selectedNodeID = useSelector((state) => state.flow.selectedNode);
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const edges = useSelector((state: RootState) => state.flow.edges);
+  const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode);
 
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [helperLines, setHelperLines] = useState<HelperLines>({ horizontal: null, vertical: null });
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
+  const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
+  const [selectedEdge, setSelectedEdge] = useState<{ sourceNode: Node; targetNode: Node; edgeId: string } | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Manage reactFlowInstance locally
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
-
-  const [helperLines, setHelperLines] = useState({ horizontal: null, vertical: null });
-
-  // Add a flag to control the visibility of helper lines
-  const showHelperLines = false; // Set to false for now
+  const showHelperLines = false;
 
   const onNodesChange = useCallback(
-    (changes) => {
+    (changes: NodeChange[]) => {
       if (!changes.some((c) => c.type === 'position')) {
         setHelperLines({ horizontal: null, vertical: null });
         dispatch(nodesChange({ changes }));
@@ -126,7 +258,10 @@ const RunViewFlowCanvasContent = (props) => {
         setHelperLines({ horizontal, vertical });
 
         if (horizontal || vertical) {
-          const snapPosition = { x: positionChange.position.x, y: positionChange.position.y };
+          const snapPosition = { 
+            x: positionChange.position.x, 
+            y: positionChange.position.y 
+          };
           if (horizontal) snapPosition.y = horizontal;
           if (vertical) snapPosition.x = vertical;
           positionChange.position = snapPosition;
@@ -138,33 +273,30 @@ const RunViewFlowCanvasContent = (props) => {
     [dispatch, nodes, showHelperLines]
   );
 
-  const onEdgesChange = useCallback(
-    (changes) => dispatch(edgesChange({ changes })),
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
     [dispatch]
   );
-  const onConnect = useCallback(
-    (connection) => {
+
+  const onConnect: OnConnect = useCallback(
+    (connection: Connection) => {
       if (!connection.targetHandle || connection.targetHandle === 'node-body') {
-        // The user dropped the connection on the body of the node
         const sourceNode = nodes.find((n) => n.id === connection.source);
         const targetNode = nodes.find((n) => n.id === connection.target);
 
         if (sourceNode && targetNode) {
           const outputHandleName = connection.sourceHandle;
 
-          // Ensure the source handle (output variable) is specified
           if (!outputHandleName) {
             console.error('Source handle is not specified.');
             return;
           }
 
-          // Add a new input variable to the target node's input_schema
           const updatedInputSchema = {
             ...targetNode.data.config.input_schema,
-            [outputHandleName]: 'str', // Assuming the type is 'str'
+            [outputHandleName]: 'str',
           };
 
-          // Dispatch an action to update the target node's data
           dispatch(
             updateNodeData({
               id: targetNode.id,
@@ -177,7 +309,6 @@ const RunViewFlowCanvasContent = (props) => {
             })
           );
 
-          // Update the connection to include the new targetHandle
           connection = {
             ...connection,
             targetHandle: outputHandleName,
@@ -185,8 +316,7 @@ const RunViewFlowCanvasContent = (props) => {
         }
       }
 
-      // Create the new edge with the updated connection
-      const newEdge = {
+      const newEdge: Edge = {
         ...connection,
         id: uuidv4(),
         key: uuidv4(),
@@ -196,23 +326,12 @@ const RunViewFlowCanvasContent = (props) => {
     [dispatch, nodes]
   );
 
+  const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }: { sourceNode: Node; targetNode: Node; edgeId: string }) => {
+    if (!reactFlowInstance) return;
 
-
-  const [hoveredNode, setHoveredNode] = useState(null);
-  const [hoveredEdge, setHoveredEdge] = useState(null);
-
-  // State to manage the visibility of the PopoverContent and the selected edge
-  const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
-  const [selectedEdge, setSelectedEdge] = useState(null);
-
-  const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
-
-  const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }) => {
-    // Calculate center position between nodes in flow coordinates
     const centerX = (sourceNode.position.x + targetNode.position.x) / 2;
     const centerY = (sourceNode.position.y + targetNode.position.y) / 2;
 
-    // Convert flow coordinates to screen coordinates
     const screenPos = reactFlowInstance.flowToScreenPosition({
       x: centerX,
       y: centerY,
@@ -252,7 +371,7 @@ const RunViewFlowCanvasContent = (props) => {
   }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
 
   const onEdgeMouseEnter = useCallback(
-    (event, edge) => {
+    (_: React.MouseEvent, edge: Edge) => {
       setHoveredEdge(edge.id);
     },
     []
@@ -262,13 +381,13 @@ const RunViewFlowCanvasContent = (props) => {
     setHoveredEdge(null);
   }, []);
 
-  const onInit = useCallback((instance) => {
+  const onInit = useCallback((instance: ReactFlowInstance) => {
     setReactFlowInstance(instance);
-    instance.setViewport({ x: 0, y: 0, zoom: 0.8 }); // Set zoom to 100%
+    instance.setViewport({ x: 0, y: 0, zoom: 0.8 });
   }, []);
 
   const onNodeClick = useCallback(
-    (event, node) => {
+    (_: React.MouseEvent, node: Node) => {
       dispatch(setSelectedNode({ nodeId: node.id }));
     },
     [dispatch]
@@ -281,10 +400,9 @@ const RunViewFlowCanvasContent = (props) => {
   }, [dispatch, selectedNodeID]);
 
   const onNodesDelete = useCallback(
-    (deletedNodes) => {
+    (deletedNodes: Node[]) => {
       deletedNodes.forEach((node) => {
         dispatch(deleteNode({ nodeId: node.id }));
-
         if (selectedNodeID === node.id) {
           dispatch(setSelectedNode({ nodeId: null }));
         }
@@ -293,11 +411,9 @@ const RunViewFlowCanvasContent = (props) => {
     [dispatch, selectedNodeID]
   );
 
-  // Add this new keyboard handler
   const handleKeyDown = useCallback(
-    (event) => {
-      // Check if the event target is within the ReactFlow container
-      const isFlowCanvasFocused = event.target.closest('.react-flow');
+    (event: KeyboardEvent) => {
+      const isFlowCanvasFocused = (event.target as HTMLElement).closest('.react-flow');
       if (!isFlowCanvasFocused) return;
 
       if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -310,127 +426,6 @@ const RunViewFlowCanvasContent = (props) => {
     [nodes, onNodesDelete]
   );
 
-  const getLayoutedNodes = (nodes, edges, direction = 'LR') => {
-    const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setGraph({
-      rankdir: direction,
-      align: 'UL',
-      edgesep: 10,
-      ranksep: 128,
-      nodesep: 128,
-      // ranker: 'longest-path'
-    });
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-    nodes.forEach((node) => {
-      dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
-    });
-
-    const nodeWeights = {};
-    const edgeWeights = {};
-
-    // Initialize root nodes with weight 1024
-    nodes.forEach(node => {
-      const incomingEdges = edges.filter(edge => edge.target === node.id);
-      if (incomingEdges.length === 0) {
-        nodeWeights[node.id] = 1024;
-        // set weight for all outgoing edges to half of the node weight
-        const outgoingEdges = edges.filter(edge => edge.source === node.id);
-        outgoingEdges.forEach(edge => {
-          edgeWeights[edge.id] = 512;
-        });
-      }
-
-    });
-
-    // Perform a topological sort to determine the order of processing nodes
-    let sortedNodes = [];
-    const visited = new Set();
-    const visiting = new Set();
-
-    const visit = (node) => {
-      if (visited.has(node.id)) {
-        return;
-      }
-      if (visiting.has(node.id)) {
-        throw new Error('Graph has cycles');
-      }
-      visiting.add(node.id);
-      const outgoingEdges = edges.filter(edge => edge.source === node.id);
-      outgoingEdges.forEach(edge => {
-        const targetNode = nodes.find(n => n.id === edge.target);
-        if (targetNode) {
-          visit(targetNode);
-        }
-      });
-      visiting.delete(node.id);
-      visited.add(node.id);
-      sortedNodes.push(node);
-    };
-
-    nodes.forEach(node => {
-      if (!visited.has(node.id)) {
-        visit(node);
-      }
-    });
-
-    // Reverse the sortedNodes to get the correct topological order
-    sortedNodes = sortedNodes.reverse();
-
-    // Calculate weights for nodes and edges
-    sortedNodes.forEach(node => {
-      const incomingEdges = edges.filter(edge => edge.target === node.id);
-      let maxIncomingWeight = -Infinity;
-
-      if (incomingEdges.length > 0) {
-        maxIncomingWeight = incomingEdges.reduce((maxWeight, edge) => {
-          return Math.max(maxWeight, edgeWeights[edge.id] || -Infinity);
-        }, -Infinity);
-
-        nodeWeights[node.id] = (maxIncomingWeight !== -Infinity) ? maxIncomingWeight : 2;
-      } else {
-        // Root nodes (no incoming edges) have weight 2
-        nodeWeights[node.id] = 2;
-      }
-
-      const outgoingEdges = edges.filter(edge => edge.source === node.id);
-      outgoingEdges.forEach(edge => {
-        edgeWeights[edge.id] = nodeWeights[node.id] * 2;
-      });
-    });
-
-
-    edges.forEach((edge) => {
-      const weight = edgeWeights[edge.id] || 1; // Use edgeWeights if available, default to 1
-      dagreGraph.setEdge(edge.source, edge.target, { weight: weight, height: 10, width: 10, labelpos: 'c', minlen: 1 });
-    });
-
-    dagre.layout(dagreGraph);
-
-    const isHorizontal = direction === 'LR';
-
-    const layoutedNodes = nodes.map((node) => {
-      const nodeWithPosition = dagreGraph.node(node.id);
-
-      return {
-        ...node,
-        position: {
-          x: nodeWithPosition.x - node.measured.width / 2,
-          y: nodeWithPosition.y - node.measured.height / 2,
-        },
-      };
-    });
-
-    return layoutedNodes;
-  };
-
-  const handleLayout = useCallback(() => {
-    const layoutedNodes = getLayoutedNodes(nodes, edges);
-    dispatch(setNodes({ nodes: layoutedNodes }));
-  }, [nodes, edges, dispatch]);
-
-
-  // Add effect to handle keyboard events
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -438,23 +433,13 @@ const RunViewFlowCanvasContent = (props) => {
     };
   }, [handleKeyDown]);
 
-  // Use the custom hook for keyboard shortcuts
   useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
-
-  // Add this hook - it will handle the keyboard shortcuts automatically
-  useCopyPaste();
-
-  // Add proOptions configuration
-  const proOptions = {
-    hideAttribution: true
-  };
 
   const mode = useModeStore((state) => state.mode);
 
-  // Add this memoized nodes with mode
   const nodesWithMode = useMemo(() => {
     return nodes
-      .filter(Boolean) // Filters out null or undefined nodes
+      .filter(Boolean)
       .map(node => ({
         ...node,
         draggable: true,
@@ -465,8 +450,7 @@ const RunViewFlowCanvasContent = (props) => {
       }));
   }, [nodes, mode]);
 
-  // Add node hover handlers
-  const onNodeMouseEnter = useCallback((event, node) => {
+  const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
     setHoveredNode(node.id);
   }, []);
 
@@ -474,9 +458,34 @@ const RunViewFlowCanvasContent = (props) => {
     setHoveredNode(null);
   }, []);
 
+  const handleLayout = useCallback(() => {
+    const layoutedNodes = getLayoutedNodes(nodes, edges);
+    dispatch(setNodes({ nodes: layoutedNodes }));
+  }, [nodes, edges, dispatch]);
+
+  const handleAddNodeBetween = (nodeName: string, sourceNode: Node, targetNode: Node, edgeId: string) => {
+    insertNodeBetweenNodes(
+      nodes,
+      nodeTypesConfig,
+      nodeName,
+      sourceNode,
+      targetNode,
+      edgeId,
+      reactFlowInstance,
+      dispatch,
+      () => setPopoverContentVisible(false)
+    );
+  };
+
+  useCopyPaste();
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
+
+  const proOptions = {
+    hideAttribution: true
+  };
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
@@ -495,22 +504,18 @@ const RunViewFlowCanvasContent = (props) => {
             onOpenChange={setPopoverContentVisible}
             placement="bottom"
           >
-            <DropdownMenu>
-              {Object.keys(nodeTypesConfig).map((category) => (
+            <DropdownMenu aria-label="Node types">
+              {nodeTypesConfig && Object.keys(nodeTypesConfig).map((category) => (
                 <DropdownSection key={category} title={category} showDivider>
                   {nodeTypesConfig[category].map((node) => (
                     <DropdownItem
                       key={node.name}
                       onClick={() =>
-                        addNodeBetweenNodes(
-                          nodeTypesConfig,
+                        handleAddNodeBetween(
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,
-                          selectedEdge.edgeId,
-                          reactFlowInstance,
-                          dispatch,
-                          setPopoverContentVisible
+                          selectedEdge.edgeId
                         )
                       }
                     >
@@ -527,7 +532,7 @@ const RunViewFlowCanvasContent = (props) => {
       <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <div
           style={{
-            height: `100%`,
+            height: '100%',
             overflow: 'auto',
             position: 'relative',
             zIndex: 1,
@@ -552,22 +557,20 @@ const RunViewFlowCanvasContent = (props) => {
             zoomOnScroll={true}
             minZoom={0.1}
             maxZoom={2}
-            selectionMode={mode === 'pointer' ? 1 : 0}
+            selectionMode={mode === 'pointer' ? SelectionMode.Full : SelectionMode.Partial}
             selectNodesOnDrag={mode === 'pointer'}
             selectionOnDrag={mode === 'pointer'}
-            selectionKeyCode={mode === 'pointer' ? null : false}
-            multiSelectionKeyCode={mode === 'pointer' ? null : false}
+            selectionKeyCode={mode === 'pointer' ? null : undefined}
+            multiSelectionKeyCode={mode === 'pointer' ? null : undefined}
             deleteKeyCode="Delete"
             nodesConnectable={true}
-            connectionMode="loose"
+            connectionMode={ConnectionMode.Loose}
             onNodeMouseEnter={onNodeMouseEnter}
             onNodeMouseLeave={onNodeMouseLeave}
             onEdgeMouseEnter={onEdgeMouseEnter}
             onEdgeMouseLeave={onEdgeMouseLeave}
           >
             <Background />
-
-            {/* Conditionally render HelperLinesRenderer based on the flag */}
             {showHelperLines && (
               <HelperLinesRenderer
                 horizontal={helperLines.horizontal}
@@ -590,13 +593,16 @@ const RunViewFlowCanvasContent = (props) => {
   );
 };
 
-// Main component that provides the ReactFlow context
-const RunViewFlowCanvas = ({ workflowData, workflowID, nodeOutputs }) => {
+const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
   return (
     <ReactFlowProvider>
-      <RunViewFlowCanvasContent workflowData={workflowData} workflowID={workflowID} nodeOutputs={nodeOutputs} />
+      <RunViewFlowCanvasContent 
+        workflowData={workflowData} 
+        workflowID={workflowID} 
+        nodeOutputs={nodeOutputs} 
+      />
     </ReactFlowProvider>
-  );
-};
+    );
+}
 
 export default RunViewFlowCanvas;

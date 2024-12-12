@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import {
   updateNodeData,
+  updateTitleInEdges,
   selectNodeById,
   setSidebarWidth,
   setSelectedNode,
@@ -113,6 +114,8 @@ const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeSchema | nu
 
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const edges = useSelector((state: RootState) => state.flow.edges);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
   const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
@@ -130,6 +133,30 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [dynamicModel, setDynamicModel] = useState<DynamicModel>(node?.data?.config || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
 
+  const collectIncomingSchema = (nodeID: string): string[] => {
+    const incomingEdges = edges.filter((edge) => edge.target === nodeID);
+    const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source));
+    // foreach incoming node, get the output schema
+    // return ['node1.foo', 'node1.bar', 'node2.baz',...]
+    return incomingNodes.reduce((acc: string[], node) => {
+      if (node?.data?.config?.output_schema) {
+        return [
+          ...acc,
+          ...Object.keys(node.data.config.output_schema).map((key) => `${node.id}.${key}`),
+        ];
+      }
+      return acc;
+    }, []);
+  }
+  const [incomingSchema, setIncomingSchema] = useState<string[]>(
+    collectIncomingSchema(nodeID)
+  );
+
+  useEffect(() => {
+    setIncomingSchema(collectIncomingSchema(nodeID));
+  }
+  , [nodeID, nodes, edges]);
+
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
     debounce((id: string, updatedModel: DynamicModel) => {
@@ -137,6 +164,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }, 300),
     [dispatch]
   );
+
 
   // Update dynamicModel when nodeID changes
   useEffect(() => {
@@ -171,6 +199,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     } else {
       dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     }
+  };
+
+  const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange('title', e.target.value);
+    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: e.target.value }));
   };
 
   const renderEnumSelect = (
@@ -310,7 +343,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={key}
             nodeID={nodeID}
             fieldName={key}
-            inputSchema={dynamicModel.input_schema || {}}
+            inputSchema={incomingSchema}
             fieldTitle="System Message"
             content={dynamicModel[key] || ''}
             setContent={(value: string) => handleInputChange(key, value)}
@@ -327,7 +360,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={key}
             nodeID={nodeID}
             fieldName={key}
-            inputSchema={dynamicModel.input_schema || {}}
+            inputSchema={incomingSchema}
             fieldTitle="User Message"
             content={dynamicModel[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
@@ -345,7 +378,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={key}
             nodeID={nodeID}
             fieldName={key}
-            inputSchema={dynamicModel.input_schema || {}}
+            inputSchema={incomingSchema}
             fieldTitle={key}
             content={dynamicModel[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
@@ -626,7 +659,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
                 value={node?.data?.config?.title || ''}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={(e) => handleNodeTitleChange(e)}
                 placeholder="Enter node title"
                 maxRows={1}
                 label="Node Title"

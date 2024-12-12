@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from ..schemas.workflow_schemas import (
-    WorkflowNodeCoordinatesSchema,
     WorkflowCreateRequestSchema,
     WorkflowNodeSchema,
     WorkflowResponseSchema,
@@ -13,6 +12,7 @@ from ..schemas.workflow_schemas import (
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
+from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
 
@@ -20,11 +20,13 @@ router = APIRouter()
 def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
     return WorkflowDefinitionSchema(
         nodes=[
-            WorkflowNodeSchema(
-                id="input_node",
-                node_type="InputNode",
-                coordinates=WorkflowNodeCoordinatesSchema(x=100, y=100),
-                config={},
+            WorkflowNodeSchema.model_validate(
+                {
+                    "id": "input_node",
+                    "node_type": "InputNode",
+                    "coordinates": {"x": 100, "y": 100},
+                    "config": InputNodeConfig().model_dump(),
+                }
             )
         ],
         links=[],

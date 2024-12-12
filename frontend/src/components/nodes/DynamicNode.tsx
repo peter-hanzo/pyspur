@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle, useHandleConnections, NodeProps } from '@xyflow/react';
+import { Handle, useHandleConnections, NodeProps, useConnection } from '@xyflow/react';
 import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
@@ -7,9 +7,11 @@ import { Input } from '@nextui-org/react';
 import {
   updateNodeData,
   updateEdgesOnHandleRename,
+  nodesChange,
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
 import { RootState } from '../../store/store';
+import NodeOutputDisplay from './NodeOutputDisplay';
 
 interface NodeData {
   config?: {
@@ -43,15 +45,17 @@ interface DynamicNodeProps extends NodeProps {
   position: { x: number; y: number };
   selected?: boolean;
   parentNode?: string;
+  displayOutput?: boolean;
 }
 
-const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...props }) => {
+const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
   const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeData = data || (node && node.data);
   const dispatch = useDispatch();
 
@@ -196,14 +200,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
                 size="sm"
                 variant="faded"
                 radius="lg"
-                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'input_schema')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, (e.target as HTMLInputElement).value, 'input_schema');
-                  } else if (e.key === 'Escape') {
-                    setEditingField(null);
-                  }
-                }}
                 classNames={{
                   input: 'bg-default-100',
                   inputWrapper: 'shadow-none',
@@ -212,7 +208,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             ) : (
               <span
                 className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                onClick={() => setEditingField(keyName)}
               >
                 {keyName}
               </span>
@@ -235,14 +230,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
                 size="sm"
                 variant="faded"
                 radius="lg"
-                onBlur={(e) => handleSchemaKeyEdit(keyName, e.target.value, 'output_schema')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSchemaKeyEdit(keyName, (e.target as HTMLInputElement).value, 'output_schema');
-                  } else if (e.key === 'Escape') {
-                    setEditingField(null);
-                  }
-                }}
                 classNames={{
                   input: 'bg-default-100',
                   inputWrapper: 'shadow-none',
@@ -251,7 +238,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
             ) : (
               <span
                 className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                onClick={() => setEditingField(keyName)}
               >
                 {keyName}
               </span>
@@ -273,30 +259,58 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
     );
   };
 
+  const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
+    return nodes.find((node) => node.id === edge.source);
+  }));
+
   const renderHandles = () => {
     if (!nodeData) return null;
-
-    const inputSchema = nodeData?.config?.['input_schema'] || cleanedInputMetadata || {};
-    const outputSchema = nodeData?.config?.['output_schema'] || cleanedOutputMetadata || {};
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
-          {Object.keys(inputSchema).map((key) => (
-            <InputHandleRow key={key} keyName={key} />
+          {predecessorNodes.map((node) => (
+            <InputHandleRow key={node?.data?.config?.title || node?.id} keyName={node?.data?.config?.title || node?.id} />
           ))}
         </div>
 
         {/* Output Handles */}
-        <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handles">
-          {Object.keys(outputSchema).map((key) => (
-            <OutputHandleRow key={key} keyName={key} />
-          ))}
+        <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
+          {nodeData?.title && <OutputHandleRow key={nodeData.config.title} keyName={nodeData.config.title} />}
         </div>
       </div>
     );
   };
+
+  const connection = useConnection();
+
+  useEffect(() => {
+    // If a connection is in progress and the target node is this node
+    // temporarily show a handle for the source node as the connection is being made
+    if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+      let predecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      // Check if the source node is not already included
+      if (!predecessorNodes.find((node) => node?.id === connection.fromNode.id)) {
+        const fromNode = nodes.find((node) => node.id === connection.fromNode.id);
+        if (fromNode) {
+          predecessorNodes = predecessorNodes.concat(fromNode);
+        }
+      }
+
+      setPredcessorNodes(predecessorNodes);
+    } else {
+      // Update predecessor nodes when no connection is in progress
+      const updatedPredecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      setPredcessorNodes(updatedPredecessorNodes);
+    }
+  }, [connection, nodes, edges, id]);
 
   const isIfElseNode = type === 'IfElseNode';
 
@@ -324,6 +338,24 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, ...
           ) : null}
           {renderHandles()}
         </div>
+        {displayOutput &&
+          <div
+              className='p-5'
+              style={{ maxHeight: '400px', overflowY: 'auto' }}
+              onWheel={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              {node ? (
+                <div>
+                  <NodeOutputDisplay node={node} />
+                </div>
+              ) : (
+                <div>No data available for this node</div>
+              )}
+            </div>
+          }
       </BaseNode>
     </div>
   );

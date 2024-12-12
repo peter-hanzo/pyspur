@@ -20,17 +20,12 @@ import TextEditor from '../textEditor/TextEditor';
 import { addTestInput, deleteTestInput } from '../../store/flowSlice';
 import { RootState } from '../../store/store';
 import { AppDispatch } from '../../store/store';
-
+import { TestInput } from '../../types/workflow';
 interface RunModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onRun: (initialInputs: Record<string, any>) => void;
   onSave?: () => void;
-}
-
-interface TestInput {
-  id: number;
-  [key: string]: any;
 }
 
 interface EditingCell {
@@ -39,8 +34,10 @@ interface EditingCell {
 }
 
 const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
-  const workflowInputVariableNames = Object.keys(workflowInputVariables || {});
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const inputNode = nodes.find(node => node.type === 'InputNode');
+  const workflowInputVariables = inputNode?.data?.config?.output_schema || {};
+  const workflowInputVariableNames = Object.keys(workflowInputVariables);
 
   const [testData, setTestData] = useState<TestInput[]>([]);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -48,13 +45,24 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
   const [editorContents, setEditorContents] = useState<Record<string, string>>({});
 
   const dispatch = useDispatch<AppDispatch>();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
 
   useEffect(() => {
     setTestData(testInputs);
   }, [testInputs]);
+
+  useEffect(() => {
+    if (testData.length > 0 && !selectedRow) {
+      setSelectedRow(testData[0].id.toString());
+    }
+  }, [testData]);
+
+  useEffect(() => {
+    if (isOpen && testData.length > 0) {
+      setSelectedRow(testData[0].id.toString());
+    }
+  }, [isOpen, testData]);
 
   const handleAddRow = () => {
     const newTestInput: TestInput = {

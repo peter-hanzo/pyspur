@@ -17,7 +17,6 @@ interface NodeOutputDisplayProps {
 const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ node }) => {
   const nodeID = node?.id;
   const output = node?.data?.run;
-  console.log('NodeOutputDisplay:', nodeID, output);
 
   return (
     <div>
@@ -33,7 +32,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ node }) => {
           ))}
         </div>
       ) : (
-        <div>No output available</div>
+        <></>
       )}
     </div>
   );

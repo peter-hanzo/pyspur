@@ -17,7 +17,6 @@ import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
-import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
@@ -32,6 +31,8 @@ import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
+import { setNodePanelExpanded } from '../../store/panelSlice';
+import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -73,6 +74,9 @@ interface RootState {
     edges: Edge[];
     selectedNode: string | null;
   };
+  panel: {
+    isNodePanelExpanded: boolean;
+  };
 }
 
 const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {
@@ -88,7 +92,7 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
           acc[node.name] = MergeNode;
         } else {
           acc[node.name] = (props: any) => {
-            return <DynamicNode {...props} type={node.name} />;
+            return <DynamicNode {...props} type={node.name} displayOutput={true} />;
           };
         }
       });
@@ -114,20 +118,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   useEffect(() => {
     if (workflowData) {
       console.log('workflowData', workflowData);
-      if (workflowData.definition.nodes) {
-        const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
-        if (inputNode.length > 0) {
-          const inputSchema = inputNode[0].config.input_schema;
-          if (inputSchema) {
-            const workflowInputVariables = Object.entries(inputSchema).map(([key, type]) => {
-              return { key, value: '' };
-            });
-            workflowInputVariables.forEach(variable => {
-              dispatch(setWorkflowInputVariable(variable));
-            });
-          }
-        }
-      }
       dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
     }
   }, [dispatch, workflowData, workflowID, nodeTypesConfig]);
@@ -198,23 +188,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             console.error('Source handle is not specified.');
             return;
           }
-
-          const updatedInputSchema = {
-            ...targetNode.data?.config?.input_schema,
-            [outputHandleName]: 'str',
-          };
-
-          dispatch(
-            updateNodeData({
-              id: targetNode.id,
-              data: {
-                config: {
-                  ...targetNode.data?.config,
-                  input_schema: updatedInputSchema,
-                },
-              },
-            })
-          );
 
           connection = {
             ...connection,
@@ -300,6 +273,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     if (selectedNodeID) {
       dispatch(setSelectedNode({ nodeId: null }));
     }
+    dispatch(setNodePanelExpanded(false));
   }, [dispatch, selectedNodeID]);
 
   const onNodesDelete = useCallback(
@@ -479,6 +453,20 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     setHoveredNode(null);
   }, []);
 
+  const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
+    insertNodeBetweenNodes(
+      nodes,
+      nodeTypesConfig,
+      nodeName,
+      sourceNode,
+      targetNode,
+      edgeId,
+      reactFlowInstance,
+      dispatch,
+      () => setPopoverContentVisible(false)
+    );
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -507,15 +495,11 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                     <DropdownItem
                       key={node.name}
                       onClick={() =>
-                        addNodeBetweenNodes(
-                          nodeTypesConfig,
+                        handleAddNodeBetween(
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,
-                          selectedEdge.edgeId,
-                          reactFlowInstance,
-                          dispatch,
-                          setPopoverContentVisible
+                          selectedEdge.edgeId
                         )
                       }
                     >

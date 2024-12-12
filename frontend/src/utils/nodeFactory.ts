@@ -44,14 +44,6 @@ interface Node {
     acronym: string;
     color: string;
     config: Record<string, any>;
-    input: {
-      properties: Record<string, any>;
-      [key: string]: any;
-    };
-    output: {
-      properties: Record<string, any>;
-      [key: string]: any;
-    };
     [key: string]: any;
   };
 }
@@ -77,49 +69,22 @@ export const createNode = (
     return null;
   }
 
-  const inputProperties = cloneDeep(nodeType.input?.properties) || {};
-  const outputProperties = cloneDeep(nodeType.output?.properties) || {};
-
   let processedAdditionalData = cloneDeep(additionalData);
-
-  // If the additional data has input/output properties, merge them with the default properties
-  if (additionalData.input?.properties) {
-    processedAdditionalData.input = {
-      ...processedAdditionalData.input,
-      properties: {
-        ...inputProperties,
-        ...additionalData.input.properties,
-      },
-    };
-  }
-
-  if (additionalData.output?.properties) {
-    processedAdditionalData.output = {
-      ...processedAdditionalData.output,
-      properties: {
-        ...outputProperties,
-        ...additionalData.output.properties,
-      },
-    };
-  }
+  let config = cloneDeep(nodeType.config);
+  config = {
+    ...config,
+    title: id,
+  };
 
   const node: Node = {
     id,
     type: nodeType.name,
     position,
     data: {
-      title: nodeType.name,
+      title: id,
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
-      config: cloneDeep(nodeType.config),
-      input: {
-        properties: inputProperties,
-        ...processedAdditionalData.input,
-      },
-      output: {
-        properties: outputProperties,
-        ...processedAdditionalData.output,
-      },
+      config: config,
       ...processedAdditionalData,
     },
   };

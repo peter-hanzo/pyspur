@@ -16,11 +16,26 @@ const FlowCanvas = dynamic(() => import('../../components/canvas/FlowCanvas'), {
   ssr: false,
 });
 
+interface WorkflowNode {
+  id: string;
+  node_type: string;
+  config: any;
+  coordinates: {
+    x: number;
+    y: number;
+  };
+}
+
+interface WorkflowLink {
+  source_id: string;
+  target_id: string;
+}
 interface WorkflowData {
   id: string;
   definition: {
     test_inputs?: Record<string, any>;
-    // Add other workflow definition properties as needed
+    nodes: WorkflowNode[];
+    links: WorkflowLink[];
   };
   // Add other workflow properties as needed
 }
