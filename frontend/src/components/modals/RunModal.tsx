@@ -34,8 +34,10 @@ interface EditingCell {
 }
 
 const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
-  const workflowInputVariableNames = Object.keys(workflowInputVariables || {});
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const inputNode = nodes.find(node => node.type === 'InputNode');
+  const workflowInputVariables = inputNode?.data?.config?.output_schema || {};
+  const workflowInputVariableNames = Object.keys(workflowInputVariables);
 
   const [testData, setTestData] = useState<TestInput[]>([]);
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
@@ -43,7 +45,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
   const [editorContents, setEditorContents] = useState<Record<string, string>>({});
 
   const dispatch = useDispatch<AppDispatch>();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
 
