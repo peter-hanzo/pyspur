@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import RunViewFlowCanvas from '../../components/canvas/RunViewFlowCanvas' // Import the FlowCanvas component
+import RunViewFlowCanvas from '@/components/canvas/RunViewFlowCanvas';
 import Header from '../../components/Header'; // Import the Header component
 import { PersistGate } from 'redux-persist/integration/react'; // Import PersistGate
 import { persistor } from '../../store/store'; // Import the persistor
