@@ -3,7 +3,11 @@ import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, Ed
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
 import { config, title } from 'process';
-import { TestInput } from '@/types/workflow';
+import { TestInput } from '@/types/api_types/workflowSchemas';
+
+type NodeTypes = {
+  [key: string]: any;
+};
 
 interface Coordinates {
   x: number;
@@ -32,7 +36,7 @@ interface WorkflowDefinition {
 }
 
 export interface FlowState {
-  nodeTypes: string[];
+  nodeTypes: NodeTypes;
   nodes: Node[];
   edges: Edge[];
   workflowID: string | null;
@@ -49,7 +53,7 @@ export interface FlowState {
 }
 
 const initialState: FlowState = {
-  nodeTypes: [],
+  nodeTypes: {},
   nodes: [],
   edges: [],
   workflowID: null,
@@ -93,8 +97,7 @@ const flowSlice = createSlice({
         createNode(state.nodeTypes, node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { config: node.config })
       );
 
-      let edges = links.map(link => (
-        {
+      let edges = links.map(link => ({
         id: uuidv4(),
         key: uuidv4(),
         selected: link.selected || false,
