@@ -42,7 +42,7 @@ export interface WorkflowVersionResponse {
   version: number;
   name: string;
   description?: string;
-  definition: any;
+  definition: WorkflowDefinition;
   definition_hash: string;
   created_at: string;
   updated_at: string;
