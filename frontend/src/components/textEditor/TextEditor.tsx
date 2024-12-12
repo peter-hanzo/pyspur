@@ -17,7 +17,7 @@ interface TextEditorProps {
   setContent: (content: string) => void;
   isEditable?: boolean;
   fullScreen?: boolean;
-  inputSchema?: Record<string, unknown>;
+  inputSchema?: string[];
   fieldTitle?: string;
 }
 
@@ -30,7 +30,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
   setContent,
   isEditable = true,
   fullScreen = false,
-  inputSchema = {},
+  inputSchema = [],
   fieldTitle
 }, ref) => {
 
@@ -126,11 +126,13 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
   }, [content, editor]);
 
   const renderVariableButtons = (editorInstance: Editor | null) => {
-    if (!inputSchema || Object.keys(inputSchema).length === 0) return null;
+    if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
+      return null;
+    }
 
     return (
       <div className="flex flex-wrap gap-2 mb-2 px-2">
-        {Object.keys(inputSchema).map((variable) => (
+        {inputSchema.map((variable) => (
           <Button
             key={variable}
             size="sm"
