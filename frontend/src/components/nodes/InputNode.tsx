@@ -52,19 +52,6 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
     }
   }, [data, outputSchemaKeys]);
 
-  const saveWorkflow = useSaveWorkflow();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
-
-  const syncAndSave = useCallback(() => {
-    const inputNode = nodes.find((node: WorkflowNode) => node.id === id);
-    if (!inputNode) return;
-    saveWorkflow();
-  }, [id, nodes, saveWorkflow]);
-
-  useEffect(() => {
-    syncAndSave();
-  }, [outputSchema]);
-
   const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
     const newKey = newFieldValue.trim();
@@ -216,7 +203,6 @@ const renderWorkflowInputs = () => {
     <div className={styles.inputNodeWrapper}>
       <BaseNode
         id={id}
-        type="input"
         isInputNode={true}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
