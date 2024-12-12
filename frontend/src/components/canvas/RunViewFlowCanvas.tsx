@@ -29,7 +29,7 @@ import dagre from '@dagrejs/dagre';
 import LoadingSpinner from '../LoadingSpinner';
 import { IfElseNode } from '../nodes/logic/IfElseNode';
 import DynamicNode from '../nodes/DynamicNode';
-import { WorkflowDefinition } from '../../types/workflow';
+import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 
 interface NodeTypesConfig {
   [category: string]: Array<{

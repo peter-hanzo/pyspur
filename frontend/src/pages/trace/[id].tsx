@@ -10,35 +10,50 @@ import { fetchNodeTypes } from '../../store/nodeTypesSlice';
 import { setTestInputs } from '../../store/flowSlice';
 import { getRunStatus } from '../../utils/api';
 import { AppDispatch } from '../../store/store';
-import { RunStatusResponse } from '../../types/run';
-import { Workflow } from '../../types/workflow';
+import { rolloutWorkflowDefinition } from '../../utils/subworkflowUtils';
 
+import { RunResponse } from '@/types/api_types/runSchemas';
+import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 
 const TracePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { id } = router.query;
-  const [workflowData, setWorkflowData] = useState<WorkflowData | null>(null);
+  const [runData, setRunData] = useState<RunResponse | null>(null);
   const [nodeOutputs, setNodeOutputs] = useState<Record<string, any>>({});
   const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [workflowData, setWorkflowData] = useState<{name: string, definition: WorkflowDefinition} | null>(null);
 
   useEffect(() => {
     dispatch(fetchNodeTypes());
     const fetchRun = async () => {
       try {
         if (typeof id !== 'string') return;
-        const data: RunStatusResponse = await getRunStatus(id);
+        const data = await getRunStatus(id);
         console.log('Run Data:', data);
         setWorkflowId(data.workflow_id);
-        setWorkflowData(data.workflow_version);
+        setRunData(data);
 
         if (data.workflow_version?.definition) {
           dispatch(setTestInputs(data.workflow_version.definition.test_inputs));
+          
+          // Roll out the workflow definition if tasks are available
+          const rolledOutDefinition = data.tasks ? 
+            rolloutWorkflowDefinition({
+              workflowDefinition: data.workflow_version.definition,
+              tasks: data.tasks
+            }) :
+            data.workflow_version.definition;
+            
+          setWorkflowData({
+            name: data.workflow_version.name,
+            definition: rolledOutDefinition,
+          });
+          
           if (data.outputs) {
             setNodeOutputs(data.outputs);
           }
         }
-
       } catch (error) {
         console.error('Error fetching run:', error);
       }

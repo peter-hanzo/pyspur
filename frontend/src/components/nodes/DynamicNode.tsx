@@ -277,7 +277,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
         {/* Output Handles */}
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
-          {nodeData?.title && <OutputHandleRow key={nodeData.config.title} keyName={nodeData.config.title} />}
+          {nodeData?.title && <OutputHandleRow keyName={nodeData.config.title ? nodeData.config.title : id} />}
         </div>
       </div>
     );
