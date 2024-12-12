@@ -168,13 +168,32 @@ interface FlowNode {
   data?: NodeData;
 }
 
+const generateNewNodeId = (
+  nodes: FlowNode[],
+  nodeType: string
+): string => {
+  const existingIds = nodes.map((node) => node.id);
+  const sanitizedType = nodeType.replace(/\s+/g, '_');
+  let counter = 1;
+  let newId = `${sanitizedType}_${counter}`;
+
+  while (existingIds.includes(newId)) {
+    counter++;
+    newId = `${sanitizedType}_${counter}`; 
+  }
+
+  return newId;
+};
+
+
 export const createNodeAtCenter = (
+  nodes: FlowNode[],
   nodeTypes: Record<string, any>,
   nodeType: string,
   reactFlowInstance: ReactFlowInstance,
   dispatch: AppDispatch
 ): void => {
-  const id = `node_${Date.now()}`;
+  const id = generateNewNodeId(nodes, nodeType);
   const center = reactFlowInstance.screenToFlowPosition({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -190,6 +209,7 @@ export const createNodeAtCenter = (
 };
 
 export const insertNodeBetweenNodes = (
+  nodes: FlowNode[],
   nodeTypes: Record<string, any>,
   nodeType: string,
   sourceNode: FlowNode,
@@ -204,7 +224,7 @@ export const insertNodeBetweenNodes = (
     return;
   }
 
-  const id = `node_${Date.now()}`;
+  const id = generateNewNodeId(nodes, nodeType);
   const newPosition = {
     x: (sourceNode.position.x + targetNode.position.x) / 2,
     y: (sourceNode.position.y + targetNode.position.y) / 2,
@@ -212,21 +232,6 @@ export const insertNodeBetweenNodes = (
 
   // Create the new node
   const newNode = createNode(nodeTypes, nodeType, id, newPosition);
-
-  // Special handling for input node as source
-  const getSourceOutputKey = (node: FlowNode): string => {
-    if (node.id === 'input_node') {
-      // For input node, use the first key from input_schema as the output key
-      return Object.keys(node.data?.config?.input_schema || {})[0] || 'output';
-    }
-    return Object.keys(node.data?.config?.output_schema || {})[0] || 'output';
-  };
-
-  // Get schema keys
-  const sourceOutputKey = getSourceOutputKey(sourceNode);
-  const targetInputKey = Object.keys(targetNode.data?.config?.input_schema || {})[0] || 'input';
-  const newNodeInputKey = Object.keys(newNode.data?.config?.input_schema || {})[0] || 'input';
-  const newNodeOutputKey = Object.keys(newNode.data?.config?.output_schema || {})[0] || 'output';
 
   // First delete the existing edge
   dispatch(deleteEdge({ edgeId }));
@@ -237,36 +242,20 @@ export const insertNodeBetweenNodes = (
   // Create source -> new node connection
   dispatch(connect({
     connection: {
-      id: `edge-${sourceNode.id}-${id}`,
       source: sourceNode.id,
-      sourceHandle: sourceOutputKey,
       target: id,
-      targetHandle: newNodeInputKey,
-      data: {
-        source_output_key: sourceOutputKey,
-        target_input_key: newNodeInputKey,
-        source_output_type: sourceNode.id === 'input_node'
-          ? (sourceNode.data?.config?.input_schema?.[sourceOutputKey] || 'str')
-          : (sourceNode.data?.config?.output_schema?.[sourceOutputKey] || 'str'),
-        target_input_type: newNode.data?.config?.input_schema?.[newNodeInputKey] || 'str'
-      }
+      sourceHandle: sourceNode.id,
+      targetHandle: sourceNode.id,
     }
   }));
 
   // Create new node -> target connection
   dispatch(connect({
     connection: {
-      id: `edge-${id}-${targetNode.id}`,
       source: id,
-      sourceHandle: newNodeOutputKey,
       target: targetNode.id,
-      targetHandle: targetInputKey,
-      data: {
-        source_output_key: newNodeOutputKey,
-        target_input_key: targetInputKey,
-        source_output_type: newNode.data?.config?.output_schema?.[newNodeOutputKey] || 'str',
-        target_input_type: targetNode.data?.config?.input_schema?.[targetInputKey] || 'str'
-      }
+      sourceHandle: id,
+      targetHandle: id,
     }
   }));
 
