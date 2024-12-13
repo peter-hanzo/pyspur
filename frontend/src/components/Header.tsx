@@ -28,7 +28,7 @@ import { formatDistanceStrict } from 'date-fns';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 interface HeaderProps {
-  activePage: 'home' | 'workflow' | 'evals';
+  activePage: 'home' | 'workflow' | 'evals' | 'trace';
 }
 
 interface Node {
@@ -300,7 +300,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           )}
         </NavbarBrand>
 
-        {activePage === "workflow" && (
+        {(activePage === "workflow" || activePage === "trace") && (
           <NavbarContent
             className="h-12 rounded-full bg-content2 dark:bg-content1 sm:flex"
             id="workflow-title"
@@ -312,6 +312,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               placeholder="Project Name"
               value={projectName}
               onChange={handleProjectNameChange}
+              disabled={activePage !== "workflow"}
             />
           </NavbarContent>
         )}

@@ -72,7 +72,7 @@ const TracePage: React.FC = () => {
   return (
     <PersistGate loading={null} persistor={persistor}>
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Header activePage="workflow" />
+        <Header activePage="trace" />
         <div style={{ flexGrow: 1 }}>
           <RunViewFlowCanvas workflowData={workflowData} nodeOutputs={nodeOutputs} workflowID={workflowId} />
         </div>
