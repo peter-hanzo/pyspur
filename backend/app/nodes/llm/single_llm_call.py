@@ -62,11 +62,9 @@ class SingleLLMCallNode(VariableOutputBaseNode):
         if self.config.user_message is None or self.config.user_message.strip() == "":
             user_message = json.dumps(input.model_dump(), indent=2)
         else:
-            print(input)
             user_message = Template(self.config.user_message).render(
                 **input.model_dump()
             )
-            print("User Message:", user_message)
         messages = create_messages(
             system_message=system_message,
             user_message=user_message,
