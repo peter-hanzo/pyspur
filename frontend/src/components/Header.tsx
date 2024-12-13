@@ -70,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const workflowId = useSelector((state: RootState) => state.flow.workflowID);
   const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
-  const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
   const router = useRouter();
   const { id } = router.query;
