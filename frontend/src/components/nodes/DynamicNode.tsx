@@ -145,11 +145,10 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
-    const inputSchema = nodeData?.config?.['input_schema'] || cleanedInputMetadata || {};
     const outputSchema = nodeData?.config?.['output_schema'] || cleanedOutputMetadata || {};
 
-    const inputLabels = Object.keys(inputSchema);
-    const outputLabels = Object.keys(outputSchema);
+    const inputLabels = predecessorNodes.map((node) => node?.data?.config?.title || node?.id);
+    const outputLabels = nodeData?.config?.title ? [nodeData.config.title] : [id];
 
     const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0);
     const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0);
@@ -167,8 +166,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       Math.max(maxLabelLength * 10, minNodeWidth),
       maxNodeWidth
     );
-
-    setNodeWidth(`${finalWidth}px`);
+    if (finalWidth !== parseInt(nodeWidth)){
+      setNodeWidth(`${finalWidth}px`);
+    }
   }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata]);
 
   interface HandleRowProps {
