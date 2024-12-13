@@ -120,12 +120,7 @@ const Dashboard: React.FC = () => {
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
       const newWorkflow: WorkflowCreateRequest = {
         name: uniqueName,
-        description: '',
-        definition: {
-          nodes: [],
-          links: [],
-          test_inputs: []
-        }
+        description: ''
       };
 
       const createdWorkflow = await createWorkflow(newWorkflow);
