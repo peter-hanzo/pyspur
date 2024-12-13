@@ -225,6 +225,17 @@ const flowSlice = createSlice({
 
     deleteWorkflowInputVariable: (state, action: PayloadAction<{ key: string }>) => {
       const { key } = action.payload;
+      // Remove key from input node output schema
+      const inputNode = state.nodes.find(node => node.type === 'InputNode');
+      if (inputNode && inputNode.data) {
+        const currentConfig = inputNode.data.config || {};
+        const currentSchema = currentConfig.output_schema || {};
+        delete currentSchema[key];
+        inputNode.data.config = {
+          ...currentConfig,
+          output_schema: currentSchema
+        };
+      }
       delete state.workflowInputVariables[key];
       state.edges = state.edges.filter(edge => edge.sourceHandle !== key);
     },
