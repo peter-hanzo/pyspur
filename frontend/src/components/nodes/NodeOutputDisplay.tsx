@@ -34,7 +34,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ node }) => {
               <div key={key} className="my-2 flex flex-col items-start">
                 <label className="text-sm font-semibold mb-1 block">{key}:</label>
                 <div className="ml-2 mt-auto">
-                  <Markdown children={value} />
+                  <Markdown>{JSON.stringify(value, null, 1)}</Markdown>
                 </div>
               </div>
             ))}

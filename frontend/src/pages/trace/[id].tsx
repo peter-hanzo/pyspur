@@ -38,20 +38,21 @@ const TracePage: React.FC = () => {
           dispatch(setTestInputs(data.workflow_version.definition.test_inputs));
           
           // Roll out the workflow definition if tasks are available
-          const rolledOutDefinition = data.tasks ? 
+          const {rolledOutDefinition, outputs} = data.tasks ? 
             rolloutWorkflowDefinition({
               workflowDefinition: data.workflow_version.definition,
               tasks: data.tasks
             }) :
-            data.workflow_version.definition;
-            
+            {rolledOutDefinition: data.workflow_version.definition, outputs: data.outputs};
+          
+          console.log('coalesced outputs:', outputs);
           setWorkflowData({
             name: data.workflow_version.name,
             definition: rolledOutDefinition,
           });
           
-          if (data.outputs) {
-            setNodeOutputs(data.outputs);
+          if (outputs) {
+            setNodeOutputs(outputs);
           }
         }
       } catch (error) {

@@ -9,27 +9,37 @@ interface RolloutWorkflowParams {
 export function rolloutWorkflowDefinition({ 
   workflowDefinition, 
   tasks 
-}: RolloutWorkflowParams): WorkflowDefinition {
+}: RolloutWorkflowParams): {rolledOutDefinition: WorkflowDefinition, outputs: Record<string, any>} {
   // Create a deep copy of the workflow definition to avoid mutations
   const rolledOutDefinition: WorkflowDefinition = JSON.parse(JSON.stringify(workflowDefinition));
-  
-  // Create maps for quick lookup
-  const taskMap = new Map(tasks.map(task => [task.node_id, task]));
-  
+  let outputs: Record<string, any> = {};
+
   // Process each task that has a subworkflow
   tasks.forEach(task => {
+    // Gather outputs from the task
+    if (task.outputs) {
+      outputs[task.node_id] = task.outputs;
+    }
+
     if (!task.subworkflow) return;
     
     const nodeToReplace = rolledOutDefinition.nodes.find(node => node.id === task.node_id);
     if (!nodeToReplace) return;
     
     const subworkflow = task.subworkflow;
-    
     // Generate unique IDs for subworkflow nodes to avoid conflicts
     const prefix = `${task.node_id}_`;
+
+    // Gather outputs from subworkflow
+    if (task.subworkflow_output) {
+      Object.entries(task.subworkflow_output).forEach(([nodeId, output]) => {
+        outputs[prefix+nodeId] = output;
+      });
+    }
+    
     const subworkflowNodes = subworkflow.nodes.map(node => ({
       ...node,
-      id: node.id,
+      id: prefix + node.id,
       coordinates: {
         x: nodeToReplace.coordinates.x,
         y: nodeToReplace.coordinates.y
@@ -62,8 +72,14 @@ export function rolloutWorkflowDefinition({
     
     // Add subworkflow nodes and edges
     rolledOutDefinition.nodes.push(...subworkflowNodes);
-    rolledOutDefinition.links.push(...subworkflow.links);
+    rolledOutDefinition.links = rolledOutDefinition.links.concat(
+      subworkflow.links.map(link => ({
+        ...link,
+        source_id: prefix + link.source_id,
+        target_id: prefix + link.target_id
+      }))
+    );
   });
   
-  return rolledOutDefinition;
-} 
+  return { rolledOutDefinition, outputs };
+}
