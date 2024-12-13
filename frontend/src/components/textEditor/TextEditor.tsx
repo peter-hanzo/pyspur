@@ -13,6 +13,8 @@ import { List, ListOrdered } from "lucide-react";
 import styles from "./TextEditor.module.css";
 
 interface TextEditorProps {
+  nodeID: string;
+  fieldName: string;
   content: string;
   setContent: (content: string) => void;
   isEditable?: boolean;

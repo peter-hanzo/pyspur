@@ -20,7 +20,7 @@ import TextEditor from '../textEditor/TextEditor';
 import { addTestInput, deleteTestInput } from '../../store/flowSlice';
 import { RootState } from '../../store/store';
 import { AppDispatch } from '../../store/store';
-import { TestInput } from '../../types/workflow';
+import { TestInput } from '@/types/api_types/workflowSchemas';
 interface RunModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -193,31 +193,39 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                 }}
               >
                 <TableHeader>
-                  <TableColumn>#</TableColumn>
-                  {workflowInputVariableNames.map(field => (
-                    <TableColumn key={field}>{field.toUpperCase()}</TableColumn>
-                  ))}
-                  <TableColumn>ACTIONS</TableColumn>
+                  {
+                    [
+                      <TableColumn key="id">ID</TableColumn>,
+                      ...workflowInputVariableNames.map(field => (
+                        <TableColumn key={field}>{field}</TableColumn>
+                      )),
+                      <TableColumn key="actions">Actions</TableColumn>
+                    ]
+                  }
                 </TableHeader>
                 <TableBody>
                   {testData.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell>{row.id}</TableCell>
-                      {workflowInputVariableNames.map(field => (
-                        <TableCell key={field}>
-                          {renderCell(row, field)}
-                        </TableCell>
-                      ))}
-                      <TableCell>
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          onPress={() => handleDeleteRow(row.id)}
-                        >
-                          <Icon icon="solar:trash-bin-trash-linear" />
-                        </Button>
-                      </TableCell>
+                      {
+                        [
+                          <TableCell key="id">{row.id}</TableCell>,
+                          ...workflowInputVariableNames.map(field => (
+                            <TableCell key={field}>
+                              {renderCell(row, field)}
+                            </TableCell>
+                          )),
+                          <TableCell key="actions">
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              variant="light" 
+                              onPress={() => handleDeleteRow(row.id)}
+                            >
+                              <Icon icon="solar:trash-bin-trash-linear" />
+                            </Button>
+                          </TableCell>
+                        ]
+                      }
                     </TableRow>
                   ))}
                 </TableBody>
@@ -230,7 +238,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                       nodeID={`newRow-${field}`}
                       fieldName={field}
                       fieldTitle={field}
-                      inputSchema={{}}
+                      inputSchema={[]}
                       content={editorContents[field] || ''}
                       setContent={(value: string) => {
                         setEditorContents(prev => ({
