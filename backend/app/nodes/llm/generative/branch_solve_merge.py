@@ -67,6 +67,11 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
         Step 1: Run the branch node to get subtasks.
         Step 2: Build the rest of the subworkflow based on the subtasks and execute it.
         """
+        # Apply templates to config fields
+        input_dict = input.model_dump()
+        new_config = self.apply_templates_to_config(self.config, input_dict)
+        self.update_config(new_config)
+
         # Step 1: Run the branch node to get the subtasks
         # Build subworkflow for step 1
         self.setup_branch_subworkflow()

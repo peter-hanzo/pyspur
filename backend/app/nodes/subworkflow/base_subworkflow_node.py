@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Any, Dict, Set
 
 from pydantic import BaseModel, Field
+from jinja2 import Template
 from ...schemas.workflow_schemas import WorkflowNodeSchema
 from ..base import BaseNode, BaseNodeConfig
 from ...execution.workflow_executor import WorkflowExecutor
@@ -54,7 +55,25 @@ class BaseSubworkflowNode(BaseNode, ABC):
             mapped_input[subworkflow_input_field] = input_var
         return mapped_input
 
+    def apply_templates_to_config(
+        self, model: BaseSubworkflowNodeConfig, input_data: Dict[str, Any]
+    ) -> BaseSubworkflowNodeConfig:
+        """Apply templates to all config fields ending with _message"""
+        updates: Dict[str, str] = {}
+        for field_name, value in model.model_dump().items():
+            if isinstance(value, str) and field_name.endswith("_message"):
+                template = Template(value)
+                updates[field_name] = template.render(**input_data)
+        if updates:
+            return model.model_copy(update=updates)
+        return model
+
     async def run(self, input: BaseModel) -> BaseModel:
+        # Apply templates to config fields
+        input_dict = input.model_dump()
+        new_config = self.apply_templates_to_config(self.config, input_dict)
+        self.update_config(new_config)
+
         self.setup_subworkflow()
         assert self.subworkflow is not None
         if self.subworkflow_output is None:

@@ -192,6 +192,12 @@ class BaseNode(ABC):
         """
         return self.config_model.model_validate(self._config.model_dump())
 
+    def update_config(self, config: BaseNodeConfig) -> None:
+        """
+        Update the node's configuration.
+        """
+        self._config = config
+
     @property
     def input(self) -> Any:
         """
