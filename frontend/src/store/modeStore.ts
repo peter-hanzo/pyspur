@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Mode = 'hand' | 'select' | 'connect'; // Add other valid modes as needed
+export type Mode = 'pointer' | 'hand' | 'select' | 'connect'; // Add other valid modes as needed
 
 interface ModeState {
   mode: Mode;

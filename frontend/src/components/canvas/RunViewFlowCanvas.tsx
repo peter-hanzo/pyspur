@@ -1,5 +1,25 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ReactFlow, Background, ReactFlowProvider, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes, EdgeTypes, ReactFlowInstance, XYPosition, SelectionMode, ConnectionMode, useViewport } from '@xyflow/react';
+import {
+  ReactFlow,
+  Background,
+  ReactFlowProvider,
+  Node,
+  Edge,
+  NodeChange,
+  EdgeChange,
+  Connection,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  NodeTypes,
+  EdgeTypes,
+  ReactFlowInstance,
+  XYPosition,
+  SelectionMode,
+  ConnectionMode,
+  useViewport,
+} from '@xyflow/react';
+
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/Operator';
@@ -22,7 +42,7 @@ import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
-import { useModeStore } from '../../store/modeStore';
+import { Mode, useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
 import dagre from '@dagrejs/dagre';
@@ -422,6 +442,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
                 </DropdownSection>
               ))}
             </DropdownMenu>
+            <></>
           </Dropdown>
         </div>
       )}
