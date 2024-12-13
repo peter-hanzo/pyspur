@@ -67,12 +67,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     }
   }, [isOpen, testData]);
 
-  useEffect(() => {
-    if (testInputs.length > 0) {
-      saveWorkflow();
-    }
-  }, [testInputs, saveWorkflow]);
-
   const handleAddRow = () => {
     const newTestInput: TestInput = {
       id: Date.now(),
@@ -81,11 +75,13 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     setTestData([...testData, newTestInput]);
     setEditorContents({});
     dispatch(addTestInput(newTestInput));
+    saveWorkflow();
   };
 
   const handleDeleteRow = (id: number) => {
     setTestData(testData.filter((row) => row.id !== id));
     dispatch(deleteTestInput({ id }));
+    saveWorkflow();
   };
 
   const handleDoubleClick = (rowId: number, field: string) => {
