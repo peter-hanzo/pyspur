@@ -13,6 +13,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
+import { TaskStatus } from '@/types/api_types/taskSchemas';
 
 interface NodeData {
   run?: Record<string, any>;
@@ -193,13 +194,32 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const isSelected = String(id) === String(selectedNodeId);
 
-  const status = data.run ? 'completed' : (data.status || 'default').toLowerCase();
+  const status = data.run ? 'completed' : data.status;
 
-  const borderColor = isRunning ? 'blue' :
-    status === 'completed' ? '#4CAF50' :
-      status === 'failed' ? 'red' :
-        status === 'default' ? 'gray' :
-          style.borderColor || '#ccc';
+  const nodeRunStatus: TaskStatus = data.taskStatus;
+
+  let borderColor = 'gray';
+  switch (nodeRunStatus) {
+    case 'PENDING':
+      borderColor = 'yellow';
+      break;
+    case 'RUNNING':
+      borderColor = 'blue';
+      break;
+    case 'COMPLETED':
+      borderColor = '#4CAF50';
+      break;
+    case 'FAILED':
+      borderColor = 'red';
+      break;
+    case 'CANCELLED':
+      borderColor = 'gray';
+      break;
+    default:
+      if (status === 'completed') {
+        borderColor = '#4CAF50';
+      }
+  }
 
   const { backgroundColor, ...restStyle } = style || {};
 

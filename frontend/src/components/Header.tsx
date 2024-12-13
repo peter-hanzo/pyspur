@@ -119,9 +119,10 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             if (!node) {
               return;
             }
-            const output_values = task.outputs;
-            if (output_values && node) {
-              dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values } } }));
+            const output_values = task.outputs || {};
+            const nodeTaskStatus = task.status;
+            if (node) {
+              dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
             }
           });
         }
