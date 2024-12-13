@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { updateWorkflow } from '../utils/api';
 import { RootState } from '../store/store';
 import { debounce } from 'lodash';
-import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
+import { WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas';
 
 interface Position {
   x: number;
@@ -71,13 +71,14 @@ export const useSaveWorkflow = () => {
 
         const updatedWorkflow: WorkflowCreateRequest = {
           name: workflowName,
+          description: '',
           definition: {
             nodes: updatedNodes.map(node => ({
               id: node.new_id,
               node_type: node.type,
               config: node.config,
               coordinates: node.position,
-            })),
+            } as WorkflowNode)),
             links: edges.map((edge: Edge) => {
               const sourceNode = updatedNodes.find(node => node?.id === edge.source);
               const targetNode = updatedNodes.find(node => node?.id === edge.target);
