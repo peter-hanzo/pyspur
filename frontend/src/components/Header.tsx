@@ -122,7 +122,15 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             const output_values = task.outputs || {};
             const nodeTaskStatus = task.status;
             if (node) {
-              dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
+              // Check if the task output or status is different from current node data
+              const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run);
+              const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus;
+
+              console.log('Node:', node.id, 'Output:', output_values, 'Status:', nodeTaskStatus, 'isOutputDifferent:', isOutputDifferent, 'isStatusDifferent:', isStatusDifferent);
+              
+              if (isOutputDifferent || isStatusDifferent) {
+                dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
+              }
             }
           });
         }
@@ -149,7 +157,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     try {
       showAlert('Starting workflow run...', 'default');
       const result = await startRun(workflowId, inputValues, null, 'interactive');
-      console.log('Workflow run started:', result);
       setIsRunning(true);
       fetchWorkflowRuns();
       dispatch(resetRun());

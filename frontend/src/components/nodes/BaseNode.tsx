@@ -194,11 +194,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const isSelected = String(id) === String(selectedNodeId);
 
-  const status = data.run ? 'completed' : data.status;
+  const status = data.run ? 'completed' : '';
 
   const nodeRunStatus: TaskStatus = data.taskStatus;
 
   let borderColor = 'gray';
+
   switch (nodeRunStatus) {
     case 'PENDING':
       borderColor = 'yellow';
