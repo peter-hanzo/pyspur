@@ -21,6 +21,8 @@ import { addTestInput, deleteTestInput } from '../../store/flowSlice';
 import { RootState } from '../../store/store';
 import { AppDispatch } from '../../store/store';
 import { TestInput } from '@/types/api_types/workflowSchemas';
+import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
+
 interface RunModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -47,6 +49,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
   const dispatch = useDispatch<AppDispatch>();
   const edges = useSelector((state: RootState) => state.flow.edges);
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
+  const saveWorkflow = useSaveWorkflow();
 
   useEffect(() => {
     setTestData(testInputs);
@@ -63,6 +66,12 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
       setSelectedRow(testData[0].id.toString());
     }
   }, [isOpen, testData]);
+
+  useEffect(() => {
+    if (testInputs.length > 0) {
+      saveWorkflow();
+    }
+  }, [testInputs, saveWorkflow]);
 
   const handleAddRow = () => {
     const newTestInput: TestInput = {

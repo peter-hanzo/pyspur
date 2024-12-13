@@ -73,6 +73,7 @@ interface RootState {
     nodes: Node[];
     edges: Edge[];
     selectedNode: string | null;
+    testInputs: any[];
   };
   panel: {
     isNodePanelExpanded: boolean;
@@ -128,7 +129,13 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   const edges = useSelector((state: RootState) => state.flow.edges);
   const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const saveWorkflow = useSaveWorkflow([nodes, edges], 10000);
+  const saveWorkflow = useSaveWorkflow();
+
+  useEffect(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      saveWorkflow();
+    }
+  }, [nodes, edges, saveWorkflow]);
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [helperLines, setHelperLines] = useState<HelperLines>({ horizontal: null, vertical: null });
