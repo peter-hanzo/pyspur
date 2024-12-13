@@ -97,7 +97,7 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
         links: List[WorkflowLinkSchema] = []
 
         # Input node
-        input_node_id = "input_node"
+        input_node_id = "branch_solve_merge_input_node"
         self.input_node_id = input_node_id
         input_node = WorkflowNodeSchema(
             id=input_node_id,
