@@ -9,10 +9,10 @@
     "nodes": [
       {
         "id": "input_node",
-        "title": "",
+        "title": "input_node",
         "node_type": "InputNode",
         "config": {
-          "input_schema": {
+          "output_schema": {
             "topic": "str",
             "audience": "str"
           }
@@ -23,16 +23,11 @@
         }
       },
       {
-        "id": "node_1732123362957",
-        "title": "",
+        "id": "JokeDrafter",
+        "title": "JokeDrafter",
         "node_type": "BestOfNNode",
         "config": {
-          "title": "Joke Drafter (BoN)",
-          "type": "object",
-          "input_schema": {
-            "topic": "str",
-            "audience": "str"
-          },
+          "title": "JokeDrafter",
           "output_schema": {
             "initial_joke": "str"
           },
@@ -43,7 +38,7 @@
             "top_p": 1
           },
           "system_message": "<p>You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.</p><p></p><p>The user will provide you with a topic and audience, and you have to devise a short joke for that.</p><p></p><p>You can roast the person if a person is mentioned, it's only among friends.</p>",
-          "user_message": "<p>Your audience is: {{ audience }}</p><p>The topic should be about {{ topic }} </p>",
+          "user_message": "<p>Your audience is: {{input_node.audience}}</p><p>The topic should be about {{input_node.topic}} </p>",
           "few_shot_examples": null,
           "samples": 10,
           "rating_prompt": "Rate the following joke on a scale from 0 to 10, where 0 is poor and 10 is excellent. \nConsider factors such as surprise, relatability, and punchiness. Respond with only a number.",
@@ -56,15 +51,11 @@
         }
       },
       {
-        "id": "node_1732123792310",
-        "title": "",
+        "id": "JokeRefiner",
+        "title": "JokeRefiner",
         "node_type": "BestOfNNode",
         "config": {
-          "title": "Joke Refiner",
-          "type": "object",
-          "input_schema": {
-            "initial_joke": "str"
-          },
+          "title": "JokeRefiner",
           "output_schema": {
             "final_joke": "str"
           },
@@ -75,7 +66,7 @@
             "top_p": 1
           },
           "system_message": "<p>Your goal is to refine a joke to make it more vulgar and concise. It's just among friends, so you can get roasty.</p><ul><li><p>Be mean</p></li><li><p>Have dark humour</p></li><li><p>Be very punchy</p></li></ul>",
-          "user_message": "<p>{{ initial_joke }}</p>",
+          "user_message": "<p>{{JokeDrafter.initial_joke}}</p>",
           "few_shot_examples": null,
           "samples": 3,
           "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
@@ -88,16 +79,11 @@
         }
       },
       {
-        "id": "node_1732123863911",
-        "title": "",
+        "id": "SingleShotJoke",
+        "title": "SingleShotJoke",
         "node_type": "SingleLLMCallNode",
         "config": {
-          "title": "Joke Drafter (Single-Shot)",
-          "type": "object",
-          "input_schema": {
-            "topic": "str",
-            "audience": "str"
-          },
+          "title": "SingleShotJoke",
           "output_schema": {
             "final_joke": "str"
           },
@@ -108,7 +94,7 @@
             "top_p": 1
           },
           "system_message": "<p>You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.</p><p></p><p>The user will provide you with a topic and audience, and you have to devise a short joke for that.</p><p></p><p>You can roast the person if a person is mentioned, it's only among friends.</p>",
-          "user_message": "<p>Your audience is: {{ audience }}</p><p>The topic should be about {{ topic }} </p>",
+          "user_message": "<p>Your audience is: {{input_node.audience}}</p><p>The topic should be about {{input_node.topic}} </p>",
           "few_shot_examples": null
         },
         "coordinates": {
@@ -120,33 +106,15 @@
     "links": [
       {
         "source_id": "input_node",
-        "source_output_key": "topic",
-        "target_id": "node_1732123362957",
-        "target_input_key": "topic"
+        "target_id": "JokeDrafter"
+      },
+      {
+        "source_id": "JokeDrafter",
+        "target_id": "JokeRefiner"
       },
       {
         "source_id": "input_node",
-        "source_output_key": "audience",
-        "target_id": "node_1732123362957",
-        "target_input_key": "audience"
-      },
-      {
-        "source_id": "node_1732123362957",
-        "source_output_key": "initial_joke",
-        "target_id": "node_1732123792310",
-        "target_input_key": "initial_joke"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "topic",
-        "target_id": "node_1732123863911",
-        "target_input_key": "topic"
-      },
-      {
-        "source_id": "input_node",
-        "source_output_key": "audience",
-        "target_id": "node_1732123863911",
-        "target_input_key": "audience"
+        "target_id": "SingleShotJoke"
       }
     ],
     "test_inputs": [
