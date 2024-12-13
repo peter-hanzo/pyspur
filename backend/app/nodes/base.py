@@ -267,7 +267,7 @@ class FixedOutputBaseNode(BaseNode, ABC):
 
 class VariableOutputBaseNodeConfig(BaseNodeConfig):
     output_schema: Dict[str, str] = Field(
-        default={},
+        default={"output": "str"},
         title="Output schema",
         description="The schema for the output of the node",
     )
