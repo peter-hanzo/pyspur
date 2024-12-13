@@ -86,6 +86,10 @@ class WorkflowExecutor:
 
         node_input = dict(zip(dependency_ids, predecessor_outputs))
 
+        # Special handling for InputNode - use initial inputs
+        if node.node_type == "InputNode":
+            node_input = self._initial_inputs.get(node_id, {})
+
         node_instance = NodeFactory.create_node(
             node_name=node.title, node_type_name=node.node_type, config=node.config
         )
@@ -95,7 +99,9 @@ class WorkflowExecutor:
                 node_id=node_id,
                 status=TaskStatus.RUNNING,
                 inputs={
-                    dep_id: output.model_dump() for dep_id, output in node_input.items()
+                    dep_id: output.model_dump()
+                    for dep_id, output in node_input.items()
+                    if node.node_type != "InputNode"
                 },
                 subworkflow=node_instance.subworkflow,
             )
@@ -131,20 +137,7 @@ class WorkflowExecutor:
         node_ids: List[str] = [],
         precomputed_outputs: Dict[str, Dict[str, Any]] = {},
     ) -> Dict[str, BaseNodeOutput]:
-        input_node = next(
-            (node for node in self.workflow.nodes if node.node_type == "InputNode")
-        )
-        input_node_instance = NodeFactory.create_node(
-            node_name=input_node.title,
-            node_type_name=input_node.node_type,
-            config=input_node.config,
-        )
-        self._outputs[input_node.id] = await input_node_instance(input)
-
-        nodes_to_run = set(self._node_dict.keys())
-        if node_ids:
-            nodes_to_run = set(node_ids)
-
+        # Handle precomputed outputs first
         if precomputed_outputs:
             for node_id, output in precomputed_outputs.items():
                 self._outputs[node_id] = NodeFactory.create_node(
@@ -152,6 +145,16 @@ class WorkflowExecutor:
                     node_type_name=self._node_dict[node_id].node_type,
                     config=self._node_dict[node_id].config,
                 ).output_model.model_validate(output)
+
+        # Store input in initial inputs to be used by InputNode
+        input_node = next(
+            (node for node in self.workflow.nodes if node.node_type == "InputNode")
+        )
+        self._initial_inputs[input_node.id] = input
+
+        nodes_to_run = set(self._node_dict.keys())
+        if node_ids:
+            nodes_to_run = set(node_ids)
 
         # Start tasks for all nodes
         for node_id in nodes_to_run:
