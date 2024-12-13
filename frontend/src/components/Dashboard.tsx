@@ -150,19 +150,14 @@ const Dashboard: React.FC = () => {
             const result = e.target?.result;
             if (typeof result !== 'string') return;
 
-            const jsonContent = JSON.parse(result);
+            const jsonContent: WorkflowCreateRequest = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
             const newWorkflow: WorkflowCreateRequest = {
-              name: jsonContent.name || uniqueName,
-              description: jsonContent.description || '',
-              definition: {
-                nodes: jsonContent.nodes || [],
-                links: jsonContent.links || [],
-                test_inputs: jsonContent.test_inputs || []
-              }
+              name: uniqueName,
+              description: jsonContent.description,
+              definition: jsonContent.definition as WorkflowDefinition
             };
-
             const createdWorkflow = await createWorkflow(newWorkflow);
             router.push(`/workflows/${createdWorkflow.id}`);
           } catch (error) {
