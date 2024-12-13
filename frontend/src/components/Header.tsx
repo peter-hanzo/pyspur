@@ -39,19 +39,6 @@ interface Node {
 }
 
 import { RootState } from '../store/store';
-
-interface RunStatusResponse {
-  status: 'RUNNING' | 'FAILED' | string;
-  outputs?: Record<string, any>;
-  id: string;
-}
-
-interface WorkflowResponse {
-  name: string;
-  definition: any;
-  description: string;
-}
-
 interface AlertState {
   message: string;
   color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
@@ -112,8 +99,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
     currentStatusInterval = setInterval(async () => {
       try {
-        const statusResponse: RunStatusResponse = await getRunStatus(runID);
-        const outputs = statusResponse.outputs;
+        const statusResponse = await getRunStatus(runID);
+        const tasks = statusResponse.tasks;
 
         if (statusResponse.status === 'FAILED') {
           setIsRunning(false);
@@ -122,11 +109,19 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           return;
         }
 
-        if (outputs) {
-          Object.entries(outputs).forEach(([nodeId, output_values]) => {
-            const node = nodes.find((node) => node.id === nodeId);
+        if (tasks.length > 0) {
+          tasks.forEach((task) => {
+            const nodeId = task.node_id;
+            let node = nodes.find(node => node.id === nodeId);
+            if (!node) {
+              node = nodes.find(node => node.data?.config?.title === task.node_id);
+            }
+            if (!node) {
+              return;
+            }
+            const output_values = task.outputs;
             if (output_values && node) {
-              dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...output_values } } }));
+              dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values } } }));
             }
           });
         }
@@ -184,7 +179,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     if (!workflowID) return;
 
     try {
-      const workflow: WorkflowResponse = await getWorkflow(workflowID);
+      const workflow = await getWorkflow(workflowID);
 
       const workflowDetails = {
         name: workflow.name,
