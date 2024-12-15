@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useConnection } from '@xyflow/react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import BaseNode from '../BaseNode';
@@ -35,27 +35,38 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
+  const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
+    return nodes.find((node) => node.id === edge.source);
+  }));
 
-  // Get incoming branches based on connected edges, ensuring uniqueness
-  const incomingBranches = useMemo(() => {
-    const branchMap = new Map();
+  const connection = useConnection();
 
-    edges
-      .filter(edge => edge.target === id)
-      .forEach(edge => {
-        const sourceNode = nodes.find(node => node.id === edge.source);
-        // Only add if we haven't seen this source ID before
-        if (!branchMap.has(edge.source)) {
-          branchMap.set(edge.source, {
-            id: edge.source,
-            sourceHandle: edge.sourceHandle,
-            label: sourceNode?.data?.config?.title || sourceNode?.id || 'Unknown Source'
-          });
+  useEffect(() => {
+    // If a connection is in progress and the target node is this node
+    // temporarily show a handle for the source node as the connection is being made
+    if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+      let predecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      // Check if the source node is not already included
+      if (!predecessorNodes.find((node) => node?.id === connection.fromNode.id)) {
+        const fromNode = nodes.find((node) => node.id === connection.fromNode.id);
+        if (fromNode) {
+          predecessorNodes = predecessorNodes.concat(fromNode);
         }
-      });
+      }
 
-    return Array.from(branchMap.values());
-  }, [edges, nodes, id]);
+      setPredcessorNodes(predecessorNodes);
+    } else {
+      // Update predecessor nodes when no connection is in progress
+      const updatedPredecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      setPredcessorNodes(updatedPredecessorNodes);
+    }
+  }, [connection, nodes, edges, id]);
 
   // Calculate nodeWidth based on title length
   useEffect(() => {
@@ -91,19 +102,19 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <div className="text-xs font-semibold text-gray-500">
-                      Incoming Branches ({incomingBranches.length})
+                      Incoming Branches ({predecessorNodes.length})
                     </div>
                   </div>
 
-                  {incomingBranches.length === 0 ? (
+                  {predecessorNodes.length === 0 ? (
                     <div className="text-xs text-gray-400 italic p-2 border border-dashed border-gray-200 rounded-md text-center">
                       Connect branches to continue the flow
                     </div>
                   ) : (
-                    incomingBranches.map((branch) => (
-                      <div key={branch.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                    predecessorNodes.map((node) => (
+                      <div key={node?.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
                         <div className="text-sm">
-                          <span className="font-medium">{branch.label}</span>
+                          <span className="font-medium">{node?.data?.config?.title || node?.id}</span>
                         </div>
                       </div>
                     ))
@@ -112,19 +123,21 @@ const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
               </>
             )}
 
-            {/* Handles - now always visible */}
+            {/* Handles */}
             <div className={styles.handlesWrapper}>
               <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`}>
-                <div className={`${styles.handleRow} w-full justify-start`}>
-                  <div className={`${styles.handleCell} ${styles.inputHandleCell}`}>
-                    <Handle
-                      type="target"
-                      position={Position.Left}
-                      id="input"
-                      className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-                    />
+                {predecessorNodes.map((node) => (
+                  <div key={node?.id} className={`${styles.handleRow} w-full justify-start`}>
+                    <div className={`${styles.handleCell} ${styles.inputHandleCell}`}>
+                      <Handle
+                        type="target"
+                        position={Position.Left}
+                        id={node?.data?.config?.title || node?.id}
+                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`}>

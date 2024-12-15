@@ -64,6 +64,7 @@
     "use-debounce": "^10.0.4",
     "uuid": "^10.0.0",
     "web-vitals": "^2.1.4",
+    "yarn-deduplicate": "^6.0.2",
     "zustand": "^5.0.0-rc.2"
   },
   "scripts": {
@@ -95,5 +96,8 @@
     "postcss": "^8.x",
     "tailwindcss": "^3.x",
     "typescript": "^5.7.2"
+  },
+  "resolutions": {
+    "@codemirror/state": "^6.2.0"
   }
 }

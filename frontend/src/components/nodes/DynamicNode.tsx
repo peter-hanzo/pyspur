@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Handle, useHandleConnections, NodeProps, useConnection } from '@xyflow/react';
+import { Handle, useHandleConnections, NodeProps, useConnection, Position } from '@xyflow/react';
 import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
@@ -147,8 +147,11 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
     const outputSchema = nodeData?.config?.['output_schema'] || cleanedOutputMetadata || {};
 
-    const inputLabels = predecessorNodes.map((node) => node?.data?.config?.title || node?.id);
-    const outputLabels = nodeData?.config?.title ? [nodeData.config.title] : [id];
+    // Convert node titles/ids to strings to ensure we don't try to render objects
+    const inputLabels = predecessorNodes.map((node) =>
+      String(node?.data?.config?.title || node?.id || '')
+    );
+    const outputLabels = nodeData?.config?.title ? [String(nodeData.config.title)] : [String(id)];
 
     const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0);
     const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0);
@@ -177,17 +180,17 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
   const InputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
     const connections = useHandleConnections({ type: 'target', id: keyName });
+    const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'));
 
     return (
       <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
         <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
           <Handle
             type="target"
-            position="left"
-            id={keyName}
-            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
-              }`}
-            isConnectable={!isCollapsed && connections.length === 0}
+            position={Position.Left}
+            id={String(keyName)}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
+            isConnectable={isConnectable}
           />
         </div>
         <div className="border-r border-gray-300 h-full mx-0"></div>
@@ -196,7 +199,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             {editingField === keyName ? (
               <Input
                 autoFocus
-                defaultValue={keyName}
+                defaultValue={String(keyName)}
                 size="sm"
                 variant="faded"
                 radius="lg"
@@ -209,7 +212,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
               <span
                 className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
               >
-                {keyName}
+                {String(keyName)}
               </span>
             )}
           </div>
@@ -248,7 +251,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         <div className={`${styles.handleCell} ${styles.outputHandleCell}`} id={`output-${keyName}-handle`}>
           <Handle
             type="source"
-            position="right"
+            position={Position.Right}
             id={keyName}
             className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
               }`}
@@ -260,8 +263,23 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   };
 
   const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
-    return nodes.find((node) => node.id === edge.source);
-  }));
+    const sourceNode = nodes.find((node) => node.id === edge.source);
+    if (!sourceNode) return null;
+
+    // For IfElseNode, create a virtual node with the branch as the title
+    if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
+      return {
+        id: sourceNode.id,
+        type: sourceNode.type,
+        data: {
+          config: {
+            title: edge.sourceHandle
+          }
+        }
+      };
+    }
+    return sourceNode;
+  }).filter(Boolean));
 
   const renderHandles = () => {
     if (!nodeData) return null;
@@ -270,14 +288,24 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
-          {predecessorNodes.map((node) => (
-            <InputHandleRow key={node?.data?.config?.title || node?.id} keyName={node?.data?.config?.title || node?.id} />
-          ))}
+          {predecessorNodes.map((node) => {
+            const handleId = String(node.data?.config?.title || node.id || '');
+            return (
+              <InputHandleRow
+                key={`${node.id}-${handleId}`}
+                keyName={handleId}
+              />
+            );
+          })}
         </div>
 
         {/* Output Handles */}
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
-          {nodeData?.title && <OutputHandleRow keyName={nodeData.config.title ? nodeData.config.title : id} />}
+          {nodeData?.title && (
+            <OutputHandleRow
+              keyName={String(nodeData.config.title || id)}
+            />
+          )}
         </div>
       </div>
     );
@@ -286,27 +314,67 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const connection = useConnection();
 
   useEffect(() => {
-    // If a connection is in progress and the target node is this node
-    // temporarily show a handle for the source node as the connection is being made
     if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
-      let predecessorNodes = edges
+      let updatedPredecessorNodes = edges
         .filter((edge) => edge.target === id)
-        .map((edge) => nodes.find((node) => node.id === edge.source));
+        .map((edge) => {
+          const sourceNode = nodes.find((node) => node.id === edge.source);
+          if (!sourceNode) return null;
 
-      // Check if the source node is not already included
-      if (!predecessorNodes.find((node) => node?.id === connection.fromNode.id)) {
-        const fromNode = nodes.find((node) => node.id === connection.fromNode.id);
-        if (fromNode) {
-          predecessorNodes = predecessorNodes.concat(fromNode);
+          if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
+            return {
+              id: sourceNode.id,
+              type: sourceNode.type,
+              data: {
+                config: {
+                  title: edge.sourceHandle
+                }
+              }
+            };
+          }
+          return sourceNode;
+        })
+        .filter(Boolean);
+
+      // Add the node being connected if it's not already included
+      if (connection.fromNode && !updatedPredecessorNodes.find(node => node.id === connection.fromNode.id)) {
+        if (connection.fromNode.type === 'IfElseNode' && connection.fromHandle) {
+          updatedPredecessorNodes.push({
+            id: connection.fromNode.id,
+            type: connection.fromNode.type,
+            data: {
+              config: {
+                title: connection.fromHandle
+              }
+            }
+          });
+        } else {
+          updatedPredecessorNodes.push(connection.fromNode);
         }
       }
 
-      setPredcessorNodes(predecessorNodes);
+      setPredcessorNodes(updatedPredecessorNodes);
     } else {
-      // Update predecessor nodes when no connection is in progress
       const updatedPredecessorNodes = edges
         .filter((edge) => edge.target === id)
-        .map((edge) => nodes.find((node) => node.id === edge.source));
+        .map((edge) => {
+          const sourceNode = nodes.find((node) => node.id === edge.source);
+          if (!sourceNode) return null;
+
+          if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
+            return {
+              id: sourceNode.id,
+              type: sourceNode.type,
+              data: {
+                config: {
+                  title: edge.sourceHandle
+                }
+              }
+            };
+          }
+          return sourceNode;
+        })
+        .filter(Boolean);
 
       setPredcessorNodes(updatedPredecessorNodes);
     }

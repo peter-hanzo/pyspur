@@ -50,7 +50,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
     editorProps: {
       attributes: {
         class: [
-          "w-full bg-content2 hover:bg-content3 transition-colors min-h-[40px] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500",
+          "w-full bg-content2 hover:bg-content3 transition-colors min-h-[120px] max-h-[300px] overflow-y-auto resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500",
           isEditable ? "" : "rounded-medium",
           fullScreen ? styles.fullScreenEditor : styles.truncatedEditor
         ].filter(Boolean).join(" "),

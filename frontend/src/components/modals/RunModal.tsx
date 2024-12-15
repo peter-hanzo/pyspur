@@ -178,7 +178,9 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      size="5xl"
+      classNames={{
+        base: "max-w-[95vw] w-[1400px]"
+      }}
     >
       <ModalContent>
         {(onClose) => (
@@ -187,58 +189,64 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
               Select Test Input To Run or Save
             </ModalHeader>
             <ModalBody>
-              <Table
-                aria-label="Test cases table"
-                selectionMode="single"
-                disabledKeys={editingCell ? new Set([editingCell.rowId.toString()]) : new Set()}
-                selectedKeys={selectedRow ? [selectedRow] : new Set()}
-                onSelectionChange={(selection) => {
-                  const selectedKey = Array.from(selection)[0]?.toString() || null;
-                  setSelectedRow(selectedKey);
-                }}
-              >
-                <TableHeader>
-                  {
-                    [
-                      <TableColumn key="id">ID</TableColumn>,
-                      ...workflowInputVariableNames.map(field => (
-                        <TableColumn key={field}>{field}</TableColumn>
-                      )),
-                      <TableColumn key="actions">Actions</TableColumn>
-                    ]
-                  }
-                </TableHeader>
-                <TableBody>
-                  {testData.map((row) => (
-                    <TableRow key={row.id}>
-                      {
-                        [
-                          <TableCell key="id">{row.id}</TableCell>,
-                          ...workflowInputVariableNames.map(field => (
-                            <TableCell key={field}>
-                              {renderCell(row, field)}
+              <div className="overflow-x-auto">
+                <Table
+                  aria-label="Test cases table"
+                  selectionMode="single"
+                  disabledKeys={editingCell ? new Set([editingCell.rowId.toString()]) : new Set()}
+                  selectedKeys={selectedRow ? [selectedRow] : new Set()}
+                  onSelectionChange={(selection) => {
+                    const selectedKey = Array.from(selection)[0]?.toString() || null;
+                    setSelectedRow(selectedKey);
+                  }}
+                  classNames={{
+                    base: "min-w-[800px]",
+                    table: "min-w-full",
+                  }}
+                >
+                  <TableHeader>
+                    {
+                      [
+                        <TableColumn key="id">ID</TableColumn>,
+                        ...workflowInputVariableNames.map(field => (
+                          <TableColumn key={field}>{field}</TableColumn>
+                        )),
+                        <TableColumn key="actions">Actions</TableColumn>
+                      ]
+                    }
+                  </TableHeader>
+                  <TableBody>
+                    {testData.map((row) => (
+                      <TableRow key={row.id}>
+                        {
+                          [
+                            <TableCell key="id">{row.id}</TableCell>,
+                            ...workflowInputVariableNames.map(field => (
+                              <TableCell key={field}>
+                                {renderCell(row, field)}
+                              </TableCell>
+                            )),
+                            <TableCell key="actions">
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onPress={() => handleDeleteRow(row.id)}
+                              >
+                                <Icon icon="solar:trash-bin-trash-linear" />
+                              </Button>
                             </TableCell>
-                          )),
-                          <TableCell key="actions">
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="light" 
-                              onPress={() => handleDeleteRow(row.id)}
-                            >
-                              <Icon icon="solar:trash-bin-trash-linear" />
-                            </Button>
-                          </TableCell>
-                        ]
-                      }
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          ]
+                        }
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto">
                 {workflowInputVariableNames.map(field => (
-                  <div key={field} className="flex-1">
+                  <div key={field} className="w-[300px] min-w-[300px]">
                     <TextEditor
                       nodeID={`newRow-${field}`}
                       fieldName={field}
@@ -254,13 +262,15 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                     />
                   </div>
                 ))}
-                <Button
-                  color="primary"
-                  onPress={handleAddRow}
-                  isDisabled={Object.values(editorContents).every(v => !v?.trim())}
-                >
-                  Add Row
-                </Button>
+                <div className="flex-none">
+                  <Button
+                    color="primary"
+                    onPress={handleAddRow}
+                    isDisabled={Object.values(editorContents).every(v => !v?.trim())}
+                  >
+                    Add Row
+                  </Button>
+                </div>
               </div>
             </ModalBody>
             <ModalFooter>
