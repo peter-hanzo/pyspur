@@ -124,7 +124,6 @@ class WorkflowExecutor:
                     node_id=node_id,
                     status=TaskStatus.FAILED,
                     end_time=datetime.now(),
-                    error=error_msg,
                 )
             raise RuntimeError(error_msg) from e
 
