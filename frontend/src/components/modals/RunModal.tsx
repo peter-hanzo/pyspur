@@ -13,7 +13,8 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Input
+  Input,
+  Tooltip
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import TextEditor from '../textEditor/TextEditor';
@@ -100,6 +101,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
   const renderCell = (row: TestInput, field: string) => {
     const isEditing = editingCell?.rowId === row.id && editingCell?.field === field;
+    const content = row[field];
 
     if (isEditing) {
       return (
@@ -107,7 +109,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
           <Input
             autoFocus
             size="sm"
-            defaultValue={row[field]}
+            defaultValue={content}
             onBlur={(e) => {
               handleCellEdit(row.id, field, e.target.value);
               handleBlur();
@@ -136,7 +138,9 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     return (
       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-        <span>{row[field]}</span>
+        <Tooltip content={content} showArrow={true}>
+          <span className="max-w-[200px] truncate">{content}</span>
+        </Tooltip>
         <Button
           isIconOnly
           size="sm"
