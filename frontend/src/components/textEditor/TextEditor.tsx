@@ -132,6 +132,14 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
       return null;
     }
 
+    const generateFullSchemaJson = () => {
+      const schemaObject = inputSchema.reduce((acc, variable) => {
+        acc[variable] = `{{${variable}}}`;
+        return acc;
+      }, {} as Record<string, string>);
+      return JSON.stringify(schemaObject, null, 2);
+    };
+
     return (
       <div className="flex flex-wrap gap-2 mb-2 px-2">
         {Array.isArray(inputSchema) ? inputSchema.map((variable) => (
@@ -149,6 +157,19 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
             {variable}
           </Button>
         )) : null}
+        <Button
+          size="sm"
+          variant="flat"
+          color="secondary"
+          onClick={() => {
+            if (editorInstance) {
+              editorInstance.chain().focus().insertContent(generateFullSchemaJson()).run();
+            }
+          }}
+          isIconOnly
+        >
+          <Icon icon="solar:document-add-linear" className="w-4 h-4" />
+        </Button>
       </div>
     );
   };
