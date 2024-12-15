@@ -110,11 +110,23 @@ class WorkflowExecutor:
         try:
             output = await node_instance(node_input)
         except Exception as e:
+            error_msg = (
+                f"Node execution failed:\n"
+                f"Node ID: {node_id}\n"
+                f"Node Type: {node.node_type}\n"
+                f"Node Title: {node.title}\n"
+                f"Inputs: {node_input}\n"
+                f"Error: {str(e)}"
+            )
+            print(error_msg)  # Basic logging, consider using proper logger
             if self.task_recorder:
                 self.task_recorder.update_task(
-                    node_id=node_id, status=TaskStatus.FAILED, end_time=datetime.now()
+                    node_id=node_id,
+                    status=TaskStatus.FAILED,
+                    end_time=datetime.now(),
+                    error=error_msg,
                 )
-            raise e
+            raise RuntimeError(error_msg) from e
 
         # Update task recorder
         if self.task_recorder:
