@@ -10,7 +10,7 @@
 <a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
 </p>
 
-https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
+https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # ✨ Core Benefits
 
