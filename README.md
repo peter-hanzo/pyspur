@@ -1,4 +1,4 @@
-# PySpur - Graph-Based Editor for Building, Debugging, and Evaluating LLM Workflows
+# PySpur - Graph-Based Editor for LLM Workflows
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -14,7 +14,7 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # ✨ Core Benefits
 
-1. **Graph-Based Editor for AI Workflows**:
+1. **Modular Building Blocks**:
     * **High-level, batteries-included prompting techniques** (Self-Refinement, BoN, etc.)
     * **Low-level primitives for parallel/sequential sampling** (if-else, merge branches)
 2. **Debug with Test Cases**:
