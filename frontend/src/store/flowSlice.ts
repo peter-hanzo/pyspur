@@ -8,6 +8,12 @@ import { TestInput } from '@/types/api_types/workflowSchemas';
 type NodeTypes = {
   [key: string]: any;
 };
+interface NodeTypesConfig {
+  [category: string]: Array<{
+    name: string;
+    [key: string]: any;
+  }>;
+}
 
 
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
@@ -101,7 +107,7 @@ const flowSlice = createSlice({
       workflowID: string;
       definition: WorkflowDefinition;
       name: string;
-      nodeTypes: string[];
+      nodeTypes: NodeTypesConfig;
     }>) => {
       const { workflowID, definition, name } = action.payload;
       state.workflowID = workflowID;

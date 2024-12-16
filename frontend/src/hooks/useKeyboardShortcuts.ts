@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { addNode } from '../store/flowSlice';
+import { addNode, FlowWorkflowNode } from '../store/flowSlice';
 import { createNode } from '../utils/nodeFactory';
 import { Node } from 'reactflow'; // Import Node type from reactflow
 import { AppDispatch } from '../store/store'; // Import AppDispatch type
@@ -26,10 +26,11 @@ interface CustomNode extends Node {
 
 export const useKeyboardShortcuts = (
   selectedNodeID: string | null,
-  nodes: CustomNode[],
+  nodes: FlowWorkflowNode[],
+  nodeTypes: Record<string, any>,
   dispatch: AppDispatch
 ) => {
-  const [copiedNode, setCopiedNode] = useState<CustomNode | null>(null);
+  const [copiedNode, setCopiedNode] = useState<FlowWorkflowNode | null>(null);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -46,6 +47,7 @@ export const useKeyboardShortcuts = (
           case 'v': // CMD + V or CTRL + V
             if (copiedNode) {
               const newNode = createNode(
+                nodeTypes,
                 copiedNode.type,
                 uuidv4(),
                 {

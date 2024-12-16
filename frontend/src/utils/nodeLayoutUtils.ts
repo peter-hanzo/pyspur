@@ -1,8 +1,8 @@
+import { FlowWorkflowEdge, FlowWorkflowNode } from '@/store/flowSlice';
 import dagre from '@dagrejs/dagre';
-import { Node, Edge } from '@xyflow/react';
 
 
-export const getLayoutedNodes = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+export const getLayoutedNodes = (nodes: FlowWorkflowNode[], edges: FlowWorkflowEdge[], direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setGraph({
       rankdir: direction,
@@ -35,11 +35,11 @@ export const getLayoutedNodes = (nodes: Node[], edges: Edge[], direction = 'LR')
     });
   
     // Perform a topological sort
-    let sortedNodes: Node[] = [];
+    let sortedNodes: FlowWorkflowNode[] = [];
     const visited = new Set<string>();
     const visiting = new Set<string>();
   
-    const visit = (node: Node) => {
+    const visit = (node: FlowWorkflowNode) => {
       if (visited.has(node.id)) return;
       if (visiting.has(node.id)) throw new Error('Graph has cycles');
       

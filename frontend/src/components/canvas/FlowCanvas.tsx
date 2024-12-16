@@ -9,9 +9,10 @@ import {
   connect,
   setSelectedNode,
   deleteNode,
-  setWorkflowInputVariable,
-  updateNodeData,
   setNodes,
+  FlowWorkflowNode,
+  FlowWorkflowEdge,
+  FlowState,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
@@ -34,6 +35,7 @@ import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
 import { setNodePanelExpanded } from '../../store/panelSlice';
 import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
+import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -43,21 +45,8 @@ interface NodeTypesConfig {
   }>;
 }
 
-interface WorkflowData {
-  definition: {
-    nodes: Array<{
-      node_type: string;
-      config: {
-        input_schema?: {
-          [key: string]: string;
-        };
-      };
-    }>;
-  };
-}
-
 interface FlowCanvasProps {
-  workflowData?: WorkflowData;
+  workflowData?: WorkflowCreateRequest;
   workflowID?: string;
 }
 
@@ -70,12 +59,7 @@ interface RootState {
   nodeTypes: {
     data: NodeTypesConfig;
   };
-  flow: {
-    nodes: Node[];
-    edges: Edge[];
-    selectedNode: string | null;
-    testInputs: any[];
-  };
+  flow: FlowState;
   panel: {
     isNodePanelExpanded: boolean;
   };
@@ -120,7 +104,12 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   useEffect(() => {
     if (workflowData) {
       console.log('workflowData', workflowData);
-      dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
+      dispatch(initializeFlow({
+        nodeTypes: nodeTypesConfig,
+        definition: workflowData.definition,
+        workflowID: workflowID,
+        name: workflowData.name
+      }));
     }
   }, [dispatch, workflowData, workflowID, nodeTypesConfig]);
 
@@ -314,7 +303,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
 
   const handleLayout = useCallback(() => {
-    const layoutedNodes = getLayoutedNodes(nodes, edges);
+    const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[]);
     dispatch(setNodes({ nodes: layoutedNodes }));
   }, [nodes, edges, dispatch]);
 
@@ -325,7 +314,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     };
   }, [handleKeyDown]);
 
-  useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
+  useKeyboardShortcuts(selectedNodeID, nodes, nodeTypes, dispatch);
 
   const { cut, copy, paste, bufferedNodes } = useCopyPaste();
   useCopyPaste();
