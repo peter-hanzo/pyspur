@@ -12,17 +12,26 @@
 
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
+# 
+
 # ✨ Core Benefits
 
-1. **Modular Building Blocks**:
-    * **High-level, batteries-included prompting techniques** (Self-Refinement, BoN, etc.)
-    * **Low-level primitives for parallel/sequential sampling** (if-else, merge branches)
-2. **Debug with Test Cases**:
-    * **Add test cases** via CSV, JSONL, HF Datasets
-    * **Common reasoning benchmarks** (GSM8k, MATH, GPQA, etc.)
-3. **One-Click Deployment of a Batch Inference API**:
-    * **Self-hosting of async batch APIs** for full flexbility
-    * **Fault tolerance and job persistence** for long-running jobs
+## Modular Building Blocks
+
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
+
+## Debug at Node Level:
+
+https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
+
+## Evaluate Final Performance
+
+https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
+
+## Coming soon: Self-improvement
+
+https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
+
 
 # 🕸️ Why PySpur?
 
