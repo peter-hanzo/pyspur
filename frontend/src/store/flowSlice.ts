@@ -9,36 +9,52 @@ type NodeTypes = {
   [key: string]: any;
 };
 
-interface Coordinates {
-  x: number;
-  y: number;
-}
 
-interface WorkflowNode {
-  node_type: string;
+import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
+
+export interface FlowWorkflowNode {
   id: string;
-  coordinates: Coordinates;
-  config: Record<string, any>;
+  type: string;
+  position: WorkflowNodeCoordinates;
+  data: {
+    title: string;
+    acronym: string;
+    color: string;
+    config: {
+      title?: string;
+      output_schema?: Record<string, any>;
+      llm_info?: Record<string, any>;
+      system_message?: string;
+      user_message?: string;
+      few_shot_examples?: Record<string, any>[] | null;
+      [key: string]: any;
+    },
+    run?: Record<string, any>;
+    taskStatus?: string;
+    [key: string]: any;
+  };
+  measured?: {
+    width: number;
+    height: number;
+  };
+  [key: string]: any;
 }
 
-interface WorkflowLink {
+export interface FlowWorkflowEdge {
+  id: string;
+  key: string;
+  source: string;
+  target: string;
   selected?: boolean;
-  source_id: string;
-  target_id: string;
-  source_output_key: string;
-  target_input_key: string;
-}
-
-interface WorkflowDefinition {
-  nodes: WorkflowNode[];
-  links: WorkflowLink[];
-  test_inputs: TestInput[];
+  sourceHandle: string;
+  targetHandle: string;
+  [key: string]: any;
 }
 
 export interface FlowState {
   nodeTypes: NodeTypes;
-  nodes: Node[];
-  edges: Edge[];
+  nodes: FlowWorkflowNode[];
+  edges: FlowWorkflowEdge[];
   workflowID: string | null;
   selectedNode: string | null;
   sidebarWidth: number;
@@ -47,8 +63,8 @@ export interface FlowState {
   testInputs: TestInput[];
   inputNodeValues: Record<string, any>;
   history: {
-    past: Array<{nodes: Node[], edges: Edge[]}>;
-    future: Array<{nodes: Node[], edges: Edge[]}>;
+    past: Array<{nodes: FlowWorkflowNode[], edges: FlowWorkflowEdge[]}>;
+    future: Array<{nodes: FlowWorkflowNode[], edges: FlowWorkflowEdge[]}>;
   };
 }
 
@@ -100,7 +116,7 @@ const flowSlice = createSlice({
       let edges = links.map(link => ({
         id: uuidv4(),
         key: uuidv4(),
-        selected: link.selected || false,
+        selected: false,
         source: link.source_id,
         target: link.target_id,
         sourceHandle: state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
@@ -112,11 +128,11 @@ const flowSlice = createSlice({
     },
 
     nodesChange: (state, action: PayloadAction<{ changes: NodeChange[] }>) => {
-      state.nodes = applyNodeChanges(action.payload.changes, state.nodes);
+      state.nodes = applyNodeChanges(action.payload.changes, state.nodes) as FlowWorkflowNode[];
     },
 
     edgesChange: (state, action: PayloadAction<{ changes: EdgeChange[] }>) => {
-      state.edges = applyEdgeChanges(action.payload.changes, state.edges);
+      state.edges = applyEdgeChanges(action.payload.changes, state.edges) as FlowWorkflowEdge[];
     },
 
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
@@ -127,14 +143,14 @@ const flowSlice = createSlice({
       state.edges = addEdge(connection, state.edges);
     },
 
-    addNode: (state, action: PayloadAction<{ node: Node }>) => {
+    addNode: (state, action: PayloadAction<{ node: FlowWorkflowNode }>) => {
       if (action.payload.node) {
         saveToHistory(state);
         state.nodes = [...state.nodes, action.payload.node];
       }
     },
 
-    setNodes: (state, action: PayloadAction<{ nodes: Node[] }>) => {
+    setNodes: (state, action: PayloadAction<{ nodes: FlowWorkflowNode[] }>) => {
       state.nodes = action.payload.nodes;
     },
 
@@ -278,11 +294,11 @@ const flowSlice = createSlice({
       state.edges = links.map(link => ({
         id: uuidv4(),
         key: uuidv4(),
-        selected: link.selected || false,
+        selected: false,
         source: link.source_id,
         target: link.target_id,
-        sourceHandle: link.source_output_key,
-        targetHandle: link.target_input_key
+        sourceHandle: link.source_id,
+        targetHandle: link.source_id,
       }));
     },
 

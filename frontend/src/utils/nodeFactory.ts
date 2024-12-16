@@ -1,3 +1,4 @@
+import { FlowWorkflowNode } from '@/store/flowSlice';
 import cloneDeep from 'lodash/cloneDeep';
 
 // Define types for the node structure
@@ -35,18 +36,6 @@ interface AdditionalData {
   [key: string]: any;
 }
 
-interface Node {
-  id: string;
-  type: string;
-  position: Position;
-  data: {
-    title: string;
-    acronym: string;
-    color: string;
-    config: Record<string, any>;
-    [key: string]: any;
-  };
-}
 
 // Function to create a node based on its type
 export const createNode = (
@@ -55,7 +44,7 @@ export const createNode = (
   id: string,
   position: Position,
   additionalData: AdditionalData = {}
-): Node | null => {
+): FlowWorkflowNode | null => {
   let nodeType: NodeType | null = null;
 
   for (const category in nodeTypes) {
@@ -76,7 +65,7 @@ export const createNode = (
     title: id,
   };
 
-  const node: Node = {
+  const node: FlowWorkflowNode = {
     id,
     type: nodeType.name,
     position,
