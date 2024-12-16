@@ -39,7 +39,6 @@ import {
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { v4 as uuidv4 } from 'uuid';
-import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
@@ -353,8 +352,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
-
-  useKeyboardShortcuts(selectedNodeID, nodes as FlowWorkflowNode[], nodeTypesConfig, dispatch);
 
   const mode = useModeStore((state) => state.mode);
 
