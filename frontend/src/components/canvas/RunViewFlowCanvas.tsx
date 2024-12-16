@@ -53,6 +53,7 @@ import { IfElseNode } from '../nodes/logic/IfElseNode';
 import DynamicNode from '../nodes/DynamicNode';
 import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
+import { insertNodeBetweenNodes } from '@/utils/flowUtils';
 
 interface NodeTypesConfig {
   [category: string]: Array<{
@@ -353,7 +354,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     };
   }, [handleKeyDown]);
 
-  useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
+  useKeyboardShortcuts(selectedNodeID, nodes as FlowWorkflowNode[], nodeTypesConfig, dispatch);
 
   const mode = useModeStore((state) => state.mode);
 
