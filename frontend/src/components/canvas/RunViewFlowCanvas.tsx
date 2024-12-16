@@ -33,6 +33,8 @@ import {
   updateNodeData,
   setNodes,
   FlowState,
+  FlowWorkflowNode,
+  FlowWorkflowEdge,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
@@ -158,7 +160,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
   const showHelperLines = false;
 
-  const onNodesChange = useCallback(
+  const onNodesChange: OnNodesChange = useCallback(
     (changes: NodeChange[]) => {
       if (!changes.some((c) => c.type === 'position')) {
         setHelperLines({ horizontal: null, vertical: null });
@@ -167,7 +169,8 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
       }
 
       const positionChange = changes.find(
-        (c) => c.type === 'position' && c.position
+        (c): c is NodeChange & { type: 'position'; position: XYPosition } =>
+          c.type === 'position' && c.position !== undefined
       );
 
       if (positionChange && showHelperLines) {
@@ -376,7 +379,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
   }, []);
 
   const handleLayout = useCallback(() => {
-    const layoutedNodes = getLayoutedNodes(nodes, edges);
+    const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[]);
     dispatch(setNodes({ nodes: layoutedNodes }));
   }, [nodes, edges, dispatch]);
 
