@@ -344,7 +344,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             type: connection.fromNode.type,
             data: {
               config: {
-                title: connection.fromHandle
+                title: connection.fromHandle.nodeId
               }
             }
           });
