@@ -1,4 +1,4 @@
-# PySpur - AI Agents Builder
+# PySpur - Graph-Based Editor for Building, Debugging, and Evaluating LLM Workflows
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -14,17 +14,14 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # ✨ Core Benefits
 
-1. **Drag-and-drop AI Agents Builder**:
-    * **High-level, batteries-included prompting techniques** (MCTS, Self-Refinement, BoN, ToT, etc.)
-    * **Low-level primitives for parallel/sequential sampling** (loops, if-else, merge branches)
-    * **Verifiers** (Code nodes, LLM-as-a-judge, software integrations, etc.)
-2. **Debug with Evals Visualizer**:
-    * **Common reasoning benchmarks** (GSM8k, MATH, ARC, etc.)
-    * **Scorers** via LLM-as-a-judge
-    * **Custom datasets** via CSV, JSONL, HF Datasets
+1. **Graph-Based Editor for AI Workflows**:
+    * **High-level, batteries-included prompting techniques** (Self-Refinement, BoN, etc.)
+    * **Low-level primitives for parallel/sequential sampling** (if-else, merge branches)
+2. **Debug with Test Cases**:
+    * **Add test cases** via CSV, JSONL, HF Datasets
+    * **Common reasoning benchmarks** (GSM8k, MATH, GPQA, etc.)
 3. **One-Click Deployment of a Batch Inference API**:
     * **Self-hosting of async batch APIs** for full flexbility
-    * **Submit/manage batch jobs via UI** for ease of use
     * **Fault tolerance and job persistence** for long-running jobs
 
 # 🕸️ Why PySpur?
