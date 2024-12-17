@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
         <header className="mb-6 flex w-full items-center flex-col gap-2">
-          {apiKeys.length === 0 && (
+          {(apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value.trim() === '')) && (
             <div className="w-full">
               <Alert
                 variant="warning"
