@@ -21,7 +21,7 @@ import {
   Alert
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys, getApiKey } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
@@ -70,7 +70,10 @@ const Dashboard: React.FC = () => {
     const fetchApiKeys = async () => {
       try {
         const keys = await listApiKeys();
-        setApiKeys(keys);
+        for (const key of keys) {
+          const value = getApiKey(key)
+          setApiKeys((prevKeys: ApiKey[]) => [...prevKeys, {name: key, value: value}]);
+        }
       } catch (error) {
         console.error('Error fetching API keys:', error);
       }
@@ -227,7 +230,7 @@ const Dashboard: React.FC = () => {
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
         <header className="mb-6 flex w-full items-center flex-col gap-2">
-          {(apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value.trim() === '')) && (
+          {(apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value === '')) && (
             <div className="w-full">
               <Alert
                 variant="warning"

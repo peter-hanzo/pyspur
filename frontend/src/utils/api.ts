@@ -252,7 +252,7 @@ export const getAllRuns = async (
   }
 };
 
-export const listApiKeys = async (): Promise<ApiKey[]> => {
+export const listApiKeys = async (): Promise<string[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/env-mgmt/`);
     return response.data.keys;
