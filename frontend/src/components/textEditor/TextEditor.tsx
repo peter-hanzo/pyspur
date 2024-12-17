@@ -142,13 +142,28 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
 
     return (
       <div className="flex flex-wrap gap-2 mb-2 px-2">
+        {Array.isArray(inputSchema) && inputSchema.length > 0 && (
+          <Button
+            size="sm"
+            variant="flat"
+            color="primary"
+            onPress={() => {
+              if (editorInstance) {
+                editorInstance.chain().focus().insertContent(generateFullSchemaJson()).run();
+              }
+            }}
+            isIconOnly
+          >
+            <Icon icon="solar:document-add-linear" className="w-4 h-4" />
+          </Button>
+        )}
         {Array.isArray(inputSchema) ? inputSchema.map((variable) => (
           <Button
             key={variable}
             size="sm"
             variant="flat"
             color="primary"
-            onClick={() => {
+            onPress={() => {
               if (editorInstance) {
                 editorInstance.chain().focus().insertContent(`{{${variable}}}`).run();
               }
@@ -157,19 +172,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
             {variable}
           </Button>
         )) : null}
-        <Button
-          size="sm"
-          variant="flat"
-          color="secondary"
-          onClick={() => {
-            if (editorInstance) {
-              editorInstance.chain().focus().insertContent(generateFullSchemaJson()).run();
-            }
-          }}
-          isIconOnly
-        >
-          <Icon icon="solar:document-add-linear" className="w-4 h-4" />
-        </Button>
+
       </div>
     );
   };
