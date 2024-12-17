@@ -12,6 +12,7 @@ from ..schemas.workflow_schemas import (
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..models.workflow_version_model import WorkflowVersionModel
+from ..models.run_model import RunModel
 from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
 from ..nodes.primitives.input import InputNodeConfig
 
@@ -172,7 +173,10 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     try:
-        # Delete associated workflow versions first
+        # Delete associated runs
+        db.query(RunModel).filter(RunModel.workflow_id == workflow_id).delete()
+
+        # Delete associated workflow versions
         db.query(WorkflowVersionModel).filter(
             WorkflowVersionModel.workflow_id == workflow_id
         ).delete()
