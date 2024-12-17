@@ -17,15 +17,17 @@ import {
   Progress,
   useDisclosure,
   Accordion,
-  AccordionItem
+  AccordionItem,
+  Alert
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys } from '../utils/api';
 import { useRouter } from 'next/router';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
 import { Template } from '../types/workflow';
 import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas';
+import { ApiKey } from '../utils/api';
 
 const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -36,6 +38,7 @@ const Dashboard: React.FC = () => {
 
   const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
@@ -61,6 +64,19 @@ const Dashboard: React.FC = () => {
     };
 
     fetchTemplates();
+  }, []);
+
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      try {
+        const keys = await listApiKeys();
+        setApiKeys(keys);
+      } catch (error) {
+        console.error('Error fetching API keys:', error);
+      }
+    };
+
+    fetchApiKeys();
   }, []);
 
   const columns = [
@@ -210,30 +226,43 @@ const Dashboard: React.FC = () => {
     <div className="flex flex-col gap-2">
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
-        <header className="mb-6 flex w-full items-center">
-          <div className="flex flex-col max-w-fit" id="dashboard-title">
-            <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
-            <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
-          </div>
-          <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
-            <Button
-              className="bg-foreground text-background"
-              startContent={
-                <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
-              }
-              onClick={handleNewWorkflowClick}
-            >
-              New Spur
-            </Button>
-            <Button
-              className="bg-foreground text-background"
-              startContent={
-                <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
-              }
-              onClick={handleImportWorkflowClick}
-            >
-              Import Spur
-            </Button>
+        <header className="mb-6 flex w-full items-center flex-col gap-2">
+          {(apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value.trim() === '')) && (
+            <div className="w-full">
+              <Alert
+                variant="warning"
+                className="mb-2"
+                startContent={<Icon icon="lucide:alert-triangle" width={16} />}
+              >
+                No API keys have been set. Please configure your API keys in the settings to use the application.
+              </Alert>
+            </div>
+          )}
+          <div className="flex w-full items-center">
+            <div className="flex flex-col max-w-fit" id="dashboard-title">
+              <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
+              <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
+              <Button
+                className="bg-foreground text-background"
+                startContent={
+                  <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
+                }
+                onClick={handleNewWorkflowClick}
+              >
+                New Spur
+              </Button>
+              <Button
+                className="bg-foreground text-background"
+                startContent={
+                  <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
+                }
+                onClick={handleImportWorkflowClick}
+              >
+                Import Spur
+              </Button>
+            </div>
           </div>
         </header>
 
