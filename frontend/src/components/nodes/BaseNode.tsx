@@ -46,6 +46,7 @@ interface BaseNodeProps {
   style?: React.CSSProperties;
   isInputNode?: boolean;
   className?: string;
+  handleOpenModal?: (isModalOpen: boolean) => void;
 }
 
 const getNodeTitle = (data: NodeData = {}): string => {

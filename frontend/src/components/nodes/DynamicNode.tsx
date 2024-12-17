@@ -12,6 +12,7 @@ import {
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
 import { RootState } from '../../store/store';
 import NodeOutputDisplay from './NodeOutputDisplay';
+import NodeOutputModal from './NodeOutputModal';
 
 interface NodeData {
   config?: {
@@ -53,6 +54,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
   const nodes = useSelector((state: RootState) => state.flow.nodes);
@@ -383,32 +385,42 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const isIfElseNode = type === 'IfElseNode';
 
   return (
-    <div
-      className={styles.dynamicNodeWrapper}
-      style={{ zIndex: props.parentNode ? 1 : 0 }}
-    >
-      <BaseNode
-        id={id}
-        data={nodeData}
-        style={{
-          width: nodeWidth,
-        }}
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        selected={props.selected}
-        className="hover:!bg-background"
+    <>
+      <div
+        className={styles.dynamicNodeWrapper}
+        style={{ zIndex: props.parentNode ? 1 : 0 }}
       >
-        <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-          {isIfElseNode ? (
-            <div>
-              <strong>Conditional Node</strong>
-            </div>
-          ) : null}
-          {renderHandles()}
-        </div>
-        {displayOutput && <NodeOutputDisplay node={node} />}
-      </BaseNode>
-    </div>
+        <BaseNode
+          id={id}
+          data={nodeData}
+          style={{
+            width: nodeWidth,
+          }}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+          selected={props.selected}
+          handleOpenModal={setIsModalOpen}
+          className="hover:!bg-background"
+        >
+          <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
+            {isIfElseNode ? (
+              <div>
+                <strong>Conditional Node</strong>
+              </div>
+            ) : null}
+            {renderHandles()}
+          </div>
+          {displayOutput && <NodeOutputDisplay node={node} />}
+        </BaseNode>
+      </div>
+      <NodeOutputModal
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        title={data?.config?.title || data?.title || 'Node Output'}
+        node={node}
+        data={nodeData}
+      />
+    </>
   );
 };
 
