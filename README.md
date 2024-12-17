@@ -39,30 +39,6 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 * **JSON configs** of workflow graphs, enabling easy sharing and version control.
 * **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
 
-
-# 🗺️ Roadmap
-
-- [X] Canvas
-- [X] Async/Batch Execution
-- [X] Evals
-- [X] Spur API
-- [ ] New Nodes
-    - [X] LLM Nodes
-    - [X] If-Else
-    - [X] Merge Branches
-    - [ ] Tools
-    - [ ] Loops
-- [ ] Pipeline optimization via DSPy and related methods
-- [ ] Templates
-- [ ] Compile Spurs to Code
-- [ ] Multimodal support
-- [ ] Containerization of Code Verifiers
-- [ ] Leaderboard
-- [ ] Generate Spurs via AI
-
-Your feedback will be massively appreciated.
-Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
-
 # ⚡ Quick start
 
 You can get PySpur up and running in three quick steps.
@@ -100,4 +76,27 @@ You can get PySpur up and running in three quick steps.
    <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
 
 Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
+
+# 🗺️ Roadmap
+
+- [X] Canvas
+- [X] Async/Batch Execution
+- [X] Evals
+- [X] Spur API
+- [ ] New Nodes
+    - [X] LLM Nodes
+    - [X] If-Else
+    - [X] Merge Branches
+    - [ ] Tools
+    - [ ] Loops
+- [ ] Pipeline optimization via DSPy and related methods
+- [ ] Templates
+- [ ] Compile Spurs to Code
+- [ ] Multimodal support
+- [ ] Containerization of Code Verifiers
+- [ ] Leaderboard
+- [ ] Generate Spurs via AI
+
+Your feedback will be massively appreciated.
+Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
 
