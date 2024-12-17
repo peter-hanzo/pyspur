@@ -84,3 +84,20 @@ You can get PySpur up and running in three quick steps.
     Go to `http://localhost:6080/` in your browser.
 
     Enter `pyspur`/`canaryhattan` as username/password.
+
+4. **Add your LLM provider keys:**
+
+   Go to the settings menu on the top right corner of the portal
+
+   <img width="1913" alt="image" src="https://github.com/user-attachments/assets/32fe79f1-f518-4df5-859c-1d1c0fc0570e" />
+
+   Select API keys tab
+
+   <img width="441" alt="image" src="https://github.com/user-attachments/assets/cccc7e27-c10b-4f3a-b818-3b65c55f4170" />
+
+   Enter your provider's key and click save (save button will appear after you add/modify a key)
+
+   <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
+
+Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
+
