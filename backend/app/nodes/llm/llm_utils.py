@@ -35,10 +35,22 @@ class LLMModels(str, Enum):
     GEMINI_1_5_PRO_LATEST = "gemini-1.5-pro-latest"
     GEMINI_1_5_FLASH_LATEST = "gemini-1.5-flash-latest"
 
+    # Ollama models
+    OLLAMA_MISTRAL = "ollama/mistral"
+    OLLAMA_LLAMA2 = "ollama/llama2"
+    OLLAMA_CODELLAMA = "ollama/codellama"
+    OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
+    OLLAMA_LLAMA2_13B = "ollama/llama2:13b"
+    OLLAMA_VICUNA = "ollama/vicuna"
+
 
 class ModelInfo(BaseModel):
     model: LLMModels = Field(
         LLMModels.GPT_4O, description="The LLM model to use for completion"
+    )
+    api_base: Optional[str] = Field(
+        None,
+        description="API base URL for model provider (required for Ollama models)"
     )
     max_tokens: Optional[int] = Field(
         ...,
@@ -139,7 +151,11 @@ def async_retry(*dargs, **dkwargs):
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(20))
 async def completion_with_backoff(**kwargs) -> str:
     try:
-        response = await acompletion(**kwargs)
+        # Add api_base if specified
+        if "api_base" in kwargs:
+            response = await acompletion(api_base=kwargs.pop("api_base"), **kwargs)
+        else:
+            response = await acompletion(**kwargs)
         return response.choices[0].message.content
     except Exception as e:
         logging.error(e)
