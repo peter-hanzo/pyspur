@@ -36,12 +36,14 @@ class LLMModels(str, Enum):
     GEMINI_1_5_FLASH_LATEST = "gemini-1.5-flash-latest"
 
     # Ollama models
+    OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
+    OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
+    OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
+    OLLAMA_GEMMA_2 = "ollama/gemma2"
+    OLLAMA_GEMMA_2_2B = "ollama/gemma2:2b"
     OLLAMA_MISTRAL = "ollama/mistral"
-    OLLAMA_LLAMA2 = "ollama/llama2"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
-    OLLAMA_LLAMA2_13B = "ollama/llama2:13b"
-    OLLAMA_VICUNA = "ollama/vicuna"
 
 
 class ModelInfo(BaseModel):
@@ -49,8 +51,7 @@ class ModelInfo(BaseModel):
         LLMModels.GPT_4O, description="The LLM model to use for completion"
     )
     api_base: Optional[str] = Field(
-        None,
-        description="API base URL for model provider (required for Ollama models)"
+        None, description="API base URL for model provider (required for Ollama models)"
     )
     max_tokens: Optional[int] = Field(
         ...,
