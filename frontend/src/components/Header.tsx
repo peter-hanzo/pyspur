@@ -102,7 +102,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         const statusResponse = await getRunStatus(runID);
         const tasks = statusResponse.tasks;
 
-        if (statusResponse.status === 'FAILED') {
+        if (statusResponse.status === 'FAILED' || tasks.some(task => task.status === 'FAILED')) {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
           showAlert('Workflow run failed.', 'danger');
