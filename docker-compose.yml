@@ -4,7 +4,7 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "6080:80"
+      - "6081:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd
