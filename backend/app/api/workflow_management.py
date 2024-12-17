@@ -180,7 +180,7 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
         db.query(WorkflowVersionModel).filter(
             WorkflowVersionModel.workflow_id == workflow_id
         ).delete()
-        
+
         # Delete the workflow
         db.delete(workflow)
         db.commit()
@@ -254,16 +254,26 @@ def get_workflow_output_variables(
     output_variables: List[Dict[str, str]] = []
     for node in workflow_definition.nodes:
         if node.id in leaf_nodes:
-            # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
-            node_config = DynamicSchemaNodeConfig(**node.config)
-            for var_name in node_config.output_schema.keys():
-                # Include the node_id as a prefix in the output variable
-                output_variables.append(
-                    {
-                        "node_id": node.id,
-                        "variable_name": var_name,
-                        "prefixed_variable": f"{node.id}-{var_name}",  # Add prefixed format
-                    }
-                )
+            try:
+                # Try to get output_schema from the node config
+                output_schema = {}
+                if isinstance(node.config, dict):
+                    output_schema = node.config.get("output_schema", {})
+
+                # If no output schema is found, skip this node
+                if not output_schema:
+                    continue
+
+                for var_name in output_schema.keys():
+                    output_variables.append(
+                        {
+                            "node_id": node.id,
+                            "variable_name": var_name,
+                            "prefixed_variable": f"{node.id}-{var_name}",
+                        }
+                    )
+            except Exception:
+                # If there's any error processing this node, skip it
+                continue
 
     return output_variables
