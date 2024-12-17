@@ -15,7 +15,7 @@ class PythonFuncNodeConfig(VariableOutputBaseNodeConfig):
         [
             "# Write your Python code here.",
             '# The input data is available as "input" pydantic model.',
-            "# The output will be the local variables that are also in the output schema.",
+            "# Return a dictionary of variables that you would like to see in the node output.",
         ]
     )
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             [
                 "# Write your Python code here.",
                 '# The input data is available as "input_model" pydantic model.',
-                "# The output will be the local variables that are also in the output schema.",
+                "# Return a dictionary of variables that you would like to see in the node output.",
                 "output = input_model.Input.number ** 2",
                 "return {'output': output}",
             ]
