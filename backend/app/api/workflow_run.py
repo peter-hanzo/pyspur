@@ -17,6 +17,7 @@ from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..models.run_model import RunModel as RunModel, RunStatus
+from ..models.task_model import TaskStatus
 from ..models.dataset_model import DatasetModel
 from ..models.output_file_model import OutputFileModel
 from ..execution.workflow_executor import WorkflowExecutor
@@ -357,4 +358,14 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
         .order_by(RunModel.start_time.desc())
         .all()
     )
+    
+    # Update run status based on task status
+    for run in runs:
+        if run.status != RunStatus.FAILED:  # Only check if run isn't already marked as failed
+            failed_tasks = [task for task in run.tasks if task.status == TaskStatus.FAILED]
+            if failed_tasks:
+                run.status = RunStatus.FAILED
+                db.commit()
+                db.refresh(run)
+    
     return runs
