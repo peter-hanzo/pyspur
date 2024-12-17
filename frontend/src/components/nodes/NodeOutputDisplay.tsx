@@ -5,19 +5,12 @@ interface NodeData {
   run?: Record<string, string>;
 }
 
-interface Node {
-  id: string;
-  data?: NodeData;
-}
 
 interface NodeOutputDisplayProps {
-  node: any;
+  output: Record<string, any>;
 }
 
-const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ node }) => {
-  const nodeID = node?.id;
-  const output: Record<string, any> = node?.data?.run;
-
+const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
   return (
     <>
       {output && (

@@ -402,7 +402,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             ) : null}
             {renderHandles()}
           </div>
-          {displayOutput && <NodeOutputDisplay node={node} />}
+          {displayOutput && <NodeOutputDisplay output={nodeData.run} />}
         </BaseNode>
       </div>
       <NodeOutputModal
