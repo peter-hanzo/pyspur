@@ -22,9 +22,12 @@ import {
 import { Icon } from '@iconify/react';
 import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
 import { useRouter } from 'next/router';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
 import { Workflow, Template, WorkflowDefinition } from '../types/workflow';
+import WelcomeModal from './modals/WelcomeModal';
 
 const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -32,6 +35,12 @@ const Dashboard: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const router = useRouter();
+  const [showWelcome, setShowWelcome] = useState(true);
+  const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
+
+  useEffect(() => {
+    setShowWelcome(!hasSeenWelcome);
+  }, [hasSeenWelcome]);
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -117,12 +126,16 @@ const Dashboard: React.FC = () => {
   const handleNewWorkflowClick = async () => {
     try {
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
-      const newWorkflow: WorkflowDefinition = {
-        name: uniqueName,
-        description: '',
+      const workflowDef: WorkflowDefinition = {
         nodes: [],
         links: [],
         test_inputs: []
+      };
+
+      const newWorkflow = {
+        name: uniqueName,
+        description: '',
+        definition: workflowDef
       };
 
       const createdWorkflow = await createWorkflow(newWorkflow);
@@ -155,12 +168,16 @@ const Dashboard: React.FC = () => {
             const jsonContent = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
-            const newWorkflow: WorkflowDefinition = {
-              name: jsonContent.name || uniqueName,
-              description: jsonContent.description || '',
+            const workflowDef: WorkflowDefinition = {
               nodes: jsonContent.nodes || [],
               links: jsonContent.links || [],
               test_inputs: jsonContent.test_inputs || []
+            };
+
+            const newWorkflow = {
+              name: jsonContent.name || uniqueName,
+              description: jsonContent.description || '',
+              definition: workflowDef
             };
 
             const createdWorkflow = await createWorkflow(newWorkflow);
@@ -213,6 +230,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-2">
+      <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
         <header className="mb-6 flex w-full items-center">

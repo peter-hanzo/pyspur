@@ -3,6 +3,7 @@ import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import flowReducer from './flowSlice';
 import nodeTypesReducer from './nodeTypesSlice';
+import userPreferencesReducer from './userPreferencesSlice';
 import type { Node, Edge } from '@xyflow/react';
 
 // Define the RootState type
@@ -21,18 +22,22 @@ export interface RootState {
   nodeTypes: {
     data: Record<string, any>;
   };
+  userPreferences: {
+    hasSeenWelcome: boolean;
+  };
 }
 
 // Define the persist config
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['nodes', 'edges', 'nodeTypes'],
+  whitelist: ['nodes', 'edges', 'nodeTypes', 'userPreferences'],
 };
 
 const rootReducer = combineReducers({
   flow: flowReducer,
   nodeTypes: nodeTypesReducer,
+  userPreferences: userPreferencesReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
