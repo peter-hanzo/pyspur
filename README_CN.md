@@ -1,80 +1,99 @@
-# PySpur - 可视化LLM推理路径的图形界面
+# PySpur - 基于图形的 LLM 工作流编辑器
 
 <p align="center">
-  <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
+  <a href="./README.md"><img alt="英文版README" src="https://img.shields.io/badge/English-blue"></a>
   <a href="./README_CN.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-blue"></a>
-  <a href="./README_JA.md"><img alt="日本語のREADME" src="https://img.shields.io/badge/日本語-blue"></a>
-  <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
-  <a href="./README_DE.md"><img alt="Deutsche Version der README" src="https://img.shields.io/badge/Deutsch-blue"></a>
-<a href="./README_FR.md"><img alt="Version française du README" src="https://img.shields.io/badge/Français-blue"></a>
-<a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
+  <a href="./README_JA.md"><img alt="日本语版README" src="https://img.shields.io/badge/日本語-blue"></a>
+  <a href="./README_KR.md"><img alt="韩语版README" src="https://img.shields.io/badge/한국어-blue"></a>
+  <a href="./README_DE.md"><img alt="德语版README" src="https://img.shields.io/badge/Deutsch-blue"></a>
+<a href="./README_FR.md"><img alt="法语版README" src="https://img.shields.io/badge/Français-blue"></a>
+<a href="./README_ES.md"><img alt="西班牙语版README" src="https://img.shields.io/badge/Español-blue"></a>
 </p>
 
+https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
-https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
-
-# 🕸️ 为什么选择 PySpur？
-
-* 人类在面对复杂问题时，会通过花费更多时间思考来优化决策。
-* 类似地，我们可以通过包含多步骤和反馈循环的计算图让大型语言模型（LLM）思考更久。
-* 然而，这种图涉及节点之间的复杂依赖关系，一个节点的输出成为另一个节点的输入。
-* **PySpur 的目标是通过抽象并行执行和状态管理的复杂性，使开发者能够构建、测试和部署这样的 LLM 计算图。**
+#
 
 # ✨ 核心优势
 
-1. **使用推理时计算节点进行开发**：
-    * **高层次、功能齐全的规划器**（MCTS、自我改进、BoN、ToT 等）
-    * **用于并行/顺序采样的低层次原语**（循环、路由器、分支器、聚合器）
-    * **验证器**（代码节点、LLM-作为评判者、软件集成等）
-2. **通过评估工具进行调试**：
-    * **常用推理基准**（GSM8k、MATH、ARC 等）
-    * **评分工具** 使用 LLM-作为评判者
-    * **自定义数据集** 支持 CSV、JSONL、HF 数据集
-3. **通过任务队列部署批量推理**：
-    * **通过 UI 提交/管理批量任务**，操作简单
-    * **异步批量 API 的自托管**，提供完全灵活性
-    * **容错和任务持久化**，支持长时间运行的任务
+## 模块化构建单元
 
-# 🗺️ 路线图
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
-- [X] 画布
-- [X] 推理时计算节点
-- [X] 异步/批量执行
-- [ ] 模板
-- [ ] 将 Spurs 编译为代码
-- [ ] 推理时计算节点监控
-- [ ] 新增节点
-    - [ ] 工具
-    - [ ] 循环
-    - [ ] 条件分支
-- [ ] 评估工具
-- [ ] 多模态
-- [ ] Spur API
-- [ ] 代码验证器容器化
-- [ ] 排行榜
-- [ ] 通过 AI 生成 Spurs
+## 在节点级别进行调试：
 
-您的反馈对我们至关重要。
-请通过 [邮件](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) 告诉我们您希望优先实现的功能，或者请求完全新功能。
+https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
+
+## 评估最终性能
+
+https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
+
+## 即将推出：自我改进
+
+https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
+
+# 🕸️ 为什么选择 PySpur？
+
+* **易于扩展**：例如，只需创建一个 Python 文件就能添加新的工作流节点。
+* 使用 **JSON 配置** 进行工作流图管理，轻松共享和版本控制。
+* **轻量级**：通过最少的依赖，避免臃肿的 LLM 框架。
 
 # ⚡ 快速开始
 
-通过三个简单步骤即可启动 PySpur。
+通过以下三步快速启动并运行 PySpur。
 
-1. **克隆代码库：**
+1. **克隆代码仓库：**
     ```sh
     git clone https://github.com/PySpur-com/PySpur.git
     cd pyspur
     ```
 
-2. **启动 Docker 服务：**
+2. **启动 docker 服务：**
+    ```sh
+    sudo docker compose up --build -d
+    ```
+    这将启动本地的 PySpur 实例，并在本地的 SQLite 文件中保存 spurs 以及运行记录。
 
-    ```sudo docker compose up --build -d```
+3. **访问界面：**
+    在浏览器中打开 `http://localhost:6080/`。
 
-    这将启动一个本地 PySpur 实例，使用本地 SQLite 文件存储 Spurs 和其运行数据。
+    输入 `pyspur`/`canaryhattan` 作为用户名和密码。
 
-3. **访问门户：**
+4. **添加你的 LLM 提供商密钥：**
 
-    在浏览器中访问 `http://localhost:6080/`。
+   在界面右上角找到设置菜单
 
-    输入 `pyspur`/`canaryhattan` 作为用户名/密码。
+   <img width="1913" alt="image" src="https://github.com/user-attachments/assets/32fe79f1-f518-4df5-859c-1d1c0fc0570e" />
+
+   选择 API keys 选项卡
+
+   <img width="441" alt="image" src="https://github.com/user-attachments/assets/cccc7e27-c10b-4f3a-b818-3b65c55f4170" />
+
+   输入你的提供商密钥，然后点击保存（当你添加或修改密钥后，保存按钮将会出现）
+
+   <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
+
+设置完成。点击 "New Spur" 来创建一个新的工作流，或者从现有的模板开始。
+
+# 🗺️ 路线图
+
+- [X] 画布
+- [X] 异步/批量执行
+- [X] 评估 (Evals)
+- [X] Spur API
+- [ ] 新节点
+    - [X] LLM 节点
+    - [X] 条件分支 (If-Else)
+    - [X] 分支合并 (Merge Branches)
+    - [ ] 工具 (Tools)
+    - [ ] 循环 (Loops)
+- [ ] 使用 DSPy 等方法对管道进行优化
+- [ ] 模板
+- [ ] 将 Spurs 编译为代码
+- [ ] 多模态支持
+- [ ] 对代码验证器进行容器化
+- [ ] 排行榜 (Leaderboard)
+- [ ] 使用 AI 自动生成 Spurs
+
+我们非常期待你的反馈。  
+请[告诉我们](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) 你希望接下来看到哪些特性，或是提出全新的想法。
