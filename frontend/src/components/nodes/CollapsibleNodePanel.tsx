@@ -102,7 +102,7 @@ const CollapsibleNodePanel: React.FC = () => {
           />
           <div className="mt-4 max-h-[calc(100vh-16rem)] overflow-auto" id="node-type-accordion">
             <Accordion selectionMode="multiple" selectedKeys={Array.from(selectedCategory)} onSelectionChange={setSelectedCategory}>
-              {Object.keys(filteredNodeTypes).map((category) => (
+              {Object.keys(filteredNodeTypes).filter(category => category !== "Input/Output").map((category) => (
                 <AccordionItem key={category} title={category}>
                   {filteredNodeTypes[category].map((node: NodeType) => (
                     <div
