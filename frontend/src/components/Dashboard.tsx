@@ -26,7 +26,6 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
-import { Workflow, Template, WorkflowDefinition } from '../types/workflow';
 import WelcomeModal from './modals/WelcomeModal';
 
 const Dashboard: React.FC = () => {
@@ -126,16 +125,9 @@ const Dashboard: React.FC = () => {
   const handleNewWorkflowClick = async () => {
     try {
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
-      const workflowDef: WorkflowDefinition = {
-        nodes: [],
-        links: [],
-        test_inputs: []
-      };
-
-      const newWorkflow = {
+      const newWorkflow: WorkflowCreateRequest = {
         name: uniqueName,
-        description: '',
-        definition: workflowDef
+        description: ''
       };
 
       const createdWorkflow = await createWorkflow(newWorkflow);
@@ -165,21 +157,14 @@ const Dashboard: React.FC = () => {
             const result = e.target?.result;
             if (typeof result !== 'string') return;
 
-            const jsonContent = JSON.parse(result);
+            const jsonContent: WorkflowCreateRequest = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
 
-            const workflowDef: WorkflowDefinition = {
-              nodes: jsonContent.nodes || [],
-              links: jsonContent.links || [],
-              test_inputs: jsonContent.test_inputs || []
+            const newWorkflow: WorkflowCreateRequest = {
+              name: uniqueName,
+              description: jsonContent.description,
+              definition: jsonContent.definition as WorkflowDefinition
             };
-
-            const newWorkflow = {
-              name: jsonContent.name || uniqueName,
-              description: jsonContent.description || '',
-              definition: workflowDef
-            };
-
             const createdWorkflow = await createWorkflow(newWorkflow);
             router.push(`/workflows/${createdWorkflow.id}`);
           } catch (error) {

@@ -126,11 +126,7 @@ export const getWorkflows = async (): Promise<Workflow[]> => {
   }
 };
 
-export const createWorkflow = async (workflowData: {
-  name: string;
-  description: string;
-  definition: WorkflowDefinition;
-}): Promise<Workflow> => {
+export const createWorkflow = async (workflowData: WorkflowCreateRequest): Promise<WorkflowResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/wf/`, workflowData);
     return response.data;
