@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e 
-
+mkdir -p /pyspur/app/models/management/alembic/versions/versions
 check_for_changes() {
     alembic check
 }

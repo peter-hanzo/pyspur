@@ -70,12 +70,16 @@ class SingleLLMCallNode(VariableOutputBaseNode):
             user_message=user_message,
             few_shot_examples=self.config.few_shot_examples,
         )
-        assistant_message = await generate_text(
-            messages=messages,
-            model_name=LLMModels(self.config.llm_info.model).value,
-            temperature=self.config.llm_info.temperature,
-            json_mode=True,
-        )
+        # Build kwargs for generate_text
+        kwargs = {
+            "messages": messages,
+            "model_name": LLMModels(self.config.llm_info.model).value,
+            "temperature": self.config.llm_info.temperature,
+            "json_mode": True,
+        }
+        if self.config.llm_info.api_base:
+            kwargs["api_base"] = self.config.llm_info.api_base
+        assistant_message = await generate_text(**kwargs)
         assistant_message = json.loads(assistant_message)
         assistant_message = self.output_model.model_validate(assistant_message)
         return assistant_message

@@ -39,6 +39,43 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 * **JSON configs** of workflow graphs, enabling easy sharing and version control.
 * **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
 
+# ⚡ Quick start
+
+You can get PySpur up and running in three quick steps.
+
+1. **Clone the repository:**
+    ```sh
+    git clone https://github.com/PySpur-com/PySpur.git
+    cd pyspur
+    ```
+
+2. **Start the docker services:**
+
+    ```sudo docker compose up --build -d```
+
+    This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
+
+3. **Access the portal:**
+
+    Go to `http://localhost:6080/` in your browser.
+
+    Enter `pyspur`/`canaryhattan` as username/password.
+
+4. **Add your LLM provider keys:**
+
+   Go to the settings menu on the top right corner of the portal
+
+   <img width="1913" alt="image" src="https://github.com/user-attachments/assets/32fe79f1-f518-4df5-859c-1d1c0fc0570e" />
+
+   Select API keys tab
+
+   <img width="441" alt="image" src="https://github.com/user-attachments/assets/cccc7e27-c10b-4f3a-b818-3b65c55f4170" />
+
+   Enter your provider's key and click save (save button will appear after you add/modify a key)
+
+   <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
+
+Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
 
 # 🗺️ Roadmap
 
@@ -63,24 +100,3 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 Your feedback will be massively appreciated.
 Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
 
-# ⚡ Quick start
-
-You can get PySpur up and running in three quick steps.
-
-1. **Clone the repository:**
-    ```sh
-    git clone https://github.com/PySpur-com/PySpur.git
-    cd pyspur
-    ```
-
-2. **Start the docker services:**
-
-    ```sudo docker compose up --build -d```
-
-    This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
-
-3. **Access the portal:**
-
-    Go to `http://localhost:6080/` in your browser.
-
-    Enter `pyspur`/`canaryhattan` as username/password.

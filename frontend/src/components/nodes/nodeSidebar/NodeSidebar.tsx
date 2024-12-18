@@ -155,7 +155,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   useEffect(() => {
     setIncomingSchema(collectIncomingSchema(nodeID));
   }
-  , [nodeID, nodes, edges]);
+    , [nodeID, nodes, edges]);
 
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
@@ -259,6 +259,27 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   ) => {
     const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
     const fieldMetadata = getFieldMetadata(fullPath);
+
+    // Skip api_base field if the selected model is not an Ollama model
+    if (key === 'api_base') {
+      const modelValue = dynamicModel?.llm_info?.model;
+      if (!modelValue || !modelValue.toString().startsWith('ollama/')) {
+        return null;
+      }
+      // Add default value for Ollama models
+      return (
+        <div key={key} className="my-4">
+          <Input
+            fullWidth
+            label={fieldMetadata?.title || key}
+            value={value || "http://localhost:11434"}
+            onChange={(e) => handleInputChange(key, e.target.value)}
+            placeholder="Enter API base URL"
+          />
+          {!isLast && <hr className="my-2" />}
+        </div>
+      );
+    }
 
     // Handle enum fields
     if (fieldMetadata?.enum) {
