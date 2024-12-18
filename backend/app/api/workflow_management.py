@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from ..schemas.workflow_schemas import (
-    WorkflowNodeCoordinatesSchema,
     WorkflowCreateRequestSchema,
     WorkflowNodeSchema,
     WorkflowResponseSchema,
@@ -12,7 +11,10 @@ from ..schemas.workflow_schemas import (
 )
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
+from ..models.workflow_version_model import WorkflowVersionModel
+from ..models.run_model import RunModel
 from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
+from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
 
@@ -20,11 +22,13 @@ router = APIRouter()
 def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
     return WorkflowDefinitionSchema(
         nodes=[
-            WorkflowNodeSchema(
-                id="input_node",
-                node_type="InputNode",
-                coordinates=WorkflowNodeCoordinatesSchema(x=100, y=100),
-                config={},
+            WorkflowNodeSchema.model_validate(
+                {
+                    "id": "input_node",
+                    "node_type": "InputNode",
+                    "coordinates": {"x": 100, "y": 100},
+                    "config": InputNodeConfig().model_dump(),
+                }
             )
         ],
         links=[],
@@ -168,11 +172,25 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Delete the workflow
-    db.delete(workflow)
-    db.commit()
+    try:
+        # Delete associated runs
+        db.query(RunModel).filter(RunModel.workflow_id == workflow_id).delete()
 
-    # Return no content status
+        # Delete associated workflow versions
+        db.query(WorkflowVersionModel).filter(
+            WorkflowVersionModel.workflow_id == workflow_id
+        ).delete()
+
+        # Delete the workflow
+        db.delete(workflow)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting workflow and its versions: {str(e)}"
+        )
+
     return None
 
 
@@ -236,16 +254,26 @@ def get_workflow_output_variables(
     output_variables: List[Dict[str, str]] = []
     for node in workflow_definition.nodes:
         if node.id in leaf_nodes:
-            # Assuming each node has a `config` attribute that matches DynamicSchemaNodeConfig
-            node_config = DynamicSchemaNodeConfig(**node.config)
-            for var_name in node_config.output_schema.keys():
-                # Include the node_id as a prefix in the output variable
-                output_variables.append(
-                    {
-                        "node_id": node.id,
-                        "variable_name": var_name,
-                        "prefixed_variable": f"{node.id}-{var_name}",  # Add prefixed format
-                    }
-                )
+            try:
+                # Try to get output_schema from the node config
+                output_schema = {}
+                if isinstance(node.config, dict):
+                    output_schema = node.config.get("output_schema", {})
+
+                # If no output schema is found, skip this node
+                if not output_schema:
+                    continue
+
+                for var_name in output_schema.keys():
+                    output_variables.append(
+                        {
+                            "node_id": node.id,
+                            "variable_name": var_name,
+                            "prefixed_variable": f"{node.id}-{var_name}",
+                        }
+                    )
+            except Exception:
+                # If there's any error processing this node, skip it
+                continue
 
     return output_variables

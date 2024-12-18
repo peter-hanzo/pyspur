@@ -142,6 +142,16 @@ class JSPydanticModel {
                   };
                 }
 
+                // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
+                if (node.name === 'LLMNode' && key === 'config') {
+                  // Make sure there's a properties object
+                  processedNode[key].properties = processedNode[key].properties || {};
+                  processedNode[key].properties.api_base = {
+                    type: 'string',
+                    title: 'API Base',
+                  };
+                }
+
                 // Exclude JSON Schema keywords from the resulting object
                 processedNode[key] = this.excludeSchemaKeywords(processedNode[key]);
               } catch (error) {

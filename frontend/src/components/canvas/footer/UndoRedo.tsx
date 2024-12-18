@@ -1,32 +1,12 @@
 import type { FC } from 'react'
-import { memo, useEffect } from 'react'
+import { memo } from 'react'
 import { Button } from '@nextui-org/react'
 import { Icon } from "@iconify/react"
 import { useDispatch, useSelector } from 'react-redux'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { undo, redo } from '../../../store/flowSlice'
 import { RootState } from '../../../store/store'
 import TipPopup from './TipPopUp'
-
-const useKeyboardShortcuts = (handleUndo: () => void, handleRedo: () => void) => {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-        event.preventDefault()
-        if (event.shiftKey) {
-          handleRedo()
-        } else {
-          handleUndo()
-        }
-      } else if ((event.ctrlKey || event.metaKey) && event.key === 'y') {
-        event.preventDefault()
-        handleRedo()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleUndo, handleRedo])
-}
 
 const UndoRedo: FC = () => {
   const dispatch = useDispatch()
@@ -44,7 +24,15 @@ const UndoRedo: FC = () => {
     }
   }
 
-  useKeyboardShortcuts(handleUndo, handleRedo)
+  useHotkeys(['ctrl+z', 'meta+z'], (event) => {
+    event.preventDefault()
+    handleUndo()
+  }, [handleUndo])
+
+  useHotkeys(['ctrl+shift+z', 'meta+shift+z', 'ctrl+y', 'meta+y'], (event) => {
+    event.preventDefault()
+    handleRedo()
+  }, [handleRedo])
 
   return (
     <>

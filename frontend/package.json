@@ -50,6 +50,7 @@
     "react": "^17.x || ^18.x",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^17.x || ^18.x",
+    "react-hotkeys-hook": "^4.6.1",
     "react-markdown": "9.0.1",
     "react-redux": "^9.1.2",
     "react-syntax-highlighter": "^15.6.1",
@@ -63,6 +64,7 @@
     "use-debounce": "^10.0.4",
     "uuid": "^10.0.0",
     "web-vitals": "^2.1.4",
+    "yarn-deduplicate": "^6.0.2",
     "zustand": "^5.0.0-rc.2"
   },
   "scripts": {
@@ -94,5 +96,8 @@
     "postcss": "^8.x",
     "tailwindcss": "^3.x",
     "typescript": "^5.7.2"
+  },
+  "resolutions": {
+    "@codemirror/state": "^6.2.0"
   }
 }

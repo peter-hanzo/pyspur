@@ -25,8 +25,10 @@ import { getWorkflowRuns } from '../utils/api';
 import { useRouter } from 'next/router';
 import DeployModal from './modals/DeployModal';
 import { formatDistanceStrict } from 'date-fns';
+import { useHotkeys } from 'react-hotkeys-hook';
+
 interface HeaderProps {
-  activePage: 'home' | 'workflow' | 'evals';
+  activePage: 'home' | 'workflow' | 'evals' | 'trace';
 }
 
 interface Node {
@@ -36,26 +38,7 @@ interface Node {
   };
 }
 
-interface RootState {
-  flow: {
-    nodes: Node[];
-    projectName: string;
-    workflowInputVariables: Record<string, any>;
-  };
-}
-
-interface RunStatusResponse {
-  status: 'RUNNING' | 'FAILED' | string;
-  outputs?: Record<string, any>;
-  id: string;
-}
-
-interface WorkflowResponse {
-  name: string;
-  definition: any;
-  description: string;
-}
-
+import { RootState } from '../store/store';
 interface AlertState {
   message: string;
   color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
@@ -73,6 +56,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const workflowId = useSelector((state: RootState) => state.flow.workflowID);
   const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
+  const testInputs = useSelector((state: RootState) => state.flow.testInputs);
+  const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
   const router = useRouter();
   const { id } = router.query;
@@ -96,6 +81,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
   }, [workflowId]);
 
+  useEffect(() => {
+    if (testInputs.length > 0 && !selectedRow) {
+      setSelectedRow(testInputs[0].id);
+    }
+  }, [testInputs]);
+
   const showAlert = (message: string, color: AlertState['color']) => {
     setAlert({ message, color, isVisible: true });
     setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
@@ -108,21 +99,38 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
     currentStatusInterval = setInterval(async () => {
       try {
-        const statusResponse: RunStatusResponse = await getRunStatus(runID);
-        const outputs = statusResponse.outputs;
+        const statusResponse = await getRunStatus(runID);
+        const tasks = statusResponse.tasks;
 
-        if (statusResponse.status === 'FAILED') {
+        if (statusResponse.status === 'FAILED' || tasks.some(task => task.status === 'FAILED')) {
           setIsRunning(false);
           clearInterval(currentStatusInterval);
           showAlert('Workflow run failed.', 'danger');
           return;
         }
 
-        if (outputs) {
-          Object.entries(outputs).forEach(([nodeId, output_values]) => {
-            const node = nodes.find((node) => node.id === nodeId);
-            if (output_values && node) {
-              dispatch(updateNodeData({ id: nodeId, data: { run: { ...node.data.run, ...output_values } } }));
+        if (tasks.length > 0) {
+          tasks.forEach((task) => {
+            const nodeId = task.node_id;
+            let node = nodes.find(node => node.id === nodeId);
+            if (!node) {
+              node = nodes.find(node => node.data?.config?.title === task.node_id);
+            }
+            if (!node) {
+              return;
+            }
+            const output_values = task.outputs || {};
+            const nodeTaskStatus = task.status;
+            if (node) {
+              // Check if the task output or status is different from current node data
+              const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run);
+              const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus;
+
+              console.log('Node:', node.id, 'Output:', output_values, 'Status:', nodeTaskStatus, 'isOutputDifferent:', isOutputDifferent, 'isStatusDifferent:', isStatusDifferent);
+              
+              if (isOutputDifferent || isStatusDifferent) {
+                dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
+              }
             }
           });
         }
@@ -149,7 +157,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     try {
       showAlert('Starting workflow run...', 'default');
       const result = await startRun(workflowId, inputValues, null, 'interactive');
-      console.log('Workflow run started:', result);
       setIsRunning(true);
       fetchWorkflowRuns();
       dispatch(resetRun());
@@ -180,7 +187,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     if (!workflowID) return;
 
     try {
-      const workflow: WorkflowResponse = await getWorkflow(workflowID);
+      const workflow = await getWorkflow(workflowID);
 
       const workflowDetails = {
         name: workflow.name,
@@ -220,6 +227,38 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   };
 
   const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
+
+  useHotkeys(
+    ['mod+enter', 'ctrl+enter'],
+    (e) => {
+      e.preventDefault();
+      console.log('Run workflow');
+      
+      if (testInputs.length === 0) {
+        setIsDebugModalOpen(true);
+        return;
+      }
+
+      const testCase = testInputs.find(row => row.id === selectedRow)
+        ?? testInputs[0];
+      
+      if (testCase) {
+        const { id, ...inputValues } = testCase;
+        const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
+
+        if (inputNodeId) {
+          const initialInputs = {
+            [inputNodeId]: inputValues
+          };
+          executeWorkflow(initialInputs);
+        }
+      }
+    },
+    { 
+      enableOnFormTags: true,
+      enabled: activePage === 'workflow'
+    }
+  );
 
   return (
     <>
@@ -264,7 +303,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           )}
         </NavbarBrand>
 
-        {activePage === "workflow" && (
+        {(activePage === "workflow" || activePage === "trace") && (
           <NavbarContent
             className="h-12 rounded-full bg-content2 dark:bg-content1 sm:flex"
             id="workflow-title"
@@ -276,6 +315,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               placeholder="Project Name"
               value={projectName}
               onChange={handleProjectNameChange}
+              disabled={activePage !== "workflow"}
             />
           </NavbarContent>
         )}

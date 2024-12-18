@@ -15,23 +15,6 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.primitives.output",
             "class_name": "OutputNode",
         },
-        {
-            "node_type_name": "StaticValueNode",
-            "module": ".nodes.primitives.static_value",
-            "class_name": "StaticValueNode",
-        },
-    ],
-    "Logic": [
-        {
-            "node_type_name": "IfElseNode",
-            "module": ".nodes.logic.if_else",
-            "class_name": "IfElseNode",
-        },
-        {
-            "node_type_name": "MergeNode",
-            "module": ".nodes.logic.merge",
-            "class_name": "MergeNode",
-        },
     ],
     "JSON": [
         {
@@ -57,11 +40,6 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "SingleLLMCallNode",
         },
         {
-            "node_type_name": "MCTSNode",
-            "module": ".nodes.llm.mcts",
-            "class_name": "MCTSNode",
-        },
-        {
             "node_type_name": "BestOfNNode",
             "module": ".nodes.llm.generative.best_of_n",
             "class_name": "BestOfNNode",
@@ -70,21 +48,6 @@ SUPPORTED_NODE_TYPES = {
             "node_type_name": "BranchSolveMergeNode",
             "module": ".nodes.llm.generative.branch_solve_merge",
             "class_name": "BranchSolveMergeNode",
-        },
-        {
-            "node_type_name": "MixtureOfAgentsNode",
-            "module": ".nodes.llm.mixture_of_agents",
-            "class_name": "MixtureOfAgentsNode",
-        },
-        {
-            "node_type_name": "SelfConsistencyNode",
-            "module": ".nodes.llm.self_consistency",
-            "class_name": "SelfConsistencyNode",
-        },
-        {
-            "node_type_name": "TreeOfThoughtsNode",
-            "module": ".nodes.llm.tree_of_thoughts",
-            "class_name": "TreeOfThoughtsNode",
         },
     ],
     "Code Execution": [
@@ -97,6 +60,31 @@ SUPPORTED_NODE_TYPES = {
 }
 
 DEPRECATED_NODE_TYPES = [
+    {
+        "node_type_name": "StaticValueNode",
+        "module": ".nodes.primitives.static_value",
+        "class_name": "StaticValueNode",
+    },
+    {
+        "node_type_name": "MCTSNode",
+        "module": ".nodes.llm.mcts",
+        "class_name": "MCTSNode",
+    },
+    {
+        "node_type_name": "MixtureOfAgentsNode",
+        "module": ".nodes.llm.mixture_of_agents",
+        "class_name": "MixtureOfAgentsNode",
+    },
+    {
+        "node_type_name": "SelfConsistencyNode",
+        "module": ".nodes.llm.self_consistency",
+        "class_name": "SelfConsistencyNode",
+    },
+    {
+        "node_type_name": "TreeOfThoughtsNode",
+        "module": ".nodes.llm.tree_of_thoughts",
+        "class_name": "TreeOfThoughtsNode",
+    },
     {
         "node_type_name": "StringOutputLLMNode",
         "module": ".nodes.llm.string_output_llm",
@@ -124,6 +112,18 @@ DEPRECATED_NODE_TYPES = [
     },
 ]
 
+LOGIC = [
+    {
+        "node_type_name": "IfElseNode",
+        "module": ".nodes.logic.if_else",
+        "class_name": "IfElseNode",
+    },
+    {
+        "node_type_name": "MergeNode",
+        "module": ".nodes.logic.merge",
+        "class_name": "MergeNode",
+    },
+]
 
 def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
     """

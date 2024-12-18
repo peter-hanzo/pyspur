@@ -17,20 +17,25 @@ import {
   Progress,
   useDisclosure,
   Accordion,
-  AccordionItem
+  AccordionItem,
+  Alert
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys, getApiKey } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import TemplateCard from './cards/TemplateCard';
 import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
 import WelcomeModal from './modals/WelcomeModal';
+import { Template } from '../types/workflow';
+import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas';
+import { ApiKey } from '../utils/api';
+
 
 const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowResponse | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const router = useRouter();
@@ -41,14 +46,15 @@ const Dashboard: React.FC = () => {
     setShowWelcome(!hasSeenWelcome);
   }, [hasSeenWelcome]);
 
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
-        setWorkflows(workflows as Workflow[]);
+        setWorkflows(workflows as WorkflowResponse[]);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -70,6 +76,22 @@ const Dashboard: React.FC = () => {
     fetchTemplates();
   }, []);
 
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      try {
+        const keys = await listApiKeys();
+        for (const key of keys) {
+          const value = getApiKey(key)
+          setApiKeys((prevKeys: ApiKey[]) => [...prevKeys, {name: key, value: value}]);
+        }
+      } catch (error) {
+        console.error('Error fetching API keys:', error);
+      }
+    };
+
+    fetchApiKeys();
+  }, []);
+
   const columns = [
     { key: "id", label: "ID" },
     { key: "name", label: "Name" },
@@ -77,12 +99,12 @@ const Dashboard: React.FC = () => {
     { key: "action", label: "Action" },
   ];
 
-  const handleRunClick = (workflow: Workflow) => {
+  const handleRunClick = (workflow: WorkflowResponse) => {
     setSelectedWorkflow(workflow);
     onOpen();
   };
 
-  const handleEditClick = (workflow: Workflow) => {
+  const handleEditClick = (workflow: WorkflowResponse) => {
     router.push({
       pathname: `/workflows/${workflow.id}`,
     });
@@ -189,7 +211,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteClick = async (workflow: Workflow) => {
+  const handleDeleteClick = async (workflow: WorkflowResponse) => {
     if (window.confirm(`Are you sure you want to delete workflow "${workflow.name}"?`)) {
       try {
         await deleteWorkflow(workflow.id);
@@ -202,7 +224,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDuplicateClick = async (workflow: Workflow) => {
+  const handleDuplicateClick = async (workflow: WorkflowResponse) => {
     try {
       const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
       setWorkflows((prevWorkflows) => [...prevWorkflows, duplicatedWorkflow]);
@@ -218,30 +240,43 @@ const Dashboard: React.FC = () => {
       <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
-        <header className="mb-6 flex w-full items-center">
-          <div className="flex flex-col max-w-fit" id="dashboard-title">
-            <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
-            <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
-          </div>
-          <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
-            <Button
-              className="bg-foreground text-background"
-              startContent={
-                <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
-              }
-              onClick={handleNewWorkflowClick}
-            >
-              New Spur
-            </Button>
-            <Button
-              className="bg-foreground text-background"
-              startContent={
-                <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
-              }
-              onClick={handleImportWorkflowClick}
-            >
-              Import Spur
-            </Button>
+        <header className="mb-6 flex w-full items-center flex-col gap-2">
+          {(apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value === '')) && (
+            <div className="w-full">
+              <Alert
+                variant="warning"
+                className="mb-2"
+                startContent={<Icon icon="lucide:alert-triangle" width={16} />}
+              >
+                No API keys have been set. Please configure your API keys in the settings to use the application.
+              </Alert>
+            </div>
+          )}
+          <div className="flex w-full items-center">
+            <div className="flex flex-col max-w-fit" id="dashboard-title">
+              <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
+              <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
+              <Button
+                className="bg-foreground text-background"
+                startContent={
+                  <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
+                }
+                onClick={handleNewWorkflowClick}
+              >
+                New Spur
+              </Button>
+              <Button
+                className="bg-foreground text-background"
+                startContent={
+                  <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
+                }
+                onClick={handleImportWorkflowClick}
+              >
+                Import Spur
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -287,7 +322,7 @@ const Dashboard: React.FC = () => {
                 </TableHeader>
                 <TableBody items={workflows}>
                   {(workflow) => (
-                    <TableRow key={workflow.key}>
+                    <TableRow key={workflow.id}>
                       {(columnKey) => (
                         <TableCell>
                           {columnKey === "action" ? (

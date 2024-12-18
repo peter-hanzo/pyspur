@@ -14,6 +14,7 @@ DEFAULT_KEYS = [
     {"name": "OPENAI_API_KEY", "value": ""},
     {"name": "ANTHROPIC_API_KEY", "value": ""},
     {"name": "GEMINI_API_KEY", "value": ""},
+    {"name": "OLLAMA_API_BASE", "value": "http://localhost:11434"},
 ]
 
 

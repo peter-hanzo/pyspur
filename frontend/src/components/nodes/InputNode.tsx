@@ -29,41 +29,32 @@ interface WorkflowNode {
 
 const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   const dispatch = useDispatch();
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [newFieldValue, setNewFieldValue] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const incomingEdges = useSelector((state: RootState) => state.flow.edges.filter((edge) => edge.target === id));
 
-  const workflowInputKeys = Object.keys(workflowInputVariables);
+  const outputSchema = data?.config?.output_schema || {};
+  const outputSchemaKeys = Object.keys(outputSchema);
 
   useEffect(() => {
     if (nodeRef.current) {
+      const incomingSchemaKeys = incomingEdges.map((edge) => edge.source);
       const maxLabelLength = Math.max(
-        ...workflowInputKeys.map((label) => label.length),
+        (Math.max(...incomingSchemaKeys.map((label) => label.length)) +
+         Math.max(...outputSchemaKeys.map((label) => label.length))),
         (data?.title || '').length / 1.5
       );
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
       const finalWidth = Math.min(calculatedWidth, 600);
-
-      setNodeWidth(`${finalWidth}px`);
+      if (finalWidth !== parseInt(nodeWidth)){
+        setNodeWidth(`${finalWidth}px`);
+      }
     }
-  }, [data, workflowInputKeys]);
-
-  const saveWorkflow = useSaveWorkflow();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
-
-  const syncAndSave = useCallback(() => {
-    const inputNode = nodes.find((node: WorkflowNode) => node.id === id);
-    if (!inputNode) return;
-    saveWorkflow();
-  }, [id, nodes, saveWorkflow]);
-
-  useEffect(() => {
-    syncAndSave();
-  }, [workflowInputVariables]);
+  }, [data, outputSchemaKeys]);
 
   const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
@@ -72,7 +63,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
     dispatch(
       setWorkflowInputVariable({
         key: newKey,
-        value: '',
+        value: 'str',
       })
     );
     setNewFieldValue('');
@@ -98,14 +89,62 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
     [dispatch]
   );
 
+  const InputHandleRow: React.FC<{keyName: string}> = ({ keyName }) => {
+    return (
+      <div className={`flex overflow-hidden w-full justify-end whitespace-nowrap items-center`} key={keyName} id={`input-${keyName}-row`}>
+        <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={keyName}
+            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+              }`}
+            isConnectable={!isCollapsed}
+          />
+        </div>
+        <div className="border-r border-gray-300 h-full mx-0"></div>
+        {!isCollapsed && (
+          <div className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden" id={`input-${keyName}-label`}>
+            {editingField === keyName ? (
+              <Input
+                autoFocus
+                defaultValue={keyName}
+                size="sm"
+                variant="faded"
+                radius="lg"
+                classNames={{
+                  input: 'bg-default-100',
+                  inputWrapper: 'shadow-none',
+                }}
+              />
+            ) : (
+              <span
+                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+              >
+                {keyName}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderWorkflowInputs = () => {
     return (
-      <div className={styles.handlesWrapper} id="handles">
-        <div className={styles.handlesColumn}>
-          {workflowInputKeys.length > 0 && (
+      <div className="flex w-full flex-row" id="handles">
+        {incomingEdges.length > 0 && (
+          <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
+            {incomingEdges.map((edge) => (
+              <InputHandleRow keyName={edge.source} />
+            ))}
+          </div>
+        )}
+        <div className={`${styles.handlesColumn} border-r mr-1`}>
+          {outputSchemaKeys.length > 0 && (
             <table style={{ width: '100%' }}>
               <tbody>
-                {workflowInputKeys.map((key) => (
+                {outputSchemaKeys.map((key) => (
                   <tr key={key} className="relative w-full px-4 py-2">
                     <td className={styles.handleLabelCell}>
                       {!isCollapsed && (
@@ -157,24 +196,22 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
                         </div>
                       )}
                     </td>
-                    <td className={`${styles.handleCell} border-l border-default-300 w-0 ml-2`}>
-                      <div className={styles.handleWrapper}>
-                        <Handle
-                          type="source"
-                          position={Position.Right}
-                          id={key}
-                          className={`${styles.handle} ${styles.handleRight} ${
-                            isCollapsed ? styles.collapsedHandleOutput : ''
-                          }`}
-                          isConnectable={!isCollapsed}
-                        />
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
+        </div>
+        <div className="right-0 w-4 items-center justify-center flex">
+          <Handle
+            type="source"
+            position={Position.Right}
+            id={id}
+            className={`${styles.handle} ${styles.handleRight} ${
+              isCollapsed ? styles.collapsedHandleOutput : ''
+            }`}
+            isConnectable={!isCollapsed}
+          />
         </div>
       </div>
     );
@@ -196,8 +233,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
             }
           }}
           classNames={{
-            input: 'bg-default-100',
-            inputWrapper: 'shadow-none',
+            input: "bg-background",
+            inputWrapper: "shadow-none bg-background"
           }}
           endContent={
             <Button
@@ -218,7 +255,6 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
     <div className={styles.inputNodeWrapper}>
       <BaseNode
         id={id}
-        type="input"
         isInputNode={true}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}

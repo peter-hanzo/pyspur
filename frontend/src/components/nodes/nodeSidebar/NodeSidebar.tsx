@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import {
   updateNodeData,
+  updateTitleInEdges,
   selectNodeById,
   setSidebarWidth,
   setSelectedNode,
@@ -65,7 +66,8 @@ interface DynamicModel {
     input: string;
     output: string;
   }>;
-  branch_refs: string[];
+  branch_refs?: string[];
+  input_schemas?: Record<string, any>;
 }
 
 interface FieldMetadata {
@@ -83,7 +85,7 @@ interface NodeType {
 }
 
 interface NodeData {
-  config?: DynamicModel;
+  config: DynamicModel;
   run?: any;
   type?: string;
   id?: string;
@@ -112,6 +114,8 @@ const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeSchema | nu
 
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const edges = useSelector((state: RootState) => state.flow.edges);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
   const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
@@ -129,6 +133,30 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [dynamicModel, setDynamicModel] = useState<DynamicModel>(node?.data?.config || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
 
+  const collectIncomingSchema = (nodeID: string): string[] => {
+    const incomingEdges = edges.filter((edge) => edge.target === nodeID);
+    const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source));
+    // foreach incoming node, get the output schema
+    // return ['node1.foo', 'node1.bar', 'node2.baz',...]
+    return incomingNodes.reduce((acc: string[], node) => {
+      if (node?.data?.config?.output_schema) {
+        return [
+          ...acc,
+          ...Object.keys(node.data.config.output_schema).map((key) => `${node.id}.${key}`),
+        ];
+      }
+      return acc;
+    }, []);
+  }
+  const [incomingSchema, setIncomingSchema] = useState<string[]>(
+    collectIncomingSchema(nodeID)
+  );
+
+  useEffect(() => {
+    setIncomingSchema(collectIncomingSchema(nodeID));
+  }
+    , [nodeID, nodes, edges]);
+
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
     debounce((id: string, updatedModel: DynamicModel) => {
@@ -136,6 +164,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }, 300),
     [dispatch]
   );
+
 
   // Update dynamicModel when nodeID changes
   useEffect(() => {
@@ -170,6 +199,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     } else {
       dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
     }
+  };
+
+  const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleInputChange('title', e.target.value);
+    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: e.target.value }));
   };
 
   const renderEnumSelect = (
@@ -226,6 +260,27 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
     const fieldMetadata = getFieldMetadata(fullPath);
 
+    // Skip api_base field if the selected model is not an Ollama model
+    if (key === 'api_base') {
+      const modelValue = dynamicModel?.llm_info?.model;
+      if (!modelValue || !modelValue.toString().startsWith('ollama/')) {
+        return null;
+      }
+      // Add default value for Ollama models
+      return (
+        <div key={key} className="my-4">
+          <Input
+            fullWidth
+            label={fieldMetadata?.title || key}
+            value={value || "http://localhost:11434"}
+            onChange={(e) => handleInputChange(key, e.target.value)}
+            placeholder="Enter API base URL"
+          />
+          {!isLast && <hr className="my-2" />}
+        </div>
+      );
+    }
+
     // Handle enum fields
     if (fieldMetadata?.enum) {
       const defaultSelected = value || fieldMetadata.default;
@@ -268,15 +323,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         </div>
       );
     }
-
     if (key === 'input_schemas' && nodeType === 'MergeNode') {
       return (
         <div key={key} className="my-2">
           <label className="font-semibold mb-1 block">Input Schemas</label>
           <MergeEditor
-            inputSchemas={dynamicModel.input_schemas || {}}
+            branchRefs={dynamicModel.branch_refs || []}
             onChange={(newValue) => {
-              handleInputChange('input_schemas', newValue);
+              handleInputChange('branch_refs', newValue);
             }}
             nodeId={nodeID}
           />
@@ -310,7 +364,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={key}
             nodeID={nodeID}
             fieldName={key}
-            inputSchema={dynamicModel.input_schema || {}}
+            inputSchema={incomingSchema}
             fieldTitle="System Message"
             content={dynamicModel[key] || ''}
             setContent={(value: string) => handleInputChange(key, value)}
@@ -327,7 +381,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={key}
             nodeID={nodeID}
             fieldName={key}
-            inputSchema={dynamicModel.input_schema || {}}
+            inputSchema={incomingSchema}
             fieldTitle="User Message"
             content={dynamicModel[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
@@ -345,7 +399,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={key}
             nodeID={nodeID}
             fieldName={key}
-            inputSchema={dynamicModel.input_schema || {}}
+            inputSchema={incomingSchema}
             fieldTitle={key}
             content={dynamicModel[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
@@ -472,10 +526,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    return keys.map((key, index) => {
+    // Prioritize system_message and user_message to appear first
+    const priorityFields = ['system_message', 'user_message'];
+    const remainingKeys = keys.filter(key => !priorityFields.includes(key));
+    const orderedKeys = [...priorityFields.filter(key => keys.includes(key)), ...remainingKeys];
+
+    return orderedKeys.map((key, index) => {
       const field = properties[key];
       const value = dynamicModel[key];
-      const isLast = index === keys.length - 1;
+      const isLast = index === orderedKeys.length - 1;
       return renderField(key, field, value, `${nodeType}.config`, isLast);
     });
   };
@@ -621,7 +680,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
                 value={node?.data?.config?.title || ''}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={(e) => handleNodeTitleChange(e)}
                 placeholder="Enter node title"
                 maxRows={1}
                 label="Node Title"

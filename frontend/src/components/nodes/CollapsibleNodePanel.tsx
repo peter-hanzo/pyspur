@@ -1,29 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import { Button, Accordion, AccordionItem, Input } from '@nextui-org/react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ReactFlowInstance, useReactFlow } from '@xyflow/react';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import { AppDispatch, RootState } from '../../store/store';
 import type { NodeType } from '../../store/nodeTypesSlice';
 import { addNodeWithoutConnection } from '../canvas/AddNodePopoverCanvas';
+import { setNodePanelExpanded } from '../../store/panelSlice';
+import { createNodeAtCenter } from '../../utils/flowUtils';
 
 interface NodeTypesByCategory {
   [category: string]: NodeType[];
 }
 
 const CollapsibleNodePanel: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded);
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data as NodeTypesByCategory);
   const reactFlowInstance = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set());
   const [filteredNodeTypes, setFilteredNodeTypes] = useState<NodeTypesByCategory>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useHotkeys('ctrl+n, n', (event) => {
+    event.preventDefault();
+    dispatch(setNodePanelExpanded(!isExpanded));
+  }, [isExpanded]);
+
+  useHotkeys('esc', () => {
+    if (isExpanded && panelRef.current?.contains(document.activeElement)) {
+      dispatch(setNodePanelExpanded(false));
+    }
+  }, { enableOnFormTags: true }, [isExpanded]);
+
+  useEffect(() => {
+    if (isExpanded && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isExpanded]);
 
   const handleAddNode = (nodeName: string): void => {
     if (reactFlowInstance) {
-      addNodeWithoutConnection(nodeTypes, nodeName, reactFlowInstance, dispatch);
+      createNodeAtCenter( nodes, nodeTypes, nodeName, reactFlowInstance, dispatch);
+      dispatch(setNodePanelExpanded(false));
     }
   };
 
@@ -49,19 +73,25 @@ const CollapsibleNodePanel: React.FC = () => {
     }, {} as NodeTypesByCategory));
   }, [nodeTypes, searchTerm]);
 
+  const handleToggleExpand = () => {
+    dispatch(setNodePanelExpanded(!isExpanded));
+  };
+
   return (
-    <div className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}>
+    <div ref={panelRef} className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}>
       <Button
         isIconOnly
         size="md"
         className="bg-background"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggleExpand}
       >
         <Icon icon={isExpanded ? "solar:minus-square-linear" : "solar:widget-add-linear"} width={"80%"} className="text-default-500" />
       </Button>
       {isExpanded && (
         <>
           <Input
+            ref={searchInputRef}
+            id="node-search-input"
             type="search"
             placeholder="Search nodes..."
             value={searchTerm}

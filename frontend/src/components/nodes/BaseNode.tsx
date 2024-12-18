@@ -13,6 +13,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
+import { TaskStatus } from '@/types/api_types/taskSchemas';
 
 interface NodeData {
   run?: Record<string, any>;
@@ -45,7 +46,12 @@ interface BaseNodeProps {
   style?: React.CSSProperties;
   isInputNode?: boolean;
   className?: string;
+  handleOpenModal?: (isModalOpen: boolean) => void;
 }
+
+const getNodeTitle = (data: NodeData = {}): string => {
+  return data.config?.title || data.title || data.type || 'Untitled';
+};
 
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
@@ -189,13 +195,33 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const isSelected = String(id) === String(selectedNodeId);
 
-  const status = data.run ? 'completed' : (data.status || 'default').toLowerCase();
+  const status = data.run ? 'completed' : '';
 
-  const borderColor = isRunning ? 'blue' :
-    status === 'completed' ? '#4CAF50' :
-      status === 'failed' ? 'red' :
-        status === 'default' ? 'gray' :
-          style.borderColor || '#ccc';
+  const nodeRunStatus: TaskStatus = data.taskStatus;
+
+  let borderColor = 'gray';
+
+  switch (nodeRunStatus) {
+    case 'PENDING':
+      borderColor = 'yellow';
+      break;
+    case 'RUNNING':
+      borderColor = 'blue';
+      break;
+    case 'COMPLETED':
+      borderColor = '#4CAF50';
+      break;
+    case 'FAILED':
+      borderColor = 'red';
+      break;
+    case 'CANCELLED':
+      borderColor = 'gray';
+      break;
+    default:
+      if (status === 'completed') {
+        borderColor = '#4CAF50';
+      }
+  }
 
   const { backgroundColor, ...restStyle } = style || {};
 
@@ -231,23 +257,23 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       draggable={false}
     >
       {/* Container to hold the Handle and the content */}
-      <div style={{ position: 'relative' }}>
+      <div>
         {/* Hidden target handle covering the entire node */}
         <Handle
           type="target"
-          position={Position.Top}
-          id="node-body"
+          position={Position.Left}
+          id={`node-body-${id}`}
           style={{
-            position: 'absolute',
-            top: 0,
+            top: '50%',
             left: 0,
-            width: '100%',
+            width: '30%',
             height: '100%',
             zIndex: 10,
             opacity: 0,
             pointerEvents: 'auto',
           }}
           isConnectable={true}
+          isConnectableStart={false}
         />
 
         {/* Node content wrapped in drag handle */}
@@ -269,7 +295,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               base: "bg-background border-default-200"
             }}
           >
-            {data && data.title && (
+            {data && (
               <CardHeader
                 style={{
                   position: 'relative',
@@ -280,7 +306,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 {editingTitle ? (
                   <Input
                     autoFocus
-                    defaultValue={data?.config?.title || data?.title || 'Untitled'}
+                    defaultValue={getNodeTitle(data)}
                     size="sm"
                     variant="faded"
                     radius="lg"
@@ -325,7 +351,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
                     onClick={() => setEditingTitle(true)}
                   >
-                    {data?.config?.title || data?.title || 'Untitled'}
+                    {getNodeTitle(data)}
                   </h3>
                 )}
 

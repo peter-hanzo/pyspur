@@ -1,3 +1,4 @@
+import { FlowWorkflowNode } from '@/store/flowSlice';
 import cloneDeep from 'lodash/cloneDeep';
 
 // Define types for the node structure
@@ -35,26 +36,6 @@ interface AdditionalData {
   [key: string]: any;
 }
 
-interface Node {
-  id: string;
-  type: string;
-  position: Position;
-  data: {
-    title: string;
-    acronym: string;
-    color: string;
-    config: Record<string, any>;
-    input: {
-      properties: Record<string, any>;
-      [key: string]: any;
-    };
-    output: {
-      properties: Record<string, any>;
-      [key: string]: any;
-    };
-    [key: string]: any;
-  };
-}
 
 // Function to create a node based on its type
 export const createNode = (
@@ -63,7 +44,7 @@ export const createNode = (
   id: string,
   position: Position,
   additionalData: AdditionalData = {}
-): Node | null => {
+): FlowWorkflowNode | null => {
   let nodeType: NodeType | null = null;
 
   for (const category in nodeTypes) {
@@ -77,49 +58,22 @@ export const createNode = (
     return null;
   }
 
-  const inputProperties = cloneDeep(nodeType.input?.properties) || {};
-  const outputProperties = cloneDeep(nodeType.output?.properties) || {};
-
   let processedAdditionalData = cloneDeep(additionalData);
+  let config = cloneDeep(nodeType.config);
+  config = {
+    ...config,
+    title: id,
+  };
 
-  // If the additional data has input/output properties, merge them with the default properties
-  if (additionalData.input?.properties) {
-    processedAdditionalData.input = {
-      ...processedAdditionalData.input,
-      properties: {
-        ...inputProperties,
-        ...additionalData.input.properties,
-      },
-    };
-  }
-
-  if (additionalData.output?.properties) {
-    processedAdditionalData.output = {
-      ...processedAdditionalData.output,
-      properties: {
-        ...outputProperties,
-        ...additionalData.output.properties,
-      },
-    };
-  }
-
-  const node: Node = {
+  const node: FlowWorkflowNode = {
     id,
     type: nodeType.name,
     position,
     data: {
-      title: nodeType.name,
+      title: id,
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
-      config: cloneDeep(nodeType.config),
-      input: {
-        properties: inputProperties,
-        ...processedAdditionalData.input,
-      },
-      output: {
-        properties: outputProperties,
-        ...processedAdditionalData.output,
-      },
+      config: config,
       ...processedAdditionalData,
     },
   };

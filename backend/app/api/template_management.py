@@ -3,14 +3,16 @@ from pathlib import Path
 import json
 from sqlalchemy.orm import Session
 
-from ..models.workflow_model import WorkflowModel
 from ..database import get_db
-from datetime import datetime, timezone
 
-from ..schemas.workflow_schemas import WorkflowResponseSchema, WorkflowCreateRequestSchema
+from ..schemas.workflow_schemas import (
+    WorkflowResponseSchema,
+    WorkflowCreateRequestSchema,
+)
 from .workflow_management import create_workflow
 from typing import List
 from pydantic import BaseModel
+
 
 class TemplateSchema(BaseModel):
     name: str
@@ -25,9 +27,12 @@ TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
 
 print(f"TEMPLATES_DIR resolved to: {TEMPLATES_DIR.resolve()}")
 
-@router.get("/", description="List all available templates", response_model=List[TemplateSchema])
-def list_templates():
-    templates = []
+
+@router.get(
+    "/", description="List all available templates", response_model=List[TemplateSchema]
+)
+def list_templates() -> List[TemplateSchema]:
+    templates: List[TemplateSchema] = []
     if not TEMPLATES_DIR.exists():
         raise HTTPException(status_code=500, detail="Templates directory not found")
     for template_file in TEMPLATES_DIR.glob("*.json"):
@@ -35,12 +40,14 @@ def list_templates():
             template_content = json.load(f)
             metadata = template_content.get("metadata", {})
             templates.append(
-                {
-                    "name": metadata.get("name", template_file.stem),
-                    "description": metadata.get("description", ""),
-                    "features": metadata.get("features", []),
-                    "file_name": template_file.name,
-                }
+                TemplateSchema.model_validate(
+                    {
+                        "name": metadata.get("name", template_file.stem),
+                        "description": metadata.get("description", ""),
+                        "features": metadata.get("features", []),
+                        "file_name": template_file.name,
+                    }
+                )
             )
     return templates
 

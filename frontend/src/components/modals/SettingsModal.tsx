@@ -20,7 +20,7 @@ import {
   cn,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { listApiKeys, setApiKey, getApiKey } from "../../utils/api";
+import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from "../../utils/api";
 import { useTheme } from "next-themes";
 
 // CellWrapper Component
@@ -94,24 +94,24 @@ function APIKeys(props: CardProps) {
   const [keys, setKeys] = useState<{ name: string; value: string }[]>([]);
   const [originalKeys, setOriginalKeys] = useState<{ name: string; value: string }[]>([]);
 
+  const fetchApiKeys = async () => {
+    try {
+      const keys = await listApiKeys();
+      const keyValues = await Promise.all(
+        keys.map(async (key: string) => {
+          const value = await getApiKey(key);
+          return { name: value.name, value: value.value };
+        })
+      );
+
+      setKeys(keyValues);
+      setOriginalKeys(keyValues);
+    } catch (error) {
+      console.error("Error fetching API keys:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchApiKeys = async () => {
-      try {
-        const keys = await listApiKeys();
-        const keyValues = await Promise.all(
-          keys.map(async (key: string) => {
-            const value = await getApiKey(key);
-            return { name: value.name, value: value.value };
-          })
-        );
-
-        setKeys(keyValues);
-        setOriginalKeys(keyValues);
-      } catch (error) {
-        console.error("Error fetching API keys:", error);
-      }
-    };
-
     fetchApiKeys();
   }, []);
 
@@ -124,13 +124,33 @@ function APIKeys(props: CardProps) {
     );
   };
 
+  const handleDeleteKey = async (name: string) => {
+    try {
+      await deleteApiKey(name);
+      await fetchApiKeys(); // Refresh the list after deletion
+    } catch (error) {
+      console.error("Error deleting API key:", error);
+    }
+  };
+
   const saveApiKeys = async () => {
     try {
       await Promise.all(
-        keys.map(({ name, value }) => setApiKey(name, value))
+        keys.map(async ({ name, value }) => {
+          const originalKey = originalKeys.find(k => k.name === name);
+          const trimmedValue = value.trim();
+
+          // If we have a non-empty value, set it
+          if (trimmedValue !== '') {
+            await setApiKey(name, trimmedValue);
+          }
+          // Only delete if the key previously existed and now we're clearing it
+          else if (originalKey && originalKey.value !== '') {
+            await handleDeleteKey(name);
+          }
+        })
       );
-      setOriginalKeys(keys);
-      console.log("API Keys saved:", keys);
+      await fetchApiKeys(); // Refresh the list after saving
     } catch (error) {
       console.error("Error saving API keys:", error);
     }
@@ -157,6 +177,15 @@ function APIKeys(props: CardProps) {
               )
             )}
             onChange={handleInputChange}
+            endContent={
+              <Button
+                isIconOnly
+                variant="light"
+                onPress={() => handleDeleteKey(name)}
+              >
+                <Icon icon="solar:trash-bin-trash-bold" className="text-danger" width={20} />
+              </Button>
+            }
           />
         ))}
       </CardBody>

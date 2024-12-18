@@ -13,11 +13,13 @@ import { List, ListOrdered } from "lucide-react";
 import styles from "./TextEditor.module.css";
 
 interface TextEditorProps {
+  nodeID: string;
+  fieldName: string;
   content: string;
   setContent: (content: string) => void;
   isEditable?: boolean;
   fullScreen?: boolean;
-  inputSchema?: Record<string, unknown>;
+  inputSchema?: string[];
   fieldTitle?: string;
 }
 
@@ -30,7 +32,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
   setContent,
   isEditable = true,
   fullScreen = false,
-  inputSchema = {},
+  inputSchema = [],
   fieldTitle
 }, ref) => {
 
@@ -48,7 +50,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
     editorProps: {
       attributes: {
         class: [
-          "w-full bg-content2 hover:bg-content3 transition-colors min-h-[40px] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500",
+          "w-full bg-content2 hover:bg-content3 transition-colors min-h-[120px] max-h-[300px] overflow-y-auto resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500",
           isEditable ? "" : "rounded-medium",
           fullScreen ? styles.fullScreenEditor : styles.truncatedEditor
         ].filter(Boolean).join(" "),
@@ -126,17 +128,42 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
   }, [content, editor]);
 
   const renderVariableButtons = (editorInstance: Editor | null) => {
-    if (!inputSchema || Object.keys(inputSchema).length === 0) return null;
+    if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
+      return null;
+    }
+
+    const generateFullSchemaJson = () => {
+      const schemaObject = inputSchema.reduce((acc, variable) => {
+        acc[variable] = `{{${variable}}}`;
+        return acc;
+      }, {} as Record<string, string>);
+      return JSON.stringify(schemaObject, null, 2);
+    };
 
     return (
       <div className="flex flex-wrap gap-2 mb-2 px-2">
-        {Object.keys(inputSchema).map((variable) => (
+        {Array.isArray(inputSchema) && inputSchema.length > 0 && (
+          <Button
+            size="sm"
+            variant="flat"
+            color="primary"
+            onPress={() => {
+              if (editorInstance) {
+                editorInstance.chain().focus().insertContent(generateFullSchemaJson()).run();
+              }
+            }}
+            isIconOnly
+          >
+            <Icon icon="solar:document-add-linear" className="w-4 h-4" />
+          </Button>
+        )}
+        {Array.isArray(inputSchema) ? inputSchema.map((variable) => (
           <Button
             key={variable}
             size="sm"
             variant="flat"
             color="primary"
-            onClick={() => {
+            onPress={() => {
               if (editorInstance) {
                 editorInstance.chain().focus().insertContent(`{{${variable}}}`).run();
               }
@@ -144,7 +171,8 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(({
           >
             {variable}
           </Button>
-        ))}
+        )) : null}
+
       </div>
     );
   };

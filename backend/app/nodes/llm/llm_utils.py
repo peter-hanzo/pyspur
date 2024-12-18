@@ -35,10 +35,23 @@ class LLMModels(str, Enum):
     GEMINI_1_5_PRO_LATEST = "gemini-1.5-pro-latest"
     GEMINI_1_5_FLASH_LATEST = "gemini-1.5-flash-latest"
 
+    # Ollama models
+    OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
+    OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
+    OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
+    OLLAMA_GEMMA_2 = "ollama/gemma2"
+    OLLAMA_GEMMA_2_2B = "ollama/gemma2:2b"
+    OLLAMA_MISTRAL = "ollama/mistral"
+    OLLAMA_CODELLAMA = "ollama/codellama"
+    OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
+
 
 class ModelInfo(BaseModel):
     model: LLMModels = Field(
         LLMModels.GPT_4O, description="The LLM model to use for completion"
+    )
+    api_base: Optional[str] = Field(
+        None, description="API base URL for model provider (required for Ollama models)"
     )
     max_tokens: Optional[int] = Field(
         ...,
@@ -139,7 +152,11 @@ def async_retry(*dargs, **dkwargs):
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(20))
 async def completion_with_backoff(**kwargs) -> str:
     try:
-        response = await acompletion(**kwargs)
+        # Only use api_base if it has a non-empty value
+        if "api_base" in kwargs and kwargs["api_base"]:
+            response = await acompletion(api_base=kwargs.pop("api_base"), **kwargs)
+        else:
+            response = await acompletion(**kwargs)
         return response.choices[0].message.content
     except Exception as e:
         logging.error(e)
@@ -166,6 +183,7 @@ async def generate_text(
     temperature: float = 0.5,
     json_mode: bool = False,
     max_tokens: int = 100000,
+    api_base: Optional[str] = None,
 ) -> str:
     kwargs = {
         "model": model_name,
@@ -175,6 +193,8 @@ async def generate_text(
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    if api_base:
+        kwargs["api_base"] = api_base
     response = await completion_with_backoff(**kwargs)
     return cast(str, response)
 

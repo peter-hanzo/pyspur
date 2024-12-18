@@ -1,7 +1,9 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { updateWorkflow } from '../utils/api';
 import { RootState } from '../store/store';
+import { debounce } from 'lodash';
+import { WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas';
 
 interface Position {
   x: number;
@@ -15,6 +17,7 @@ interface NodeData {
       output_schema?: Record<string, string>;
     };
     input_schema?: Record<string, string>;
+    title?: string;
   };
   title?: string;
 }
@@ -31,32 +34,9 @@ interface Edge {
   id: string;
   source: string;
   target: string;
-  sourceHandle: string;
-  targetHandle: string;
 }
 
-interface UpdatedWorkflow {
-  name: string;
-  definition: {
-    nodes: {
-      id: string;
-      node_type: string;
-      config: any;
-      coordinates: Position;
-    }[];
-    links: {
-      source_id: string;
-      source_output_key: string;
-      source_output_type: string;
-      target_id: string;
-      target_input_key: string;
-      target_input_type: string;
-    }[];
-    test_inputs: Record<string, any>;
-  };
-}
-
-export const useSaveWorkflow = (trigger: unknown, delay: number = 2000) => {
+export const useSaveWorkflow = () => {
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const workflowID = useSelector((state: RootState) => state.flow.workflowID);
@@ -64,72 +44,71 @@ export const useSaveWorkflow = (trigger: unknown, delay: number = 2000) => {
   const workflowName = useSelector((state: RootState) => state.flow.projectName);
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
 
-  const saveWorkflow = useCallback(async () => {
-    try {
-      const updatedNodes = nodes
-        .filter((node: Node | null | undefined): node is Node => node !== null && node !== undefined)
-        .map((node: Node) => {
-          if (node.type === 'InputNode') {
-            return {
-              ...node,
-              config: {
-                ...node.data.config,
-                input_schema: Object.fromEntries(
-                  Object.keys(workflowInputVariables).map(key => [key, "str"])
-                )
-              }
-            };
-          } else {
+  // Create a ref to store the current values
+  const valuesRef = useRef({ nodes, edges, workflowID, workflowInputVariables, workflowName, testInputs });
+
+  // Update the ref when values change
+  useEffect(() => {
+    valuesRef.current = { nodes, edges, workflowID, workflowInputVariables, workflowName, testInputs };
+  }, [nodes, edges, workflowID, workflowInputVariables, workflowName, testInputs]);
+
+  // Create the debounced save function once
+  const debouncedSave = useRef(
+    debounce(async () => {
+      const { nodes, edges, workflowID, workflowName, testInputs } = valuesRef.current;
+      
+      try {
+        const updatedNodes = nodes
+          .filter((node): node is NonNullable<typeof node> => node !== null && node !== undefined)
+          .map((node) => {
             return {
               ...node,
               config: node.data?.config,
-              title: node.data?.title
+              title: node.data?.title,
+              new_id: node.data.config.title || node.data.title || node.type || 'Untitled',
             };
+          });
+
+        const updatedWorkflow: WorkflowCreateRequest = {
+          name: workflowName,
+          description: '',
+          definition: {
+            nodes: updatedNodes.map(node => ({
+              id: node.new_id,
+              node_type: node.type,
+              config: node.config,
+              coordinates: node.position,
+            } as WorkflowNode)),
+            links: edges.map((edge: Edge) => {
+              const sourceNode = updatedNodes.find(node => node?.id === edge.source);
+              const targetNode = updatedNodes.find(node => node?.id === edge.target);
+
+              return {
+                source_id: sourceNode?.new_id || '',
+                target_id: targetNode?.new_id || '',
+              };
+            }),
+            test_inputs: testInputs,
           }
-        });
+        };
 
-      const updatedWorkflow: UpdatedWorkflow = {
-        name: workflowName,
-        definition: {
-          nodes: updatedNodes.map(node => ({
-            id: node.id,
-            node_type: node.type,
-            config: node.config,
-            coordinates: node.position,
-          })),
-          links: edges.map((edge: Edge) => {
-            const sourceNode = nodes.find(node => node?.id === edge.source);
-            const targetNode = nodes.find(node => node?.id === edge.target);
-
-            return {
-              source_id: edge.source,
-              source_output_key: edge.sourceHandle,
-              source_output_type: sourceNode?.data?.config?.data?.output_schema?.[edge.sourceHandle] || 'str',
-              target_id: edge.target,
-              target_input_key: edge.targetHandle,
-              target_input_type: targetNode?.data?.config?.data?.input_schema?.[edge.targetHandle] || 'str',
-            };
-          }),
-          test_inputs: testInputs,
-        }
-      };
-
-      console.log('send to b/e workflow:', updatedWorkflow);
-      await updateWorkflow(workflowID, updatedWorkflow);
-    } catch (error) {
-      console.error('Error saving workflow:', error);
-    }
-  }, [workflowID, nodes, edges, workflowInputVariables, workflowName, testInputs]);
-
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      if (nodes.length > 0 || edges.length > 0) {
-        saveWorkflow();
+        console.log('send to b/e workflow:', updatedWorkflow);
+        await updateWorkflow(workflowID, updatedWorkflow);
+      } catch (error) {
+        console.error('Error saving workflow:', error);
       }
-    }, delay);
+    }, 1000)
+  ).current;
 
-    return () => clearTimeout(handle);
-  }, [nodes, edges, saveWorkflow, trigger, delay]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [debouncedSave]);
 
-  return saveWorkflow;
+  // Return a stable callback that triggers the debounced save
+  return useCallback(() => {
+    debouncedSave();
+  }, [debouncedSave]);
 };

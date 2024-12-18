@@ -1,13 +1,12 @@
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Set
 
-from pydantic import BaseModel
+from ..nodes.base import BaseNodeOutput
+from ..nodes.factory import NodeFactory
 
-from ..execution.node_executor import NodeExecutor
 from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
-    WorkflowLinkSchema,
     WorkflowNodeSchema,
 )
 from .task_recorder import TaskRecorder, TaskStatus
@@ -36,55 +35,13 @@ class WorkflowExecutor:
         self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
-        self._node_tasks: Dict[str, asyncio.Task[None]] = {}
-        self._initial_inputs: Dict[str, Dict[str, Any]] = {}
-        self._outputs: Dict[str, BaseModel] = {}
+        self._node_tasks: Dict[str, asyncio.Task[BaseNodeOutput]] = {}
+        self._initial_inputs: Dict[str, Dict[str, Any]] = (
+            {}
+        )  # <node_id, <input for the node>>
+        self._outputs: Dict[str, BaseNodeOutput] = {}  # <node_id, < node output>>
         self._build_node_dict()
-        self._validate_links()
         self._build_dependencies()
-
-    def _validate_links(self):
-        """
-        Validate that all links in the workflow are compatible.
-        """
-        for link in self.workflow.links:
-            are_compatible, source_output_type, target_input_type = (
-                self._are_link_types_compatible(link)
-            )
-            if not are_compatible:
-                raise ValueError(
-                    f"Link {link} is not compatible with the node types. Source output type: {source_output_type}, Target input type: {target_input_type}"
-                )
-
-    def _are_link_types_compatible(
-        self, link: WorkflowLinkSchema
-    ) -> Tuple[bool, Any, Any]:
-        source_node = self._node_dict.get(link.source_id)
-        target_node = self._node_dict.get(link.target_id)
-        if source_node is None or target_node is None:
-            return False, None, None
-
-        source_node_executor = NodeExecutor(source_node)
-        target_node_executor = NodeExecutor(target_node)
-
-        source_output_type = (
-            source_node_executor.node_instance.output_model.model_fields.get(
-                link.source_output_key
-            )
-        )
-        target_input_type = (
-            target_node_executor.node_instance.input_model.model_fields.get(
-                link.target_input_key
-            )
-        )
-        if source_output_type is None or target_input_type is None:
-            return False, source_output_type, target_input_type
-
-        return (
-            source_output_type.annotation == target_input_type.annotation,
-            source_output_type,
-            target_input_type,
-        )
 
     def _build_node_dict(self):
         self._node_dict = {node.id: node for node in self.workflow.nodes}
@@ -97,18 +54,9 @@ class WorkflowExecutor:
             dependencies[link.target_id].add(link.source_id)
         self._dependencies = dependencies
 
-    def _get_active_links(self, node_id: str) -> List[WorkflowLinkSchema]:
-        """Get the active links for a node, taking into account conditional branching"""
-        node_executor = NodeExecutor(self._node_dict[node_id])
-        relevant_links = [link for link in self.workflow.links if link.source_id == node_id]
-        return node_executor.get_active_branch_links(relevant_links)
-
-    def _get_dependent_nodes(self, node_id: str) -> Set[str]:
-        """Get nodes that depend on the given node, taking into account conditional branching"""
-        active_links = self._get_active_links(node_id)
-        return {link.target_id for link in active_links}
-
-    def _get_node_task(self, node_id: str) -> asyncio.Task[None]:
+    def _get_async_task_for_node_execution(
+        self, node_id: str
+    ) -> asyncio.Task[BaseNodeOutput]:
         if node_id in self._node_tasks:
             return self._node_tasks[node_id]
         # Start task for the node
@@ -120,50 +68,64 @@ class WorkflowExecutor:
             self.task_recorder.create_task(node_id, {})
         return task
 
-    async def _execute_node(self, node_id: str):
+    async def _execute_node(self, node_id: str) -> BaseNodeOutput:
+        if node_id in self._outputs:
+            return self._outputs[node_id]
         node = self._node_dict[node_id]
-        node_executor = NodeExecutor(node, self.context)
 
         # Wait for dependencies
         dependency_ids = self._dependencies.get(node_id, set())
+        predecessor_outputs: List[BaseNodeOutput] = []
         if dependency_ids:
-            await asyncio.gather(
-                *(self._get_node_task(dep_id) for dep_id in dependency_ids)
+            predecessor_outputs = await asyncio.gather(
+                *(
+                    self._get_async_task_for_node_execution(dep_id)
+                    for dep_id in dependency_ids
+                )
             )
 
-        # Prepare inputs
-        input_data_dict = self._prepare_node_input(node_id)
-        node_input_data = node_executor.node_instance.input_model.model_validate(
-            input_data_dict
-        )
+        node_input = dict(zip(dependency_ids, predecessor_outputs))
 
+        # Special handling for InputNode - use initial inputs
+        if node.node_type == "InputNode":
+            node_input = self._initial_inputs.get(node_id, {})
+
+        node_instance = NodeFactory.create_node(
+            node_name=node.title, node_type_name=node.node_type, config=node.config
+        )
         # Update task recorder
         if self.task_recorder:
             self.task_recorder.update_task(
                 node_id=node_id,
                 status=TaskStatus.RUNNING,
-                inputs=input_data_dict,
-                subworkflow=node_executor.subworkflow,
+                inputs={
+                    dep_id: output.model_dump()
+                    for dep_id, output in node_input.items()
+                    if node.node_type != "InputNode"
+                },
+                subworkflow=node_instance.subworkflow,
             )
 
         # Execute node
         try:
-            output = await node_executor(node_input_data)
-
-            # Get dependent nodes based on conditional branching
-            dependent_nodes = self._get_dependent_nodes(node_id)
-
-            # Start tasks for dependent nodes that should be executed based on branching
-            for dependent_node_id in dependent_nodes:
-                if dependent_node_id not in self._node_tasks:
-                    self._get_node_task(dependent_node_id)
-
+            output = await node_instance(node_input)
         except Exception as e:
+            error_msg = (
+                f"Node execution failed:\n"
+                f"Node ID: {node_id}\n"
+                f"Node Type: {node.node_type}\n"
+                f"Node Title: {node.title}\n"
+                f"Inputs: {node_input}\n"
+                f"Error: {str(e)}"
+            )
+            print(error_msg)  # Basic logging, consider using proper logger
             if self.task_recorder:
                 self.task_recorder.update_task(
-                    node_id=node_id, status=TaskStatus.FAILED, end_time=datetime.now()
+                    node_id=node_id,
+                    status=TaskStatus.FAILED,
+                    end_time=datetime.now(),
                 )
-            raise e
+            raise RuntimeError(error_msg) from e
 
         # Update task recorder
         if self.task_recorder:
@@ -172,68 +134,42 @@ class WorkflowExecutor:
                 status=TaskStatus.COMPLETED,
                 outputs=output.model_dump(),
                 end_time=datetime.now(),
-                subworkflow=node_executor.subworkflow,
-                subworkflow_output=node_executor.subworkflow_output,
+                subworkflow=node_instance.subworkflow,
+                subworkflow_output=node_instance.subworkflow_output,
             )
+
         # Store output
         self._outputs[node_id] = output
-
-    def _prepare_node_input(self, node_id: str) -> Dict[str, Any]:
-        input_data: Dict[str, Any] = {}
-        node = self._node_dict[node_id]
-        node_executor = NodeExecutor(node)
-
-        if node.node_type == "MergeNode":
-            # Handle MergeNode input by collecting outputs from the source nodes
-            paths_input: Dict[str, Any] = {}
-            for link in self.workflow.links:
-                if link.target_id == node_id:
-                    source_output = self._outputs.get(link.source_id)
-                    if source_output is not None:
-                        source_value = getattr(source_output, link.source_output_key)
-                        paths_input[link.source_id] = source_value
-            input_data['paths'] = paths_input
-        else:
-            # Collect inputs from source nodes, respecting conditional branching
-            for link in self.workflow.links:
-                if link.target_id == node_id:
-                    source_node = self._node_dict[link.source_id]
-                    source_executor = NodeExecutor(source_node)
-
-                    # Skip if this link is not in the active branch of a conditional node
-                    if source_executor.is_conditional:
-                        active_links = source_executor.get_active_branch_links([link])
-                        if not active_links:
-                            continue
-
-                    source_output = self._outputs.get(link.source_id)
-                    if source_output is None:
-                        raise ValueError(
-                            f"Node '{link.source_id}' has not produced an output yet."
-                        )
-                    if source_node.node_type == "MergeNode":
-                        # If the source node is a MergeNode, access the appropriate output
-                        source_value = source_output.outputs.get(link.source_output_key)
-                    else:
-                        source_value = getattr(source_output, link.source_output_key)
-                    input_data[link.target_input_key] = source_value
-
-        # Include initial inputs if available
-        if node_id in self._initial_inputs:
-            initial_input: Dict[str, Any] = self._initial_inputs.get(node_id, {})
-            input_data.update(initial_input)
-
-        return input_data
+        return output
 
     async def run(
-        self, initial_inputs: Dict[str, Dict[str, Any]] = {}
-    ) -> Dict[str, BaseModel]:
-        if initial_inputs:
-            self._initial_inputs = initial_inputs
+        self,
+        input: Dict[str, Any] = {},
+        node_ids: List[str] = [],
+        precomputed_outputs: Dict[str, Dict[str, Any]] = {},
+    ) -> Dict[str, BaseNodeOutput]:
+        # Handle precomputed outputs first
+        if precomputed_outputs:
+            for node_id, output in precomputed_outputs.items():
+                self._outputs[node_id] = NodeFactory.create_node(
+                    node_name=self._node_dict[node_id].title,
+                    node_type_name=self._node_dict[node_id].node_type,
+                    config=self._node_dict[node_id].config,
+                ).output_model.model_validate(output)
+
+        # Store input in initial inputs to be used by InputNode
+        input_node = next(
+            (node for node in self.workflow.nodes if node.node_type == "InputNode")
+        )
+        self._initial_inputs[input_node.id] = input
+
+        nodes_to_run = set(self._node_dict.keys())
+        if node_ids:
+            nodes_to_run = set(node_ids)
 
         # Start tasks for all nodes
-        for node_id in self._node_dict:
-            self._get_node_task(node_id)
+        for node_id in nodes_to_run:
+            self._get_async_task_for_node_execution(node_id)
 
         # Wait for all tasks to complete
         await asyncio.gather(*self._node_tasks.values())
@@ -241,65 +177,104 @@ class WorkflowExecutor:
         return self._outputs
 
     async def __call__(
-        self, initial_inputs: Dict[str, Dict[str, Any]] = {}
-    ) -> Dict[str, BaseModel]:
-        return await self.run(initial_inputs)
-
-    async def run_partial(
         self,
-        node_id: str,
-        rerun_predecessors: bool = False,
-        initial_inputs: Dict[str, Dict[str, Any]] = {},
-        partial_outputs: Dict[str, Dict[str, Any]] = {},
-    ) -> Dict[str, BaseModel]:
-        if node_id not in self._node_dict:
-            raise ValueError(f"Node {node_id} not found in the workflow.")
-
-        if initial_inputs:
-            self._initial_inputs = initial_inputs
-
-        if partial_outputs:
-            self._outputs = {
-                node_id: NodeExecutor(
-                    self._node_dict[node_id]
-                ).node_instance.output_model.model_validate(partial_outputs[node_id])
-                for node_id in partial_outputs.keys()
-            }
-
-        nodes_to_be_run: Set[str] = set()
-        if rerun_predecessors:
-            predecessor_ids = self._dependencies.get(node_id, set())
-            for predecessor_id in predecessor_ids:
-                if predecessor_id not in partial_outputs or predecessor_id == node_id:
-                    self._outputs.pop(predecessor_id, None)
-                    self._node_tasks.pop(predecessor_id, None)
-                    nodes_to_be_run.add(predecessor_id)
-        else:
-            nodes_to_be_run = {node_id}
-
-        for node_id in nodes_to_be_run:
-            self._get_node_task(node_id)
-
-        await asyncio.gather(
-            *[self._node_tasks[node_id] for node_id in nodes_to_be_run]
-        )
-
-        return self._outputs
+        input: Dict[str, Any] = {},
+        node_ids: List[str] = [],
+        precomputed_outputs: Dict[str, Dict[str, Any]] = {},
+    ) -> Dict[str, BaseNodeOutput]:
+        """
+        Execute the workflow with the given input data.
+        input: input for the input node of the workflow. Dict[<field_name>: <value>]
+        node_ids: list of node_ids to run. If empty, run all nodes.
+        precomputed_outputs: precomputed outputs for the nodes. These nodes will not be executed again.
+        """
+        return await self.run(input, node_ids, precomputed_outputs)
 
     async def run_batch(
         self, input_iterator: Iterator[Dict[str, Any]], batch_size: int = 100
-    ) -> List[Dict[str, BaseModel]]:
+    ) -> List[Dict[str, BaseNodeOutput]]:
         """
         Run the workflow on a batch of inputs.
         """
-        results: List[Dict[str, BaseModel]] = []
-        batch_tasks: List[asyncio.Task[Dict[str, BaseModel]]] = []
-        for input_data in input_iterator:
-            batch_tasks.append(asyncio.create_task(self.run(input_data)))
+        results: List[Dict[str, BaseNodeOutput]] = []
+        batch_tasks: List[asyncio.Task[Dict[str, BaseNodeOutput]]] = []
+        for input in input_iterator:
+            batch_tasks.append(asyncio.create_task(self.run(input)))
             if len(batch_tasks) == batch_size:
                 results.extend(await asyncio.gather(*batch_tasks))
                 batch_tasks = []
         if batch_tasks:
             results.extend(await asyncio.gather(*batch_tasks))
-
         return results
+
+
+if __name__ == "__main__":
+    workflow = WorkflowDefinitionSchema.model_validate(
+        {
+            "nodes": [
+                {
+                    "id": "input_node",
+                    "title": "",
+                    "node_type": "InputNode",
+                    "config": {"output_schema": {"question": "str"}},
+                    "coordinates": {"x": 281.25, "y": 128.75},
+                },
+                {
+                    "id": "bon_node",
+                    "title": "",
+                    "node_type": "BestOfNNode",
+                    "config": {
+                        "samples": 1,
+                        "output_schema": {
+                            "response": "str",
+                            "next_potential_question": "str",
+                        },
+                        "llm_info": {
+                            "model": "gpt-4o",
+                            "max_tokens": 16384,
+                            "temperature": 0.7,
+                            "top_p": 1,
+                        },
+                        "system_message": "You are a helpful assistant.",
+                        "user_message": "",
+                    },
+                    "coordinates": {"x": 722.5, "y": 228.75},
+                },
+                {
+                    "id": "output_node",
+                    "title": "",
+                    "node_type": "OutputNode",
+                    "config": {
+                        "title": "OutputNodeConfig",
+                        "type": "object",
+                        "output_schema": {"question": "str", "response": "str"},
+                        "output_map": {
+                            "question": "bon_node.next_potential_question",
+                            "response": "bon_node.response",
+                        },
+                    },
+                    "coordinates": {"x": 1187.5, "y": 203.75},
+                },
+            ],
+            "links": [
+                {
+                    "source_id": "input_node",
+                    "target_id": "bon_node",
+                },
+                {
+                    "source_id": "bon_node",
+                    "target_id": "output_node",
+                },
+            ],
+            "test_inputs": [
+                {
+                    "id": 1733466671014,
+                    "question": "<p>Is altruism inherently selfish?</p>",
+                }
+            ],
+        }
+    )
+    executor = WorkflowExecutor(workflow)
+    input = {"question": "Is altruism inherently selfish?"}
+    outputs = asyncio.run(executor(input))
+    print(outputs)

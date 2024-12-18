@@ -9,15 +9,15 @@ import {
   connect,
   setSelectedNode,
   deleteNode,
-  setWorkflowInputVariable,
-  updateNodeData,
   setNodes,
+  FlowWorkflowNode,
+  FlowWorkflowEdge,
+  FlowState,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
-import { addNodeBetweenNodes } from './AddNodePopoverCanvas';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './edges/CustomEdge';
 import { getHelperLines } from '../../utils/helperLines';
@@ -32,6 +32,10 @@ import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
+import { setNodePanelExpanded } from '../../store/panelSlice';
+import { insertNodeBetweenNodes } from '../../utils/flowUtils';
+import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
+import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -41,21 +45,8 @@ interface NodeTypesConfig {
   }>;
 }
 
-interface WorkflowData {
-  definition: {
-    nodes: Array<{
-      node_type: string;
-      config: {
-        input_schema?: {
-          [key: string]: string;
-        };
-      };
-    }>;
-  };
-}
-
 interface FlowCanvasProps {
-  workflowData?: WorkflowData;
+  workflowData?: WorkflowCreateRequest;
   workflowID?: string;
 }
 
@@ -68,10 +59,9 @@ interface RootState {
   nodeTypes: {
     data: NodeTypesConfig;
   };
-  flow: {
-    nodes: Node[];
-    edges: Edge[];
-    selectedNode: string | null;
+  flow: FlowState;
+  panel: {
+    isNodePanelExpanded: boolean;
   };
 }
 
@@ -88,7 +78,7 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
           acc[node.name] = MergeNode;
         } else {
           acc[node.name] = (props: any) => {
-            return <DynamicNode {...props} type={node.name} />;
+            return <DynamicNode {...props} type={node.name} displayOutput={true} />;
           };
         }
       });
@@ -114,21 +104,12 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   useEffect(() => {
     if (workflowData) {
       console.log('workflowData', workflowData);
-      if (workflowData.definition.nodes) {
-        const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
-        if (inputNode.length > 0) {
-          const inputSchema = inputNode[0].config.input_schema;
-          if (inputSchema) {
-            const workflowInputVariables = Object.entries(inputSchema).map(([key, type]) => {
-              return { key, value: '' };
-            });
-            workflowInputVariables.forEach(variable => {
-              dispatch(setWorkflowInputVariable(variable));
-            });
-          }
-        }
-      }
-      dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
+      dispatch(initializeFlow({
+        nodeTypes: nodeTypesConfig,
+        definition: workflowData.definition,
+        workflowID: workflowID,
+        name: workflowData.name
+      }));
     }
   }, [dispatch, workflowData, workflowID, nodeTypesConfig]);
 
@@ -138,7 +119,13 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   const edges = useSelector((state: RootState) => state.flow.edges);
   const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const saveWorkflow = useSaveWorkflow([nodes, edges], 10000);
+  const saveWorkflow = useSaveWorkflow();
+
+  useEffect(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      saveWorkflow();
+    }
+  }, [nodes, edges, saveWorkflow]);
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [helperLines, setHelperLines] = useState<HelperLines>({ horizontal: null, vertical: null });
@@ -198,23 +185,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             console.error('Source handle is not specified.');
             return;
           }
-
-          const updatedInputSchema = {
-            ...targetNode.data?.config?.input_schema,
-            [outputHandleName]: 'str',
-          };
-
-          dispatch(
-            updateNodeData({
-              id: targetNode.id,
-              data: {
-                config: {
-                  ...targetNode.data?.config,
-                  input_schema: updatedInputSchema,
-                },
-              },
-            })
-          );
 
           connection = {
             ...connection,
@@ -300,6 +270,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     if (selectedNodeID) {
       dispatch(setSelectedNode({ nodeId: null }));
     }
+    dispatch(setNodePanelExpanded(false));
   }, [dispatch, selectedNodeID]);
 
   const onNodesDelete = useCallback(
@@ -330,113 +301,9 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     [nodes, onNodesDelete]
   );
 
-  const getLayoutedNodes = (nodes: Node[], edges: Edge[], direction = 'LR') => {
-    const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setGraph({
-      rankdir: direction,
-      align: 'UL',
-      edgesep: 10,
-      ranksep: 128,
-      nodesep: 128,
-    });
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-    nodes.forEach((node) => {
-      if (node.measured) {
-        dagreGraph.setNode(node.id, { width: node.measured.width, height: node.measured.height });
-      }
-    });
-
-    const nodeWeights: { [key: string]: number } = {};
-    const edgeWeights: { [key: string]: number } = {};
-
-    nodes.forEach(node => {
-      const incomingEdges = edges.filter(edge => edge.target === node.id);
-      if (incomingEdges.length === 0) {
-        nodeWeights[node.id] = 1024;
-        const outgoingEdges = edges.filter(edge => edge.source === node.id);
-        outgoingEdges.forEach(edge => {
-          edgeWeights[edge.id] = 512;
-        });
-      }
-    });
-
-    // Perform a topological sort to determine the order of processing nodes
-    let sortedNodes: Node[] = [];
-    const visited = new Set<string>();
-    const visiting = new Set<string>();
-
-    const visit = (node: Node) => {
-      if (visited.has(node.id)) {
-        return;
-      }
-      if (visiting.has(node.id)) {
-        throw new Error('Graph has cycles');
-      }
-      visiting.add(node.id);
-      const outgoingEdges = edges.filter(edge => edge.source === node.id);
-      outgoingEdges.forEach(edge => {
-        const targetNode = nodes.find(n => n.id === edge.target);
-        if (targetNode) {
-          visit(targetNode);
-        }
-      });
-      visiting.delete(node.id);
-      visited.add(node.id);
-      sortedNodes.push(node);
-    };
-
-    nodes.forEach(node => {
-      if (!visited.has(node.id)) {
-        visit(node);
-      }
-    });
-
-    sortedNodes = sortedNodes.reverse();
-
-    sortedNodes.forEach(node => {
-      const incomingEdges = edges.filter(edge => edge.target === node.id);
-      let maxIncomingWeight = -Infinity;
-
-      if (incomingEdges.length > 0) {
-        maxIncomingWeight = incomingEdges.reduce((maxWeight, edge) => {
-          return Math.max(maxWeight, edgeWeights[edge.id] || -Infinity);
-        }, -Infinity);
-
-        nodeWeights[node.id] = (maxIncomingWeight !== -Infinity) ? maxIncomingWeight : 2;
-      } else {
-        nodeWeights[node.id] = 2;
-      }
-
-      const outgoingEdges = edges.filter(edge => edge.source === node.id);
-      outgoingEdges.forEach(edge => {
-        edgeWeights[edge.id] = nodeWeights[node.id] * 2;
-      });
-    });
-
-    edges.forEach((edge) => {
-      const weight = edgeWeights[edge.id] || 1;
-      dagreGraph.setEdge(edge.source, edge.target, { weight, height: 10, width: 10, labelpos: 'c', minlen: 1 });
-    });
-
-    dagre.layout(dagreGraph);
-
-    return nodes.map((node) => {
-      const nodeWithPosition = dagreGraph.node(node.id);
-      if (!nodeWithPosition) return node;
-
-      return {
-        ...node,
-        position: {
-          x: nodeWithPosition.x - (node.measured?.width || 0) / 2,
-          y: nodeWithPosition.y - (node.measured?.height || 0) / 2,
-        },
-      };
-    });
-  };
 
   const handleLayout = useCallback(() => {
-    const layoutedNodes = getLayoutedNodes(nodes, edges);
+    const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[]);
     dispatch(setNodes({ nodes: layoutedNodes }));
   }, [nodes, edges, dispatch]);
 
@@ -447,7 +314,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     };
   }, [handleKeyDown]);
 
-  useKeyboardShortcuts(selectedNodeID, nodes, dispatch);
+  useKeyboardShortcuts(selectedNodeID, nodes, nodeTypes, dispatch);
 
   const { cut, copy, paste, bufferedNodes } = useCopyPaste();
   useCopyPaste();
@@ -479,6 +346,20 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     setHoveredNode(null);
   }, []);
 
+  const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
+    insertNodeBetweenNodes(
+      nodes,
+      nodeTypesConfig,
+      nodeName,
+      sourceNode,
+      targetNode,
+      edgeId,
+      reactFlowInstance,
+      dispatch,
+      () => setPopoverContentVisible(false)
+    );
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -507,15 +388,11 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                     <DropdownItem
                       key={node.name}
                       onClick={() =>
-                        addNodeBetweenNodes(
-                          nodeTypesConfig,
+                        handleAddNodeBetween(
                           node.name,
                           selectedEdge.sourceNode,
                           selectedEdge.targetNode,
-                          selectedEdge.edgeId,
-                          reactFlowInstance,
-                          dispatch,
-                          setPopoverContentVisible
+                          selectedEdge.edgeId
                         )
                       }
                     >

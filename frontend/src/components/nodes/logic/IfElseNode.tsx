@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useConnection } from '@xyflow/react';
 import BaseNode from '../BaseNode';
 import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { updateNodeData } from '../../../store/flowSlice';
 import styles from '../DynamicNode.module.css';
 import { Icon } from "@iconify/react";
+import { RootState } from '../../../store/store';
 
 interface Condition {
   logicalOperator?: 'AND' | 'OR';
@@ -61,6 +62,11 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const dispatch = useDispatch();
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const edges = useSelector((state: RootState) => state.flow.edges);
+  const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
+    return nodes.find((node) => node.id === edge.source);
+  }));
 
   // Get available input variables from the schema
   const inputVariables = Object.entries(data.config?.input_schema || {}).map(([key, type]) => ({
@@ -87,6 +93,35 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
       }
     }
   }, []);
+
+  const connection = useConnection();
+
+  useEffect(() => {
+    // If a connection is in progress and the target node is this node
+    // temporarily show a handle for the source node as the connection is being made
+    if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+      let predecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      // Check if the source node is not already included
+      if (!predecessorNodes.find((node) => node?.id === connection.fromNode.id)) {
+        const fromNode = nodes.find((node) => node.id === connection.fromNode.id);
+        if (fromNode) {
+          predecessorNodes = predecessorNodes.concat(fromNode);
+        }
+      }
+
+      setPredcessorNodes(predecessorNodes);
+    } else {
+      // Update predecessor nodes when no connection is in progress
+      const updatedPredecessorNodes = edges
+        .filter((edge) => edge.target === id)
+        .map((edge) => nodes.find((node) => node.id === edge.source));
+
+      setPredcessorNodes(updatedPredecessorNodes);
+    }
+  }, [connection, nodes, edges, id]);
 
   useEffect(() => {
     if (!nodeRef.current || !data) return;
@@ -203,16 +238,18 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
       className="hover:!bg-background"
     >
       <div className="p-3" ref={nodeRef}>
-        {/* Input handle */}
-        <div className={`${styles.handleRow} w-full justify-start mb-4`}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="input"
-            className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-          />
-          {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">Input →</span>}
-        </div>
+        {/* Input handles */}
+        {predecessorNodes.map((node) => (
+          <div key={node?.id} className={`${styles.handleRow} w-full justify-start mb-4`}>
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={node?.data?.config?.title || node?.id}
+              className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
+            />
+            {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">{node?.data?.config?.title || node?.id} →</span>}
+          </div>
+        ))}
 
         {!isCollapsed && (
           <>
