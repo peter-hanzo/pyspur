@@ -4,7 +4,7 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "6080:80"
+      - "${NGINX_PORT:-6080}:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd
@@ -17,6 +17,7 @@ services:
     command: bash /pyspur/entrypoint.sh
     volumes:
       - ./backend:/pyspur
+      - ./.env:/pyspur/.env
     restart: always
   frontend:
     build: ./frontend
@@ -24,6 +25,9 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
+      - FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
     depends_on:
       - backend
     restart: always
