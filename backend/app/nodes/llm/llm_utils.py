@@ -152,8 +152,8 @@ def async_retry(*dargs, **dkwargs):
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(20))
 async def completion_with_backoff(**kwargs) -> str:
     try:
-        # Add api_base if specified
-        if "api_base" in kwargs:
+        # Only use api_base if it has a non-empty value
+        if "api_base" in kwargs and kwargs["api_base"]:
             response = await acompletion(api_base=kwargs.pop("api_base"), **kwargs)
         else:
             response = await acompletion(**kwargs)
@@ -183,6 +183,7 @@ async def generate_text(
     temperature: float = 0.5,
     json_mode: bool = False,
     max_tokens: int = 100000,
+    api_base: Optional[str] = None,
 ) -> str:
     kwargs = {
         "model": model_name,
@@ -192,6 +193,8 @@ async def generate_text(
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    if api_base:
+        kwargs["api_base"] = api_base
     response = await completion_with_backoff(**kwargs)
     return cast(str, response)
 

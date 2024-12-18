@@ -42,6 +42,7 @@ interface NodeMetadata {
     input_schema?: Record<string, string>;
     output_schema?: Record<string, string>;
     title?: string;
+    api_base?: string;
     [key: string]: any;
   };
   [key: string]: any;
