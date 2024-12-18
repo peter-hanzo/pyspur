@@ -4,6 +4,7 @@ import storage from 'redux-persist/lib/storage';
 import flowReducer from './flowSlice';
 import { FlowState } from './flowSlice';
 import nodeTypesReducer from './nodeTypesSlice';
+import userPreferencesReducer from './userPreferencesSlice';
 import panelReducer from './panelSlice';
 import type { Node, Edge } from '@xyflow/react';
 
@@ -13,6 +14,9 @@ export interface RootState {
   nodeTypes: {
     data: Record<string, any>;
   };
+  userPreferences: {
+    hasSeenWelcome: boolean;
+  }
   panel: {
     isNodePanelExpanded: boolean;
   };
@@ -22,12 +26,13 @@ export interface RootState {
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['nodes', 'edges', 'nodeTypes'],
+  whitelist: ['nodes', 'edges', 'nodeTypes', 'userPreferences'],
 };
 
 const rootReducer = combineReducers({
   flow: flowReducer,
   nodeTypes: nodeTypesReducer,
+  userPreferences: userPreferencesReducer,
   panel: panelReducer,
 });
 
