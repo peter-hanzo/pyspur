@@ -255,7 +255,7 @@ export const getAllRuns = async (
 export const listApiKeys = async (): Promise<string[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/env-mgmt/`);
-    return response.data.keys;
+    return response.data;
   } catch (error) {
     console.error('Error listing API keys:', error);
     throw error;
