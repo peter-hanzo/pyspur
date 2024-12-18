@@ -10,11 +10,10 @@ load_dotenv(".env")
 router = APIRouter()
 
 
-DEFAULT_KEYS = [
+MODEL_PROVIDER_KEYS = [
     {"name": "OPENAI_API_KEY", "value": ""},
     {"name": "ANTHROPIC_API_KEY", "value": ""},
     {"name": "GEMINI_API_KEY", "value": ""},
-    {"name": "OLLAMA_API_BASE", "value": "http://localhost:11434"},
 ]
 
 
@@ -65,11 +64,9 @@ def mask_key_value(value: str) -> str:
 @router.get("/", description="Get a list of all environment variable names")
 async def list_api_keys():
     """
-    Returns a list of all environment variable names without revealing their values.
+    Returns a list of all model provider keys 
     """
-    env_vars = get_all_env_variables()
-    all_keys = set([k["name"] for k in DEFAULT_KEYS]) | set(env_vars.keys())
-    return {"keys": list(all_keys)}
+    return [k["name"] for k in MODEL_PROVIDER_KEYS]
 
 
 @router.get(
@@ -80,12 +77,11 @@ async def get_api_key(name: str):
     Returns the masked value of the specified environment variable.
     Requires authentication.
     """
+    if name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
+            raise HTTPException(status_code=404, detail="Key not found")
     value = get_env_variable(name)
     if value is None:
-        if name not in [k["name"] for k in DEFAULT_KEYS]:
-            raise HTTPException(status_code=404, detail="Key not found")
-        else:
-            value = ""
+        value = ""
     masked_value = mask_key_value(value)
     return APIKey(name=name, value=masked_value)
 
@@ -96,6 +92,8 @@ async def set_api_key(api_key: APIKey):
     Adds a new environment variable or updates an existing one.
     Requires authentication.
     """
+    if api_key.name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
+            raise HTTPException(status_code=404, detail="Key not found")
     if not api_key.value:
         raise HTTPException(status_code=400, detail="Value is required")
     set_env_variable(api_key.name, api_key.value)
@@ -108,6 +106,8 @@ async def delete_api_key(name: str):
     Deletes the specified environment variable.
     Requires authentication.
     """
+    if name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
+        raise HTTPException(status_code=404, detail="Key not found")
     if get_env_variable(name) is None:
         raise HTTPException(status_code=404, detail="Key not found")
     delete_env_variable(name)
