@@ -39,29 +39,25 @@ const Dashboard: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const router = useRouter();
-  const [showWelcome, setShowWelcome] = useState(true);
-  const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
-
-  useEffect(() => {
-    setShowWelcome(!hasSeenWelcome);
-  }, [hasSeenWelcome]);
-
   const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
         setWorkflows(workflows as WorkflowResponse[]);
+        setShowWelcome(!hasSeenWelcome && workflows.length === 0);
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
     };
 
     fetchWorkflows();
-  }, []);
+  }, [hasSeenWelcome]);
 
   useEffect(() => {
     const fetchTemplates = async () => {
