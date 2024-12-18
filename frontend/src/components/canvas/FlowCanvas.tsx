@@ -382,7 +382,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             placement="bottom"
           >
             <DropdownMenu>
-              {nodeTypesConfig && Object.keys(nodeTypesConfig).map((category) => (
+              {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
                 <DropdownSection key={category} title={category} showDivider>
                   {nodeTypesConfig[category].map((node) => (
                     <DropdownItem

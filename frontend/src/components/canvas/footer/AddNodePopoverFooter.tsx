@@ -38,7 +38,7 @@ const AddNodePopoverFooter: React.FC = () => {
           </Button>
         </DropdownTrigger>
         <DropdownMenu aria-label="Add Node Options">
-          {Object.keys(nodeTypes).map((category) => (
+          {Object.keys(nodeTypes).filter(category => category !== "Input/Output").map((category) => (
             <DropdownSection key={category} title={category} showDivider>
               {nodeTypes[category].map((node: NodeType) => (
                 <DropdownItem

@@ -423,7 +423,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
             placement="bottom"
           >
             <DropdownMenu aria-label="Node types">
-              {nodeTypesConfig && Object.keys(nodeTypesConfig).map((category) => (
+              {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
                 <DropdownSection key={category} title={category} showDivider>
                   {nodeTypesConfig[category].map((node) => (
                     <DropdownItem
