@@ -281,7 +281,7 @@ class OllamaOptions(BaseModel):
         """Convert to dictionary, excluding None values"""
         return {k: v for k, v in self.model_dump().items() if v is not None}
 
-# @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(1))
+@async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(1))
 async def ollama_with_backoff(
     model: str,
     messages: list[dict[str, str]],
