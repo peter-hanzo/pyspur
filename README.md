@@ -10,6 +10,13 @@
 <a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
 </p>
 
+<p align="center">
+  <a href="https://discord.gg/7Spn7C8A5F">
+    <img alt="Join Our Discord" src="https://img.shields.io/badge/Discord-7289DA.svg?style=for-the-badge&logo=discord&logoColor=white">
+  </a>
+</p>
+
+
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # ✨ Core Benefits
