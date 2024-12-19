@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
 import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
@@ -67,6 +67,58 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
   return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
 }
 
+const staticStyles = {
+  container: {
+    position: 'relative' as const
+  },
+  targetHandle: {
+    top: '50%',
+    left: 0,
+    width: '30%',
+    height: '100%',
+    zIndex: 10,
+    opacity: 0,
+    pointerEvents: 'auto' as const
+  },
+  dragHandle: {
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none' as const
+  },
+  controlsCard: {
+    position: 'absolute' as const,
+    top: '-50px',
+    right: '0px',
+    padding: '4px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    pointerEvents: 'auto' as const
+  },
+  baseTag: {
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '0.75rem',
+    display: 'inline-block',
+    color: '#fff'
+  },
+  collapseButton: {
+    minWidth: 'auto',
+    height: '24px',
+    padding: '0 8px',
+    fontSize: '0.8rem',
+    marginRight: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  controlsContainer: {
+    position: 'absolute' as const,
+    top: '8px',
+    right: '8px',
+    display: 'flex',
+    alignItems: 'center'
+  }
+} as const;
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -113,19 +165,37 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const { executePartialRun, loading } = usePartialRun();
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    setShowControls(true);
-  };
+  const handleMouseEnter = useCallback(() => {
+    if (!isHovered) {
+      setIsHovered(true);
+    }
+    if (!showControls){
+      setShowControls(true);
+    }
+  }, []);
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (!isTooltipHovered) {
+  const handleMouseLeave = useCallback(() => {
+    if (isHovered) {
+      setIsHovered(false);
+    }
+    if (!isTooltipHovered && showControls) {
       setTimeout(() => {
         setShowControls(false);
       }, 200);
     }
-  };
+  }, []);
+
+  const handleControlsMouseEnter = useCallback(() => {
+    if (!showControls) setShowControls(true);
+    if (!isTooltipHovered) setIsTooltipHovered(true);
+  }, []);
+  
+  const handleControlsMouseLeave = useCallback(() => {
+    if (isTooltipHovered) setIsTooltipHovered(false);
+    setTimeout(() => {
+      if (!isHovered && showControls) setShowControls(false);
+    }, 300);
+  }, []);
 
   const handleDelete = () => {
     dispatch(deleteNode({ nodeId: id }));
@@ -240,9 +310,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const { backgroundColor, ...restStyle } = style || {};
 
-  const cardStyle: React.CSSProperties = {
+  const cardStyle = React.useMemo(() => ({
     ...restStyle,
-    borderColor: borderColor,
+    borderColor,
     borderWidth: isSelected
       ? '3px'
       : status === 'completed'
@@ -252,19 +322,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           : restStyle.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
-  };
+    pointerEvents: 'auto'
+  }), [isSelected, status, isHovered, restStyle, borderColor]);
 
   const acronym = data.acronym || 'N/A';
   const color = data.color || '#ccc';
 
-  const tagStyle: React.CSSProperties = {
-    backgroundColor: color,
-    color: '#fff',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '0.75rem',
-    display: 'inline-block',
-  };
+  const tagStyle = React.useMemo(() => ({
+    ...staticStyles.baseTag,
+    backgroundColor: color
+  }), [color]);
 
   const handleTitleChange = (newTitle: string) => {
     if (newTitle && /\s/.test(newTitle)) {
@@ -286,11 +353,18 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     setEditingTitle(false);
   };
 
+  const headerStyle = React.useMemo(() => ({
+    position: 'relative' as const,
+    paddingTop: '8px',
+    paddingBottom: isCollapsed ? '0px' : '16px',
+  }), [isCollapsed]);
+
+  const titleStyle = React.useMemo(() => ({
+    marginBottom: isCollapsed ? '4px' : '8px'
+  }), [isCollapsed]);
+
   return (
-    <div
-      style={{ position: 'relative' }}
-      draggable={false}
-    >
+    <div style={staticStyles.container} draggable={false}>
       {showTitleError && (
         <Alert
           className="absolute -top-16 left-0 right-0 z-50"
@@ -307,31 +381,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           type="target"
           position={Position.Left}
           id={`node-body-${id}`}
-          style={{
-            top: '50%',
-            left: 0,
-            width: '30%',
-            height: '100%',
-            zIndex: 10,
-            opacity: 0,
-            pointerEvents: 'auto',
-          }}
+          style={staticStyles.targetHandle}
           isConnectable={true}
           isConnectableStart={false}
         />
 
         {/* Node content wrapped in drag handle */}
-        <div
-          className="react-flow__node-drag-handle"
-          style={{
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none', // Prevents content from blocking events
-          }}
-        >
+        <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
           <Card
             className={`base-node ${className || ''}`}
-            style={{ ...cardStyle, pointerEvents: 'auto' }}
+            style={cardStyle}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             isHoverable
@@ -340,13 +399,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             }}
           >
             {data && (
-              <CardHeader
-                style={{
-                  position: 'relative',
-                  paddingTop: '8px',
-                  paddingBottom: isCollapsed ? '0px' : '16px',
-                }}
-              >
+              <CardHeader style={headerStyle}>
                 {editingTitle ? (
                   <Input
                     autoFocus
@@ -374,37 +427,18 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 ) : (
                   <h3
                     className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
-                    style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
+                    style={titleStyle}
                     onClick={() => setEditingTitle(true)}
                   >
                     {getNodeTitle(data)}
                   </h3>
                 )}
 
-                {/* Container for the collapse button and acronym tag */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {/* Collapse Button */}
+                <div style={staticStyles.controlsContainer}>
                   <Button
                     size="sm"
                     variant="flat"
-                    style={{
-                      minWidth: 'auto',
-                      height: '24px',
-                      padding: '0 8px',
-                      fontSize: '0.8rem',
-                      marginRight: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    style={staticStyles.collapseButton}
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsCollapsed(!isCollapsed);
@@ -413,8 +447,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     {isCollapsed ? '▼' : '▲'}
                   </Button>
 
-                  {/* Acronym Tag */}
-                  <div style={{ ...tagStyle }} className="node-acronym-tag">
+                  <div style={tagStyle} className="node-acronym-tag">
                     {acronym}
                   </div>
                 </div>
@@ -432,26 +465,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       {/* Controls */}
       {(showControls || isSelected) && (
         <Card
-          onMouseEnter={() => {
-            setShowControls(true);
-            setIsTooltipHovered(true);
-          }}
-          onMouseLeave={() => {
-            setIsTooltipHovered(false);
-            setTimeout(() => {
-              if (!isHovered) {
-                setShowControls(false);
-              }
-            }, 300);
-          }}
-          style={{
-            position: 'absolute',
-            top: '-50px',
-            right: '0px',
-            padding: '4px',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            pointerEvents: 'auto',
-          }}
+          onMouseEnter={handleControlsMouseEnter}
+          onMouseLeave={handleControlsMouseLeave}
+          style={staticStyles.controlsCard}
           classNames={{
             base: "bg-background border-default-200"
           }}
