@@ -1,79 +1,100 @@
-# PySpur - Interface graphique pour visualiser les chemins de raisonnement des LLM
+# PySpur - Éditeur graphique basé sur des graphes pour les flux de travail LLM
 
 <p align="center">
-  <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
-  <a href="./README_CN.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-blue"></a>
-  <a href="./README_JA.md"><img alt="日本語のREADME" src="https://img.shields.io/badge/日本語-blue"></a>
-  <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
-  <a href="./README_DE.md"><img alt="Deutsche Version der README" src="https://img.shields.io/badge/Deutsch-blue"></a>
-<a href="./README_FR.md"><img alt="Version française du README" src="https://img.shields.io/badge/Français-blue"></a>
-<a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
+  <a href="./README.md"><img alt="README en anglais" src="https://img.shields.io/badge/English-blue"></a>
+  <a href="./README_CN.md"><img alt="README en chinois simplifié" src="https://img.shields.io/badge/简体中文-blue"></a>
+  <a href="./README_JA.md"><img alt="README en japonais" src="https://img.shields.io/badge/日本語-blue"></a>
+  <a href="./README_KR.md"><img alt="README en coréen" src="https://img.shields.io/badge/한국어-blue"></a>
+  <a href="./README_DE.md"><img alt="README en allemand" src="https://img.shields.io/badge/Deutsch-blue"></a>
+  <a href="./README_FR.md"><img alt="Version française du README" src="https://img.shields.io/badge/Français-blue"></a>
+  <a href="./README_ES.md"><img alt="README en espagnol" src="https://img.shields.io/badge/Español-blue"></a>
 </p>
 
-https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
+https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
+
+#
+
+# ✨ Principaux avantages
+
+## Blocs de construction modulaires
+
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
+
+## Débogage au niveau des nœuds
+
+https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
+
+## Évaluer la performance finale
+
+https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
+
+## Bientôt disponible : auto-amélioration
+
+https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 
 # 🕸️ Pourquoi PySpur ?
 
-* Les humains réfléchissent plus longtemps aux problèmes difficiles pour améliorer leurs décisions.
-* De même, nous pouvons permettre aux LLMs de "réfléchir" plus longtemps grâce à des graphes computationnels impliquant plusieurs étapes et boucles de rétroaction.
-* Cependant, ces graphes impliquent des interdépendances complexes entre les nœuds, où la sortie d'un nœud devient l'entrée d'un autre.
-* **L'objectif de PySpur est de permettre aux développeurs de construire, tester et déployer ces graphes LLM en simplifiant la complexité de l'exécution parallèle et de la gestion des états.**
-
-# ✨ Avantages principaux
-
-1. **Développez avec des nœuds de calcul en temps d'inférence** :
-    * **Planificateurs de haut niveau avec tout compris** (MCTS, Self-Refinement, BoN, ToT, etc.)
-    * **Primitives de bas niveau pour l'échantillonnage parallèle/séquentiel** (cycles, routeurs, branches, agrégateurs)
-    * **Vérificateurs** (nœuds de code, LLM en tant que juge, intégrations logicielles, etc.)
-2. **Déboguez avec des évaluations** :
-    * **Référentiels de raisonnement courants** (GSM8k, MATH, ARC, etc.)
-    * **Scoreurs** via LLM en tant que juge
-    * **Jeux de données personnalisés** au format CSV, JSONL, HF Datasets
-3. **Déployez pour l'inférence par lot via une file d'attente de travaux** :
-    * **Soumettez/gérez des tâches par lot via une interface utilisateur** pour une facilité d'utilisation
-    * **Auto-hébergement des API de lot asynchrones** pour une flexibilité totale
-    * **Tolérance aux pannes et persistance des travaux** pour les tâches de longue durée
-
-# 🗺️ Feuille de route
-
-- [X] Canvas
-- [X] Nœuds ITC
-- [X] Exécution asynchrone/par lot
-- [ ] Modèles
-- [ ] Compilation des Spurs en code
-- [ ] Surveillance des nœuds ITC
-- [ ] Nouveaux nœuds
-    - [ ] Outils
-    - [ ] Boucles
-    - [ ] Conditionnels
-- [ ] Évaluations
-- [ ] Multimodal
-- [ ] API Spur
-- [ ] Conteneurisation des vérificateurs de code
-- [ ] Classement
-- [ ] Génération de Spurs via IA
-
-Vos retours seront immensément appréciés.
-Merci de [nous indiquer](mailto:founders@pyspur.dev?subject=Demande%20de%20fonctionnalité&body=Je%20souhaite%20cette%20fonctionnalité%3Ai) quelles fonctionnalités de cette liste vous souhaitez voir en priorité ou d'en proposer de nouvelles.
+* **Facile à modifier**, par exemple on peut ajouter de nouveaux nœuds de flux de travail en créant simplement un fichier Python.
+* **Configurations JSON** des graphes de flux, permettant un partage et un contrôle de version aisés.
+* **Léger** avec un minimum de dépendances, évitant les frameworks LLM trop lourds.
 
 # ⚡ Démarrage rapide
 
-Vous pouvez démarrer PySpur en trois étapes rapides.
+Vous pouvez démarrer PySpur en trois étapes simples :
 
-1. **Clonez le dépôt :**
+1. **Cloner le dépôt :**
     ```sh
     git clone https://github.com/PySpur-com/PySpur.git
     cd pyspur
     ```
 
-2. **Lancez les services Docker :**
+2. **Démarrez les services Docker :**
 
-    ```sudo docker compose up --build -d```
+    ```sh
+    sudo docker compose up --build -d
+    ```
 
-    Cela lancera une instance locale de PySpur qui enregistrera les Spurs et leurs exécutions dans un fichier SQLite local.
+    Cela lancera une instance locale de PySpur qui stockera les spurs et leurs exécutions dans un fichier SQLite local.
 
 3. **Accédez au portail :**
 
-    Allez sur `http://localhost:6080/` dans votre navigateur.
+    Rendez-vous sur `http://localhost:6080/` dans votre navigateur.
 
-    Utilisez `pyspur`/`canaryhattan` comme nom d'utilisateur/mot de passe.
+    Entrez `pyspur`/`canaryhattan` comme nom d'utilisateur/mot de passe.
+
+4. **Ajoutez les clés de votre fournisseur de LLM :**
+
+   Allez dans le menu des paramètres en haut à droite du portail
+
+   <img width="1913" alt="image" src="https://github.com/user-attachments/assets/32fe79f1-f518-4df5-859c-1d1c0fc0570e" />
+
+   Sélectionnez l'onglet "API keys"
+
+   <img width="441" alt="image" src="https://github.com/user-attachments/assets/cccc7e27-c10b-4f3a-b818-3b65c55f4170" />
+
+   Entrez la clé de votre fournisseur et cliquez sur "save" (le bouton "save" apparaîtra après l'ajout/modification d'une clé)
+
+La configuration est terminée. Cliquez sur "New Spur" pour créer un nouveau flux de travail, ou commencez avec l'un des modèles existants.
+
+# 🗺️ Feuille de route
+
+- [X] Canvas (toile)
+- [X] Exécution asynchrone/lot (Async/Batch)
+- [X] Évaluations (Evals)
+- [X] Spur API
+- [ ] Nouveaux nœuds
+    - [X] Nœuds LLM
+    - [X] Si-Sinon (If-Else)
+    - [X] Fusionner les branches (Merge Branches)
+    - [ ] Outils (Tools)
+    - [ ] Boucles (Loops)
+- [ ] Optimisation du pipeline via DSPy et méthodes associées
+- [ ] Modèles (Templates)
+- [ ] Compiler les Spurs en code
+- [ ] Support multimodal
+- [ ] Conteneurisation des vérificateurs de code
+- [ ] Tableau de classement (Leaderboard)
+- [ ] Générer des Spurs via l'IA
+
+Vos retours sont grandement appréciés.  
+Veuillez [nous dire](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) quelles fonctionnalités de cette liste vous souhaitez voir apparaître en priorité, ou proposez-en de totalement nouvelles.

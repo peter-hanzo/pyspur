@@ -12,8 +12,6 @@
 
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
-# 
-
 # ✨ Core Benefits
 
 ## Modular Building Blocks

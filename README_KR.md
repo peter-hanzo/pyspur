@@ -1,4 +1,4 @@
-# PySpur - LLM 추론 경로 시각화를 위한 GUI
+# PySpur - LLM 워크플로우를 위한 그래프 기반 에디터
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -6,60 +6,40 @@
   <a href="./README_JA.md"><img alt="日本語のREADME" src="https://img.shields.io/badge/日本語-blue"></a>
   <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-blue"></a>
   <a href="./README_DE.md"><img alt="Deutsche Version der README" src="https://img.shields.io/badge/Deutsch-blue"></a>
-<a href="./README_FR.md"><img alt="Version française du README" src="https://img.shields.io/badge/Français-blue"></a>
-<a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
+  <a href="./README_FR.md"><img alt="Version française du README" src="https://img.shields.io/badge/Français-blue"></a>
+  <a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
 </p>
 
+https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
-https://github.com/user-attachments/assets/19cf6f99-6d66-45dc-911c-74025f87b1d2
+# ✨ 핵심 장점
 
-# 🕸️ PySpur가 필요한 이유는?
+## 모듈형 빌딩 블록
 
-* 인간은 어려운 문제에 대해 더 나은 결정을 내리기 위해 더 오래 사고합니다.
-* 마찬가지로, LLM이 여러 단계와 피드백 루프를 포함하는 계산 그래프를 통해 더 오래 사고하도록 할 수 있습니다.
-* 그러나 이러한 그래프는 노드 간의 복잡한 상호 의존성을 포함하며, 한 노드의 출력이 다른 노드의 입력이 됩니다.
-* **PySpur의 목표는 병렬 실행과 상태 관리를 추상화하여 개발자가 이러한 LLM 그래프를 구축, 테스트 및 배포할 수 있도록 하는 것입니다.**
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
-# ✨ 주요 혜택
+## 노드 단위 디버깅:
 
-1. **추론 시간 계산 노드로 개발하기**:
-    * **고급 기능이 포함된 플래너** (MCTS, Self-Refinement, BoN, ToT 등)
-    * **병렬/순차 샘플링을 위한 저수준 프리미티브** (사이클, 라우터, 분기기, 집계기)
-    * **검증자** (코드 노드, LLM-as-a-judge, 소프트웨어 통합 등)
-2. **평가로 디버그하기**:
-    * **일반적인 추론 벤치마크** (GSM8k, MATH, ARC 등)
-    * **LLM-as-a-judge를 통한 평가 도구**
-    * **CSV, JSONL, HF 데이터셋을 통한 사용자 정의 데이터셋**
-3. **배치 추론을 위한 배포**:
-    * **UI를 통해 배치 작업 제출/관리**로 사용 용이성 제공
-    * **비동기 배치 API를 자체 호스팅**하여 완전한 유연성 제공
-    * **장기 실행 작업을 위한 내결함성과 작업 지속성** 제공
+https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
 
-# 🗺️ 로드맵
+## 최종 성능 평가
 
-- [X] 캔버스
-- [X] ITC 노드
-- [X] 비동기/배치 실행
-- [ ] 템플릿
-- [ ] Spurs를 코드로 컴파일
-- [ ] ITC 노드 모니터링
-- [ ] 신규 노드
-    - [ ] 도구
-    - [ ] 루프
-    - [ ] 조건문
-- [ ] 평가
-- [ ] 멀티모달
-- [ ] Spur API
-- [ ] 코드 검증자의 컨테이너화
-- [ ] 리더보드
-- [ ] AI를 통한 Spurs 생성
+https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
 
-여러분의 피드백은 매우 소중합니다.
-[이메일](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai)로 어떤 기능을 먼저 보고 싶은지 또는 새로운 기능 요청을 알려주세요.
+## 곧 출시 예정: 자기 개선(Self-improvement)
+
+https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
+
+
+# 🕸️ 왜 PySpur인가?
+
+* **개발 친화적**: 새로운 워크플로우 노드를 추가하려면 단지 하나의 파이썬 파일만 작성하면 됩니다.
+* **JSON 구성 기반**: 워크플로우 그래프를 JSON으로 관리하여 손쉬운 공유 및 버전 관리를 지원합니다.
+* **경량화**: 불필요한 종속성을 최소화하여, 무거운 LLM 프레임워크를 피할 수 있습니다.
 
 # ⚡ 빠른 시작
 
-PySpur를 세 단계만으로 실행할 수 있습니다.
+다음의 간단한 세 단계로 PySpur를 시작할 수 있습니다.
 
 1. **저장소 클론:**
     ```sh
@@ -69,12 +49,53 @@ PySpur를 세 단계만으로 실행할 수 있습니다.
 
 2. **도커 서비스 시작:**
 
-    ```sudo docker compose up --build -d```
+    ```sh
+    sudo docker compose up --build -d
+    ```
 
-    이는 PySpur의 로컬 인스턴스를 시작하며, Spurs와 실행 기록을 로컬 SQLite 파일에 저장합니다.
+    이 명령으로 로컬에 PySpur 인스턴스를 시작합니다. 스퍼(spur)와 그 실행 기록은 로컬 SQLite 파일에 저장됩니다.
 
-3. **포털에 접속:**
+3. **포털 접속:**
 
     브라우저에서 `http://localhost:6080/`로 이동하세요.
 
-    사용자 이름/비밀번호로 `pyspur`/`canaryhattan`을 입력하세요.
+    사용자명/비밀번호: `pyspur`/`canaryhattan`
+
+4. **LLM 제공자 키 추가하기:**
+
+   포털 오른쪽 상단의 설정 메뉴로 이동합니다.
+
+   <img width="1913" alt="image" src="https://github.com/user-attachments/assets/32fe79f1-f518-4df5-859c-1d1c0fc0570e" />
+
+   "API keys" 탭을 선택합니다.
+
+   <img width="441" alt="image" src="https://github.com/user-attachments/assets/cccc7e27-c10b-4f3a-b818-3b65c55f4170" />
+
+   제공자의 키를 입력한 뒤 저장을 누릅니다(키를 추가하거나 수정하면 저장 버튼이 나타납니다).
+
+   <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
+
+설정이 완료되었습니다. "New Spur" 버튼을 눌러 새로운 워크플로우를 만들거나, 기본으로 제공되는 템플릿 중 하나를 사용해보세요.
+
+# 🗺️ 로드맵
+
+- [X] 캔버스
+- [X] 비동기/배치 실행
+- [X] 평가(Evals)
+- [X] Spur API
+- [ ] 새로운 노드
+    - [X] LLM 노드
+    - [X] If-Else
+    - [X] 브랜치 병합(Merge Branches)
+    - [ ] 도구(Tools)
+    - [ ] 루프(Loops)
+- [ ] DSPy 등 관련 기법을 통한 파이프라인 최적화
+- [ ] 템플릿
+- [ ] 스퍼를 코드로 컴파일
+- [ ] 멀티모달 지원
+- [ ] 코드 검증기(Containerization)
+- [ ] 리더보드(Leaderboard)
+- [ ] AI를 통한 스퍼 자동 생성
+
+여러분의 피드백은 큰 도움이 됩니다.  
+[저희에게 알려주세요](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) : 다음에 어떤 기능을 보고 싶은지, 또는 완전히 새로운 기능을 제안해주십시오.
