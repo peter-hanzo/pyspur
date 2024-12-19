@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# First test Ollama connection if URL is provided
+if [ -f "test_ollama.sh" ]; then
+    chmod +x test_ollama.sh
+    ./test_ollama.sh
+fi
+
 set -e 
 mkdir -p /pyspur/app/models/management/alembic/versions/versions
 check_for_changes() {
