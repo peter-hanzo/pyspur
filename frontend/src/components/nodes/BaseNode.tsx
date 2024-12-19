@@ -10,6 +10,7 @@ import {
   Divider,
   Button,
   Input,
+  Alert,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
@@ -33,7 +34,7 @@ interface RootState {
     nodes: Node[];
     edges: Edge[];
     selectedNode: string | null;
-    testInputs?: Array<{ id: string; [key: string]: any }>;
+    testInputs?: Array<{ id: string;[key: string]: any }>;
   };
 }
 
@@ -68,6 +69,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [showTitleError, setShowTitleError] = useState(false);
   const dispatch = useDispatch();
 
   // Retrieve the node's position and edges from the Redux store
@@ -80,7 +82,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     let testInputs = state.flow?.testInputs;
     if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
       const { id, ...rest } = testInputs[0];
-      return {[inputNodeId as string]: rest};
+      return { [inputNodeId as string]: rest };
     }
     return { [inputNodeId as string]: {} };
   });
@@ -231,10 +233,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     borderWidth: isSelected
       ? '3px'
       : status === 'completed'
-      ? '2px'
-      : isHovered
-      ? '3px'
-      : restStyle.borderWidth || '1px',
+        ? '2px'
+        : isHovered
+          ? '3px'
+          : restStyle.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
   };
@@ -251,11 +253,40 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     display: 'inline-block',
   };
 
+  const handleTitleChange = (newTitle: string) => {
+    if (newTitle && /\s/.test(newTitle)) {
+      setShowTitleError(true);
+      return;
+    }
+    setShowTitleError(false);
+    if (newTitle && newTitle !== getNodeTitle(data)) {
+      dispatch(updateNodeData({
+        id,
+        data: {
+          config: {
+            ...data.config,
+            title: newTitle,
+          },
+        },
+      }));
+    }
+    setEditingTitle(false);
+  };
+
   return (
     <div
       style={{ position: 'relative' }}
       draggable={false}
     >
+      {showTitleError && (
+        <Alert
+          className="absolute -top-16 left-0 right-0 z-50"
+          color="danger"
+          onClose={() => setShowTitleError(false)}
+        >
+          Title cannot contain whitespace. Use underscores instead.
+        </Alert>
+      )}
       {/* Container to hold the Handle and the content */}
       <div>
         {/* Hidden target handle covering the entire node */}
@@ -310,33 +341,15 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     size="sm"
                     variant="faded"
                     radius="lg"
-                    onBlur={(e) => {
-                      setEditingTitle(false);
-                      dispatch(updateNodeData({
-                        id,
-                        data: {
-                          config: {
-                            ...data.config,
-                            title: e.target.value,
-                          },
-                        },
-                      }));
-                    }}
+                    onBlur={(e) => handleTitleChange(e.target.value)}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Enter' || e.key === 'Escape') {
                         e.stopPropagation();
                         e.preventDefault();
-                        setEditingTitle(false);
                         if (e.key === 'Enter') {
-                          dispatch(updateNodeData({
-                            id,
-                            data: {
-                              config: {
-                                ...data.config,
-                                title: (e.target as HTMLInputElement).value,
-                              },
-                            },
-                          }));
+                          handleTitleChange((e.target as HTMLInputElement).value);
+                        } else {
+                          setEditingTitle(false);
                         }
                       }
                     }}

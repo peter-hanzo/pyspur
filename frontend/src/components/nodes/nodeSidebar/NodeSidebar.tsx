@@ -24,7 +24,8 @@ import {
   Accordion,
   AccordionItem,
   Card,
-} from '@nextui-org/react';
+  Alert,
+} from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import NodeOutput from '../NodeOutputDisplay';
 import SchemaEditor from './SchemaEditor';
@@ -132,17 +133,19 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   );
   const [dynamicModel, setDynamicModel] = useState<DynamicModel>(node?.data?.config || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
+  const [showTitleError, setShowTitleError] = useState(false);
 
   const collectIncomingSchema = (nodeID: string): string[] => {
     const incomingEdges = edges.filter((edge) => edge.target === nodeID);
     const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source));
     // foreach incoming node, get the output schema
-    // return ['node1.foo', 'node1.bar', 'node2.baz',...]
+    // return ['nodeTitle.foo', 'nodeTitle.bar', 'nodeTitle.baz',...]
     return incomingNodes.reduce((acc: string[], node) => {
       if (node?.data?.config?.output_schema) {
+        const nodeTitle = node.data.config.title || node.id;
         return [
           ...acc,
-          ...Object.keys(node.data.config.output_schema).map((key) => `${node.id}.${key}`),
+          ...Object.keys(node.data.config.output_schema).map((key) => `${nodeTitle}.${key}`),
         ];
       }
       return acc;
@@ -202,8 +205,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   };
 
   const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleInputChange('title', e.target.value);
-    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: e.target.value }));
+    const newTitle = e.target.value;
+    if (newTitle && /\s/.test(newTitle)) {
+      setShowTitleError(true);
+      return;
+    }
+    setShowTitleError(false);
+    handleInputChange('title', newTitle);
+    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle }));
   };
 
   const renderEnumSelect = (
@@ -628,6 +637,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     <Card
       className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
     >
+      {showTitleError && (
+        <Alert
+          className="absolute top-4 left-4 right-4 z-50"
+          color="danger"
+          onClose={() => setShowTitleError(false)}
+        >
+          Title cannot contain whitespace. Use underscores instead.
+        </Alert>
+      )}
       <div
         className="absolute top-0 right-0 h-full flex"
         style={{
@@ -680,11 +698,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
                 value={node?.data?.config?.title || ''}
-                onChange={(e) => handleNodeTitleChange(e)}
+                onChange={handleNodeTitleChange}
                 placeholder="Enter node title"
                 maxRows={1}
                 label="Node Title"
                 fullWidth
+                description="Use underscores instead of spaces"
               />
             </AccordionItem>
 
