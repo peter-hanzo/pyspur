@@ -20,7 +20,7 @@ import {
   cn,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from "../../utils/api";
+import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from "@/utils/api";
 import { useTheme } from "next-themes";
 
 // CellWrapper Component
@@ -96,9 +96,9 @@ function APIKeys(props: CardProps) {
 
   const fetchApiKeys = async () => {
     try {
-      const keys = await listApiKeys();
+      const response = await listApiKeys();
       const keyValues = await Promise.all(
-        keys.map(async (key: string) => {
+        response.map(async (key: string) => {
           const value = await getApiKey(key);
           return { name: value.name, value: value.value };
         })

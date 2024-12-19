@@ -75,12 +75,50 @@ You can get PySpur up and running in three quick steps.
 
 Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
 
+# Using PySpur with Ollama (Local Models)
+
+PySpur can work with local models served using Ollama.
+
+Steps to configure PySpur to work with Ollama running on the same host.
+
+### 1. Configure Ollama
+To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama. 
+An easy way to do this is to launch the ollama service with the following command:
+```
+OLLAMA_HOST="0.0.0.0" ollama serve
+```
+
+### 2. Update the PySpur .env file
+Next up we need to update the `OLLAMA_BASE_URL` environment value in the `.env` file.
+If your Ollama port is 11434 (the default port), then the entry in `.env` file should look like this:
+```
+OLLAMA_BASE_URL=http://host.docker.internal:11434 
+```
+(Please make sure that there is no trailing slash in the end!)
+
+In PySpur's set up, `host.docker.internal` refers to the host machine where both PySpur and Ollama are running.
+
+### 3. Launch the PySpur app
+Follow the usual steps to launch the PySpur app, starting with the command:
+```
+docker compose up --build -d
+```
+
+### 4. Using Ollama models in the app
+You will be able to select Ollama models [`ollama/llama3.2`, `ollama/llama3`, ...] from the sidebar for LLM nodes.
+Please make sure the model you select is explicitly downloaded in ollama. That is, you will need to manually manage these models via ollama. To download a model you can simply run `ollama pull <model-name>`.
+
+## Note on supported models
+PySpur only works with models that support structured-output and json mode. Most newer models should be good, but it would still be good to confirm this from Ollama documentation for the model you wish to use.
+
+
 # 🗺️ Roadmap
 
 - [X] Canvas
 - [X] Async/Batch Execution
 - [X] Evals
 - [X] Spur API
+- [x] Support Ollama
 - [ ] New Nodes
     - [X] LLM Nodes
     - [X] If-Else

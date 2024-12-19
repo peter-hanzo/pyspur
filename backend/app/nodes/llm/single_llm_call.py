@@ -1,4 +1,6 @@
 import json
+import os
+from dotenv import load_dotenv
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -12,6 +14,7 @@ from ..base import (
 from .llm_utils import LLMModels, ModelInfo, create_messages, generate_text
 from jinja2 import Template
 
+load_dotenv()
 
 class SingleLLMCallNodeConfig(VariableOutputBaseNodeConfig):
     llm_info: ModelInfo = Field(
@@ -77,8 +80,8 @@ class SingleLLMCallNode(VariableOutputBaseNode):
             "temperature": self.config.llm_info.temperature,
             "json_mode": True,
         }
-        if self.config.llm_info.api_base:
-            kwargs["api_base"] = self.config.llm_info.api_base
+        if self.config.llm_info.model.startswith("ollama"):
+            kwargs["api_base"] = os.getenv("OLLAMA_BASE_URL")
         assistant_message = await generate_text(**kwargs)
         assistant_message = json.loads(assistant_message)
         assistant_message = self.output_model.model_validate(assistant_message)

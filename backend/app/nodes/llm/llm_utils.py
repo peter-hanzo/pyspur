@@ -7,12 +7,16 @@ from typing import Any, Callable, Dict, List, Optional, cast
 
 import numpy as np
 from dotenv import load_dotenv
+import litellm
 from litellm import acompletion
 from pydantic import BaseModel, Field
 from sklearn.metrics.pairwise import cosine_similarity
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 from enum import Enum
+from ollama import AsyncClient
 
+# uncomment for debugging litellm issues
+litellm.set_verbose=True
 load_dotenv()
 
 
@@ -39,6 +43,7 @@ class LLMModels(str, Enum):
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
     OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
     OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
+    OLLAMA_LLAMA3_8B = "ollama/llama3"
     OLLAMA_GEMMA_2 = "ollama/gemma2"
     OLLAMA_GEMMA_2_2B = "ollama/gemma2:2b"
     OLLAMA_MISTRAL = "ollama/mistral"
@@ -49,9 +54,6 @@ class LLMModels(str, Enum):
 class ModelInfo(BaseModel):
     model: LLMModels = Field(
         LLMModels.GPT_4O, description="The LLM model to use for completion"
-    )
-    api_base: Optional[str] = Field(
-        None, description="API base URL for model provider (required for Ollama models)"
     )
     max_tokens: Optional[int] = Field(
         ...,
@@ -149,7 +151,7 @@ def async_retry(*dargs, **dkwargs):
     return decorator
 
 
-@async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(20))
+@async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
 async def completion_with_backoff(**kwargs) -> str:
     try:
         # Only use api_base if it has a non-empty value
@@ -191,11 +193,18 @@ async def generate_text(
         "messages": messages,
         "temperature": temperature,
     }
-    if json_mode:
+    if json_mode and not model_name.startswith("ollama"):
         kwargs["response_format"] = {"type": "json_object"}
-    if api_base:
-        kwargs["api_base"] = api_base
-    response = await completion_with_backoff(**kwargs)
+        response = await completion_with_backoff(**kwargs)
+    elif json_mode and model_name.startswith("ollama"):
+        options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
+        response = await ollama_with_backoff(
+            model=model_name,
+            options=options,
+            messages=messages,
+            format="json",
+            api_base=api_base,
+        )
     return cast(str, response)
 
 
@@ -257,3 +266,50 @@ async def find_top_k_similar(
         key = id_extractor(old_doc) if id_extractor else i
         top_k_similar_docs[key] = similar_docs
     return top_k_similar_docs
+
+
+class OllamaOptions(BaseModel):
+    """Options for Ollama API calls"""
+    temperature: float = Field(default=0.7, ge=0.0, le=1.0, description="Controls randomness in responses")
+    max_tokens: Optional[int] = Field(default=None, ge=0, description="Maximum number of tokens to generate")
+    top_p: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold")
+    top_k: Optional[int] = Field(default=None, ge=0, description="Number of tokens to consider for top-k sampling")
+    repeat_penalty: Optional[float] = Field(default=None, ge=0.0, description="Penalty for token repetition")
+    stop: Optional[list[str]] = Field(default=None, description="Stop sequences to end generation")
+    
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary, excluding None values"""
+        return {k: v for k, v in self.model_dump().items() if v is not None}
+
+@async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
+async def ollama_with_backoff(
+    model: str,
+    messages: list[dict[str, str]],
+    format: Optional[str | dict[str, Any]] = None,
+    options: Optional[OllamaOptions] = None,
+    api_base: Optional[str] = None,
+) -> str:
+    """
+    Make an async Ollama API call with exponential backoff retry logic.
+    
+    Args:
+        model: The name of the Ollama model to use
+        messages: List of message dictionaries with 'role' and 'content'
+        response_model: Optional Pydantic model for response validation
+        options: OllamaOptions instance with model parameters
+        max_retries: Maximum number of retries
+        initial_wait: Initial wait time between retries in seconds
+        max_wait: Maximum wait time between retries in seconds
+    
+    Returns:
+        Either a string response or a validated Pydantic model instance
+    """
+    client = AsyncClient(host=api_base)
+    response = await client.chat(
+        model=model.replace("ollama/", ""),
+        messages=messages,
+        format=format,
+        options=(options or OllamaOptions()).to_dict()
+    )
+    return response.message.content
+    
