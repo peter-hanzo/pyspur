@@ -15,6 +15,8 @@ import {
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
+import isEqual from 'lodash/isEqual';
+import { FlowWorkflowNode } from '@/store/flowSlice';
 
 interface NodeData {
   run?: Record<string, any>;
@@ -54,6 +56,17 @@ const getNodeTitle = (data: NodeData = {}): string => {
   return data.config?.title || data.title || data.type || 'Untitled';
 };
 
+const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  // Skip position and measured properties when comparing nodes
+  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
+  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  return isEqual(prevRest, nextRest);
+}
+
+const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+}
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -73,7 +86,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const dispatch = useDispatch();
 
   // Retrieve the node's position and edges from the Redux store
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
+  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
@@ -85,7 +98,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       return { [inputNodeId as string]: rest };
     }
     return { [inputNodeId as string]: {} };
-  });
+  }, isEqual);
 
   const availableOutputs = useSelector((state: RootState) => {
     const nodes = state.flow.nodes;
@@ -96,7 +109,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       }
     });
     return availableOutputs;
-  });
+  }, isEqual);
 
   const { executePartialRun, loading } = usePartialRun();
 
