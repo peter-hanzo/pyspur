@@ -172,14 +172,20 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   }, isEqual);
 
   const availableOutputs = useSelector((state: RootState) => {
-    const nodes = state.flow.nodes;
-    const availableOutputs: Record<string, any> = {};
+    const nodes = state.flow.nodes.map(node => ({
+      id: node.id,
+      data: {
+        run: node.data?.run
+      }
+    }));
+    
+    const outputs: Record<string, any> = {};
     nodes.forEach((node) => {
       if (node.data && node.data.run) {
-        availableOutputs[node.id] = node.data.run;
+        outputs[node.id] = node.data.run;
       }
     });
-    return availableOutputs;
+    return outputs;
   }, isEqual);
 
   const { executePartialRun, loading } = usePartialRun();
