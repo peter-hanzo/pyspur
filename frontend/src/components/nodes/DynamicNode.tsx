@@ -52,6 +52,7 @@ interface DynamicNodeProps extends NodeProps {
 }
 
 const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  if (!prevNode || !nextNode) return false;
   // Skip position and measured properties when comparing nodes
   const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
   const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
@@ -59,6 +60,8 @@ const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) 
 };
 
 const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  if (!prevNodes || !nextNodes) return false;
+  if (prevNodes.length !== nextNodes.length) return false;
   return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
 };
 
@@ -70,7 +73,26 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
-  const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
+  const nodes = useSelector((state: RootState) => 
+    state.flow.nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      data: {
+        config: {
+          title: node.data?.config?.title
+        }
+      }
+    })), 
+    (prev, next) => {
+      if (!prev || !next) return false;
+      if (prev.length !== next.length) return false;
+      return prev.every((node, index) => 
+        node.id === next[index].id && 
+        node.type === next[index].type && 
+        node.data?.config?.title === next[index].data?.config?.title
+      );
+    }
+  );
   const nodeData = data || (node && node.data);
   const dispatch = useDispatch();
 
