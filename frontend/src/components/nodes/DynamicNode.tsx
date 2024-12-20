@@ -56,11 +56,11 @@ const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) 
   const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
   const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
   return isEqual(prevRest, nextRest);
-}
+};
 
 const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
   return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
-}
+};
 
 const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
