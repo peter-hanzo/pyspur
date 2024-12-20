@@ -126,6 +126,22 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
   return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
 };
 
+// Add the utility function near the top of the file
+const convertToPythonVariableName = (str: string): string => {
+  // Replace spaces and hyphens with underscores
+  str = str.replace(/[\s-]/g, '_');
+  
+  // Remove any non-alphanumeric characters except underscores
+  str = str.replace(/[^a-zA-Z0-9_]/g, '');
+  
+  // Ensure the first character is a letter or underscore
+  if (!/^[a-zA-Z_]/.test(str)) {
+    str = '_' + str;
+  }
+  
+  return str;
+};
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
   const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
@@ -147,6 +163,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [dynamicModel, setDynamicModel] = useState<DynamicModel>(node?.data?.config || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
   const [showTitleError, setShowTitleError] = useState(false);
+  const [titleInputValue, setTitleInputValue] = useState<string>('');
 
   const collectIncomingSchema = (nodeID: string): string[] => {
     const incomingEdges = edges.filter((edge) => edge.target === nodeID);
@@ -181,8 +198,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     [dispatch]
   );
 
+  // Add this useEffect to handle title initialization and updates
+  useEffect(() => {
+    if (node) {
+      setTitleInputValue(node.data?.config?.title || node.id || '');
+    }
+  }, [node]); // Only depend on node changes
 
-  // Update dynamicModel when nodeID changes
+  // Update the existing useEffect to remove the title setting
   useEffect(() => {
     if (node) {
       setNodeType(node.type || 'ExampleNode');
@@ -217,15 +240,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
   };
 
+
+  // Update the handleNodeTitleChange function
   const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    if (newTitle && /\s/.test(newTitle)) {
-      setShowTitleError(true);
-      return;
-    }
-    setShowTitleError(false);
-    handleInputChange('title', newTitle);
-    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle }));
+    const validTitle = convertToPythonVariableName(e.target.value);
+    setTitleInputValue(validTitle);
+    handleInputChange('title', validTitle);
+    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: validTitle }));
   };
 
   const renderEnumSelect = (
@@ -711,10 +732,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
-                value={node?.data?.config?.title || ''}
+                value={titleInputValue}
                 onChange={handleNodeTitleChange}
                 placeholder="Enter node title"
-                maxRows={1}
                 label="Node Title"
                 fullWidth
                 description="Use underscores instead of spaces"

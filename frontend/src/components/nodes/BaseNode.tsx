@@ -119,6 +119,21 @@ const staticStyles = {
   }
 } as const;
 
+const convertToPythonVariableName = (str: string): string => {
+  // Replace spaces and hyphens with underscores
+  str = str.replace(/[\s-]/g, '_');
+  
+  // Remove any non-alphanumeric characters except underscores
+  str = str.replace(/[^a-zA-Z0-9_]/g, '');
+  
+  // Ensure the first character is a letter or underscore
+  if (!/^[a-zA-Z_]/.test(str)) {
+    str = '_' + str;
+  }
+  
+  return str;
+};
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -135,6 +150,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [editingTitle, setEditingTitle] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showTitleError, setShowTitleError] = useState(false);
+  const [titleInputValue, setTitleInputValue] = useState('');
   const dispatch = useDispatch();
 
   // Retrieve the node's position and edges from the Redux store
@@ -334,23 +350,18 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   }), [color]);
 
   const handleTitleChange = (newTitle: string) => {
-    if (newTitle && /\s/.test(newTitle)) {
-      setShowTitleError(true);
-      return;
-    }
-    setShowTitleError(false);
-    if (newTitle && newTitle !== getNodeTitle(data)) {
+    const validTitle = convertToPythonVariableName(newTitle);
+    if (validTitle && validTitle !== getNodeTitle(data)) {
       dispatch(updateNodeData({
         id,
         data: {
           config: {
             ...data.config,
-            title: newTitle,
+            title: validTitle,
           },
         },
       }));
     }
-    setEditingTitle(false);
   };
 
   const headerStyle = React.useMemo(() => ({
@@ -403,20 +414,21 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 {editingTitle ? (
                   <Input
                     autoFocus
-                    defaultValue={getNodeTitle(data)}
+                    value={titleInputValue}
                     size="sm"
                     variant="faded"
                     radius="lg"
-                    onBlur={(e) => handleTitleChange(e.target.value)}
+                    onChange={(e) => {
+                      const validValue = convertToPythonVariableName(e.target.value);
+                      setTitleInputValue(validValue);
+                      handleTitleChange(validValue);
+                    }}
+                    onBlur={() => setEditingTitle(false)}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Enter' || e.key === 'Escape') {
                         e.stopPropagation();
                         e.preventDefault();
-                        if (e.key === 'Enter') {
-                          handleTitleChange((e.target as HTMLInputElement).value);
-                        } else {
-                          setEditingTitle(false);
-                        }
+                        setEditingTitle(false);
                       }
                     }}
                     classNames={{
