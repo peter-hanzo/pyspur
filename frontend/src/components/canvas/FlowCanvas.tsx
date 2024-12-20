@@ -1,5 +1,23 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { ReactFlow, Background, ReactFlowProvider, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect, NodeTypes, EdgeTypes, ReactFlowInstance, XYPosition } from '@xyflow/react';
+import {
+  ReactFlow,
+  Background,
+  ReactFlowProvider,
+  Node,
+  Edge,
+  NodeChange,
+  EdgeChange,
+  Connection,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  NodeTypes,
+  EdgeTypes,
+  ReactFlowInstance,
+  XYPosition,
+  SelectionMode,
+  ConnectionMode,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/Operator';
@@ -227,12 +245,16 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       ...edge,
       type: 'custom',
       style: {
-        stroke: 'gray',
-        strokeWidth: edge.id === hoveredEdge
-          ? 4
-          : edge.source === hoveredNode || edge.target === hoveredNode
-            ? 4
-            : 2,
+        stroke: hoveredEdge === edge.id || 
+                hoveredNode === edge.source || 
+                hoveredNode === edge.target 
+          ? '#555' 
+          : '#999',
+        strokeWidth: hoveredEdge === edge.id || 
+                    hoveredNode === edge.source || 
+                    hoveredNode === edge.target 
+          ? 3 
+          : 1.5,
       },
       data: {
         ...edge.data,
@@ -247,12 +269,12 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     (_: React.MouseEvent, edge: Edge) => {
       setHoveredEdge(edge.id);
     },
-    []
+    [setHoveredEdge]
   );
 
   const onEdgeMouseLeave = useCallback(() => {
     setHoveredEdge(null);
-  }, []);
+  }, [setHoveredEdge]);
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
     setReactFlowInstance(instance);
@@ -340,11 +362,11 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
   const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
     setHoveredNode(node.id);
-  }, []);
+  }, [setHoveredNode]);
 
   const onNodeMouseLeave = useCallback(() => {
     setHoveredNode(null);
-  }, []);
+  }, [setHoveredNode]);
 
   const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
     insertNodeBetweenNodes(
@@ -434,14 +456,14 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             zoomOnScroll={true}
             minZoom={0.1}
             maxZoom={2}
-            selectionMode={mode === 'pointer' ? 1 : 0}
+            selectionMode={mode === 'pointer' ? SelectionMode.Full : SelectionMode.Partial}
             selectNodesOnDrag={mode === 'pointer'}
             selectionOnDrag={mode === 'pointer'}
-            selectionKeyCode={mode === 'pointer' ? null : false}
-            multiSelectionKeyCode={mode === 'pointer' ? null : false}
+            selectionKeyCode={mode === 'pointer' ? null : 'Shift'}
+            multiSelectionKeyCode={mode === 'pointer' ? null : 'Shift'} 
             deleteKeyCode="Delete"
             nodesConnectable={true}
-            connectionMode="loose"
+            connectionMode={ConnectionMode.Loose}
             onNodeMouseEnter={onNodeMouseEnter}
             onNodeMouseLeave={onNodeMouseLeave}
             onEdgeMouseEnter={onEdgeMouseEnter}
