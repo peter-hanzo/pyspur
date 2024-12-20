@@ -348,8 +348,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
   useEffect(() => {
     // Check if finalPredecessors differ from predecessorNodes
+    // (We do a deeper comparison to detect config/title changes, not just ID changes)
     const hasChanged = finalPredecessors.length !== predecessorNodes.length ||
-      finalPredecessors.some((n: any, i: number) => n?.id !== predecessorNodes[i]?.id);
+      finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]));
 
     if (hasChanged) {
       setPredcessorNodes(finalPredecessors);

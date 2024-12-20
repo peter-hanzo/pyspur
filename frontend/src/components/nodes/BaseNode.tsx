@@ -189,7 +189,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     if (!showControls) setShowControls(true);
     if (!isTooltipHovered) setIsTooltipHovered(true);
   }, []);
-  
+
   const handleControlsMouseLeave = useCallback(() => {
     if (isTooltipHovered) setIsTooltipHovered(false);
     setTimeout(() => {
