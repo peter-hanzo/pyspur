@@ -32,10 +32,16 @@ print(f"TEMPLATES_DIR resolved to: {TEMPLATES_DIR.resolve()}")
     "/", description="List all available templates", response_model=List[TemplateSchema]
 )
 def list_templates() -> List[TemplateSchema]:
-    templates: List[TemplateSchema] = []
     if not TEMPLATES_DIR.exists():
         raise HTTPException(status_code=500, detail="Templates directory not found")
-    for template_file in TEMPLATES_DIR.glob("*.json"):
+
+    # Sort by creation time in descending (most recent first)
+    sorted_template_files = sorted(
+        TEMPLATES_DIR.glob("*.json"), key=lambda p: p.stat().st_ctime, reverse=True
+    )
+
+    templates: List[TemplateSchema] = []
+    for template_file in sorted_template_files:
         with open(template_file, "r") as f:
             template_content = json.load(f)
             metadata = template_content.get("metadata", {})
