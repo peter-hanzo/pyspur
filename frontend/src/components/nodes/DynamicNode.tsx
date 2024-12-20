@@ -328,7 +328,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         }
       }
     }
-    console.log('result', result);
     return result;
   }, [edges, nodes, connection, id]);
 

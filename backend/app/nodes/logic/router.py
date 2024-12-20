@@ -36,26 +36,20 @@ class RouteCondition(BaseModel):
 class RouterNodeConfig(DynamicSchemaNodeConfig):
     """Configuration for the router node."""
     routes: List[RouteCondition]
-    input_schema: Dict[str, str] = {"input": "any"}  # The input data to be routed
-    output_schema: Dict[str, str] = Field(
-        default_factory=dict
-    )  # Will be dynamically populated
+    input_schema: Dict[str, str] = {"input_node": "Any"}  # The input data to be routed
+    # output_schema will be dynamically populated in initialize()
+    output_schema: Dict[str, str] = Field(default_factory=dict)
 
 
 class RouterNodeInput(BaseModel):
     """Input model for the router node."""
-    input: Dict[str, Any]  # The input data to be routed, now expecting a dictionary of variables
-
-
-class RouterNodeOutput(BaseModel):
-    """Output model for the router node."""
-    outputs: Dict[str, Any] = Field(default_factory=dict)
+    input_node: Dict[str, Any]  # Adjust to match the provided input structure
 
 
 class RouterNode(DynamicSchemaNode):
     """
     A routing node that directs input data to different routes
-    based on the evaluation of multiple conditions per route. The first route acts as the default
+    based on the evaluation of conditions. The first route acts as the default
     if no other conditions match.
     """
 
@@ -68,7 +62,6 @@ class RouterNode(DynamicSchemaNode):
     ) -> bool:
         """Evaluate a single condition against a specific input variable"""
         try:
-            # Get the variable value from input
             if not condition.variable:
                 return False
 
@@ -101,14 +94,13 @@ class RouterNode(DynamicSchemaNode):
     def _evaluate_route_conditions(
         self, input_value: Dict[str, Any], route: RouteCondition
     ) -> bool:
-        """Evaluate all conditions in a route with support for AND/OR logic"""
+        """Evaluate all conditions in a route with AND/OR logic"""
         if not route.conditions:
+            # If no conditions, consider it always matches
             return True
 
-        # First condition is always evaluated
         result = self._evaluate_single_condition(input_value, route.conditions[0])
 
-        # Evaluate subsequent conditions with their logical operators
         for i in range(1, len(route.conditions)):
             condition = route.conditions[i]
             current_result = self._evaluate_single_condition(input_value, condition)
@@ -120,38 +112,35 @@ class RouterNode(DynamicSchemaNode):
 
         return result
 
-    async def run(self, input_data: RouterNodeInput) -> RouterNodeOutput:
+    async def run(self, input_data: RouterNodeInput) -> Dict[str, Optional[Any]]:
         """
-        Evaluates conditions and routes the input data to the matching route.
-        The first route acts as the default if no other conditions match.
+        Evaluates conditions for each route in order. The first route that matches
+        gets the input data. If no routes match, the first route acts as a default.
         """
-        outputs = {}
-        input_value = input_data.input
+        input_value = input_data.input_node
+        route_count = len(self.config.routes)
 
-        # Always route to first route if it's the only one
-        if len(self.config.routes) == 1:
-            outputs["Route_1"] = input_value
-            return RouterNodeOutput(outputs=outputs)
-
-        # Evaluate conditions for all routes except the first one
-        matched = False
-        for i, route in enumerate(self.config.routes[1:], 2):
+        matched_route = None
+        # Evaluate routes in order
+        for i, route in enumerate(self.config.routes, start=1):
             if self._evaluate_route_conditions(input_value, route):
-                outputs[f"Route_{i}"] = input_value
-                matched = True
+                matched_route = i
                 break
 
-        # If no other conditions matched, route to the first route
-        if not matched:
-            outputs["Route_1"] = input_value
+        # If no route matched, default to first route
+        if matched_route is None:
+            matched_route = 1
 
-        return RouterNodeOutput(outputs=outputs)
+        # Construct outputs dict
+        outputs = {}
+        for i in range(1, route_count + 1):
+            outputs[f"Route_{i}"] = input_value if i == matched_route else None
+
+        return outputs
 
     def initialize(self) -> None:
         """Initialize the node and set up the output schema"""
-        # Build output schema based on route configurations
-        output_schema = {}
-        for i in range(len(self.config.routes)):
-            output_schema[f"Route_{i + 1}"] = "any"
-
-        self.config.output_schema = output_schema
+        # Each route corresponds to a top-level optional field in the output schema
+        self.config.output_schema = {
+            f"Route_{i}": "Optional[Any]" for i in range(1, len(self.config.routes) + 1)
+        }

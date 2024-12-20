@@ -1,8 +1,8 @@
 from abc import ABC
-from typing import Dict
+from typing import Dict, Any
 
 from .base import BaseNode
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 
 
 class DynamicSchemaNodeConfig(BaseModel):
@@ -14,6 +14,25 @@ class DynamicSchemaNodeConfig(BaseModel):
 
 class DynamicSchemaNode(BaseNode, ABC):
     """Base class for nodes with dynamic input/output schemas."""
+
+    @staticmethod
+    def get_model_for_schema_dict(schema: Dict[str, str], schema_name: str):
+        """
+        Create and return a Pydantic model based on a schema dictionary.
+        """
+        type_mapping = {
+            "Any": Any,
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "any": Any,  # Handle lowercase "any"
+        }
+        fields = {
+            key: (type_mapping.get(value, eval(value)), ...) for key, value in schema.items()
+        }
+        print(f"Generated fields for {schema_name}: {fields}")
+        return create_model(schema_name, **fields)
 
     def setup(self) -> None:
         """Set up dynamic input/output models based on configuration."""
