@@ -705,7 +705,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           >
             {nodeType !== 'InputNode' && (
               <AccordionItem key="output" aria-label="Output" title="Outputs">
-                <NodeOutput node={node} />
+                <NodeOutput output={node?.data?.run} />
               </AccordionItem>
             )}
 
