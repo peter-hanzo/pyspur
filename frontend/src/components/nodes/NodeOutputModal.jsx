@@ -16,7 +16,7 @@ const NodeOutputModal = ({ isOpen, onOpenChange, title, node }) => {
             <ModalBody>
                 <div className='py-5'>
                 {node ? (
-                    <NodeOutputDisplay node={node} /> // Reuse NodeOutputDisplay for rendering
+                    <NodeOutputDisplay output={node.data.run} />
                 ) : (
                     <div>No output available</div>
                 )}
