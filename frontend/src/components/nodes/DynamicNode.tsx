@@ -52,6 +52,7 @@ interface DynamicNodeProps extends NodeProps {
 }
 
 const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  if (!prevNode || !nextNode) return false;
   // Skip position and measured properties when comparing nodes
   const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
   const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
@@ -59,6 +60,8 @@ const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) 
 };
 
 const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  if (!prevNodes || !nextNodes) return false;
+  if (prevNodes.length !== nextNodes.length) return false;
   return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
 };
 
