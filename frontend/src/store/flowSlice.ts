@@ -537,6 +537,6 @@ export const {
 
 export default flowSlice.reducer;
 
-export const selectNodeById = (state: { flow: FlowState }, nodeId: string): Node | undefined => {
+export const selectNodeById = (state: { flow: FlowState }, nodeId: string): FlowWorkflowNode | undefined => {
   return state.flow.nodes.find((node) => node.id === nodeId);
 };

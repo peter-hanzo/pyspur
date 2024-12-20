@@ -7,6 +7,7 @@ import {
   selectNodeById,
   setSidebarWidth,
   setSelectedNode,
+  FlowWorkflowNode,
 } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
@@ -33,6 +34,7 @@ import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 import { cloneDeep, set, debounce } from 'lodash';
 import IfElseEditor from './IfElseEditor';
 import MergeEditor from './MergeEditor';
+import isEqual from 'lodash/isEqual';
 // Define types for props and state
 interface NodeSidebarProps {
   nodeID: string;
@@ -113,14 +115,25 @@ const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeSchema | nu
   return null;
 };
 
+const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  // Skip position and measured properties when comparing nodes
+  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
+  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  return isEqual(prevRest, nextRest);
+};
+
+const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+};
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
-  const edges = useSelector((state: RootState) => state.flow.edges);
-  const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
-  const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
-  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
-  const metadata = useSelector((state: RootState) => state.nodeTypes.metadata);
+  const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
+  const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
+  const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data, isEqual);
+  const node = useSelector((state: RootState) => selectNodeById(state, nodeID), nodeComparator);
+  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth, isEqual);
+  const metadata = useSelector((state: RootState) => state.nodeTypes.metadata, isEqual);
 
   const hasRunOutput = !!node?.data?.run;
 
@@ -614,6 +627,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
       const newWidth = window.innerWidth - e.clientX;
       const constrainedWidth = Math.min(Math.max(newWidth, 300), 800);
+      if (constrainedWidth === width) return;
       setWidth(constrainedWidth);
     };
 
