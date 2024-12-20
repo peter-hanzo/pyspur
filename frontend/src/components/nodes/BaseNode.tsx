@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
+import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
 import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -352,15 +352,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const handleTitleChange = (newTitle: string) => {
     const validTitle = convertToPythonVariableName(newTitle);
     if (validTitle && validTitle !== getNodeTitle(data)) {
-      dispatch(updateNodeData({
-        id,
-        data: {
-          config: {
-            ...data.config,
-            title: validTitle,
-          },
-        },
-      }));
+      dispatch(updateNodeTitle({ nodeId: id, newTitle: validTitle }));
     }
   };
 
@@ -440,7 +432,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                   <h3
                     className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
                     style={titleStyle}
-                    onClick={() => setEditingTitle(true)}
+                    onClick={() => {
+                      setTitleInputValue(getNodeTitle(data));
+                      setEditingTitle(true);
+                    }}
                   >
                     {getNodeTitle(data)}
                   </h3>

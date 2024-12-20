@@ -8,6 +8,7 @@ import {
   setSidebarWidth,
   setSelectedNode,
   FlowWorkflowNode,
+  updateNodeTitle,
 } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
@@ -245,8 +246,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const validTitle = convertToPythonVariableName(e.target.value);
     setTitleInputValue(validTitle);
-    handleInputChange('title', validTitle);
-    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: validTitle }));
+    dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }));
   };
 
   const renderEnumSelect = (

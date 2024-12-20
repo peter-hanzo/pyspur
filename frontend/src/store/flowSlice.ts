@@ -499,6 +499,85 @@ const flowSlice = createSlice({
         state.edges = next.edges;
       }
     },
+
+    updateNodeTitle: (state, action: PayloadAction<{ nodeId: string; newTitle: string }>) => {
+      const { nodeId, newTitle } = action.payload;
+      
+      // Update the node title
+      const node = state.nodes.find(node => node.id === nodeId);
+      if (node && node.data) {
+        node.data.config = {
+          ...node.data.config,
+          title: newTitle
+        };
+      }
+
+      // Update edges where this node is source or target
+      state.edges = state.edges.map(edge => {
+        if (edge.source === nodeId) {
+          return { ...edge, sourceHandle: newTitle, targetHandle: newTitle };
+        }
+        return edge;
+      });
+
+      // Update references in downstream nodes
+      const findDownstreamNodes = (startNodeId: string): Set<string> => {
+        const visited = new Set<string>();
+        const queue = [startNodeId];
+
+        while (queue.length > 0) {
+          const currentId = queue.shift()!;
+          if (!visited.has(currentId)) {
+            visited.add(currentId);
+            state.edges
+              .filter(edge => edge.source === currentId)
+              .forEach(edge => queue.push(edge.target));
+          }
+        }
+        return visited;
+      };
+
+      const downstreamNodes = findDownstreamNodes(nodeId);
+
+      state.nodes = state.nodes.map(node => {
+        if (!downstreamNodes.has(node.id)) return node;
+
+        if (node.data?.config) {
+          const config = { ...node.data.config };
+          let hasChanges = false;
+
+          Object.keys(config).forEach(key => {
+            if (
+              key === 'system_message' ||
+              key === 'user_message' ||
+              key.endsWith('_prompt') ||
+              key.endsWith('_message')
+            ) {
+              const content = config[key];
+              if (typeof content === 'string') {
+                const oldPattern = new RegExp(`{{${nodeId}\\.`, 'g');
+                const newContent = content.replace(oldPattern, `{{${newTitle}.`);
+                if (newContent !== content) {
+                  config[key] = newContent;
+                  hasChanges = true;
+                }
+              }
+            }
+          });
+
+          if (hasChanges) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                config
+              }
+            };
+          }
+        }
+        return node;
+      });
+    },
   },
 });
 
@@ -533,6 +612,7 @@ export const {
   deleteTestInput,
   undo,
   redo,
+  updateNodeTitle,
 } = flowSlice.actions;
 
 export default flowSlice.reducer;
