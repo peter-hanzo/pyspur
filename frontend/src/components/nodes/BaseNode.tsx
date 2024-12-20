@@ -125,15 +125,15 @@ const staticStyles = {
 const convertToPythonVariableName = (str: string): string => {
   // Replace spaces and hyphens with underscores
   str = str.replace(/[\s-]/g, '_');
-  
+
   // Remove any non-alphanumeric characters except underscores
   str = str.replace(/[^a-zA-Z0-9_]/g, '');
-  
+
   // Ensure the first character is a letter or underscore
   if (!/^[a-zA-Z_]/.test(str)) {
     str = '_' + str;
   }
-  
+
   return str;
 };
 
@@ -178,7 +178,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         run: node.data?.run
       }
     }));
-    
+
     const outputs: Record<string, any> = {};
     nodes.forEach((node) => {
       if (node.data && node.data.run) {
@@ -191,36 +191,32 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const { executePartialRun, loading } = usePartialRun();
 
   const handleMouseEnter = useCallback(() => {
-    if (!isHovered) {
-      setIsHovered(true);
-    }
-    if (!showControls){
-      setShowControls(true);
-    }
-  }, []);
+    setIsHovered(true);
+    setShowControls(true);
+  }, [setIsHovered, setShowControls]);
 
   const handleMouseLeave = useCallback(() => {
-    if (isHovered) {
-      setIsHovered(false);
-    }
-    if (!isTooltipHovered && showControls) {
+    setIsHovered(false);
+    if (!isTooltipHovered) {
       setTimeout(() => {
         setShowControls(false);
       }, 200);
     }
-  }, []);
+  }, [setIsHovered, setShowControls, isTooltipHovered]);
 
   const handleControlsMouseEnter = useCallback(() => {
-    if (!showControls) setShowControls(true);
-    if (!isTooltipHovered) setIsTooltipHovered(true);
-  }, []);
+    setShowControls(true);
+    setIsTooltipHovered(true);
+  }, [setShowControls, setIsTooltipHovered]);
 
   const handleControlsMouseLeave = useCallback(() => {
-    if (isTooltipHovered) setIsTooltipHovered(false);
+    setIsTooltipHovered(false);
     setTimeout(() => {
-      if (!isHovered && showControls) setShowControls(false);
+      if (!isHovered) {
+        setShowControls(false);
+      }
     }, 300);
-  }, []);
+  }, [isHovered, setShowControls, setIsTooltipHovered]);
 
   const handleDelete = () => {
     dispatch(deleteNode({ nodeId: id }));
