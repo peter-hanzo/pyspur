@@ -26,12 +26,16 @@ class DynamicSchemaNode(BaseNode, ABC):
             "int": int,
             "float": float,
             "bool": bool,
-            "any": Any,  # Handle lowercase "any"
+            "any": Any,  # Handle lowercase "any" by mapping it to Any
         }
-        fields = {
-            key: (type_mapping.get(value, eval(value)), ...) for key, value in schema.items()
-        }
-        print(f"Generated fields for {schema_name}: {fields}")
+
+        fields = {}
+        for key, value in schema.items():
+            # If the type is not recognized, raise an error instead of using eval
+            if value not in type_mapping:
+                raise ValueError(f"Unsupported type '{value}' in schema for field '{key}'")
+            fields[key] = (type_mapping[value], ...)
+
         return create_model(schema_name, **fields)
 
     def setup(self) -> None:
