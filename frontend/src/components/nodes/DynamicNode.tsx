@@ -267,8 +267,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-
-        if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
+        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
           return {
             id: sourceNode.id,
             type: sourceNode.type,
@@ -293,14 +293,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-
-        if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
+        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
           return {
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
               config: {
-                title: edge.sourceHandle
+                title: sourceNode.id + '_' + edge.sourceHandle
               }
             }
           };
@@ -313,13 +313,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
     if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
       if (connection.fromNode && !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)) {
-        if (connection.fromNode.type === 'IfElseNode' && connection.fromHandle) {
+        if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
+          console.log('connection', connection);
           result = [...updatedPredecessorNodes, {
             id: connection.fromNode.id,
             type: connection.fromNode.type,
             data: {
               config: {
-                title: connection.fromHandle.nodeId
+                title: connection.fromHandle.nodeId + '_' + connection.fromHandle.id
               }
             }
           }];
@@ -343,7 +344,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     }
   }, [finalPredecessors, predecessorNodes, updateNodeInternals, id]);
 
-  const isIfElseNode = type === 'IfElseNode';
+  const isRouterNode = type === 'RouterNode';
 
   const renderHandles = () => {
     if (!nodeData) return null;
@@ -395,7 +396,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           className="hover:!bg-background"
         >
           <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-            {isIfElseNode ? (
+            {isRouterNode ? (
               <div>
                 <strong>Conditional Node</strong>
               </div>

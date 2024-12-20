@@ -28,40 +28,40 @@ class Condition(BaseModel):
     logicalOperator: Optional[LogicalOperator] = Field(default="AND")
 
 
-class BranchCondition(BaseModel):
-    """Configuration for a branch with multiple conditions"""
+class RouteCondition(BaseModel):
+    """Configuration for a route with multiple conditions"""
     conditions: List[Condition]
 
 
-class IfElseNodeConfig(DynamicSchemaNodeConfig):
-    """Configuration for the if-else node."""
-    branches: List[BranchCondition]
+class RouterNodeConfig(DynamicSchemaNodeConfig):
+    """Configuration for the router node."""
+    routes: List[RouteCondition]
     input_schema: Dict[str, str] = {"input": "any"}  # The input data to be routed
     output_schema: Dict[str, str] = Field(
         default_factory=dict
     )  # Will be dynamically populated
 
 
-class IfElseNodeInput(BaseModel):
-    """Input model for the if-else node."""
+class RouterNodeInput(BaseModel):
+    """Input model for the router node."""
     input: Dict[str, Any]  # The input data to be routed, now expecting a dictionary of variables
 
 
-class IfElseNodeOutput(BaseModel):
-    """Output model for the if-else node."""
+class RouterNodeOutput(BaseModel):
+    """Output model for the router node."""
     outputs: Dict[str, Any] = Field(default_factory=dict)
 
 
-class IfElseNode(DynamicSchemaNode):
+class RouterNode(DynamicSchemaNode):
     """
-    A routing node that directs input data to different branches
-    based on the evaluation of multiple conditions per branch. The first branch acts as the default
+    A routing node that directs input data to different routes
+    based on the evaluation of multiple conditions per route. The first route acts as the default
     if no other conditions match.
     """
 
-    name = "if_else_node"
-    display_name = "If-Else"
-    config_model = IfElseNodeConfig
+    name = "router_node"
+    display_name = "Router"
+    config_model = RouterNodeConfig
 
     def _evaluate_single_condition(
         self, input_value: Any, condition: Condition
@@ -98,19 +98,19 @@ class IfElseNode(DynamicSchemaNode):
         except (ValueError, TypeError, AttributeError):
             return False
 
-    def _evaluate_branch_conditions(
-        self, input_value: Dict[str, Any], branch: BranchCondition
+    def _evaluate_route_conditions(
+        self, input_value: Dict[str, Any], route: RouteCondition
     ) -> bool:
-        """Evaluate all conditions in a branch with support for AND/OR logic"""
-        if not branch.conditions:
+        """Evaluate all conditions in a route with support for AND/OR logic"""
+        if not route.conditions:
             return True
 
         # First condition is always evaluated
-        result = self._evaluate_single_condition(input_value, branch.conditions[0])
+        result = self._evaluate_single_condition(input_value, route.conditions[0])
 
         # Evaluate subsequent conditions with their logical operators
-        for i in range(1, len(branch.conditions)):
-            condition = branch.conditions[i]
+        for i in range(1, len(route.conditions)):
+            condition = route.conditions[i]
             current_result = self._evaluate_single_condition(input_value, condition)
 
             if condition.logicalOperator == "OR":
@@ -120,38 +120,38 @@ class IfElseNode(DynamicSchemaNode):
 
         return result
 
-    async def run(self, input_data: IfElseNodeInput) -> IfElseNodeOutput:
+    async def run(self, input_data: RouterNodeInput) -> RouterNodeOutput:
         """
-        Evaluates conditions and routes the input data to the matching branch.
-        The first branch acts as the default if no other conditions match.
+        Evaluates conditions and routes the input data to the matching route.
+        The first route acts as the default if no other conditions match.
         """
         outputs = {}
         input_value = input_data.input
 
-        # Always route to first branch if it's the only one
-        if len(self.config.branches) == 1:
-            outputs["branch1"] = input_value
-            return IfElseNodeOutput(outputs=outputs)
+        # Always route to first route if it's the only one
+        if len(self.config.routes) == 1:
+            outputs["Route_1"] = input_value
+            return RouterNodeOutput(outputs=outputs)
 
-        # Evaluate conditions for all branches except the first one
+        # Evaluate conditions for all routes except the first one
         matched = False
-        for i, branch in enumerate(self.config.branches[1:], 2):
-            if self._evaluate_branch_conditions(input_value, branch):
-                outputs[f"branch{i}"] = input_value
+        for i, route in enumerate(self.config.routes[1:], 2):
+            if self._evaluate_route_conditions(input_value, route):
+                outputs[f"Route_{i}"] = input_value
                 matched = True
                 break
 
-        # If no other conditions matched, route to the first branch
+        # If no other conditions matched, route to the first route
         if not matched:
-            outputs["branch1"] = input_value
+            outputs["Route_1"] = input_value
 
-        return IfElseNodeOutput(outputs=outputs)
+        return RouterNodeOutput(outputs=outputs)
 
     def initialize(self) -> None:
         """Initialize the node and set up the output schema"""
-        # Build output schema based on branch configurations
+        # Build output schema based on route configurations
         output_schema = {}
-        for i in range(len(self.config.branches)):
-            output_schema[f"branch{i + 1}"] = "any"
+        for i in range(len(self.config.routes)):
+            output_schema[f"Route_{i + 1}"] = "any"
 
         self.config.output_schema = output_schema
