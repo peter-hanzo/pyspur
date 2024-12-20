@@ -274,7 +274,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             type: sourceNode.type,
             data: {
               config: {
-                title: edge.sourceHandle
+                title: edge.source + '_' + edge.sourceHandle
               }
             }
           };
@@ -293,14 +293,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
         if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
           return {
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
               config: {
-                title: sourceNode.id + '_' + edge.sourceHandle
+                title: edge.source + '_' + edge.sourceHandle
               }
             }
           };
@@ -329,7 +328,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         }
       }
     }
-
+    console.log('result', result);
     return result;
   }, [edges, nodes, connection, id]);
 

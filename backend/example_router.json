@@ -14,7 +14,7 @@
         },
         "coordinates": {
           "x": 0,
-          "y": 169
+          "y": 167
         },
         "subworkflow": null
       },
@@ -38,7 +38,7 @@
                 {
                   "variable": "input",
                   "operator": "contains",
-                  "value": "h"
+                  "value": "H"
                 }
               ]
             },
@@ -47,7 +47,7 @@
                 {
                   "variable": "input",
                   "operator": "contains",
-                  "value": "b"
+                  "value": "B"
                 }
               ]
             }
@@ -85,7 +85,7 @@
         },
         "coordinates": {
           "x": 1376,
-          "y": 198
+          "y": 196
         },
         "subworkflow": null
       },
@@ -111,7 +111,7 @@
         },
         "coordinates": {
           "x": 1376,
-          "y": 437
+          "y": 435
         },
         "subworkflow": null
       }
@@ -119,15 +119,21 @@
     "links": [
       {
         "source_id": "input_node",
-        "target_id": "RouterNode_1"
+        "target_id": "RouterNode_1",
+        "source_handle": null,
+        "target_handle": null
       },
       {
         "source_id": "RouterNode_1",
-        "target_id": "SingleLLMCallNode_1"
+        "target_id": "SingleLLMCallNode_1",
+        "source_handle": "Route_1",
+        "target_handle": "RouterNode_1_Route_1"
       },
       {
         "source_id": "RouterNode_1",
-        "target_id": "SingleLLMCallNode_2"
+        "target_id": "SingleLLMCallNode_2",
+        "source_handle": "Route_2",
+        "target_handle": "RouterNode_1_Route_2"
       }
     ],
     "test_inputs": [
