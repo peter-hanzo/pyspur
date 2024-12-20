@@ -9,11 +9,13 @@ import { Input } from '@nextui-org/react';
 import {
   updateNodeData,
   updateEdgesOnHandleRename,
+  FlowWorkflowNode,
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
 import { RootState } from '../../store/store';
 import NodeOutputDisplay from './NodeOutputDisplay';
 import NodeOutputModal from './NodeOutputModal';
+import isEqual from 'lodash/isEqual';
 
 interface NodeData {
   config?: {
@@ -49,6 +51,20 @@ interface DynamicNodeProps extends NodeProps {
   displayOutput?: boolean;
 }
 
+const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  if (!prevNode || !nextNode) return false;
+  // Skip position and measured properties when comparing nodes
+  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
+  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  return isEqual(prevRest, nextRest);
+};
+
+const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  if (!prevNodes || !nextNodes) return false;
+  if (prevNodes.length !== nextNodes.length) return false;
+  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+};
+
 const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
@@ -56,8 +72,27 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
+  const nodes = useSelector((state: RootState) => 
+    state.flow.nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      data: {
+        config: {
+          title: node.data?.config?.title
+        }
+      }
+    })), 
+    (prev, next) => {
+      if (!prev || !next) return false;
+      if (prev.length !== next.length) return false;
+      return prev.every((node, index) => 
+        node.id === next[index].id && 
+        node.type === next[index].type && 
+        node.data?.config?.title === next[index].data?.config?.title
+      );
+    }
+  );
   const nodeData = data || (node && node.data);
   const dispatch = useDispatch();
 
@@ -167,7 +202,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       Math.max(maxLabelLength * 10, minNodeWidth),
       maxNodeWidth
     );
-    if (finalWidth !== parseInt(nodeWidth)){
+    if (nodeWidth !== `${finalWidth}px`) {
+      console.log('Setting node width to:', finalWidth, 'original:', nodeWidth);
       setNodeWidth(`${finalWidth}px`);
     }
   }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth]);
@@ -333,8 +369,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
   useEffect(() => {
     // Check if finalPredecessors differ from predecessorNodes
+    // (We do a deeper comparison to detect config/title changes, not just ID changes)
     const hasChanged = finalPredecessors.length !== predecessorNodes.length ||
-      finalPredecessors.some((n: any, i: number) => n?.id !== predecessorNodes[i]?.id);
+      finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]));
 
     if (hasChanged) {
       setPredcessorNodes(finalPredecessors);
@@ -375,6 +412,10 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     );
   };
 
+  const baseNodeStyle = useMemo(() => ({
+    width: nodeWidth,
+  }), [nodeWidth]);
+
   return (
     <>
       <div
@@ -384,9 +425,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         <BaseNode
           id={id}
           data={nodeData}
-          style={{
-            width: nodeWidth,
-          }}
+          style={baseNodeStyle}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
           selected={props.selected}

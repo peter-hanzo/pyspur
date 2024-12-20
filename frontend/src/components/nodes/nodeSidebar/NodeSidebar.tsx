@@ -7,6 +7,8 @@ import {
   selectNodeById,
   setSidebarWidth,
   setSelectedNode,
+  FlowWorkflowNode,
+  updateNodeTitle,
 } from '../../../store/flowSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
@@ -24,7 +26,8 @@ import {
   Accordion,
   AccordionItem,
   Card,
-} from '@nextui-org/react';
+  Alert,
+} from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import NodeOutput from '../NodeOutputDisplay';
 import SchemaEditor from './SchemaEditor';
@@ -32,6 +35,7 @@ import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 import { cloneDeep, set, debounce } from 'lodash';
 import RouterEditor from './RouterEditor';
 import MergeEditor from './MergeEditor';
+import isEqual from 'lodash/isEqual';
 // Define types for props and state
 interface NodeSidebarProps {
   nodeID: string;
@@ -112,14 +116,44 @@ const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeSchema | nu
   return null;
 };
 
+const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  if (!prevNode || !nextNode) return false;
+  // Skip position and measured properties when comparing nodes
+  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
+  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  return isEqual(prevRest, nextRest);
+};
+
+const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  if (!prevNodes || !nextNodes) return false;
+  if (prevNodes.length !== nextNodes.length) return false;
+  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+};
+
+// Add the utility function near the top of the file
+const convertToPythonVariableName = (str: string): string => {
+  // Replace spaces and hyphens with underscores
+  str = str.replace(/[\s-]/g, '_');
+  
+  // Remove any non-alphanumeric characters except underscores
+  str = str.replace(/[^a-zA-Z0-9_]/g, '');
+  
+  // Ensure the first character is a letter or underscore
+  if (!/^[a-zA-Z_]/.test(str)) {
+    str = '_' + str;
+  }
+  
+  return str;
+};
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
-  const edges = useSelector((state: RootState) => state.flow.edges);
-  const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
-  const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
-  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
-  const metadata = useSelector((state: RootState) => state.nodeTypes.metadata);
+  const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
+  const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
+  const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data, isEqual);
+  const node = useSelector((state: RootState) => selectNodeById(state, nodeID), nodeComparator);
+  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth, isEqual);
+  const metadata = useSelector((state: RootState) => state.nodeTypes.metadata, isEqual);
 
   const hasRunOutput = !!node?.data?.run;
 
@@ -132,17 +166,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   );
   const [dynamicModel, setDynamicModel] = useState<DynamicModel>(node?.data?.config || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
+  const [showTitleError, setShowTitleError] = useState(false);
+  const [titleInputValue, setTitleInputValue] = useState<string>('');
 
   const collectIncomingSchema = (nodeID: string): string[] => {
     const incomingEdges = edges.filter((edge) => edge.target === nodeID);
     const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source));
     // foreach incoming node, get the output schema
-    // return ['node1.foo', 'node1.bar', 'node2.baz',...]
+    // return ['nodeTitle.foo', 'nodeTitle.bar', 'nodeTitle.baz',...]
     return incomingNodes.reduce((acc: string[], node) => {
       if (node?.data?.config?.output_schema) {
+        const nodeTitle = node.data.config.title || node.id;
         return [
           ...acc,
-          ...Object.keys(node.data.config.output_schema).map((key) => `${node.id}.${key}`),
+          ...Object.keys(node.data.config.output_schema).map((key) => `${nodeTitle}.${key}`),
         ];
       }
       return acc;
@@ -165,8 +202,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     [dispatch]
   );
 
+  // Add this useEffect to handle title initialization and updates
+  useEffect(() => {
+    if (node) {
+      setTitleInputValue(node.data?.config?.title || node.id || '');
+    }
+  }, [node]); // Only depend on node changes
 
-  // Update dynamicModel when nodeID changes
+  // Update the existing useEffect to remove the title setting
   useEffect(() => {
     if (node) {
       setNodeType(node.type || 'ExampleNode');
@@ -201,9 +244,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
   };
 
+
+  // Update the handleNodeTitleChange function
   const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleInputChange('title', e.target.value);
-    dispatch(updateTitleInEdges({ nodeId: nodeID, newTitle: e.target.value }));
+    const validTitle = convertToPythonVariableName(e.target.value);
+    setTitleInputValue(validTitle);
+    dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }));
   };
 
   const renderEnumSelect = (
@@ -605,6 +651,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
       const newWidth = window.innerWidth - e.clientX;
       const constrainedWidth = Math.min(Math.max(newWidth, 300), 800);
+      if (constrainedWidth === width) return;
       setWidth(constrainedWidth);
     };
 
@@ -628,6 +675,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     <Card
       className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
     >
+      {showTitleError && (
+        <Alert
+          className="absolute top-4 left-4 right-4 z-50"
+          color="danger"
+          onClose={() => setShowTitleError(false)}
+        >
+          Title cannot contain whitespace. Use underscores instead.
+        </Alert>
+      )}
       <div
         className="absolute top-0 right-0 h-full flex"
         style={{
@@ -673,18 +729,18 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           >
             {nodeType !== 'InputNode' && (
               <AccordionItem key="output" aria-label="Output" title="Outputs">
-                <NodeOutput node={node} />
+                <NodeOutput output={node?.data?.run} />
               </AccordionItem>
             )}
 
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
-                value={node?.data?.config?.title || ''}
-                onChange={(e) => handleNodeTitleChange(e)}
+                value={titleInputValue}
+                onChange={handleNodeTitleChange}
                 placeholder="Enter node title"
-                maxRows={1}
                 label="Node Title"
                 fullWidth
+                description="Use underscores instead of spaces"
               />
             </AccordionItem>
 

@@ -10,6 +10,13 @@
 <a href="./README_ES.md"><img alt="Versión en español del README" src="https://img.shields.io/badge/Español-blue"></a>
 </p>
 
+<p align="center">
+  <a href="https://discord.gg/7Spn7C8A5F">
+    <img alt="Join Our Discord" src="https://img.shields.io/badge/Discord-7289DA.svg?style=for-the-badge&logo=discord&logoColor=white">
+  </a>
+</p>
+
+
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # ✨ Core Benefits
@@ -44,22 +51,29 @@ You can get PySpur up and running in three quick steps.
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/PySpur-com/PySpur.git
-    cd pyspur
+    cd PySpur
     ```
 
-2. **Start the docker services:**
+2. **Create a .env file:**
 
-    ```sudo docker compose up --build -d```
+   Create a `.env` file at the root of the project. You may use `.env.example` as a starting point.
+   If you plan to use third party model providers, you can add their API keys in .env file in this step, OR we also do this another way in step 5.
+  
+
+3. **Start the docker services:**
+
+    ```docker compose up --build -d```
 
     This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
+   Note: For some environments you may want to try: ```sudo docker compose up --build -d```.
 
-3. **Access the portal:**
+4. **Access the portal:**
 
     Go to `http://localhost:6080/` in your browser.
 
     Enter `pyspur`/`canaryhattan` as username/password.
 
-4. **Add your LLM provider keys:**
+5. **Add your LLM provider keys:**
 
    Go to the settings menu on the top right corner of the portal
 

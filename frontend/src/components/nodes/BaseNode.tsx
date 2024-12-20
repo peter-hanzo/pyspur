@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges } from '../../store/flowSlice';
+import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
 import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -10,10 +10,13 @@ import {
   Divider,
   Button,
   Input,
+  Alert,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
+import isEqual from 'lodash/isEqual';
+import { FlowWorkflowNode } from '@/store/flowSlice';
 
 interface NodeData {
   run?: Record<string, any>;
@@ -33,7 +36,7 @@ interface RootState {
     nodes: Node[];
     edges: Edge[];
     selectedNode: string | null;
-    testInputs?: Array<{ id: string; [key: string]: any }>;
+    testInputs?: Array<{ id: string;[key: string]: any }>;
   };
 }
 
@@ -53,6 +56,87 @@ const getNodeTitle = (data: NodeData = {}): string => {
   return data.config?.title || data.title || data.type || 'Untitled';
 };
 
+const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  if (!prevNode || !nextNode) return false;
+  // Skip position and measured properties when comparing nodes
+  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
+  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  return isEqual(prevRest, nextRest);
+};
+
+const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  if (!prevNodes || !nextNodes) return false;
+  if (prevNodes.length !== nextNodes.length) return false;
+  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+};
+
+const staticStyles = {
+  container: {
+    position: 'relative' as const
+  },
+  targetHandle: {
+    top: '50%',
+    left: 0,
+    width: '30%',
+    height: '100%',
+    zIndex: 10,
+    opacity: 0,
+    pointerEvents: 'auto' as const
+  },
+  dragHandle: {
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none' as const
+  },
+  controlsCard: {
+    position: 'absolute' as const,
+    top: '-50px',
+    right: '0px',
+    padding: '4px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    pointerEvents: 'auto' as const
+  },
+  baseTag: {
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '0.75rem',
+    display: 'inline-block',
+    color: '#fff'
+  },
+  collapseButton: {
+    minWidth: 'auto',
+    height: '24px',
+    padding: '0 8px',
+    fontSize: '0.8rem',
+    marginRight: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  controlsContainer: {
+    position: 'absolute' as const,
+    top: '8px',
+    right: '8px',
+    display: 'flex',
+    alignItems: 'center'
+  }
+} as const;
+
+const convertToPythonVariableName = (str: string): string => {
+  // Replace spaces and hyphens with underscores
+  str = str.replace(/[\s-]/g, '_');
+  
+  // Remove any non-alphanumeric characters except underscores
+  str = str.replace(/[^a-zA-Z0-9_]/g, '');
+  
+  // Ensure the first character is a letter or underscore
+  if (!/^[a-zA-Z_]/.test(str)) {
+    str = '_' + str;
+  }
+  
+  return str;
+};
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -68,10 +152,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [showTitleError, setShowTitleError] = useState(false);
+  const [titleInputValue, setTitleInputValue] = useState('');
   const dispatch = useDispatch();
 
   // Retrieve the node's position and edges from the Redux store
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id));
+  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
@@ -80,37 +166,61 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     let testInputs = state.flow?.testInputs;
     if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
       const { id, ...rest } = testInputs[0];
-      return {[inputNodeId as string]: rest};
+      return { [inputNodeId as string]: rest };
     }
     return { [inputNodeId as string]: {} };
-  });
+  }, isEqual);
 
   const availableOutputs = useSelector((state: RootState) => {
-    const nodes = state.flow.nodes;
-    const availableOutputs: Record<string, any> = {};
+    const nodes = state.flow.nodes.map(node => ({
+      id: node.id,
+      data: {
+        run: node.data?.run
+      }
+    }));
+    
+    const outputs: Record<string, any> = {};
     nodes.forEach((node) => {
       if (node.data && node.data.run) {
-        availableOutputs[node.id] = node.data.run;
+        outputs[node.id] = node.data.run;
       }
     });
-    return availableOutputs;
-  });
+    return outputs;
+  }, isEqual);
 
   const { executePartialRun, loading } = usePartialRun();
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    setShowControls(true);
-  };
+  const handleMouseEnter = useCallback(() => {
+    if (!isHovered) {
+      setIsHovered(true);
+    }
+    if (!showControls){
+      setShowControls(true);
+    }
+  }, []);
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (!isTooltipHovered) {
+  const handleMouseLeave = useCallback(() => {
+    if (isHovered) {
+      setIsHovered(false);
+    }
+    if (!isTooltipHovered && showControls) {
       setTimeout(() => {
         setShowControls(false);
       }, 200);
     }
-  };
+  }, []);
+
+  const handleControlsMouseEnter = useCallback(() => {
+    if (!showControls) setShowControls(true);
+    if (!isTooltipHovered) setIsTooltipHovered(true);
+  }, []);
+
+  const handleControlsMouseLeave = useCallback(() => {
+    if (isTooltipHovered) setIsTooltipHovered(false);
+    setTimeout(() => {
+      if (!isHovered && showControls) setShowControls(false);
+    }, 300);
+  }, []);
 
   const handleDelete = () => {
     dispatch(deleteNode({ nodeId: id }));
@@ -225,37 +335,57 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const { backgroundColor, ...restStyle } = style || {};
 
-  const cardStyle: React.CSSProperties = {
+  const cardStyle = React.useMemo(() => ({
     ...restStyle,
-    borderColor: borderColor,
+    borderColor,
     borderWidth: isSelected
       ? '3px'
       : status === 'completed'
-      ? '2px'
-      : isHovered
-      ? '3px'
-      : restStyle.borderWidth || '1px',
+        ? '2px'
+        : isHovered
+          ? '3px'
+          : restStyle.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
-  };
+    pointerEvents: 'auto'
+  }), [isSelected, status, isHovered, restStyle, borderColor]);
 
   const acronym = data.acronym || 'N/A';
   const color = data.color || '#ccc';
 
-  const tagStyle: React.CSSProperties = {
-    backgroundColor: color,
-    color: '#fff',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '0.75rem',
-    display: 'inline-block',
+  const tagStyle = React.useMemo(() => ({
+    ...staticStyles.baseTag,
+    backgroundColor: color
+  }), [color]);
+
+  const handleTitleChange = (newTitle: string) => {
+    const validTitle = convertToPythonVariableName(newTitle);
+    if (validTitle && validTitle !== getNodeTitle(data)) {
+      dispatch(updateNodeTitle({ nodeId: id, newTitle: validTitle }));
+    }
   };
 
+  const headerStyle = React.useMemo(() => ({
+    position: 'relative' as const,
+    paddingTop: '8px',
+    paddingBottom: isCollapsed ? '0px' : '16px',
+  }), [isCollapsed]);
+
+  const titleStyle = React.useMemo(() => ({
+    marginBottom: isCollapsed ? '4px' : '8px'
+  }), [isCollapsed]);
+
   return (
-    <div
-      style={{ position: 'relative' }}
-      draggable={false}
-    >
+    <div style={staticStyles.container} draggable={false}>
+      {showTitleError && (
+        <Alert
+          className="absolute -top-16 left-0 right-0 z-50"
+          color="danger"
+          onClose={() => setShowTitleError(false)}
+        >
+          Title cannot contain whitespace. Use underscores instead.
+        </Alert>
+      )}
       {/* Container to hold the Handle and the content */}
       <div>
         {/* Hidden target handle covering the entire node */}
@@ -263,31 +393,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           type="target"
           position={Position.Left}
           id={`node-body-${id}`}
-          style={{
-            top: '50%',
-            left: 0,
-            width: '30%',
-            height: '100%',
-            zIndex: 10,
-            opacity: 0,
-            pointerEvents: 'auto',
-          }}
+          style={staticStyles.targetHandle}
           isConnectable={true}
           isConnectableStart={false}
         />
 
         {/* Node content wrapped in drag handle */}
-        <div
-          className="react-flow__node-drag-handle"
-          style={{
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none', // Prevents content from blocking events
-          }}
-        >
+        <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
           <Card
             className={`base-node ${className || ''}`}
-            style={{ ...cardStyle, pointerEvents: 'auto' }}
+            style={cardStyle}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             isHoverable
@@ -296,48 +411,25 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             }}
           >
             {data && (
-              <CardHeader
-                style={{
-                  position: 'relative',
-                  paddingTop: '8px',
-                  paddingBottom: isCollapsed ? '0px' : '16px',
-                }}
-              >
+              <CardHeader style={headerStyle}>
                 {editingTitle ? (
                   <Input
                     autoFocus
-                    defaultValue={getNodeTitle(data)}
+                    value={titleInputValue}
                     size="sm"
                     variant="faded"
                     radius="lg"
-                    onBlur={(e) => {
-                      setEditingTitle(false);
-                      dispatch(updateNodeData({
-                        id,
-                        data: {
-                          config: {
-                            ...data.config,
-                            title: e.target.value,
-                          },
-                        },
-                      }));
+                    onChange={(e) => {
+                      const validValue = convertToPythonVariableName(e.target.value);
+                      setTitleInputValue(validValue);
+                      handleTitleChange(validValue);
                     }}
+                    onBlur={() => setEditingTitle(false)}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Enter' || e.key === 'Escape') {
                         e.stopPropagation();
                         e.preventDefault();
                         setEditingTitle(false);
-                        if (e.key === 'Enter') {
-                          dispatch(updateNodeData({
-                            id,
-                            data: {
-                              config: {
-                                ...data.config,
-                                title: (e.target as HTMLInputElement).value,
-                              },
-                            },
-                          }));
-                        }
                       }
                     }}
                     classNames={{
@@ -348,37 +440,21 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 ) : (
                   <h3
                     className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
-                    style={{ marginBottom: isCollapsed ? '4px' : '8px' }}
-                    onClick={() => setEditingTitle(true)}
+                    style={titleStyle}
+                    onClick={() => {
+                      setTitleInputValue(getNodeTitle(data));
+                      setEditingTitle(true);
+                    }}
                   >
                     {getNodeTitle(data)}
                   </h3>
                 )}
 
-                {/* Container for the collapse button and acronym tag */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {/* Collapse Button */}
+                <div style={staticStyles.controlsContainer}>
                   <Button
                     size="sm"
                     variant="flat"
-                    style={{
-                      minWidth: 'auto',
-                      height: '24px',
-                      padding: '0 8px',
-                      fontSize: '0.8rem',
-                      marginRight: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    style={staticStyles.collapseButton}
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsCollapsed(!isCollapsed);
@@ -387,8 +463,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     {isCollapsed ? '▼' : '▲'}
                   </Button>
 
-                  {/* Acronym Tag */}
-                  <div style={{ ...tagStyle }} className="node-acronym-tag">
+                  <div style={tagStyle} className="node-acronym-tag">
                     {acronym}
                   </div>
                 </div>
@@ -406,26 +481,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       {/* Controls */}
       {(showControls || isSelected) && (
         <Card
-          onMouseEnter={() => {
-            setShowControls(true);
-            setIsTooltipHovered(true);
-          }}
-          onMouseLeave={() => {
-            setIsTooltipHovered(false);
-            setTimeout(() => {
-              if (!isHovered) {
-                setShowControls(false);
-              }
-            }, 300);
-          }}
-          style={{
-            position: 'absolute',
-            top: '-50px',
-            right: '0px',
-            padding: '4px',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            pointerEvents: 'auto',
-          }}
+          onMouseEnter={handleControlsMouseEnter}
+          onMouseLeave={handleControlsMouseLeave}
+          style={staticStyles.controlsCard}
           classNames={{
             base: "bg-background border-default-200"
           }}
