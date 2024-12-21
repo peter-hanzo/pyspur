@@ -6,10 +6,13 @@ import { Button, ButtonGroup } from '@nextui-org/react';
 import { useModeStore } from '../../../store/modeStore';
 import { Icon } from "@iconify/react";
 import TipPopup from './TipPopUp';
+import { useTheme } from "next-themes";
 
 function Operator({ handleLayout }) {
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
     <>
@@ -17,7 +20,9 @@ function Operator({ handleLayout }) {
         style={{
           width: 102,
           height: 72,
+          background: isDark ? "#333" : "#fff",
         }}
+        nodeColor={() => (isDark ? "#777" : "#eee")}
         className='!absolute !left-4 !bottom-14 z-[9] !m-0 !w-[102px] !h-[72px] !border-[0.5px] !border-default-200 !rounded-lg !shadow-lg'
       />
       <div className='flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9]'>
@@ -27,7 +32,7 @@ function Operator({ handleLayout }) {
             <Button
               size="sm"
               isIconOnly
-              onClick={() => setMode('pointer' as any)}
+              onPress={() => setMode('pointer' as any)}
               className='bg-background'
             >
               <Icon
@@ -41,7 +46,7 @@ function Operator({ handleLayout }) {
             <Button
               size="sm"
               isIconOnly
-              onClick={() => setMode('hand')}
+              onPress={() => setMode('hand')}
               className='bg-background'
             >
               <Icon
@@ -55,7 +60,7 @@ function Operator({ handleLayout }) {
             <Button
               size="sm"
               isIconOnly
-              onClick={handleLayout}
+              onPress={handleLayout}
               className='bg-background'
             >
               <Icon
