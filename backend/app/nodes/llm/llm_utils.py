@@ -16,7 +16,7 @@ from enum import Enum
 from ollama import AsyncClient
 
 # uncomment for debugging litellm issues
-litellm.set_verbose=True
+litellm.set_verbose = True
 load_dotenv()
 
 
@@ -24,22 +24,40 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
 
 
+class LLMProvider(str, Enum):
+    OPENAI = "OpenAI"
+    ANTHROPIC = "Anthropic"
+    GOOGLE = "Google"
+    OLLAMA = "Ollama"
+
+
+class LLMModel(BaseModel):
+    id: str
+    provider: LLMProvider
+    name: str
+
+
 class LLMModels(str, Enum):
+    # OpenAI Models
     GPT_4O_MINI = "gpt-4o-mini"
     GPT_4O = "gpt-4o"
     O1_PREVIEW = "o1-preview"
     O1_MINI = "o1-mini"
     GPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O_LATEST = "chatgpt-4o-latest"
+
+    # Anthropic Models
     CLAUDE_3_5_SONNET_LATEST = "claude-3-5-sonnet-latest"
     CLAUDE_3_5_HAIKU_LATEST = "claude-3-5-haiku-latest"
     CLAUDE_3_OPUS_LATEST = "claude-3-opus-latest"
+
+    # Google Models
     GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_1_5_FLASH = "gemini-1.5-flash"
     GEMINI_1_5_PRO_LATEST = "gemini-1.5-pro-latest"
     GEMINI_1_5_FLASH_LATEST = "gemini-1.5-flash-latest"
 
-    # Ollama models
+    # Ollama Models
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
     OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
     OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
@@ -49,6 +67,116 @@ class LLMModels(str, Enum):
     OLLAMA_MISTRAL = "ollama/mistral"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
+
+    @classmethod
+    def get_model_info(cls, model_id: str) -> LLMModel:
+        model_mapping = {
+            # OpenAI Models
+            cls.GPT_4O_MINI.value: LLMModel(
+                id=cls.GPT_4O_MINI.value,
+                provider=LLMProvider.OPENAI,
+                name="GPT-4 Optimized Mini",
+            ),
+            cls.GPT_4O.value: LLMModel(
+                id=cls.GPT_4O.value, provider=LLMProvider.OPENAI, name="GPT-4 Optimized"
+            ),
+            cls.O1_PREVIEW.value: LLMModel(
+                id=cls.O1_PREVIEW.value, provider=LLMProvider.OPENAI, name="O1 Preview"
+            ),
+            cls.O1_MINI.value: LLMModel(
+                id=cls.O1_MINI.value, provider=LLMProvider.OPENAI, name="O1 Mini"
+            ),
+            cls.GPT_4_TURBO.value: LLMModel(
+                id=cls.GPT_4_TURBO.value,
+                provider=LLMProvider.OPENAI,
+                name="GPT-4 Turbo",
+            ),
+            cls.CHATGPT_4O_LATEST.value: LLMModel(
+                id=cls.CHATGPT_4O_LATEST.value,
+                provider=LLMProvider.OPENAI,
+                name="ChatGPT-4 Optimized Latest",
+            ),
+            # Anthropic Models
+            cls.CLAUDE_3_5_SONNET_LATEST.value: LLMModel(
+                id=cls.CLAUDE_3_5_SONNET_LATEST.value,
+                provider=LLMProvider.ANTHROPIC,
+                name="Claude 3.5 Sonnet Latest",
+            ),
+            cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
+                id=cls.CLAUDE_3_5_HAIKU_LATEST.value,
+                provider=LLMProvider.ANTHROPIC,
+                name="Claude 3.5 Haiku Latest",
+            ),
+            cls.CLAUDE_3_OPUS_LATEST.value: LLMModel(
+                id=cls.CLAUDE_3_OPUS_LATEST.value,
+                provider=LLMProvider.ANTHROPIC,
+                name="Claude 3 Opus Latest",
+            ),
+            # Google Models
+            cls.GEMINI_1_5_PRO.value: LLMModel(
+                id=cls.GEMINI_1_5_PRO.value,
+                provider=LLMProvider.GOOGLE,
+                name="Gemini 1.5 Pro",
+            ),
+            cls.GEMINI_1_5_FLASH.value: LLMModel(
+                id=cls.GEMINI_1_5_FLASH.value,
+                provider=LLMProvider.GOOGLE,
+                name="Gemini 1.5 Flash",
+            ),
+            cls.GEMINI_1_5_PRO_LATEST.value: LLMModel(
+                id=cls.GEMINI_1_5_PRO_LATEST.value,
+                provider=LLMProvider.GOOGLE,
+                name="Gemini 1.5 Pro Latest",
+            ),
+            cls.GEMINI_1_5_FLASH_LATEST.value: LLMModel(
+                id=cls.GEMINI_1_5_FLASH_LATEST.value,
+                provider=LLMProvider.GOOGLE,
+                name="Gemini 1.5 Flash Latest",
+            ),
+            # Ollama Models
+            cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(
+                id=cls.OLLAMA_LLAMA3_3_8B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Llama 3.3 (8B)",
+            ),
+            cls.OLLAMA_LLAMA3_2_8B.value: LLMModel(
+                id=cls.OLLAMA_LLAMA3_2_8B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Llama 3.2 (8B)",
+            ),
+            cls.OLLAMA_LLAMA3_2_1B.value: LLMModel(
+                id=cls.OLLAMA_LLAMA3_2_1B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Llama 3.2 (1B)",
+            ),
+            cls.OLLAMA_LLAMA3_8B.value: LLMModel(
+                id=cls.OLLAMA_LLAMA3_8B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Llama 3 (8B)",
+            ),
+            cls.OLLAMA_GEMMA_2.value: LLMModel(
+                id=cls.OLLAMA_GEMMA_2.value, provider=LLMProvider.OLLAMA, name="Gemma 2"
+            ),
+            cls.OLLAMA_GEMMA_2_2B.value: LLMModel(
+                id=cls.OLLAMA_GEMMA_2_2B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Gemma 2 (2B)",
+            ),
+            cls.OLLAMA_MISTRAL.value: LLMModel(
+                id=cls.OLLAMA_MISTRAL.value, provider=LLMProvider.OLLAMA, name="Mistral"
+            ),
+            cls.OLLAMA_CODELLAMA.value: LLMModel(
+                id=cls.OLLAMA_CODELLAMA.value,
+                provider=LLMProvider.OLLAMA,
+                name="CodeLlama",
+            ),
+            cls.OLLAMA_MIXTRAL.value: LLMModel(
+                id=cls.OLLAMA_MIXTRAL.value,
+                provider=LLMProvider.OLLAMA,
+                name="Mixtral 8x7B Instruct",
+            ),
+        }
+        return model_mapping.get(model_id)
 
 
 class ModelInfo(BaseModel):
@@ -270,16 +398,32 @@ async def find_top_k_similar(
 
 class OllamaOptions(BaseModel):
     """Options for Ollama API calls"""
-    temperature: float = Field(default=0.7, ge=0.0, le=1.0, description="Controls randomness in responses")
-    max_tokens: Optional[int] = Field(default=None, ge=0, description="Maximum number of tokens to generate")
-    top_p: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold")
-    top_k: Optional[int] = Field(default=None, ge=0, description="Number of tokens to consider for top-k sampling")
-    repeat_penalty: Optional[float] = Field(default=None, ge=0.0, description="Penalty for token repetition")
-    stop: Optional[list[str]] = Field(default=None, description="Stop sequences to end generation")
-    
+
+    temperature: float = Field(
+        default=0.7, ge=0.0, le=1.0, description="Controls randomness in responses"
+    )
+    max_tokens: Optional[int] = Field(
+        default=None, ge=0, description="Maximum number of tokens to generate"
+    )
+    top_p: Optional[float] = Field(
+        default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold"
+    )
+    top_k: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Number of tokens to consider for top-k sampling",
+    )
+    repeat_penalty: Optional[float] = Field(
+        default=None, ge=0.0, description="Penalty for token repetition"
+    )
+    stop: Optional[list[str]] = Field(
+        default=None, description="Stop sequences to end generation"
+    )
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary, excluding None values"""
         return {k: v for k, v in self.model_dump().items() if v is not None}
+
 
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
 async def ollama_with_backoff(
@@ -291,7 +435,7 @@ async def ollama_with_backoff(
 ) -> str:
     """
     Make an async Ollama API call with exponential backoff retry logic.
-    
+
     Args:
         model: The name of the Ollama model to use
         messages: List of message dictionaries with 'role' and 'content'
@@ -300,7 +444,7 @@ async def ollama_with_backoff(
         max_retries: Maximum number of retries
         initial_wait: Initial wait time between retries in seconds
         max_wait: Maximum wait time between retries in seconds
-    
+
     Returns:
         Either a string response or a validated Pydantic model instance
     """
@@ -309,7 +453,6 @@ async def ollama_with_backoff(
         model=model.replace("ollama/", ""),
         messages=messages,
         format=format,
-        options=(options or OllamaOptions()).to_dict()
+        options=(options or OllamaOptions()).to_dict(),
     )
     return response.message.content
-    

@@ -23,6 +23,7 @@ import {
   Input,
   Select,
   SelectItem,
+  SelectSection,
   Accordion,
   AccordionItem,
   Card,
@@ -69,9 +70,13 @@ interface DynamicModel {
   few_shot_examples?: Array<{
     input: string;
     output: string;
-  }>;
+  }> | Record<string, any>[];
   branch_refs?: string[];
   input_schemas?: Record<string, any>;
+  llm_info?: {
+    model?: string;
+    [key: string]: any;
+  };
 }
 
 interface FieldMetadata {
@@ -86,6 +91,8 @@ interface FieldMetadata {
 interface NodeType {
   name: string;
   config: Record<string, any>;
+  data?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
 interface NodeData {
@@ -93,6 +100,8 @@ interface NodeData {
   run?: any;
   type?: string;
   id?: string;
+  title?: string;
+  data?: Record<string, any>;
 }
 
 interface Node {
@@ -110,7 +119,10 @@ const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeSchema | nu
   for (const category in nodeTypes) {
     const nodeSchema = nodeTypes[category]?.find((n: NodeType) => n.name === nodeType);
     if (nodeSchema) {
-      return nodeSchema;
+      return {
+        name: nodeSchema.name,
+        config: nodeSchema.config,
+      };
     }
   }
   return null;
@@ -134,15 +146,15 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
 const convertToPythonVariableName = (str: string): string => {
   // Replace spaces and hyphens with underscores
   str = str.replace(/[\s-]/g, '_');
-  
+
   // Remove any non-alphanumeric characters except underscores
   str = str.replace(/[^a-zA-Z0-9_]/g, '');
-  
+
   // Ensure the first character is a letter or underscore
   if (!/^[a-zA-Z_]/.test(str)) {
     str = '_' + str;
   }
-  
+
   return str;
 };
 
@@ -150,10 +162,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
   const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
   const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
-  const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data, isEqual);
-  const node = useSelector((state: RootState) => selectNodeById(state, nodeID), nodeComparator);
-  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth, isEqual);
-  const metadata = useSelector((state: RootState) => state.nodeTypes.metadata, isEqual);
+  const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
+  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes.metadata);
+  const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
+  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
 
   const hasRunOutput = !!node?.data?.run;
 
@@ -209,12 +221,25 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
   }, [node]); // Only depend on node changes
 
-  // Update the existing useEffect to remove the title setting
+  // Update the existing useEffect to initialize LLM nodes with a default model
   useEffect(() => {
     if (node) {
       setNodeType(node.type || 'ExampleNode');
       setNodeSchema(findNodeSchema(node.type || 'ExampleNode', nodeTypes));
-      setDynamicModel(node.data?.config || {});
+
+      // Initialize the model with a default value for LLM nodes
+      let initialConfig = node.data?.config || {};
+      if (node.type === 'LLMNode' || node.type === 'SingleLLMCallNode') {
+        initialConfig = {
+          ...initialConfig,
+          llm_info: {
+            ...initialConfig.llm_info,
+            model: initialConfig.llm_info?.model || 'gpt-4o' // Set default model
+          }
+        };
+      }
+
+      setDynamicModel(initialConfig);
     }
   }, [nodeID, node, nodeTypes]);
 
@@ -230,9 +255,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     let updatedModel: DynamicModel;
 
     if (key.includes('.')) {
-      updatedModel = updateNestedModel(dynamicModel, key, value);
+      updatedModel = updateNestedModel(dynamicModel, key, value) as DynamicModel;
     } else {
-      updatedModel = { ...dynamicModel, [key]: value };
+      updatedModel = { ...dynamicModel, [key]: value } as DynamicModel;
     }
 
     setDynamicModel(updatedModel);
@@ -252,6 +277,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }));
   };
 
+  // Update the renderEnumSelect function to handle LLM model selection
   const renderEnumSelect = (
     key: string,
     label: string,
@@ -260,11 +286,71 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     defaultSelected?: string
   ) => {
     const lastTwoDots = fullPath.split('.').slice(-2).join('.');
+
+    // Special handling for LLM model selection
+    if (key === 'model' && fullPath.includes('llm_info')) {
+      // Group models by provider
+      const modelsByProvider: { [key: string]: { id: string; name: string }[] } = {
+        OpenAI: [],
+        Anthropic: [],
+        Google: [],
+        Ollama: [],
+      };
+
+      enumValues.forEach((modelId) => {
+        if (modelId.startsWith('ollama/')) {
+          modelsByProvider.Ollama.push({ id: modelId, name: modelId.replace('ollama/', '') });
+        } else if (modelId.startsWith('claude')) {
+          modelsByProvider.Anthropic.push({ id: modelId, name: modelId });
+        } else if (modelId.startsWith('gemini')) {
+          modelsByProvider.Google.push({ id: modelId, name: modelId });
+        } else {
+          modelsByProvider.OpenAI.push({ id: modelId, name: modelId });
+        }
+      });
+
+      // Ensure we have a valid default value
+      const currentValue = dynamicModel?.llm_info?.model || defaultSelected || 'gpt-4o';
+
+      return (
+        <div key={key}>
+          <Select
+            label={label}
+            selectedKeys={[currentValue]}
+            onChange={(e) => {
+              const updatedModel = updateNestedModel(dynamicModel, 'llm_info.model', e.target.value);
+              setDynamicModel(updatedModel);
+              dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+            }}
+            fullWidth
+          >
+            {Object.entries(modelsByProvider).map(([provider, models], index) => (
+              models.length > 0 && (
+                <SelectSection
+                  key={provider}
+                  title={provider}
+                  showDivider={index < Object.keys(modelsByProvider).length - 1}
+                >
+                  {models.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectSection>
+              )
+            ))}
+          </Select>
+        </div>
+      );
+    }
+
+    // Default rendering for other enum fields
+    const currentValue = defaultSelected || dynamicModel[key] || enumValues[0];
     return (
       <div key={key}>
         <Select
           label={label}
-          defaultSelectedKeys={[defaultSelected || dynamicModel[key] || '']}
+          selectedKeys={[currentValue]}
           onChange={(e) => handleInputChange(lastTwoDots, e.target.value)}
           fullWidth
         >
@@ -292,7 +378,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
   // Update the `getFieldMetadata` function
   const getFieldMetadata = (fullPath: string): FieldMetadata | undefined => {
-    return selectPropertyMetadata({ nodeTypes: { metadata } }, fullPath);
+    return selectPropertyMetadata({ nodeTypes: { data: nodeTypes, metadata: nodeTypesMetadata } } as unknown as RootState, fullPath) as FieldMetadata;
   };
 
   // Update the `renderField` function to include missing cases
@@ -304,7 +390,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     isLast: boolean = false
   ) => {
     const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
-    const fieldMetadata = getFieldMetadata(fullPath);
+    const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata;
 
     // Skip api_base field if the selected model is not an Ollama model
     if (key === 'api_base') {
