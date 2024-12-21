@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, Union, Literal
+from typing import Dict, Any, Optional, List, Literal
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -112,11 +112,20 @@ class RouterNode(DynamicSchemaNode):
 
         return result
 
-    async def run(self, input_data: RouterNodeInput) -> Dict[str, Optional[Any]]:
+    async def run(self, input: BaseModel) -> BaseModel:
         """
         Evaluates conditions for each route in order. The first route that matches
         gets the input data. If no routes match, the first route acts as a default.
         """
+        if isinstance(input, RouterNodeInput):
+            input_data = input
+        else:
+            try:
+                input_data = RouterNodeInput.model_validate(input.model_dump())
+            except Exception as e:
+                raise ValueError(f"Input validation failed for RouterNodeInput: {e}")
+
+        # Now we have a valid RouterNodeInput
         input_value = input_data.input_node
         route_count = len(self.config.routes)
 
@@ -131,12 +140,12 @@ class RouterNode(DynamicSchemaNode):
         if matched_route is None:
             matched_route = 1
 
-        # Construct outputs dict
-        outputs = {}
-        for i in range(1, route_count + 1):
-            outputs[f"Route_{i}"] = input_value if i == matched_route else None
+        outputs: Dict[str, Optional[Any]] = {
+            f"Route_{i}": input_value if i == matched_route else None
+            for i in range(1, route_count + 1)
+        }
 
-        return outputs
+        return self.output_model.model_validate(outputs)
 
     def initialize(self) -> None:
         """Initialize the node and set up the output schema"""
@@ -144,3 +153,4 @@ class RouterNode(DynamicSchemaNode):
         self.config.output_schema = {
             f"Route_{i}": "Optional[Any]" for i in range(1, len(self.config.routes) + 1)
         }
+        self.output_model = self.create_output_model_class(self.config.output_schema)
