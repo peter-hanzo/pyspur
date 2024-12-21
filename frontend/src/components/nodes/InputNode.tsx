@@ -7,7 +7,7 @@ import {
   deleteWorkflowInputVariable,
   updateWorkflowInputVariableKey,
 } from '../../store/flowSlice';
-import { Input, Button } from '@nextui-org/react';
+import { Input, Button, Alert } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import styles from './InputNode.module.css';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
@@ -34,6 +34,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [newFieldValue, setNewFieldValue] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [showKeyError, setShowKeyError] = useState<boolean>(false);
   const incomingEdges = useSelector((state: RootState) => state.flow.edges.filter((edge) => edge.target === id));
 
   const outputSchema = data?.config?.output_schema || {};
@@ -44,21 +45,38 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
       const incomingSchemaKeys = incomingEdges.map((edge) => edge.source);
       const maxLabelLength = Math.max(
         (Math.max(...incomingSchemaKeys.map((label) => label.length)) +
-         Math.max(...outputSchemaKeys.map((label) => label.length))),
+          Math.max(...outputSchemaKeys.map((label) => label.length))),
         (data?.title || '').length / 1.5
       );
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
       const finalWidth = Math.min(calculatedWidth, 600);
-      if (finalWidth !== parseInt(nodeWidth)){
+      if (finalWidth !== parseInt(nodeWidth)) {
         setNodeWidth(`${finalWidth}px`);
       }
     }
   }, [data, outputSchemaKeys]);
 
+  const convertToPythonVariableName = (str: string): string => {
+    // Replace spaces and hyphens with underscores
+    str = str.replace(/[\s-]/g, '_');
+    // Remove any non-alphanumeric characters except underscores
+    str = str.replace(/[^a-zA-Z0-9_]/g, '');
+    // Ensure the first character is a letter or underscore
+    if (!/^[a-zA-Z_]/.test(str)) {
+      str = '_' + str;
+    }
+    return str;
+  };
+
   const handleAddWorkflowInputVariable = useCallback(() => {
     if (!newFieldValue.trim()) return;
-    const newKey = newFieldValue.trim();
+    const newKey = convertToPythonVariableName(newFieldValue.trim());
+
+    if (newKey !== newFieldValue.trim()) {
+      setShowKeyError(true);
+      setTimeout(() => setShowKeyError(false), 3000);
+    }
 
     dispatch(
       setWorkflowInputVariable({
@@ -83,13 +101,19 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
         return;
       }
 
-      dispatch(updateWorkflowInputVariableKey({ oldKey, newKey }));
+      const validKey = convertToPythonVariableName(newKey);
+      if (validKey !== newKey) {
+        setShowKeyError(true);
+        setTimeout(() => setShowKeyError(false), 3000);
+      }
+
+      dispatch(updateWorkflowInputVariableKey({ oldKey, newKey: validKey }));
       setEditingField(null);
     },
     [dispatch]
   );
 
-  const InputHandleRow: React.FC<{keyName: string}> = ({ keyName }) => {
+  const InputHandleRow: React.FC<{ keyName: string }> = ({ keyName }) => {
     return (
       <div className={`flex overflow-hidden w-full justify-end whitespace-nowrap items-center`} key={keyName} id={`input-${keyName}-row`}>
         <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
@@ -160,6 +184,15 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
                                 const target = e.target as HTMLInputElement;
                                 handleWorkflowInputVariableKeyEdit(key, target.value);
                               }}
+                              onChange={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                const validValue = convertToPythonVariableName(target.value);
+                                if (validValue !== target.value) {
+                                  target.value = validValue;
+                                  setShowKeyError(true);
+                                  setTimeout(() => setShowKeyError(false), 3000);
+                                }
+                              }}
                               onKeyDown={(e) => {
                                 const target = e.target as HTMLInputElement;
                                 if (e.key === 'Enter') {
@@ -207,9 +240,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
             type="source"
             position={Position.Right}
             id={id}
-            className={`${styles.handle} ${styles.handleRight} ${
-              isCollapsed ? styles.collapsedHandleOutput : ''
-            }`}
+            className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+              }`}
             isConnectable={!isCollapsed}
           />
         </div>
@@ -223,7 +255,14 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
         <Input
           placeholder="Enter new field name"
           value={newFieldValue}
-          onChange={(e) => setNewFieldValue(e.target.value)}
+          onChange={(e) => {
+            const validValue = convertToPythonVariableName(e.target.value);
+            if (validValue !== e.target.value) {
+              setShowKeyError(true);
+              setTimeout(() => setShowKeyError(false), 3000);
+            }
+            setNewFieldValue(validValue);
+          }}
           size="sm"
           variant="faded"
           radius="lg"
@@ -253,6 +292,15 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
 
   return (
     <div className={styles.inputNodeWrapper}>
+      {showKeyError && (
+        <Alert
+          className="absolute -top-16 left-0 right-0 z-50"
+          color="danger"
+          onClose={() => setShowKeyError(false)}
+        >
+          Variable names cannot contain whitespace. Using underscores instead.
+        </Alert>
+      )}
       <BaseNode
         id={id}
         isInputNode={true}
