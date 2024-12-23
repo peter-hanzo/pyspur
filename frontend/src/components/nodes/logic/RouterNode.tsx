@@ -8,10 +8,13 @@ import styles from '../DynamicNode.module.css';
 import { Icon } from "@iconify/react";
 import { RootState } from '../../../store/store';
 
+type LogicalOperator = 'AND' | 'OR';
+type ComparisonOperator = 'contains' | 'equals' | 'number_equals' | 'greater_than' | 'less_than' | 'starts_with' | 'not_starts_with' | 'is_empty' | 'is_not_empty';
+
 interface Condition {
-  logicalOperator?: 'AND' | 'OR';
+  logicalOperator?: LogicalOperator;
   variable: string;
-  operator: string;
+  operator: ComparisonOperator;
   value: string;
 }
 
@@ -35,7 +38,7 @@ interface RouterNodeProps {
   selected?: boolean;
 }
 
-const OPERATORS = [
+const OPERATORS: { value: ComparisonOperator; label: string }[] = [
   { value: 'contains', label: 'Contains' },
   { value: 'equals', label: 'Equals' },
   { value: 'number_equals', label: 'Number Equals' },
@@ -68,11 +71,17 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     return nodes.find((node) => node.id === edge.source);
   }));
 
-  // Get available input variables from the schema
-  const inputVariables = Object.entries(data.config?.input_schema || {}).map(([key, type]) => ({
-    value: key,
-    label: `${key} (${type})`,
-  }));
+  // Get available input variables from the connected node's output schema
+  const inputVariables = useMemo(() => {
+    const connectedNode = predecessorNodes[0];
+    if (!connectedNode) return [];
+
+    const outputSchema = connectedNode.data?.config?.output_schema || {};
+    return Object.entries(outputSchema).map(([key, type]) => ({
+      value: key,
+      label: `${key} (${type})`,
+    }));
+  }, [predecessorNodes]);
 
   // Initialize routes if they don't exist or are invalid
   useEffect(() => {
@@ -80,14 +89,25 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
       handleUpdateRoutes([{ ...DEFAULT_ROUTE }]);
     } else {
       // Ensure each route has valid conditions
-      const validRoutes = data.config.routes.map(route => ({
-        conditions: Array.isArray(route.conditions) && route.conditions.length > 0
-          ? route.conditions.map((condition, index) => ({
-            ...condition,
-            logicalOperator: index > 0 ? (condition.logicalOperator || 'AND') : undefined
-          }))
-          : [{ ...DEFAULT_CONDITION }]
-      }));
+      const validRoutes: Route[] = data.config.routes.map(route => {
+        const conditions = Array.isArray(route.conditions) && route.conditions.length > 0
+          ? route.conditions.map((condition, index): Condition => {
+            const baseCondition: Condition = {
+              variable: condition.variable || '',
+              operator: (condition.operator || 'contains') as ComparisonOperator,
+              value: condition.value || ''
+            };
+
+            if (index > 0) {
+              baseCondition.logicalOperator = (condition.logicalOperator || 'AND') as LogicalOperator;
+            }
+
+            return baseCondition;
+          })
+          : [{ ...DEFAULT_CONDITION }];
+        return { conditions };
+      });
+
       if (JSON.stringify(validRoutes) !== JSON.stringify(data.config.routes)) {
         handleUpdateRoutes(validRoutes);
       }
@@ -140,7 +160,14 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
       ...data,
       config: {
         ...data.config,
-        routes: newRoutes,
+        routes: newRoutes.map(route => ({
+          conditions: route.conditions.map(condition => ({
+            variable: condition.variable,
+            operator: condition.operator,
+            value: condition.value,
+            ...(condition.logicalOperator ? { logicalOperator: condition.logicalOperator } : {})
+          }))
+        })),
         input_schema: data.config?.input_schema || { input: 'any' },
         output_schema
       }
@@ -182,7 +209,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
           ...route,
           conditions: [
             ...(route.conditions || []),
-            { ...DEFAULT_CONDITION, logicalOperator: 'AND' }
+            { ...DEFAULT_CONDITION, logicalOperator: 'AND' as const }
           ]
         };
       }
@@ -209,10 +236,17 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
       if (index === routeIndex) {
         return {
           ...route,
-          conditions: (route.conditions || []).map((condition, i) => {
+          conditions: route.conditions.map((condition, i) => {
             if (i === conditionIndex) {
-              const updatedValue = field === 'logicalOperator' ? (value as 'AND' | 'OR') : value;
-              return { ...condition, [field]: updatedValue };
+              const updatedCondition: Condition = { ...condition };
+              if (field === 'logicalOperator') {
+                updatedCondition.logicalOperator = value as LogicalOperator;
+              } else if (field === 'operator') {
+                updatedCondition.operator = value as ComparisonOperator;
+              } else {
+                updatedCondition[field] = value;
+              }
+              return updatedCondition;
             }
             return condition;
           })
@@ -220,7 +254,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
       }
       return route;
     });
-    handleUpdateRoutes(newRoutes as Route[]);
+    handleUpdateRoutes(newRoutes);
   };
 
   return (

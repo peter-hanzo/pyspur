@@ -1,8 +1,8 @@
 from typing import Dict, Any, Optional, List, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 from enum import Enum
 
-from ..dynamic_schema import DynamicSchemaNode, DynamicSchemaNodeConfig
+from ..base import BaseNodeConfig, BaseNode, BaseNodeInput, BaseNodeOutput
 
 
 class ComparisonOperator(str, Enum):
@@ -22,6 +22,7 @@ LogicalOperator = Literal["AND", "OR"]
 
 class Condition(BaseModel):
     """Configuration for a single condition"""
+
     variable: str
     operator: ComparisonOperator = Field(default=ComparisonOperator.CONTAINS)
     value: Any
@@ -30,23 +31,29 @@ class Condition(BaseModel):
 
 class RouteCondition(BaseModel):
     """Configuration for a route with multiple conditions"""
+
     conditions: List[Condition]
 
 
-class RouterNodeConfig(DynamicSchemaNodeConfig):
+class RouterNodeConfig(BaseNodeConfig):
     """Configuration for the router node."""
-    routes: List[RouteCondition]
-    input_schema: Dict[str, str] = {"input_node": "Any"}  # The input data to be routed
-    # output_schema will be dynamically populated in initialize()
-    output_schema: Dict[str, str] = Field(default_factory=dict)
+
+    route_map: Dict[str, RouteCondition]  # Dict of route names to conditions
 
 
-class RouterNodeInput(BaseModel):
+class RouterNodeInput(BaseNodeInput):
     """Input model for the router node."""
-    input_node: Dict[str, Any]  # Adjust to match the provided input structure
+
+    pass
 
 
-class RouterNode(DynamicSchemaNode):
+class RouterNodeOutput(BaseNodeOutput):
+    """Output model for the router node."""
+
+    pass
+
+
+class RouterNode(BaseNode):
     """
     A routing node that directs input data to different routes
     based on the evaluation of conditions. The first route acts as the default
@@ -58,17 +65,19 @@ class RouterNode(DynamicSchemaNode):
     config_model = RouterNodeConfig
 
     def _evaluate_single_condition(
-        self, input_value: Any, condition: Condition
+        self, input: BaseModel, condition: Condition
     ) -> bool:
         """Evaluate a single condition against a specific input variable"""
         try:
             if not condition.variable:
                 return False
 
-            variable_value = input_value.get(condition.variable)
+            variable_value = getattr(input, condition.variable, None)
             if variable_value is None:
-                return False
-
+                if condition.operator != ComparisonOperator.IS_EMPTY:
+                    return False
+                else:
+                    return True
             if condition.operator == ComparisonOperator.CONTAINS:
                 return str(condition.value) in str(variable_value)
             elif condition.operator == ComparisonOperator.EQUALS:
@@ -87,23 +96,24 @@ class RouterNode(DynamicSchemaNode):
                 return not bool(variable_value)
             elif condition.operator == ComparisonOperator.IS_NOT_EMPTY:
                 return bool(variable_value)
-            return False
+            else:
+                return False
         except (ValueError, TypeError, AttributeError):
             return False
 
     def _evaluate_route_conditions(
-        self, input_value: Dict[str, Any], route: RouteCondition
+        self, input: BaseModel, route: RouteCondition
     ) -> bool:
         """Evaluate all conditions in a route with AND/OR logic"""
         if not route.conditions:
             # If no conditions, consider it always matches
             return True
 
-        result = self._evaluate_single_condition(input_value, route.conditions[0])
+        result = self._evaluate_single_condition(input, route.conditions[0])
 
         for i in range(1, len(route.conditions)):
             condition = route.conditions[i]
-            current_result = self._evaluate_single_condition(input_value, condition)
+            current_result = self._evaluate_single_condition(input, condition)
 
             if condition.logicalOperator == "OR":
                 result = result or current_result
@@ -117,40 +127,67 @@ class RouterNode(DynamicSchemaNode):
         Evaluates conditions for each route in order. The first route that matches
         gets the input data. If no routes match, the first route acts as a default.
         """
-        if isinstance(input, RouterNodeInput):
-            input_data = input
-        else:
-            try:
-                input_data = RouterNodeInput.model_validate(input.model_dump())
-            except Exception as e:
-                raise ValueError(f"Input validation failed for RouterNodeInput: {e}")
-
-        # Now we have a valid RouterNodeInput
-        input_value = input_data.input_node
-        route_count = len(self.config.routes)
-
-        matched_route = None
-        # Evaluate routes in order
-        for i, route in enumerate(self.config.routes, start=1):
-            if self._evaluate_route_conditions(input_value, route):
-                matched_route = i
-                break
-
-        # If no route matched, default to first route
-        if matched_route is None:
-            matched_route = 1
-
-        outputs: Dict[str, Optional[Any]] = {
-            f"Route_{i}": input_value if i == matched_route else None
-            for i in range(1, route_count + 1)
+        # Create fields for each route with Optional[input type]
+        route_fields = {
+            route_name: (Optional[input.__class__], None)
+            for route_name in self.config.route_map.keys()
         }
 
-        return self.output_model.model_validate(outputs)
+        new_output_model = create_model(  # type: ignore
+            "RouterNodeOutput",
+            __base__=RouterNodeOutput,
+            **route_fields,  # type: ignore
+        )
+        self.output_model = new_output_model
 
-    def initialize(self) -> None:
-        """Initialize the node and set up the output schema"""
-        # Each route corresponds to a top-level optional field in the output schema
-        self.config.output_schema = {
-            f"Route_{i}": "Optional[Any]" for i in range(1, len(self.config.routes) + 1)
+        output: Dict[str, Optional[BaseModel]] = {}
+
+        for route_name, route in self.config.route_map.items():
+            if self._evaluate_route_conditions(input, route):
+                output[route_name] = input
+        return self.output_model(**output)  # type: ignore
+
+
+if __name__ == "__main__":
+    # Test the RouterNode
+    from typing import List
+    from pydantic import BaseModel
+    import asyncio
+
+    class TestInput(RouterNodeInput):
+        name: str
+        age: int
+        is_student: bool
+        grade: str
+
+    config = RouterNodeConfig(
+        route_map={
+            "route1": RouteCondition(
+                conditions=[
+                    Condition(
+                        variable="age",
+                        operator=ComparisonOperator.GREATER_THAN,
+                        value=18,
+                    ),
+                    Condition(
+                        variable="is_student",
+                        operator=ComparisonOperator.EQUALS,
+                        value=True,
+                    ),
+                ]
+            ),
+            "route2": RouteCondition(
+                conditions=[
+                    Condition(
+                        variable="grade", operator=ComparisonOperator.EQUALS, value="A"
+                    ),
+                ]
+            ),
         }
-        self.output_model = self.create_output_model_class(self.config.output_schema)
+    )
+
+    node = RouterNode(config=config, name="router_node")
+
+    input_data = TestInput(name="Alice", age=20, is_student=True, grade="B")
+    output = asyncio.run(node(input_data))
+    print(output)
