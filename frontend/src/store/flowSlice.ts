@@ -145,6 +145,18 @@ const flowSlice = createSlice({
       saveToHistory(state);
       let { connection } = action.payload;
       state.edges = addEdge(connection, state.edges);
+      const targetNode = state.nodes.find((node) => node.id === connection.target);
+      if (targetNode && targetNode.type === 'RouterNode') {
+        // update the router node's input schema
+        const sourceNode = state.nodes.find((node) => node.id === connection.source);
+        if (sourceNode && sourceNode.data && sourceNode.data.config && sourceNode.data.config.output_schema) {
+          const outputSchema = sourceNode.data.config.output_schema;
+          targetNode.data.config.input_schema = {
+            ...targetNode.data.config.input_schema,
+            ...outputSchema
+          };
+        }
+      }
     },
 
     addNode: (state, action: PayloadAction<{ node: FlowWorkflowNode }>) => {
