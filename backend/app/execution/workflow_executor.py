@@ -67,6 +67,7 @@ class WorkflowExecutor:
                         f"Missing source_handle in link from router node {link.source_id} to {link.target_id}"
                     )
                 source_handles[(link.source_id, link.target_id)] = link.source_handle
+        print(source_handles)
         return source_handles
 
     def _get_async_task_for_node_execution(
@@ -115,9 +116,11 @@ class WorkflowExecutor:
                     )
                 # Get the specific route's output from the router
                 route_output = getattr(output, source_handle, None)
+                print(f"Router output for {dep_id} -> {node_id}: {route_output}")
                 if route_output is not None:
                     node_input[dep_id] = route_output
             else:
+                print(f"Output for {dep_id} -> {node_id}: {output}")
                 node_input[dep_id] = output
 
         # Special handling for InputNode - use initial inputs

@@ -62,6 +62,7 @@ class RouterNode(BaseNode):
 
     name = "router_node"
     display_name = "Router"
+    input_model = RouterNodeInput
     config_model = RouterNodeConfig
 
     def _evaluate_single_condition(
@@ -132,7 +133,7 @@ class RouterNode(BaseNode):
             route_name: (Optional[input.__class__], None)
             for route_name in self.config.route_map.keys()
         }
-
+        print(route_fields)
         new_output_model = create_model(  # type: ignore
             "RouterNodeOutput",
             __base__=RouterNodeOutput,
@@ -145,6 +146,8 @@ class RouterNode(BaseNode):
         for route_name, route in self.config.route_map.items():
             if self._evaluate_route_conditions(input, route):
                 output[route_name] = input
+
+        print(output)
         return self.output_model(**output)  # type: ignore
 
 
