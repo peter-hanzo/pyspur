@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
 import { config, title } from 'process';
 import { TestInput } from '@/types/api_types/workflowSchemas';
+import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
+import { RouteConditionGroup } from '@/types/api_types/routerSchemas';
 
 type NodeTypes = {
   [key: string]: any;
@@ -16,8 +18,6 @@ interface NodeTypesConfig {
 }
 
 
-import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
-import { RouteMap } from '@/types/api_types/routerSchemas';
 
 export interface FlowWorkflowNode {
   id: string;
@@ -34,7 +34,7 @@ export interface FlowWorkflowNode {
       system_message?: string;
       user_message?: string;
       few_shot_examples?: Record<string, any>[] | null;
-      route_map?: RouteMap;
+      route_map?: Record<string, RouteConditionGroup>;
       [key: string]: any;
     },
     run?: Record<string, any>;

@@ -1,64 +1,24 @@
-// routerSchemas.ts
-export type LogicalOperator = 'AND' | 'OR';
-export type ComparisonOperator =
-  | 'contains'
-  | 'equals'
-  | 'number_equals'
-  | 'greater_than'
-  | 'less_than'
-  | 'starts_with'
-  | 'not_starts_with'
-  | 'is_empty'
-  | 'is_not_empty';
+export enum ComparisonOperator {
+  CONTAINS = "contains",
+  EQUALS = "equals", 
+  GREATER_THAN = "greater_than",
+  LESS_THAN = "less_than",
+  STARTS_WITH = "starts_with",
+  NOT_STARTS_WITH = "not_starts_with",
+  IS_EMPTY = "is_empty",
+  IS_NOT_EMPTY = "is_not_empty",
+  NUMBER_EQUALS = "number_equals"
+}
 
-export interface Condition {
-  logicalOperator?: LogicalOperator;
+export type LogicalOperator = "AND" | "OR";
+
+export interface RouteConditionRule {
   variable: string;
   operator: ComparisonOperator;
-  value: string;
+  value: any;
+  logicalOperator?: LogicalOperator;
 }
 
-export interface RouteMap {
-  [key: string]: {
-    conditions: Condition[];
-  };
+export interface RouteConditionGroup {
+  conditions: RouteConditionRule[];
 }
-
-export interface RouterNodeData {
-  color?: string;
-  config: {
-    route_map: RouteMap;
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-    title?: string;
-  };
-}
-
-export interface RouterNodeProps {
-    id: string;
-    data: RouterNodeData;
-    selected?: boolean;
-};
-
-export const OPERATORS: { value: ComparisonOperator; label: string }[] = [
-  { value: 'contains', label: 'Contains' },
-  { value: 'equals', label: 'Equals' },
-  { value: 'number_equals', label: 'Number Equals' },
-  { value: 'greater_than', label: 'Greater Than' },
-  { value: 'less_than', label: 'Less Than' },
-  { value: 'starts_with', label: 'Starts With' },
-  { value: 'not_starts_with', label: 'Does Not Start With' },
-  { value: 'is_empty', label: 'Is Empty' },
-  { value: 'is_not_empty', label: 'Is Not Empty' },
-];
-
-export const DEFAULT_CONDITION: Condition = {
-  variable: '',
-  operator: 'contains',
-  value: '',
-};
-
-export const DEFAULT_ROUTE = {
-  conditions: [{ ...DEFAULT_CONDITION }],
-};
-

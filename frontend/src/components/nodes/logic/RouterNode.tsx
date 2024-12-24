@@ -8,16 +8,49 @@ import styles from '../DynamicNode.module.css';
 import { Icon } from "@iconify/react";
 import { RootState } from '../../../store/store';
 import {
-  LogicalOperator,
   ComparisonOperator,
-  Condition,
-  RouteMap,
-  RouterNodeData,
-  RouterNodeProps,
-  OPERATORS,
-  DEFAULT_CONDITION,
-  DEFAULT_ROUTE,
+  LogicalOperator,
+  RouteConditionRule,
+  RouteConditionGroup
 } from '../../../types/api_types/routerSchemas';
+
+interface RouterNodeData {
+  color?: string;
+  config: {
+    route_map: Record<string, RouteConditionGroup>;
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
+    title?: string;
+  };
+}
+
+interface RouterNodeProps {
+  id: string;
+  data: RouterNodeData;
+  selected?: boolean;
+}
+
+const OPERATORS: { value: ComparisonOperator; label: string }[] = [
+  { value: ComparisonOperator.CONTAINS, label: 'Contains' },
+  { value: ComparisonOperator.EQUALS, label: 'Equals' },
+  { value: ComparisonOperator.NUMBER_EQUALS, label: 'Number Equals' },
+  { value: ComparisonOperator.GREATER_THAN, label: 'Greater Than' },
+  { value: ComparisonOperator.LESS_THAN, label: 'Less Than' },
+  { value: ComparisonOperator.STARTS_WITH, label: 'Starts With' },
+  { value: ComparisonOperator.NOT_STARTS_WITH, label: 'Does Not Start With' },
+  { value: ComparisonOperator.IS_EMPTY, label: 'Is Empty' },
+  { value: ComparisonOperator.IS_NOT_EMPTY, label: 'Is Not Empty' },
+];
+
+const DEFAULT_CONDITION: RouteConditionRule = {
+  variable: '',
+  operator: ComparisonOperator.CONTAINS,
+  value: ''
+};
+
+const DEFAULT_ROUTE: RouteConditionGroup = {
+  conditions: [{ ...DEFAULT_CONDITION }],
+};
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -110,7 +143,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     setNodeWidth(`${Math.min(Math.max(minNodeWidth, nodeRef.current.scrollWidth), maxNodeWidth)}px`);
   }, [data]);
 
-  const handleUpdateRouteMap = (newRouteMap: RouteMap) => {
+  const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
     const output_schema: Record<string, string> = {};
     Object.keys(newRouteMap).forEach((routeKey) => {
       output_schema[routeKey] = 'any';
@@ -171,7 +204,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   const updateCondition = (
     routeKey: string,
     conditionIndex: number,
-    field: keyof Condition,
+    field: keyof RouteConditionRule,
     value: string
   ) => {
     const newRouteMap = {

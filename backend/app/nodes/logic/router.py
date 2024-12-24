@@ -2,13 +2,17 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, create_model
 
 from ..base import BaseNodeConfig, BaseNode, BaseNodeInput, BaseNodeOutput
+from ...schemas.router_schemas import (
+    RouteConditionRuleSchema,
+    RouteConditionGroupSchema,
+    ComparisonOperator,
+)
 
-from ...schemas.router_schemas import ComparisonOperator, Condition, RouteCondition
 
 class RouterNodeConfig(BaseNodeConfig):
     """Configuration for the router node."""
 
-    route_map: Dict[str, RouteCondition]  # Dict of route names to conditions
+    route_map: Dict[str, RouteConditionGroupSchema]  # Dict of route names to conditions
 
 
 class RouterNodeInput(BaseNodeInput):
@@ -36,7 +40,7 @@ class RouterNode(BaseNode):
     config_model = RouterNodeConfig
 
     def _evaluate_single_condition(
-        self, input: BaseModel, condition: Condition
+        self, input: BaseModel, condition: RouteConditionRuleSchema
     ) -> bool:
         """Evaluate a single condition against a specific input variable"""
 
@@ -90,7 +94,7 @@ class RouterNode(BaseNode):
             return False
 
     def _evaluate_route_conditions(
-        self, input: BaseModel, route: RouteCondition
+        self, input: BaseModel, route: RouteConditionGroupSchema
     ) -> bool:
         """Evaluate all conditions in a route with AND/OR logic"""
         if not route.conditions:
@@ -120,7 +124,7 @@ class RouterNode(BaseNode):
             route_name: (Optional[input.__class__], None)
             for route_name in self.config.route_map.keys()
         }
-        print('route fields', route_fields)
+        print("route fields", route_fields)
         new_output_model = create_model(  # type: ignore
             "RouterNodeOutput",
             __base__=RouterNodeOutput,
@@ -151,23 +155,23 @@ if __name__ == "__main__":
 
     config = RouterNodeConfig(
         route_map={
-            "route1": RouteCondition(
+            "route1": RouteConditionGroupSchema(
                 conditions=[
-                    Condition(
+                    RouteConditionRuleSchema(
                         variable="age",
                         operator=ComparisonOperator.GREATER_THAN,
                         value=18,
                     ),
-                    Condition(
+                    RouteConditionRuleSchema(
                         variable="is_student",
                         operator=ComparisonOperator.EQUALS,
                         value=True,
                     ),
                 ]
             ),
-            "route2": RouteCondition(
+            "route2": RouteConditionGroupSchema(
                 conditions=[
-                    Condition(
+                    RouteConditionRuleSchema(
                         variable="grade", operator=ComparisonOperator.EQUALS, value="A"
                     ),
                 ]

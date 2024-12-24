@@ -1,8 +1,7 @@
-from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Any, List, Optional, Literal
+from pydantic import BaseModel, Field
 
-LogicalOperator = Literal["AND", "OR"]
 
 class ComparisonOperator(str, Enum):
     CONTAINS = "contains"
@@ -16,7 +15,10 @@ class ComparisonOperator(str, Enum):
     NUMBER_EQUALS = "number_equals"
 
 
-class Condition(BaseModel):
+LogicalOperator = Literal["AND", "OR"]
+
+
+class RouteConditionRuleSchema(BaseModel):
     """Configuration for a single condition"""
 
     variable: str
@@ -25,7 +27,7 @@ class Condition(BaseModel):
     logicalOperator: Optional[LogicalOperator] = Field(default="AND")
 
 
-class RouteCondition(BaseModel):
+class RouteConditionGroupSchema(BaseModel):
     """Configuration for a route with multiple conditions"""
 
-    conditions: List[Condition]
+    conditions: List[RouteConditionRuleSchema]
