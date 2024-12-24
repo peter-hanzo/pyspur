@@ -17,6 +17,7 @@ interface NodeTypesConfig {
 
 
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
+import { RouteMap } from '@/types/api_types/routerSchemas';
 
 export interface FlowWorkflowNode {
   id: string;
@@ -33,7 +34,7 @@ export interface FlowWorkflowNode {
       system_message?: string;
       user_message?: string;
       few_shot_examples?: Record<string, any>[] | null;
-      route_map?: Record<string, any>;
+      route_map?: RouteMap;
       [key: string]: any;
     },
     run?: Record<string, any>;

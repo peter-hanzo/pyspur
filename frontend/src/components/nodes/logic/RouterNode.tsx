@@ -7,60 +7,17 @@ import { updateNodeData } from '../../../store/flowSlice';
 import styles from '../DynamicNode.module.css';
 import { Icon } from "@iconify/react";
 import { RootState } from '../../../store/store';
-
-type LogicalOperator = 'AND' | 'OR';
-type ComparisonOperator = 'contains' | 'equals' | 'number_equals' | 'greater_than' | 'less_than' | 'starts_with' | 'not_starts_with' | 'is_empty' | 'is_not_empty';
-
-interface Condition {
-  logicalOperator?: LogicalOperator;
-  variable: string;
-  operator: ComparisonOperator;
-  value: string;
-}
-
-interface RouteMap {
-  [key: string]: {
-    conditions: Condition[];
-  };
-}
-
-interface RouterNodeData {
-  color?: string;
-  config: {
-    route_map: RouteMap;
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-    title?: string;
-  };
-}
-
-interface RouterNodeProps {
-  id: string;
-  data: RouterNodeData;
-  selected?: boolean;
-}
-
-const OPERATORS: { value: ComparisonOperator; label: string }[] = [
-  { value: 'contains', label: 'Contains' },
-  { value: 'equals', label: 'Equals' },
-  { value: 'number_equals', label: 'Number Equals' },
-  { value: 'greater_than', label: 'Greater Than' },
-  { value: 'less_than', label: 'Less Than' },
-  { value: 'starts_with', label: 'Starts With' },
-  { value: 'not_starts_with', label: 'Does Not Start With' },
-  { value: 'is_empty', label: 'Is Empty' },
-  { value: 'is_not_empty', label: 'Is Not Empty' },
-];
-
-const DEFAULT_CONDITION: Condition = {
-  variable: '',
-  operator: 'contains',
-  value: ''
-};
-
-const DEFAULT_ROUTE = {
-  conditions: [{ ...DEFAULT_CONDITION }],
-};
+import {
+  LogicalOperator,
+  ComparisonOperator,
+  Condition,
+  RouteMap,
+  RouterNodeData,
+  RouterNodeProps,
+  OPERATORS,
+  DEFAULT_CONDITION,
+  DEFAULT_ROUTE,
+} from '../../../types/api_types/routerSchemas';
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -86,36 +43,36 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   }, [predecessorNodes]);
 
   // Initialize routes if they don't exist or are invalid
-  useEffect(() => {
-    if (!data.config?.route_map || Object.keys(data.config.route_map).length === 0) {
-      handleUpdateRouteMap({ route1: { ...DEFAULT_ROUTE } });
-    } else {
-      // Ensure each route has valid conditions
-      const validRouteMap: RouteMap = Object.entries(data.config.route_map).reduce((acc, [routeKey, route]) => {
-        const conditions = Array.isArray(route.conditions) && route.conditions.length > 0
-          ? route.conditions.map((condition, index): Condition => {
-            const baseCondition: Condition = {
-              variable: condition.variable || '',
-              operator: (condition.operator || 'contains') as ComparisonOperator,
-              value: condition.value || ''
-            };
+  // useEffect(() => {
+  //   if (!data.config?.route_map || Object.keys(data.config.route_map).length === 0) {
+  //     handleUpdateRouteMap({ route1: { ...DEFAULT_ROUTE } });
+  //   } else {
+  //     // Ensure each route has valid conditions
+  //     const validRouteMap: RouteMap = Object.entries(data.config.route_map).reduce((acc, [routeKey, route]) => {
+  //       const conditions = Array.isArray(route.conditions) && route.conditions.length > 0
+  //         ? route.conditions.map((condition, index): Condition => {
+  //           const baseCondition: Condition = {
+  //             variable: condition.variable || '',
+  //             operator: (condition.operator || 'contains') as ComparisonOperator,
+  //             value: condition.value || ''
+  //           };
 
-            if (index > 0) {
-              baseCondition.logicalOperator = (condition.logicalOperator || 'AND') as LogicalOperator;
-            }
+  //           if (index > 0) {
+  //             baseCondition.logicalOperator = (condition.logicalOperator || 'AND') as LogicalOperator;
+  //           }
 
-            return baseCondition;
-          })
-          : [{ ...DEFAULT_CONDITION }];
-        acc[routeKey] = { conditions };
-        return acc;
-      }, {} as RouteMap);
+  //           return baseCondition;
+  //         })
+  //         : [{ ...DEFAULT_CONDITION }];
+  //       acc[routeKey] = { conditions };
+  //       return acc;
+  //     }, {} as RouteMap);
 
-      if (JSON.stringify(validRouteMap) !== JSON.stringify(data.config.route_map)) {
-        handleUpdateRouteMap(validRouteMap);
-      }
-    }
-  }, [data.config.route_map]);
+  //     if (JSON.stringify(validRouteMap) !== JSON.stringify(data.config.route_map)) {
+  //       handleUpdateRouteMap(validRouteMap);
+  //     }
+  //   }
+  // }, [data.config.route_map]);
 
   const connection = useConnection();
 
@@ -269,10 +226,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
             {/* Routes */}
             <div className="flex flex-col gap-4">
               {Object.entries(data.config.route_map || {}).map(([routeKey, route]) => (
+                console.log(route),
                 <Card key={routeKey} classNames={{ base: 'bg-background border-default-200' }}>
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
                     {(route.conditions || []).map((condition, conditionIndex) => (
+                      console.log(condition),
                       <div key={conditionIndex} className="flex flex-col gap-2">
                         {conditionIndex > 0 && (
                           <div className="flex items-center gap-2 justify-center">
