@@ -18,6 +18,7 @@ interface NodeData {
     };
     input_schema?: Record<string, string>;
     title?: string;
+    route_map?: Record<string, any>;
   };
   title?: string;
 }
@@ -58,16 +59,39 @@ export const useSaveWorkflow = () => {
   const debouncedSave = useRef(
     debounce(async () => {
       const { nodes, edges, workflowID, workflowName, testInputs } = valuesRef.current;
-      
+
       try {
         const updatedNodes = nodes
           .filter((node): node is NonNullable<typeof node> => node !== null && node !== undefined)
           .map((node) => {
+            const { config, title, type } = node.data;
+
+            // Adjust the RouterNode configuration format
+            if (node.type === 'RouterNode') {
+              const { routes, ...restConfig } = config;
+
+              const routeMap = routes.reduce((map, route, index) => {
+                const routeName = `route${index + 1}`;
+                map[routeName] = { conditions: route.conditions };
+                return map;
+              }, {});
+
+              return {
+                ...node,
+                config: {
+                  ...restConfig,
+                  route_map: routeMap, // Ensure route_map is created here
+                },
+                title,
+                new_id: title || type || 'Untitled',
+              };
+            }
+
             return {
               ...node,
-              config: node.data?.config,
-              title: node.data?.title,
-              new_id: node.data.config.title || node.data.title || node.type || 'Untitled',
+              config,
+              title,
+              new_id: title || type || 'Untitled',
             };
           });
 
@@ -86,20 +110,22 @@ export const useSaveWorkflow = () => {
               const targetNode = updatedNodes.find(node => node?.id === edge.target);
 
               if (sourceNode.type === 'RouterNode') {
-                console.log('sourceNode:', sourceNode);
-                console.log('sourceNode.config:', edge);
+
+                const sourceHandle = edge.sourceHandle?.replace('Route_', 'route');
+                const targetHandle = edge.targetHandle?.replace('Route_', 'route');
+
                 return {
                   source_id: sourceNode?.new_id || '',
                   target_id: targetNode?.new_id || '',
-                  source_handle: edge.sourceHandle,
-                  target_handle: edge.targetHandle,
+                  source_handle: sourceHandle,
+                  target_handle: targetHandle,
+                };
+              } else {
+                return {
+                  source_id: sourceNode?.new_id || '',
+                  target_id: targetNode?.new_id || '',
                 };
               }
-
-              return {
-                source_id: sourceNode?.new_id || '',
-                target_id: targetNode?.new_id || '',
-              };
             }),
             test_inputs: testInputs,
           }
