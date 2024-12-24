@@ -68,6 +68,14 @@ export const useSaveWorkflow = () => {
 
             // Ensure the RouterNode structure uses route_map
             if (node.type === 'RouterNode') {
+              const { routes, ...restConfig } = config;
+
+              const routeMap = routes.reduce((map, route, index) => {
+                const routeName = `Route_${index + 1}`;
+                map[routeName] = { conditions: route.conditions };
+                return map;
+              }, {});
+
               return {
                 ...node,
                 config: {
@@ -102,14 +110,11 @@ export const useSaveWorkflow = () => {
               const targetNode = updatedNodes.find((node) => node?.id === edge.target);
 
               if (sourceNode?.type === 'RouterNode') {
-                const sourceHandle = edge.sourceHandle?.replace('Route_', 'route');
-                const targetHandle = edge.targetHandle?.replace('Route_', 'route');
-
                 return {
                   source_id: sourceNode?.new_id || '',
                   target_id: targetNode?.new_id || '',
-                  source_handle: sourceHandle,
-                  target_handle: targetHandle,
+                  source_handle: edge.sourceHandle,
+                  target_handle: edge.targetHandle,
                 };
               } else {
                 return {
