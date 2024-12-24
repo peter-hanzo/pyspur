@@ -1,5 +1,7 @@
 {
+  "id": "S2",
   "name": "New Spur 20/12/2024, 03:47:31",
+  "description": "",
   "definition": {
     "nodes": [
       {
@@ -14,52 +16,7 @@
         },
         "coordinates": {
           "x": 0,
-          "y": 167
-        },
-        "subworkflow": null
-      },
-      {
-        "id": "RouterNode_1",
-        "title": "RouterNode_1",
-        "node_type": "RouterNode",
-        "config": {
-          "description": "Configuration for the router node.",
-          "required": [
-            "routes"
-          ],
-          "title": "RouterNode_1",
-          "type": "object",
-          "input_schema": {
-            "input": "any"
-          },
-          "routes": [
-            {
-              "conditions": [
-                {
-                  "variable": "input",
-                  "operator": "contains",
-                  "value": "H"
-                }
-              ]
-            },
-            {
-              "conditions": [
-                {
-                  "variable": "input",
-                  "operator": "contains",
-                  "value": "B"
-                }
-              ]
-            }
-          ],
-          "output_schema": {
-            "Route_1": "any",
-            "Route_2": "any"
-          }
-        },
-        "coordinates": {
-          "x": 438,
-          "y": 0
+          "y": 169
         },
         "subworkflow": null
       },
@@ -85,7 +42,7 @@
         },
         "coordinates": {
           "x": 1376,
-          "y": 196
+          "y": 198
         },
         "subworkflow": null
       },
@@ -111,7 +68,54 @@
         },
         "coordinates": {
           "x": 1376,
-          "y": 435
+          "y": 437
+        },
+        "subworkflow": null
+      },
+      {
+        "id": "RouterNode_1",
+        "title": "RouterNode_1",
+        "node_type": "RouterNode",
+        "config": {
+          "description": "Configuration for the router node.",
+          "required": [
+            "route_map"
+          ],
+          "title": "RouterNode_1",
+          "type": "object",
+          "route_map": {
+            "route1": {
+              "conditions": [
+                {
+                  "variable": "input_1",
+                  "operator": "contains",
+                  "value": "H"
+                }
+              ]
+            },
+            "route2": {
+              "conditions": [
+                {
+                  "variable": "input_1",
+                  "operator": "contains",
+                  "value": "B"
+                }
+              ]
+            }
+          },
+          "input_schema": {
+            "input": "any",
+            "input_1": "str",
+            "input_2": "str"
+          },
+          "output_schema": {
+            "route1": "any",
+            "route2": "any"
+          }
+        },
+        "coordinates": {
+          "x": 438,
+          "y": 0
         },
         "subworkflow": null
       }
@@ -126,14 +130,14 @@
       {
         "source_id": "RouterNode_1",
         "target_id": "SingleLLMCallNode_1",
-        "source_handle": "Route_1",
-        "target_handle": "RouterNode_1_Route_1"
+        "source_handle": "route1",
+        "target_handle": "RouterNode_1_route1"
       },
       {
         "source_id": "RouterNode_1",
         "target_id": "SingleLLMCallNode_2",
-        "source_handle": "Route_2",
-        "target_handle": "RouterNode_1_Route_2"
+        "source_handle": "route2",
+        "target_handle": "RouterNode_1_route2"
       }
     ],
     "test_inputs": [
@@ -144,8 +148,13 @@
       {
         "id": 1734651402932,
         "input_1": "<p>Bye</p>"
+      },
+      {
+        "id": 1734767314584,
+        "input_1": "<p>Hello, how are you?</p>"
       }
     ]
   },
-  "description": ""
+  "created_at": "2024-12-19T22:17:31.168373",
+  "updated_at": "2024-12-23T23:01:15.502871"
 }

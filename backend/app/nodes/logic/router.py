@@ -69,11 +69,28 @@ class RouterNode(BaseNode):
         self, input: BaseModel, condition: Condition
     ) -> bool:
         """Evaluate a single condition against a specific input variable"""
+
+        def get_nested_value(data: Dict[str, Any], target_key: str) -> Any:
+            """Recursively search for a key in a nested structure and return its value."""
+            for key, value in data.items():
+                if key == target_key:
+                    return value
+                found = get_nested_value(value, target_key)
+                if found is not None:
+                    return found
+            return None
+
         try:
             if not condition.variable:
                 return False
 
-            variable_value = getattr(input, condition.variable, None)
+            print("Input object:", input)
+            print("Condition variable:", condition.variable)
+
+            # Retrieve the variable value, including support for nested paths
+            variable_value = get_nested_value(input.model_dump(), condition.variable)
+            print(f"Variable value for {condition.variable}: {variable_value}")
+
             if variable_value is None:
                 if condition.operator != ComparisonOperator.IS_EMPTY:
                     return False
@@ -133,7 +150,7 @@ class RouterNode(BaseNode):
             route_name: (Optional[input.__class__], None)
             for route_name in self.config.route_map.keys()
         }
-        print(route_fields)
+        print('route fields', route_fields)
         new_output_model = create_model(  # type: ignore
             "RouterNodeOutput",
             __base__=RouterNodeOutput,
