@@ -74,8 +74,8 @@ class JSPydanticModel {
 
                 // Special handling for conditional node
                 if (node.name === 'RouterNode' && key === 'config') {
-                  obj.routes = [
-                    {
+                  obj.route_map = {
+                    route1: {
                       conditions: [
                         {
                           variable: '',
@@ -85,18 +85,18 @@ class JSPydanticModel {
                         }
                       ]
                     }
-                  ];
+                  };
 
                   // Merge the validated object with any existing fields
                   processedNode[key] = {
                     ...node[key],  // Keep original fields like title, description etc
                     ...obj,        // Add validated default values
-                    required: ['routes'],
+                    required: ['route_map'],
                     properties: {
                       ...node[key].properties,
-                      routes: {
-                        type: 'array',
-                        items: {
+                      route_map: {
+                        type: 'object',
+                        additionalProperties: {
                           type: 'object',
                           properties: {
                             conditions: {

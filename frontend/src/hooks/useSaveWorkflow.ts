@@ -66,21 +66,13 @@ export const useSaveWorkflow = () => {
           .map((node) => {
             const { config, title, type } = node.data;
 
-            // Adjust the RouterNode configuration format
+            // Ensure the RouterNode structure uses route_map
             if (node.type === 'RouterNode') {
-              const { routes, ...restConfig } = config;
-
-              const routeMap = routes.reduce((map, route, index) => {
-                const routeName = `route${index + 1}`;
-                map[routeName] = { conditions: route.conditions };
-                return map;
-              }, {});
-
               return {
                 ...node,
                 config: {
-                  ...restConfig,
-                  route_map: routeMap, // Ensure route_map is created here
+                  ...config,
+                  route_map: config.route_map || {}, // Ensure route_map exists
                 },
                 title,
                 new_id: title || type || 'Untitled',
@@ -99,18 +91,17 @@ export const useSaveWorkflow = () => {
           name: workflowName,
           description: '',
           definition: {
-            nodes: updatedNodes.map(node => ({
+            nodes: updatedNodes.map((node) => ({
               id: node.new_id,
               node_type: node.type,
               config: node.config,
               coordinates: node.position,
-            } as WorkflowNode)),
+            }) as WorkflowNode),
             links: edges.map((edge: Edge) => {
-              const sourceNode = updatedNodes.find(node => node?.id === edge.source);
-              const targetNode = updatedNodes.find(node => node?.id === edge.target);
+              const sourceNode = updatedNodes.find((node) => node?.id === edge.source);
+              const targetNode = updatedNodes.find((node) => node?.id === edge.target);
 
-              if (sourceNode.type === 'RouterNode') {
-
+              if (sourceNode?.type === 'RouterNode') {
                 const sourceHandle = edge.sourceHandle?.replace('Route_', 'route');
                 const targetHandle = edge.targetHandle?.replace('Route_', 'route');
 

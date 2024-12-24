@@ -353,12 +353,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     // Add routes editor for conditional nodes
-    if (key === 'routes') {
+    if (key === 'route_map') {
       return (
         <div key={key} className="my-2">
           <label className="font-semibold mb-1 block">Conditional Routes</label>
           <RouterEditor
-            routes={dynamicModel.routes || []}
+            routeMap={dynamicModel.route_map || []}
             onChange={(newRoutes) => {
               handleInputChange('routes', newRoutes);
             }}

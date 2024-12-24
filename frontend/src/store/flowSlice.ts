@@ -126,17 +126,8 @@ const flowSlice = createSlice({
         source: link.source_id,
         target: link.target_id,
         sourceHandle: link.source_handle || state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
-        targetHandle: link.target_handle || state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
+        targetHandle: link.target_handle || state.nodes.find(node => node.id === link.target_id)?.data?.config.title || state.nodes.find(node => node.id === link.target_id)?.data?.title,
       }));
-      // Remove duplicate edges by keeping only the first occurrence of each unique edge
-      edges = edges.filter((edge, index, self) =>
-        index === self.findIndex(e =>
-          e.source === edge.source &&
-          e.target === edge.target &&
-          e.sourceHandle === edge.sourceHandle &&
-          e.targetHandle === edge.targetHandle
-        )
-      );
       state.edges = edges;
 
 
@@ -153,18 +144,19 @@ const flowSlice = createSlice({
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
       saveToHistory(state);
       let { connection } = action.payload;
-      // Check for duplicate connections
-      const isDuplicate = state.edges.some(edge => 
-        edge.source === connection.source &&
-        edge.target === connection.target &&
-        edge.sourceHandle === connection.sourceHandle &&
-        edge.targetHandle === connection.targetHandle
-      );
-
-      if (isDuplicate) {
-        return;
-      }
       state.edges = addEdge(connection, state.edges);
+      const targetNode = state.nodes.find((node) => node.id === connection.target);
+      if (targetNode && targetNode.type === 'RouterNode') {
+        // update the router node's input schema
+        const sourceNode = state.nodes.find((node) => node.id === connection.source);
+        if (sourceNode && sourceNode.data && sourceNode.data.config && sourceNode.data.config.output_schema) {
+          const outputSchema = sourceNode.data.config.output_schema;
+          targetNode.data.config.input_schema = {
+            ...targetNode.data.config.input_schema,
+            ...outputSchema
+          };
+        }
+      }
     },
 
     addNode: (state, action: PayloadAction<{ node: FlowWorkflowNode }>) => {

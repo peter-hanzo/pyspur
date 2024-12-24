@@ -1,19 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button, Input, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 
 type ComparisonOperator =
-  | "contains"
-  | "equals"
-  | "greater_than"
-  | "less_than"
-  | "starts_with"
-  | "not_starts_with"
-  | "is_empty"
-  | "is_not_empty"
-  | "number_equals";
+  | 'contains'
+  | 'equals'
+  | 'greater_than'
+  | 'less_than'
+  | 'starts_with'
+  | 'not_starts_with'
+  | 'is_empty'
+  | 'is_not_empty'
+  | 'number_equals';
 
-type LogicalOperator = "AND" | "OR";
+type LogicalOperator = 'AND' | 'OR';
 
 interface Condition {
   variable: string;
@@ -22,127 +22,117 @@ interface Condition {
   logicalOperator?: LogicalOperator;
 }
 
-interface RouteCondition {
-  conditions: Condition[];
+interface RouteMap {
+  [key: string]: {
+    conditions: Condition[];
+  };
 }
 
 interface RouteEditorProps {
-  routes: RouteCondition[];
-  onChange: (routes: RouteCondition[]) => void;
+  routeMap: RouteMap;
+  onChange: (routeMap: RouteMap) => void;
   inputSchema?: Record<string, string>;
   disabled?: boolean;
 }
 
 const OPERATORS: { value: ComparisonOperator; label: string }[] = [
-  { value: "contains", label: "Contains" },
-  { value: "equals", label: "Equals" },
-  { value: "number_equals", label: "Number Equals" },
-  { value: "greater_than", label: "Greater Than" },
-  { value: "less_than", label: "Less Than" },
-  { value: "starts_with", label: "Starts With" },
-  { value: "not_starts_with", label: "Does Not Start With" },
-  { value: "is_empty", label: "Is Empty" },
-  { value: "is_not_empty", label: "Is Not Empty" },
+  { value: 'contains', label: 'Contains' },
+  { value: 'equals', label: 'Equals' },
+  { value: 'number_equals', label: 'Number Equals' },
+  { value: 'greater_than', label: 'Greater Than' },
+  { value: 'less_than', label: 'Less Than' },
+  { value: 'starts_with', label: 'Starts With' },
+  { value: 'not_starts_with', label: 'Does Not Start With' },
+  { value: 'is_empty', label: 'Is Empty' },
+  { value: 'is_not_empty', label: 'Is Not Empty' },
 ];
 
 const DEFAULT_CONDITION: Condition = {
   variable: '',
-  operator: "contains",
+  operator: 'contains',
   value: '',
-  logicalOperator: "AND"
+  logicalOperator: 'AND',
 };
 
-const DEFAULT_ROUTE: RouteCondition = {
-  conditions: [{ ...DEFAULT_CONDITION }]
+const DEFAULT_ROUTE = {
+  conditions: [{ ...DEFAULT_CONDITION }],
 };
 
 const RouteEditor: React.FC<RouteEditorProps> = ({
-  routes = [],
+  routeMap = {},
   onChange,
   inputSchema = {},
   disabled = false,
 }) => {
-  const inputVariables = Object.entries(inputSchema).map(([key, type]) => ({
-    value: key,
-    label: `${key} (${type})`,
-  }));
+  // Generate a list of available input variables based on the schema
+  const inputVariables = useMemo(() => {
+    return Object.entries(inputSchema).map(([key, type]) => ({
+      value: key,
+      label: `${key} (${type})`,
+    }));
+  }, [inputSchema]);
 
   const handleAddRoute = () => {
-    onChange([...routes, { ...DEFAULT_ROUTE }]);
+    const newRouteKey = `route${Object.keys(routeMap).length + 1}`;
+    onChange({ ...routeMap, [newRouteKey]: { ...DEFAULT_ROUTE } });
   };
 
-  const handleRemoveRoute = (routeIndex: number) => {
-    const newRoutes = [...routes];
-    newRoutes.splice(routeIndex, 1);
-    onChange(newRoutes);
+  const handleRemoveRoute = (routeKey: string) => {
+    const { [routeKey]: _, ...updatedRouteMap } = routeMap;
+    onChange(updatedRouteMap);
   };
 
-  const handleAddCondition = (routeIndex: number) => {
-    const newRoutes = routes.map((route, index) => {
-      if (index === routeIndex) {
-        return {
-          ...route,
-          conditions: [
-            ...route.conditions,
-            { ...DEFAULT_CONDITION }
-          ]
-        };
-      }
-      return route;
-    });
-    onChange(newRoutes);
+  const handleAddCondition = (routeKey: string) => {
+    const updatedRouteMap = {
+      ...routeMap,
+      [routeKey]: {
+        conditions: [...routeMap[routeKey].conditions, { ...DEFAULT_CONDITION }],
+      },
+    };
+    onChange(updatedRouteMap);
   };
 
-  const handleRemoveCondition = (routeIndex: number, conditionIndex: number) => {
-    const newRoutes = routes.map((route, index) => {
-      if (index === routeIndex && route.conditions.length > 1) {
-        return {
-          ...route,
-          conditions: route.conditions.filter((_, i) => i !== conditionIndex)
-        };
-      }
-      return route;
-    });
-    onChange(newRoutes);
+  const handleRemoveCondition = (routeKey: string, conditionIndex: number) => {
+    const updatedRouteMap = {
+      ...routeMap,
+      [routeKey]: {
+        conditions: routeMap[routeKey].conditions.filter((_, i) => i !== conditionIndex),
+      },
+    };
+    onChange(updatedRouteMap);
   };
 
   const handleUpdateCondition = (
-    routeIndex: number,
+    routeKey: string,
     conditionIndex: number,
     field: keyof Condition,
     value: string
   ) => {
-    const newRoutes = routes.map((route, index) => {
-      if (index === routeIndex) {
-        return {
-          ...route,
-          conditions: route.conditions.map((condition, i) => {
-            if (i === conditionIndex) {
-              return { ...condition, [field]: value };
-            }
-            return condition;
-          })
-        };
-      }
-      return route;
-    });
-    onChange(newRoutes);
+    const updatedRouteMap = {
+      ...routeMap,
+      [routeKey]: {
+        conditions: routeMap[routeKey].conditions.map((condition, i) =>
+          i === conditionIndex ? { ...condition, [field]: value } : condition
+        ),
+      },
+    };
+    onChange(updatedRouteMap);
   };
 
   return (
     <div className="conditionals-editor space-y-4">
-      {routes.map((route, routeIndex) => (
-        <div key={routeIndex} className="route-container p-4 border border-default-200 rounded-lg bg-default-100">
+      {Object.entries(routeMap).map(([routeKey, route]) => (
+        <div key={routeKey} className="route-container p-4 border border-default-200 rounded-lg bg-default-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold">
-              {routeIndex === 0 ? "Default Route" : `Route ${routeIndex + 1}`}
+              {routeKey === 'route1' ? 'Default Route' : routeKey}
             </h3>
             <div className="flex gap-2">
               <Button
                 isIconOnly
                 radius="full"
                 variant="light"
-                onClick={() => handleAddCondition(routeIndex)}
+                onClick={() => handleAddCondition(routeKey)}
                 disabled={disabled}
                 size="sm"
               >
@@ -153,8 +143,8 @@ const RouteEditor: React.FC<RouteEditorProps> = ({
                 radius="full"
                 variant="light"
                 color="danger"
-                onClick={() => handleRemoveRoute(routeIndex)}
-                disabled={disabled || routes.length <= 1}
+                onClick={() => handleRemoveRoute(routeKey)}
+                disabled={disabled || Object.keys(routeMap).length <= 1}
                 size="sm"
               >
                 <Icon icon="solar:trash-bin-trash-linear" width={20} />
@@ -170,7 +160,7 @@ const RouteEditor: React.FC<RouteEditorProps> = ({
                     orientation="horizontal"
                     value={condition.logicalOperator}
                     onValueChange={(value) =>
-                      handleUpdateCondition(routeIndex, conditionIndex, 'logicalOperator', value as LogicalOperator)
+                      handleUpdateCondition(routeKey, conditionIndex, 'logicalOperator', value as LogicalOperator)
                     }
                     size="sm"
                     className="justify-center"
@@ -184,9 +174,9 @@ const RouteEditor: React.FC<RouteEditorProps> = ({
                 <div className="flex gap-2 items-center">
                   <Select
                     size="sm"
-                    selectedKeys={[condition.variable]}
+                    value={condition.variable}
                     onChange={(e) =>
-                      handleUpdateCondition(routeIndex, conditionIndex, 'variable', e.target.value)
+                      handleUpdateCondition(routeKey, conditionIndex, 'variable', e.target.value)
                     }
                     placeholder="Select variable"
                     className="flex-1"
@@ -201,9 +191,9 @@ const RouteEditor: React.FC<RouteEditorProps> = ({
 
                   <Select
                     size="sm"
-                    selectedKeys={[condition.operator]}
+                    value={condition.operator}
                     onChange={(e) =>
-                      handleUpdateCondition(routeIndex, conditionIndex, 'operator', e.target.value as ComparisonOperator)
+                      handleUpdateCondition(routeKey, conditionIndex, 'operator', e.target.value as ComparisonOperator)
                     }
                     placeholder="Select operator"
                     className="flex-1"
@@ -216,23 +206,25 @@ const RouteEditor: React.FC<RouteEditorProps> = ({
                     ))}
                   </Select>
 
-                  <Input
-                    size="sm"
-                    value={condition.value}
-                    onChange={(e) =>
-                      handleUpdateCondition(routeIndex, conditionIndex, 'value', e.target.value)
-                    }
-                    placeholder="Value"
-                    className="flex-1"
-                    isDisabled={disabled || ['is_empty', 'is_not_empty'].includes(condition.operator)}
-                  />
+                  {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
+                    <Input
+                      size="sm"
+                      value={condition.value}
+                      onChange={(e) =>
+                        handleUpdateCondition(routeKey, conditionIndex, 'value', e.target.value)
+                      }
+                      placeholder="Value"
+                      className="flex-1"
+                      isDisabled={disabled}
+                    />
+                  )}
 
                   <Button
                     isIconOnly
                     radius="full"
                     variant="light"
                     color="danger"
-                    onClick={() => handleRemoveCondition(routeIndex, conditionIndex)}
+                    onClick={() => handleRemoveCondition(routeKey, conditionIndex)}
                     disabled={disabled || route.conditions.length <= 1}
                     size="sm"
                   >

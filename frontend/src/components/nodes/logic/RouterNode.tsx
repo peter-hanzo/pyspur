@@ -18,14 +18,16 @@ interface Condition {
   value: string;
 }
 
-interface Route {
-  conditions: Condition[];
+interface RouteMap {
+  [key: string]: {
+    conditions: Condition[];
+  };
 }
 
 interface RouterNodeData {
   color?: string;
   config: {
-    routes: Route[];
+    route_map: RouteMap;
     input_schema?: Record<string, string>;
     output_schema?: Record<string, string>;
     title?: string;
@@ -56,8 +58,8 @@ const DEFAULT_CONDITION: Condition = {
   value: ''
 };
 
-const DEFAULT_ROUTE: Route = {
-  conditions: [{ ...DEFAULT_CONDITION }]
+const DEFAULT_ROUTE = {
+  conditions: [{ ...DEFAULT_CONDITION }],
 };
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
@@ -85,11 +87,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
   // Initialize routes if they don't exist or are invalid
   useEffect(() => {
-    if (!data.config?.routes || !Array.isArray(data.config.routes) || data.config.routes.length === 0) {
-      handleUpdateRoutes([{ ...DEFAULT_ROUTE }]);
+    if (!data.config?.route_map || Object.keys(data.config.route_map).length === 0) {
+      handleUpdateRouteMap({ route1: { ...DEFAULT_ROUTE } });
     } else {
       // Ensure each route has valid conditions
-      const validRoutes: Route[] = data.config.routes.map(route => {
+      const validRouteMap: RouteMap = Object.entries(data.config.route_map).reduce((acc, [routeKey, route]) => {
         const conditions = Array.isArray(route.conditions) && route.conditions.length > 0
           ? route.conditions.map((condition, index): Condition => {
             const baseCondition: Condition = {
@@ -105,14 +107,15 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
             return baseCondition;
           })
           : [{ ...DEFAULT_CONDITION }];
-        return { conditions };
-      });
+        acc[routeKey] = { conditions };
+        return acc;
+      }, {} as RouteMap);
 
-      if (JSON.stringify(validRoutes) !== JSON.stringify(data.config.routes)) {
-        handleUpdateRoutes(validRoutes);
+      if (JSON.stringify(validRouteMap) !== JSON.stringify(data.config.route_map)) {
+        handleUpdateRouteMap(validRouteMap);
       }
     }
-  }, []);
+  }, [data.config.route_map]);
 
   const connection = useConnection();
 
@@ -150,111 +153,79 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     setNodeWidth(`${Math.min(Math.max(minNodeWidth, nodeRef.current.scrollWidth), maxNodeWidth)}px`);
   }, [data]);
 
-  const handleUpdateRoutes = (newRoutes: Route[]) => {
+  const handleUpdateRouteMap = (newRouteMap: RouteMap) => {
     const output_schema: Record<string, string> = {};
-    newRoutes.forEach((_, index) => {
-      output_schema[`Route_${index + 1}`] = 'any';
+    Object.keys(newRouteMap).forEach((routeKey) => {
+      output_schema[routeKey] = 'any';
     });
 
     const updatedData: RouterNodeData = {
       ...data,
       config: {
         ...data.config,
-        routes: newRoutes.map(route => ({
-          conditions: route.conditions.map(condition => ({
-            variable: condition.variable,
-            operator: condition.operator,
-            value: condition.value,
-            ...(condition.logicalOperator ? { logicalOperator: condition.logicalOperator } : {})
-          }))
-        })),
-        input_schema: data.config?.input_schema || { input: 'any' },
-        output_schema
-      }
+        route_map: newRouteMap,
+        input_schema: data.config?.input_schema,
+        output_schema,
+      },
     };
 
-    dispatch(updateNodeData({
-      id,
-      data: updatedData
-    }));
+    dispatch(updateNodeData({ id, data: updatedData }));
   };
 
   const addRoute = () => {
-    const newRoute: Route = {
-      conditions: [{
-        variable: '',
-        operator: 'contains',
-        value: ''
-      }]
+    const newRouteKey = `route${Object.keys(data.config?.route_map || {}).length + 1}`;
+    const newRouteMap = {
+      ...data.config.route_map,
+      [newRouteKey]: { ...DEFAULT_ROUTE },
     };
-
-    const newRoutes: Route[] = [
-      ...(data.config?.routes || []),
-      newRoute
-    ];
-
-    handleUpdateRoutes(newRoutes);
+    handleUpdateRouteMap(newRouteMap);
   };
 
-  const removeRoute = (index: number) => {
-    const newRoutes = [...(data.config?.routes || [])];
-    newRoutes.splice(index, 1);
-    handleUpdateRoutes(newRoutes);
+  const removeRoute = (routeKey: string) => {
+    const { [routeKey]: _, ...newRouteMap } = data.config.route_map || {};
+    handleUpdateRouteMap(newRouteMap);
   };
 
-  const addCondition = (routeIndex: number) => {
-    const newRoutes = [...(data.config?.routes || [])].map((route, index) => {
-      if (index === routeIndex) {
-        return {
-          ...route,
-          conditions: [
-            ...(route.conditions || []),
-            { ...DEFAULT_CONDITION, logicalOperator: 'AND' as const }
-          ]
-        };
-      }
-      return route;
-    });
-    handleUpdateRoutes(newRoutes);
+  const addCondition = (routeKey: string) => {
+    const newRouteMap = {
+      ...data.config.route_map,
+      [routeKey]: {
+        conditions: [
+          ...data.config.route_map[routeKey].conditions,
+          { ...DEFAULT_CONDITION, logicalOperator: 'AND' as const },
+        ],
+      },
+    };
+    handleUpdateRouteMap(newRouteMap);
   };
 
-  const removeCondition = (routeIndex: number, conditionIndex: number) => {
-    const newRoutes = [...(data.config?.routes || [])].map((route, index) => {
-      if (index === routeIndex && route.conditions?.length > 1) {
-        return {
-          ...route,
-          conditions: route.conditions.filter((_, i) => i !== conditionIndex)
-        };
-      }
-      return route;
-    });
-    handleUpdateRoutes(newRoutes);
+  const removeCondition = (routeKey: string, conditionIndex: number) => {
+    const newRouteMap = {
+      ...data.config.route_map,
+      [routeKey]: {
+        conditions: data.config.route_map[routeKey].conditions.filter(
+          (_, i) => i !== conditionIndex
+        ),
+      },
+    };
+    handleUpdateRouteMap(newRouteMap);
   };
 
-  const updateCondition = (routeIndex: number, conditionIndex: number, field: keyof Condition, value: string) => {
-    const newRoutes = [...(data.config?.routes || [])].map((route, index) => {
-      if (index === routeIndex) {
-        return {
-          ...route,
-          conditions: route.conditions.map((condition, i) => {
-            if (i === conditionIndex) {
-              const updatedCondition: Condition = { ...condition };
-              if (field === 'logicalOperator') {
-                updatedCondition.logicalOperator = value as LogicalOperator;
-              } else if (field === 'operator') {
-                updatedCondition.operator = value as ComparisonOperator;
-              } else {
-                updatedCondition[field] = value;
-              }
-              return updatedCondition;
-            }
-            return condition;
-          })
-        };
-      }
-      return route;
-    });
-    handleUpdateRoutes(newRoutes);
+  const updateCondition = (
+    routeKey: string,
+    conditionIndex: number,
+    field: keyof Condition,
+    value: string
+  ) => {
+    const newRouteMap = {
+      ...data.config.route_map,
+      [routeKey]: {
+        conditions: data.config.route_map[routeKey].conditions.map((condition, i) =>
+          i === conditionIndex ? { ...condition, [field]: value } : condition
+        ),
+      },
+    };
+    handleUpdateRouteMap(newRouteMap);
   };
 
   return (
@@ -297,13 +268,8 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
             {/* Routes */}
             <div className="flex flex-col gap-4">
-              {(data.config?.routes || []).map((route, routeIndex) => (
-                <Card
-                  key={routeIndex}
-                  classNames={{
-                    base: "bg-background border-default-200"
-                  }}
-                >
+              {Object.entries(data.config.route_map || {}).map(([routeKey, route]) => (
+                <Card key={routeKey} classNames={{ base: 'bg-background border-default-200' }}>
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
                     {(route.conditions || []).map((condition, conditionIndex) => (
@@ -313,7 +279,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             <RadioGroup
                               orientation="horizontal"
                               value={condition.logicalOperator}
-                              onValueChange={(value) => updateCondition(routeIndex, conditionIndex, 'logicalOperator', value)}
+                              onValueChange={(value) =>
+                                updateCondition(routeKey, conditionIndex, 'logicalOperator', value)
+                              }
                               size="sm"
                             >
                               <Radio value="AND">AND</Radio>
@@ -325,7 +293,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                           <Select
                             size="sm"
                             value={condition.variable}
-                            onChange={(e) => updateCondition(routeIndex, conditionIndex, 'variable', e.target.value)}
+                            onChange={(e) =>
+                              updateCondition(routeKey, conditionIndex, 'variable', e.target.value)
+                            }
                             placeholder="Select variable"
                             className="flex-1"
                             classNames={{
@@ -342,7 +312,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                           <Select
                             size="sm"
                             value={condition.operator}
-                            onChange={(e) => updateCondition(routeIndex, conditionIndex, 'operator', e.target.value)}
+                            onChange={(e) => updateCondition(routeKey, conditionIndex, 'operator', e.target.value)}
                             className="flex-1"
                             classNames={{
                               trigger: "bg-default-100 dark:bg-default-50",
@@ -359,7 +329,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             <Input
                               size="sm"
                               value={condition.value}
-                              onChange={(e) => updateCondition(routeIndex, conditionIndex, 'value', e.target.value)}
+                              onChange={(e) =>
+                                updateCondition(routeKey, conditionIndex, 'value', e.target.value)
+                              }
                               placeholder="Value"
                               className="flex-1"
                               classNames={{
@@ -372,8 +344,8 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             size="sm"
                             color="danger"
                             isIconOnly
-                            onClick={() => removeCondition(routeIndex, conditionIndex)}
-                            disabled={route.conditions?.length === 1}
+                            onClick={() => removeCondition(routeKey, conditionIndex)}
+                            disabled={route.conditions.length === 1}
                           >
                             <Icon icon="solar:trash-bin-trash-linear" width={18} />
                           </Button>
@@ -385,7 +357,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                     <Button
                       size="sm"
                       variant="flat"
-                      onClick={() => addCondition(routeIndex)}
+                      onClick={() => addCondition(routeKey)}
                       startContent={<Icon icon="solar:add-circle-linear" width={18} />}
                       className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
                     >
@@ -395,12 +367,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                     {/* Route Output Handle */}
                     <div className={`${styles.handleRow} w-full justify-end mt-2`}>
                       <div className="align-center flex flex-grow flex-shrink mr-2">
-                        <span className="text-sm font-medium ml-auto text-foreground">Route_{routeIndex + 1} →</span>
+                        <span className="text-sm font-medium ml-auto text-foreground">{routeKey} →</span>
                       </div>
                       <Handle
                         type="source"
                         position={Position.Right}
-                        id={`Route_${routeIndex + 1}`}
+                        id={routeKey}
                         className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
                       />
                     </div>
@@ -424,12 +396,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
         )}
 
         {/* Output handles when collapsed */}
-        {isCollapsed && (data.config?.routes || []).map((_, routeIndex) => (
-          <div key={routeIndex} className={`${styles.handleRow} w-full justify-end mt-2`}>
+        {isCollapsed && Object.keys(data.config?.route_map || {}).map((routeKey) => (
+          <div key={routeKey} className={`${styles.handleRow} w-full justify-end mt-2`}>
             <Handle
               type="source"
               position={Position.Right}
-              id={`Route_${routeIndex + 1}`}
+              id={routeKey}
               className={`${styles.handle} ${styles.handleRight} ${styles.collapsedHandleOutput}`}
             />
           </div>
