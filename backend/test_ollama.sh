@@ -26,14 +26,10 @@ print_error() {
 if [ -n "$OLLAMA_BASE_URL" ]; then
     echo "Testing Ollama connection at: $OLLAMA_BASE_URL"
     
-    # Try to connect to Ollama
-    response=$(curl -s -w "\n%{http_code}" "$OLLAMA_BASE_URL/api/generate" \
-        -H "Content-Type: application/json" \
-        -d '{
-            "model": "llama2",
-            "prompt": "Why is the sky blue?"
-        }' 2>&1)
-    
+    # Try to fetch the model list from Ollama
+    response=$(curl -s -w "\n%{http_code}" "$OLLAMA_BASE_URL/api/tags" \
+        -H "Content-Type: application/json" 2>&1)
+
     # Get the HTTP status code
     http_code=$(echo "$response" | tail -n1)
     # Get the response body
