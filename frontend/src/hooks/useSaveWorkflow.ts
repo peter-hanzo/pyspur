@@ -70,7 +70,7 @@ export const useSaveWorkflow = () => {
             if (node.type === 'RouterNode') {
               const { route_map, ...restConfig } = config;
 
-              const routeMap = route_map.reduce((map, route, index) => {
+              const routeMap = (route_map || []).reduce((map, route, index) => {
                 const routeName = `Route_${index + 1}`;
                 map[routeName] = { conditions: route.conditions };
                 return map;
