@@ -313,13 +313,16 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             className="flex-[2] min-w-[200px]"
                             classNames={{
                               trigger: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto",
-                              value: "whitespace-normal break-words",
+                              value: "whitespace-normal break-words", 
                               popoverContent: "bg-background dark:bg-background"
                             }}
+                            isMultiline={true}
                           >
                             {inputVariables.map((variable) => (
-                              <SelectItem key={variable.value} value={variable.value}>
-                                {variable.label}
+                              <SelectItem key={variable.value} value={variable.value} textValue={variable.label}>
+                                <div className="whitespace-normal">
+                                  <span>{variable.label}</span>
+                                </div>
                               </SelectItem>
                             ))}
                           </Select>
