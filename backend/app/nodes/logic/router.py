@@ -24,6 +24,9 @@ class RouterNodeInput(BaseNodeInput):
 class RouterNodeOutput(BaseNodeOutput):
     """Output model for the router node."""
 
+    class Config:
+        arbitrary_types_allowed = True
+
     pass
 
 
@@ -62,12 +65,8 @@ class RouterNode(BaseNode):
             if not condition.variable:
                 return False
 
-            print("Input object:", input)
-            print("Condition variable:", condition.variable)
-
             # Retrieve the variable value, including support for nested paths
             variable_value = get_nested_value(input.model_dump(), condition.variable)
-            print(f"Variable value for {condition.variable}: {variable_value}")
 
             if variable_value is None:
                 if condition.operator != ComparisonOperator.IS_EMPTY:
@@ -106,7 +105,6 @@ class RouterNode(BaseNode):
             return True
 
         result = self._evaluate_single_condition(input, route.conditions[0])
-        print(route.conditions[0], result)
 
         for i in range(1, len(route.conditions)):
             condition = route.conditions[i]
@@ -124,13 +122,18 @@ class RouterNode(BaseNode):
         Evaluates conditions for each route in order. The first route that matches
         gets the input data. If no routes match, the first route acts as a default.
         """
+        output_model = create_model(  # type: ignore
+            f"{self.name}",
+            **{field_name: (field_type, ...) for field_name, field_type in input.__fields__.items()},  # type: ignore
+            __base__=RouterNodeOutput,
+        )
         # Create fields for each route with Optional[input type]
-        route_fields = {
-            route_name: (Optional[input.__class__], None)
+        route_fields = {  # type: ignore
+            route_name: (Optional[output_model], None)  # type: ignore
             for route_name in self.config.route_map.keys()
         }
         new_output_model = create_model(  # type: ignore
-            "RouterNodeOutput",
+            f"{self.name}CompositeOutput",
             __base__=RouterNodeOutput,
             **route_fields,  # type: ignore
         )
@@ -140,7 +143,7 @@ class RouterNode(BaseNode):
 
         for route_name, route in self.config.route_map.items():
             if self._evaluate_route_conditions(input, route):
-                output[route_name] = input
+                output[route_name] = output_model(**input.model_dump())
 
         return self.output_model(**output)  # type: ignore
 
