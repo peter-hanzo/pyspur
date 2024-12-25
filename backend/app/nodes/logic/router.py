@@ -45,14 +45,18 @@ class RouterNode(BaseNode):
         """Evaluate a single condition against a specific input variable"""
 
         def get_nested_value(data: Dict[str, Any], target_key: str) -> Any:
-            """Recursively search for a key in a nested structure and return its value."""
-            for key, value in data.items():
-                if key == target_key:
-                    return value
-                found = get_nested_value(value, target_key)
-                if found is not None:
-                    return found
-            return None
+            """Get value from nested dictionary using dot notation path."""
+            keys = target_key.split(".")
+            current = data
+
+            for key in keys:
+                if not isinstance(current, dict):
+                    return None
+                if key not in current:
+                    return None
+                current = current[key]
+
+            return current
 
         try:
             if not condition.variable:
@@ -102,6 +106,7 @@ class RouterNode(BaseNode):
             return True
 
         result = self._evaluate_single_condition(input, route.conditions[0])
+        print(route.conditions[0], result)
 
         for i in range(1, len(route.conditions)):
             condition = route.conditions[i]
