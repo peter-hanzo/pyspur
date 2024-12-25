@@ -16,7 +16,7 @@ from enum import Enum
 from ollama import AsyncClient
 
 # uncomment for debugging litellm issues
-litellm.set_verbose=True
+# litellm.set_verbose=True
 load_dotenv()
 
 
@@ -270,16 +270,32 @@ async def find_top_k_similar(
 
 class OllamaOptions(BaseModel):
     """Options for Ollama API calls"""
-    temperature: float = Field(default=0.7, ge=0.0, le=1.0, description="Controls randomness in responses")
-    max_tokens: Optional[int] = Field(default=None, ge=0, description="Maximum number of tokens to generate")
-    top_p: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold")
-    top_k: Optional[int] = Field(default=None, ge=0, description="Number of tokens to consider for top-k sampling")
-    repeat_penalty: Optional[float] = Field(default=None, ge=0.0, description="Penalty for token repetition")
-    stop: Optional[list[str]] = Field(default=None, description="Stop sequences to end generation")
-    
+
+    temperature: float = Field(
+        default=0.7, ge=0.0, le=1.0, description="Controls randomness in responses"
+    )
+    max_tokens: Optional[int] = Field(
+        default=None, ge=0, description="Maximum number of tokens to generate"
+    )
+    top_p: Optional[float] = Field(
+        default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold"
+    )
+    top_k: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Number of tokens to consider for top-k sampling",
+    )
+    repeat_penalty: Optional[float] = Field(
+        default=None, ge=0.0, description="Penalty for token repetition"
+    )
+    stop: Optional[list[str]] = Field(
+        default=None, description="Stop sequences to end generation"
+    )
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary, excluding None values"""
         return {k: v for k, v in self.model_dump().items() if v is not None}
+
 
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
 async def ollama_with_backoff(
@@ -291,7 +307,7 @@ async def ollama_with_backoff(
 ) -> str:
     """
     Make an async Ollama API call with exponential backoff retry logic.
-    
+
     Args:
         model: The name of the Ollama model to use
         messages: List of message dictionaries with 'role' and 'content'
@@ -300,7 +316,7 @@ async def ollama_with_backoff(
         max_retries: Maximum number of retries
         initial_wait: Initial wait time between retries in seconds
         max_wait: Maximum wait time between retries in seconds
-    
+
     Returns:
         Either a string response or a validated Pydantic model instance
     """
@@ -309,7 +325,6 @@ async def ollama_with_backoff(
         model=model.replace("ollama/", ""),
         messages=messages,
         format=format,
-        options=(options or OllamaOptions()).to_dict()
+        options=(options or OllamaOptions()).to_dict(),
     )
     return response.message.content
-    
