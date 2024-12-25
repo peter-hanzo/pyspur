@@ -52,6 +52,13 @@ const DEFAULT_ROUTE: RouteConditionGroup = {
   conditions: [{ ...DEFAULT_CONDITION }],
 };
 
+const estimateTextWidth = (text: string): number => {
+  // Approximate character widths (in pixels)
+  const averageCharWidth = 8;  // for normal text
+  const spaceWidth = 4;        // for spaces
+  return text.length * averageCharWidth + text.split(' ').length * spaceWidth;
+};
+
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
@@ -112,10 +119,41 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
   useEffect(() => {
     if (!nodeRef.current || !data) return;
-    const minNodeWidth = 400;
-    const maxNodeWidth = 800;
-    setNodeWidth(`${Math.min(Math.max(minNodeWidth, nodeRef.current.scrollWidth), maxNodeWidth)}px`);
-  }, [data]);
+    
+    // Calculate widths for all variables, operators, and values
+    const allWidths = Object.entries(data.config?.route_map || {}).flatMap(([_, route]) => 
+      route.conditions.map(condition => {
+        // Variable width calculation
+        const variable = inputVariables.find(v => v.value === condition.variable);
+        const variableWidth = variable ? estimateTextWidth(variable.label) : 200; // default min width
+        
+        // Operator width calculation
+        const operator = OPERATORS.find(op => op.value === condition.operator);
+        const operatorWidth = operator ? estimateTextWidth(operator.label) : 140; // default operator width
+        
+        // Value width calculation
+        const valueWidth = condition.value ? estimateTextWidth(condition.value) : 150; // default value width
+        
+        // Add some padding and account for gaps between elements
+        const totalRowWidth = variableWidth + operatorWidth + valueWidth + 150; // 100px for gaps and padding
+        
+        return totalRowWidth;
+      })
+    );
+    
+    // Get the maximum width needed for any condition row
+    const maxConditionWidth = Math.max(
+      ...allWidths, 
+      400 // minimum width
+    );
+    
+    // Add some padding for the card container
+    const finalWidth = Math.min(maxConditionWidth + 40, 800); // 800px max width
+    
+    if (nodeWidth !== `${finalWidth}px`) {
+      setNodeWidth(`${finalWidth}px`);
+    }
+  }, [data, nodeWidth, inputVariables]);
 
   const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
     const output_schema: Record<string, string> = {};
@@ -243,7 +281,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
             <div className="flex flex-col gap-4">
               {Object.entries(data.config.route_map || {}).map(([routeKey, route]) => (
                 console.log(route),
-                <Card key={routeKey} classNames={{ base: 'bg-background border-default-200' }}>
+                <Card key={routeKey} classNames={{ base: 'bg-background border-default-200 p-1' }}>
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
                     {(route.conditions || []).map((condition, conditionIndex) => (
@@ -264,7 +302,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             </RadioGroup>
                           </div>
                         )}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Select
                             size="sm"
                             selectedKeys={condition.variable ? [condition.variable] : []}
@@ -272,9 +310,10 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                               updateCondition(routeKey, conditionIndex, 'variable', e.target.value)
                             }
                             placeholder="Select variable"
-                            className="flex-1"
+                            className="flex-[2] min-w-[200px]"
                             classNames={{
-                              trigger: "bg-default-100 dark:bg-default-50",
+                              trigger: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto",
+                              value: "whitespace-normal break-words",
                               popoverContent: "bg-background dark:bg-background"
                             }}
                           >
@@ -288,7 +327,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             size="sm"
                             selectedKeys={condition.operator ? [condition.operator] : []}
                             onChange={(e) => updateCondition(routeKey, conditionIndex, 'operator', e.target.value)}
-                            className="flex-1"
+                            className="w-[140px] flex-none"
                             classNames={{
                               trigger: "bg-default-100 dark:bg-default-50",
                               popoverContent: "bg-background dark:bg-background"
@@ -308,10 +347,10 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                                 updateCondition(routeKey, conditionIndex, 'value', e.target.value)
                               }
                               placeholder="Value"
-                              className="flex-1"
+                              className="flex-[2] min-w-[100px]"
                               classNames={{
-                                input: "bg-default-100 dark:bg-default-50",
-                                inputWrapper: "shadow-none"
+                                input: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto whitespace-normal",
+                                inputWrapper: "shadow-none min-h-unit-12 h-auto"
                               }}
                             />
                           )}
@@ -321,6 +360,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             isIconOnly
                             onClick={() => removeCondition(routeKey, conditionIndex)}
                             disabled={route.conditions.length === 1}
+                            className="flex-none"
                           >
                             <Icon icon="solar:trash-bin-trash-linear" width={18} />
                           </Button>
