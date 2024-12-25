@@ -99,14 +99,18 @@ class WorkflowExecutor:
                 )
             )
 
+        if any([output is None for output in predecessor_outputs]):
+            self._outputs[node_id] = None
+            return None
+
         # Get source handles mapping
         source_handles = self._get_source_handles()
 
         # Build node input, handling router outputs specially
         node_input = {}
         for dep_id, output in zip(dependency_ids, predecessor_outputs):
-            source_node = self._node_dict[dep_id]
-            if source_node.node_type == "RouterNode":
+            predecessor_node = self._node_dict[dep_id]
+            if predecessor_node.node_type == "RouterNode":
                 # For router nodes, we must have a source handle
                 source_handle = source_handles.get((dep_id, node_id))
                 if not source_handle:
@@ -117,9 +121,17 @@ class WorkflowExecutor:
                 route_output = getattr(output, source_handle, None)
                 if route_output is not None:
                     node_input[dep_id] = route_output
+                else:
+                    self._outputs[node_id] = None
+                    if self.task_recorder:
+                        self.task_recorder.update_task(
+                            node_id=node_id,
+                            status=TaskStatus.PENDING,
+                            end_time=datetime.now(),
+                        )
+                    return None
             else:
                 node_input[dep_id] = output
-        print(f"Node input for {node_id}: {node_input}")
 
         # Special handling for InputNode - use initial inputs
         if node.node_type == "InputNode":
