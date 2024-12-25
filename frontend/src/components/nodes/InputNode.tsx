@@ -12,6 +12,7 @@ import { Icon } from '@iconify/react';
 import styles from './InputNode.module.css';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import { RootState } from '../../store/store';
+import { isEqual } from 'lodash';
 
 interface InputNodeProps {
   id: string;
@@ -35,7 +36,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   const [newFieldValue, setNewFieldValue] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [showKeyError, setShowKeyError] = useState<boolean>(false);
-  const incomingEdges = useSelector((state: RootState) => state.flow.edges.filter((edge) => edge.target === id));
+  const incomingEdges = useSelector((state: RootState) => state.flow.edges.filter((edge) => edge.target === id), isEqual);
 
   const outputSchema = data?.config?.output_schema || {};
   const outputSchemaKeys = Object.keys(outputSchema);

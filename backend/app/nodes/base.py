@@ -131,6 +131,7 @@ class BaseNode(ABC):
         input: (
             Dict[str, str | int | bool | float | Dict[str, Any] | List[Any]]
             | Dict[str, BaseNodeOutput]
+            | Dict[str, BaseNodeInput]
             | BaseNodeInput
         ),
     ) -> BaseNodeOutput:
@@ -144,7 +145,9 @@ class BaseNode(ABC):
             The node's output model
         """
         if isinstance(input, dict):
-            if all(isinstance(value, BaseNodeOutput) for value in input.values()):
+            if all(
+                isinstance(value, BaseNodeOutput) for value in input.values()
+            ) or all(isinstance(value, BaseNodeInput) for value in input.values()):
                 # Input is a dictionary of BaseNodeOutput instances, creating a composite model
                 self.input_model = self.create_composite_model_instance(
                     model_name=self.input_model.__name__,

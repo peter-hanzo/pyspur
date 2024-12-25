@@ -16,7 +16,7 @@ from enum import Enum
 from ollama import AsyncClient
 
 # uncomment for debugging litellm issues
-litellm.set_verbose = True
+# litellm.set_verbose=True
 load_dotenv()
 
 

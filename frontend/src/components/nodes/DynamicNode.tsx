@@ -17,16 +17,6 @@ import NodeOutputDisplay from './NodeOutputDisplay';
 import NodeOutputModal from './NodeOutputModal';
 import isEqual from 'lodash/isEqual';
 
-interface NodeData {
-  config?: {
-    input_schema?: Record<string, any>;
-    output_schema?: Record<string, any>;
-    system_message?: string;
-    user_message?: string;
-  };
-  title?: string;
-  [key: string]: any;
-}
 
 interface SchemaMetadata {
   required?: boolean;
@@ -44,7 +34,7 @@ const updateMessageVariables = (message: string | undefined, oldKey: string, new
 interface DynamicNodeProps extends NodeProps {
   id: string;
   type: string;
-  data: NodeData;
+  data: FlowWorkflowNode['data'];
   position: { x: number; y: number };
   selected?: boolean;
   parentNode?: string;
@@ -178,6 +168,29 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     [dispatch, id, nodeData]
   );
 
+  const [predecessorNodes, setPredcessorNodes] = useState(() => {
+    return edges
+      .filter((edge) => edge.target === id)
+      .map((edge) => {
+        const sourceNode = nodes.find((node) => node.id === edge.source);
+        if (!sourceNode) return null;
+        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+          return {
+            id: sourceNode.id,
+            type: sourceNode.type,
+            data: {
+              config: {
+                title: edge.source + '_' + edge.sourceHandle
+              }
+            }
+          };
+        }
+        return sourceNode;
+      })
+      .filter(Boolean);
+  });
+
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
 
@@ -297,28 +310,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     );
   };
 
-  const [predecessorNodes, setPredcessorNodes] = useState(() => {
-    return edges
-      .filter((edge) => edge.target === id)
-      .map((edge) => {
-        const sourceNode = nodes.find((node) => node.id === edge.source);
-        if (!sourceNode) return null;
-
-        if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
-          return {
-            id: sourceNode.id,
-            type: sourceNode.type,
-            data: {
-              config: {
-                title: edge.sourceHandle
-              }
-            }
-          };
-        }
-        return sourceNode;
-      })
-      .filter(Boolean);
-  });
 
   const connection = useConnection();
 
@@ -329,14 +320,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-
-        if (sourceNode.type === 'IfElseNode' && edge.sourceHandle) {
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
           return {
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
               config: {
-                title: edge.sourceHandle
+                title: edge.source + '.' + edge.sourceHandle
               }
             }
           };
@@ -349,22 +339,32 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
     if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
       if (connection.fromNode && !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)) {
-        if (connection.fromNode.type === 'IfElseNode' && connection.fromHandle) {
+        if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
+          console.log('connection', connection);
           result = [...updatedPredecessorNodes, {
             id: connection.fromNode.id,
             type: connection.fromNode.type,
             data: {
               config: {
-                title: connection.fromHandle.nodeId
+                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
               }
             }
           }];
         } else {
-          result = [...updatedPredecessorNodes, connection.fromNode];
+          result = [...updatedPredecessorNodes, {
+            id: connection.fromNode.id,
+            type: connection.fromNode.type,
+            data: {
+              config: {
+                title: connection.fromNode.data?.config?.title || connection.fromNode.id
+              }
+            }
+          }];
         }
       }
     }
-
+    // deduplicate
+    result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index);
     return result;
   }, [edges, nodes, connection, id]);
 
@@ -380,16 +380,17 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     }
   }, [finalPredecessors, predecessorNodes, updateNodeInternals, id]);
 
-  const isIfElseNode = type === 'IfElseNode';
+  const isRouterNode = type === 'RouterNode';
 
   const renderHandles = () => {
     if (!nodeData) return null;
+    const dedupedPredecessors = finalPredecessors.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index);
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
-          {predecessorNodes.map((node) => {
+          {dedupedPredecessors.map((node) => {
             const handleId = String(node.data?.config?.title || node.id || '');
             return (
               <InputHandleRow
@@ -405,6 +406,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
           {nodeData?.title && (
             <OutputHandleRow
+              id={node?.id}
               keyName={String(nodeData.config.title || id)}
             />
           )}
@@ -434,7 +436,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           className="hover:!bg-background"
         >
           <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-            {isIfElseNode ? (
+            {isRouterNode ? (
               <div>
                 <strong>Conditional Node</strong>
               </div>
