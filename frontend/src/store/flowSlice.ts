@@ -128,8 +128,14 @@ const flowSlice = createSlice({
         source: link.source_id,
         target: link.target_id,
         sourceHandle: link.source_handle || state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
-        targetHandle: link.target_handle || state.nodes.find(node => node.id === link.target_id)?.data?.config.title || state.nodes.find(node => node.id === link.target_id)?.data?.title,
+        targetHandle: link.source_handle || state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
       }));
+      // deduplicate edges
+      edges = edges.filter((edge, index, self) =>
+        index === self.findIndex((t) => (
+          t.source === edge.source && t.target === edge.target
+        ))
+      );
       state.edges = edges;
 
 
@@ -146,6 +152,10 @@ const flowSlice = createSlice({
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
       saveToHistory(state);
       let { connection } = action.payload;
+      // make sure the edge doesn't already exist
+      if (state.edges.find((edge) => edge.source === connection.source && edge.target === connection.target)) {
+        return;
+      }
       state.edges = addEdge(connection, state.edges);
       const targetNode = state.nodes.find((node) => node.id === connection.target);
       if (targetNode && targetNode.type === 'RouterNode') {

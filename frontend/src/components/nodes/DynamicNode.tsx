@@ -364,6 +364,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         }
       }
     }
+    // deduplicate
+    result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index);
     return result;
   }, [edges, nodes, connection, id]);
 
@@ -383,12 +385,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
   const renderHandles = () => {
     if (!nodeData) return null;
+    const dedupedPredecessors = finalPredecessors.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index);
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
-          {predecessorNodes.map((node) => {
+          {dedupedPredecessors.map((node) => {
             const handleId = String(node.data?.config?.title || node.id || '');
             return (
               <InputHandleRow
