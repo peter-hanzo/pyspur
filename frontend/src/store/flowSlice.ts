@@ -163,9 +163,14 @@ const flowSlice = createSlice({
         const sourceNode = state.nodes.find((node) => node.id === connection.source);
         if (sourceNode && sourceNode.data && sourceNode.data.config && sourceNode.data.config.output_schema) {
           const outputSchema = sourceNode.data.config.output_schema;
-          targetNode.data.config.input_schema = {
-            ...targetNode.data.config.input_schema,
-            ...outputSchema
+          targetNode.data.config.output_schema = {
+            ...targetNode.data.config.output_schema,
+            ...Object.fromEntries(
+              Object.entries(outputSchema).map(([key, value]) => [
+                `${sourceNode.data.config.title || sourceNode.id}.${key}`,
+                value
+              ])
+            )
           };
         }
       }
