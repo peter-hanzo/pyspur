@@ -363,7 +363,36 @@ const flowSlice = createSlice({
     deleteEdge: (state, action: PayloadAction<{ edgeId: string }>) => {
       saveToHistory(state);
       const edgeId = action.payload.edgeId;
-      state.edges = state.edges.filter((edge) => edge.id !== edgeId);
+      const edge = state.edges.find(e => e.id === edgeId);
+      
+      if (edge) {
+        // Find the target node
+        const targetNode = state.nodes.find(node => node.id === edge.target);
+        const sourceNode = state.nodes.find(node => node.id === edge.source);
+
+        // If target is a RouterNode and source has output schema, update target's schema
+        if (targetNode?.type === 'RouterNode' && sourceNode?.data?.config?.output_schema) {
+          const sourceTitle = sourceNode.data.config.title || sourceNode.id;
+          const currentSchema = { ...targetNode.data.config.output_schema };
+
+          // Remove fields that start with this source's prefix
+          const prefix = `${sourceTitle}.`;
+          Object.keys(currentSchema).forEach(key => {
+            if (key.startsWith(prefix)) {
+              delete currentSchema[key];
+            }
+          });
+
+          // Update the target node's schema
+          targetNode.data.config = {
+            ...targetNode.data.config,
+            output_schema: currentSchema
+          };
+        }
+
+        // Remove the edge
+        state.edges = state.edges.filter((e) => e.id !== edgeId);
+      }
     },
 
     deleteEdgeByHandle: (state, action: PayloadAction<{ nodeId: string; handleKey: string }>) => {
