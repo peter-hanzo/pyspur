@@ -75,37 +75,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     }));
   }, [predecessorNodes]);
 
-  // Initialize routes if they don't exist or are invalid
-  // useEffect(() => {
-  //   if (!data.config?.route_map || Object.keys(data.config.route_map).length === 0) {
-  //     handleUpdateRouteMap({ route1: { ...DEFAULT_ROUTE } });
-  //   } else {
-  //     // Ensure each route has valid conditions
-  //     const validRouteMap: RouteMap = Object.entries(data.config.route_map).reduce((acc, [routeKey, route]) => {
-  //       const conditions = Array.isArray(route.conditions) && route.conditions.length > 0
-  //         ? route.conditions.map((condition, index): Condition => {
-  //           const baseCondition: Condition = {
-  //             variable: condition.variable || '',
-  //             operator: (condition.operator || 'contains') as ComparisonOperator,
-  //             value: condition.value || ''
-  //           };
-
-  //           if (index > 0) {
-  //             baseCondition.logicalOperator = (condition.logicalOperator || 'AND') as LogicalOperator;
-  //           }
-
-  //           return baseCondition;
-  //         })
-  //         : [{ ...DEFAULT_CONDITION }];
-  //       acc[routeKey] = { conditions };
-  //       return acc;
-  //     }, {} as RouteMap);
-
-  //     if (JSON.stringify(validRouteMap) !== JSON.stringify(data.config.route_map)) {
-  //       handleUpdateRouteMap(validRouteMap);
-  //     }
-  //   }
-  // }, [data.config.route_map]);
 
   const connection = useConnection();
 
