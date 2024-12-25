@@ -335,7 +335,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             type: sourceNode.type,
             data: {
               config: {
-                title: edge.source + '_' + edge.sourceHandle
+                title: edge.source + '.' + edge.sourceHandle
               }
             }
           };
@@ -355,7 +355,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             type: connection.fromNode.type,
             data: {
               config: {
-                title: connection.fromHandle.nodeId + '_' + connection.fromHandle.id
+                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
               }
             }
           }];
@@ -415,7 +415,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
           {nodeData?.title && (
             <OutputHandleRow
-              id={node.id}
+              id={node?.id}
               keyName={String(nodeData.config.title || id)}
             />
           )}

@@ -13,6 +13,7 @@ import {
   RouteConditionRule,
   RouteConditionGroup
 } from '../../../types/api_types/routerSchemas';
+import NodeOutputDisplay from '../NodeOutputDisplay';
 
 interface RouterNodeData {
   color?: string;
@@ -22,6 +23,7 @@ interface RouterNodeData {
     output_schema?: Record<string, string>;
     title?: string;
   };
+  run?: Record<string, any>;
 }
 
 interface RouterNodeProps {
@@ -69,6 +71,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
     return nodes.find((node) => node.id === edge.source);
   }));
+  const output = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.config?.run);
 
   // Get available input variables from the connected node's output schema
   const inputVariables = useMemo(() => {
@@ -425,6 +428,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
           </div>
         ))}
       </div>
+      <NodeOutputDisplay output={output} />
     </BaseNode>
   );
 };

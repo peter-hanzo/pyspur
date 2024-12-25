@@ -217,7 +217,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       if (sourceNode.type === 'RouterNode') {
         connection = {
           ...connection,
-          targetHandle: connection.source + '_' + connection.sourceHandle,
+          targetHandle: connection.source + '.' + connection.sourceHandle,
         };
       }
       else {
