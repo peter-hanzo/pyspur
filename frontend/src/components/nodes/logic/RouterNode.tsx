@@ -65,14 +65,19 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
   // Get available input variables from the connected node's output schema
   const inputVariables = useMemo(() => {
-    const connectedNode = predecessorNodes[0];
-    if (!connectedNode) return [];
+    if (!predecessorNodes.length) return [];
 
-    const outputSchema = connectedNode.data?.config?.output_schema || {};
-    return Object.entries(outputSchema).map(([key, type]) => ({
-      value: key,
-      label: `${key} (${type})`,
-    }));
+    return predecessorNodes.flatMap(node => {
+      if (!node) return [];
+      
+      const nodeTitle = node.data?.config?.title || node.id;
+      const outputSchema = node.data?.config?.output_schema || {};
+      
+      return Object.entries(outputSchema).map(([key, type]) => ({
+        value: `${nodeTitle}.${key}`,
+        label: `${nodeTitle}.${key} (${type})`,
+      }));
+    });
   }, [predecessorNodes]);
 
 
