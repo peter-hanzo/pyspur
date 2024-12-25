@@ -37,7 +37,7 @@ class JSPydanticModel {
   }
 
   excludeSchemaKeywords(obj) {
-    const schemaKeywords = ['$defs', 'properties', 'anyOf', 'oneOf', 'allOf', 'items', 'additionalProperties', '$ref'];
+    const schemaKeywords = ['$defs', 'properties', 'anyOf', 'oneOf', 'allOf', 'items', 'additionalProperties', '$ref', 'required', 'description'];
     if (Array.isArray(obj)) {
       return obj.map(item => this.excludeSchemaKeywords(item));
     } else if (obj && typeof obj === 'object') {
@@ -71,76 +71,12 @@ class JSPydanticModel {
                 const validator = this.ajv.compile(node[key]);
                 const obj = {};
                 validator(obj);
-
-                // Special handling for conditional node
-                if (node.name === 'RouterNode' && key === 'config') {
-                  obj.route_map = {
-                    route1: {
-                      conditions: [
-                        {
-                          variable: '',
-                          operator: 'contains',
-                          value: '',
-                          logicalOperator: 'AND'
-                        }
-                      ]
-                    }
-                  };
-
-                  // Merge the validated object with any existing fields
-                  processedNode[key] = {
-                    ...node[key],  // Keep original fields like title, description etc
-                    ...obj,        // Add validated default values
-                    required: ['route_map'],
-                    properties: {
-                      ...node[key].properties,
-                      route_map: {
-                        type: 'object',
-                        additionalProperties: {
-                          type: 'object',
-                          properties: {
-                            conditions: {
-                              type: 'array',
-                              items: {
-                                type: 'object',
-                                properties: {
-                                  variable: { type: 'string' },
-                                  operator: {
-                                    type: 'string',
-                                    enum: [
-                                      'contains',
-                                      'equals',
-                                      'greater_than',
-                                      'less_than',
-                                      'starts_with',
-                                      'not_starts_with',
-                                      'is_empty',
-                                      'is_not_empty',
-                                      'number_equals'
-                                    ]
-                                  },
-                                  value: { type: 'string' },
-                                  logicalOperator: {
-                                    type: 'string',
-                                    enum: ['AND', 'OR']
-                                  }
-                                },
-                                required: ['variable', 'operator', 'value']
-                              }
-                            }
-                          },
-                          required: ['conditions']
-                        }
-                      }
-                    }
-                  };
-                } else {
-                  // Merge the validated object with any existing fields for non-conditional nodes
-                  processedNode[key] = {
-                    ...node[key],  // Keep original fields like title, description etc
-                    ...obj         // Add validated default values
-                  };
-                }
+                
+                // Merge the validated object with any existing fields for non-conditional nodes
+                processedNode[key] = {
+                  ...node[key],  // Keep original fields like title, description etc
+                  ...obj         // Add validated default values
+                };
 
                 // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
                 if (node.name === 'LLMNode' && key === 'config') {
