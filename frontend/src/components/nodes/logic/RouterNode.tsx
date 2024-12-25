@@ -304,6 +304,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                         )}
                         <div className="flex flex-wrap gap-2">
                           <Select
+                            aria-label='Select variable'
                             size="sm"
                             selectedKeys={condition.variable ? [condition.variable] : []}
                             onChange={(e) =>
@@ -327,6 +328,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             ))}
                           </Select>
                           <Select
+                            aria-label='Select operator'
                             size="sm"
                             selectedKeys={condition.operator ? [condition.operator] : []}
                             onChange={(e) => updateCondition(routeKey, conditionIndex, 'operator', e.target.value)}
