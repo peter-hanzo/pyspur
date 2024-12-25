@@ -10,11 +10,11 @@ LOGIC = [
         "module": ".nodes.logic.router",
         "class_name": "RouterNode",
     },
-    {
-        "node_type_name": "MergeNode",
-        "module": ".nodes.logic.merge",
-        "class_name": "MergeNode",
-    },
+    # {
+    #     "node_type_name": "MergeNode",
+    #     "module": ".nodes.logic.merge",
+    #     "class_name": "MergeNode",
+    # },
 ]
 
 SUPPORTED_NODE_TYPES = {
@@ -126,6 +126,7 @@ DEPRECATED_NODE_TYPES = [
         "class_name": "SubworkflowNode",
     },
 ]
+
 
 def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
     """
