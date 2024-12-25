@@ -360,7 +360,15 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             }
           }];
         } else {
-          result = [...updatedPredecessorNodes, connection.fromNode];
+          result = [...updatedPredecessorNodes, {
+            id: connection.fromNode.id,
+            type: connection.fromNode.type,
+            data: {
+              config: {
+                title: connection.fromNode.data?.config?.title || connection.fromNode.id
+              }
+            }
+          }];
         }
       }
     }
@@ -407,6 +415,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
           {nodeData?.title && (
             <OutputHandleRow
+              id={node.id}
               keyName={String(nodeData.config.title || id)}
             />
           )}
