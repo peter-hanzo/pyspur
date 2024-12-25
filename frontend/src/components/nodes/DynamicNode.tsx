@@ -177,6 +177,29 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     },
     [dispatch, id, nodeData]
   );
+  
+  const [predecessorNodes, setPredcessorNodes] = useState(() => {
+    return edges
+      .filter((edge) => edge.target === id)
+      .map((edge) => {
+        const sourceNode = nodes.find((node) => node.id === edge.source);
+        if (!sourceNode) return null;
+        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+          return {
+            id: sourceNode.id,
+            type: sourceNode.type,
+            data: {
+              config: {
+                title: edge.source + '_' + edge.sourceHandle
+              }
+            }
+          };
+        }
+        return sourceNode;
+      })
+      .filter(Boolean);
+  });
 
   useEffect(() => {
     if (!nodeRef.current || !nodeData) return;
@@ -297,28 +320,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     );
   };
 
-  const [predecessorNodes, setPredcessorNodes] = useState(() => {
-    return edges
-      .filter((edge) => edge.target === id)
-      .map((edge) => {
-        const sourceNode = nodes.find((node) => node.id === edge.source);
-        if (!sourceNode) return null;
-        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
-        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-          return {
-            id: sourceNode.id,
-            type: sourceNode.type,
-            data: {
-              config: {
-                title: edge.source + '_' + edge.sourceHandle
-              }
-            }
-          };
-        }
-        return sourceNode;
-      })
-      .filter(Boolean);
-  });
 
   const connection = useConnection();
 
