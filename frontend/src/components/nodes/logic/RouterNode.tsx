@@ -151,26 +151,20 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     );
     
     // Add some padding for the card container
-    const finalWidth = Math.min(maxConditionWidth + 40, 800); // 800px max width
+    const finalWidth = `${Math.min(maxConditionWidth + 40, 800)}px`; // 800px max width
     
-    if (nodeWidth !== `${finalWidth}px`) {
-      setNodeWidth(`${finalWidth}px`);
+    if (nodeWidth !== finalWidth) {
+      setNodeWidth(finalWidth);
     }
-  }, [data, nodeWidth, inputVariables]);
+  }, [data.config.route_map, inputVariables]); // Remove nodeWidth from dependencies
 
   const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
-    const output_schema: Record<string, string> = {};
-    Object.keys(newRouteMap).forEach((routeKey) => {
-      output_schema[routeKey] = 'any';
-    });
 
     const updatedData: RouterNodeData = {
       ...data,
       config: {
         ...data.config,
         route_map: newRouteMap,
-        input_schema: data.config?.input_schema,
-        output_schema,
       },
     };
 
