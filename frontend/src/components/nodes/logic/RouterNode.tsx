@@ -263,7 +263,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
               id={node?.data?.config?.title || node?.id}
               className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
             />
-            {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">{node?.data?.config?.title || node?.id} →</span>}
+            {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">{node?.data?.config?.title || node?.id}</span>}
           </div>
         ))}
 
@@ -387,7 +387,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                     {/* Route Output Handle */}
                     <div className={`${styles.handleRow} w-full justify-end mt-2`}>
                       <div className="align-center flex flex-grow flex-shrink mr-2">
-                        <span className="text-sm font-medium ml-auto text-foreground">{routeKey} →</span>
+                        <span className="text-sm font-medium ml-auto text-foreground">{routeKey}</span>
                       </div>
                       <Handle
                         type="source"
