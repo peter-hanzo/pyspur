@@ -6,6 +6,7 @@ import { config, title } from 'process';
 import { TestInput } from '@/types/api_types/workflowSchemas';
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas';
+import { isEqual } from 'lodash';
 
 type NodeTypes = {
   [key: string]: any;
@@ -194,8 +195,8 @@ const flowSlice = createSlice({
       const { id, data } = action.payload;
       const node = state.nodes.find((node) => node.id === id);
       if (node) {
-        const oldTitle = node.data?.config?.title || node.data?.title; // Get the old title
-        const newTitle = data?.config?.title || data?.title; // Get the new title
+        const oldTitle = node.data?.config?.title || node.data?.title;
+        const newTitle = data?.config?.title || data?.title;
 
         // Update the node's data
         node.data = { ...node.data, ...data };
@@ -210,6 +211,51 @@ const flowSlice = createSlice({
               return { ...edge, targetHandle: newTitle };
             }
             return edge;
+          });
+        }
+
+        // If output_schema changed, update connected RouterNodes
+        if (data?.config?.output_schema) {
+          // Find all RouterNodes that this node connects to
+          const connectedRouterNodes = state.nodes.filter(targetNode => 
+            targetNode.type === 'RouterNode' && 
+            state.edges.some(edge => 
+              edge.source === id && 
+              edge.target === targetNode.id
+            )
+          );
+
+          // Update each RouterNode's output schema
+          connectedRouterNodes.forEach(routerNode => {
+            // Get all incoming edges to this router node
+            const incomingEdges = state.edges.filter(edge => edge.target === routerNode.id);
+            
+            // Build new output schema by combining all source nodes
+            const newOutputSchema = incomingEdges.reduce((schema, edge) => {
+              const sourceNode = state.nodes.find(n => n.id === edge.source);
+              if (sourceNode?.data?.config?.output_schema) {
+                const nodeTitle = sourceNode.data.config.title || sourceNode.id;
+                const sourceSchema = sourceNode.data.config.output_schema;
+                
+                // Add prefixed entries from the source schema
+                Object.entries(sourceSchema).forEach(([key, value]) => {
+                  schema[`${nodeTitle}.${key}`] = value;
+                });
+              }
+              return schema;
+            }, {});
+
+            // Compare the new schema with the existing one using lodash.isEqual
+            const currentSchema = routerNode.data.config.output_schema || {};
+            const hasChanges = !isEqual(currentSchema, newOutputSchema);
+
+            // Only update if there are actual changes
+            if (hasChanges) {
+              routerNode.data.config = {
+                ...routerNode.data.config,
+                output_schema: newOutputSchema
+              };
+            }
           });
         }
       }
