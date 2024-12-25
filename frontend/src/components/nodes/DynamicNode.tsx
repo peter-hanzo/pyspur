@@ -17,16 +17,6 @@ import NodeOutputDisplay from './NodeOutputDisplay';
 import NodeOutputModal from './NodeOutputModal';
 import isEqual from 'lodash/isEqual';
 
-interface NodeData {
-  config?: {
-    input_schema?: Record<string, any>;
-    output_schema?: Record<string, any>;
-    system_message?: string;
-    user_message?: string;
-  };
-  title?: string;
-  [key: string]: any;
-}
 
 interface SchemaMetadata {
   required?: boolean;
@@ -44,7 +34,7 @@ const updateMessageVariables = (message: string | undefined, oldKey: string, new
 interface DynamicNodeProps extends NodeProps {
   id: string;
   type: string;
-  data: NodeData;
+  data: FlowWorkflowNode['data'];
   position: { x: number; y: number };
   selected?: boolean;
   parentNode?: string;
@@ -177,7 +167,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     },
     [dispatch, id, nodeData]
   );
-  
+
   const [predecessorNodes, setPredcessorNodes] = useState(() => {
     return edges
       .filter((edge) => edge.target === id)
