@@ -64,7 +64,8 @@ export const useSaveWorkflow = () => {
         const updatedNodes = nodes
           .filter((node): node is NonNullable<typeof node> => node !== null && node !== undefined)
           .map((node) => {
-            const { config, title, type } = node.data;
+            const { config, type } = node.data;
+            const title = node.data.config.title || node.data.title;
 
             // Ensure the RouterNode structure uses route_map
             if (node.type === 'RouterNode') {
