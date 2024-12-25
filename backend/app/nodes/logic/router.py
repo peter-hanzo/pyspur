@@ -12,7 +12,7 @@ from ...schemas.router_schemas import (
 class RouterNodeConfig(BaseNodeConfig):
     """Configuration for the router node."""
 
-    route_map: Dict[str, RouteConditionGroupSchema]  # Dict of route names to conditions
+    route_map: Dict[str, RouteConditionGroupSchema] = {"route1": RouteConditionGroupSchema(conditions=[])}  # type: ignore
 
 
 class RouterNodeInput(BaseNodeInput):
@@ -124,7 +124,6 @@ class RouterNode(BaseNode):
             route_name: (Optional[input.__class__], None)
             for route_name in self.config.route_map.keys()
         }
-        print("route fields", route_fields)
         new_output_model = create_model(  # type: ignore
             "RouterNodeOutput",
             __base__=RouterNodeOutput,
@@ -138,7 +137,6 @@ class RouterNode(BaseNode):
             if self._evaluate_route_conditions(input, route):
                 output[route_name] = input
 
-        print(output)
         return self.output_model(**output)  # type: ignore
 
 
