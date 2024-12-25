@@ -192,6 +192,15 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     handleUpdateRouteMap(newRouteMap);
   };
 
+  useEffect(() => {
+    // If route_map is empty, initialize it with a default route
+    if (!data.config.route_map || Object.keys(data.config.route_map).length === 0) {
+      handleUpdateRouteMap({
+        route1: { ...DEFAULT_ROUTE }
+      });
+    }
+  }, []);
+
   return (
     <BaseNode
       id={id}
@@ -258,7 +267,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                         <div className="flex gap-2">
                           <Select
                             size="sm"
-                            value={condition.variable}
+                            selectedKeys={condition.variable ? [condition.variable] : []}
                             onChange={(e) =>
                               updateCondition(routeKey, conditionIndex, 'variable', e.target.value)
                             }
@@ -277,7 +286,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                           </Select>
                           <Select
                             size="sm"
-                            value={condition.operator}
+                            selectedKeys={condition.operator ? [condition.operator] : []}
                             onChange={(e) => updateCondition(routeKey, conditionIndex, 'operator', e.target.value)}
                             className="flex-1"
                             classNames={{
