@@ -24,6 +24,7 @@ interface RouterNodeData {
     title?: string;
   };
   run?: Record<string, any>;
+  taskStatus?: string;
 }
 
 interface RouterNodeProps {
@@ -245,7 +246,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
         title: data.config?.title || 'Conditional Router',
         color: data.color || '#F6AD55',
         acronym: 'IF',
-        config: data.config
+        config: data.config,
+        run: data.run,
+        taskStatus: data.taskStatus
       }}
       style={{ width: nodeWidth }}
       className="hover:!bg-background"
@@ -422,7 +425,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
           </div>
         ))}
       </div>
-      <NodeOutputDisplay output={output} />
+      <NodeOutputDisplay output={data.run} />
     </BaseNode>
   );
 };
