@@ -13,7 +13,6 @@ from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..models.workflow_version_model import WorkflowVersionModel
 from ..models.run_model import RunModel
-from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
 from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
