@@ -10,11 +10,11 @@ LOGIC = [
         "module": ".nodes.logic.router",
         "class_name": "RouterNode",
     },
-    # {
-    #     "node_type_name": "MergeNode",
-    #     "module": ".nodes.logic.merge",
-    #     "class_name": "MergeNode",
-    # },
+    {
+        "node_type_name": "CoalesceNode",
+        "module": ".nodes.logic.coalesce",
+        "class_name": "CoalesceNode",
+    },
 ]
 
 SUPPORTED_NODE_TYPES = {
