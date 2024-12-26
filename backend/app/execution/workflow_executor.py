@@ -99,7 +99,10 @@ class WorkflowExecutor:
                 )
             )
 
-        if any([output is None for output in predecessor_outputs]):
+        print(f"Running node {node_id}")
+        print(f"Predecessor outputs: {predecessor_outputs}")
+
+        if node.node_type != "CoalesceNode" and any([output is None for output in predecessor_outputs]):
             self._outputs[node_id] = None
             return None
 
@@ -132,15 +135,20 @@ class WorkflowExecutor:
                     return None
             else:
                 node_input[dep_id] = output
+        
+        print(f"Node input: {node_input}")
 
         # Special handling for InputNode - use initial inputs
         if node.node_type == "InputNode":
             node_input = self._initial_inputs.get(node_id, {})
 
-        # if any of the inputs are None, return None
-        if any([v is None for v in node_input.values()]):
+        # Only fail early for None inputs if it is NOT a MergeNode
+        if node.node_type != "CoalesceNode" and any([v is None for v in node_input.values()]):
             self._outputs[node_id] = None
             return None
+        
+        # Remove None values from input
+        node_input = {k: v for k, v in node_input.items() if v is not None}
 
         node_instance = NodeFactory.create_node(
             node_name=node.title, node_type_name=node.node_type, config=node.config
