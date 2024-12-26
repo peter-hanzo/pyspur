@@ -99,11 +99,6 @@ DEPRECATED_NODE_TYPES = [
         "class_name": "SingleLLMCallNode",
     },
     {
-        "node_type_name": "SampleLLMNode",
-        "module": ".nodes.llm.sample_llm",
-        "class_name": "SampleLLMNode",
-    },
-    {
         "node_type_name": "SubworkflowNode",
         "module": ".nodes.subworkflow.subworkflow_node",
         "class_name": "SubworkflowNode",
