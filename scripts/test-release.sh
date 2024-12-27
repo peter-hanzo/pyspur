@@ -23,4 +23,4 @@ docker build \
 
 # Run with production compose file
 echo "Starting production containers..."
-docker-compose -f docker-compose.prod.yml up 
+docker compose -f docker-compose.prod.yml up 
