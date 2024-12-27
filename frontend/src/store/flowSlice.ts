@@ -203,55 +203,24 @@ const flowSlice = createSlice({
 
     connect: (state, action: PayloadAction<{ connection: Connection }>) => {
       saveToHistory(state);
-      let { connection } = action.payload;
-      // make sure the edge doesn't already exist
+      const { connection } = action.payload;
+
+      // Avoid duplicates
       if (state.edges.find((edge) => edge.source === connection.source && edge.target === connection.target)) {
         return;
       }
       state.edges = addEdge(connection, state.edges);
+
       const targetNode = state.nodes.find((node) => node.id === connection.target);
-      if (targetNode && targetNode.type === 'RouterNode') {
-        // update the router node's input schema
-        const sourceNode = state.nodes.find((node) => node.id === connection.source);
-        if (sourceNode && sourceNode.data && sourceNode.data.config && sourceNode.data.config.output_schema) {
-          const outputSchema = sourceNode.data.config.output_schema;
-          targetNode.data.config.output_schema = {
-            ...targetNode.data.config.output_schema,
-            ...Object.fromEntries(
-              Object.entries(outputSchema).map(([key, value]) => [
-                `${sourceNode.data.config.title || sourceNode.id}.${key}`,
-                value
-              ])
-            )
-          };
-        }
+      if (!targetNode) return;
+
+      // If it's a RouterNode, rebuild schema
+      if (targetNode.type === 'RouterNode') {
+        rebuildRouterNodeSchema(state, targetNode);
       }
-      // Now handle CoalesceNode intersection logic:
-      if (targetNode && targetNode.type === 'CoalesceNode') {
-        // Gather all incoming edges to this coalesce node
-        const incomingEdges = state.edges.filter((e) => e.target === targetNode.id);
-
-        // Collect all source schemas
-        const schemas: Record<string, any>[] = [];
-        incomingEdges.forEach((ed) => {
-          const sourceNode = state.nodes.find((n) => n.id === ed.source);
-          if (sourceNode?.data?.config?.output_schema) {
-            schemas.push(sourceNode.data.config.output_schema);
-          }
-        });
-
-        // Compute intersection
-        let intersection: Record<string, any> = {};
-        if (schemas.length > 0) {
-          const firstSchema = schemas[0];
-          const commonKeys = Object.keys(firstSchema).filter((key) =>
-            schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
-          );
-          commonKeys.forEach((key) => {
-            intersection[key] = firstSchema[key];
-          });
-        }
-        targetNode.data.config.output_schema = intersection;
+      // If it's a CoalesceNode, rebuild intersection
+      if (targetNode.type === 'CoalesceNode') {
+        rebuildCoalesceNodeSchema(state, targetNode);
       }
     },
 
