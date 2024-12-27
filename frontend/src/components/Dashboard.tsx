@@ -259,7 +259,7 @@ const Dashboard: React.FC = () => {
                 startContent={
                   <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
                 }
-                onClick={handleNewWorkflowClick}
+                onPress={handleNewWorkflowClick}
               >
                 New Spur
               </Button>
@@ -268,7 +268,7 @@ const Dashboard: React.FC = () => {
                 startContent={
                   <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
                 }
-                onClick={handleImportWorkflowClick}
+                onPress={handleImportWorkflowClick}
               >
                 Import Spur
               </Button>
