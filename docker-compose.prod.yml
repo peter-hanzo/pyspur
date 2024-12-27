@@ -12,17 +12,17 @@ services:
     restart: always
 
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-PySpur-Dev/PySpur}-backend:${VERSION:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY:-pyspur-dev/pyspur}-backend:${VERSION:-latest}
     command: bash /pyspur/entrypoint.sh
     volumes:
       - ./.env:/pyspur/.env
-      - ${SQLITE_DB_PATH:-./backend/sqlite/test.db}:/pyspur/sqlite/test.db
+      - ${SQLITE_DB_PATH:-./backend/sqlite/db.sqlite}:/pyspur/sqlite/db.sqlite
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
 
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-your-username/your-repo}-frontend:${VERSION:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY:-pyspur-dev/pyspur}-frontend:${VERSION:-latest}
     command: npm run start
     environment:
       - FRONTEND_PORT=${FRONTEND_PORT:-3000}
