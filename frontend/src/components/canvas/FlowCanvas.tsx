@@ -381,7 +381,13 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     setHoveredNode(null);
   }, [setHoveredNode]);
 
-  const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
+  const handleAddNodeBetween = useCallback((
+    nodeName: string, 
+    sourceNode: Node, 
+    targetNode: Node, 
+    edgeId: string
+  ) => {
+    console.log('handleAddNodeBetween called with:', { nodeName, sourceNode, targetNode, edgeId });
     insertNodeBetweenNodes(
       nodes,
       nodeTypesConfig,
@@ -393,7 +399,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       dispatch,
       () => setPopoverContentVisible(false)
     );
-  };
+  }, [nodes, nodeTypesConfig, reactFlowInstance, dispatch, setPopoverContentVisible]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -419,20 +425,14 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             <DropdownTrigger>
               <div></div>
             </DropdownTrigger>
-            <DropdownMenu>
+            <DropdownMenu
+              onAction={(key) => { handleAddNodeBetween(key.toString(), selectedEdge.sourceNode, selectedEdge.targetNode, selectedEdge.edgeId); }}
+            >
               {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
                 <DropdownSection key={category} title={category} showDivider>
                   {nodeTypesConfig[category].map((node) => (
                     <DropdownItem
                       key={node.name}
-                      onClick={() =>
-                        handleAddNodeBetween(
-                          node.name,
-                          selectedEdge.sourceNode,
-                          selectedEdge.targetNode,
-                          selectedEdge.edgeId
-                        )
-                      }
                     >
                       {node.config.title}
                     </DropdownItem>
