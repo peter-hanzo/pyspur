@@ -18,21 +18,9 @@ import NodeOutputDisplay from '../NodeOutputDisplay';
 import isEqual from 'lodash/isEqual';
 import { FlowWorkflowNode } from '../../../store/flowSlice';
 
-interface CoalesceNodeData {
-  color?: string;
-  config: {
-    preferences: string[];
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-    title?: string;
-  };
-  run?: Record<string, any>;
-  taskStatus?: string;
-}
-
 interface CoalesceNodeProps {
   id: string;
-  data: CoalesceNodeData;
+  data: FlowWorkflowNode['data'];
   selected?: boolean;
 }
 
