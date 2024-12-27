@@ -230,9 +230,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       const newEdge: Edge = {
         ...connection,
         id: uuidv4(),
-        key: uuidv4(),
       };
-      dispatch(connect({ connection: newEdge }));
+      dispatch(connect({ connection: connection }));
     },
     [dispatch, nodes]
   );

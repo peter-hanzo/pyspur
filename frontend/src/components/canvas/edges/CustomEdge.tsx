@@ -4,10 +4,8 @@ import {
   EdgeLabelRenderer,
   getBezierPath,
   useReactFlow,
-  Edge,
-  Node,
-  Position,
-  EdgeProps
+  EdgeProps,
+  Edge
 } from '@xyflow/react';
 import { Button } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
@@ -34,7 +32,7 @@ const defaultEdgeStyle = {
   stroke: '#555',
 } as const;
 
-interface CustomEdgeData {
+interface CustomEdgeData extends Edge<any> {
   onPopoverOpen: (params: {
     sourceNode: {
       id: string;
