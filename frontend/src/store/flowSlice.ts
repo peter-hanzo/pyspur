@@ -175,6 +175,33 @@ const flowSlice = createSlice({
           };
         }
       }
+      // Now handle CoalesceNode intersection logic:
+      if (targetNode && targetNode.type === 'CoalesceNode') {
+        // Gather all incoming edges to this coalesce node
+        const incomingEdges = state.edges.filter((e) => e.target === targetNode.id);
+
+        // Collect all source schemas
+        const schemas: Record<string, any>[] = [];
+        incomingEdges.forEach((ed) => {
+          const sourceNode = state.nodes.find((n) => n.id === ed.source);
+          if (sourceNode?.data?.config?.output_schema) {
+            schemas.push(sourceNode.data.config.output_schema);
+          }
+        });
+
+        // Compute intersection
+        let intersection: Record<string, any> = {};
+        if (schemas.length > 0) {
+          const firstSchema = schemas[0];
+          const commonKeys = Object.keys(firstSchema).filter((key) =>
+            schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
+          );
+          commonKeys.forEach((key) => {
+            intersection[key] = firstSchema[key];
+          });
+        }
+        targetNode.data.config.output_schema = intersection;
+      }
     },
 
     addNode: (state, action: PayloadAction<{ node: FlowWorkflowNode }>) => {
@@ -217,10 +244,10 @@ const flowSlice = createSlice({
         // If output_schema changed, update connected RouterNodes
         if (data?.config?.output_schema) {
           // Find all RouterNodes that this node connects to
-          const connectedRouterNodes = state.nodes.filter(targetNode => 
-            targetNode.type === 'RouterNode' && 
-            state.edges.some(edge => 
-              edge.source === id && 
+          const connectedRouterNodes = state.nodes.filter(targetNode =>
+            targetNode.type === 'RouterNode' &&
+            state.edges.some(edge =>
+              edge.source === id &&
               edge.target === targetNode.id
             )
           );
@@ -229,14 +256,14 @@ const flowSlice = createSlice({
           connectedRouterNodes.forEach(routerNode => {
             // Get all incoming edges to this router node
             const incomingEdges = state.edges.filter(edge => edge.target === routerNode.id);
-            
+
             // Build new output schema by combining all source nodes
             const newOutputSchema = incomingEdges.reduce((schema, edge) => {
               const sourceNode = state.nodes.find(n => n.id === edge.source);
               if (sourceNode?.data?.config?.output_schema) {
                 const nodeTitle = sourceNode.data.config.title || sourceNode.id;
                 const sourceSchema = sourceNode.data.config.output_schema;
-                
+
                 // Add prefixed entries from the source schema
                 Object.entries(sourceSchema).forEach(([key, value]) => {
                   schema[`${nodeTitle}.${key}`] = value;
@@ -256,6 +283,43 @@ const flowSlice = createSlice({
                 output_schema: newOutputSchema
               };
             }
+          });
+
+          // Update CoalesceNode output schema
+          const connectedCoalesceNodes = state.nodes.filter(
+            (targetNode) =>
+              targetNode.type === 'CoalesceNode' &&
+              state.edges.some(
+                (edge) => edge.source === id && edge.target === targetNode.id
+              )
+          );
+
+          connectedCoalesceNodes.forEach((coalesceNode) => {
+            const incomingEdges = state.edges.filter(
+              (edge) => edge.target === coalesceNode.id
+            );
+
+            // Gather all source schemas
+            const schemas: Record<string, any>[] = incomingEdges.map((ed) => {
+              const sourceNode = state.nodes.find((n) => n.id === ed.source);
+              return sourceNode?.data?.config?.output_schema || {};
+            });
+
+            // Intersection
+            let intersection: Record<string, any> = {};
+            if (schemas.length > 0) {
+              const firstSchema = schemas[0];
+              const commonKeys = Object.keys(firstSchema).filter((key) =>
+                schemas.every(
+                  (sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key]
+                )
+              );
+              commonKeys.forEach((key) => {
+                intersection[key] = firstSchema[key];
+              });
+            }
+
+            coalesceNode.data.config.output_schema = intersection;
           });
         }
       }
@@ -364,7 +428,7 @@ const flowSlice = createSlice({
       saveToHistory(state);
       const edgeId = action.payload.edgeId;
       const edge = state.edges.find(e => e.id === edgeId);
-      
+
       if (edge) {
         // Find the target node
         const targetNode = state.nodes.find(node => node.id === edge.target);
@@ -388,6 +452,33 @@ const flowSlice = createSlice({
             ...targetNode.data.config,
             output_schema: currentSchema
           };
+        }
+
+        if (targetNode?.type === 'CoalesceNode') {
+          // Filter out the edge we're deleting so it doesn't appear in the intersection
+          const incomingEdges = state.edges.filter((e) => e.target === targetNode.id && e.id !== edgeId);
+
+          // Collect all source schemas from remaining edges
+          const schemas: Record<string, any>[] = [];
+          incomingEdges.forEach((ed) => {
+            const sourceNode = state.nodes.find((n) => n.id === ed.source);
+            if (sourceNode?.data?.config?.output_schema) {
+              schemas.push(sourceNode.data.config.output_schema);
+            }
+          });
+
+          // Compute intersection
+          let intersection: Record<string, any> = {};
+          if (schemas.length > 0) {
+            const firstSchema = schemas[0];
+            const commonKeys = Object.keys(firstSchema).filter((key) =>
+              schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
+            );
+            commonKeys.forEach((key) => {
+              intersection[key] = firstSchema[key];
+            });
+          }
+          targetNode.data.config.output_schema = intersection;
         }
 
         // Remove the edge
@@ -604,7 +695,7 @@ const flowSlice = createSlice({
 
     updateNodeTitle: (state, action: PayloadAction<{ nodeId: string; newTitle: string }>) => {
       const { nodeId, newTitle } = action.payload;
-      
+
       // Update the node title
       const node = state.nodes.find(node => node.id === nodeId);
       if (node && node.data) {
