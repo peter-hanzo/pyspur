@@ -10,11 +10,11 @@ LOGIC = [
         "module": ".nodes.logic.router",
         "class_name": "RouterNode",
     },
-    # {
-    #     "node_type_name": "MergeNode",
-    #     "module": ".nodes.logic.merge",
-    #     "class_name": "MergeNode",
-    # },
+    {
+        "node_type_name": "CoalesceNode",
+        "module": ".nodes.logic.coalesce",
+        "class_name": "CoalesceNode",
+    },
 ]
 
 SUPPORTED_NODE_TYPES = {
@@ -97,11 +97,6 @@ DEPRECATED_NODE_TYPES = [
         "node_type_name": "AdvancedLLMNode",
         "module": ".nodes.llm.single_llm_call",
         "class_name": "SingleLLMCallNode",
-    },
-    {
-        "node_type_name": "SampleLLMNode",
-        "module": ".nodes.llm.sample_llm",
-        "class_name": "SampleLLMNode",
     },
     {
         "node_type_name": "SubworkflowNode",

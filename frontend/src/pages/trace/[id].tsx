@@ -45,7 +45,6 @@ const TracePage: React.FC = () => {
             }) :
             {rolledOutDefinition: data.workflow_version.definition, outputs: data.outputs};
           
-          console.log('coalesced outputs:', outputs);
           setWorkflowData({
             name: data.workflow_version.name,
             definition: rolledOutDefinition,

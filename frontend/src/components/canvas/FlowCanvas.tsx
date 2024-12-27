@@ -45,7 +45,7 @@ import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
 import { RouterNode } from '../nodes/logic/RouterNode';
-import MergeNode from '../nodes/logic/MergeNode';
+import { CoalesceNode } from '../nodes/logic/CoalesceNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';
@@ -92,8 +92,8 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
           acc[node.name] = InputNode;
         } else if (node.name === 'RouterNode') {
           acc[node.name] = RouterNode;
-        } else if (node.name === 'MergeNode') {
-          acc[node.name] = (props: any) => <MergeNode {...props} />;
+        } else if (node.name === 'CoalesceNode') {
+          acc[node.name] = CoalesceNode;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} displayOutput={true} />;
@@ -192,7 +192,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
-      console.log('onConnect', connection);
       if (!connection.targetHandle || connection.targetHandle === 'node-body') {
         const sourceNode = nodes.find((n) => n.id === connection.source);
         const targetNode = nodes.find((n) => n.id === connection.target);
@@ -211,7 +210,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
           };
         }
       }
-      console.log('connection', connection);
       const sourceNode = nodes.find((n) => n.id === connection.source);
 
       if (sourceNode.type === 'RouterNode') {
