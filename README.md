@@ -44,7 +44,8 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 * **JSON configs** of workflow graphs, enabling easy sharing and version control.
 * **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
 
-# ⚡ Quick start
+# ⚡ Quick start 
+#### [ Instructions for Unix-like systems. Support for Windows PC coming soon ]
 
 You can get PySpur up and running in three quick steps.
 
@@ -57,7 +58,8 @@ You can get PySpur up and running in three quick steps.
 2. **Create a .env file:**
 
    Create a `.env` file at the root of the project. You may use `.env.example` as a starting point.
-   If you plan to use third party model providers, you can add their API keys in .env file in this step, OR we also do this another way in step 5.
+   
+   **If you plan to use third party model providers, please add their API keys in the .env file in this step**.
   
 
 3. **Start the docker services:**
@@ -73,9 +75,14 @@ You can get PySpur up and running in three quick steps.
 
     Enter `pyspur`/`canaryhattan` as username/password.
 
-5. **Add your LLM provider keys:**
 
-   Go to the settings menu on the top right corner of the portal
+Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
+
+
+
+5. **[Optional] Manage your LLM provider keys from the app:**
+
+   Once PySpur app is running you can manage your LLM provider keys through the portal:
 
    <img width="1913" alt="image" src="https://github.com/user-attachments/assets/32fe79f1-f518-4df5-859c-1d1c0fc0570e" />
 
@@ -87,7 +94,7 @@ You can get PySpur up and running in three quick steps.
 
    <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
 
-Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
+
 
 # Using PySpur with Ollama (Local Models)
 
