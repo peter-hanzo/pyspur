@@ -438,23 +438,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    // Add routes editor for conditional nodes
-    if (key === 'route_map') {
-      return (
-        <div key={key} className="my-2">
-          <label className="font-semibold mb-1 block">Conditional Routes</label>
-          <RouterEditor
-            routeMap={dynamicModel.route_map || []}
-            onChange={(newRoutes) => {
-              handleInputChange('routes', newRoutes);
-            }}
-            inputSchema={dynamicModel.input_schema || {}}
-            disabled={false}
-          />
-          {!isLast && <hr className="my-2" />}
-        </div>
-      );
-    }
     if (key === 'input_schemas' && nodeType === 'MergeNode') {
       return (
         <div key={key} className="my-2">
