@@ -1,17 +1,13 @@
 import json
-from dotenv import load_dotenv
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
+from jinja2 import Template
 from pydantic import BaseModel, Field
 
-from ..base import (
-    VariableOutputBaseNode,
-    VariableOutputBaseNodeConfig,
-    BaseNodeInput,
-    BaseNodeOutput,
-)
+from ..base import (BaseNodeInput, BaseNodeOutput, VariableOutputBaseNode,
+                    VariableOutputBaseNodeConfig)
 from .llm_utils import LLMModels, ModelInfo, create_messages, generate_text
-from jinja2 import Template
 
 load_dotenv()
 
@@ -104,8 +100,9 @@ class SingleLLMCallNode(VariableOutputBaseNode):
 
 
 if __name__ == "__main__":
-    from pydantic import create_model
     import asyncio
+
+    from pydantic import create_model
 
     async def test_llm_nodes():
         # Example 1: Simple test case with a basic user message

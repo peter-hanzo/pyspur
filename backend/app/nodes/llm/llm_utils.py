@@ -1,27 +1,37 @@
 # type: ignore
-import asyncio
 import base64
+import json
 import logging
-
+import os
+import re
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, cast
 
+import litellm
 import numpy as np
 from dotenv import load_dotenv
-import litellm
 from litellm import acompletion
+from ollama import AsyncClient
 from pydantic import BaseModel, Field
 from sklearn.metrics.pairwise import cosine_similarity
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
-from enum import Enum
-from ollama import AsyncClient
 
 # uncomment for debugging litellm issues
 # litellm.set_verbose=True
 load_dotenv()
 
+# Enable parameter dropping for unsupported parameters
+litellm.drop_params = True
 
-EMBEDDING_MODEL = "text-embedding-3-small"
-EMBEDDING_DIMENSIONS = 1536
+# Clean up Azure API base URL if needed
+azure_api_base = os.getenv("AZURE_OPENAI_API_BASE", "").rstrip("/")
+if azure_api_base.endswith("/openai"):
+    azure_api_base = azure_api_base.rstrip("/openai")
+os.environ["AZURE_OPENAI_API_BASE"] = azure_api_base
+
+# If Azure OpenAi is configured, set it as the default provider
+if os.getenv("AZURE_OPENAI_API_KEY"):
+    litellm.api_key = os.getenv("AZURE_OPENAI_API_KEY")
 
 
 class LLMProvider(str, Enum):
@@ -29,6 +39,7 @@ class LLMProvider(str, Enum):
     ANTHROPIC = "Anthropic"
     GOOGLE = "Google"
     OLLAMA = "Ollama"
+    AZURE_OPENAI = "AzureOpenAI"
 
 
 class LLMModel(BaseModel):
@@ -45,6 +56,11 @@ class LLMModels(str, Enum):
     O1_MINI = "o1-mini"
     GPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O_LATEST = "chatgpt-4o-latest"
+
+    # Azure OpenAI Models
+    AZURE_GPT_4 = "azure/gpt-4"
+    AZURE_GPT_4_TURBO = "azure/gpt-4-turbo"
+    AZURE_GPT_35_TURBO = "azure/gpt-35-turbo"
 
     # Anthropic Models
     CLAUDE_3_5_SONNET_LATEST = "claude-3-5-sonnet-latest"
@@ -95,6 +111,22 @@ class LLMModels(str, Enum):
                 id=cls.CHATGPT_4O_LATEST.value,
                 provider=LLMProvider.OPENAI,
                 name="ChatGPT-4 Optimized Latest",
+            ),
+            # Azure OpenAI Models
+            cls.AZURE_GPT_4.value: LLMModel(
+                id=cls.AZURE_GPT_4.value,
+                provider=LLMProvider.AZURE_OPENAI,
+                name="Azure GPT-4",
+            ),
+            cls.AZURE_GPT_4_TURBO.value: LLMModel(
+                id=cls.AZURE_GPT_4_TURBO.value,
+                provider=LLMProvider.AZURE_OPENAI,
+                name="Azure GPT-4 Turbo",
+            ),
+            cls.AZURE_GPT_35_TURBO.value: LLMModel(
+                id=cls.AZURE_GPT_35_TURBO.value,
+                provider=LLMProvider.AZURE_OPENAI,
+                name="Azure GPT-3.5 Turbo",
             ),
             # Anthropic Models
             cls.CLAUDE_3_5_SONNET_LATEST.value: LLMModel(
@@ -279,31 +311,84 @@ def async_retry(*dargs, **dkwargs):
     return decorator
 
 
+def _setup_azure_configuration(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Helper function to configure Azure settings from environment variables.
+    This strips the 'azure/' prefix from the model, removes any 'response_format'
+    parameter, and verifies that required Azure keys are present.
+    """
+    # Remove the "azure/" prefix if present
+    base_model = (
+        kwargs["model"].replace("azure/", "")
+        if kwargs["model"].startswith("azure/")
+        else kwargs["model"]
+    )
+    azure_kwargs = kwargs.copy()
+    azure_kwargs.pop("response_format", None)
+    azure_kwargs.update(
+        {
+            "model": base_model,
+            "api_key": os.getenv("AZURE_OPENAI_API_KEY"),
+            "api_base": os.getenv("AZURE_OPENAI_API_BASE"),
+            "api_version": os.getenv("AZURE_OPENAI_API_VERSION"),
+            "deployment_id": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+        }
+    )
+    required_config = ["api_key", "api_base", "api_version", "deployment_id"]
+    missing_config = [key for key in required_config if not azure_kwargs.get(key)]
+    if missing_config:
+        raise ValueError(
+            f"Missing Azure configuration for: {', '.join(missing_config)}"
+        )
+    return azure_kwargs
+
+
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
 async def completion_with_backoff(**kwargs) -> str:
+    """
+    Calls the LLM completion endpoint with backoff.
+    Supports Azure OpenAI, standard OpenAI, or Ollama based on the model name.
+    """
     try:
-        # Only use api_base if it has a non-empty value
-        if "api_base" in kwargs and kwargs["api_base"]:
-            response = await acompletion(api_base=kwargs.pop("api_base"), **kwargs)
-        else:
+        model = kwargs.get("model", "")
+        logging.info("=== LLM Request Configuration ===")
+        logging.info(f"Requested Model: {model}")
+
+        # Use Azure if either 'azure/' is prefixed or if an Azure API key is provided and not using Ollama
+        if model.startswith("azure/") or (
+            os.getenv("AZURE_OPENAI_API_KEY") and not model.startswith("ollama/")
+        ):
+            azure_kwargs = _setup_azure_configuration(kwargs)
+            logging.info(f"Using Azure config for model: {azure_kwargs['model']}")
+            try:
+                response = await acompletion(**azure_kwargs)
+                return response.choices[0].message.content
+            except Exception as e:
+                logging.error(f"Error calling Azure OpenAI: {e}")
+                raise
+
+        elif model.startswith("ollama/"):
+            logging.info("=== Ollama Configuration ===")
             response = await acompletion(**kwargs)
-        return response.choices[0].message.content
-    except Exception as e:
-        logging.error(e)
-        raise e
+            return response.choices[0].message.content
+        else:
+            logging.info("=== Standard Configuration ===")
+            response = await acompletion(**kwargs)
+            return response.choices[0].message.content
 
-
-@async_retry(wait=wait_random_exponential(min=30, max=300), stop=stop_after_attempt(30))
-async def get_embedding(
-    text: str, model: str = EMBEDDING_MODEL, dimensions: int = EMBEDDING_DIMENSIONS
-) -> List[float]:
-    try:
-        response = await client.embeddings.create(
-            input=text, model=model, dimensions=dimensions
-        )
-        return response.data[0].embedding
     except Exception as e:
-        logging.error(e)
+        logging.error(f"=== LLM Request Error ===")
+        # Create a save copy of kwargs without sensitive information
+        save_config = kwargs.copy()
+        save_config["api_key"] = "********" if "api_key" in save_config else None
+        logging.error(f"Error occurred with configuration: {save_config}")
+        logging.error(f"Error type: {type(e).__name__}")
+        logging.error(f"Error message: {str(e)}")
+        if hasattr(e, "response"):
+            logging.error(
+                f"Response status: {getattr(e.response, 'status_code', 'N/A')}"
+            )
+            logging.error(f"Response body: {getattr(e.response, 'text', 'N/A')}")
         raise e
 
 
@@ -321,79 +406,58 @@ async def generate_text(
         "messages": messages,
         "temperature": temperature,
     }
-    if json_mode and not model_name.startswith("ollama"):
-        kwargs["response_format"] = {"type": "json_object"}
+
+    if json_mode:
+        if model_name.startswith("ollama"):
+            options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
+            response = await ollama_with_backoff(
+                model=model_name,
+                options=options,
+                messages=messages,
+                format="json",
+                api_base=api_base,
+            )
+        else:
+            # For both Azure and OpenAI, we need to set the response_format to json_object
+            kwargs["response_format"] = {"type": "json_object"}
+            # Add system message to enforce JSON mode
+            messages.insert(
+                0,
+                {
+                    "role": "system",
+                    "content": "You must respond with valid JSON only. No other text before or after the JSON Object.",
+                },
+            )
+            response = await completion_with_backoff(**kwargs)
+
+            # Verify JSON Response
+            try:
+                json.loads(response)
+            except json.JSONDecodeError:
+                logging.error(f"Response is not valid JSON: {response}")
+                # Try to fix common json issues
+                if not response.startswith("{"):
+                    # Extract JSON if there is extra text
+                    json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                    if json_match:
+                        response = json_match.group(0)
+                    else:
+                        # Create a valid json response
+                        response = (
+                            "{"
+                            + f'"error": "Invalid response format", "original_response": "{response}"'
+                            + "}"
+                        )
+                raise ValueError("Response is not valid JSON")
+    else:
         response = await completion_with_backoff(**kwargs)
-    elif json_mode and model_name.startswith("ollama"):
-        options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
-        response = await ollama_with_backoff(
-            model=model_name,
-            options=options,
-            messages=messages,
-            format="json",
-            api_base=api_base,
-        )
+
     return cast(str, response)
 
 
 def encode_image(image_path: str) -> str:
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
-
-
-async def compute_embeddings(
-    docs: List[Any],
-    embedding_dimensions: int = EMBEDDING_DIMENSIONS,
-    text_extractor: Optional[Callable[[Any], str]] = None,
-) -> np.ndarray:
-    if text_extractor:
-        texts = [text_extractor(doc) for doc in docs]
-    else:
-        if all(isinstance(doc, str) for doc in docs):
-            texts = docs
-        else:
-            logging.error(
-                "Documents must be strings or you must provide a text_extractor function."
-            )
-            return np.array([])
-    embeddings = []
-    for text in texts:
-        try:
-            embedding = await get_embedding(text, dimensions=embedding_dimensions)
-            embeddings.append(embedding)
-        except Exception as e:
-            logging.error(f"Error obtaining embedding for text: {e}")
-            embeddings.append(
-                [0] * embedding_dimensions
-            )  # Placeholder for failed embeddings
-    return np.array(embeddings)
-
-
-async def find_top_k_similar(
-    old_docs: List[Any],
-    new_docs: List[Any],
-    k: int = 5,
-    text_extractor: Optional[Callable[[Any], str]] = None,
-    id_extractor: Optional[Callable[[Any], Any]] = None,
-) -> Dict[Any, List[Dict[str, Any]]]:
-    old_embeddings = await compute_embeddings(old_docs, text_extractor=text_extractor)
-    new_embeddings = await compute_embeddings(new_docs, text_extractor=text_extractor)
-
-    similarity_matrix = cosine_similarity(old_embeddings, new_embeddings)
-    top_k_indices = np.argsort(-similarity_matrix, axis=1)[:, :k]
-
-    top_k_similar_docs = {}
-    for i, old_doc in enumerate(old_docs):
-        similar_docs = [
-            {
-                "document": new_docs[idx],
-                "similarity_score": similarity_matrix[i][idx],
-            }
-            for idx in top_k_indices[i]
-        ]
-        key = id_extractor(old_doc) if id_extractor else i
-        top_k_similar_docs[key] = similar_docs
-    return top_k_similar_docs
 
 
 class OllamaOptions(BaseModel):
