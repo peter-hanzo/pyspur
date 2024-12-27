@@ -427,7 +427,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                     workflowRuns.map((run, index) => (
                       <DropdownItem
                         key={index}
-                        onClick={() => window.open(`/trace/${run.id}`, '_blank')}
+                        onPress={() => window.open(`/trace/${run.id}`, '_blank')}
                         textValue={`Version ${index + 1}`}
                       >
                         {`${run.id} | ${run.status.toLowerCase()} ${
