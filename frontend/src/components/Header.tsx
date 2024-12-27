@@ -58,6 +58,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
 
   const router = useRouter();
   const { id } = router.query;
@@ -261,6 +262,40 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
   );
 
+  const updateRunStatuses = async () => {
+    if (!workflowId || !isHistoryOpen) return;
+    
+    setIsUpdatingStatus(true);
+    try {
+      // First fetch the latest workflow runs
+      const latestRuns = await getWorkflowRuns(workflowId);
+      setWorkflowRuns(latestRuns);
+
+      // Then update the status of running/pending runs
+      const updatedRuns = await Promise.all(
+        latestRuns.map(async (run) => {
+          if (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') {
+            const statusResponse = await getRunStatus(run.id);
+            return { ...run, status: statusResponse.status };
+          }
+          return run;
+        })
+      );
+      
+      setWorkflowRuns(updatedRuns);
+    } catch (error) {
+      console.error('Error updating run statuses:', error);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isHistoryOpen) {
+      updateRunStatuses();
+    }
+  }, [isHistoryOpen]);
+
   return (
     <>
       {alert.isVisible && (
@@ -381,20 +416,30 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
-                  {workflowRuns.map((run, index) => (
-                    <DropdownItem
-                      key={index}
-                      onClick={() => window.open(`/trace/${run.id}`, '_blank')}
-                      textValue={`Version ${index + 1}`}
-                    >
-                      {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
-                        ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                        : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
-                          ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                          : ''
-                        }`}
+                  {isUpdatingStatus ? (
+                    <DropdownItem key={`fetching-latest-runs`}>
+                      <div className="flex items-center gap-2">
+                        <Spinner size="sm" />
+                        <span>Fetching latest runs...</span>
+                      </div>
                     </DropdownItem>
-                  ))}
+                  ) : (
+                    workflowRuns.map((run, index) => (
+                      <DropdownItem
+                        key={index}
+                        onClick={() => window.open(`/trace/${run.id}`, '_blank')}
+                        textValue={`Version ${index + 1}`}
+                      >
+                        {`${run.id} | ${run.status.toLowerCase()} ${
+                          (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
+                            ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                            : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
+                              ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                              : ''
+                        }`}
+                      </DropdownItem>
+                    ))
+                  )}
                 </DropdownMenu>
               </Dropdown>
             </NavbarItem>
