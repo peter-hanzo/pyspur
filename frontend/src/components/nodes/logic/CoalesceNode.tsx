@@ -16,6 +16,7 @@ import { Icon } from '@iconify/react';
 import { RootState } from '../../../store/store';
 import NodeOutputDisplay from '../NodeOutputDisplay';
 import isEqual from 'lodash/isEqual';
+import { FlowWorkflowNode } from '../../../store/flowSlice';
 
 interface CoalesceNodeData {
   color?: string;
@@ -66,6 +67,11 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
       .filter(Boolean)
   );
 
+  // Add a type guard to check if the node is a FlowWorkflowNode
+  const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
+    return 'type' in node;
+  };
+
   // Recompute predecessor nodes whenever edges/connections change
   useEffect(() => {
     const updatedPredecessors = edges
@@ -78,7 +84,7 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
     // If a new connection is in progress to this node, show that source node as well
     if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
       const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id);
-      if (!existing && connection.fromNode) {
+      if (!existing && isFlowWorkflowNode(connection.fromNode)) {
         finalPredecessors = [...finalPredecessors, connection.fromNode];
       }
     }
