@@ -10,7 +10,7 @@ import {
 import { Button } from '@nextui-org/react';
 import { Icon } from "@iconify/react";
 import { useDispatch } from 'react-redux';
-import { deleteEdge } from '../../../store/flowSlice';
+import { deleteEdge } from '../../store/flowSlice';
 
 // Static styles
 const staticStyles = {
@@ -23,6 +23,10 @@ const staticStyles = {
     gap: '5px',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'white',
+    padding: '4px',
+    borderRadius: '9999px',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
   }
 } as const;
 
@@ -134,15 +138,23 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
             <div style={staticStyles.buttonContainer}>
               <Button
                 isIconOnly
+                size="sm"
+                variant="light"
+                radius="full"
                 onClick={handleAddNode}
+                className="bg-background hover:bg-default-100"
               >
-                <Icon icon="solar:add-circle-linear" width={20} className="text-default-500" />
+                <Icon icon="solar:add-circle-bold-duotone" className="text-primary" width={20} />
               </Button>
               <Button
                 isIconOnly
+                size="sm"
+                variant="light"
+                radius="full"
                 onClick={handleDeleteEdge}
+                className="bg-background hover:bg-default-100"
               >
-                <Icon icon="solar:trash-bin-trash-linear" width={20} />
+                <Icon icon="solar:trash-bin-trash-bold-duotone" className="text-danger" width={20} />
               </Button>
             </div>
           </div>

@@ -39,7 +39,7 @@ import {
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { v4 as uuidv4 } from 'uuid';
-import CustomEdge from './edges/CustomEdge';
+import CustomEdge from './Edge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
@@ -65,7 +65,7 @@ interface NodeTypesConfig {
 }
 
 interface RunViewFlowCanvasProps {
-  workflowData?: {name: string, definition: WorkflowDefinition};
+  workflowData?: { name: string, definition: WorkflowDefinition };
   workflowID?: string;
   nodeOutputs?: Record<string, any>;
 }
@@ -93,7 +93,7 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
           acc[node.name] = RouterNode;
         } else {
           acc[node.name] = (props: any) => {
-            return <DynamicNode {...props} type={node.name} displayOutput={true}/>;
+            return <DynamicNode {...props} type={node.name} displayOutput={true} />;
           };
         }
       });
@@ -180,9 +180,9 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         setHelperLines({ horizontal, vertical });
 
         if (horizontal || vertical) {
-          const snapPosition = { 
-            x: positionChange.position.x, 
-            y: positionChange.position.y 
+          const snapPosition = {
+            x: positionChange.position.x,
+            y: positionChange.position.y
           };
           if (horizontal) snapPosition.y = horizontal;
           if (vertical) snapPosition.x = vertical;
@@ -516,13 +516,13 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
   return (
     <ReactFlowProvider>
-      <RunViewFlowCanvasContent 
-        workflowData={workflowData} 
-        workflowID={workflowID} 
-        nodeOutputs={nodeOutputs} 
+      <RunViewFlowCanvasContent
+        workflowData={workflowData}
+        workflowID={workflowID}
+        nodeOutputs={nodeOutputs}
       />
     </ReactFlowProvider>
-    );
+  );
 }
 
 export default RunViewFlowCanvas;

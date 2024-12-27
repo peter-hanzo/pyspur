@@ -37,7 +37,7 @@ import { Dropdown, DropdownMenu, DropdownSection, DropdownItem, DropdownTrigger 
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import CustomEdge from './edges/CustomEdge';
+import CustomEdge from './Edge';
 import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
@@ -258,15 +258,15 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       ...edge,
       type: 'custom',
       style: {
-        stroke: hoveredEdge === edge.id || 
-                hoveredNode === edge.source || 
-                hoveredNode === edge.target 
-          ? '#555' 
+        stroke: hoveredEdge === edge.id ||
+          hoveredNode === edge.source ||
+          hoveredNode === edge.target
+          ? '#555'
           : '#999',
-        strokeWidth: hoveredEdge === edge.id || 
-                    hoveredNode === edge.source || 
-                    hoveredNode === edge.target 
-          ? 3 
+        strokeWidth: hoveredEdge === edge.id ||
+          hoveredNode === edge.source ||
+          hoveredNode === edge.target
+          ? 3
           : 1.5,
       },
       data: {
@@ -476,7 +476,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             selectNodesOnDrag={mode === 'pointer'}
             selectionOnDrag={mode === 'pointer'}
             selectionKeyCode={mode === 'pointer' ? null : 'Shift'}
-            multiSelectionKeyCode={mode === 'pointer' ? null : 'Shift'} 
+            multiSelectionKeyCode={mode === 'pointer' ? null : 'Shift'}
             deleteKeyCode="Delete"
             nodesConnectable={true}
             connectionMode={ConnectionMode.Loose}
