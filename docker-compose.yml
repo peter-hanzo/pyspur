@@ -13,7 +13,7 @@ services:
   backend:
     build: 
       context: ./backend
-      target: development
+      target: ${ENVIRONMENT:-development}
     command: bash /pyspur/entrypoint.sh
     volumes:
       - ./backend:/pyspur
@@ -25,7 +25,7 @@ services:
   frontend:
     build: 
       context: ./frontend
-      target: development
+      target: ${ENVIRONMENT:-development}
     command: npm run dev
     volumes:
       - ./frontend:/app
