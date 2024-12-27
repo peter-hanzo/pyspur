@@ -137,13 +137,18 @@ class WorkflowExecutor:
         if node.node_type == "InputNode":
             node_input = self._initial_inputs.get(node_id, {})
 
-        # Only fail early for None inputs if it is NOT a MergeNode
+        # Only fail early for None inputs if it is NOT a CoalesceNode
         if node.node_type != "CoalesceNode" and any([v is None for v in node_input.values()]):
             self._outputs[node_id] = None
             return None
         
         # Remove None values from input
         node_input = {k: v for k, v in node_input.items() if v is not None}
+
+        # If node_input is empty, return None
+        if not node_input:
+            self._outputs[node_id] = None
+            return None
 
         node_instance = NodeFactory.create_node(
             node_name=node.title, node_type_name=node.node_type, config=node.config
