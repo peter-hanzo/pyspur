@@ -4,34 +4,17 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import BaseNode from '../BaseNode';
 import styles from '../DynamicNode.module.css';
-
-interface NodeConfig {
-  branch_refs: string[];
-  [key: string]: any;
-}
-
-interface NodeData {
-  config?: NodeConfig;
-  title?: string;
-  color?: string;
-  [key: string]: any;
-}
+import { FlowWorkflowNode } from '@/store/flowSlice';
 
 interface MergeNodeProps {
   id: string;
-  data: NodeData;
-  selected?: boolean;
-}
-
-interface Node {
-  id: string;
-  data: NodeData;
-  [key: string]: any;
+  data: FlowWorkflowNode['data'];
+  selected: boolean;
 }
 
 const MergeNode: React.FC<MergeNodeProps> = ({ id, data, selected }) => {
   const edges = useSelector((state: RootState) => state.flow.edges);
-  const nodes = useSelector((state: RootState) => state.flow.nodes) as Node[];
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');

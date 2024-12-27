@@ -356,7 +356,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             type: connection.fromNode.type,
             data: {
               config: {
-                title: connection.fromNode.data?.config?.title || connection.fromNode.id
+                title: (connection.fromNode.data as { config?: { title?: string } })?.config?.title || connection.fromNode.id
               }
             }
           }];
@@ -431,7 +431,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           style={baseNodeStyle}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
-          selected={props.selected}
           handleOpenModal={setIsModalOpen}
           className="hover:!bg-background"
         >
@@ -451,7 +450,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         onOpenChange={setIsModalOpen}
         title={data?.config?.title || data?.title || 'Node Output'}
         node={node}
-        data={nodeData}
       />
     </>
   );

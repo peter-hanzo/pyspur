@@ -10,41 +10,19 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { fetchNodeTypes } from '../../store/nodeTypesSlice';
 import { setTestInputs } from '../../store/flowSlice';
 import { AppDispatch } from '../../store/store';
+import { WorkflowCreateRequest, WorkflowResponse } from '@/types/api_types/workflowSchemas';
 
 // Use dynamic import for FlowCanvas to avoid SSR issues
 const FlowCanvas = dynamic(() => import('../../components/canvas/FlowCanvas'), {
   ssr: false,
 });
 
-interface WorkflowNode {
-  id: string;
-  node_type: string;
-  config: any;
-  coordinates: {
-    x: number;
-    y: number;
-  };
-}
-
-interface WorkflowLink {
-  source_id: string;
-  target_id: string;
-}
-interface WorkflowData {
-  id: string;
-  definition: {
-    test_inputs?: Record<string, any>;
-    nodes: WorkflowNode[];
-    links: WorkflowLink[];
-  };
-  // Add other workflow properties as needed
-}
 
 const WorkflowPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { id } = router.query;
-  const [workflowData, setWorkflowData] = useState<WorkflowData | null>(null);
+  const [workflowData, setWorkflowData] = useState<WorkflowResponse | null>(null);
 
   useEffect(() => {
     dispatch(fetchNodeTypes());
@@ -76,7 +54,10 @@ const WorkflowPage: React.FC = () => {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header activePage="workflow" />
         <div style={{ flexGrow: 1 }}>
-          <FlowCanvas workflowData={workflowData} workflowID={id as string} />
+          <FlowCanvas 
+            workflowData={workflowData as WorkflowCreateRequest}
+            workflowID={id as string} 
+          />
         </div>
       </div>
     </PersistGate>

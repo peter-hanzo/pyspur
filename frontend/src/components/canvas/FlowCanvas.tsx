@@ -93,7 +93,7 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
         } else if (node.name === 'RouterNode') {
           acc[node.name] = RouterNode;
         } else if (node.name === 'MergeNode') {
-          acc[node.name] = MergeNode;
+          acc[node.name] = (props: any) => <MergeNode {...props} />;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} displayOutput={true} />;

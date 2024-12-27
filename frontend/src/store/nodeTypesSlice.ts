@@ -48,11 +48,11 @@ interface NodeMetadata {
   [key: string]: any;
 }
 
-interface NodeTypesState {
+export interface NodeTypesState {
   data: Record<string, any>;
   metadata: Record<string, NodeMetadata[]>;
-  status: 'idle' | 'loading' | 'succeeded' | 'failed';
-  error: string | null;
+  status?: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error?: string | null;
 }
 
 interface NodeTypesResponse {
@@ -148,7 +148,10 @@ const findMetadataInCategory = (
   return null;  // Node type not found in any category
 };
 
-export const selectPropertyMetadata = (state: RootState, propertyPath: string): any | null => {
+export const selectPropertyMetadata = (
+  state: RootState & { nodeTypes: NodeTypesState },
+  propertyPath: string
+): any | null => {
   if (!propertyPath) return null;
 
   // Split path into nodeType and remaining path

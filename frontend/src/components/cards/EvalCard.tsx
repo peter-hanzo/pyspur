@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Card, CardBody, CardHeader, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Alert, Dropdown, DropdownTrigger, DropdownMenu, DropdownSection, DropdownItem, Slider } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from "../../utils/api";
-import { Radio, RadioGroup, RadioValue } from "@nextui-org/react";
 interface EvalCardProps {
   title: string;
   description: string;
   type: string;
   numSamples: number;
   paperLink?: string;
-  onRun?: () => void;
+  onRun?: (workflowId: string, numSamples: number, outputVariable: string) => Promise<void>;
 }
 
 interface Workflow {
@@ -149,7 +148,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                   </DropdownTrigger>
                   <DropdownMenu
                     aria-label="Workflows"
-                    onAction={(key: Key) => {
+                    onAction={(key) => {
                       const workflow = workflows.find((wf) => wf.id === key.toString());
                       if (workflow) {
                         setSelectedWorkflow(workflow);
@@ -174,7 +173,7 @@ export default function EvalCard({ title, description, type, numSamples, paperLi
                       </DropdownTrigger>
                       <DropdownMenu
                         aria-label="Output Variables"
-                        onAction={(key: Key) => setSelectedOutputVariable(key.toString())}
+                        onAction={(key) => setSelectedOutputVariable(key.toString())}
                       >
                         {Object.entries(
                           outputVariables.reduce<Record<string, { variable_name: string; prefixed_variable: string }[]>>((acc, variable) => {

@@ -2,26 +2,11 @@ import { useEffect, useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { addNode, FlowWorkflowNode } from '../store/flowSlice';
 import { createNode } from '../utils/nodeFactory';
-import { Node } from 'reactflow'; // Import Node type from reactflow
 import { AppDispatch } from '../store/store'; // Import AppDispatch type
 
 interface Position {
   x: number;
   y: number;
-}
-
-interface CustomNode extends Node {
-  type: string;
-  position: Position;
-  data: {
-    title?: string;
-    acronym?: string;
-    color?: string;
-    config?: any; // You might want to define a more specific type
-    input?: any;  // You might want to define a more specific type
-    output?: any; // You might want to define a more specific type
-    [key: string]: any;
-  };
 }
 
 export const useKeyboardShortcuts = (

@@ -50,7 +50,7 @@ import dagre from '@dagrejs/dagre';
 import LoadingSpinner from '../LoadingSpinner';
 import { RouterNode } from '../nodes/logic/RouterNode';
 import DynamicNode from '../nodes/DynamicNode';
-import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
+import { WorkflowCreateRequest, WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { insertNodeBetweenNodes } from '@/utils/flowUtils';
 
@@ -65,10 +65,7 @@ interface NodeTypesConfig {
 }
 
 interface RunViewFlowCanvasProps {
-  workflowData?: {
-    definition: WorkflowDefinition;
-    name: string;
-  };
+  workflowData?: {name: string, definition: WorkflowDefinition};
   workflowID?: string;
   nodeOutputs?: Record<string, any>;
 }
@@ -95,7 +92,7 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
         } else if (node.name === 'RouterNode') {
           acc[node.name] = RouterNode;
         } else {
-          acc[node.name] = (props) => {
+          acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} displayOutput={true}/>;
           };
         }
@@ -138,7 +135,12 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
           }
         }
       }
-      dispatch(initializeFlow({ nodeTypes: nodeTypesConfig, ...workflowData, workflowID }));
+      dispatch(initializeFlow({
+        nodeTypes: nodeTypesConfig,
+        definition: workflowData.definition,
+        workflowID: workflowID,
+        name: workflowData.name
+      }));
       console.log('Node Outputs:', nodeOutputs);
       dispatch(setNodeOutputs(nodeOutputs));
     }
@@ -238,10 +240,9 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
       const newEdge: Edge = {
         ...connection,
-        id: uuidv4(),
-        key: uuidv4(),
+        id: uuidv4()
       };
-      dispatch(connect({ connection: newEdge }));
+      dispatch(connect({ connection: connection }));
     },
     [dispatch, nodes]
   );
