@@ -241,107 +241,46 @@ const flowSlice = createSlice({
     updateNodeData: (state, action: PayloadAction<{ id: string; data: any }>) => {
       const { id, data } = action.payload;
       const node = state.nodes.find((node) => node.id === id);
-      if (node) {
-        const oldTitle = node.data?.config?.title || node.data?.title;
-        const newTitle = data?.config?.title || data?.title;
+      if (!node) return;
 
-        // Update the node's data
-        node.data = { ...node.data, ...data };
+      const oldTitle = node.data?.config?.title || node.data?.title;
+      const newTitle = data?.config?.title || data?.title;
 
-        // If the title has changed, update the edges
-        if (oldTitle && newTitle && oldTitle !== newTitle) {
-          state.edges = state.edges.map((edge) => {
-            if (edge.source === id && edge.sourceHandle === oldTitle) {
-              return { ...edge, sourceHandle: newTitle };
-            }
-            if (edge.target === id && edge.targetHandle === oldTitle) {
-              return { ...edge, targetHandle: newTitle };
-            }
-            return edge;
-          });
-        }
+      // Update node's data
+      node.data = { ...node.data, ...data };
 
-        // If output_schema changed, update connected RouterNodes
-        if (data?.config?.output_schema) {
-          // Find all RouterNodes that this node connects to
-          const connectedRouterNodes = state.nodes.filter(targetNode =>
+      // If the node title changed, update edges
+      if (oldTitle && newTitle && oldTitle !== newTitle) {
+        state.edges = state.edges.map((edge) => {
+          if (edge.source === id && edge.sourceHandle === oldTitle) {
+            return { ...edge, sourceHandle: newTitle };
+          }
+          if (edge.target === id && edge.targetHandle === oldTitle) {
+            return { ...edge, targetHandle: newTitle };
+          }
+          return edge;
+        });
+      }
+
+      // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
+      if (data?.config?.output_schema) {
+        const connectedRouterNodes = state.nodes.filter(
+          (targetNode) =>
             targetNode.type === 'RouterNode' &&
-            state.edges.some(edge =>
-              edge.source === id &&
-              edge.target === targetNode.id
-            )
-          );
+            state.edges.some((edge) => edge.source === id && edge.target === targetNode.id)
+        );
+        connectedRouterNodes.forEach((routerNode) => {
+          rebuildRouterNodeSchema(state, routerNode);
+        });
 
-          // Update each RouterNode's output schema
-          connectedRouterNodes.forEach(routerNode => {
-            // Get all incoming edges to this router node
-            const incomingEdges = state.edges.filter(edge => edge.target === routerNode.id);
-
-            // Build new output schema by combining all source nodes
-            const newOutputSchema = incomingEdges.reduce((schema, edge) => {
-              const sourceNode = state.nodes.find(n => n.id === edge.source);
-              if (sourceNode?.data?.config?.output_schema) {
-                const nodeTitle = sourceNode.data.config.title || sourceNode.id;
-                const sourceSchema = sourceNode.data.config.output_schema;
-
-                // Add prefixed entries from the source schema
-                Object.entries(sourceSchema).forEach(([key, value]) => {
-                  schema[`${nodeTitle}.${key}`] = value;
-                });
-              }
-              return schema;
-            }, {});
-
-            // Compare the new schema with the existing one using lodash.isEqual
-            const currentSchema = routerNode.data.config.output_schema || {};
-            const hasChanges = !isEqual(currentSchema, newOutputSchema);
-
-            // Only update if there are actual changes
-            if (hasChanges) {
-              routerNode.data.config = {
-                ...routerNode.data.config,
-                output_schema: newOutputSchema
-              };
-            }
-          });
-
-          // Update CoalesceNode output schema
-          const connectedCoalesceNodes = state.nodes.filter(
-            (targetNode) =>
-              targetNode.type === 'CoalesceNode' &&
-              state.edges.some(
-                (edge) => edge.source === id && edge.target === targetNode.id
-              )
-          );
-
-          connectedCoalesceNodes.forEach((coalesceNode) => {
-            const incomingEdges = state.edges.filter(
-              (edge) => edge.target === coalesceNode.id
-            );
-
-            // Gather all source schemas
-            const schemas: Record<string, any>[] = incomingEdges.map((ed) => {
-              const sourceNode = state.nodes.find((n) => n.id === ed.source);
-              return sourceNode?.data?.config?.output_schema || {};
-            });
-
-            // Intersection
-            let intersection: Record<string, any> = {};
-            if (schemas.length > 0) {
-              const firstSchema = schemas[0];
-              const commonKeys = Object.keys(firstSchema).filter((key) =>
-                schemas.every(
-                  (sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key]
-                )
-              );
-              commonKeys.forEach((key) => {
-                intersection[key] = firstSchema[key];
-              });
-            }
-
-            coalesceNode.data.config.output_schema = intersection;
-          });
-        }
+        const connectedCoalesceNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'CoalesceNode' &&
+            state.edges.some((edge) => edge.source === id && edge.target === targetNode.id)
+        );
+        connectedCoalesceNodes.forEach((coalesceNode) => {
+          rebuildCoalesceNodeSchema(state, coalesceNode);
+        });
       }
     },
 
