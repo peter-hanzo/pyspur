@@ -3,18 +3,13 @@ from typing import Dict, List
 from pydantic import Field
 
 from ....nodes.base import BaseNodeInput, BaseNodeOutput
-
-from ..single_llm_call import SingleLLMCallNodeConfig
-from ...subworkflow.base_subworkflow_node import (
-    BaseSubworkflowNode,
-    BaseSubworkflowNodeConfig,
-)
-from ....schemas.workflow_schemas import (
-    WorkflowDefinitionSchema,
-    WorkflowNodeSchema,
-    WorkflowLinkSchema,
-)
+from ....schemas.workflow_schemas import (WorkflowDefinitionSchema,
+                                          WorkflowLinkSchema,
+                                          WorkflowNodeSchema)
+from ...subworkflow.base_subworkflow_node import (BaseSubworkflowNode,
+                                                  BaseSubworkflowNodeConfig)
 from ..llm_utils import LLMModels, ModelInfo
+from ..single_llm_call import SingleLLMCallNodeConfig
 
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig, BaseSubworkflowNodeConfig):
