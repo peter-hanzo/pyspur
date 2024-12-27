@@ -235,8 +235,6 @@ const flowSlice = createSlice({
       state.nodes = action.payload.nodes;
     },
 
-    // // ... rest of the reducers with proper type annotations ...
-    // I'll show a few more examples and you can follow the pattern:
 
     updateNodeData: (state, action: PayloadAction<{ id: string; data: any }>) => {
       const { id, data } = action.payload;
@@ -489,10 +487,6 @@ const flowSlice = createSlice({
         };
       }
 
-      // -------------------------
-      // Now update any RouterNodes or CoalesceNodes directly connected to the InputNode
-      // (just like we do in updateNodeData).
-      // -------------------------
       if (inputNode?.id) {
         // Update RouterNodes directly connected
         const connectedRouterNodes = state.nodes.filter(
@@ -536,10 +530,6 @@ const flowSlice = createSlice({
       // Remove edges whose sourceHandle === key
       state.edges = state.edges.filter((edge) => edge.sourceHandle !== key);
 
-      // -------------------------
-      // Now update any RouterNodes or CoalesceNodes connected to the InputNode
-      // because removing a key changes the input node's output schema.
-      // -------------------------
       if (inputNode?.id) {
         // Update RouterNodes
         const connectedRouterNodes = state.nodes.filter(
@@ -600,7 +590,6 @@ const flowSlice = createSlice({
       });
 
       // 4. Rebuild RouterNode/CoalesceNode schemas connected to the input node,
-      //    because the input node’s output_schema has changed.
       if (inputNode?.id) {
         const connectedRouterNodes = state.nodes.filter(
           (targetNode) =>
