@@ -127,7 +127,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus;
 
               console.log('Node:', node.id, 'Output:', output_values, 'Status:', nodeTaskStatus, 'isOutputDifferent:', isOutputDifferent, 'isStatusDifferent:', isStatusDifferent);
-              
+
               if (isOutputDifferent || isStatusDifferent) {
                 dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
               }
@@ -233,7 +233,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     (e) => {
       e.preventDefault();
       console.log('Run workflow');
-      
+
       if (testInputs.length === 0) {
         setIsDebugModalOpen(true);
         return;
@@ -241,7 +241,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
       const testCase = testInputs.find(row => row.id === selectedRow)
         ?? testInputs[0];
-      
+
       if (testCase) {
         const { id, ...inputValues } = testCase;
         const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
@@ -255,7 +255,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         }
       }
     },
-    { 
+    {
       enableOnFormTags: true,
       enabled: activePage === 'workflow'
     }
@@ -332,6 +332,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           {activePage === "workflow" && (
             <NavbarItem isActive={activePage === "workflow"}>
               Editor
+            </NavbarItem>
+          )}
+          {activePage === "trace" && (
+            <NavbarItem isActive={activePage === "trace"}>
+              Trace
             </NavbarItem>
           )}
           <NavbarItem isActive={activePage === "evals"}>
