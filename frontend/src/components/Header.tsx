@@ -292,7 +292,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         }}
       >
         <NavbarBrand
-          justify="start"
           className="h-12 max-w-fit"
         >
           {activePage === "home" ? (

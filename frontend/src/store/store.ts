@@ -3,7 +3,7 @@ import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import flowReducer from './flowSlice';
 import { FlowState } from './flowSlice';
-import nodeTypesReducer from './nodeTypesSlice';
+import nodeTypesReducer, { NodeTypesState } from './nodeTypesSlice';
 import userPreferencesReducer from './userPreferencesSlice';
 import panelReducer from './panelSlice';
 import type { Node, Edge } from '@xyflow/react';
@@ -11,10 +11,7 @@ import type { Node, Edge } from '@xyflow/react';
 // Define the RootState type
 export interface RootState {
   flow: FlowState;
-  nodeTypes: {
-    data: Record<string, any>;
-    metadata?: Record<string, any>;
-  };
+  nodeTypes: NodeTypesState;
   userPreferences: {
     hasSeenWelcome: boolean;
   }

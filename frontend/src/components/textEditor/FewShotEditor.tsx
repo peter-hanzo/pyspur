@@ -93,6 +93,8 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
         setContent={handleContentChange}
         isEditable={true}
         fieldTitle={`Example ${exampleIndex + 1} ${activeTab}`}
+        nodeID={nodeID}
+        fieldName={`few_shot_examples[${exampleIndex}][${activeTab}]`}
       />
 
       <div className="mt-4">

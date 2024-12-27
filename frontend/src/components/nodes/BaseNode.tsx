@@ -16,35 +16,18 @@ import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
 import isEqual from 'lodash/isEqual';
-import { FlowWorkflowNode } from '@/store/flowSlice';
+import { FlowWorkflowNode, FlowState } from '@/store/flowSlice';
 
-interface NodeData {
-  run?: Record<string, any>;
-  status?: string;
-  acronym?: string;
-  color?: string;
-  title?: string;
-  config?: {
-    title?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
 
 interface RootState {
-  flow: {
-    nodes: Node[];
-    edges: Edge[];
-    selectedNode: string | null;
-    testInputs?: Array<{ id: string;[key: string]: any }>;
-  };
+  flow: FlowState;
 }
 
 interface BaseNodeProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   id: string;
-  data?: NodeData;
+  data?: FlowWorkflowNode['data'];
   children?: React.ReactNode;
   style?: React.CSSProperties;
   isInputNode?: boolean;
@@ -52,7 +35,7 @@ interface BaseNodeProps {
   handleOpenModal?: (isModalOpen: boolean) => void;
 }
 
-const getNodeTitle = (data: NodeData = {}): string => {
+const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
   return data.config?.title || data.title || data.type || 'Untitled';
 };
 
@@ -141,7 +124,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
   handleOpenModal, id,
-  data = {},
+  data,
   children,
   style = {},
   isInputNode = false,
@@ -238,8 +221,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     executePartialRun({
       workflowId,
       nodeId: id,
-      inputs: initialInputs,
-      availableOutputs,
+      initialInputs,
+      partialOutputs: availableOutputs,
       rerunPredecessors
     }).then((result) => {
       if (result) {
@@ -303,7 +286,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
   const status = data.run ? 'completed' : '';
 
-  const nodeRunStatus: TaskStatus = data.taskStatus;
+  const nodeRunStatus: TaskStatus = data.taskStatus as TaskStatus;
 
   let borderColor = 'gray';
 
@@ -343,7 +326,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           : restStyle.borderWidth || '1px',
     borderStyle: 'solid',
     transition: 'border-color 0.1s, border-width 0.02s',
-    pointerEvents: 'auto'
+    pointerEvents: 'auto' as const
   }), [isSelected, status, isHovered, restStyle, borderColor]);
 
   const acronym = data.acronym || 'N/A';
@@ -519,7 +502,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 isIconOnly
                 radius="full"
                 variant="light"
-                onPress={handleOpenModal}
+                onPress={() => handleOpenModal(true)}
               >
                 <Icon className="text-default-500" icon="solar:eye-linear" width={22} />
               </Button>

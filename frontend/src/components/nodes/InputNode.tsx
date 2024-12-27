@@ -13,19 +13,11 @@ import styles from './InputNode.module.css';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import { RootState } from '../../store/store';
 import { isEqual } from 'lodash';
+import { FlowWorkflowNode } from '../../store/flowSlice';
 
 interface InputNodeProps {
   id: string;
-  data?: {
-    title?: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
-interface WorkflowNode {
-  id: string;
-  [key: string]: any;
+  data: FlowWorkflowNode['data'];
 }
 
 const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {

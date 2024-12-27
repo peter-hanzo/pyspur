@@ -33,7 +33,7 @@ import {
   FlowState,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
-import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
+import { Dropdown, DropdownMenu, DropdownSection, DropdownItem, DropdownTrigger } from '@nextui-org/react';
 import DynamicNode from '../nodes/DynamicNode';
 import { v4 as uuidv4 } from 'uuid';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -230,9 +230,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       const newEdge: Edge = {
         ...connection,
         id: uuidv4(),
-        key: uuidv4(),
       };
-      dispatch(connect({ connection: newEdge }));
+      dispatch(connect({ connection: connection }));
     },
     [dispatch, nodes]
   );
@@ -419,6 +418,9 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             onOpenChange={setPopoverContentVisible}
             placement="bottom"
           >
+            <DropdownTrigger>
+              <div></div>
+            </DropdownTrigger>
             <DropdownMenu>
               {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
                 <DropdownSection key={category} title={category} showDivider>

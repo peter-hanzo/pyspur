@@ -95,21 +95,6 @@ interface NodeType {
   metadata?: Record<string, any>;
 }
 
-interface NodeData {
-  config: DynamicModel;
-  run?: any;
-  type?: string;
-  id?: string;
-  title?: string;
-  data?: Record<string, any>;
-}
-
-interface Node {
-  type: string;
-  id: string;
-  data: NodeData;
-}
-
 type NodeTypes = Record<string, NodeType[]>;
 
 // Update the `findNodeSchema` function to resolve the "used before declaration" error
@@ -163,7 +148,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
   const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
-  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes.metadata);
+  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes as NodeType).metadata;
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
   const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
 

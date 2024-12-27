@@ -7,7 +7,6 @@ import { useHotkeys } from 'react-hotkeys-hook';
 
 import { AppDispatch, RootState } from '../../store/store';
 import type { NodeType } from '../../store/nodeTypesSlice';
-import { addNodeWithoutConnection } from '../canvas/AddNodePopoverCanvas';
 import { setNodePanelExpanded } from '../../store/panelSlice';
 import { createNodeAtCenter } from '../../utils/flowUtils';
 
@@ -101,7 +100,11 @@ const CollapsibleNodePanel: React.FC = () => {
             startContent={<Icon icon="akar-icons:search" className="text-default-500" />}
           />
           <div className="mt-4 max-h-[calc(100vh-16rem)] overflow-auto" id="node-type-accordion">
-            <Accordion selectionMode="multiple" selectedKeys={Array.from(selectedCategory)} onSelectionChange={setSelectedCategory}>
+          <Accordion 
+              selectionMode="multiple" 
+              selectedKeys={Array.from(selectedCategory)} 
+              onSelectionChange={(keys) => setSelectedCategory(new Set(Array.from(keys) as string[]))}
+          >
               {Object.keys(filteredNodeTypes).filter(category => category !== "Input/Output").map((category) => (
                 <AccordionItem key={category} title={category}>
                   {filteredNodeTypes[category].map((node: NodeType) => (
