@@ -174,7 +174,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-        console.log('sourceNode', sourceNode.type === 'RouterNode', edge.sourceHandle);
         if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
           return {
             id: sourceNode.id,
@@ -340,7 +339,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
       if (connection.fromNode && !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)) {
         if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-          console.log('connection', connection);
           result = [...updatedPredecessorNodes, {
             id: connection.fromNode.id,
             type: connection.fromNode.type,

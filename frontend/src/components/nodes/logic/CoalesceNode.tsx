@@ -122,7 +122,6 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
       .filter(Boolean) as { value: string; label: string }[];
   }, [predecessorNodes]);
 
-  console.log('inputVariables', inputVariables);
 
   /**
    * Keep track of used variable preferences so we don't show duplicates in other slots.
@@ -136,7 +135,6 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
 
   /** A helper to update the node's preference array in Redux */
   const updatePreferences = (newPreferences: string[]) => {
-    console.log('Updating preferences', newPreferences);
     dispatch(
       updateNodeData({
         id,

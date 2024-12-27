@@ -192,7 +192,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
-      console.log('onConnect', connection);
       if (!connection.targetHandle || connection.targetHandle === 'node-body') {
         const sourceNode = nodes.find((n) => n.id === connection.source);
         const targetNode = nodes.find((n) => n.id === connection.target);
@@ -211,7 +210,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
           };
         }
       }
-      console.log('connection', connection);
       const sourceNode = nodes.find((n) => n.id === connection.source);
 
       if (sourceNode.type === 'RouterNode') {

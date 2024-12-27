@@ -280,12 +280,10 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
             {/* Routes */}
             <div className="flex flex-col gap-4">
               {Object.entries(data.config.route_map || {}).map(([routeKey, route]) => (
-                console.log(route),
                 <Card key={routeKey} classNames={{ base: 'bg-background border-default-200 p-1' }}>
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
                     {(route.conditions || []).map((condition, conditionIndex) => (
-                      console.log(condition),
                       <div key={conditionIndex} className="flex flex-col gap-2">
                         {conditionIndex > 0 && (
                           <div className="flex items-center gap-2 justify-center">

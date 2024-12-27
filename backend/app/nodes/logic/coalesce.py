@@ -44,7 +44,6 @@ class CoalesceNode(BaseNode):
         self.output_model = CoalesceNodeOutput
 
         data = input.model_dump()
-        print(f"Received input data: {data}")
         first_non_null_output: Dict[str, Optional[BaseModel]] = {}
 
         # Iterate over the keys based on the order specified in preferences
@@ -60,7 +59,6 @@ class CoalesceNode(BaseNode):
                 )
                 self.output_model = output_model
                 first_non_null_output = data[key]
-                print(f"Returning first non-null value: {key}, {data[key]}")
                 return self.output_model(**first_non_null_output)  # type: ignore
 
         # If all preferred values are None, check the rest of the data
@@ -76,7 +74,6 @@ class CoalesceNode(BaseNode):
                 )
                 self.output_model = output_model
                 first_non_null_output[key] = value
-                print(f"Returning first non-null value: {key}, {value}")
                 return self.output_model(**first_non_null_output)  # type: ignore
 
         # If all values are None, return an empty output

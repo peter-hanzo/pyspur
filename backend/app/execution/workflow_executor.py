@@ -99,9 +99,6 @@ class WorkflowExecutor:
                 )
             )
 
-        print(f"Running node {node_id}")
-        print(f"Predecessor outputs: {predecessor_outputs}")
-
         if node.node_type != "CoalesceNode" and any([output is None for output in predecessor_outputs]):
             self._outputs[node_id] = None
             return None
@@ -136,8 +133,6 @@ class WorkflowExecutor:
             else:
                 node_input[dep_id] = output
         
-        print(f"Node input: {node_input}")
-
         # Special handling for InputNode - use initial inputs
         if node.node_type == "InputNode":
             node_input = self._initial_inputs.get(node_id, {})
