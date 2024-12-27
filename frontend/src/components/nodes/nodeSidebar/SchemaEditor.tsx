@@ -100,7 +100,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
           className="p-2 flex-grow w-2/3"
         />
         <Select
-          selectedValue={newType}
           onChange={(e) => setNewType(e.target.value)}
           disabled={disabled}
           label="Type"
@@ -119,7 +118,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
           onClick={handleAddKey}
           color="primary"
           disabled={disabled || !newKey}
-          auto
         >
           <Icon icon="solar:add-circle-linear" width={22} />
         </Button>
@@ -165,7 +163,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
               onClick={() => handleRemoveKey(key)}
               color="primary"
               disabled={disabled}
-              auto
             >
               <Icon icon="solar:trash-bin-trash-linear" width={22} />
             </Button>

@@ -23,7 +23,7 @@ const NodeOutputModal = ({ isOpen, onOpenChange, title, node }) => {
                 </div>
             </ModalBody>
             <ModalFooter>
-                <Button onPress={handleOpenChange} auto>
+                <Button onPress={handleOpenChange}>
                     Close
                 </Button>
             </ModalFooter>

@@ -197,12 +197,15 @@ async def run_partial_workflow(
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
     executor = WorkflowExecutor(workflow_definition)
+    input_node = next(
+        node for node in workflow_definition.nodes if node.node_type == "InputNode"
+    )
+    initial_inputs = request.initial_inputs or {}
     try:
-        outputs = await executor.run_partial(
-            node_id=request.node_id,
-            rerun_predecessors=request.rerun_predecessors,
-            initial_inputs=request.initial_inputs or {},
-            partial_outputs=request.partial_outputs or {},
+        outputs = await executor.run(
+            input=initial_inputs.get(input_node.id, {}),
+            node_ids=[request.node_id],
+            precomputed_outputs=request.partial_outputs or {},
         )
         return outputs
     except Exception as e:
@@ -358,14 +361,18 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
         .order_by(RunModel.start_time.desc())
         .all()
     )
-    
+
     # Update run status based on task status
     for run in runs:
-        if run.status != RunStatus.FAILED:  # Only check if run isn't already marked as failed
-            failed_tasks = [task for task in run.tasks if task.status == TaskStatus.FAILED]
+        if (
+            run.status != RunStatus.FAILED
+        ):  # Only check if run isn't already marked as failed
+            failed_tasks = [
+                task for task in run.tasks if task.status == TaskStatus.FAILED
+            ]
             if failed_tasks:
                 run.status = RunStatus.FAILED
                 db.commit()
                 db.refresh(run)
-    
+
     return runs

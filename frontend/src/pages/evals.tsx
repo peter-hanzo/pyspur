@@ -21,7 +21,7 @@ interface EvalRun {
   workflow_id: string;
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
   results?: {
-    accuracy: number;
+    accuracy?: number;
     [key: string]: any;
   };
 }
@@ -105,10 +105,9 @@ const EvalsPage: React.FC = () => {
             if (run.status === "COMPLETED") {
               try {
                 const evalRunData = await getEvalRunStatus(run.run_id);
-                const parsedResults = parseResults(evalRunData.results);
                 return {
                   ...run,
-                  results: parsedResults,
+                  results: evalRunData.results
                 };
               } catch (error) {
                 console.error(`Error fetching results for run ${run.run_id}:`, error);

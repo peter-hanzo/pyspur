@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getKeyValue, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress, Key } from '@nextui-org/react';
+import { getKeyValue, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress} from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { getAllRuns, downloadOutputFile } from '../utils/api';
 
@@ -78,7 +78,7 @@ const WorkflowBatchRunsTable: React.FC = () => {
           <TableBody items={workflowBatchRuns}>
             {(batchRun: FormattedRun) => (
               <TableRow key={batchRun.key}>
-                {(columnKey: Key) => (
+                {(columnKey) => (
                   <TableCell>
                     {columnKey === "progress" ? (
                       batchRun.progress === 100 ? (

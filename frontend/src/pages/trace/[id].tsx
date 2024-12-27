@@ -13,7 +13,7 @@ import { AppDispatch } from '../../store/store';
 import { rolloutWorkflowDefinition } from '../../utils/subworkflowUtils';
 
 import { RunResponse } from '@/types/api_types/runSchemas';
-import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
+import { WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas';
 
 const TracePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();

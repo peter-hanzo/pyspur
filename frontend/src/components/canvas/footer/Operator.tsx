@@ -72,7 +72,7 @@ function Operator({ handleLayout }) {
           </TipPopup>
         </ButtonGroup>
         <ButtonGroup>
-          <UndoRedo handleUndo={null} handleRedo={null} />
+          <UndoRedo/>
         </ButtonGroup>
       </div>
     </>

@@ -21,18 +21,6 @@ interface EvalResults {
   per_example_results: PerExampleResult[];
 }
 
-interface EvalRunData {
-  run_id: string;
-  eval_name: string;
-  results: {
-    accuracy: number;
-    subset_metrics?: {
-      default?: {
-        per_example_results: PerExampleResult[];
-      };
-    };
-  };
-}
 
 interface AlertState {
   message: string;
@@ -59,7 +47,7 @@ const EvalResultsPage: React.FC = () => {
       if (!id) return;
 
       try {
-        const evalRunData: EvalRunData = await getEvalRunStatus(id as string);
+        const evalRunData = await getEvalRunStatus(id as string);
         const normalizedResults: EvalResults = {
           run_id: evalRunData.run_id,
           eval_name: evalRunData.eval_name,

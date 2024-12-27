@@ -77,8 +77,8 @@ const Dashboard: React.FC = () => {
       try {
         const keys = await listApiKeys();
         for (const key of keys) {
-          const value = getApiKey(key)
-          setApiKeys((prevKeys: ApiKey[]) => [...prevKeys, {name: key, value: value}]);
+          const value = await getApiKey(key)
+          setApiKeys((prevKeys: ApiKey[]) => [...prevKeys, {name: key, value: value.value}]);
         }
       } catch (error) {
         console.error('Error fetching API keys:', error);
