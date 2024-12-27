@@ -387,7 +387,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     targetNode: Node, 
     edgeId: string
   ) => {
-    console.log('handleAddNodeBetween called with:', { nodeName, sourceNode, targetNode, edgeId });
     insertNodeBetweenNodes(
       nodes,
       nodeTypesConfig,
@@ -419,26 +418,40 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         >
           <Dropdown
             isOpen={isPopoverContentVisible}
-            onOpenChange={setPopoverContentVisible}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setPopoverContentVisible(false);
+              }
+            }}
             placement="bottom"
           >
             <DropdownTrigger>
               <div></div>
             </DropdownTrigger>
             <DropdownMenu
-              onAction={(key) => { handleAddNodeBetween(key.toString(), selectedEdge.sourceNode, selectedEdge.targetNode, selectedEdge.edgeId); }}
+              aria-label="Add node options"
+              onAction={(key) => {
+                handleAddNodeBetween(
+                  key.toString(),
+                  selectedEdge.sourceNode,
+                  selectedEdge.targetNode,
+                  selectedEdge.edgeId
+                );
+              }}
             >
-              {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
-                <DropdownSection key={category} title={category} showDivider>
-                  {nodeTypesConfig[category].map((node) => (
-                    <DropdownItem
-                      key={node.name}
-                    >
-                      {node.config.title}
-                    </DropdownItem>
-                  ))}
-                </DropdownSection>
-              ))}
+              {nodeTypesConfig && 
+                Object.keys(nodeTypesConfig)
+                  .filter(category => category !== "Input/Output")
+                  .map((category) => (
+                    <DropdownSection key={category} title={category} showDivider>
+                      {nodeTypesConfig[category].map((node) => (
+                        <DropdownItem key={node.name}>
+                          {node.config.title}
+                        </DropdownItem>
+                      ))}
+                    </DropdownSection>
+                  ))
+              }
             </DropdownMenu>
           </Dropdown>
         </div>
