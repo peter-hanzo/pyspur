@@ -107,14 +107,16 @@ const staticStyles = {
 } as const;
 
 const convertToPythonVariableName = (str: string): string => {
+  if (!str) return '';
+
   // Replace spaces and hyphens with underscores
   str = str.replace(/[\s-]/g, '_');
 
   // Remove any non-alphanumeric characters except underscores
   str = str.replace(/[^a-zA-Z0-9_]/g, '');
 
-  // Ensure the first character is a letter or underscore
-  if (!/^[a-zA-Z_]/.test(str)) {
+  // Add underscore prefix only if first char is a number
+  if (/^[0-9]/.test(str)) {
     str = '_' + str;
   }
 
