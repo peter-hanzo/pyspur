@@ -655,29 +655,61 @@ const flowSlice = createSlice({
       }
     },
 
-    updateWorkflowInputVariableKey: (state, action: PayloadAction<{ oldKey: string; newKey: string }>) => {
+    updateWorkflowInputVariableKey: (
+      state,
+      action: PayloadAction<{ oldKey: string; newKey: string }>
+    ) => {
       const { oldKey, newKey } = action.payload;
-      if (oldKey !== newKey) {
-        state.workflowInputVariables[newKey] = state.workflowInputVariables[oldKey];
-        // Update the output schema in the input node
-        const inputNode = state.nodes.find(node => node.type === 'InputNode');
-        if (inputNode && inputNode.data) {
-          const currentConfig = inputNode.data.config || {};
-          const currentSchema = currentConfig.output_schema || {};
-          const updatedSchema = { ...currentSchema };
-          updatedSchema[newKey] = updatedSchema[oldKey];
-          delete updatedSchema[oldKey];
-          inputNode.data.config = {
-            ...currentConfig,
-            output_schema: updatedSchema
-          };
+
+      // Only proceed if keys differ
+      if (oldKey === newKey) return;
+
+      // 1. Rename in `workflowInputVariables` map
+      state.workflowInputVariables[newKey] = state.workflowInputVariables[oldKey];
+      delete state.workflowInputVariables[oldKey];
+
+      // 2. Rename in the input node’s output_schema
+      const inputNode = state.nodes.find((node) => node.type === 'InputNode');
+      if (inputNode && inputNode.data) {
+        const currentConfig = inputNode.data.config || {};
+        const currentSchema = currentConfig.output_schema || {};
+        if (currentSchema.hasOwnProperty(oldKey)) {
+          currentSchema[newKey] = currentSchema[oldKey];
+          delete currentSchema[oldKey];
         }
-        delete state.workflowInputVariables[oldKey];
-        state.edges = state.edges.map(edge => {
-          if (edge.sourceHandle === oldKey) {
-            return { ...edge, sourceHandle: newKey };
-          }
-          return edge;
+        inputNode.data.config = {
+          ...currentConfig,
+          output_schema: currentSchema,
+        };
+      }
+
+      // 3. Rename in any edges referencing oldKey
+      state.edges = state.edges.map((edge) => {
+        if (edge.sourceHandle === oldKey) {
+          return { ...edge, sourceHandle: newKey };
+        }
+        return edge;
+      });
+
+      // 4. Rebuild RouterNode/CoalesceNode schemas connected to the input node,
+      //    because the input node’s output_schema has changed.
+      if (inputNode?.id) {
+        const connectedRouterNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'RouterNode' &&
+            state.edges.some((edge) => edge.source === inputNode.id && edge.target === targetNode.id)
+        );
+        connectedRouterNodes.forEach((routerNode) => {
+          rebuildRouterNodeSchema(state, routerNode);
+        });
+
+        const connectedCoalesceNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'CoalesceNode' &&
+            state.edges.some((edge) => edge.source === inputNode.id && edge.target === targetNode.id)
+        );
+        connectedCoalesceNodes.forEach((coalesceNode) => {
+          rebuildCoalesceNodeSchema(state, coalesceNode);
         });
       }
     },
