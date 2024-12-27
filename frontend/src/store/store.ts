@@ -13,6 +13,7 @@ export interface RootState {
   flow: FlowState;
   nodeTypes: {
     data: Record<string, any>;
+    metadata?: Record<string, any>;
   };
   userPreferences: {
     hasSeenWelcome: boolean;
