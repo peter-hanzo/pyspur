@@ -11,6 +11,7 @@ import {
   Button,
   Input,
   Alert,
+  Spinner,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
@@ -473,9 +474,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               radius="full"
               variant="light"
               onPress={handlePartialRun}
-              disabled={loading}
+              disabled={loading || isRunning}
             >
-              <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+              {isRunning ? (
+                <Spinner size="sm" color="current" />
+              ) : (
+                <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+              )}
             </Button>
             {!isInputNode && (
               <Button
