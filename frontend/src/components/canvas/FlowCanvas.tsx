@@ -45,7 +45,7 @@ import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
 import { RouterNode } from '../nodes/logic/RouterNode';
-import CoalesceNode from '../nodes/logic/CoalesceNode';
+import { CoalesceNode } from '../nodes/logic/CoalesceNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
 import dagre from '@dagrejs/dagre';

@@ -28,7 +28,7 @@ interface CoalesceNodeProps {
  * A node that displays multiple input handles (one for each upstream node),
  * and a preference list allowing the user to pick fields in a certain priority order.
  */
-const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
+export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const nodeRef = useRef<HTMLDivElement | null>(null);
 
@@ -367,5 +367,3 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
     </BaseNode>
   );
 };
-
-export default CoalesceNode;
