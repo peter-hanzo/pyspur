@@ -102,6 +102,57 @@ const saveToHistory = (state: FlowState) => {
   state.history.future = [];
 };
 
+function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode) {
+  const incomingEdges = state.edges.filter((edge) => edge.target === routerNode.id);
+
+  // Build new output schema by combining all source nodes
+  const newOutputSchema = incomingEdges.reduce((schema, edge) => {
+    const sourceNode = state.nodes.find((n) => n.id === edge.source);
+    if (sourceNode?.data?.config?.output_schema) {
+      const nodeTitle = sourceNode.data.config.title || sourceNode.id;
+      const sourceSchema = sourceNode.data.config.output_schema;
+
+      // Add prefixed entries from the source schema
+      Object.entries(sourceSchema).forEach(([key, value]) => {
+        schema[`${nodeTitle}.${key}`] = value;
+      });
+    }
+    return schema;
+  }, {} as Record<string, any>);
+
+  const currentSchema = routerNode.data.config.output_schema || {};
+  const hasChanges = !isEqual(currentSchema, newOutputSchema);
+
+  // Only update if there are actual changes
+  if (hasChanges) {
+    routerNode.data.config.output_schema = newOutputSchema;
+  }
+}
+
+function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowNode) {
+  const incomingEdges = state.edges.filter((edge) => edge.target === coalesceNode.id);
+
+  // Collect all source schemas
+  const schemas: Record<string, any>[] = incomingEdges.map((ed) => {
+    const sourceNode = state.nodes.find((n) => n.id === ed.source);
+    return sourceNode?.data?.config?.output_schema || {};
+  });
+
+  // Intersection
+  let intersection: Record<string, any> = {};
+  if (schemas.length > 0) {
+    const firstSchema = schemas[0];
+    const commonKeys = Object.keys(firstSchema).filter((key) =>
+      schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
+    );
+    commonKeys.forEach((key) => {
+      intersection[key] = firstSchema[key];
+    });
+  }
+
+  coalesceNode.data.config.output_schema = intersection;
+}
+
 const flowSlice = createSlice({
   name: 'flow',
   initialState,
@@ -515,8 +566,9 @@ const flowSlice = createSlice({
     setWorkflowInputVariable: (state, action: PayloadAction<{ key: string; value: any }>) => {
       const { key, value } = action.payload;
       state.workflowInputVariables[key] = value;
+
       // Set the output schema for the input node
-      const inputNode = state.nodes.find(node => node.type === 'InputNode');
+      const inputNode = state.nodes.find((node) => node.type === 'InputNode');
       if (inputNode && inputNode.data) {
         const currentConfig = inputNode.data.config || {};
         const currentSchema = currentConfig.output_schema || {};
@@ -524,27 +576,83 @@ const flowSlice = createSlice({
           ...currentConfig,
           output_schema: {
             ...currentSchema,
-            [key]: value
-          }
+            [key]: value,
+          },
         };
+      }
+
+      // -------------------------
+      // Now update any RouterNodes or CoalesceNodes directly connected to the InputNode
+      // (just like we do in updateNodeData).
+      // -------------------------
+      if (inputNode?.id) {
+        // Update RouterNodes directly connected
+        const connectedRouterNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'RouterNode' &&
+            state.edges.some((edge) => edge.source === inputNode.id && edge.target === targetNode.id)
+        );
+        connectedRouterNodes.forEach((routerNode) => {
+          rebuildRouterNodeSchema(state, routerNode);
+        });
+
+        // Update CoalesceNodes directly connected
+        const connectedCoalesceNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'CoalesceNode' &&
+            state.edges.some((edge) => edge.source === inputNode.id && edge.target === targetNode.id)
+        );
+        connectedCoalesceNodes.forEach((coalesceNode) => {
+          rebuildCoalesceNodeSchema(state, coalesceNode);
+        });
       }
     },
 
     deleteWorkflowInputVariable: (state, action: PayloadAction<{ key: string }>) => {
       const { key } = action.payload;
-      // Remove key from input node output schema
-      const inputNode = state.nodes.find(node => node.type === 'InputNode');
+
+      // Remove from input node output schema
+      const inputNode = state.nodes.find((node) => node.type === 'InputNode');
       if (inputNode && inputNode.data) {
         const currentConfig = inputNode.data.config || {};
         const currentSchema = currentConfig.output_schema || {};
         delete currentSchema[key];
         inputNode.data.config = {
           ...currentConfig,
-          output_schema: currentSchema
+          output_schema: currentSchema,
         };
       }
+      // Remove from global workflowInputVariables
       delete state.workflowInputVariables[key];
-      state.edges = state.edges.filter(edge => edge.sourceHandle !== key);
+
+      // Remove edges whose sourceHandle === key
+      state.edges = state.edges.filter((edge) => edge.sourceHandle !== key);
+
+      // -------------------------
+      // Now update any RouterNodes or CoalesceNodes connected to the InputNode
+      // because removing a key changes the input node's output schema.
+      // -------------------------
+      if (inputNode?.id) {
+        // Update RouterNodes
+        const connectedRouterNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'RouterNode' &&
+            state.edges.some((edge) => edge.source === inputNode.id && edge.target === targetNode.id)
+        );
+        connectedRouterNodes.forEach((routerNode) => {
+          rebuildRouterNodeSchema(state, routerNode);
+        });
+
+        // Update CoalesceNodes
+        const connectedCoalesceNodes = state.nodes.filter(
+          (targetNode) =>
+            targetNode.type === 'CoalesceNode' &&
+            state.edges.some((edge) => edge.source === inputNode.id && edge.target === targetNode.id)
+        );
+        connectedCoalesceNodes.forEach((coalesceNode) => {
+          rebuildCoalesceNodeSchema(state, coalesceNode);
+        });
+      }
     },
 
     updateWorkflowInputVariableKey: (state, action: PayloadAction<{ oldKey: string; newKey: string }>) => {
