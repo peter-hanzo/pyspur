@@ -226,7 +226,6 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
     const finalWidth = Math.min(estimatedWidth, maxNodeWidth);
 
     // If collapsed, show auto; otherwise the computed width
-    
     if (nodeWidth !== `${finalWidth}px`) {
       setNodeWidth(isCollapsed ? 'auto' : `${finalWidth}px`);
     }
@@ -250,32 +249,64 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
       className="hover:!bg-background"
     >
       <div className="p-3" ref={nodeRef}>
-        {/* Input handles for each upstream node */}
-        {predecessorNodes.map((node) => {
-          if (!node) return null;
-          const handleId = node.data?.config?.title || node.id;
-          return (
-            <div
-              key={node.id}
-              className={`${styles.handleRow} w-full justify-start mb-4`}
-            >
+        {/** 
+         * --------------------------
+         * Top Row: Input + Output
+         * --------------------------
+         */}
+        <div className="flex w-full items-start justify-between mb-4">
+          {/* Left column: input handles */}
+          <div>
+            {predecessorNodes.map((node) => {
+              if (!node) return null;
+              const handleId = node.data?.config?.title || node.id;
+              return (
+                <div
+                  key={node.id}
+                  className={`${styles.handleRow} w-full justify-start mb-2`}
+                >
+                  <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={handleId}
+                    className={`${styles.handle} ${styles.handleLeft} ${
+                      isCollapsed ? styles.collapsedHandleInput : ''
+                    }`}
+                  />
+                  {/* Show the full label if not collapsed */}
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium ml-2 text-foreground">
+                      {handleId}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right column: output handle */}
+          <div>
+            <div className={`${styles.handleRow} w-full justify-end`}>
+              {/* Show the label if not collapsed */}
+              {!isCollapsed && (
+                <div className="align-center flex flex-grow flex-shrink mr-2">
+                  <span className="text-sm font-medium ml-auto text-foreground">
+                    {data.config.title || 'Output'}
+                  </span>
+                </div>
+              )}
               <Handle
-                type="target"
-                position={Position.Left}
-                id={handleId}
-                className={`${styles.handle} ${styles.handleLeft} ${
-                  isCollapsed ? styles.collapsedHandleInput : ''
+                type="source"
+                position={Position.Right}
+                // Use node title for handle id
+                id={data.config.title || id}
+                className={`${styles.handle} ${styles.handleRight} ${
+                  isCollapsed ? styles.collapsedHandleOutput : ''
                 }`}
               />
-              {/* Show the full label if not collapsed */}
-              {!isCollapsed && (
-                <span className="text-sm font-medium ml-2 text-foreground">
-                  {handleId}
-                </span>
-              )}
             </div>
-          );
-        })}
+          </div>
+        </div>
 
         {/* The main body, hidden if collapsed */}
         {!isCollapsed && (
@@ -337,27 +368,6 @@ const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data, selected }) => {
             </div>
           </>
         )}
-
-        {/* Output handle (use the node’s title as the handle id) */}
-        <div className={`${styles.handleRow} w-full justify-end mt-2`}>
-          {/* Show the label if not collapsed */}
-          {!isCollapsed && (
-            <div className="align-center flex flex-grow flex-shrink mr-2">
-              <span className="text-sm font-medium ml-auto text-foreground">
-                {data.config.title || 'Output'}
-              </span>
-            </div>
-          )}
-          <Handle
-            type="source"
-            position={Position.Right}
-            // Use node title for handle id
-            id={data.config.title || id}
-            className={`${styles.handle} ${styles.handleRight} ${
-              isCollapsed ? styles.collapsedHandleOutput : ''
-            }`}
-          />
-        </div>
       </div>
 
       {/* Display node's output if it exists */}
