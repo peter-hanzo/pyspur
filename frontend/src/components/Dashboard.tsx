@@ -18,10 +18,11 @@ import {
   useDisclosure,
   Accordion,
   AccordionItem,
-  Alert
+  Alert,
+  Chip
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys, getApiKey } from '../utils/api';
+import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys, getApiKey, getWorkflowRuns } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
@@ -44,6 +45,7 @@ const Dashboard: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [showWelcome, setShowWelcome] = useState(false);
   const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
+  const [workflowRuns, setWorkflowRuns] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     const fetchWorkflows = async () => {
@@ -51,6 +53,10 @@ const Dashboard: React.FC = () => {
         const workflows = await getWorkflows();
         setWorkflows(workflows as WorkflowResponse[]);
         setShowWelcome(!hasSeenWelcome && workflows.length === 0);
+        
+        workflows.forEach(workflow => {
+          fetchWorkflowRuns(workflow.id);
+        });
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -93,9 +99,22 @@ const Dashboard: React.FC = () => {
     { key: "name", label: "Name" },
     { key: "description", label: "Description" },
     { key: "action", label: "Action" },
+    { key: "recentRuns", label: "Recent Runs" },
   ];
 
-  const handleRunClick = (workflow: WorkflowResponse) => {
+  const fetchWorkflowRuns = async (workflowId: string) => {
+    try {
+      const runs = await getWorkflowRuns(workflowId);
+      setWorkflowRuns(prev => ({
+        ...prev,
+        [workflowId]: runs.slice(0, 5)
+      }));
+    } catch (error) {
+      console.error('Error fetching workflow runs:', error);
+    }
+  };
+
+  const handleRunWorkflowClick = (workflow: WorkflowResponse) => {
     setSelectedWorkflow(workflow);
     onOpen();
   };
@@ -231,6 +250,10 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handlePreviousRunClick = (runId: string) => {
+    window.open(`/trace/${runId}`, '_blank');
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
@@ -328,7 +351,7 @@ const Dashboard: React.FC = () => {
                                 className="cursor-pointer text-default-400"
                                 height={18}
                                 width={18}
-                                onClick={() => handleRunClick(workflow)}
+                                onClick={() => handleRunWorkflowClick(workflow)}
                               />
                               <Icon
                                 icon="solar:pen-bold"
@@ -352,6 +375,29 @@ const Dashboard: React.FC = () => {
                                 onClick={() => handleDeleteClick(workflow)}
                               />
                             </div>
+                          ) : columnKey === "recentRuns" ? (
+                            <div className="flex flex-wrap gap-2">
+                              {workflowRuns[workflow.id]?.map((run) => (
+                                <Chip
+                                  key={run.id}
+                                  size="sm"
+                                  variant="flat"
+                                  className="cursor-pointer"
+                                  onClick={() => handlePreviousRunClick(run.id)}
+                                >
+                                  {run.id}
+                                </Chip>
+                              ))}
+                            </div>
+                          ) : columnKey === "name" ? (
+                            <Chip
+                              size="sm"
+                              variant="flat"
+                              className="cursor-pointer"
+                              onClick={() => handleEditClick(workflow)}
+                            >
+                              {workflow.name}
+                            </Chip>
                           ) : (
                             getKeyValue(workflow, columnKey)
                           )}
