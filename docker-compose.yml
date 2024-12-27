@@ -20,7 +20,7 @@ services:
     volumes:
       - ./backend:/pyspur
       - ./.env:/pyspur/.env
-      - ${SQLITE_DB_PATH:-./backend/sqllite/test.db}:/pyspur/sqllite/test.db
+      - ${SQLITE_DB_PATH:-./backend/sqlite/test.db}:/pyspur/sqlite/test.db
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
