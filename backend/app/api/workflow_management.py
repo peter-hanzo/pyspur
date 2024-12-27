@@ -13,7 +13,6 @@ from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..models.workflow_version_model import WorkflowVersionModel
 from ..models.run_model import RunModel
-from ..nodes.dynamic_schema import DynamicSchemaNodeConfig
 from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
@@ -188,7 +187,7 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Error deleting workflow and its versions: {str(e)}"
+            detail=f"Error deleting workflow and its versions: {str(e)}",
         )
 
     return None
@@ -256,9 +255,8 @@ def get_workflow_output_variables(
         if node.id in leaf_nodes:
             try:
                 # Try to get output_schema from the node config
-                output_schema = {}
-                if isinstance(node.config, dict):
-                    output_schema = node.config.get("output_schema", {})
+                output_schema: Dict[str, str] = {}
+                output_schema = node.config.get("output_schema", {})
 
                 # If no output schema is found, skip this node
                 if not output_schema:
