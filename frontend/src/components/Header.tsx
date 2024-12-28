@@ -369,7 +369,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           id="dashboard-editor-nav"
         >
           <NavbarItem isActive={activePage === "dashboard"}>
-            <Link className="flex gap-2 text-inherit" href="/">
+            <Link className="flex gap-2 text-inherit" href="/dashboard">
               Dashboard
             </Link>
           </NavbarItem>
