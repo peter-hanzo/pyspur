@@ -35,7 +35,7 @@ type SupportedLanguages = 'python' | 'javascript' | 'typescript' | 'rust' | 'jav
 
 const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, getApiEndpoint }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python');
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.nodes.find(node => node.type === 'InputNode')?.data.config.output_schema) || {};
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.nodeConfigs['InputNode']?.output_schema) || {};
 
   // Create example request body with the actual input variables
   const exampleRequestBody = {

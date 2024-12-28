@@ -63,7 +63,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
-  const nodes = useSelector((state: RootState) => 
+  const nodes = useSelector((state: RootState) =>
     state.flow.nodes.map(node => ({
       id: node.id,
       type: node.type,
@@ -72,13 +72,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           title: node.data?.config?.title
         }
       }
-    })), 
+    })),
     (prev, next) => {
       if (!prev || !next) return false;
       if (prev.length !== next.length) return false;
-      return prev.every((node, index) => 
-        node.id === next[index].id && 
-        node.type === next[index].type && 
+      return prev.every((node, index) =>
+        node.id === next[index].id &&
+        node.type === next[index].type &&
         node.data?.config?.title === next[index].data?.config?.title
       );
     }

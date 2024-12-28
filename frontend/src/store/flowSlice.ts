@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
-import { config, title } from 'process';
+
 import { TestInput } from '@/types/api_types/workflowSchemas';
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas';
@@ -20,6 +20,17 @@ interface NodeTypesConfig {
 
 
 
+export interface FlowWorkflowNodeConfig {
+  title?: string;
+  output_schema?: Record<string, any>;
+  llm_info?: Record<string, any>;
+  system_message?: string;
+  user_message?: string;
+  few_shot_examples?: Record<string, any>[] | null;
+  route_map?: Record<string, RouteConditionGroup>;
+  [key: string]: any;
+}
+
 export interface FlowWorkflowNode {
   id: string;
   type: string;
@@ -28,16 +39,6 @@ export interface FlowWorkflowNode {
     title: string;
     acronym: string;
     color: string;
-    config: {
-      title?: string;
-      output_schema?: Record<string, any>;
-      llm_info?: Record<string, any>;
-      system_message?: string;
-      user_message?: string;
-      few_shot_examples?: Record<string, any>[] | null;
-      route_map?: Record<string, RouteConditionGroup>;
-      [key: string]: any;
-    },
     run?: Record<string, any>;
     taskStatus?: string;
     [key: string]: any;
@@ -64,6 +65,7 @@ export interface FlowState {
   nodeTypes: NodeTypes;
   nodes: FlowWorkflowNode[];
   edges: FlowWorkflowEdge[];
+  nodeConfigs: Record<string, FlowWorkflowNodeConfig>;
   workflowID: string | null;
   selectedNode: string | null;
   sidebarWidth: number;
@@ -81,6 +83,7 @@ const initialState: FlowState = {
   nodeTypes: {},
   nodes: [],
   edges: [],
+  nodeConfigs: {},
   workflowID: null,
   selectedNode: null,
   sidebarWidth: 400,
@@ -169,9 +172,16 @@ const flowSlice = createSlice({
       state.nodeTypes = action.payload.nodeTypes;
       const { nodes, links } = definition;
 
-      state.nodes = nodes.map(node =>
-        createNode(state.nodeTypes, node.node_type, node.id, { x: node.coordinates.x, y: node.coordinates.y }, { config: node.config })
-      );
+      state.nodes = nodes.map((node) => {
+        const { node: nodeObj, config } = createNode(
+          state.nodeTypes,
+          node.node_type,
+          node.id,
+          { x: node.coordinates.x, y: node.coordinates.y },
+        );
+        state.nodeConfigs[node.id] = config;
+        return nodeObj;
+      });
 
       let edges = links.map(link => ({
         id: uuidv4(),
@@ -179,8 +189,8 @@ const flowSlice = createSlice({
         selected: false,
         source: link.source_id,
         target: link.target_id,
-        sourceHandle: link.source_handle || state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
-        targetHandle: link.target_handle || state.nodes.find(node => node.id === link.source_id)?.data?.config.title || state.nodes.find(node => node.id === link.source_id)?.data?.title,
+        sourceHandle: link.source_handle || state.nodes.find(node => node.id === link.source_id)?.data?.title,
+        targetHandle: link.target_handle || state.nodes.find(node => node.id === link.source_id)?.data?.title,
       }));
       // deduplicate edges
       edges = edges.filter((edge, index, self) =>
@@ -241,13 +251,24 @@ const flowSlice = createSlice({
       const node = state.nodes.find((node) => node.id === id);
       if (!node) return;
 
-      const oldTitle = node.data?.config?.title || node.data?.title;
-      const newTitle = data?.config?.title || data?.title;
+      // Pull out the "visual" fields from data
+      if (data.title !== undefined) {
+        node.data.title = data.title;
+      }
+      if (data.color !== undefined) {
+        node.data.color = data.color;
+      }
+      // etc. for purely visual fields
 
-      // Update node's data
-      node.data = { ...node.data, ...data };
+      // For everything that used to be node.data.config:
+      const oldConfig = state.nodeConfigs[id] || {};
+      const newConfig = { ...oldConfig, ...data.config };
+      state.nodeConfigs[id] = newConfig;
 
-      // If the node title changed, update edges
+      const oldTitle = oldConfig.title || node.data.title;
+      const newTitle = newConfig.title || data.title;
+
+      // The rest is the same, but reference newConfig instead of node.data.config
       if (oldTitle && newTitle && oldTitle !== newTitle) {
         state.edges = state.edges.map((edge) => {
           if (edge.source === id && edge.sourceHandle === oldTitle) {
