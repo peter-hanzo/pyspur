@@ -215,7 +215,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       maxNodeWidth
     );
     if (nodeWidth !== `${finalWidth}px`) {
-      console.log('Setting node width to:', finalWidth, 'original:', nodeWidth);
       setNodeWidth(`${finalWidth}px`);
     }
   }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth]);
