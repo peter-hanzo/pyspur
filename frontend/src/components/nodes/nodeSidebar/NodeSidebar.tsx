@@ -8,8 +8,10 @@ import {
   setSidebarWidth,
   setSelectedNode,
   FlowWorkflowNode,
+  FlowWorkflowNodeConfig,
   updateNodeTitle,
 } from '../../../store/flowSlice';
+import { NodeType, NodeTypes, FieldMetadata } from '../../../store/nodeTypesSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
 import { jsonOptions } from '../../../constants/jsonOptions';
@@ -42,72 +44,14 @@ interface NodeSidebarProps {
   nodeID: string;
 }
 
-interface NodeSchema {
-  name: string;
-  config: {
-    [key: string]: any;
-    title?: string;
-    type?: string;
-    input_schema?: Record<string, any>;
-    output_schema?: Record<string, any>;
-    system_message?: string;
-    user_message?: string;
-    few_shot_examples?: Array<{
-      input: string;
-      output: string;
-    }>;
-  };
-}
-
-interface DynamicModel {
-  [key: string]: any;
-  title?: string;
-  type?: string;
-  input_schema?: Record<string, any>;
-  output_schema?: Record<string, any>;
-  system_message?: string;
-  user_message?: string;
-  few_shot_examples?: Array<{
-    input: string;
-    output: string;
-  }> | Record<string, any>[];
-  branch_refs?: string[];
-  input_schemas?: Record<string, any>;
-  llm_info?: {
-    model?: string;
-    [key: string]: any;
-  };
-}
-
-interface FieldMetadata {
-  enum?: string[];
-  default?: any;
-  title?: string;
-  minimum?: number;
-  maximum?: number;
-  type?: string;
-}
-
-interface NodeType {
-  name: string;
-  config: Record<string, any>;
-  data?: Record<string, any>;
-  metadata?: Record<string, any>;
-}
-
-type NodeTypes = Record<string, NodeType[]>;
-
-// Update the `findNodeSchema` function to resolve the "used before declaration" error
-const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeSchema | null => {
+// Update findNodeSchema to use imported types
+const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeType | null => {
   if (!nodeTypes) return null;
 
   for (const category in nodeTypes) {
     const nodeSchema = nodeTypes[category]?.find((n: NodeType) => n.name === nodeType);
     if (nodeSchema) {
-      return {
-        name: nodeSchema.name,
-        config: nodeSchema.config,
-      };
+      return nodeSchema;
     }
   }
   return null;
@@ -160,10 +104,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
   const [nodeType, setNodeType] = useState<string>(node?.type || 'ExampleNode');
-  const [nodeSchema, setNodeSchema] = useState<NodeSchema | null>(
+  const [nodeSchema, setNodeSchema] = useState<NodeType | null>(
     findNodeSchema(node?.type || 'ExampleNode', nodeTypes)
   );
-  const [dynamicModel, setDynamicModel] = useState<DynamicModel>(nodeConfig || {});
+  const [dynamicModel, setDynamicModel] = useState<FlowWorkflowNodeConfig>(nodeConfig || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
   const [showTitleError, setShowTitleError] = useState(false);
   const [titleInputValue, setTitleInputValue] = useState<string>('');
@@ -197,7 +141,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
-    debounce((id: string, updatedModel: DynamicModel) => {
+    debounce((id: string, updatedModel: FlowWorkflowNodeConfig) => {
       dispatch(updateNodeData({ id, data: updatedModel }));
     }, 300),
     [dispatch]
@@ -233,7 +177,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   }, [nodeID, node, nodeTypes, nodeConfig]);
 
   // Helper function to update nested object by path
-  const updateNestedModel = (obj: DynamicModel, path: string, value: any): DynamicModel => {
+  const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
     const deepClone = cloneDeep(obj);
     set(deepClone, path, value);
     return deepClone;
@@ -241,12 +185,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
   // Update the input change handler to use local state immediately but debounce Redux updates for Slider
   const handleInputChange = (key: string, value: any, isSlider: boolean = false) => {
-    let updatedModel: DynamicModel;
+    let updatedModel: FlowWorkflowNodeConfig;
 
     if (key.includes('.')) {
-      updatedModel = updateNestedModel(dynamicModel, key, value) as DynamicModel;
+      updatedModel = updateNestedModel(dynamicModel, key, value) as FlowWorkflowNodeConfig;
     } else {
-      updatedModel = { ...dynamicModel, [key]: value } as DynamicModel;
+      updatedModel = { ...dynamicModel, [key]: value } as FlowWorkflowNodeConfig;
     }
 
     setDynamicModel(updatedModel);
@@ -427,21 +371,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key === 'input_schemas' && nodeType === 'MergeNode') {
-      return (
-        <div key={key} className="my-2">
-          <label className="font-semibold mb-1 block">Input Schemas</label>
-          <MergeEditor
-            branchRefs={dynamicModel.branch_refs || []}
-            onChange={(newValue) => {
-              handleInputChange('branch_refs', newValue);
-            }}
-            nodeId={nodeID}
-          />
-          {!isLast && <hr className="my-2" />}
-        </div>
-      );
-    }
+
 
     if (key === 'output_schema') {
       return (
@@ -611,24 +541,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
     const properties = nodeSchema.config;
     const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type');
-
-    // Special handling for MergeNode
-    if (nodeType === 'MergeNode') {
-      return (
-        <MergeEditor
-          branchRefs={dynamicModel.branch_refs || []}
-          onChange={(newBranchRefs) => {
-            const updatedModel = {
-              ...dynamicModel,
-              branch_refs: newBranchRefs,
-            };
-            setDynamicModel(updatedModel);
-            dispatch(updateNodeData({ id: nodeID, data: updatedModel }));
-          }}
-          nodeId={nodeID}
-        />
-      );
-    }
 
     // Prioritize system_message and user_message to appear first
     const priorityFields = ['system_message', 'user_message'];

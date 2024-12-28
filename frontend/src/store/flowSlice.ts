@@ -88,11 +88,20 @@ export interface BaseNode {
 
 export interface FlowWorkflowNodeConfig {
   title?: string;
+  type?: string;
+  input_schema?: Record<string, any>;
   output_schema?: Record<string, any>;
-  llm_info?: Record<string, any>;
   system_message?: string;
   user_message?: string;
-  few_shot_examples?: Record<string, any>[] | null;
+  few_shot_examples?: Array<{
+    input: string;
+    output: string;
+  }> | Record<string, any>[];
+  llm_info?: {
+    model?: string;
+    api_base?: string;
+    [key: string]: any;
+  };
   route_map?: Record<string, RouteConditionGroup>;
   [key: string]: any;
 }
