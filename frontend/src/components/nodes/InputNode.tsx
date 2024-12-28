@@ -154,7 +154,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
         {incomingEdges.length > 0 && (
           <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
             {incomingEdges.map((edge) => (
-              <InputHandleRow keyName={edge.source} />
+              <InputHandleRow key={edge.source} keyName={edge.source} />
             ))}
           </div>
         )}

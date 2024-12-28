@@ -36,8 +36,6 @@ import NodeOutput from '../NodeOutputDisplay';
 import SchemaEditor from './SchemaEditor';
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 import { cloneDeep, set, debounce } from 'lodash';
-import RouterEditor from './RouterEditor';
-import MergeEditor from './MergeEditor';
 import isEqual from 'lodash/isEqual';
 // Define types for props and state
 interface NodeSidebarProps {

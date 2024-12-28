@@ -4,9 +4,3 @@ export interface Template {
   description: string;
   features: string[];
 }
-
-export interface Dataset {
-  id: string;
-  name: string;
-  description: string;
-}
