@@ -1,12 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
+import { applyNodeChanges, applyEdgeChanges, addEdge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
 import { TestInput } from '@/types/api_types/workflowSchemas';
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas';
 import { isEqual } from 'lodash';
-
 
 
 export interface NodeTypes {
@@ -31,15 +30,15 @@ export interface Position {
 }
 
 export interface NodeData {
-  config?: {
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-  };
+  title?: string;
+  acronym?: string;
+  color?: string;
 }
 
 export interface BaseNode {
   id: string;
   position: Position;
+  type: string;
   data?: NodeData;
 }
 
