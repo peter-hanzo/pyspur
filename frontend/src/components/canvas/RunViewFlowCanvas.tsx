@@ -170,26 +170,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         return;
       }
 
-      const positionChange = changes.find(
-        (c): c is NodeChange & { type: 'position'; position: XYPosition } =>
-          c.type === 'position' && c.position !== undefined
-      );
-
-      if (positionChange && showHelperLines) {
-        const { horizontal, vertical } = getHelperLines(positionChange, nodes);
-        setHelperLines({ horizontal, vertical });
-
-        if (horizontal || vertical) {
-          const snapPosition = {
-            x: positionChange.position.x,
-            y: positionChange.position.y
-          };
-          if (horizontal) snapPosition.y = horizontal;
-          if (vertical) snapPosition.x = vertical;
-          positionChange.position = snapPosition;
-        }
-      }
-
       dispatch(nodesChange({ changes }));
     },
     [dispatch, nodes, showHelperLines]
@@ -489,6 +469,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
             onNodeMouseLeave={onNodeMouseLeave}
             onEdgeMouseEnter={onEdgeMouseEnter}
             onEdgeMouseLeave={onEdgeMouseLeave}
+            snapToGrid={false}
           >
             <Background />
             {showHelperLines && (
