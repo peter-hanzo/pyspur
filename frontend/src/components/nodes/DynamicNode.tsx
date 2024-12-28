@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import {
   Handle, useHandleConnections, NodeProps, useConnection, Position, useUpdateNodeInternals
 } from '@xyflow/react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
 import { Input } from '@nextui-org/react';
 import {
+  updateNodeData,
+  updateEdgesOnHandleRename,
   FlowWorkflowNode,
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
@@ -22,6 +24,12 @@ interface SchemaMetadata {
   type?: string;
   [key: string]: any;
 }
+
+const updateMessageVariables = (message: string | undefined, oldKey: string, newKey: string): string | undefined => {
+  if (!message) return message;
+  const regex = new RegExp(`{{\\s*${oldKey}\\s*}}`, 'g');
+  return message.replace(regex, `{{${newKey}}}`);
+};
 
 interface DynamicNodeProps extends NodeProps {
   id: string;
@@ -41,6 +49,11 @@ const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) 
   return isEqual(prevRest, nextRest);
 };
 
+const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+  if (!prevNodes || !nextNodes) return false;
+  if (prevNodes.length !== nextNodes.length) return false;
+  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+};
 
 const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
@@ -71,7 +84,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     }
   );
   const nodeData = data || (node && node.data);
-
+  const dispatch = useDispatch();
 
   const edges = useSelector((state: RootState) => state.flow.edges);
 
@@ -92,6 +105,68 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata || {});
   const updateNodeInternals = useUpdateNodeInternals();
 
+  const handleSchemaKeyEdit = useCallback(
+    (oldKey: string, newKey: string, schemaType: 'input_schema' | 'output_schema') => {
+      newKey = newKey.replace(/\s+/g, '_');
+      if (oldKey === newKey || !newKey.trim()) {
+        setEditingField(null);
+        return;
+      }
+
+      const currentSchema = nodeData?.config?.[schemaType] || {};
+      const schemaEntries = Object.entries(currentSchema);
+      const keyIndex = schemaEntries.findIndex(([key]) => key === oldKey);
+
+      if (keyIndex !== -1) {
+        schemaEntries[keyIndex] = [newKey, currentSchema[oldKey]];
+      }
+
+      const updatedSchema = Object.fromEntries(schemaEntries);
+
+      let updatedConfig = {
+        ...nodeData?.config,
+        [schemaType]: updatedSchema,
+      };
+
+      if (schemaType === 'input_schema') {
+        if (nodeData?.config?.system_message) {
+          updatedConfig.system_message = updateMessageVariables(
+            nodeData.config.system_message,
+            oldKey,
+            newKey
+          );
+        }
+        if (nodeData?.config?.user_message) {
+          updatedConfig.user_message = updateMessageVariables(
+            nodeData.config.user_message,
+            oldKey,
+            newKey
+          );
+        }
+      }
+
+      dispatch(
+        updateNodeData({
+          id,
+          data: {
+            config: updatedConfig,
+          },
+        })
+      );
+
+      dispatch(
+        updateEdgesOnHandleRename({
+          nodeId: id,
+          oldHandleId: oldKey,
+          newHandleId: newKey,
+          schemaType,
+        })
+      );
+
+      setEditingField(null);
+    },
+    [dispatch, id, nodeData]
+  );
 
   const [predecessorNodes, setPredcessorNodes] = useState(() => {
     return edges
@@ -140,6 +215,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       maxNodeWidth
     );
     if (nodeWidth !== `${finalWidth}px`) {
+      console.log('Setting node width to:', finalWidth, 'original:', nodeWidth);
       setNodeWidth(`${finalWidth}px`);
     }
   }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth]);

@@ -14,7 +14,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
   return (
     <>
       {output && (
-        <div 
+        <div
           className='p-5'
           style={{ maxHeight: '400px', overflowY: 'auto' }}
           onWheel={(e) => {

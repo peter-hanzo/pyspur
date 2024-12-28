@@ -10,23 +10,23 @@ const NodeOutputModal = ({ isOpen, onOpenChange, title, node }) => {
     return (
         <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="5xl">
             <ModalContent>
-            <ModalHeader>
-                <h3>{title}</h3>
-            </ModalHeader>
-            <ModalBody>
-                <div className='py-5'>
-                {node ? (
-                    <NodeOutputDisplay output={node.data.run} />
-                ) : (
-                    <div>No output available</div>
-                )}
-                </div>
-            </ModalBody>
-            <ModalFooter>
-                <Button onPress={handleOpenChange}>
-                    Close
-                </Button>
-            </ModalFooter>
+                <ModalHeader>
+                    <h3>{title}</h3>
+                </ModalHeader>
+                <ModalBody>
+                    <div className='py-5'>
+                        {node ? (
+                            <NodeOutputDisplay output={node.data.run} />
+                        ) : (
+                            <div>No output available</div>
+                        )}
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <Button onPress={handleOpenChange}>
+                        Close
+                    </Button>
+                </ModalFooter>
             </ModalContent>
         </Modal>
     );

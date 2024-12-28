@@ -16,13 +16,9 @@ import {
 import NodeOutputDisplay from '../NodeOutputDisplay';
 
 interface RouterNodeData {
+  title?: string;
   color?: string;
-  config: {
-    route_map: Record<string, RouteConditionGroup>;
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-    title?: string;
-  };
+  acronym?: string;
   run?: Record<string, any>;
   taskStatus?: string;
 }
@@ -69,10 +65,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   const dispatch = useDispatch();
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
+  const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id]);
+  const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
   const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
     return nodes.find((node) => node.id === edge.source);
   }));
-  const output = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.config?.run);
 
   // Get available input variables from the connected node's output schema
   const inputVariables = useMemo(() => {
@@ -80,17 +77,17 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
     return predecessorNodes.flatMap(node => {
       if (!node) return [];
-      
-      const nodeTitle = node.data?.config?.title || node.id;
-      const outputSchema = node.data?.config?.output_schema || {};
-      
+
+      const predNodeConfig = nodeConfigs[node.id];
+      const nodeTitle = predNodeConfig?.title || node.id;
+      const outputSchema = predNodeConfig?.output_schema || {};
+
       return Object.entries(outputSchema).map(([key, type]) => ({
         value: `${nodeTitle}.${key}`,
         label: `${nodeTitle}.${key} (${type})`,
       }));
     });
-  }, [predecessorNodes]);
-
+  }, [predecessorNodes, nodeConfigs]);
 
   const connection = useConnection();
 
@@ -122,76 +119,75 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   }, [connection, nodes, edges, id]);
 
   useEffect(() => {
-    if (!nodeRef.current || !data) return;
-    
+    if (!nodeRef.current || !nodeConfig) return;
+
     // Calculate widths for all variables, operators, and values
-    const allWidths = Object.entries(data.config?.route_map || {}).flatMap(([_, route]) => 
-      route.conditions.map(condition => {
+    const allWidths = Object.entries(nodeConfig.route_map || {}).flatMap(([_, route]) =>
+      (route as RouteConditionGroup).conditions.map(condition => {
         // Variable width calculation
         const variable = inputVariables.find(v => v.value === condition.variable);
         const variableWidth = variable ? estimateTextWidth(variable.label) : 200; // default min width
-        
+
         // Operator width calculation
         const operator = OPERATORS.find(op => op.value === condition.operator);
         const operatorWidth = operator ? estimateTextWidth(operator.label) : 140; // default operator width
-        
+
         // Value width calculation
         const valueWidth = condition.value ? estimateTextWidth(condition.value) : 150; // default value width
-        
+
         // Add some padding and account for gaps between elements
         const totalRowWidth = variableWidth + operatorWidth + valueWidth + 150; // 100px for gaps and padding
-        
+
         return totalRowWidth;
       })
     );
-    
+
     // Get the maximum width needed for any condition row
     const maxConditionWidth = Math.max(
-      ...allWidths, 
+      ...allWidths,
       400 // minimum width
     );
-    
+
     // Add some padding for the card container
     const finalWidth = `${Math.min(maxConditionWidth + 40, 800)}px`; // 800px max width
-    
+
     if (nodeWidth !== finalWidth) {
       setNodeWidth(finalWidth);
     }
-  }, [data.config.route_map, inputVariables]); // Remove nodeWidth from dependencies
+  }, [nodeConfig?.route_map, inputVariables, nodeWidth]);
 
   const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
-
-    const updatedData: RouterNodeData = {
-      ...data,
-      config: {
-        ...data.config,
+    dispatch(updateNodeData({
+      id,
+      data: {
+        ...nodeConfig,
         route_map: newRouteMap,
       },
-    };
-
-    dispatch(updateNodeData({ id, data: updatedData }));
+    }));
   };
 
   const addRoute = () => {
-    const newRouteKey = `route${Object.keys(data.config?.route_map || {}).length + 1}`;
+    const newRouteKey = `route${Object.keys(nodeConfig?.route_map || {}).length + 1}`;
     const newRouteMap = {
-      ...data.config.route_map,
+      ...(nodeConfig?.route_map || {}),
       [newRouteKey]: { ...DEFAULT_ROUTE },
     };
     handleUpdateRouteMap(newRouteMap);
   };
 
   const removeRoute = (routeKey: string) => {
-    const { [routeKey]: _, ...newRouteMap } = data.config.route_map || {};
+    if (!nodeConfig?.route_map) return;
+    const { [routeKey]: _, ...newRouteMap } = nodeConfig.route_map;
     handleUpdateRouteMap(newRouteMap);
   };
 
   const addCondition = (routeKey: string) => {
+    if (!nodeConfig?.route_map) return;
     const newRouteMap = {
-      ...data.config.route_map,
+      ...nodeConfig.route_map,
       [routeKey]: {
         conditions: [
-          ...data.config.route_map[routeKey].conditions,
+          ...(nodeConfig.route_map[routeKey].conditions || []),
           { ...DEFAULT_CONDITION, logicalOperator: 'AND' as const },
         ],
       },
@@ -200,10 +196,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   };
 
   const removeCondition = (routeKey: string, conditionIndex: number) => {
+    if (!nodeConfig?.route_map) return;
     const newRouteMap = {
-      ...data.config.route_map,
+      ...nodeConfig.route_map,
       [routeKey]: {
-        conditions: data.config.route_map[routeKey].conditions.filter(
+        conditions: nodeConfig.route_map[routeKey].conditions.filter(
           (_, i) => i !== conditionIndex
         ),
       },
@@ -217,10 +214,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     field: keyof RouteConditionRule,
     value: string
   ) => {
+    if (!nodeConfig?.route_map) return;
     const newRouteMap = {
-      ...data.config.route_map,
+      ...nodeConfig.route_map,
       [routeKey]: {
-        conditions: data.config.route_map[routeKey].conditions.map((condition, i) =>
+        conditions: nodeConfig.route_map[routeKey].conditions.map((condition, i) =>
           i === conditionIndex ? { ...condition, [field]: value } : condition
         ),
       },
@@ -230,12 +228,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
   useEffect(() => {
     // If route_map is empty, initialize it with a default route
-    if (!data.config.route_map || Object.keys(data.config.route_map).length === 0) {
+    if (!nodeConfig?.route_map || Object.keys(nodeConfig.route_map).length === 0) {
       handleUpdateRouteMap({
         route1: { ...DEFAULT_ROUTE }
       });
     }
-  }, []);
+  }, [nodeConfig?.route_map]);
 
   return (
     <BaseNode
@@ -243,10 +241,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
       isCollapsed={isCollapsed}
       setIsCollapsed={setIsCollapsed}
       data={{
-        title: data.config?.title || 'Conditional Router',
+        title: nodeConfig?.title || 'Conditional Router',
         color: data.color || '#F6AD55',
         acronym: 'IF',
-        config: data.config,
         run: data.run,
         taskStatus: data.taskStatus
       }}
@@ -255,19 +252,23 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     >
       <div className="p-3" ref={nodeRef}>
         {/* Input handles */}
-        {predecessorNodes.map((node) => (
-          <div key={node?.id} className={`${styles.handleRow} w-full justify-start mb-4`}>
-            <Handle
-              type="target"
-              position={Position.Left}
-              id={node?.data?.config?.title || node?.id}
-              className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-            />
-            {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">{node?.data?.config?.title || node?.id}</span>}
-          </div>
-        ))}
+        {predecessorNodes.map((node) => {
+          if (!node) return null;
+          const predNodeConfig = nodeConfigs[node.id];
+          return (
+            <div key={node.id} className={`${styles.handleRow} w-full justify-start mb-4`}>
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={predNodeConfig?.title || node.id}
+                className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
+              />
+              {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">{predNodeConfig?.title || node.id}</span>}
+            </div>
+          );
+        })}
 
-        {!isCollapsed && (
+        {!isCollapsed && nodeConfig?.route_map && (
           <>
             <Divider className="my-2" />
 
@@ -279,11 +280,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
             {/* Routes */}
             <div className="flex flex-col gap-4">
-              {Object.entries(data.config.route_map || {}).map(([routeKey, route]) => (
+              {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
                 <Card key={routeKey} classNames={{ base: 'bg-background border-default-200 p-1' }}>
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
-                    {(route.conditions || []).map((condition, conditionIndex) => (
+                    {route.conditions.map((condition, conditionIndex) => (
                       <div key={conditionIndex} className="flex flex-col gap-2">
                         {conditionIndex > 0 && (
                           <div className="flex items-center gap-2 justify-center">
@@ -312,7 +313,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                             className="flex-[2] min-w-[200px]"
                             classNames={{
                               trigger: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto",
-                              value: "whitespace-normal break-words", 
+                              value: "whitespace-normal break-words",
                               popoverContent: "bg-background dark:bg-background"
                             }}
                             isMultiline={true}
@@ -414,7 +415,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
         )}
 
         {/* Output handles when collapsed */}
-        {isCollapsed && Object.keys(data.config?.route_map || {}).map((routeKey) => (
+        {isCollapsed && nodeConfig?.route_map && Object.keys(nodeConfig.route_map).map((routeKey) => (
           <div key={routeKey} className={`${styles.handleRow} w-full justify-end mt-2`}>
             <Handle
               type="source"
@@ -429,3 +430,5 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
     </BaseNode>
   );
 };
+
+export default RouterNode;

@@ -142,9 +142,10 @@ function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode)
   // Build new output schema by combining all source nodes
   const newOutputSchema = incomingEdges.reduce((schema, edge) => {
     const sourceNode = state.nodes.find((n) => n.id === edge.source);
-    if (sourceNode?.data?.config?.output_schema) {
-      const nodeTitle = sourceNode.data.config.title || sourceNode.id;
-      const sourceSchema = sourceNode.data.config.output_schema;
+    const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined;
+    if (sourceNodeConfig?.output_schema) {
+      const nodeTitle = sourceNodeConfig.title || sourceNode?.id;
+      const sourceSchema = sourceNodeConfig.output_schema;
 
       // Add prefixed entries from the source schema
       Object.entries(sourceSchema).forEach(([key, value]) => {
@@ -154,12 +155,16 @@ function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode)
     return schema;
   }, {} as Record<string, any>);
 
-  const currentSchema = routerNode.data.config.output_schema || {};
+  const routerNodeConfig = state.nodeConfigs[routerNode.id] || {};
+  const currentSchema = routerNodeConfig.output_schema || {};
   const hasChanges = !isEqual(currentSchema, newOutputSchema);
 
   // Only update if there are actual changes
   if (hasChanges) {
-    routerNode.data.config.output_schema = newOutputSchema;
+    state.nodeConfigs[routerNode.id] = {
+      ...routerNodeConfig,
+      output_schema: newOutputSchema
+    };
   }
 }
 
@@ -169,7 +174,7 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
   // Collect all source schemas
   const schemas: Record<string, any>[] = incomingEdges.map((ed) => {
     const sourceNode = state.nodes.find((n) => n.id === ed.source);
-    return sourceNode?.data?.config?.output_schema || {};
+    return sourceNode ? state.nodeConfigs[sourceNode.id]?.output_schema || {} : {};
   });
 
   // Intersection
@@ -184,7 +189,11 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
     });
   }
 
-  coalesceNode.data.config.output_schema = intersection;
+  const coalesceNodeConfig = state.nodeConfigs[coalesceNode.id] || {};
+  state.nodeConfigs[coalesceNode.id] = {
+    ...coalesceNodeConfig,
+    output_schema: intersection
+  };
 }
 
 const flowSlice = createSlice({
@@ -432,11 +441,13 @@ const flowSlice = createSlice({
         // Find the target node
         const targetNode = state.nodes.find(node => node.id === edge.target);
         const sourceNode = state.nodes.find(node => node.id === edge.source);
+        const targetNodeConfig = targetNode ? state.nodeConfigs[targetNode.id] : undefined;
+        const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined;
 
         // If target is a RouterNode and source has output schema, update target's schema
-        if (targetNode?.type === 'RouterNode' && sourceNode?.data?.config?.output_schema) {
-          const sourceTitle = sourceNode.data.config.title || sourceNode.id;
-          const currentSchema = { ...targetNode.data.config.output_schema };
+        if (targetNode?.type === 'RouterNode' && sourceNodeConfig?.output_schema) {
+          const sourceTitle = sourceNodeConfig.title || sourceNode?.id;
+          const currentSchema = { ...(targetNodeConfig?.output_schema || {}) };
 
           // Remove fields that start with this source's prefix
           const prefix = `${sourceTitle}.`;
@@ -447,8 +458,8 @@ const flowSlice = createSlice({
           });
 
           // Update the target node's schema
-          targetNode.data.config = {
-            ...targetNode.data.config,
+          state.nodeConfigs[targetNode.id] = {
+            ...targetNodeConfig,
             output_schema: currentSchema
           };
         }
@@ -461,8 +472,9 @@ const flowSlice = createSlice({
           const schemas: Record<string, any>[] = [];
           incomingEdges.forEach((ed) => {
             const sourceNode = state.nodes.find((n) => n.id === ed.source);
-            if (sourceNode?.data?.config?.output_schema) {
-              schemas.push(sourceNode.data.config.output_schema);
+            const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined;
+            if (sourceNodeConfig?.output_schema) {
+              schemas.push(sourceNodeConfig.output_schema);
             }
           });
 
@@ -477,7 +489,11 @@ const flowSlice = createSlice({
               intersection[key] = firstSchema[key];
             });
           }
-          targetNode.data.config.output_schema = intersection;
+
+          state.nodeConfigs[targetNode.id] = {
+            ...targetNodeConfig,
+            output_schema: intersection
+          };
         }
 
         // Remove the edge
