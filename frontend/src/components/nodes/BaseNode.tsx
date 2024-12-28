@@ -113,8 +113,8 @@ const convertToPythonVariableName = (str: string): string => {
   // Remove any non-alphanumeric characters except underscores
   str = str.replace(/[^a-zA-Z0-9_]/g, '');
 
-  // Ensure the first character is a letter or underscore
-  if (!/^[a-zA-Z_]/.test(str)) {
+  // Add underscore prefix only if first char is a number
+  if (/^[0-9]/.test(str)) {
     str = '_' + str;
   }
 
