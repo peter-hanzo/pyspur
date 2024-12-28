@@ -13,7 +13,7 @@ const Home: React.FC = () => {
 
   return (
     <div className="App relative">
-      <Header activePage="home" />
+      <Header activePage="dashboard" />
       <Dashboard />
     </div>
   );
