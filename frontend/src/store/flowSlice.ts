@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges, addEdge, Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from '../utils/nodeFactory';
-
 import { TestInput } from '@/types/api_types/workflowSchemas';
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas';
@@ -634,20 +633,39 @@ const flowSlice = createSlice({
 
     resetFlow: (state, action: PayloadAction<{ definition: WorkflowDefinition }>) => {
       const { nodes, links } = action.payload.definition;
-      state.nodes = nodes.map(node =>
-        createNode(state.nodeTypes, node.node_type, node.id,
-          { x: node.coordinates.x, y: node.coordinates.y },
-          { config: node.config })
-      );
 
+      // Map over nodes and use createNode to generate both node and config
+      const createdNodes = nodes.map(node => {
+        const result = createNode(
+          state.nodeTypes,
+          node.node_type,
+          node.id,
+          { x: node.coordinates.x, y: node.coordinates.y },
+        );
+
+        if (!result) {
+          throw new Error(`Failed to create node with type: ${node.node_type}`);
+        }
+
+        const { node: createdNode, config } = result;
+
+        // Store the config in nodeConfigs
+        state.nodeConfigs[node.id] = config;
+
+        return createdNode;
+      });
+
+      state.nodes = createdNodes;
+
+      // Map over links to create edges
       state.edges = links.map(link => ({
         id: uuidv4(),
         key: uuidv4(),
         selected: false,
         source: link.source_id,
         target: link.target_id,
-        sourceHandle: link.source_id,
-        targetHandle: link.source_id,
+        sourceHandle: link.source_handle || state.nodes.find(node => node.id === link.source_id)?.data?.title,
+        targetHandle: link.target_handle || state.nodes.find(node => node.id === link.target_id)?.data?.title,
       }));
     },
 
