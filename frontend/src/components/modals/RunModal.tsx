@@ -38,8 +38,9 @@ interface EditingCell {
 
 const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
   const inputNode = nodes.find(node => node.type === 'InputNode');
-  const workflowInputVariables = inputNode?.data?.config?.output_schema || {};
+  const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {};
   const workflowInputVariableNames = Object.keys(workflowInputVariables);
 
   const [testData, setTestData] = useState<TestInput[]>([]);
@@ -154,18 +155,15 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
   };
 
   const handleRun = () => {
-    if (!selectedRow) return;
+    if (!selectedRow || !inputNode) return;
 
     const selectedTestCase = testData.find(row => row.id.toString() === selectedRow);
     if (!selectedTestCase) return;
 
     const { id, ...inputValues } = selectedTestCase;
-    const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
-
-    if (!inputNodeId) return;
 
     const initialInputs = {
-      [inputNodeId]: inputValues
+      [inputNode.id]: inputValues
     };
 
     onRun(initialInputs);
