@@ -14,6 +14,7 @@ import {
   DropdownMenu,
   DropdownItem,
   Alert,
+  CircularProgress,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
@@ -59,6 +60,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
+  const [completionPercentage, setCompletionPercentage] = useState<number>(0);
 
   const router = useRouter();
   const { id } = router.query;
@@ -103,8 +105,13 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         const statusResponse = await getRunStatus(runID);
         const tasks = statusResponse.tasks;
 
+        if (statusResponse.percentage_complete !== undefined) {
+          setCompletionPercentage(statusResponse.percentage_complete);
+        }
+
         if (statusResponse.status === 'FAILED' || tasks.some(task => task.status === 'FAILED')) {
           setIsRunning(false);
+          setCompletionPercentage(0);
           clearInterval(currentStatusInterval);
           showAlert('Workflow run failed.', 'danger');
           return;
@@ -138,6 +145,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
         if (statusResponse.status !== 'RUNNING') {
           setIsRunning(false);
+          setCompletionPercentage(0);
           clearInterval(currentStatusInterval);
           showAlert('Workflow run completed.', 'success');
         }
@@ -174,6 +182,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
   const handleStopWorkflow = (): void => {
     setIsRunning(false);
+    setCompletionPercentage(0);
     if (currentStatusInterval) {
       clearInterval(currentStatusInterval);
     }
@@ -391,7 +400,13 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                 {isRunning ? (
                   <>
                     <NavbarItem className="hidden sm:flex">
-                      <Spinner size="sm" />
+                      <CircularProgress
+                        size="sm"
+                        value={completionPercentage}
+                        color="success"
+                        showValueLabel={true}
+                        aria-label="Running progress"
+                      />
                     </NavbarItem>
                     <NavbarItem className="hidden sm:flex">
                       <Button isIconOnly radius="full" variant="light" onClick={handleStopWorkflow}>
