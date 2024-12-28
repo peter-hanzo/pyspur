@@ -1,10 +1,10 @@
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 from datetime import datetime
 
 from .workflow_schemas import WorkflowVersionResponseSchema
 from ..models.run_model import RunStatus
-from .task_schemas import TaskResponseSchema
+from .task_schemas import TaskResponseSchema, TaskStatus
 
 
 class StartRunRequestSchema(BaseModel):
@@ -26,6 +26,15 @@ class RunResponseSchema(BaseModel):
     start_time: Optional[datetime]
     end_time: Optional[datetime]
     tasks: List[TaskResponseSchema]
+
+    @computed_field(return_type=float)
+    def percentage_complete(self):
+        if not self.tasks:
+            return 0
+        completed_tasks = sum(
+            1 for task in self.tasks if task.status == TaskStatus.COMPLETED
+        )
+        return completed_tasks / len(self.tasks) * 100
 
     class Config:
         from_attributes = True

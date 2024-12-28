@@ -22,6 +22,7 @@ export interface RunResponse {
   start_time?: string;
   end_time?: string;
   tasks: TaskResponse[];
+  percentage_complete?: number;
 }
 
 export interface PartialRunRequest {
