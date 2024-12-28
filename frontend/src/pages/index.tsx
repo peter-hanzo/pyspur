@@ -1,22 +1,10 @@
-import React, { useEffect } from 'react';
-import Header from '../components/Header';
-import Dashboard from '../components/Dashboard';
-import { fetchNodeTypes } from '../store/nodeTypesSlice';
-import { useAppDispatch } from '../store/hooks';
+import React from 'react';
+import { useRouter } from 'next/router';
 
-const Home: React.FC = () => {
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatch(fetchNodeTypes());
-  }, [dispatch]);
-
-  return (
-    <div className="App relative">
-      <Header activePage="home" />
-      <Dashboard />
-    </div>
-  );
-};
-
-export default Home;
+export default function Home() {
+  const router = useRouter();
+  
+  React.useEffect(() => {
+    router.push('/dashboard');
+  }, []);
+}

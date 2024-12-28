@@ -198,7 +198,7 @@ export const getWorkflow = async (workflowID: string): Promise<WorkflowResponse>
 };
 
 
-export const getWorkflowRuns = async (workflowID) => {
+export const getWorkflowRuns = async (workflowID: string): Promise<RunResponse[]> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/runs/`);
     return response.data;

@@ -29,7 +29,7 @@ import { formatDistanceStrict } from 'date-fns';
 import { useHotkeys } from 'react-hotkeys-hook';
 
 interface HeaderProps {
-  activePage: 'home' | 'workflow' | 'evals' | 'trace';
+  activePage: 'dashboard' | 'workflow' | 'evals' | 'trace';
 }
 
 interface Node {
@@ -338,7 +338,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         <NavbarBrand
           className="h-12 max-w-fit"
         >
-          {activePage === "home" ? (
+          {activePage === "dashboard" ? (
             <p className="font-bold text-inherit cursor-pointer">PySpur</p>
           ) : (
             <Link href="/" className="cursor-pointer">
@@ -366,11 +366,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         <NavbarContent
           className="h-12 gap-4 rounded-full bg-content2 px-4 dark:bg-content1 max-w-fit"
           justify="end"
-          id="home-editor-nav"
+          id="dashboard-editor-nav"
         >
-          <NavbarItem isActive={activePage === "home"}>
-            <Link className="flex gap-2 text-inherit" href="/">
-              Home
+          <NavbarItem isActive={activePage === "dashboard"}>
+            <Link className="flex gap-2 text-inherit" href="/dashboard">
+              Dashboard
             </Link>
           </NavbarItem>
           {activePage === "workflow" && (
