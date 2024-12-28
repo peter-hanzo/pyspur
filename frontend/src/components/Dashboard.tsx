@@ -44,6 +44,7 @@ const Dashboard: React.FC = () => {
   const [workflows, setWorkflows] = useState<WorkflowResponse[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
   const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
   const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({});
@@ -88,13 +89,18 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchApiKeys = async () => {
       try {
+        setIsLoadingApiKeys(true);
         const keys = await listApiKeys();
+        const newApiKeys: ApiKey[] = [];
         for (const key of keys) {
-          const value = await getApiKey(key)
-          setApiKeys((prevKeys: ApiKey[]) => [...prevKeys, {name: key, value: value.value}]);
+          const value = await getApiKey(key);
+          newApiKeys.push({ name: key, value: value.value });
         }
+        setApiKeys(newApiKeys);
       } catch (error) {
         console.error('Error fetching API keys:', error);
+      } finally {
+        setIsLoadingApiKeys(false);
       }
     };
 
@@ -264,7 +270,7 @@ const Dashboard: React.FC = () => {
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
         <header className="mb-6 flex w-full items-center flex-col gap-2">
-          {(apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value === '')) && (
+          {!isLoadingApiKeys && (apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value === '')) && (
             <div className="w-full">
               <Alert
                 variant="warning"
