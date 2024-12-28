@@ -107,6 +107,8 @@ const staticStyles = {
 } as const;
 
 const convertToPythonVariableName = (str: string): string => {
+  if (!str) return '';
+
   // Replace spaces and hyphens with underscores
   str = str.replace(/[\s-]/g, '_');
 
