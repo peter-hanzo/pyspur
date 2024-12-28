@@ -34,8 +34,6 @@ import NodeOutput from '../NodeOutputDisplay';
 import SchemaEditor from './SchemaEditor';
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
 import { cloneDeep, set, debounce } from 'lodash';
-import RouterEditor from './RouterEditor';
-import MergeEditor from './MergeEditor';
 import isEqual from 'lodash/isEqual';
 // Define types for props and state
 interface NodeSidebarProps {
@@ -423,22 +421,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key === 'input_schemas' && nodeType === 'MergeNode') {
-      return (
-        <div key={key} className="my-2">
-          <label className="font-semibold mb-1 block">Input Schemas</label>
-          <MergeEditor
-            branchRefs={dynamicModel.branch_refs || []}
-            onChange={(newValue) => {
-              handleInputChange('branch_refs', newValue);
-            }}
-            nodeId={nodeID}
-          />
-          {!isLast && <hr className="my-2" />}
-        </div>
-      );
-    }
-
     if (key === 'output_schema') {
       return (
         <div key={key} className="my-2">
@@ -607,24 +589,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
     const properties = nodeSchema.config;
     const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type');
-
-    // Special handling for MergeNode
-    if (nodeType === 'MergeNode') {
-      return (
-        <MergeEditor
-          branchRefs={dynamicModel.branch_refs || []}
-          onChange={(newBranchRefs) => {
-            const updatedModel = {
-              ...dynamicModel,
-              branch_refs: newBranchRefs,
-            };
-            setDynamicModel(updatedModel);
-            dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
-          }}
-          nodeId={nodeID}
-        />
-      );
-    }
 
     // Prioritize system_message and user_message to appear first
     const priorityFields = ['system_message', 'user_message'];
