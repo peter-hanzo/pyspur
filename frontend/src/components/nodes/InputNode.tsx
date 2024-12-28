@@ -29,8 +29,9 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [showKeyError, setShowKeyError] = useState<boolean>(false);
   const incomingEdges = useSelector((state: RootState) => state.flow.edges.filter((edge) => edge.target === id), isEqual);
+  const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id]);
 
-  const outputSchema = data?.config?.output_schema || {};
+  const outputSchema = nodeConfig?.output_schema || {};
   const outputSchemaKeys = Object.keys(outputSchema);
 
   useEffect(() => {
@@ -39,7 +40,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
       const maxLabelLength = Math.max(
         (Math.max(...incomingSchemaKeys.map((label) => label.length)) +
           Math.max(...outputSchemaKeys.map((label) => label.length))),
-        (data?.title || '').length / 1.5
+        (nodeConfig?.title || '').length / 1.5
       );
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
@@ -48,7 +49,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
         setNodeWidth(`${finalWidth}px`);
       }
     }
-  }, [data, outputSchemaKeys]);
+  }, [nodeConfig, outputSchemaKeys]);
 
   const convertToPythonVariableName = (str: string): string => {
     // Replace spaces and hyphens with underscores
