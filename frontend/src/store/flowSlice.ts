@@ -7,17 +7,84 @@ import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/w
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas';
 import { isEqual } from 'lodash';
 
-type NodeTypes = {
+// Base interfaces for workflow definition
+export interface NodeDefinition {
+  id: string;
+  node_type: string;
+  coordinates: { x: number; y: number };
+  additionalData?: Record<string, any>;
+}
+
+export interface LinkDefinition {
+  source_id: string;
+  target_id: string;
+  source_output_key: string;
+  target_input_key: string;
+  selected?: boolean;
+}
+
+export interface Definition {
+  nodes: NodeDefinition[];
+  links: LinkDefinition[];
+}
+
+export interface NodeTypes {
   [key: string]: any;
-};
-interface NodeTypesConfig {
+}
+
+export interface NodeTypesConfig {
   [category: string]: Array<{
     name: string;
     [key: string]: any;
   }>;
 }
 
+export interface MappedNode extends FlowWorkflowNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: {
+    title: string;
+    acronym: string;
+    color: string;
+    run?: Record<string, any>;
+    taskStatus?: string;
+    [key: string]: any;
+  };
+}
 
+export interface CreateNodeResult {
+  node: FlowWorkflowNode;
+  config: FlowWorkflowNodeConfig;
+}
+
+export interface MappedEdge {
+  id: string;
+  key: string;
+  selected: boolean;
+  source: string;
+  target: string;
+  sourceHandle: string | null;
+  targetHandle: string | null;
+}
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface NodeData {
+  config?: {
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
+  };
+}
+
+export interface BaseNode {
+  id: string;
+  position: Position;
+  data?: NodeData;
+}
 
 export interface FlowWorkflowNodeConfig {
   title?: string;
@@ -847,6 +914,14 @@ const flowSlice = createSlice({
         return node;
       });
     },
+
+    addNodeWithConfig: (state, action: PayloadAction<CreateNodeResult>) => {
+      const { node, config } = action.payload;
+      // Add the node
+      state.nodes.push(node);
+      // Store the config
+      state.nodeConfigs[node.id] = config;
+    },
   },
 });
 
@@ -882,6 +957,7 @@ export const {
   undo,
   redo,
   updateNodeTitle,
+  addNodeWithConfig,
 } = flowSlice.actions;
 
 export default flowSlice.reducer;

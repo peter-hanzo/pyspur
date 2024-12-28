@@ -405,7 +405,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           {nodeData?.title && (
             <OutputHandleRow
               id={node?.id}
-              keyName={String(nodeData.config.title || id)}
+              keyName={String(nodeData?.config?.title || id)}
             />
           )}
         </div>

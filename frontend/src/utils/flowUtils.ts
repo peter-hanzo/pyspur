@@ -2,67 +2,46 @@ import { v4 as uuidv4 } from 'uuid';
 import { createNode } from './nodeFactory';
 import { ReactFlowInstance } from '@xyflow/react';
 import { AppDispatch } from '../store/store';
-import { addNode, connect, deleteEdge } from '../store/flowSlice';
-
-// Define types for the function parameters and return values
-interface NodeDefinition {
-  id: string;
-  node_type: string;
-  coordinates: { x: number; y: number };
-  additionalData?: Record<string, any>;
-}
-
-interface LinkDefinition {
-  source_id: string;
-  target_id: string;
-  source_output_key: string;
-  target_input_key: string;
-  selected?: boolean;
-}
-
-interface Definition {
-  nodes: NodeDefinition[];
-  links: LinkDefinition[];
-}
-
-interface NodeTypes {
-  [key: string]: any; // Adjust this type based on the actual structure of nodeTypes
-}
-
-interface MappedNode {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: Record<string, any>;
-}
-
-interface MappedEdge {
-  id: string;
-  key: string;
-  selected: boolean;
-  source: string;
-  target: string;
-  sourceHandle: string | null;
-  targetHandle: string | null;
-}
+import { addNodeWithConfig, connect, deleteEdge } from '../store/flowSlice';
+import {
+  NodeDefinition,
+  LinkDefinition,
+  Definition,
+  NodeTypes,
+  MappedNode,
+  MappedEdge,
+  Position,
+  NodeData,
+  BaseNode,
+  FlowWorkflowNode,
+  CreateNodeResult,
+  FlowWorkflowNodeConfig
+} from '../store/flowSlice';
 
 export const mapNodesAndEdges = (
   definition: Definition,
   nodeTypes: NodeTypes
-): { nodes: MappedNode[]; edges: MappedEdge[] } => {
+): { nodes: MappedNode[]; edges: MappedEdge[]; configs: Record<string, FlowWorkflowNodeConfig> } => {
   const { nodes, links } = definition;
   console.log('nodes', nodes);
 
+  const configs: Record<string, FlowWorkflowNodeConfig> = {};
+
   // Map nodes to the expected format
-  const mappedNodes: MappedNode[] = nodes.map((node) =>
-    createNode(
+  const mappedNodes: MappedNode[] = nodes.map((node) => {
+    const result = createNode(
       nodeTypes,
       node.node_type,
       node.id,
       { x: node.coordinates.x, y: node.coordinates.y },
       node.additionalData || {}
-    )
-  );
+    );
+    if (result) {
+      configs[node.id] = result.config;
+      return result.node as MappedNode;
+    }
+    return undefined;
+  }).filter((node): node is MappedNode => node !== undefined);
 
   // Map links to the expected edge format
   const mappedEdges: MappedEdge[] = links.map((link) => ({
@@ -75,7 +54,7 @@ export const mapNodesAndEdges = (
     targetHandle: link.target_input_key,
   }));
 
-  return { nodes: mappedNodes, edges: mappedEdges };
+  return { nodes: mappedNodes, edges: mappedEdges, configs };
 };
 
 // Define types for handleSchemaChanges
@@ -93,21 +72,11 @@ interface Data {
   };
 }
 
-interface Edge {
-  id: string;
-  key: string;
-  selected: boolean;
-  source: string;
-  target: string;
-  sourceHandle: string | null;
-  targetHandle: string | null;
-}
-
 export const handleSchemaChanges = (
   node: Node,
   data: Data,
-  edges: Edge[]
-): Edge[] => {
+  edges: MappedEdge[]
+): MappedEdge[] => {
   const oldConfig = node.config || {};
   const newConfig = data.config || {};
 
@@ -150,26 +119,8 @@ export const handleSchemaChanges = (
   return edges;
 };
 
-interface Position {
-  x: number;
-  y: number;
-}
-
-interface NodeData {
-  config?: {
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-  };
-}
-
-interface FlowNode {
-  id: string;
-  position: Position;
-  data?: NodeData;
-}
-
 const generateNewNodeId = (
-  nodes: FlowNode[],
+  nodes: BaseNode[],
   nodeType: string
 ): string => {
   const existingIds = nodes.map((node) => node.id);
@@ -179,16 +130,15 @@ const generateNewNodeId = (
 
   while (existingIds.includes(newId)) {
     counter++;
-    newId = `${sanitizedType}_${counter}`; 
+    newId = `${sanitizedType}_${counter}`;
   }
 
   return newId;
 };
 
-
 export const createNodeAtCenter = (
-  nodes: FlowNode[],
-  nodeTypes: Record<string, any>,
+  nodes: BaseNode[],
+  nodeTypes: NodeTypes,
   nodeType: string,
   reactFlowInstance: ReactFlowInstance,
   dispatch: AppDispatch
@@ -204,16 +154,18 @@ export const createNodeAtCenter = (
     y: center.y,
   };
 
-  const newNode = createNode(nodeTypes, nodeType, id, position);
-  dispatch(addNode({ node: newNode }));
+  const result = createNode(nodeTypes, nodeType, id, position);
+  if (result) {
+    dispatch(addNodeWithConfig(result));
+  }
 };
 
 export const insertNodeBetweenNodes = (
-  nodes: FlowNode[],
-  nodeTypes: Record<string, any>,
+  nodes: BaseNode[],
+  nodeTypes: NodeTypes,
   nodeType: string,
-  sourceNode: FlowNode,
-  targetNode: FlowNode,
+  sourceNode: BaseNode,
+  targetNode: BaseNode,
   edgeId: string,
   reactFlowInstance: ReactFlowInstance,
   dispatch: AppDispatch,
@@ -231,13 +183,17 @@ export const insertNodeBetweenNodes = (
   };
 
   // Create the new node
-  const newNode = createNode(nodeTypes, nodeType, id, newPosition);
+  const result = createNode(nodeTypes, nodeType, id, newPosition);
+  if (!result) {
+    console.error('Failed to create node');
+    return;
+  }
 
   // First delete the existing edge
   dispatch(deleteEdge({ edgeId }));
 
-  // Then add the new node
-  dispatch(addNode({ node: newNode }));
+  // Then add the new node with its config
+  dispatch(addNodeWithConfig(result));
 
   // Create source -> new node connection
   dispatch(connect({
