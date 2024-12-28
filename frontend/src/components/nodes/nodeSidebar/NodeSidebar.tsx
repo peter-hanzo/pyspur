@@ -151,6 +151,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes as NodeType).metadata;
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
   const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
+  const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID]);
+  const allNodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
 
   const hasRunOutput = !!node?.data?.run;
 
@@ -161,7 +163,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [nodeSchema, setNodeSchema] = useState<NodeSchema | null>(
     findNodeSchema(node?.type || 'ExampleNode', nodeTypes)
   );
-  const [dynamicModel, setDynamicModel] = useState<DynamicModel>(node?.data?.config || {});
+  const [dynamicModel, setDynamicModel] = useState<DynamicModel>(nodeConfig || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
   const [showTitleError, setShowTitleError] = useState(false);
   const [titleInputValue, setTitleInputValue] = useState<string>('');
@@ -172,11 +174,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     // foreach incoming node, get the output schema
     // return ['nodeTitle.foo', 'nodeTitle.bar', 'nodeTitle.baz',...]
     return incomingNodes.reduce((acc: string[], node) => {
-      if (node?.data?.config?.output_schema) {
-        const nodeTitle = node.data.config.title || node.id;
+      if (!node) return acc;
+      const config = allNodeConfigs[node.id];
+      if (config?.output_schema) {
+        const nodeTitle = config.title || node.id;
         return [
           ...acc,
-          ...Object.keys(node.data.config.output_schema).map((key) => `${nodeTitle}.${key}`),
+          ...Object.keys(config.output_schema).map((key) => `${nodeTitle}.${key}`),
         ];
       }
       return acc;
@@ -194,17 +198,17 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
     debounce((id: string, updatedModel: DynamicModel) => {
-      dispatch(updateNodeData({ id, data: { config: updatedModel } }));
+      dispatch(updateNodeData({ id, data: updatedModel }));
     }, 300),
     [dispatch]
   );
 
   // Add this useEffect to handle title initialization and updates
   useEffect(() => {
-    if (node) {
-      setTitleInputValue(node.data?.config?.title || node.id || '');
+    if (nodeConfig) {
+      setTitleInputValue(nodeConfig.title || node?.id || '');
     }
-  }, [node]); // Only depend on node changes
+  }, [nodeConfig, node]); // Only depend on nodeConfig and node changes
 
   // Update the existing useEffect to initialize LLM nodes with a default model
   useEffect(() => {
@@ -213,7 +217,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       setNodeSchema(findNodeSchema(node.type || 'ExampleNode', nodeTypes));
 
       // Initialize the model with a default value for LLM nodes
-      let initialConfig = node.data?.config || {};
+      let initialConfig = nodeConfig || {};
       if (node.type === 'LLMNode' || node.type === 'SingleLLMCallNode') {
         initialConfig = {
           ...initialConfig,
@@ -226,7 +230,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
       setDynamicModel(initialConfig);
     }
-  }, [nodeID, node, nodeTypes]);
+  }, [nodeID, node, nodeTypes, nodeConfig]);
 
   // Helper function to update nested object by path
   const updateNestedModel = (obj: DynamicModel, path: string, value: any): DynamicModel => {
@@ -250,10 +254,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (isSlider) {
       debouncedDispatch(nodeID, updatedModel);
     } else {
-      dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+      dispatch(updateNodeData({ id: nodeID, data: updatedModel }));
     }
   };
-
 
   // Update the handleNodeTitleChange function
   const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,7 +308,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             onChange={(e) => {
               const updatedModel = updateNestedModel(dynamicModel, 'llm_info.model', e.target.value);
               setDynamicModel(updatedModel);
-              dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+              dispatch(updateNodeData({ id: nodeID, data: updatedModel }));
             }}
             fullWidth
           >
@@ -619,7 +622,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
               branch_refs: newBranchRefs,
             };
             setDynamicModel(updatedModel);
-            dispatch(updateNodeData({ id: nodeID, data: { config: updatedModel } }));
+            dispatch(updateNodeData({ id: nodeID, data: updatedModel }));
           }}
           nodeId={nodeID}
         />
@@ -641,7 +644,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
   // Update the `renderFewShotExamples` function
   const renderFewShotExamples = () => {
-    const fewShotExamples = node?.data?.config?.few_shot_examples || [];
+    const fewShotExamples = nodeConfig?.few_shot_examples || [];
 
     return (
       <div>
@@ -759,7 +762,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           <div className="flex justify-between items-center mb-2">
             <div>
               <h1 className="text-lg font-semibold">
-                {node?.data?.config?.title || node?.id || 'Node Details'}
+                {nodeConfig?.title || node?.id || 'Node Details'}
               </h1>
               <h2 className="text-xs font-semibold">{nodeType}</h2>
             </div>
