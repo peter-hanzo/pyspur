@@ -381,7 +381,12 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     setHoveredNode(null);
   }, [setHoveredNode]);
 
-  const handleAddNodeBetween = (nodeName: string, sourceNode: any, targetNode: any, edgeId: string) => {
+  const handleAddNodeBetween = useCallback((
+    nodeName: string,
+    sourceNode: Node,
+    targetNode: Node,
+    edgeId: string
+  ) => {
     insertNodeBetweenNodes(
       nodes,
       nodeTypesConfig,
@@ -393,7 +398,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       dispatch,
       () => setPopoverContentVisible(false)
     );
-  };
+  }, [nodes, nodeTypesConfig, reactFlowInstance, dispatch, setPopoverContentVisible]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -413,32 +418,40 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         >
           <Dropdown
             isOpen={isPopoverContentVisible}
-            onOpenChange={setPopoverContentVisible}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                setPopoverContentVisible(false);
+              }
+            }}
             placement="bottom"
           >
             <DropdownTrigger>
               <div></div>
             </DropdownTrigger>
-            <DropdownMenu>
-              {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
-                <DropdownSection key={category} title={category} showDivider>
-                  {nodeTypesConfig[category].map((node) => (
-                    <DropdownItem
-                      key={node.name}
-                      onClick={() =>
-                        handleAddNodeBetween(
-                          node.name,
-                          selectedEdge.sourceNode,
-                          selectedEdge.targetNode,
-                          selectedEdge.edgeId
-                        )
-                      }
-                    >
-                      {node.config.title}
-                    </DropdownItem>
-                  ))}
-                </DropdownSection>
-              ))}
+            <DropdownMenu
+              aria-label="Add node options"
+              onAction={(key) => {
+                handleAddNodeBetween(
+                  key.toString(),
+                  selectedEdge.sourceNode,
+                  selectedEdge.targetNode,
+                  selectedEdge.edgeId
+                );
+              }}
+            >
+              {nodeTypesConfig &&
+                Object.keys(nodeTypesConfig)
+                  .filter(category => category !== "Input/Output")
+                  .map((category) => (
+                    <DropdownSection key={category} title={category} showDivider>
+                      {nodeTypesConfig[category].map((node) => (
+                        <DropdownItem key={node.name}>
+                          {node.config.title}
+                        </DropdownItem>
+                      ))}
+                    </DropdownSection>
+                  ))
+              }
             </DropdownMenu>
           </Dropdown>
         </div>
