@@ -32,6 +32,7 @@ import WelcomeModal from './modals/WelcomeModal';
 import { Template } from '../types/workflow';
 import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas';
 import { ApiKey } from '../utils/api';
+import { RunResponse } from '@/types/api_types/runSchemas';
 
 
 const Dashboard: React.FC = () => {
@@ -45,18 +46,24 @@ const Dashboard: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [showWelcome, setShowWelcome] = useState(false);
   const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
-  const [workflowRuns, setWorkflowRuns] = useState<Record<string, any[]>>({});
+  const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({});
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
+        const runsMap = await Promise.all(workflows.map(workflow => fetchWorkflowRuns(workflow.id)))
+          .then(runs => {
+            const map: Record<string, RunResponse[]> = {};
+            workflows.forEach((workflow, i) => {
+              map[workflow.id] = runs[i];
+            });
+            return map;
+          });
         setWorkflows(workflows as WorkflowResponse[]);
         setShowWelcome(!hasSeenWelcome && workflows.length === 0);
-        
-        workflows.forEach(workflow => {
-          fetchWorkflowRuns(workflow.id);
-        });
+        setWorkflowRuns(runsMap);
+
       } catch (error) {
         console.error('Error fetching workflows:', error);
       }
@@ -105,10 +112,7 @@ const Dashboard: React.FC = () => {
   const fetchWorkflowRuns = async (workflowId: string) => {
     try {
       const runs = await getWorkflowRuns(workflowId);
-      setWorkflowRuns(prev => ({
-        ...prev,
-        [workflowId]: runs.slice(0, 5)
-      }));
+      return runs.slice(0, 5);
     } catch (error) {
       console.error('Error fetching workflow runs:', error);
     }
