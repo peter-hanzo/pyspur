@@ -251,6 +251,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     setDynamicModel(updatedModel);
 
+    // Always update Redux store with the full updated model
     if (isSlider) {
       debouncedDispatch(nodeID, updatedModel);
     } else {

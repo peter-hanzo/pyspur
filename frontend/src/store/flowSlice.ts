@@ -314,27 +314,17 @@ const flowSlice = createSlice({
 
     updateNodeData: (state, action: PayloadAction<{ id: string; data: any }>) => {
       const { id, data } = action.payload;
-      const node = state.nodes.find((node) => node.id === id);
-      if (!node) return;
 
-      // Pull out the "visual" fields from data
-      if (data.title !== undefined) {
-        node.data.title = data.title;
-      }
-      if (data.color !== undefined) {
-        node.data.color = data.color;
-      }
-      // etc. for purely visual fields
+      // Only update nodeConfigs
+      state.nodeConfigs[id] = {
+        ...state.nodeConfigs[id],
+        ...data
+      };
 
-      // For everything that used to be node.data.config:
-      const oldConfig = state.nodeConfigs[id] || {};
-      const newConfig = { ...oldConfig, ...data.config };
-      state.nodeConfigs[id] = newConfig;
+      // Handle title changes in edges if title was updated
+      const oldTitle = state.nodeConfigs[id]?.title;
+      const newTitle = data.title;
 
-      const oldTitle = oldConfig.title || node.data.title;
-      const newTitle = newConfig.title || data.title;
-
-      // The rest is the same, but reference newConfig instead of node.data.config
       if (oldTitle && newTitle && oldTitle !== newTitle) {
         state.edges = state.edges.map((edge) => {
           if (edge.source === id && edge.sourceHandle === oldTitle) {
@@ -348,7 +338,7 @@ const flowSlice = createSlice({
       }
 
       // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
-      if (data?.config?.output_schema) {
+      if (data?.output_schema) {
         const connectedRouterNodes = state.nodes.filter(
           (targetNode) =>
             targetNode.type === 'RouterNode' &&
@@ -841,9 +831,17 @@ const flowSlice = createSlice({
 
       // Update the node title
       const node = state.nodes.find(node => node.id === nodeId);
-      if (node && node.data) {
-        node.data.config = {
-          ...node.data.config,
+      if (node) {
+        node.data = {
+          ...node.data,
+          title: newTitle
+        };
+      }
+
+      // Update nodeConfigs with the new title
+      if (state.nodeConfigs[nodeId]) {
+        state.nodeConfigs[nodeId] = {
+          ...state.nodeConfigs[nodeId],
           title: newTitle
         };
       }
