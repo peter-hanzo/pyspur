@@ -105,69 +105,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata || {});
   const updateNodeInternals = useUpdateNodeInternals();
 
-  const handleSchemaKeyEdit = useCallback(
-    (oldKey: string, newKey: string, schemaType: 'input_schema' | 'output_schema') => {
-      newKey = newKey.replace(/\s+/g, '_');
-      if (oldKey === newKey || !newKey.trim()) {
-        setEditingField(null);
-        return;
-      }
-
-      const currentSchema = nodeData?.config?.[schemaType] || {};
-      const schemaEntries = Object.entries(currentSchema);
-      const keyIndex = schemaEntries.findIndex(([key]) => key === oldKey);
-
-      if (keyIndex !== -1) {
-        schemaEntries[keyIndex] = [newKey, currentSchema[oldKey]];
-      }
-
-      const updatedSchema = Object.fromEntries(schemaEntries);
-
-      let updatedConfig = {
-        ...nodeData?.config,
-        [schemaType]: updatedSchema,
-      };
-
-      if (schemaType === 'input_schema') {
-        if (nodeData?.config?.system_message) {
-          updatedConfig.system_message = updateMessageVariables(
-            nodeData.config.system_message,
-            oldKey,
-            newKey
-          );
-        }
-        if (nodeData?.config?.user_message) {
-          updatedConfig.user_message = updateMessageVariables(
-            nodeData.config.user_message,
-            oldKey,
-            newKey
-          );
-        }
-      }
-
-      dispatch(
-        updateNodeData({
-          id,
-          data: {
-            config: updatedConfig,
-          },
-        })
-      );
-
-      dispatch(
-        updateEdgesOnHandleRename({
-          nodeId: id,
-          oldHandleId: oldKey,
-          newHandleId: newKey,
-          schemaType,
-        })
-      );
-
-      setEditingField(null);
-    },
-    [dispatch, id, nodeData]
-  );
-
   const [predecessorNodes, setPredcessorNodes] = useState(() => {
     return edges
       .filter((edge) => edge.target === id)
