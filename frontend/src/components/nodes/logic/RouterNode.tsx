@@ -79,12 +79,8 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     return predecessorNodes.flatMap(node => {
       if (!node) return [];
 
-      const nodeTitle = node.data?.config?.title || node.id;
-      const outputSchema = node.data?.config?.output_schema || {};
-
-
+      const nodeTitle = node.data?.title || node.id;
       const predNodeConfig = nodeConfigs[node.id];
-      const nodeTitle = predNodeConfig?.title || node.id;
       const outputSchema = predNodeConfig?.output_schema || {};
 
       return Object.entries(outputSchema).map(([key, type]) => ({
