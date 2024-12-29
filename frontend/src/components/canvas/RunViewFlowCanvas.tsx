@@ -18,7 +18,6 @@ import {
   setSelectedNode,
   deleteNode,
   setWorkflowInputVariable,
-  updateNodeDataOnly,
   setNodes,
   FlowWorkflowNode,
   FlowWorkflowEdge,
