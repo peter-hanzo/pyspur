@@ -123,7 +123,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     if (!nodeRef.current || !data) return;
 
     // Calculate widths for all variables, operators, and values
-    const allWidths = Object.entries(data.config?.route_map || {}).flatMap(([_, route]) =>
+    const allWidths = Object.entries(nodeConfig?.route_map || {}).flatMap(([_, route]) =>
       route.conditions.map(condition => {
         // Variable width calculation
         const variable = inputVariables.find(v => v.value === condition.variable);
