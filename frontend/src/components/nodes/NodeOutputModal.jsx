@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import NodeOutputDisplay from './NodeOutputDisplay'; // Import NodeOutputDisplay
 
-const NodeOutputModal = ({ isOpen, onOpenChange, title, node }) => {
+const NodeOutputModal = ({ isOpen, onOpenChange, title, data }) => {
     const handleOpenChange = () => {
         onOpenChange(false);
     };
@@ -15,8 +15,8 @@ const NodeOutputModal = ({ isOpen, onOpenChange, title, node }) => {
                 </ModalHeader>
                 <ModalBody>
                     <div className='py-5'>
-                        {node ? (
-                            <NodeOutputDisplay output={node.data.run} />
+                        {data ? (
+                            <NodeOutputDisplay output={data.run} />
                         ) : (
                             <div>No output available</div>
                         )}

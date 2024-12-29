@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
 import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
@@ -31,6 +31,7 @@ interface BaseNodeProps {
   isInputNode?: boolean;
   className?: string;
   handleOpenModal?: (isModalOpen: boolean) => void;
+  position?: { x: number; y: number };
 }
 
 const staticStyles = {
@@ -102,15 +103,30 @@ const convertToPythonVariableName = (str: string): string => {
   return str;
 };
 
+const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
+  // Compare only the props that would trigger a meaningful visual change
+  return (
+    prev.isCollapsed === next.isCollapsed &&
+    prev.id === next.id &&
+    isEqual(prev.data, next.data) &&
+    isEqual(prev.style, next.style) &&
+    prev.isInputNode === next.isInputNode &&
+    prev.className === next.className &&
+    isEqual(prev.position, next.position)
+  );
+};
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
-  handleOpenModal, id,
+  handleOpenModal,
+  id,
   data,
   children,
   style = {},
   isInputNode = false,
-  className = ''
+  className = '',
+  position
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
@@ -122,7 +138,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const dispatch = useDispatch();
 
   // Retrieve the node's position and edges from the Redux store
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
@@ -191,7 +206,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   };
 
   const handlePartialRun = () => {
-    if (!node) {
+    if (!data) {
       return;
     }
     setIsRunning(true);
@@ -214,7 +229,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               id: nodeId,
               data: {
                 run: {
-                  ...(node?.data?.run || {}),
+                  ...(data?.run || {}),
                   ...(output_values || {})
                 }
               }
@@ -229,22 +244,23 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   };
 
   const handleDuplicate = () => {
-    if (!node || !node.position) {
+    if (!data || !position) {
       console.error('Node position not found');
       return;
     }
 
     // Get all edges connected to the current node
-    const connectedEdges = getConnectedEdges([node], edges);
+    const connectedEdges = getConnectedEdges([{ id, position, data }], edges);
 
     // Generate a new unique ID for the duplicated node
     const newNodeId = `node_${Date.now()}`;
 
     // Create the new node with an offset position
     const newNode = {
-      ...node,
       id: newNodeId,
-      position: { x: node.position.x + 20, y: node.position.y + 20 }, // Offset the position slightly
+      position: { x: position.x + 20, y: position.y + 20 }, // Offset the position slightly
+      data,
+      type: data.type || 'default', // Add the required type property
       selected: false, // Ensure the new node is not selected by default
     };
 
@@ -254,8 +270,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       return {
         ...edge,
         id: newEdgeId,
-        source: edge.source === id ? newNodeId : edge.source, // Update source if the current node is the source
-        target: edge.target === id ? newNodeId : edge.target, // Update target if the current node is the target
+        source: edge.source === id ? newNodeId : edge.source,
+        target: edge.target === id ? newNodeId : edge.target,
       };
     });
 
@@ -500,4 +516,4 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   );
 };
 
-export default BaseNode;
+export default memo(BaseNode, baseNodeComparator);

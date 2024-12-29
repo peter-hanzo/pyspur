@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, memo } from 'react';
 import {
   Handle, useHandleConnections, NodeProps, useConnection, Position, useUpdateNodeInternals
 } from '@xyflow/react';
@@ -40,7 +40,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
+
   const nodes = useSelector((state: RootState) =>
     state.flow.nodes.map(node => ({
       id: node.id,
@@ -59,7 +59,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       );
     }
   );
-  const nodeData = data || (node && node.data);
+  const nodeData = data;
 
   const edges = useSelector((state: RootState) => state.flow.edges);
 
@@ -104,7 +104,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     if (!nodeRef.current || !nodeData) return;
 
     const inputLabels = predecessorNodes.map((node) =>
-      String(node?.data?.title || node?.id || '')
+      String(nodeData?.title || node?.id || '')
     );
     const outputLabels = nodeData?.title ? [String(nodeData.title)] : [String(id)];
 
@@ -296,7 +296,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             const handleId = String(node.data?.title || node.id || '');
             return (
               <InputHandleRow
-                id={node.id}
+                id={id}
                 keyName={handleId}
                 key={handleId}
               />
@@ -308,7 +308,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
           {nodeData?.title && (
             <OutputHandleRow
-              id={node?.id}
+              id={id}
               keyName={String(nodeData?.title || id)}
             />
           )}
@@ -350,11 +350,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       <NodeOutputModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
-        title={data?.title || 'Node Output'}
-        node={node}
+        title={nodeData?.title || 'Node Output'}
+        data={nodeData}
       />
     </>
   );
 };
 
-export default DynamicNode;
+export default memo(DynamicNode, (prev, next) =>
+  nodeComparator(prev as FlowWorkflowNode, next as FlowWorkflowNode)
+);

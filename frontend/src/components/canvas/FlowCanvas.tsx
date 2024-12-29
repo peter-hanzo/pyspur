@@ -55,6 +55,7 @@ import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
 import { RootState } from '../../store/store';
+import { nodeComparator } from '../../utils/flowUtils';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -471,6 +472,10 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             onEdgeMouseEnter={onEdgeMouseEnter}
             onEdgeMouseLeave={onEdgeMouseLeave}
             snapToGrid={false}
+            nodesDraggable={mode === 'pointer'}
+            nodesFocusable={mode === 'pointer'}
+            nodeOrigin={[0.5, 0.5]}
+            isValidConnection={(connection) => !!connection.source && !!connection.target}
           >
             <Background />
             {showHelperLines && (
