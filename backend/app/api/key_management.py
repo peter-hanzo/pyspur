@@ -14,6 +14,7 @@ MODEL_PROVIDER_KEYS = [
     {"name": "OPENAI_API_KEY", "value": ""},
     {"name": "ANTHROPIC_API_KEY", "value": ""},
     {"name": "GEMINI_API_KEY", "value": ""},
+    {"name": "DEEPSEEK_API_KEY", "value": ""},
 ]
 
 
@@ -64,7 +65,7 @@ def mask_key_value(value: str) -> str:
 @router.get("/", description="Get a list of all environment variable names")
 async def list_api_keys():
     """
-    Returns a list of all model provider keys 
+    Returns a list of all model provider keys
     """
     return [k["name"] for k in MODEL_PROVIDER_KEYS]
 
@@ -78,7 +79,7 @@ async def get_api_key(name: str):
     Requires authentication.
     """
     if name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
-            raise HTTPException(status_code=404, detail="Key not found")
+        raise HTTPException(status_code=404, detail="Key not found")
     value = get_env_variable(name)
     if value is None:
         value = ""
@@ -93,7 +94,7 @@ async def set_api_key(api_key: APIKey):
     Requires authentication.
     """
     if api_key.name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
-            raise HTTPException(status_code=404, detail="Key not found")
+        raise HTTPException(status_code=404, detail="Key not found")
     if not api_key.value:
         raise HTTPException(status_code=400, detail="Value is required")
     set_env_variable(api_key.name, api_key.value)
