@@ -1,14 +1,12 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Handle, useHandleConnections, NodeProps, useConnection, Position, useUpdateNodeInternals
 } from '@xyflow/react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
 import styles from './DynamicNode.module.css';
 import { Input } from '@nextui-org/react';
 import {
-  updateNodeData,
-  updateEdgesOnHandleRename,
   FlowWorkflowNode,
 } from '../../store/flowSlice';
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice';
@@ -84,7 +82,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     }
   );
   const nodeData = data || (node && node.data);
-  const dispatch = useDispatch();
 
   const edges = useSelector((state: RootState) => state.flow.edges);
 
