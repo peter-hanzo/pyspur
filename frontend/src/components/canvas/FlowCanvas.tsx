@@ -5,16 +5,8 @@ import {
   ReactFlowProvider,
   Node,
   Edge,
-  NodeChange,
-  EdgeChange,
-  Connection,
-  OnNodesChange,
-  OnEdgesChange,
-  OnConnect,
-  NodeTypes,
   EdgeTypes,
   ReactFlowInstance,
-  XYPosition,
   SelectionMode,
   ConnectionMode,
 } from '@xyflow/react';
@@ -22,33 +14,22 @@ import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/Operator';
 import {
-  nodesChange,
-  edgesChange,
-  connect,
   setSelectedNode,
   deleteNode,
   setNodes,
   FlowWorkflowNode,
   FlowWorkflowEdge,
-  FlowState,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem, DropdownTrigger } from '@nextui-org/react';
-import DynamicNode from '../nodes/DynamicNode';
-import { v4 as uuidv4 } from 'uuid';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import CustomEdge from './Edge';
-import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
 import useCopyPaste from '../../utils/useCopyPaste';
 import { useModeStore } from '../../store/modeStore';
 import { initializeFlow } from '../../store/flowSlice';
-import InputNode from '../nodes/InputNode';
-import { RouterNode } from '../nodes/logic/RouterNode';
-import { CoalesceNode } from '../nodes/logic/CoalesceNode';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import LoadingSpinner from '../LoadingSpinner';
-import dagre from '@dagrejs/dagre';
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel';
 import { setNodePanelExpanded } from '../../store/panelSlice';
 import { insertNodeBetweenNodes } from '../../utils/flowUtils';
@@ -56,15 +37,8 @@ import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
 import { RootState } from '../../store/store';
 import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils';
-import { Mode } from '../../store/modeStore';
 
 // Type definitions
-interface NodeTypesConfig {
-  [category: string]: Array<{
-    name: string;
-    [key: string]: any;
-  }>;
-}
 
 interface FlowCanvasProps {
   workflowData?: WorkflowCreateRequest;
