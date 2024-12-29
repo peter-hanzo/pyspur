@@ -46,6 +46,7 @@ import { RouterNode } from '../nodes/logic/RouterNode';
 import DynamicNode from '../nodes/DynamicNode';
 import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
+import { RootState } from '../../store/store';
 
 interface NodeTypesConfig {
   [category: string]: Array<{
@@ -66,13 +67,6 @@ interface RunViewFlowCanvasProps {
 interface HelperLines {
   horizontal: number | null;
   vertical: number | null;
-}
-
-interface RootState {
-  nodeTypes: {
-    data: NodeTypesConfig;
-  };
-  flow: FlowState;
 }
 
 const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {

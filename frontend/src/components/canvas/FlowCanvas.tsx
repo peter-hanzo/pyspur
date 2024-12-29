@@ -54,6 +54,7 @@ import { setNodePanelExpanded } from '../../store/panelSlice';
 import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
+import { RootState } from '../../store/store';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -71,16 +72,6 @@ interface FlowCanvasProps {
 interface HelperLines {
   horizontal: number | null;
   vertical: number | null;
-}
-
-interface RootState {
-  nodeTypes: {
-    data: NodeTypesConfig;
-  };
-  flow: FlowState;
-  panel: {
-    isNodePanelExpanded: boolean;
-  };
 }
 
 const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {
