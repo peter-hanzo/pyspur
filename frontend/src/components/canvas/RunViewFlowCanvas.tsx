@@ -14,10 +14,8 @@ import {
   NodeTypes,
   EdgeTypes,
   ReactFlowInstance,
-  XYPosition,
   SelectionMode,
   ConnectionMode,
-  useViewport,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -37,22 +35,17 @@ import {
   FlowWorkflowEdge,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
-import { Dropdown, DropdownMenu, DropdownSection, DropdownItem } from '@nextui-org/react';
 import { v4 as uuidv4 } from 'uuid';
 import CustomEdge from './Edge';
-import { getHelperLines } from '../../utils/helperLines';
 import HelperLinesRenderer from '../HelperLines';
-import useCopyPaste from '../../utils/useCopyPaste';
 import { Mode, useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
 import InputNode from '../nodes/InputNode';
-import dagre from '@dagrejs/dagre';
 import LoadingSpinner from '../LoadingSpinner';
 import { RouterNode } from '../nodes/logic/RouterNode';
 import DynamicNode from '../nodes/DynamicNode';
-import { WorkflowCreateRequest, WorkflowDefinition } from '@/types/api_types/workflowSchemas';
+import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
-import { insertNodeBetweenNodes } from '@/utils/flowUtils';
 
 interface NodeTypesConfig {
   [category: string]: Array<{
@@ -88,9 +81,9 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
     const types = Object.keys(nodeTypesConfig).reduce<NodeTypes>((acc, category) => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
-          acc[node.name] = InputNode;
+          acc[node.name] = (props: any) => <InputNode {...props} readOnly={true} />;
         } else if (node.name === 'RouterNode') {
-          acc[node.name] = RouterNode;
+          acc[node.name] = (props: any) => <RouterNode {...props} readOnly={true} />;
         } else {
           acc[node.name] = (props: any) => {
             return <DynamicNode {...props} type={node.name} displayOutput={true} />;
@@ -227,25 +220,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     [dispatch, nodes]
   );
 
-  const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }: { sourceNode: Node; targetNode: Node; edgeId: string }) => {
-    if (!reactFlowInstance) return;
-
-    const centerX = (sourceNode.position.x + targetNode.position.x) / 2;
-    const centerY = (sourceNode.position.y + targetNode.position.y) / 2;
-
-    const screenPos = reactFlowInstance.flowToScreenPosition({
-      x: centerX,
-      y: centerY,
-    });
-
-    setPopoverPosition({
-      x: screenPos.x,
-      y: screenPos.y
-    });
-    setSelectedEdge({ sourceNode, targetNode, edgeId });
-    setPopoverContentVisible(true);
-  }, [reactFlowInstance]);
-
   const styledEdges = useMemo(() => {
     return edges.map((edge) => ({
       ...edge,
@@ -265,11 +239,11 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
       data: {
         ...edge.data,
         showPlusButton: edge.id === hoveredEdge,
-        onPopoverOpen: handlePopoverOpen,
+
       },
       key: edge.id,
     }));
-  }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
+  }, [edges, hoveredNode, hoveredEdge]);
 
   const onEdgeMouseEnter = useCallback(
     (_: React.MouseEvent, edge: Edge) => {
@@ -362,21 +336,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     dispatch(setNodes({ nodes: layoutedNodes }));
   }, [nodes, edges, dispatch]);
 
-  const handleAddNodeBetween = (nodeName: string, sourceNode: Node, targetNode: Node, edgeId: string) => {
-    insertNodeBetweenNodes(
-      nodes,
-      nodeTypesConfig,
-      nodeName,
-      sourceNode,
-      targetNode,
-      edgeId,
-      reactFlowInstance,
-      dispatch,
-      () => setPopoverContentVisible(false)
-    );
-  };
-
-  useCopyPaste();
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -388,47 +347,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
-      {isPopoverContentVisible && selectedEdge && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${popoverPosition.x}px`,
-            top: `${popoverPosition.y}px`,
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1000,
-          }}
-        >
-          <Dropdown
-            isOpen={isPopoverContentVisible}
-            onOpenChange={setPopoverContentVisible}
-            placement="bottom"
-          >
-            <DropdownMenu aria-label="Node types">
-              {nodeTypesConfig && Object.keys(nodeTypesConfig).filter(category => category !== "Input/Output").map((category) => (
-                <DropdownSection key={category} title={category} showDivider>
-                  {nodeTypesConfig[category].map((node) => (
-                    <DropdownItem
-                      key={node.name}
-                      onClick={() =>
-                        handleAddNodeBetween(
-                          node.name,
-                          selectedEdge.sourceNode,
-                          selectedEdge.targetNode,
-                          selectedEdge.edgeId
-                        )
-                      }
-                    >
-                      {node.name}
-                    </DropdownItem>
-                  ))}
-                </DropdownSection>
-              ))}
-            </DropdownMenu>
-            <></>
-          </Dropdown>
-        </div>
-      )}
-
       <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <div
           style={{

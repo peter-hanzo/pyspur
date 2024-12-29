@@ -18,9 +18,10 @@ import { FlowWorkflowNode } from '../../store/flowSlice';
 interface InputNodeProps {
   id: string;
   data: FlowWorkflowNode['data'];
+  readOnly?: boolean;
 }
 
-const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
+const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...props }) => {
   const dispatch = useDispatch();
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
@@ -166,7 +167,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
                     <td className={styles.handleLabelCell}>
                       {!isCollapsed && (
                         <div className="flex items-center gap-2">
-                          {editingField === key ? (
+                          {editingField === key && !readOnly ? (
                             <Input
                               autoFocus
                               defaultValue={key}
@@ -203,19 +204,21 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
                             <div className="flex flex-col w-full gap-1">
                               <div className="flex items-center justify-between">
                                 <span
-                                  className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary`}
-                                  onClick={() => setEditingField(key)}
+                                  className={`${styles.handleLabel} text-sm font-medium ${!readOnly ? 'cursor-pointer hover:text-primary' : ''}`}
+                                  onClick={() => !readOnly && setEditingField(key)}
                                 >
                                   {key}
                                 </span>
-                                <Button
-                                  isIconOnly
-                                  size="sm"
-                                  variant="light"
-                                  onClick={() => handleDeleteWorkflowInputVariable(key)}
-                                >
-                                  <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
-                                </Button>
+                                {!readOnly && (
+                                  <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="light"
+                                    onClick={() => handleDeleteWorkflowInputVariable(key)}
+                                  >
+                                    <Icon icon="solar:trash-bin-minimalistic-linear" width={16} />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           )}
@@ -243,7 +246,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, ...props }) => {
   };
 
   const renderAddField = () =>
-    !isCollapsed && (
+    !isCollapsed && !readOnly && (
       <div className="flex items-center gap-2 px-4 py-2">
         <Input
           placeholder="Enter new field name"
