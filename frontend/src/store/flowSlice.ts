@@ -289,6 +289,17 @@ const flowSlice = createSlice({
     updateNodeData: (state, action: PayloadAction<{ id: string; data: any }>) => {
       const { id, data } = action.payload;
 
+      // Update node data
+      const node = state.nodes.find(n => n.id === id);
+      if (node) {
+        node.data = {
+          ...node.data,
+          ...data,
+          // Preserve taskStatus if it exists in the current data and isn't being updated
+          taskStatus: data.taskStatus !== undefined ? data.taskStatus : node.data?.taskStatus
+        };
+      }
+
       // Only update nodeConfigs
       state.nodeConfigs[id] = {
         ...state.nodeConfigs[id],
@@ -754,6 +765,7 @@ const flowSlice = createSlice({
             data: {
               ...node.data,
               run: nodeOutputs[node.id],
+              taskStatus: nodeOutputs[node.id].status
             },
           };
         }
