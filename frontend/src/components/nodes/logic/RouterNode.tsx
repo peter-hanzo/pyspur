@@ -3,7 +3,11 @@ import { Handle, Position, useConnection, useUpdateNodeInternals } from '@xyflow
 import BaseNode from '../BaseNode';
 import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData } from '../../../store/flowSlice';
+import {
+  FlowWorkflowNode,
+  FlowWorkflowNodeConfig,
+  updateNodeConfigOnly,
+} from '../../../store/flowSlice';
 import styles from '../DynamicNode.module.css';
 import { Icon } from "@iconify/react";
 import { RootState } from '../../../store/store';
@@ -158,7 +162,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
   }, [nodeConfig?.route_map, inputVariables, nodeWidth]);
 
   const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
-    dispatch(updateNodeData({
+    dispatch(updateNodeConfigOnly({
       id,
       data: {
         ...nodeConfig,

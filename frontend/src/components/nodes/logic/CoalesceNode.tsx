@@ -10,13 +10,13 @@ import {
   SelectItem
 } from '@nextui-org/react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData } from '../../../store/flowSlice';
+import { updateNodeConfigOnly } from '../../../store/flowSlice';
 import styles from '../DynamicNode.module.css';
 import { Icon } from '@iconify/react';
 import { RootState } from '../../../store/store';
 import NodeOutputDisplay from '../NodeOutputDisplay';
 import isEqual from 'lodash/isEqual';
-import { FlowWorkflowNode } from '../../../store/flowSlice';
+import { FlowWorkflowNode, FlowWorkflowNodeConfig } from '../../../store/flowSlice';
 
 interface CoalesceNodeProps {
   id: string;
@@ -94,7 +94,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   }, [connection, edges, id, nodes, predecessorNodes]);
 
   /**
-   * Build an array of upstream node IDs for the dropdown. 
+   * Build an array of upstream node IDs for the dropdown.
    * (We’re not currently using the node’s output_schema to filter the keys.)
    */
   const inputVariables = useMemo(() => {
@@ -124,14 +124,10 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   /** A helper to update the node's preference array in Redux */
   const updatePreferences = (newPreferences: string[]) => {
     dispatch(
-      updateNodeData({
+      updateNodeConfigOnly({
         id,
         data: {
-          ...data,
-          config: {
-            ...data.config,
-            preferences: newPreferences
-          }
+          preferences: newPreferences
         }
       })
     );
@@ -174,7 +170,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   };
 
   /**
-   *  Measure the lengths of input handle labels + output label 
+   *  Measure the lengths of input handle labels + output label
    *  and set an appropriate nodeWidth so that names are fully visible.
    */
   useEffect(() => {
@@ -241,7 +237,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       className="hover:!bg-background"
     >
       <div className="p-3" ref={nodeRef}>
-        {/** 
+        {/**
          * --------------------------
          * Top Row: Input + Output
          * --------------------------
@@ -261,9 +257,8 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                     type="target"
                     position={Position.Left}
                     id={handleId}
-                    className={`${styles.handle} ${styles.handleLeft} ${
-                      isCollapsed ? styles.collapsedHandleInput : ''
-                    }`}
+                    className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+                      }`}
                   />
                   {/* Show the full label if not collapsed */}
                   {!isCollapsed && (
@@ -292,9 +287,8 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                 position={Position.Right}
                 // Use node title for handle id
                 id={data.config.title || id}
-                className={`${styles.handle} ${styles.handleRight} ${
-                  isCollapsed ? styles.collapsedHandleOutput : ''
-                }`}
+                className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+                  }`}
               />
             </div>
           </div>

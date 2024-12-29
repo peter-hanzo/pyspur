@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
-import { updateNodeData, setProjectName } from '../store/flowSlice';
+import { updateNodeDataOnly, setProjectName } from '../store/flowSlice';
 import { RootState } from '../store/store';
 import { Node, NodeData, RunOutputData, RunOutputs, RunStatusResponse } from '../types';
 
@@ -27,7 +27,7 @@ const useWorkflow = () => {
                     Object.entries(outputs).forEach(([nodeId, data]) => {
                         const node = nodes.find((node: Node) => node.id === nodeId);
                         if (data && node) {
-                            dispatch(updateNodeData({
+                            dispatch(updateNodeDataOnly({
                                 id: nodeId,
                                 data: {
                                     status: data.status,
@@ -55,7 +55,10 @@ const useWorkflow = () => {
 
             // Set all nodes' status to 'pending'
             nodes.forEach((node: Node) => {
-                dispatch(updateNodeData({ id: node.id, data: { status: 'pending' } }));
+                dispatch(updateNodeDataOnly({
+                    id: node.id,
+                    data: { status: 'pending' }
+                }));
             });
 
             const test_inputs = {

@@ -18,7 +18,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
-import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice';
+import { setProjectName, updateNodeDataOnly, resetRun } from '../store/flowSlice';
 import RunModal from './modals/RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
@@ -137,7 +137,13 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               console.log('Node:', node.id, 'Output:', output_values, 'Status:', nodeTaskStatus, 'isOutputDifferent:', isOutputDifferent, 'isStatusDifferent:', isStatusDifferent);
 
               if (isOutputDifferent || isStatusDifferent) {
-                dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
+                dispatch(updateNodeDataOnly({
+                  id: node.id,
+                  data: {
+                    run: { ...node.data.run, ...output_values },
+                    taskStatus: nodeTaskStatus
+                  }
+                }));
               }
             }
           });
@@ -273,7 +279,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
   const updateRunStatuses = async () => {
     if (!workflowId || !isHistoryOpen) return;
-    
+
     setIsUpdatingStatus(true);
     try {
       // First fetch the latest workflow runs
@@ -290,7 +296,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           return run;
         })
       );
-      
+
       setWorkflowRuns(updatedRuns);
     } catch (error) {
       console.error('Error updating run statuses:', error);
@@ -445,13 +451,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                         onPress={() => window.open(`/trace/${run.id}`, '_blank')}
                         textValue={`Version ${index + 1}`}
                       >
-                        {`${run.id} | ${run.status.toLowerCase()} ${
-                          (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
-                            ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                            : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
-                              ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                              : ''
-                        }`}
+                        {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
+                          ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                          : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
+                            ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                            : ''
+                          }`}
                       </DropdownItem>
                     ))
                   )}

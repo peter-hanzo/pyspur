@@ -1,6 +1,6 @@
 import React, { useCallback, useState, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
+import { deleteNode, setSelectedNode, updateNodeDataOnly, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
 import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -225,7 +225,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       if (result) {
         Object.entries(result).forEach(([nodeId, output_values]) => {
           if (output_values) {
-            dispatch(updateNodeData({
+            dispatch(updateNodeDataOnly({
               id: nodeId,
               data: {
                 run: {

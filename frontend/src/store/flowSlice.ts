@@ -285,11 +285,10 @@ const flowSlice = createSlice({
       state.nodes = action.payload.nodes;
     },
 
-
-    updateNodeData: (state, action: PayloadAction<{ id: string; data: any }>) => {
+    updateNodeDataOnly: (state, action: PayloadAction<{ id: string; data: any }>) => {
       const { id, data } = action.payload;
 
-      // Update node data
+      // Update node data only
       const node = state.nodes.find(n => n.id === id);
       if (node) {
         node.data = {
@@ -299,6 +298,10 @@ const flowSlice = createSlice({
           taskStatus: data.taskStatus !== undefined ? data.taskStatus : node.data?.taskStatus
         };
       }
+    },
+
+    updateNodeConfigOnly: (state, action: PayloadAction<{ id: string; data: any }>) => {
+      const { id, data } = action.payload;
 
       // Only update nodeConfigs
       state.nodeConfigs[id] = {
@@ -924,7 +927,8 @@ export const {
   addNode,
   setNodes,
   setEdges,
-  updateNodeData,
+  updateNodeDataOnly,
+  updateNodeConfigOnly,
   updateTitleInEdges,
   setSelectedNode,
   deleteNode,

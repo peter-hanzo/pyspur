@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import {
-  updateNodeData,
+  updateNodeConfigOnly,
   updateTitleInEdges,
   selectNodeById,
   setSidebarWidth,
@@ -140,7 +140,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
     debounce((id: string, updatedModel: FlowWorkflowNodeConfig) => {
-      dispatch(updateNodeData({ id, data: updatedModel }));
+      dispatch(updateNodeConfigOnly({ id, data: updatedModel }));
     }, 300),
     [dispatch]
   );
@@ -197,7 +197,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (isSlider) {
       debouncedDispatch(nodeID, updatedModel);
     } else {
-      dispatch(updateNodeData({ id: nodeID, data: updatedModel }));
+      dispatch(updateNodeConfigOnly({ id: nodeID, data: updatedModel }));
     }
   };
 
@@ -251,7 +251,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             onChange={(e) => {
               const updatedModel = updateNestedModel(dynamicModel, 'llm_info.model', e.target.value);
               setDynamicModel(updatedModel);
-              dispatch(updateNodeData({ id: nodeID, data: updatedModel }));
+              dispatch(updateNodeConfigOnly({ id: nodeID, data: updatedModel }));
             }}
             fullWidth
           >

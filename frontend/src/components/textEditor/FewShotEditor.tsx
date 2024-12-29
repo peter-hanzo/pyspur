@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import TextEditor from './TextEditor';
-import { updateNodeData } from '../../store/flowSlice';
+import { updateNodeConfigOnly } from '../../store/flowSlice';
 import { Button, Tabs, Tab } from "@nextui-org/react";
 import _ from 'lodash';
 import { RootState } from '../../store/store';
@@ -71,14 +71,10 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
     updatedExamples[exampleIndex][activeTab] = content;
 
     // Dispatch the updated data to Redux
-    dispatch(updateNodeData({
+    dispatch(updateNodeConfigOnly({
       id: nodeID,
       data: {
-        ...node?.data,
-        config: {
-          ...node?.data?.config,
-          few_shot_examples: updatedExamples
-        }
+        few_shot_examples: updatedExamples
       }
     }));
   };
