@@ -1,10 +1,57 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createNode } from './nodeFactory';
-import { ReactFlowInstance } from '@xyflow/react';
+import { ReactFlowInstance, NodeTypes, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect } from '@xyflow/react';
 import { AppDispatch } from '../store/store';
-import { addNode, connect, deleteEdge } from '../store/flowSlice';
+import { addNode, connect, deleteEdge, nodesChange, edgesChange } from '../store/flowSlice';
 import isEqual from 'lodash/isEqual';
 import { FlowWorkflowNode } from '../store/flowSlice';
+import { useMemo, useCallback } from 'react';
+import DynamicNode from '../components/nodes/DynamicNode';
+import InputNode from '../components/nodes/InputNode';
+import { RouterNode } from '../components/nodes/logic/RouterNode';
+import { CoalesceNode } from '../components/nodes/logic/CoalesceNode';
+import React from 'react';
+
+interface NodeTypesConfig {
+  [category: string]: Array<{
+    name: string;
+    config?: {
+      title?: string;
+    };
+    [key: string]: any;
+  }>;
+}
+
+interface UseNodeTypesOptions {
+  nodeTypesConfig: NodeTypesConfig | undefined;
+  readOnly?: boolean;
+  includeCoalesceNode?: boolean;
+}
+
+export const useNodeTypes = ({ nodeTypesConfig, readOnly = false, includeCoalesceNode = false }: UseNodeTypesOptions) => {
+  const nodeTypes = useMemo<NodeTypes>(() => {
+    if (!nodeTypesConfig) return {};
+
+    const types: NodeTypes = {};
+    Object.keys(nodeTypesConfig).forEach(category => {
+      nodeTypesConfig[category].forEach(node => {
+        if (node.name === 'InputNode') {
+          types[node.name] = (props: any) => React.createElement(InputNode, { ...props, readOnly });
+        } else if (node.name === 'RouterNode') {
+          types[node.name] = (props: any) => React.createElement(RouterNode, { ...props, readOnly });
+        } else if (includeCoalesceNode && node.name === 'CoalesceNode') {
+          types[node.name] = CoalesceNode;
+        } else {
+          types[node.name] = (props: any) => React.createElement(DynamicNode, { ...props, type: node.name, displayOutput: true, readOnly });
+        }
+      });
+    });
+    return types;
+  }, [nodeTypesConfig, readOnly, includeCoalesceNode]);
+
+  const isLoading = !nodeTypesConfig;
+  return { nodeTypes, isLoading };
+};
 
 export const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
   return data?.config?.title || data?.title || data?.type || 'Untitled';
@@ -128,4 +175,143 @@ export const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflo
   const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
   const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
   return isEqual(prevRest, nextRest);
+};
+
+// New centralized functions
+
+interface StyledEdgesOptions {
+  edges: Edge[];
+  hoveredNode: string | null;
+  hoveredEdge: string | null;
+  handlePopoverOpen?: (params: { sourceNode: Node; targetNode: Node; edgeId: string }) => void;
+  readOnly?: boolean;
+}
+
+export const useStyledEdges = ({ edges, hoveredNode, hoveredEdge, handlePopoverOpen, readOnly = false }: StyledEdgesOptions) => {
+  return useMemo(() => {
+    return edges.map((edge) => ({
+      ...edge,
+      type: 'custom',
+      style: {
+        stroke: readOnly
+          ? (edge.id === hoveredEdge
+            ? 'black'
+            : edge.source === hoveredNode || edge.target === hoveredNode
+              ? 'black'
+              : '#555')
+          : (hoveredEdge === edge.id ||
+            hoveredNode === edge.source ||
+            hoveredNode === edge.target
+            ? '#555'
+            : '#999'),
+        strokeWidth: readOnly
+          ? (edge.id === hoveredEdge
+            ? 4
+            : edge.source === hoveredNode || edge.target === hoveredNode
+              ? 4
+              : 2)
+          : (hoveredEdge === edge.id ||
+            hoveredNode === edge.source ||
+            hoveredNode === edge.target
+            ? 3
+            : 1.5),
+      },
+      data: {
+        ...edge.data,
+        showPlusButton: edge.id === hoveredEdge,
+        onPopoverOpen: handlePopoverOpen,
+      },
+      key: edge.id,
+    }));
+  }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen, readOnly]);
+};
+
+interface NodesWithModeOptions {
+  nodes: Node[];
+  mode: 'pointer' | 'hand';
+}
+
+export const useNodesWithMode = ({ nodes, mode }: NodesWithModeOptions) => {
+  return useMemo(() => {
+    return nodes
+      .filter(Boolean)
+      .map(node => ({
+        ...node,
+        draggable: true,
+        selectable: mode === 'pointer',
+        position: node?.position,
+        type: node?.type,
+        data: node?.data,
+      }));
+  }, [nodes, mode]);
+};
+
+interface FlowEventHandlersOptions {
+  dispatch: AppDispatch;
+  nodes: Node[];
+  setHelperLines?: (lines: { horizontal: number | null; vertical: number | null }) => void;
+}
+
+export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEventHandlersOptions) => {
+  const onNodesChange: OnNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      if (!changes.some((c) => c.type === 'position')) {
+        setHelperLines?.({ horizontal: null, vertical: null });
+        dispatch(nodesChange({ changes }));
+        return;
+      }
+      dispatch(nodesChange({ changes }));
+    },
+    [dispatch, nodes, setHelperLines]
+  );
+
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
+    [dispatch]
+  );
+
+  const onConnect: OnConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.targetHandle || connection.targetHandle === 'node-body') {
+        const sourceNode = nodes.find((n) => n.id === connection.source);
+        const targetNode = nodes.find((n) => n.id === connection.target);
+
+        if (sourceNode && targetNode) {
+          const outputHandleName = connection.sourceHandle;
+
+          if (!outputHandleName) {
+            console.error('Source handle is not specified.');
+            return;
+          }
+
+          connection = {
+            ...connection,
+            targetHandle: outputHandleName,
+          };
+        }
+      }
+
+      const sourceNode = nodes.find((n) => n.id === connection.source);
+      if (sourceNode?.type === 'RouterNode') {
+        connection = {
+          ...connection,
+          targetHandle: connection.source + '.' + connection.sourceHandle,
+        };
+      } else {
+        connection = {
+          ...connection,
+          targetHandle: connection.sourceHandle,
+        };
+      }
+
+      dispatch(connect({ connection }));
+    },
+    [dispatch, nodes]
+  );
+
+  return {
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+  };
 };

@@ -47,6 +47,7 @@ import DynamicNode from '../nodes/DynamicNode';
 import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { RootState } from '../../store/store';
+import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils';
 
 interface NodeTypesConfig {
   [category: string]: Array<{
@@ -69,35 +70,16 @@ interface HelperLines {
   vertical: number | null;
 }
 
-const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {
-  const nodeTypes = useMemo<NodeTypes>(() => {
-    if (!nodeTypesConfig) return {};
-    const types = Object.keys(nodeTypesConfig).reduce<NodeTypes>((acc, category) => {
-      nodeTypesConfig[category].forEach(node => {
-        if (node.name === 'InputNode') {
-          acc[node.name] = (props: any) => <InputNode {...props} readOnly={true} />;
-        } else if (node.name === 'RouterNode') {
-          acc[node.name] = (props: any) => <RouterNode {...props} readOnly={true} />;
-        } else {
-          acc[node.name] = (props: any) => {
-            return <DynamicNode {...props} type={node.name} displayOutput={true} />;
-          };
-        }
-      });
-      return acc;
-    }, {});
-
-    return types;
-  }, [nodeTypesConfig]);
-
-  const isLoading = !nodeTypesConfig;
-  return { nodeTypes, isLoading };
-};
-
 const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
   const dispatch = useDispatch();
 
   const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data);
+
+  const { nodeTypes, isLoading } = useNodeTypes({
+    nodeTypesConfig,
+    readOnly: true,
+    includeCoalesceNode: false
+  });
 
   const edgeTypes = useMemo<EdgeTypes>(() => ({
     custom: (props: any) => <CustomEdge {...props} readOnly={true} />
@@ -131,8 +113,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     }
   }, [dispatch, workflowData, workflowID]);
 
-  const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
-
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
   const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode);
@@ -147,95 +127,25 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
   const showHelperLines = false;
 
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      if (!changes.some((c) => c.type === 'position')) {
-        setHelperLines({ horizontal: null, vertical: null });
-        dispatch(nodesChange({ changes }));
-        return;
-      }
+  const mode = useModeStore((state) => state.mode);
 
-      dispatch(nodesChange({ changes }));
-    },
-    [dispatch, nodes, showHelperLines]
-  );
+  const { onNodesChange, onEdgesChange, onConnect } = useFlowEventHandlers({
+    dispatch,
+    nodes,
+    setHelperLines,
+  });
 
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
-    [dispatch]
-  );
+  const styledEdges = useStyledEdges({
+    edges,
+    hoveredNode,
+    hoveredEdge,
+    readOnly: true,
+  });
 
-  const onConnect: OnConnect = useCallback(
-    (connection: Connection) => {
-      if (!connection.targetHandle || connection.targetHandle === 'node-body') {
-        const sourceNode = nodes.find((n) => n.id === connection.source);
-        const targetNode = nodes.find((n) => n.id === connection.target);
-
-        if (sourceNode && targetNode) {
-          const outputHandleName = connection.sourceHandle;
-
-          if (!outputHandleName) {
-            console.error('Source handle is not specified.');
-            return;
-          }
-
-          const updatedInputSchema = {
-            ...targetNode.data.config.input_schema,
-            [outputHandleName]: 'str',
-          };
-
-          dispatch(
-            updateNodeData({
-              id: targetNode.id,
-              data: {
-                config: {
-                  ...targetNode.data.config,
-                  input_schema: updatedInputSchema,
-                },
-              },
-            })
-          );
-
-          connection = {
-            ...connection,
-            targetHandle: outputHandleName,
-          };
-        }
-      }
-
-      const newEdge: Edge = {
-        ...connection,
-        id: uuidv4()
-      };
-      dispatch(connect({ connection: connection }));
-    },
-    [dispatch, nodes]
-  );
-
-  const styledEdges = useMemo(() => {
-    return edges.map((edge) => ({
-      ...edge,
-      type: 'custom',
-      style: {
-        stroke: edge.id === hoveredEdge
-          ? 'black'
-          : edge.source === hoveredNode || edge.target === hoveredNode
-            ? 'black'
-            : '#555',
-        strokeWidth: edge.id === hoveredEdge
-          ? 4
-          : edge.source === hoveredNode || edge.target === hoveredNode
-            ? 4
-            : 2,
-      },
-      data: {
-        ...edge.data,
-        showPlusButton: edge.id === hoveredEdge,
-
-      },
-      key: edge.id,
-    }));
-  }, [edges, hoveredNode, hoveredEdge]);
+  const nodesWithMode = useNodesWithMode({
+    nodes,
+    mode: mode as 'pointer' | 'hand',
+  });
 
   const onEdgeMouseEnter = useCallback(
     (_: React.MouseEvent, edge: Edge) => {
@@ -299,21 +209,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
-
-  const mode = useModeStore((state) => state.mode);
-
-  const nodesWithMode = useMemo(() => {
-    return nodes
-      .filter(Boolean)
-      .map(node => ({
-        ...node,
-        draggable: true,
-        selectable: mode === 'pointer',
-        position: node?.position,
-        type: node?.type,
-        data: node?.data,
-      }));
-  }, [nodes, mode]);
 
   const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
     setHoveredNode(node.id);

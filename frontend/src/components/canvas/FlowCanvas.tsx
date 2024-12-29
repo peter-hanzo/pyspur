@@ -55,6 +55,8 @@ import { insertNodeBetweenNodes } from '../../utils/flowUtils';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas';
 import { RootState } from '../../store/store';
+import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils';
+import { Mode } from '../../store/modeStore';
 
 // Type definitions
 interface NodeTypesConfig {
@@ -74,31 +76,6 @@ interface HelperLines {
   vertical: number | null;
 }
 
-const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | undefined }) => {
-  const nodeTypes = useMemo<NodeTypes>(() => {
-    if (!nodeTypesConfig) return {};
-    return Object.keys(nodeTypesConfig).reduce<NodeTypes>((acc, category) => {
-      nodeTypesConfig[category].forEach(node => {
-        if (node.name === 'InputNode') {
-          acc[node.name] = InputNode;
-        } else if (node.name === 'RouterNode') {
-          acc[node.name] = RouterNode;
-        } else if (node.name === 'CoalesceNode') {
-          acc[node.name] = CoalesceNode;
-        } else {
-          acc[node.name] = (props: any) => {
-            return <DynamicNode {...props} type={node.name} displayOutput={true} />;
-          };
-        }
-      });
-      return acc;
-    }, {});
-  }, [nodeTypesConfig]);
-
-  const isLoading = !nodeTypesConfig;
-  return { nodeTypes, isLoading };
-};
-
 const edgeTypes: EdgeTypes = {
   custom: CustomEdge,
 };
@@ -109,6 +86,12 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   const dispatch = useDispatch();
 
   const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data);
+
+  const { nodeTypes, isLoading } = useNodeTypes({
+    nodeTypesConfig,
+    readOnly: false,
+    includeCoalesceNode: true
+  });
 
   useEffect(() => {
     if (workflowData) {
@@ -121,8 +104,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       }));
     }
   }, [dispatch, workflowData, workflowID, nodeTypesConfig]);
-
-  const { nodeTypes, isLoading } = useNodeTypes({ nodeTypesConfig });
 
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
@@ -146,66 +127,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
   const showHelperLines = false;
 
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      if (!changes.some((c) => c.type === 'position')) {
-        setHelperLines({ horizontal: null, vertical: null });
-        dispatch(nodesChange({ changes }));
-        return;
-      }
-      dispatch(nodesChange({ changes }));
-    },
-    [dispatch, nodes, showHelperLines]
-  );
-
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
-    [dispatch]
-  );
-
-  const onConnect: OnConnect = useCallback(
-    (connection: Connection) => {
-      if (!connection.targetHandle || connection.targetHandle === 'node-body') {
-        const sourceNode = nodes.find((n) => n.id === connection.source);
-        const targetNode = nodes.find((n) => n.id === connection.target);
-
-        if (sourceNode && targetNode) {
-          const outputHandleName = connection.sourceHandle;
-
-          if (!outputHandleName) {
-            console.error('Source handle is not specified.');
-            return;
-          }
-
-          connection = {
-            ...connection,
-            targetHandle: outputHandleName,
-          };
-        }
-      }
-      const sourceNode = nodes.find((n) => n.id === connection.source);
-
-      if (sourceNode.type === 'RouterNode') {
-        connection = {
-          ...connection,
-          targetHandle: connection.source + '.' + connection.sourceHandle,
-        };
-      }
-      else {
-        connection = {
-          ...connection,
-          targetHandle: connection.sourceHandle,
-        };
-      }
-
-      const newEdge: Edge = {
-        ...connection,
-        id: uuidv4(),
-      };
-      dispatch(connect({ connection: connection }));
-    },
-    [dispatch, nodes]
-  );
+  const mode = useModeStore((state) => state.mode);
 
   const handlePopoverOpen = useCallback(({ sourceNode, targetNode, edgeId }: { sourceNode: Node; targetNode: Node; edgeId: string }) => {
     if (!reactFlowInstance) return;
@@ -226,30 +148,23 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     setPopoverContentVisible(true);
   }, [reactFlowInstance]);
 
-  const styledEdges = useMemo(() => {
-    return edges.map((edge) => ({
-      ...edge,
-      type: 'custom',
-      style: {
-        stroke: hoveredEdge === edge.id ||
-          hoveredNode === edge.source ||
-          hoveredNode === edge.target
-          ? '#555'
-          : '#999',
-        strokeWidth: hoveredEdge === edge.id ||
-          hoveredNode === edge.source ||
-          hoveredNode === edge.target
-          ? 3
-          : 1.5,
-      },
-      data: {
-        ...edge.data,
-        showPlusButton: edge.id === hoveredEdge,
-        onPopoverOpen: handlePopoverOpen,
-      },
-      key: edge.id,
-    }));
-  }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen]);
+  const { onNodesChange, onEdgesChange, onConnect } = useFlowEventHandlers({
+    dispatch,
+    nodes,
+    setHelperLines,
+  });
+
+  const styledEdges = useStyledEdges({
+    edges,
+    hoveredNode,
+    hoveredEdge,
+    handlePopoverOpen,
+  });
+
+  const nodesWithMode = useNodesWithMode({
+    nodes,
+    mode: mode as 'pointer' | 'hand',
+  });
 
   const onEdgeMouseEnter = useCallback(
     (_: React.MouseEvent, edge: Edge) => {
@@ -330,21 +245,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
   const proOptions = {
     hideAttribution: true
   };
-
-  const mode = useModeStore((state) => state.mode);
-
-  const nodesWithMode = useMemo(() => {
-    return nodes
-      .filter(Boolean)
-      .map(node => ({
-        ...node,
-        draggable: true,
-        selectable: mode === 'pointer',
-        position: node?.position,
-        type: node?.type,
-        data: node?.data,
-      }));
-  }, [nodes, mode]);
 
   const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
     setHoveredNode(node.id);
