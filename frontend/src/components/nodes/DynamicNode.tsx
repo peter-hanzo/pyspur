@@ -52,9 +52,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       id: node.id,
       type: node.type,
       data: {
-        config: {
-          title: node.data?.config?.title
-        }
+        title: node.data?.title
       }
     })),
     (prev, next) => {
@@ -63,7 +61,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       return prev.every((node, index) =>
         node.id === next[index].id &&
         node.type === next[index].type &&
-        node.data?.config?.title === next[index].data?.config?.title
+        node.data?.title === next[index].data?.title
       );
     }
   );
@@ -99,9 +97,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
-              config: {
-                title: edge.source + '_' + edge.sourceHandle
-              }
+              title: edge.source + '_' + edge.sourceHandle
             }
           };
         }
@@ -114,9 +110,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     if (!nodeRef.current || !nodeData) return;
 
     const inputLabels = predecessorNodes.map((node) =>
-      String(node?.data?.config?.title || node?.id || '')
+      String(node?.data?.title || node?.id || '')
     );
-    const outputLabels = nodeData?.config?.title ? [String(nodeData.config.title)] : [String(id)];
+    const outputLabels = nodeData?.title ? [String(nodeData.title)] : [String(id)];
 
     const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0);
     const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0);
@@ -244,9 +240,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
-              config: {
-                title: edge.source + '.' + edge.sourceHandle
-              }
+              title: edge.source + '.' + edge.sourceHandle
             }
           };
         }
@@ -263,9 +257,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: connection.fromNode.id,
             type: connection.fromNode.type,
             data: {
-              config: {
-                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
-              }
+              title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
             }
           }];
         } else {
@@ -273,9 +265,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: connection.fromNode.id,
             type: connection.fromNode.type,
             data: {
-              config: {
-                title: (connection.fromNode.data as { config?: { title?: string } })?.config?.title || connection.fromNode.id
-              }
+              title: (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id
             }
           }];
         }
@@ -309,7 +299,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
           {dedupedPredecessors.map((node) => {
-            const handleId = String(node.data?.config?.title || node.id || '');
+            const handleId = String(node.data?.title || node.id || '');
             return (
               <InputHandleRow
                 id={node.id}
@@ -325,7 +315,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           {nodeData?.title && (
             <OutputHandleRow
               id={node?.id}
-              keyName={String(nodeData?.config?.title || id)}
+              keyName={String(nodeData?.title || id)}
             />
           )}
         </div>
@@ -366,7 +356,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       <NodeOutputModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
-        title={data?.config?.title || data?.title || 'Node Output'}
+        title={data?.title || 'Node Output'}
         node={node}
       />
     </>

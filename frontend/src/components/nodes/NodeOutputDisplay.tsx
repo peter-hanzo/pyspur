@@ -1,11 +1,6 @@
 import React from 'react';
 import Markdown from 'react-markdown';
 
-interface NodeData {
-  run?: Record<string, string>;
-}
-
-
 interface NodeOutputDisplayProps {
   output: Record<string, any>;
 }

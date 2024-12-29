@@ -1,35 +1,17 @@
-import { v4 as uuidv4 } from 'uuid';
 import { createNode } from './nodeFactory';
 import { ReactFlowInstance } from '@xyflow/react';
 import { AppDispatch } from '../store/store';
-import { addNode, connect, deleteEdge } from '../store/flowSlice';
+import { connect, deleteEdge, FlowWorkflowNode, NodeTypes, addNodeWithConfig } from '../store/flowSlice';
 import isEqual from 'lodash/isEqual';
-import { FlowWorkflowNode } from '../store/flowSlice';
+
 
 export const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
   return data?.config?.title || data?.title || data?.type || 'Untitled';
 };
 
-interface Position {
-  x: number;
-  y: number;
-}
-
-interface NodeData {
-  config?: {
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-  };
-}
-
-interface FlowNode {
-  id: string;
-  position: Position;
-  data?: NodeData;
-}
 
 const generateNewNodeId = (
-  nodes: BaseNode[],
+  nodes: FlowWorkflowNode[],
   nodeType: string
 ): string => {
   const existingIds = nodes.map((node) => node.id);
@@ -46,7 +28,7 @@ const generateNewNodeId = (
 };
 
 export const createNodeAtCenter = (
-  nodes: BaseNode[],
+  nodes: FlowWorkflowNode[],
   nodeTypes: NodeTypes,
   nodeType: string,
   reactFlowInstance: ReactFlowInstance,
@@ -70,11 +52,11 @@ export const createNodeAtCenter = (
 };
 
 export const insertNodeBetweenNodes = (
-  nodes: BaseNode[],
+  nodes: FlowWorkflowNode[],
   nodeTypes: NodeTypes,
   nodeType: string,
-  sourceNode: BaseNode,
-  targetNode: BaseNode,
+  sourceNode: FlowWorkflowNode,
+  targetNode: FlowWorkflowNode,
   edgeId: string,
   reactFlowInstance: ReactFlowInstance,
   dispatch: AppDispatch,
