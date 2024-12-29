@@ -18,11 +18,8 @@ import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
 import isEqual from 'lodash/isEqual';
 import { FlowWorkflowNode, FlowState } from '@/store/flowSlice';
-
-
-interface RootState {
-  flow: FlowState;
-}
+import { nodeComparator, getNodeTitle } from '../../utils/flowUtils';
+import { RootState } from '../../store/store';
 
 interface BaseNodeProps {
   isCollapsed: boolean;
@@ -35,24 +32,6 @@ interface BaseNodeProps {
   className?: string;
   handleOpenModal?: (isModalOpen: boolean) => void;
 }
-
-const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
-  return data.config?.title || data.title || data.type || 'Untitled';
-};
-
-const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
-  if (!prevNode || !nextNode) return false;
-  // Skip position and measured properties when comparing nodes
-  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
-  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
-  return isEqual(prevRest, nextRest);
-};
-
-const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
-  if (!prevNodes || !nextNodes) return false;
-  if (prevNodes.length !== nextNodes.length) return false;
-  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
-};
 
 const staticStyles = {
   container: {

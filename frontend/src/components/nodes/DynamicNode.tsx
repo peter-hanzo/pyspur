@@ -14,7 +14,7 @@ import { RootState } from '../../store/store';
 import NodeOutputDisplay from './NodeOutputDisplay';
 import NodeOutputModal from './NodeOutputModal';
 import isEqual from 'lodash/isEqual';
-
+import { nodeComparator } from '../../utils/flowUtils';
 
 interface SchemaMetadata {
   required?: boolean;
@@ -32,15 +32,6 @@ interface DynamicNodeProps extends NodeProps {
   parentNode?: string;
   displayOutput?: boolean;
 }
-
-const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
-  if (!prevNode || !nextNode) return false;
-  // Skip position and measured properties when comparing nodes
-  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
-  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
-  return isEqual(prevRest, nextRest);
-};
-
 
 const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);

@@ -3,8 +3,12 @@ import { createNode } from './nodeFactory';
 import { ReactFlowInstance } from '@xyflow/react';
 import { AppDispatch } from '../store/store';
 import { addNode, connect, deleteEdge } from '../store/flowSlice';
+import isEqual from 'lodash/isEqual';
+import { FlowWorkflowNode } from '../store/flowSlice';
 
-
+export const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
+  return data?.config?.title || data?.title || data?.type || 'Untitled';
+};
 
 interface Position {
   x: number;
@@ -116,4 +120,12 @@ export const insertNodeBetweenNodes = (
   }));
 
   onComplete?.();
+};
+
+export const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+  if (!prevNode || !nextNode) return false;
+  // Skip position and measured properties when comparing nodes
+  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
+  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  return isEqual(prevRest, nextRest);
 };
