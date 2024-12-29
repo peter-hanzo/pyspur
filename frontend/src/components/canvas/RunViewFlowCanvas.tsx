@@ -100,16 +100,14 @@ const useNodeTypes = ({ nodeTypesConfig }: { nodeTypesConfig: NodeTypesConfig | 
   return { nodeTypes, isLoading };
 };
 
-const edgeTypes: EdgeTypes = {
-  custom: CustomEdge,
-};
-
-
-
 const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
   const dispatch = useDispatch();
 
   const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data);
+
+  const edgeTypes = useMemo<EdgeTypes>(() => ({
+    custom: (props: any) => <CustomEdge {...props} readOnly={true} />
+  }), []);
 
   useEffect(() => {
     if (workflowData) {
