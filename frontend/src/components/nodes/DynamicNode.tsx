@@ -23,12 +23,6 @@ interface SchemaMetadata {
   [key: string]: any;
 }
 
-const updateMessageVariables = (message: string | undefined, oldKey: string, newKey: string): string | undefined => {
-  if (!message) return message;
-  const regex = new RegExp(`{{\\s*${oldKey}\\s*}}`, 'g');
-  return message.replace(regex, `{{${newKey}}}`);
-};
-
 interface DynamicNodeProps extends NodeProps {
   id: string;
   type: string;
