@@ -53,7 +53,13 @@ interface CustomEdgeData extends Edge<any> {
   showPlusButton: boolean;
 }
 
-type CustomEdgeProps = EdgeProps<CustomEdgeData>;
+interface CustomEdgeProps extends EdgeProps {
+  data: {
+    onPopoverOpen?: (data: any) => void;
+    showPlusButton?: boolean;
+  };
+  readOnly?: boolean;
+}
 
 const CustomEdge: React.FC<CustomEdgeProps> = ({
   id,
@@ -68,6 +74,7 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
   markerEnd,
   source,
   target,
+  readOnly = false,
 }) => {
   const { onPopoverOpen, showPlusButton } = data;
   const reactFlowInstance = useReactFlow();
@@ -129,7 +136,7 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={combinedStyle} />
 
-      {showPlusButton && (
+      {showPlusButton && !readOnly && (
         <EdgeLabelRenderer>
           <div
             style={labelStyle}

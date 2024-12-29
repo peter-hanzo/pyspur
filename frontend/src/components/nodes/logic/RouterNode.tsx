@@ -27,6 +27,7 @@ interface RouterNodeProps {
   id: string;
   data: RouterNodeData;
   selected?: boolean;
+  readOnly?: boolean;
 }
 
 const OPERATORS: { value: ComparisonOperator; label: string }[] = [
@@ -58,7 +59,7 @@ const estimateTextWidth = (text: string): number => {
   return text.length * averageCharWidth + text.split(' ').length * spaceWidth;
 };
 
-export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
+export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const nodeRef = useRef<HTMLDivElement | null>(null);
@@ -77,6 +78,10 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
 
     return predecessorNodes.flatMap(node => {
       if (!node) return [];
+
+      const nodeTitle = node.data?.config?.title || node.id;
+      const outputSchema = node.data?.config?.output_schema || {};
+
 
       const predNodeConfig = nodeConfigs[node.id];
       const nodeTitle = predNodeConfig?.title || node.id;
@@ -119,11 +124,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
   }, [connection, nodes, edges, id]);
 
   useEffect(() => {
-    if (!nodeRef.current || !nodeConfig) return;
+    if (!nodeRef.current || !data) return;
 
     // Calculate widths for all variables, operators, and values
-    const allWidths = Object.entries(nodeConfig.route_map || {}).flatMap(([_, route]) =>
-      (route as RouteConditionGroup).conditions.map(condition => {
+    const allWidths = Object.entries(data.config?.route_map || {}).flatMap(([_, route]) =>
+      route.conditions.map(condition => {
         // Variable width calculation
         const variable = inputVariables.find(v => v.value === condition.variable);
         const variableWidth = variable ? estimateTextWidth(variable.label) : 200; // default min width
@@ -295,6 +300,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                                 updateCondition(routeKey, conditionIndex, 'logicalOperator', value)
                               }
                               size="sm"
+                              isDisabled={readOnly}
                             >
                               <Radio value="AND">AND</Radio>
                               <Radio value="OR">OR</Radio>
@@ -317,6 +323,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                               popoverContent: "bg-background dark:bg-background"
                             }}
                             isMultiline={true}
+                            isDisabled={readOnly}
                           >
                             {inputVariables.map((variable) => (
                               <SelectItem key={variable.value} value={variable.value} textValue={variable.label}>
@@ -336,6 +343,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                               trigger: "bg-default-100 dark:bg-default-50",
                               popoverContent: "bg-background dark:bg-background"
                             }}
+                            isDisabled={readOnly}
                           >
                             {OPERATORS.map((op) => (
                               <SelectItem key={op.value} value={op.value}>
@@ -356,32 +364,37 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
                                 input: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto whitespace-normal",
                                 inputWrapper: "shadow-none min-h-unit-12 h-auto"
                               }}
+                              isDisabled={readOnly}
                             />
                           )}
-                          <Button
-                            size="sm"
-                            color="danger"
-                            isIconOnly
-                            onClick={() => removeCondition(routeKey, conditionIndex)}
-                            disabled={route.conditions.length === 1}
-                            className="flex-none"
-                          >
-                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                          </Button>
+                          {!readOnly && (
+                            <Button
+                              size="sm"
+                              color="danger"
+                              isIconOnly
+                              onClick={() => removeCondition(routeKey, conditionIndex)}
+                              disabled={route.conditions.length === 1}
+                              className="flex-none"
+                            >
+                              <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
 
                     {/* Add Condition Button */}
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      onClick={() => addCondition(routeKey)}
-                      startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                      className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
-                    >
-                      Add Condition
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        onClick={() => addCondition(routeKey)}
+                        startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                        className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
+                      >
+                        Add Condition
+                      </Button>
+                    )}
 
                     {/* Route Output Handle */}
                     <div className={`${styles.handleRow} w-full justify-end mt-2`}>
@@ -400,16 +413,18 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data }) => {
               ))}
 
               {/* Add Route Button */}
-              <Button
-                size="sm"
-                color="primary"
-                variant="flat"
-                onClick={addRoute}
-                startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
-              >
-                Add Route
-              </Button>
+              {!readOnly && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  variant="flat"
+                  onClick={addRoute}
+                  startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                  className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
+                >
+                  Add Route
+                </Button>
+              )}
             </div>
           </>
         )}
