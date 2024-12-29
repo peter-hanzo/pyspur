@@ -5,13 +5,6 @@ import {
   ReactFlowProvider,
   Node,
   Edge,
-  NodeChange,
-  EdgeChange,
-  Connection,
-  OnNodesChange,
-  OnEdgesChange,
-  OnConnect,
-  NodeTypes,
   EdgeTypes,
   ReactFlowInstance,
   SelectionMode,
@@ -22,42 +15,25 @@ import '@xyflow/react/dist/style.css';
 import { useSelector, useDispatch } from 'react-redux';
 import Operator from './footer/Operator';
 import {
-  nodesChange,
-  edgesChange,
-  connect,
   setSelectedNode,
   deleteNode,
   setWorkflowInputVariable,
   updateNodeDataOnly,
   setNodes,
-  FlowState,
   FlowWorkflowNode,
   FlowWorkflowEdge,
 } from '../../store/flowSlice';
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
-import { v4 as uuidv4 } from 'uuid';
 import CustomEdge from './Edge';
 import HelperLinesRenderer from '../HelperLines';
-import { Mode, useModeStore } from '../../store/modeStore';
+import { useModeStore } from '../../store/modeStore';
 import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
-import InputNode from '../nodes/InputNode';
 import LoadingSpinner from '../LoadingSpinner';
-import { RouterNode } from '../nodes/logic/RouterNode';
-import DynamicNode from '../nodes/DynamicNode';
 import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
 import { RootState } from '../../store/store';
 import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils';
 
-interface NodeTypesConfig {
-  [category: string]: Array<{
-    name: string;
-    config?: {
-      title?: string;
-    };
-    [key: string]: any;
-  }>;
-}
 
 interface RunViewFlowCanvasProps {
   workflowData?: { name: string, definition: WorkflowDefinition };
@@ -121,9 +97,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
   const [helperLines, setHelperLines] = useState<HelperLines>({ horizontal: null, vertical: null });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
-  const [isPopoverContentVisible, setPopoverContentVisible] = useState(false);
-  const [selectedEdge, setSelectedEdge] = useState<{ sourceNode: Node; targetNode: Node; edgeId: string } | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
 
   const showHelperLines = false;
 
