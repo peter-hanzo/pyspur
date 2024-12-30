@@ -43,10 +43,9 @@ export const createNode = (
   type: string,
   id: string,
   position: Position,
-  additionalData: AdditionalData = {}
 ): { node: FlowWorkflowNode, config: FlowWorkflowNodeConfig } | null => {
   let nodeType: NodeType | null = null;
-
+  console.log('position', position);
   for (const category in nodeTypes) {
     const found = nodeTypes[category].find((node) => node.name === type);
     if (found) {
@@ -58,7 +57,7 @@ export const createNode = (
     return null;
   }
 
-  let processedAdditionalData = cloneDeep(additionalData);
+
   let config = cloneDeep(nodeType.config);
   config = {
     ...config,
@@ -73,7 +72,6 @@ export const createNode = (
       title: id,
       acronym: nodeType.visual_tag.acronym,
       color: nodeType.visual_tag.color,
-
     },
   };
   return { node, config };

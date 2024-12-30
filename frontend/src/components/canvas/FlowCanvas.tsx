@@ -68,9 +68,9 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     includeCoalesceNode: true
   });
 
+
   useEffect(() => {
     if (workflowData) {
-      console.log('workflowData', workflowData);
       dispatch(initializeFlow({
         nodeTypes: nodeTypesConfig,
         definition: workflowData.definition,
@@ -231,8 +231,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
   const handleAddNodeBetween = useCallback((
     nodeName: string,
-    sourceNode: Node,
-    targetNode: Node,
+    sourceNode: FlowWorkflowNode,
+    targetNode: FlowWorkflowNode,
     edgeId: string
   ) => {
     insertNodeBetweenNodes(
@@ -242,7 +242,6 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
       sourceNode,
       targetNode,
       edgeId,
-      reactFlowInstance,
       dispatch,
       () => setPopoverContentVisible(false)
     );

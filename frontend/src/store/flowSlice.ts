@@ -218,6 +218,7 @@ const flowSlice = createSlice({
           node.id,
           { x: node.coordinates.x, y: node.coordinates.y },
         );
+        console.log('nodeObj', nodeObj);
         // Load the config directly from the definition instead of creating fresh
         state.nodeConfigs[node.id] = node.config;
         return nodeObj;

@@ -1,15 +1,14 @@
+import React, { useMemo, useCallback } from 'react';
 import { createNode } from './nodeFactory';
 import { ReactFlowInstance, NodeTypes, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect } from '@xyflow/react';
 import { AppDispatch } from '../store/store';
 import { addNode, connect, deleteEdge, nodesChange, edgesChange, addNodeWithConfig } from '../store/flowSlice';
 import isEqual from 'lodash/isEqual';
 import { FlowWorkflowNode } from '../store/flowSlice';
-import { useMemo, useCallback } from 'react';
 import DynamicNode from '../components/nodes/DynamicNode';
 import InputNode from '../components/nodes/InputNode';
 import { RouterNode } from '../components/nodes/logic/RouterNode';
 import { CoalesceNode } from '../components/nodes/logic/CoalesceNode';
-import React from 'react';
 
 interface NodeTypesConfig {
   [category: string]: Array<{
@@ -35,13 +34,13 @@ export const useNodeTypes = ({ nodeTypesConfig, readOnly = false, includeCoalesc
     Object.keys(nodeTypesConfig).forEach(category => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
-          types[node.name] = (props: any) => React.createElement(InputNode, { ...props, readOnly });
+          types[node.name] = (props: any) => <InputNode {...props} readOnly={readOnly} />;
         } else if (node.name === 'RouterNode') {
-          types[node.name] = (props: any) => React.createElement(RouterNode, { ...props, readOnly });
+          types[node.name] = (props: any) => <RouterNode {...props} readOnly={readOnly} />;
         } else if (includeCoalesceNode && node.name === 'CoalesceNode') {
           types[node.name] = CoalesceNode;
         } else {
-          types[node.name] = (props: any) => React.createElement(DynamicNode, { ...props, type: node.name, displayOutput: true, readOnly });
+          types[node.name] = (props: any) => <DynamicNode {...props} type={node.name} displayOutput={true} readOnly={readOnly} />;
         }
       });
     });
@@ -55,7 +54,6 @@ export const useNodeTypes = ({ nodeTypesConfig, readOnly = false, includeCoalesc
 export const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
   return data?.config?.title || data?.title || data?.type || 'Untitled';
 };
-
 
 const generateNewNodeId = (
   nodes: FlowWorkflowNode[],
@@ -105,7 +103,6 @@ export const insertNodeBetweenNodes = (
   sourceNode: FlowWorkflowNode,
   targetNode: FlowWorkflowNode,
   edgeId: string,
-  reactFlowInstance: ReactFlowInstance,
   dispatch: AppDispatch,
   onComplete?: () => void
 ): void => {
@@ -163,8 +160,6 @@ export const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflo
   const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
   return isEqual(prevRest, nextRest);
 };
-
-// New centralized functions
 
 interface StyledEdgesOptions {
   edges: Edge[];

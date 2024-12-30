@@ -18,7 +18,7 @@ import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
 import isEqual from 'lodash/isEqual';
 import { FlowWorkflowNode, FlowState } from '@/store/flowSlice';
-import { nodeComparator, getNodeTitle } from '../../utils/flowUtils';
+import { getNodeTitle } from '../../utils/flowUtils';
 import { RootState } from '../../store/store';
 
 interface BaseNodeProps {
@@ -31,7 +31,8 @@ interface BaseNodeProps {
   isInputNode?: boolean;
   className?: string;
   handleOpenModal?: (isModalOpen: boolean) => void;
-  position?: { x: number; y: number };
+  positionAbsoluteX?: number;
+  positionAbsoluteY?: number;
 }
 
 const staticStyles = {
@@ -112,7 +113,8 @@ const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
     isEqual(prev.style, next.style) &&
     prev.isInputNode === next.isInputNode &&
     prev.className === next.className &&
-    isEqual(prev.position, next.position)
+    prev.positionAbsoluteX === next.positionAbsoluteX &&
+    prev.positionAbsoluteY === next.positionAbsoluteY
   );
 };
 
@@ -126,7 +128,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   style = {},
   isInputNode = false,
   className = '',
-  position
+  positionAbsoluteX,
+  positionAbsoluteY
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
@@ -136,6 +139,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [showTitleError, setShowTitleError] = useState(false);
   const [titleInputValue, setTitleInputValue] = useState('');
   const dispatch = useDispatch();
+  console.log('position', positionAbsoluteX, positionAbsoluteY);
+
 
   // Retrieve the node's position and edges from the Redux store
   const edges = useSelector((state: RootState) => state.flow.edges);
@@ -244,13 +249,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   };
 
   const handleDuplicate = () => {
-    if (!data || !position) {
+    if (!data || !positionAbsoluteX || !positionAbsoluteY) {
       console.error('Node position not found');
       return;
     }
 
     // Get all edges connected to the current node
-    const connectedEdges = getConnectedEdges([{ id, position, data }], edges);
+    const connectedEdges = getConnectedEdges([{ id, position: { x: positionAbsoluteX, y: positionAbsoluteY }, data }], edges);
 
     // Generate a new unique ID for the duplicated node
     const newNodeId = `node_${Date.now()}`;
@@ -258,10 +263,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     // Create the new node with an offset position
     const newNode = {
       id: newNodeId,
-      position: { x: position.x + 20, y: position.y + 20 }, // Offset the position slightly
-      data,
-      type: data.type || 'default', // Add the required type property
-      selected: false, // Ensure the new node is not selected by default
+      position: {
+        x: positionAbsoluteX + 20,
+        y: positionAbsoluteY + 20
+      },
+      data: { ...data },
+      type: data.type || 'default',
+      selected: false,
     };
 
     // Duplicate the edges connected to the node

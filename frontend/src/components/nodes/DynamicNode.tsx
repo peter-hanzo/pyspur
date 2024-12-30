@@ -22,24 +22,19 @@ interface SchemaMetadata {
   type?: string;
   [key: string]: any;
 }
-
-interface DynamicNodeProps extends NodeProps {
-  id: string;
-  type: string;
-  data: FlowWorkflowNode['data'];
-  position: { x: number; y: number };
-  selected?: boolean;
-  parentNode?: string;
+interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
   displayOutput?: boolean;
+  readOnly?: boolean;
 }
 
-const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
+const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, selected, isConnectable, zIndex, positionAbsoluteX, positionAbsoluteY, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
+  const position = { x: positionAbsoluteX, y: positionAbsoluteY };
 
   const nodes = useSelector((state: RootState) =>
     state.flow.nodes.map(node => ({
@@ -325,7 +320,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     <>
       <div
         className={styles.dynamicNodeWrapper}
-        style={{ zIndex: props.parentNode ? 1 : 0 }}
+        style={{ zIndex: props.parentId ? 1 : 0 }}
       >
         <BaseNode
           id={id}
@@ -335,6 +330,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           setIsCollapsed={setIsCollapsed}
           handleOpenModal={setIsModalOpen}
           className="hover:!bg-background"
+          positionAbsoluteX={positionAbsoluteX}
+          positionAbsoluteY={positionAbsoluteY}
+          {...props}
         >
           <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
             {isRouterNode ? (
@@ -358,5 +356,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 };
 
 export default memo(DynamicNode, (prev, next) =>
-  nodeComparator(prev as FlowWorkflowNode, next as FlowWorkflowNode)
+  nodeComparator(
+    { ...prev, position: { x: prev.positionAbsoluteX, y: prev.positionAbsoluteY } } as FlowWorkflowNode,
+    { ...next, position: { x: next.positionAbsoluteX, y: next.positionAbsoluteY } } as FlowWorkflowNode
+  )
 );
