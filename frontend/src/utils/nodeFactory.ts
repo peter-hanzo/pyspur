@@ -45,7 +45,6 @@ export const createNode = (
   position: Position,
 ): { node: FlowWorkflowNode, config: FlowWorkflowNodeConfig } | null => {
   let nodeType: NodeType | null = null;
-  console.log('position', position);
   for (const category in nodeTypes) {
     const found = nodeTypes[category].find((node) => node.name === type);
     if (found) {

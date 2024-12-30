@@ -62,7 +62,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
   useEffect(() => {
     if (workflowData) {
-      console.log('workflowData', workflowData);
       if (workflowData.definition.nodes) {
         const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
         if (inputNode.length > 0) {
@@ -83,7 +82,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         workflowID: workflowID,
         name: workflowData.name
       }));
-      console.log('Node Outputs:', nodeOutputs);
       dispatch(setNodeOutputs(nodeOutputs));
     }
   }, [dispatch, workflowData, workflowID]);

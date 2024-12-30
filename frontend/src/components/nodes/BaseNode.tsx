@@ -139,7 +139,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [showTitleError, setShowTitleError] = useState(false);
   const [titleInputValue, setTitleInputValue] = useState('');
   const dispatch = useDispatch();
-  console.log('position', positionAbsoluteX, positionAbsoluteY);
 
 
   // Retrieve the node's position and edges from the Redux store
