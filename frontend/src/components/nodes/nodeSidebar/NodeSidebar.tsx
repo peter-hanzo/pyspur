@@ -105,7 +105,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [nodeSchema, setNodeSchema] = useState<NodeType | null>(
     findNodeSchema(node?.type || 'ExampleNode', nodeTypes)
   );
-  const [dynamicModel, setDynamicModel] = useState<FlowWorkflowNodeConfig>(nodeConfig || {});
+  const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
   const [showTitleError, setShowTitleError] = useState(false);
   const [titleInputValue, setTitleInputValue] = useState<string>('');
@@ -170,7 +170,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         };
       }
 
-      setDynamicModel(initialConfig);
+      setCurrentNodeConfig(initialConfig);
     }
   }, [nodeID, node, nodeTypes, nodeConfig]);
 
@@ -186,12 +186,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     let updatedModel: FlowWorkflowNodeConfig;
 
     if (key.includes('.')) {
-      updatedModel = updateNestedModel(dynamicModel, key, value) as FlowWorkflowNodeConfig;
+      updatedModel = updateNestedModel(currentNodeConfig, key, value) as FlowWorkflowNodeConfig;
     } else {
-      updatedModel = { ...dynamicModel, [key]: value } as FlowWorkflowNodeConfig;
+      updatedModel = { ...currentNodeConfig, [key]: value } as FlowWorkflowNodeConfig;
     }
 
-    setDynamicModel(updatedModel);
+    setCurrentNodeConfig(updatedModel);
 
     // Always update Redux store with the full updated model
     if (isSlider) {
@@ -241,7 +241,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       });
 
       // Ensure we have a valid default value
-      const currentValue = dynamicModel?.llm_info?.model || defaultSelected || 'gpt-4o';
+      const currentValue = currentNodeConfig?.llm_info?.model || defaultSelected || 'gpt-4o';
 
       return (
         <div key={key}>
@@ -249,8 +249,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             label={label}
             selectedKeys={[currentValue]}
             onChange={(e) => {
-              const updatedModel = updateNestedModel(dynamicModel, 'llm_info.model', e.target.value);
-              setDynamicModel(updatedModel);
+              const updatedModel = updateNestedModel(currentNodeConfig, 'llm_info.model', e.target.value);
+              setCurrentNodeConfig(updatedModel);
               dispatch(updateNodeConfigOnly({ id: nodeID, data: updatedModel }));
             }}
             fullWidth
@@ -276,7 +276,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     // Default rendering for other enum fields
-    const currentValue = defaultSelected || dynamicModel[key] || enumValues[0];
+    const currentValue = defaultSelected || currentNodeConfig[key] || enumValues[0];
     return (
       <div key={key}>
         <Select
@@ -296,13 +296,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   };
 
   const handleAddNewExample = () => {
-    const updatedExamples = [...(dynamicModel?.few_shot_examples || []), { input: '', output: '' }];
+    const updatedExamples = [...(currentNodeConfig?.few_shot_examples || []), { input: '', output: '' }];
     handleInputChange('few_shot_examples', updatedExamples);
     setFewShotIndex(updatedExamples.length - 1);
   };
 
   const handleDeleteExample = (index: number) => {
-    const updatedExamples = [...(dynamicModel?.few_shot_examples || [])];
+    const updatedExamples = [...(currentNodeConfig?.few_shot_examples || [])];
     updatedExamples.splice(index, 1);
     handleInputChange('few_shot_examples', updatedExamples);
   };
@@ -325,7 +325,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Skip api_base field if the selected model is not an Ollama model
     if (key === 'api_base') {
-      const modelValue = dynamicModel?.llm_info?.model;
+      const modelValue = currentNodeConfig?.llm_info?.model;
       if (!modelValue || !modelValue.toString().startsWith('ollama/')) {
         return null;
       }
@@ -356,7 +356,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         <div key={key} className="my-2">
           <label className="font-semibold mb-1 block">Input Schema</label>
           <SchemaEditor
-            jsonValue={dynamicModel.input_schema || {}}
+            jsonValue={currentNodeConfig.input_schema || {}}
             onChange={(newValue) => {
               handleInputChange('input_schema', newValue);
             }}
@@ -376,7 +376,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         <div key={key} className="my-2">
           <label className="font-semibold mb-1 block">Output Schema</label>
           <SchemaEditor
-            jsonValue={dynamicModel.output_schema || {}}
+            jsonValue={currentNodeConfig.output_schema || {}}
             onChange={(newValue) => {
               handleInputChange('output_schema', newValue);
             }}
@@ -398,7 +398,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             fieldName={key}
             inputSchema={incomingSchema}
             fieldTitle="System Message"
-            content={dynamicModel[key] || ''}
+            content={currentNodeConfig[key] || ''}
             setContent={(value: string) => handleInputChange(key, value)}
           />
           {!isLast && <hr className="my-2" />}
@@ -415,7 +415,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             fieldName={key}
             inputSchema={incomingSchema}
             fieldTitle="User Message"
-            content={dynamicModel[key] || ''}
+            content={currentNodeConfig[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
           />
           {renderFewShotExamples()}
@@ -433,7 +433,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             fieldName={key}
             inputSchema={incomingSchema}
             fieldTitle={key}
-            content={dynamicModel[key] || ''}
+            content={currentNodeConfig[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
           />
           {!isLast && <hr className="my-2" />}
@@ -536,7 +536,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
   // Update the `renderConfigFields` function to include missing logic
   const renderConfigFields = () => {
-    if (!nodeSchema || !nodeSchema.config || !dynamicModel) return null;
+    if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null;
     const properties = nodeSchema.config;
     const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type');
 
@@ -547,7 +547,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     return orderedKeys.map((key, index) => {
       const field = properties[key];
-      const value = dynamicModel[key];
+      const value = currentNodeConfig[key];
       const isLast = index === orderedKeys.length - 1;
       return renderField(key, field, value, `${nodeType}.config`, isLast);
     });
