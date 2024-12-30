@@ -1,8 +1,7 @@
 import React, { useCallback, useState, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteNode, setSelectedNode, updateNodeDataOnly, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
-import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
-import { v4 as uuidv4 } from 'uuid';
+import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '../../store/flowSlice';
+import { Handle, Position } from '@xyflow/react';
 import {
   Card,
   CardHeader,
@@ -17,9 +16,10 @@ import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
 import isEqual from 'lodash/isEqual';
-import { FlowWorkflowNode, FlowState } from '@/store/flowSlice';
-import { getNodeTitle } from '../../utils/flowUtils';
+import { FlowWorkflowNode } from '@/store/flowSlice';
+import { getNodeTitle, duplicateNode, deleteNode } from '../../utils/flowUtils';
 import { RootState } from '../../store/store';
+import store from '../../store/store';
 
 interface BaseNodeProps {
   isCollapsed: boolean;
@@ -140,9 +140,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [titleInputValue, setTitleInputValue] = useState('');
   const dispatch = useDispatch();
 
-
-  // Retrieve the node's position and edges from the Redux store
-  const edges = useSelector((state: RootState) => state.flow.edges);
+  // Only keep the selectors we need for this component's functionality
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
   const initialInputs = useSelector((state: RootState) => {
@@ -203,10 +201,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   }, [isHovered, setShowControls, setIsTooltipHovered]);
 
   const handleDelete = () => {
-    dispatch(deleteNode({ nodeId: id }));
-    if (selectedNodeId === id) {
-      dispatch(setSelectedNode({ nodeId: null }));
+    deleteNode(id, selectedNodeId, dispatch);
+  };
+
+  const handleDuplicate = () => {
+    if (!data || !positionAbsoluteX || !positionAbsoluteY) {
+      console.error('Node position not found');
+      return;
     }
+
+    duplicateNode(id, positionAbsoluteX, positionAbsoluteY, dispatch, store.getState as () => RootState);
   };
 
   const handlePartialRun = () => {
@@ -245,46 +249,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     }).finally(() => {
       setIsRunning(false);
     });
-  };
-
-  const handleDuplicate = () => {
-    if (!data || !positionAbsoluteX || !positionAbsoluteY) {
-      console.error('Node position not found');
-      return;
-    }
-
-    // Get all edges connected to the current node
-    const connectedEdges = getConnectedEdges([{ id, position: { x: positionAbsoluteX, y: positionAbsoluteY }, data }], edges);
-
-    // Generate a new unique ID for the duplicated node
-    const newNodeId = `node_${Date.now()}`;
-
-    // Create the new node with an offset position
-    const newNode = {
-      id: newNodeId,
-      position: {
-        x: positionAbsoluteX + 20,
-        y: positionAbsoluteY + 20
-      },
-      data: { ...data },
-      type: data.type || 'default',
-      selected: false,
-    };
-
-    // Duplicate the edges connected to the node
-    const newEdges = connectedEdges.map((edge) => {
-      const newEdgeId = uuidv4();
-      return {
-        ...edge,
-        id: newEdgeId,
-        source: edge.source === id ? newNodeId : edge.source,
-        target: edge.target === id ? newNodeId : edge.target,
-      };
-    });
-
-    // Dispatch actions to add the new node and edges
-    dispatch(addNode({ node: newNode }));
-    dispatch(setEdges({ edges: [...edges, ...newEdges] }));
   };
 
   const isSelected = String(id) === String(selectedNodeId);
