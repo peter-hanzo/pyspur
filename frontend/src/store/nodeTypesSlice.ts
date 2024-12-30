@@ -73,8 +73,8 @@ export interface NodeType {
   name: string;
   config: {
     routes?: RouteCondition[];
-    input_schema?: Record<string, any>;
-    output_schema?: Record<string, any>;
+    input_schema?: Record<string, string>;
+    output_schema?: Record<string, string>;
     title?: string;
     system_message?: string;
     user_message?: string;
