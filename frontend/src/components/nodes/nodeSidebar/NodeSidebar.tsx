@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store/store';
 import {
   updateNodeConfigOnly,
-  updateTitleInEdges,
   selectNodeById,
   setSidebarWidth,
   setSelectedNode,
