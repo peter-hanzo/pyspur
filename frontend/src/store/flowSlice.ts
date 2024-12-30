@@ -758,14 +758,10 @@ const flowSlice = createSlice({
 
       // Update edges where this node is source or target
       state.edges = state.edges.map(edge => {
-        let updatedEdge = { ...edge };
         if (edge.source === nodeId) {
-          updatedEdge.sourceHandle = newTitle;
+          return { ...edge, sourceHandle: newTitle, targetHandle: newTitle };
         }
-        if (edge.target === nodeId) {
-          updatedEdge.targetHandle = newTitle;
-        }
-        return updatedEdge;
+        return edge;
       });
 
       // Update references in downstream nodes
