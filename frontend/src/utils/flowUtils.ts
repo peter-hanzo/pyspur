@@ -1,7 +1,7 @@
 import { createNode } from './nodeFactory';
 import { ReactFlowInstance, NodeTypes, Node, Edge, NodeChange, EdgeChange, Connection, OnNodesChange, OnEdgesChange, OnConnect } from '@xyflow/react';
 import { AppDispatch } from '../store/store';
-import { addNode, connect, deleteEdge, nodesChange, edgesChange } from '../store/flowSlice';
+import { addNode, connect, deleteEdge, nodesChange, edgesChange, addNodeWithConfig } from '../store/flowSlice';
 import isEqual from 'lodash/isEqual';
 import { FlowWorkflowNode } from '../store/flowSlice';
 import { useMemo, useCallback } from 'react';
