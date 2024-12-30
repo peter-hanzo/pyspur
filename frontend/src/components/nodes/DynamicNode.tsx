@@ -14,7 +14,6 @@ import { RootState } from '../../store/store';
 import NodeOutputDisplay from './NodeOutputDisplay';
 import NodeOutputModal from './NodeOutputModal';
 import isEqual from 'lodash/isEqual';
-import { nodeComparator } from '../../utils/flowUtils';
 
 interface SchemaMetadata {
   required?: boolean;
@@ -33,8 +32,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-
-  const position = { x: positionAbsoluteX, y: positionAbsoluteY };
 
   const nodes = useSelector((state: RootState) =>
     state.flow.nodes.map(node => ({
@@ -55,7 +52,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
     }
   );
   const nodeData = data;
-
   const edges = useSelector((state: RootState) => state.flow.edges);
 
   const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`));
@@ -99,7 +95,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
     if (!nodeRef.current || !nodeData) return;
 
     const inputLabels = predecessorNodes.map((node) =>
-      String(nodeData?.title || node?.id || '')
+      String(node.data?.title || node?.id || '')
     );
     const outputLabels = nodeData?.title ? [String(nodeData.title)] : [String(id)];
 
@@ -280,7 +276,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
 
   const renderHandles = () => {
     if (!nodeData) return null;
-    const dedupedPredecessors = finalPredecessors.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index);
+    const dedupedPredecessors = finalPredecessors.filter((node, index, self) =>
+      self.findIndex((n) => n.id === node.id) === index
+    );
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
@@ -290,7 +288,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
             const handleId = String(node.data?.title || node.id || '');
             return (
               <InputHandleRow
-                id={id}
+                id={node?.id}
                 keyName={handleId}
                 key={handleId}
               />
@@ -303,7 +301,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
           {nodeData?.title && (
             <OutputHandleRow
               id={id}
-              keyName={String(nodeData?.title || id)}
+              keyName={String(nodeData?.title)}
+              key={String(nodeData?.title)}
             />
           )}
         </div>
@@ -354,9 +353,4 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
   );
 };
 
-export default memo(DynamicNode, (prev, next) =>
-  nodeComparator(
-    { ...prev, position: { x: prev.positionAbsoluteX, y: prev.positionAbsoluteY } } as FlowWorkflowNode,
-    { ...next, position: { x: next.positionAbsoluteX, y: next.positionAbsoluteY } } as FlowWorkflowNode
-  )
-);
+export default DynamicNode;
