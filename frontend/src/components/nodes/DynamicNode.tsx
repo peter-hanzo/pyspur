@@ -72,7 +72,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
-              title: edge.source + '_' + edge.sourceHandle
+              title: edge.targetHandle,
             }
           };
         }
@@ -215,7 +215,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
-              title: edge.source + '.' + edge.sourceHandle
+              title: edge.targetHandle,
             }
           };
         }
