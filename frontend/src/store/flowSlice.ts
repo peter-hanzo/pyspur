@@ -765,6 +765,7 @@ const flowSlice = createSlice({
         // Update source handle if this is the source node
         if (edge.source === nodeId && edge.sourceHandle === oldTitle) {
           updatedEdge.sourceHandle = newTitle;
+          updatedEdge.targetHandle = newTitle;
         }
 
         // Update references in downstream nodes
