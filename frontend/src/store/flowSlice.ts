@@ -758,6 +758,8 @@ const flowSlice = createSlice({
         };
       }
 
+      const isRouterNode = node?.type === 'RouterNode';
+
       // Update edges where this node is source or target
       state.edges = state.edges.map(edge => {
         let updatedEdge = { ...edge };
@@ -766,6 +768,12 @@ const flowSlice = createSlice({
         if (edge.source === nodeId && edge.sourceHandle === oldTitle) {
           updatedEdge.sourceHandle = newTitle;
           updatedEdge.targetHandle = newTitle;
+        }
+        
+        // special case for router nodes, the sourceHandle for them is the routeid so above logic doesn't work
+        if (isRouterNode && edge.source === nodeId) {
+          // we only update the targetHandle. we replace the oldTitle with the newTitle
+          updatedEdge.targetHandle = edge.targetHandle.replace(oldTitle, newTitle);
         }
 
         // Update references in downstream nodes
