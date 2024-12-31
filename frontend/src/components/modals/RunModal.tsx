@@ -23,7 +23,6 @@ import { RootState } from '../../store/store';
 import { AppDispatch } from '../../store/store';
 import { TestInput } from '@/types/api_types/workflowSchemas';
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
-import { getWorkflowInputVariables } from '../../utils/flowUtils';
 
 interface RunModalProps {
   isOpen: boolean;
@@ -40,9 +39,9 @@ interface EditingCell {
 const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
-  const workflowInputVariables = getWorkflowInputVariables(nodes, nodeConfigs);
-  const workflowInputVariableNames = Object.keys(workflowInputVariables);
   const inputNode = nodes.find(node => node.type === 'InputNode');
+  const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {};
+  const workflowInputVariableNames = Object.keys(workflowInputVariables);
 
 
   const [testData, setTestData] = useState<TestInput[]>([]);

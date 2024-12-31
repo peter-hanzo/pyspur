@@ -15,7 +15,6 @@ import { Icon } from "@iconify/react";
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism';
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { FlowState } from '@/store/flowSlice';
-import { getWorkflowInputVariables } from '@/utils/flowUtils';
 
 interface DeployModalProps {
   isOpen: boolean;
@@ -32,11 +31,7 @@ type SupportedLanguages = 'python' | 'javascript' | 'typescript' | 'rust' | 'jav
 
 const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, getApiEndpoint }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python');
-
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
-  const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
-  const workflowInputVariables = getWorkflowInputVariables(nodes, nodeConfigs);
-
+  const workflowInputVariables = useSelector((state: RootState) => state.flow.nodeConfigs['InputNode']?.output_schema) || {};
 
   // Create example request body with the actual input variables
   const exampleRequestBody = {
