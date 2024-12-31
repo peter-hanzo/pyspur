@@ -28,6 +28,7 @@ import {
   AccordionItem,
   Card,
   Alert,
+  Tooltip,
 } from "@nextui-org/react";
 import { Icon } from '@iconify/react';
 import NodeOutput from '../NodeOutputDisplay';
@@ -428,7 +429,21 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (key === 'output_schema') {
       return (
         <div key={key} className="my-2">
-          <label className="font-semibold mb-1 block">Output Schema</label>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold">Output Schema</h3>
+            <Tooltip
+              content="The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
+              placement="left-start"
+              showArrow={true}
+              className="max-w-xs"
+            >
+              <Icon
+                icon="solar:question-circle-linear"
+                className="text-default-400 cursor-help"
+                width={20}
+              />
+            </Tooltip>
+          </div>
           <SchemaEditor
             jsonValue={dynamicModel.output_schema || {}}
             onChange={(newValue) => {
@@ -446,12 +461,26 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (key === 'system_message') {
       return (
         <div key={key}>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold">System Message</h3>
+            <Tooltip
+              content="The System Message sets the AI's behavior, role, and constraints. It's like giving the AI its job description and rules to follow. Use it to define the tone, format, and any specific requirements for the responses."
+              placement="left-start"
+              showArrow={true}
+              className="max-w-xs"
+            >
+              <Icon
+                icon="solar:question-circle-linear"
+                className="text-default-400 cursor-help"
+                width={20}
+              />
+            </Tooltip>
+          </div>
           <TextEditor
             key={key}
             nodeID={nodeID}
             fieldName={key}
             inputSchema={incomingSchema}
-            fieldTitle="System Message"
             content={dynamicModel[key] || ''}
             setContent={(value: string) => handleInputChange(key, value)}
           />
@@ -463,12 +492,26 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (key === 'user_message') {
       return (
         <div key={key}>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold">User Message</h3>
+            <Tooltip
+              content="The User Message is your main prompt template. Use variables like {{input.variable}} to make it dynamic. This is where you specify what you want the AI to do with each input it receives."
+              placement="left-start"
+              showArrow={true}
+              className="max-w-xs"
+            >
+              <Icon
+                icon="solar:question-circle-linear"
+                className="text-default-400 cursor-help"
+                width={20}
+              />
+            </Tooltip>
+          </div>
           <TextEditor
             key={key}
             nodeID={nodeID}
             fieldName={key}
             inputSchema={incomingSchema}
-            fieldTitle="User Message"
             content={dynamicModel[key] || ''}
             setContent={(value) => handleInputChange(key, value)}
           />
@@ -622,7 +665,21 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           />
         ) : (
           <div>
-            <h3 className="my-2 font-semibold">Few Shot Examples</h3>
+            <div className="flex items-center gap-2 my-2">
+              <h3 className="font-semibold">Few Shot Examples</h3>
+              <Tooltip
+                content="Few-Shot prompting is a powerful technique where you provide example input-output pairs to help the AI understand the pattern you want it to follow. This significantly improves the quality and consistency of responses, especially for specific formats or complex tasks."
+                placement="left-start"
+                showArrow={true}
+                className="max-w-xs"
+              >
+                <Icon
+                  icon="solar:question-circle-linear"
+                  className="text-default-400 cursor-help"
+                  width={20}
+                />
+              </Tooltip>
+            </div>
             <div className="flex flex-wrap gap-2">
               {fewShotExamples.map((example, index) => (
                 <div
