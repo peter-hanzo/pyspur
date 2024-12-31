@@ -263,7 +263,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
       if (testCase) {
         const { id, ...inputValues } = testCase;
-        const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
+        const inputNode = nodes.find(node => node.type === 'InputNode')
+        const inputNodeId = inputNode?.data?.title || inputNode?.id;
 
         if (inputNodeId) {
           const initialInputs = {
