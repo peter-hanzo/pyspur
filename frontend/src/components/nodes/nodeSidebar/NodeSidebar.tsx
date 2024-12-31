@@ -10,7 +10,7 @@ import {
   FlowWorkflowNodeConfig,
   updateNodeTitle,
 } from '../../../store/flowSlice';
-import { NodeType, NodeTypes, FieldMetadata } from '../../../store/nodeTypesSlice';
+import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory, FieldMetadata } from '../../../store/nodeTypesSlice';
 import NumberInput from '../../NumberInput';
 import CodeEditor from '../../CodeEditor';
 import { jsonOptions } from '../../../constants/jsonOptions';
@@ -42,11 +42,11 @@ interface NodeSidebarProps {
 }
 
 // Update findNodeSchema to use imported types
-const findNodeSchema = (nodeType: string, nodeTypes: NodeTypes): NodeType | null => {
+const findNodeSchema = (nodeType: string, nodeTypes: FlowWorkflowNodeTypesByCategory): FlowWorkflowNodeType | null => {
   if (!nodeTypes) return null;
 
   for (const category in nodeTypes) {
-    const nodeSchema = nodeTypes[category]?.find((n: NodeType) => n.name === nodeType);
+    const nodeSchema = nodeTypes[category]?.find((n: FlowWorkflowNodeType) => n.name === nodeType);
     if (nodeSchema) {
       return nodeSchema;
     }
@@ -89,7 +89,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
   const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
-  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes as NodeType).metadata;
+  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes as FlowWorkflowNodeType).metadata;
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
   const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
   const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID]);
@@ -101,7 +101,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
   const [nodeType, setNodeType] = useState<string>(node?.type || 'ExampleNode');
-  const [nodeSchema, setNodeSchema] = useState<NodeType | null>(
+  const [nodeSchema, setNodeSchema] = useState<FlowWorkflowNodeType | null>(
     findNodeSchema(node?.type || 'ExampleNode', nodeTypes)
   );
   const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {});

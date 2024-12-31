@@ -11,19 +11,10 @@ import { RouterNode } from '../components/nodes/logic/RouterNode';
 import { CoalesceNode } from '../components/nodes/logic/CoalesceNode';
 import { v4 as uuidv4 } from 'uuid';
 import { RootState } from '../store/store';
-
-interface NodeTypesConfig {
-  [category: string]: Array<{
-    name: string;
-    config?: {
-      title?: string;
-    };
-    [key: string]: any;
-  }>;
-}
+import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice';
 
 interface UseNodeTypesOptions {
-  nodeTypesConfig: NodeTypesConfig | undefined;
+  nodeTypesConfig: FlowWorkflowNodeTypesByCategory | undefined;
   readOnly?: boolean;
   includeCoalesceNode?: boolean;
 }
@@ -76,7 +67,7 @@ const generateNewNodeId = (
 
 export const createNodeAtCenter = (
   nodes: FlowWorkflowNode[],
-  nodeTypes: NodeTypes,
+  nodeTypes: FlowWorkflowNodeTypesByCategory,
   nodeType: string,
   reactFlowInstance: ReactFlowInstance,
   dispatch: AppDispatch
@@ -170,7 +161,7 @@ export const duplicateNode = (
 
 export const insertNodeBetweenNodes = (
   nodes: FlowWorkflowNode[],
-  nodeTypes: NodeTypes,
+  nodeTypes: FlowWorkflowNodeTypesByCategory,
   nodeType: string,
   sourceNode: FlowWorkflowNode,
   targetNode: FlowWorkflowNode,
