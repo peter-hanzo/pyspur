@@ -5,9 +5,13 @@ from dotenv import load_dotenv
 from jinja2 import Template
 from pydantic import BaseModel, Field
 
-from ..base import (BaseNodeInput, BaseNodeOutput, VariableOutputBaseNode,
-                    VariableOutputBaseNodeConfig)
-from .llm_utils import LLMModels, ModelInfo, create_messages, generate_text
+from ..base import (
+    BaseNodeInput,
+    BaseNodeOutput,
+    VariableOutputBaseNode,
+    VariableOutputBaseNodeConfig,
+)
+from ._utils import LLMModels, ModelInfo, create_messages, generate_text
 
 load_dotenv()
 
@@ -85,9 +89,10 @@ class SingleLLMCallNode(VariableOutputBaseNode):
             few_shot_examples=self.config.few_shot_examples,
         )
 
+        model_name = LLMModels(self.config.llm_info.model).value
         assistant_message_str = await generate_text(
             messages=messages,
-            model_name=LLMModels(self.config.llm_info.model).value,
+            model_name=model_name,
             temperature=self.config.llm_info.temperature,
             max_tokens=self.config.llm_info.max_tokens,
             json_mode=True,

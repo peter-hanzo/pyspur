@@ -3,12 +3,16 @@ from typing import Dict, List
 from pydantic import Field
 
 from ....nodes.base import BaseNodeInput, BaseNodeOutput
-from ....schemas.workflow_schemas import (WorkflowDefinitionSchema,
-                                          WorkflowLinkSchema,
-                                          WorkflowNodeSchema)
-from ...subworkflow.base_subworkflow_node import (BaseSubworkflowNode,
-                                                  BaseSubworkflowNodeConfig)
-from ..llm_utils import LLMModels, ModelInfo
+from ....schemas.workflow_schemas import (
+    WorkflowDefinitionSchema,
+    WorkflowLinkSchema,
+    WorkflowNodeSchema,
+)
+from ...subworkflow.base_subworkflow_node import (
+    BaseSubworkflowNode,
+    BaseSubworkflowNodeConfig,
+)
+from .._utils import LLMModels, ModelInfo
 from ..single_llm_call import SingleLLMCallNodeConfig
 
 
@@ -23,18 +27,6 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig, BaseSubworkflowNodeConfig):
             "and helpfulness. Respond with only a number."
         ),
         description="The prompt for the rating LLM",
-    )
-    rating_model_info: ModelInfo = Field(
-        default_factory=lambda: ModelInfo(
-            model=LLMModels.GPT_4O, max_tokens=16, temperature=0.1
-        ),
-        description="Model info for the rating LLM",
-    )
-    generation_llm_info: ModelInfo = Field(
-        default_factory=lambda: ModelInfo(
-            model=LLMModels.GPT_4O, max_tokens=150, temperature=0.7
-        ),
-        description="Model info for the generation LLM",
     )
     system_message: str = Field(
         default="You are a helpful assistant.",
@@ -86,7 +78,7 @@ class BestOfNNode(BaseSubworkflowNode):
                 id=gen_node_id,
                 node_type="SingleLLMCallNode",
                 config={
-                    "llm_info": self.config.generation_llm_info.model_dump(),
+                    "llm_info": self.config.llm_info.model_dump(),
                     "system_message": self.config.system_message,
                     "user_message": self.config.user_message,
                     "output_schema": self.config.output_schema,
@@ -108,7 +100,7 @@ class BestOfNNode(BaseSubworkflowNode):
                 id=rate_node_id,
                 node_type="SingleLLMCallNode",
                 config={
-                    "llm_info": self.config.rating_model_info.model_dump(),
+                    "llm_info": self.config.llm_info.model_dump(),
                     "system_message": self.config.rating_prompt,
                     "user_message": "",
                     "output_schema": {"rating": "float"},
@@ -203,9 +195,6 @@ if __name__ == "__main__":
         config=BestOfNNodeConfig(
             samples=3,
             rating_prompt="Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
-            rating_model_info=ModelInfo(
-                model=LLMModels.GPT_4O, max_tokens=16, temperature=0.1
-            ),
             llm_info=ModelInfo(model=LLMModels.GPT_4O, max_tokens=150, temperature=1),
             system_message="You are a helpful assistant.",
             user_message="",
