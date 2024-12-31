@@ -20,6 +20,7 @@ import { FlowWorkflowNode } from '@/store/flowSlice';
 import { getNodeTitle, duplicateNode, deleteNode } from '../../utils/flowUtils';
 import { RootState } from '../../store/store';
 import store from '../../store/store';
+import { createSelector } from '@reduxjs/toolkit';
 
 interface BaseNodeProps {
   isCollapsed: boolean;
@@ -118,6 +119,19 @@ const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
   );
 };
 
+const selectInitialInputs = createSelector(
+  (state: RootState) => state.flow.nodes,
+  (state: RootState) => state.flow.testInputs,
+  (nodes, testInputs) => {
+    const inputNodeId = nodes.find((node) => node.type === 'InputNode')?.id;
+    if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
+      const { id, ...rest } = testInputs[0];
+      return { [inputNodeId as string]: rest };
+    }
+    return { [inputNodeId as string]: {} };
+  }
+);
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -143,15 +157,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   // Only keep the selectors we need for this component's functionality
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const initialInputs = useSelector((state: RootState) => {
-    const inputNodeId = state.flow?.nodes.find((node) => node.type === 'InputNode')?.id;
-    let testInputs = state.flow?.testInputs;
-    if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
-      const { id, ...rest } = testInputs[0];
-      return { [inputNodeId as string]: rest };
-    }
-    return { [inputNodeId as string]: {} };
-  }, isEqual);
+  const initialInputs = useSelector(selectInitialInputs);
 
   const availableOutputs = useSelector((state: RootState) => {
     const nodes = state.flow.nodes.map(node => ({
