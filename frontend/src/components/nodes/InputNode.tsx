@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
@@ -286,6 +286,10 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         />
       </div>
     );
+  
+  const baseNodeStyles = useMemo(() => ({
+    width: nodeWidth,
+  }), [nodeWidth]);
 
   return (
     <div className={styles.inputNodeWrapper}>
@@ -303,12 +307,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         isInputNode={true}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
-        data={{
-          ...data,
-          acronym: 'IN',
-          color: '#2196F3',
-        }}
-        style={{ width: nodeWidth }}
+        data={data}
+        style={baseNodeStyles}
         className="hover:!bg-background"
         {...props}
       >
