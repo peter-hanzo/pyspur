@@ -27,13 +27,13 @@ export const useNodeTypes = ({ nodeTypesConfig, readOnly = false, includeCoalesc
     Object.keys(nodeTypesConfig).forEach(category => {
       nodeTypesConfig[category].forEach(node => {
         if (node.name === 'InputNode') {
-          types[node.name] = (props: any) => <InputNode {...props} readOnly={readOnly} />;
+          types[node.name] = (props: any) => <InputNode key={props.id} {...props} readOnly={readOnly} />;
         } else if (node.name === 'RouterNode') {
-          types[node.name] = (props: any) => <RouterNode {...props} readOnly={readOnly} />;
+          types[node.name] = (props: any) => <RouterNode key={props.id} {...props} readOnly={readOnly} />;
         } else if (includeCoalesceNode && node.name === 'CoalesceNode') {
           types[node.name] = CoalesceNode;
         } else {
-          types[node.name] = (props: any) => <DynamicNode {...props} type={node.name} displayOutput={true} readOnly={readOnly} />;
+          types[node.name] = (props: any) => <DynamicNode key={props.id} {...props} type={node.name} displayOutput={true} readOnly={readOnly} />;
         }
       });
     });
