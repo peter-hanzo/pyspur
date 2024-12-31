@@ -59,6 +59,7 @@ export interface FlowWorkflowNodeConfig {
     [key: string]: any;
   };
   route_map?: Record<string, RouteConditionGroup>;
+  preferences?: string[];
   [key: string]: any;
 }
 
