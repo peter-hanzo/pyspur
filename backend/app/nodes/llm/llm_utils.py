@@ -40,6 +40,7 @@ class LLMProvider(str, Enum):
     GOOGLE = "Google"
     OLLAMA = "Ollama"
     AZURE_OPENAI = "AzureOpenAI"
+    DEEPSEEK = "Deepseek"
 
 
 class LLMModel(BaseModel):
@@ -72,6 +73,9 @@ class LLMModels(str, Enum):
     GEMINI_1_5_FLASH = "gemini-1.5-flash"
     GEMINI_1_5_PRO_LATEST = "gemini-1.5-pro-latest"
     GEMINI_1_5_FLASH_LATEST = "gemini-1.5-flash-latest"
+
+    # Deepseek Models
+    DEEPSEEK_CHAT = "deepseek/deepseek-chat"
 
     # Ollama Models
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
@@ -164,6 +168,12 @@ class LLMModels(str, Enum):
                 id=cls.GEMINI_1_5_FLASH_LATEST.value,
                 provider=LLMProvider.GOOGLE,
                 name="Gemini 1.5 Flash Latest",
+            ),
+            # Deepseek Models
+            cls.DEEPSEEK_CHAT.value: LLMModel(
+                id=cls.DEEPSEEK_CHAT.value,
+                provider=LLMProvider.DEEPSEEK,
+                name="Deepseek Chat",
             ),
             # Ollama Models
             cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(

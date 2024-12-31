@@ -61,7 +61,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
   const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata || {});
   const updateNodeInternals = useUpdateNodeInternals();
 
-  const [predecessorNodes, setPredcessorNodes] = useState(() => {
+  const [predecessorNodes, setPredecessorNodes] = useState(() => {
     return edges
       .filter((edge) => edge.target === id)
       .map((edge) => {
@@ -258,7 +258,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
       finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]));
 
     if (hasChanged) {
-      setPredcessorNodes(finalPredecessors);
+      setPredecessorNodes(finalPredecessors);
       updateNodeInternals(id);
     }
   }, [finalPredecessors, predecessorNodes, updateNodeInternals, id]);
