@@ -40,22 +40,12 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, s
       data: {
         title: node.data?.title
       }
-    })),
-    (prev, next) => {
-      if (!prev || !next) return false;
-      if (prev.length !== next.length) return false;
-      return prev.every((node, index) =>
-        node.id === next[index].id &&
-        node.type === next[index].type &&
-        node.data?.title === next[index].data?.title
-      );
-    }
-  );
+    })), isEqual);
   const nodeData = data;
-  const edges = useSelector((state: RootState) => state.flow.edges);
+  const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
 
-  const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`));
-  const outputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.output`));
+  const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`), isEqual);
+  const outputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.output`), isEqual);
 
   const excludeSchemaKeywords = (metadata: SchemaMetadata): Record<string, any> => {
     const schemaKeywords = ['required', 'title', 'type'];
