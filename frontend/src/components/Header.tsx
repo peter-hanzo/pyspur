@@ -27,6 +27,7 @@ import { useRouter } from 'next/router';
 import DeployModal from './modals/DeployModal';
 import { formatDistanceStrict } from 'date-fns';
 import { useHotkeys } from 'react-hotkeys-hook';
+import store from '../store/store';
 
 interface HeaderProps {
   activePage: 'dashboard' | 'workflow' | 'evals' | 'trace';
@@ -122,7 +123,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             const nodeId = task.node_id;
             let node = nodes.find(node => node.id === nodeId);
             if (!node) {
-              node = nodes.find(node => node.data?.config?.title === task.node_id);
+              // find the node by title in nodeConfigs
+              const state = store.getState();
+              const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(key => state.flow.nodeConfigs[key].title === nodeId);
+              if (correspondingNodeId) {
+                node = nodes.find(node => node.id === correspondingNodeId);
+              }
             }
             if (!node) {
               return;
