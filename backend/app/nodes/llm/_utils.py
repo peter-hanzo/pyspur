@@ -8,13 +8,13 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, cast
 
 import litellm
-import numpy as np
 from dotenv import load_dotenv
 from litellm import acompletion
 from ollama import AsyncClient
 from pydantic import BaseModel, Field
-from sklearn.metrics.pairwise import cosine_similarity
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
+
+from ._providers import OllamaOptions, _setup_azure_configuration
 
 # uncomment for debugging litellm issues
 # litellm.set_verbose=True
@@ -321,39 +321,13 @@ def async_retry(*dargs, **dkwargs):
     return decorator
 
 
-def _setup_azure_configuration(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Helper function to configure Azure settings from environment variables.
-    This strips the 'azure/' prefix from the model, removes any 'response_format'
-    parameter, and verifies that required Azure keys are present.
-    """
-    # Remove the "azure/" prefix if present
-    base_model = (
-        kwargs["model"].replace("azure/", "")
-        if kwargs["model"].startswith("azure/")
-        else kwargs["model"]
-    )
-    azure_kwargs = kwargs.copy()
-    azure_kwargs.pop("response_format", None)
-    azure_kwargs.update(
-        {
-            "model": base_model,
-            "api_key": os.getenv("AZURE_OPENAI_API_KEY"),
-            "api_base": os.getenv("AZURE_OPENAI_API_BASE"),
-            "api_version": os.getenv("AZURE_OPENAI_API_VERSION"),
-            "deployment_id": os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-        }
-    )
-    required_config = ["api_key", "api_base", "api_version", "deployment_id"]
-    missing_config = [key for key in required_config if not azure_kwargs.get(key)]
-    if missing_config:
-        raise ValueError(
-            f"Missing Azure configuration for: {', '.join(missing_config)}"
-        )
-    return azure_kwargs
-
-
-@async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
+@async_retry(
+    wait=wait_random_exponential(min=30, max=120),
+    stop=stop_after_attempt(3),
+    retry=lambda e: not isinstance(
+        e, (litellm.exceptions.AuthenticationError, ValueError)
+    ),
+)
 async def completion_with_backoff(**kwargs) -> str:
     """
     Calls the LLM completion endpoint with backoff.
@@ -412,7 +386,7 @@ async def generate_text(
 ) -> str:
     kwargs = {
         "model": model_name,
-        "max_tokens": 1000,
+        "max_tokens": max_tokens,
         "messages": messages,
         "temperature": temperature,
     }
@@ -468,35 +442,6 @@ async def generate_text(
 def encode_image(image_path: str) -> str:
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
-
-
-class OllamaOptions(BaseModel):
-    """Options for Ollama API calls"""
-
-    temperature: float = Field(
-        default=0.7, ge=0.0, le=1.0, description="Controls randomness in responses"
-    )
-    max_tokens: Optional[int] = Field(
-        default=None, ge=0, description="Maximum number of tokens to generate"
-    )
-    top_p: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold"
-    )
-    top_k: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Number of tokens to consider for top-k sampling",
-    )
-    repeat_penalty: Optional[float] = Field(
-        default=None, ge=0.0, description="Penalty for token repetition"
-    )
-    stop: Optional[list[str]] = Field(
-        default=None, description="Stop sequences to end generation"
-    )
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary, excluding None values"""
-        return {k: v for k, v in self.model_dump().items() if v is not None}
 
 
 @async_retry(wait=wait_random_exponential(min=30, max=120), stop=stop_after_attempt(3))
