@@ -132,6 +132,19 @@ const selectInitialInputs = createSelector(
   }
 );
 
+const selectAvailableOutputs = createSelector(
+  [(state: RootState) => state.flow.nodes],
+  (nodes) => {
+    const outputs: Record<string, any> = {};
+    nodes.forEach((node) => {
+      if (node.data?.run) {
+        outputs[node.id] = node.data.run;
+      }
+    });
+    return outputs;
+  }
+);
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
@@ -157,24 +170,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   // Only keep the selectors we need for this component's functionality
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const initialInputs = useSelector(selectInitialInputs);
+  const initialInputs = useSelector(selectInitialInputs, isEqual);
 
-  const availableOutputs = useSelector((state: RootState) => {
-    const nodes = state.flow.nodes.map(node => ({
-      id: node.id,
-      data: {
-        run: node.data?.run
-      }
-    }));
-
-    const outputs: Record<string, any> = {};
-    nodes.forEach((node) => {
-      if (node.data && node.data.run) {
-        outputs[node.id] = node.data.run;
-      }
-    });
-    return outputs;
-  }, isEqual);
+  const availableOutputs = useSelector(selectAvailableOutputs, isEqual);
 
   const { executePartialRun, loading } = usePartialRun();
 
