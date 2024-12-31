@@ -245,6 +245,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       return (
         <div key={key}>
           <Select
+            key={`select-${nodeID}-${key}`}
             label={label}
             selectedKeys={[currentValue]}
             onChange={(e) => {
@@ -257,7 +258,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             {Object.entries(modelsByProvider).map(([provider, models], index) => (
               models.length > 0 && (
                 <SelectSection
-                  key={provider}
+                  key={`provider-${provider}`}
                   title={provider}
                   showDivider={index < Object.keys(modelsByProvider).length - 1}
                 >
@@ -279,6 +280,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     return (
       <div key={key}>
         <Select
+          key={`select-${nodeID}-${key}`}
           label={label}
           selectedKeys={[currentValue]}
           onChange={(e) => handleInputChange(lastTwoDots, e.target.value)}
@@ -332,6 +334,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       return (
         <div key={key} className="my-4">
           <Input
+            key={`input-${nodeID}-${key}`}
             fullWidth
             label={fieldMetadata?.title || key}
             value={value || "http://localhost:11434"}
@@ -352,9 +355,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     // Handle specific cases for input_schema, output_schema, and system_prompt
     if (key === 'input_schema') {
       return (
-        <div key={key} className="my-2">
+        <div key={`schema-editor-input-${nodeID}`} className="my-2">
           <label className="font-semibold mb-1 block">Input Schema</label>
           <SchemaEditor
+            key={`schema-editor-input-${nodeID}`}
             jsonValue={currentNodeConfig.input_schema || {}}
             onChange={(newValue) => {
               handleInputChange('input_schema', newValue);
@@ -368,13 +372,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-
-
     if (key === 'output_schema') {
       return (
         <div key={key} className="my-2">
           <label className="font-semibold mb-1 block">Output Schema</label>
           <SchemaEditor
+            key={`schema-editor-output-${nodeID}`}
             jsonValue={currentNodeConfig.output_schema || {}}
             onChange={(newValue) => {
               handleInputChange('output_schema', newValue);
@@ -392,7 +395,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       return (
         <div key={key}>
           <TextEditor
-            key={key}
+            key={`text-editor-system-${nodeID}`}
             nodeID={nodeID}
             fieldName={key}
             inputSchema={incomingSchema}
@@ -409,7 +412,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       return (
         <div key={key}>
           <TextEditor
-            key={key}
+            key={`text-editor-user-${nodeID}`}
             nodeID={nodeID}
             fieldName={key}
             inputSchema={incomingSchema}
@@ -427,7 +430,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       return (
         <div key={key}>
           <TextEditor
-            key={key}
+            key={`text-editor-${nodeID}-${key}`}
             nodeID={nodeID}
             fieldName={key}
             inputSchema={incomingSchema}
@@ -443,7 +446,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     if (key === 'code') {
       return (
         <CodeEditor
-          key={key}
+          key={`code-editor-${nodeID}-${key}`}
           code={value}
           onChange={(newValue: string) => handleInputChange(key, newValue)}
         />
@@ -456,6 +459,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         return (
           <div key={key} className="my-4">
             <Textarea
+              key={`textarea-${nodeID}-${key}`}
               fullWidth
               label={fieldMetadata?.title || key}
               value={value}
@@ -477,6 +481,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 <span className="text-sm">{value}</span>
               </div>
               <Slider
+                key={`slider-${nodeID}-${key}`}
                 aria-label={fieldMetadata.title || key}
                 value={value}
                 minValue={min}
@@ -496,7 +501,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
         return (
           <NumberInput
-            key={key}
+            key={`number-input-${nodeID}-${key}`}
             label={key}
             value={value}
             onChange={(e) => {
@@ -511,6 +516,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <div className="flex justify-between items-center">
               <label className="font-semibold">{fieldMetadata?.title || key}</label>
               <Switch
+                key={`switch-${nodeID}-${key}`}
                 checked={value}
                 onChange={(e) => handleInputChange(key, e.target.checked)}
               />
@@ -560,6 +566,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       <div>
         {fewShotIndex !== null ? (
           <FewShotEditor
+            key={`few-shot-editor-${nodeID}-${fewShotIndex}`}
             nodeID={nodeID}
             exampleIndex={fewShotIndex}
             onSave={() => setFewShotIndex(null)}
@@ -592,6 +599,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
               ))}
 
               <Button
+                key={`add-example-${nodeID}`}
                 isIconOnly
                 radius="full"
                 variant="light"
@@ -644,6 +652,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     >
       {showTitleError && (
         <Alert
+          key={`alert-${nodeID}`}
           className="absolute top-4 left-4 right-4 z-50"
           color="danger"
           onClose={() => setShowTitleError(false)}
@@ -677,12 +686,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
               <h2 className="text-xs font-semibold">{nodeType}</h2>
             </div>
             <Button
+              key={`close-btn-${nodeID}`}
               isIconOnly
               radius="full"
               variant="light"
               onClick={() => dispatch(setSelectedNode({ nodeId: null }))}
             >
               <Icon
+                key={`close-icon-${nodeID}`}
                 className="text-default-500"
                 icon="solar:close-circle-linear"
                 width={24}
@@ -691,17 +702,19 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           </div>
 
           <Accordion
+            key={`accordion-${nodeID}`}
             selectionMode="multiple"
             defaultExpandedKeys={hasRunOutput ? ['output'] : ['title', 'config']}
           >
             {nodeType !== 'InputNode' && (
               <AccordionItem key="output" aria-label="Output" title="Outputs">
-                <NodeOutput output={node?.data?.run} />
+                <NodeOutput key={`node-output-${nodeID}`} output={node?.data?.run} />
               </AccordionItem>
             )}
 
             <AccordionItem key="title" aria-label="Node Title" title="Node Title">
               <Input
+                key={`title-input-${nodeID}`}
                 value={titleInputValue}
                 onChange={handleNodeTitleChange}
                 placeholder="Enter node title"

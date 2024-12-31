@@ -331,6 +331,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     <div style={staticStyles.container} draggable={false}>
       {showTitleError && (
         <Alert
+          key={`alert-${id}`}
           className="absolute -top-16 left-0 right-0 z-50"
           color="danger"
           onClose={() => setShowTitleError(false)}
@@ -342,6 +343,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       <div>
         {/* Hidden target handle covering the entire node */}
         <Handle
+          key={`handle-${id}`}
           type="target"
           position={Position.Left}
           id={`node-body-${id}`}
@@ -350,9 +352,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           isConnectableStart={false}
         />
 
-        {/* Node content wrapped in drag handle */}
         <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
           <Card
+            key={`card-${id}`}
             className={`base-node ${className || ''}`}
             style={cardStyle}
             onMouseEnter={handleMouseEnter}
@@ -363,9 +365,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             }}
           >
             {data && (
-              <CardHeader style={headerStyle}>
+              <CardHeader key={`header-${id}`} style={headerStyle}>
                 {editingTitle ? (
                   <Input
+                    key={`input-${id}`}
                     autoFocus
                     value={titleInputValue}
                     size="sm"
@@ -404,6 +407,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
                 <div style={staticStyles.controlsContainer}>
                   <Button
+                    key={`collapse-btn-${id}`}
                     size="sm"
                     variant="flat"
                     style={staticStyles.collapseButton}
@@ -421,9 +425,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 </div>
               </CardHeader>
             )}
-            {!isCollapsed && <Divider />}
+            {!isCollapsed && <Divider key={`divider-${id}`} />}
 
-            <CardBody className="px-1">
+            <CardBody key={`body-${id}`} className="px-1">
               {children}
             </CardBody>
           </Card>
@@ -433,6 +437,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       {/* Controls */}
       {(showControls || isSelected) && (
         <Card
+          key={`controls-card-${id}`}
           onMouseEnter={handleControlsMouseEnter}
           onMouseLeave={handleControlsMouseLeave}
           style={staticStyles.controlsCard}
@@ -442,6 +447,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         >
           <div className="flex flex-row gap-1">
             <Button
+              key={`run-btn-${id}`}
               isIconOnly
               radius="full"
               variant="light"
@@ -449,39 +455,40 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               disabled={loading || isRunning}
             >
               {isRunning ? (
-                <Spinner size="sm" color="current" />
+                <Spinner key={`spinner-${id}`} size="sm" color="current" />
               ) : (
-                <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+                <Icon key={`play-icon-${id}`} className="text-default-500" icon="solar:play-linear" width={22} />
               )}
             </Button>
             {!isInputNode && (
               <Button
+                key={`delete-btn-${id}`}
                 isIconOnly
                 radius="full"
                 variant="light"
                 onPress={handleDelete}
               >
-                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
+                <Icon key={`delete-icon-${id}`} className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
               </Button>
             )}
-            {/* Duplicate Button */}
             <Button
+              key={`duplicate-btn-${id}`}
               isIconOnly
               radius="full"
               variant="light"
               onPress={handleDuplicate}
             >
-              <Icon className="text-default-500" icon="solar:copy-linear" width={22} />
+              <Icon key={`duplicate-icon-${id}`} className="text-default-500" icon="solar:copy-linear" width={22} />
             </Button>
-            {/* View Output Button */}
             {handleOpenModal && (
               <Button
+                key={`modal-btn-${id}`}
                 isIconOnly
                 radius="full"
                 variant="light"
                 onPress={() => handleOpenModal(true)}
               >
-                <Icon className="text-default-500" icon="solar:eye-linear" width={22} />
+                <Icon key={`view-icon-${id}`} className="text-default-500" icon="solar:eye-linear" width={22} />
               </Button>
             )}
           </div>
