@@ -89,7 +89,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
   const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
-  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes as FlowWorkflowNodeType).metadata;
+  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes).metadata;
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
   const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
   const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID]);
