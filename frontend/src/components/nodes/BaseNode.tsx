@@ -487,4 +487,4 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   );
 };
 
-export default memo(BaseNode, baseNodeComparator);
+export default BaseNode;
