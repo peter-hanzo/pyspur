@@ -371,3 +371,12 @@ export const deleteNode = (
     dispatch(setSelectedNode({ nodeId: null }));
   }
 };
+
+export const getWorkflowInputVariables = (
+  nodes: FlowWorkflowNode[],
+  nodeConfigs: Record<string, any>
+): string[] => {
+  const inputNode = nodes.find(node => node.type === 'InputNode');
+  const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {};
+  return workflowInputVariables;
+};

@@ -10,7 +10,6 @@ import {
 import { Input, Button, Alert } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import styles from './InputNode.module.css';
-import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import { RootState } from '../../store/store';
 import { isEqual } from 'lodash';
 import { FlowWorkflowNode } from '../../store/flowSlice';
@@ -286,7 +285,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         />
       </div>
     );
-  
+
   const baseNodeStyles = useMemo(() => ({
     width: nodeWidth,
   }), [nodeWidth]);
