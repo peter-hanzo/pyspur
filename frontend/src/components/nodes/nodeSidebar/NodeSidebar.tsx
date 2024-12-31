@@ -277,6 +277,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         OpenAI: [],
         Anthropic: [],
         Google: [],
+        Deepseek: [],
         Ollama: [],
       };
 
@@ -287,9 +288,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           modelsByProvider.Anthropic.push({ id: modelId, name: modelId });
         } else if (modelId.startsWith('gemini')) {
           modelsByProvider.Google.push({ id: modelId, name: modelId });
+        } else if (modelId.startsWith('deepseek')) {
+          modelsByProvider.Deepseek.push({ id: modelId, name: modelId });
         } else {
           modelsByProvider.OpenAI.push({ id: modelId, name: modelId });
         }
+
       });
 
       // Ensure we have a valid default value
