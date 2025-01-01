@@ -52,12 +52,26 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   console.log('nodeConfig', nodeConfig);
 
   // The CoalesceNode might have multiple incoming edges. We'll track those predecessor nodes (if any).
-  const [predecessorNodes, setPredecessorNodes] = useState(
-    edges
+  const [predecessorNodes, setPredecessorNodes] = useState(() => {
+    return edges
       .filter((edge) => edge.target === id)
-      .map((edge) => nodes.find((node) => node.id === edge.source))
-      .filter(Boolean)
-  );
+      .map((edge) => {
+        const sourceNode = nodes.find((node) => node.id === edge.source);
+        if (!sourceNode) return null;
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+          return {
+            id: sourceNode.id,
+            type: sourceNode.type,
+            data: {
+              config: sourceNode.data.config,
+              title: edge.targetHandle,
+            }
+          };
+        }
+        return sourceNode;
+      })
+      .filter(Boolean);
+  });
 
   // Add a type guard to check if the node is a FlowWorkflowNode
   const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
@@ -68,7 +82,21 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   useEffect(() => {
     const updatedPredecessors = edges
       .filter((edge) => edge.target === id)
-      .map((edge) => nodes.find((node) => node.id === edge.source))
+      .map((edge) => {
+        const sourceNode = nodes.find((node) => node.id === edge.source);
+        if (!sourceNode) return null;
+        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+          return {
+            id: sourceNode.id,
+            type: sourceNode.type,
+            data: {
+              config: sourceNode.data.config,
+              title: edge.targetHandle,
+            }
+          };
+        }
+        return sourceNode;
+      })
       .filter(Boolean);
 
     let finalPredecessors = updatedPredecessors;
@@ -77,13 +105,24 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
       const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id);
       if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-        finalPredecessors = [...finalPredecessors, connection.fromNode];
+        if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
+          finalPredecessors = [...finalPredecessors, {
+            id: connection.fromNode.id,
+            type: connection.fromNode.type,
+            data: {
+              config: connection.fromNode.data.config,
+              title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
+            }
+          }];
+        } else {
+          finalPredecessors = [...finalPredecessors, connection.fromNode];
+        }
       }
     }
 
-    // Deduplicate
+    // Deduplicate by both id and data.title (for RouterNode handles)
     finalPredecessors = finalPredecessors.filter((node, index, self) => {
-      return self.findIndex((n) => n?.id === node?.id) === index;
+      return self.findIndex((n) => n?.id === node?.id && n?.data?.title === node?.data?.title) === index;
     });
 
     // Compare to existing predecessorNodes; only set if changed
@@ -105,15 +144,17 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     return predecessorNodes
       .map((pred) => {
         if (!pred) return null;
-        const label = pred.data?.config?.title || pred.id;
+        const nodeId = pred.id;
+        const handleId = pred.data?.title || '';
+        const label = pred.data?.config?.title || handleId || pred.id;
+        const value = `${nodeId}|${handleId}`;
         return {
-          value: pred.id,
+          value,
           label
         };
       })
       .filter(Boolean) as { value: string; label: string }[];
   }, [predecessorNodes]);
-
 
   /**
    * Keep track of used variable preferences so we don't show duplicates in other slots.
@@ -182,7 +223,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
     // We have multiple input handle labels
     const inputLabels = predecessorNodes.map(
-      (pred) => pred?.data?.config?.title || pred?.id || ''
+      (pred) => pred?.data?.config?.title || pred?.data?.title || pred?.id || ''
     );
 
     // Output label is the node's title or fallback
@@ -251,10 +292,10 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
           <div>
             {predecessorNodes.map((node) => {
               if (!node) return null;
-              const handleId = node.data?.config?.title || node.id;
+              const handleId = node.data?.config?.title || node.data?.title || node.id;
               return (
                 <div
-                  key={node.id}
+                  key={`${node.id}-${handleId}`}
                   className={`${styles.handleRow} w-full justify-start mb-2`}
                 >
                   <Handle
