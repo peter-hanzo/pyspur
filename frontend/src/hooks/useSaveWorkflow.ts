@@ -4,68 +4,46 @@ import { updateWorkflow } from '../utils/api';
 import { RootState } from '../store/store';
 import { debounce } from 'lodash';
 import { WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas';
+import { WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas';
+import { FlowWorkflowNodeConfig } from '../store/flowSlice';
 
-interface Position {
-  x: number;
-  y: number;
-}
+// Use existing types from flowSlice.ts
+type Position = WorkflowNodeCoordinates;
 
 interface NodeData {
-  config: {
-    data?: {
-      input_schema?: Record<string, string>;
-      output_schema?: Record<string, string>;
-    };
-    input_schema?: Record<string, string>;
-    title?: string;
-    route_map?: Record<string, any>;
-  };
+  config: FlowWorkflowNodeConfig;
   title?: string;
 }
-
-interface Node {
-  id: string;
-  type: string;
-  position: Position;
-  data: NodeData;
-  config?: any;
-}
-
-interface Edge {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
-}
+import { FlowWorkflowNode as Node, FlowWorkflowEdge as Edge } from '../store/flowSlice';
 
 export const useSaveWorkflow = () => {
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
+  const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
   const workflowID = useSelector((state: RootState) => state.flow.workflowID);
   const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
   const workflowName = useSelector((state: RootState) => state.flow.projectName);
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
 
   // Create a ref to store the current values
-  const valuesRef = useRef({ nodes, edges, workflowID, workflowInputVariables, workflowName, testInputs });
+  const valuesRef = useRef({ nodes, edges, nodeConfigs, workflowID, workflowInputVariables, workflowName, testInputs });
 
   // Update the ref when values change
   useEffect(() => {
-    valuesRef.current = { nodes, edges, workflowID, workflowInputVariables, workflowName, testInputs };
-  }, [nodes, edges, workflowID, workflowInputVariables, workflowName, testInputs]);
+    valuesRef.current = { nodes, edges, nodeConfigs, workflowID, workflowInputVariables, workflowName, testInputs };
+  }, [nodes, edges, nodeConfigs, workflowID, workflowInputVariables, workflowName, testInputs]);
 
   // Create the debounced save function once
   const debouncedSave = useRef(
     debounce(async () => {
-      const { nodes, edges, workflowID, workflowName, testInputs } = valuesRef.current;
+      const { nodes, edges, nodeConfigs, workflowID, workflowName, testInputs } = valuesRef.current;
 
       try {
         const updatedNodes = nodes
           .filter((node): node is NonNullable<typeof node> => node !== null && node !== undefined)
           .map((node) => {
-            const { config, type } = node.data;
-            const title = node.data.config.title || node.data.title;
+            const config = nodeConfigs[node.id] || {};
+            const title = config.title || node.data.title;
 
             // Ensure the RouterNode structure uses route_map
             if (node.type === 'RouterNode') {
@@ -84,7 +62,7 @@ export const useSaveWorkflow = () => {
                   route_map: config.route_map || {}, // Ensure route_map exists
                 },
                 title,
-                new_id: title || type || 'Untitled',
+                new_id: title || node.type || 'Untitled',
               };
             }
 
@@ -92,7 +70,7 @@ export const useSaveWorkflow = () => {
               ...node,
               config,
               title,
-              new_id: title || type || 'Untitled',
+              new_id: title || node.type || 'Untitled',
             };
           });
 
@@ -128,7 +106,6 @@ export const useSaveWorkflow = () => {
           }
         };
 
-        console.log('send to b/e workflow:', updatedWorkflow);
         await updateWorkflow(workflowID, updatedWorkflow);
       } catch (error) {
         console.error('Error saving workflow:', error);

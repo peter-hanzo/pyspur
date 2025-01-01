@@ -18,7 +18,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import SettingsCard from './modals/SettingsModal';
-import { setProjectName, updateNodeData, resetRun } from '../store/flowSlice';
+import { setProjectName, updateNodeDataOnly, resetRun } from '../store/flowSlice';
 import RunModal from './modals/RunModal';
 import { getRunStatus, startRun, getWorkflow } from '../utils/api';
 import { Toaster, toast } from 'sonner'
@@ -27,6 +27,7 @@ import { useRouter } from 'next/router';
 import DeployModal from './modals/DeployModal';
 import { formatDistanceStrict } from 'date-fns';
 import { useHotkeys } from 'react-hotkeys-hook';
+import store from '../store/store';
 
 interface HeaderProps {
   activePage: 'dashboard' | 'workflow' | 'evals' | 'trace';
@@ -122,7 +123,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             const nodeId = task.node_id;
             let node = nodes.find(node => node.id === nodeId);
             if (!node) {
-              node = nodes.find(node => node.data?.config?.title === task.node_id);
+              // find the node by title in nodeConfigs
+              const state = store.getState();
+              const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(key => state.flow.nodeConfigs[key].title === nodeId);
+              if (correspondingNodeId) {
+                node = nodes.find(node => node.id === correspondingNodeId);
+              }
             }
             if (!node) {
               return;
@@ -134,10 +140,14 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run);
               const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus;
 
-              console.log('Node:', node.id, 'Output:', output_values, 'Status:', nodeTaskStatus, 'isOutputDifferent:', isOutputDifferent, 'isStatusDifferent:', isStatusDifferent);
-
               if (isOutputDifferent || isStatusDifferent) {
-                dispatch(updateNodeData({ id: node.id, data: { run: { ...node.data.run, ...output_values }, taskStatus: nodeTaskStatus } }));
+                dispatch(updateNodeDataOnly({
+                  id: node.id,
+                  data: {
+                    run: { ...node.data.run, ...output_values },
+                    taskStatus: nodeTaskStatus
+                  }
+                }));
               }
             }
           });
@@ -242,7 +252,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     ['mod+enter', 'ctrl+enter'],
     (e) => {
       e.preventDefault();
-      console.log('Run workflow');
 
       if (testInputs.length === 0) {
         setIsDebugModalOpen(true);
@@ -254,13 +263,13 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
       if (testCase) {
         const { id, ...inputValues } = testCase;
-        const inputNodeId = nodes.find(node => node.type === 'InputNode')?.id;
+        const inputNode = nodes.find(node => node.type === 'InputNode')
+        const inputNodeId = inputNode?.data?.title || inputNode?.id;
 
         if (inputNodeId) {
           const initialInputs = {
             [inputNodeId]: inputValues
           };
-          console.log('Initial inputs:', initialInputs);
           executeWorkflow(initialInputs);
         }
       }
@@ -273,7 +282,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
   const updateRunStatuses = async () => {
     if (!workflowId || !isHistoryOpen) return;
-    
+
     setIsUpdatingStatus(true);
     try {
       // First fetch the latest workflow runs
@@ -290,7 +299,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           return run;
         })
       );
-      
+
       setWorkflowRuns(updatedRuns);
     } catch (error) {
       console.error('Error updating run statuses:', error);
@@ -445,13 +454,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                         onPress={() => window.open(`/trace/${run.id}`, '_blank')}
                         textValue={`Version ${index + 1}`}
                       >
-                        {`${run.id} | ${run.status.toLowerCase()} ${
-                          (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
-                            ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                            : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
-                              ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                              : ''
-                        }`}
+                        {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
+                          ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                          : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
+                            ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                            : ''
+                          }`}
                       </DropdownItem>
                     ))
                   )}

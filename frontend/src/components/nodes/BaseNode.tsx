@@ -1,8 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteNode, setSelectedNode, updateNodeData, addNode, setEdges, updateNodeTitle } from '../../store/flowSlice';
-import { Handle, getConnectedEdges, Node, Edge, Position } from '@xyflow/react';
-import { v4 as uuidv4 } from 'uuid';
+import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '../../store/flowSlice';
+import { Handle, Position } from '@xyflow/react';
 import {
   Card,
   CardHeader,
@@ -17,9 +16,11 @@ import { Icon } from "@iconify/react";
 import usePartialRun from '../../hooks/usePartialRun';
 import { TaskStatus } from '@/types/api_types/taskSchemas';
 import isEqual from 'lodash/isEqual';
-import { FlowWorkflowNode, FlowState } from '@/store/flowSlice';
-import { nodeComparator, getNodeTitle } from '../../utils/flowUtils';
+import { FlowWorkflowNode } from '@/store/flowSlice';
+import { getNodeTitle, duplicateNode, deleteNode } from '../../utils/flowUtils';
 import { RootState } from '../../store/store';
+import store from '../../store/store';
+import { createSelector } from '@reduxjs/toolkit';
 
 interface BaseNodeProps {
   isCollapsed: boolean;
@@ -31,6 +32,8 @@ interface BaseNodeProps {
   isInputNode?: boolean;
   className?: string;
   handleOpenModal?: (isModalOpen: boolean) => void;
+  positionAbsoluteX?: number;
+  positionAbsoluteY?: number;
 }
 
 const staticStyles = {
@@ -102,15 +105,58 @@ const convertToPythonVariableName = (str: string): string => {
   return str;
 };
 
+const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
+  // Compare only the props that would trigger a meaningful visual change
+  return (
+    prev.isCollapsed === next.isCollapsed &&
+    prev.id === next.id &&
+    isEqual(prev.data, next.data) &&
+    isEqual(prev.style, next.style) &&
+    prev.isInputNode === next.isInputNode &&
+    prev.className === next.className &&
+    prev.positionAbsoluteX === next.positionAbsoluteX &&
+    prev.positionAbsoluteY === next.positionAbsoluteY
+  );
+};
+
+const selectInitialInputs = createSelector(
+  (state: RootState) => state.flow.nodes,
+  (state: RootState) => state.flow.testInputs,
+  (nodes, testInputs) => {
+    const inputNodeId = nodes.find((node) => node.type === 'InputNode')?.id;
+    if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
+      const { id, ...rest } = testInputs[0];
+      return { [inputNodeId as string]: rest };
+    }
+    return { [inputNodeId as string]: {} };
+  }
+);
+
+const selectAvailableOutputs = createSelector(
+  [(state: RootState) => state.flow.nodes],
+  (nodes) => {
+    const outputs: Record<string, any> = {};
+    nodes.forEach((node) => {
+      if (node.data?.run) {
+        outputs[node.id] = node.data.run;
+      }
+    });
+    return outputs;
+  }
+);
+
 const BaseNode: React.FC<BaseNodeProps> = ({
   isCollapsed,
   setIsCollapsed,
-  handleOpenModal, id,
+  handleOpenModal,
+  id,
   data,
   children,
   style = {},
   isInputNode = false,
-  className = ''
+  className = '',
+  positionAbsoluteX,
+  positionAbsoluteY
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showControls, setShowControls] = useState(false);
@@ -121,37 +167,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   const [titleInputValue, setTitleInputValue] = useState('');
   const dispatch = useDispatch();
 
-  // Retrieve the node's position and edges from the Redux store
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
-  const edges = useSelector((state: RootState) => state.flow.edges);
+  // Only keep the selectors we need for this component's functionality
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode);
 
-  const initialInputs = useSelector((state: RootState) => {
-    const inputNodeId = state.flow?.nodes.find((node) => node.type === 'InputNode')?.id;
-    let testInputs = state.flow?.testInputs;
-    if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
-      const { id, ...rest } = testInputs[0];
-      return { [inputNodeId as string]: rest };
-    }
-    return { [inputNodeId as string]: {} };
-  }, isEqual);
+  const initialInputs = useSelector(selectInitialInputs, isEqual);
 
-  const availableOutputs = useSelector((state: RootState) => {
-    const nodes = state.flow.nodes.map(node => ({
-      id: node.id,
-      data: {
-        run: node.data?.run
-      }
-    }));
-
-    const outputs: Record<string, any> = {};
-    nodes.forEach((node) => {
-      if (node.data && node.data.run) {
-        outputs[node.id] = node.data.run;
-      }
-    });
-    return outputs;
-  }, isEqual);
+  const availableOutputs = useSelector(selectAvailableOutputs, isEqual);
 
   const { executePartialRun, loading } = usePartialRun();
 
@@ -184,14 +205,20 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   }, [isHovered, setShowControls, setIsTooltipHovered]);
 
   const handleDelete = () => {
-    dispatch(deleteNode({ nodeId: id }));
-    if (selectedNodeId === id) {
-      dispatch(setSelectedNode({ nodeId: null }));
+    deleteNode(id, selectedNodeId, dispatch);
+  };
+
+  const handleDuplicate = () => {
+    if (!data || !positionAbsoluteX || !positionAbsoluteY) {
+      console.error('Node position not found');
+      return;
     }
+
+    duplicateNode(id, positionAbsoluteX, positionAbsoluteY, dispatch, store.getState as () => RootState);
   };
 
   const handlePartialRun = () => {
-    if (!node) {
+    if (!data) {
       return;
     }
     setIsRunning(true);
@@ -210,11 +237,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       if (result) {
         Object.entries(result).forEach(([nodeId, output_values]) => {
           if (output_values) {
-            dispatch(updateNodeData({
+            dispatch(updateNodeDataOnly({
               id: nodeId,
               data: {
                 run: {
-                  ...(node?.data?.run || {}),
+                  ...(data?.run || {}),
                   ...(output_values || {})
                 }
               }
@@ -226,42 +253,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     }).finally(() => {
       setIsRunning(false);
     });
-  };
-
-  const handleDuplicate = () => {
-    if (!node || !node.position) {
-      console.error('Node position not found');
-      return;
-    }
-
-    // Get all edges connected to the current node
-    const connectedEdges = getConnectedEdges([node], edges);
-
-    // Generate a new unique ID for the duplicated node
-    const newNodeId = `node_${Date.now()}`;
-
-    // Create the new node with an offset position
-    const newNode = {
-      ...node,
-      id: newNodeId,
-      position: { x: node.position.x + 20, y: node.position.y + 20 }, // Offset the position slightly
-      selected: false, // Ensure the new node is not selected by default
-    };
-
-    // Duplicate the edges connected to the node
-    const newEdges = connectedEdges.map((edge) => {
-      const newEdgeId = uuidv4();
-      return {
-        ...edge,
-        id: newEdgeId,
-        source: edge.source === id ? newNodeId : edge.source, // Update source if the current node is the source
-        target: edge.target === id ? newNodeId : edge.target, // Update target if the current node is the target
-      };
-    });
-
-    // Dispatch actions to add the new node and edges
-    dispatch(addNode({ node: newNode }));
-    dispatch(setEdges({ edges: [...edges, ...newEdges] }));
   };
 
   const isSelected = String(id) === String(selectedNodeId);
@@ -340,6 +331,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     <div style={staticStyles.container} draggable={false}>
       {showTitleError && (
         <Alert
+          key={`alert-${id}`}
           className="absolute -top-16 left-0 right-0 z-50"
           color="danger"
           onClose={() => setShowTitleError(false)}
@@ -351,6 +343,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       <div>
         {/* Hidden target handle covering the entire node */}
         <Handle
+          key={`handle-${id}`}
           type="target"
           position={Position.Left}
           id={`node-body-${id}`}
@@ -359,9 +352,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           isConnectableStart={false}
         />
 
-        {/* Node content wrapped in drag handle */}
         <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
           <Card
+            key={`card-${id}`}
             className={`base-node ${className || ''}`}
             style={cardStyle}
             onMouseEnter={handleMouseEnter}
@@ -372,9 +365,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             }}
           >
             {data && (
-              <CardHeader style={headerStyle}>
+              <CardHeader key={`header-${id}`} style={headerStyle}>
                 {editingTitle ? (
                   <Input
+                    key={`input-${id}`}
                     autoFocus
                     value={titleInputValue}
                     size="sm"
@@ -413,6 +407,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
                 <div style={staticStyles.controlsContainer}>
                   <Button
+                    key={`collapse-btn-${id}`}
                     size="sm"
                     variant="flat"
                     style={staticStyles.collapseButton}
@@ -430,9 +425,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 </div>
               </CardHeader>
             )}
-            {!isCollapsed && <Divider />}
+            {!isCollapsed && <Divider key={`divider-${id}`} />}
 
-            <CardBody className="px-1">
+            <CardBody key={`body-${id}`} className="px-1">
               {children}
             </CardBody>
           </Card>
@@ -442,6 +437,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       {/* Controls */}
       {(showControls || isSelected) && (
         <Card
+          key={`controls-card-${id}`}
           onMouseEnter={handleControlsMouseEnter}
           onMouseLeave={handleControlsMouseLeave}
           style={staticStyles.controlsCard}
@@ -451,6 +447,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         >
           <div className="flex flex-row gap-1">
             <Button
+              key={`run-btn-${id}`}
               isIconOnly
               radius="full"
               variant="light"
@@ -458,39 +455,40 @@ const BaseNode: React.FC<BaseNodeProps> = ({
               disabled={loading || isRunning}
             >
               {isRunning ? (
-                <Spinner size="sm" color="current" />
+                <Spinner key={`spinner-${id}`} size="sm" color="current" />
               ) : (
-                <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+                <Icon key={`play-icon-${id}`} className="text-default-500" icon="solar:play-linear" width={22} />
               )}
             </Button>
             {!isInputNode && (
               <Button
+                key={`delete-btn-${id}`}
                 isIconOnly
                 radius="full"
                 variant="light"
                 onPress={handleDelete}
               >
-                <Icon className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
+                <Icon key={`delete-icon-${id}`} className="text-default-500" icon="solar:trash-bin-trash-linear" width={22} />
               </Button>
             )}
-            {/* Duplicate Button */}
             <Button
+              key={`duplicate-btn-${id}`}
               isIconOnly
               radius="full"
               variant="light"
               onPress={handleDuplicate}
             >
-              <Icon className="text-default-500" icon="solar:copy-linear" width={22} />
+              <Icon key={`duplicate-icon-${id}`} className="text-default-500" icon="solar:copy-linear" width={22} />
             </Button>
-            {/* View Output Button */}
             {handleOpenModal && (
               <Button
+                key={`modal-btn-${id}`}
                 isIconOnly
                 radius="full"
                 variant="light"
                 onPress={() => handleOpenModal(true)}
               >
-                <Icon className="text-default-500" icon="solar:eye-linear" width={22} />
+                <Icon key={`view-icon-${id}`} className="text-default-500" icon="solar:eye-linear" width={22} />
               </Button>
             )}
           </div>

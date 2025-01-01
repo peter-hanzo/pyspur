@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useDispatch, useSelector } from 'react-redux';
 import BaseNode from './BaseNode';
@@ -10,7 +10,6 @@ import {
 import { Input, Button, Alert } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import styles from './InputNode.module.css';
-import { useSaveWorkflow } from '../../hooks/useSaveWorkflow';
 import { RootState } from '../../store/store';
 import { isEqual } from 'lodash';
 import { FlowWorkflowNode } from '../../store/flowSlice';
@@ -30,8 +29,9 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [showKeyError, setShowKeyError] = useState<boolean>(false);
   const incomingEdges = useSelector((state: RootState) => state.flow.edges.filter((edge) => edge.target === id), isEqual);
+  const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id]);
 
-  const outputSchema = data?.config?.output_schema || {};
+  const outputSchema = nodeConfig?.output_schema || {};
   const outputSchemaKeys = Object.keys(outputSchema);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
       const maxLabelLength = Math.max(
         (Math.max(...incomingSchemaKeys.map((label) => label.length)) +
           Math.max(...outputSchemaKeys.map((label) => label.length))),
-        (data?.title || '').length / 1.5
+        (nodeConfig?.title || '').length / 1.5
       );
 
       const calculatedWidth = Math.max(300, maxLabelLength * 15);
@@ -49,7 +49,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         setNodeWidth(`${finalWidth}px`);
       }
     }
-  }, [data, outputSchemaKeys]);
+  }, [nodeConfig, outputSchemaKeys]);
 
   const convertToPythonVariableName = (str: string): string => {
     // Replace spaces and hyphens with underscores
@@ -235,7 +235,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
           <Handle
             type="source"
             position={Position.Right}
-            id={id}
+            id={nodeConfig?.title || id}
             className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
               }`}
             isConnectable={!isCollapsed}
@@ -286,6 +286,10 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
       </div>
     );
 
+  const baseNodeStyles = useMemo(() => ({
+    width: nodeWidth,
+  }), [nodeWidth]);
+
   return (
     <div className={styles.inputNodeWrapper}>
       {showKeyError && (
@@ -302,12 +306,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         isInputNode={true}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
-        data={{
-          ...data,
-          acronym: 'IN',
-          color: '#2196F3',
-        }}
-        style={{ width: nodeWidth }}
+        data={data}
+        style={baseNodeStyles}
         className="hover:!bg-background"
         {...props}
       >

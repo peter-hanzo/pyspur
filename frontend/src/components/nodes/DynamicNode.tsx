@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, memo } from 'react';
 import {
   Handle, useHandleConnections, NodeProps, useConnection, Position, useUpdateNodeInternals
 } from '@xyflow/react';
@@ -14,7 +14,6 @@ import { RootState } from '../../store/store';
 import NodeOutputDisplay from './NodeOutputDisplay';
 import NodeOutputModal from './NodeOutputModal';
 import isEqual from 'lodash/isEqual';
-import { nodeComparator } from '../../utils/flowUtils';
 
 interface SchemaMetadata {
   required?: boolean;
@@ -22,52 +21,31 @@ interface SchemaMetadata {
   type?: string;
   [key: string]: any;
 }
-
-interface DynamicNodeProps extends NodeProps {
-  id: string;
-  type: string;
-  data: FlowWorkflowNode['data'];
-  position: { x: number; y: number };
-  selected?: boolean;
-  parentNode?: string;
+interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
   displayOutput?: boolean;
+  readOnly?: boolean;
 }
 
-const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, displayOutput, ...props }) => {
+const DynamicNode: React.FC<DynamicNodeProps> = ({ id, data, dragHandle, type, selected, isConnectable, zIndex, positionAbsoluteX, positionAbsoluteY, displayOutput, ...props }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const [nodeWidth, setNodeWidth] = useState<string>('auto');
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id), nodeComparator);
   const nodes = useSelector((state: RootState) =>
     state.flow.nodes.map(node => ({
       id: node.id,
       type: node.type,
       data: {
-        config: {
-          title: node.data?.config?.title
-        }
+        title: node.data?.title
       }
-    })),
-    (prev, next) => {
-      if (!prev || !next) return false;
-      if (prev.length !== next.length) return false;
-      return prev.every((node, index) =>
-        node.id === next[index].id &&
-        node.type === next[index].type &&
-        node.data?.config?.title === next[index].data?.config?.title
-      );
-    }
-  );
-  const nodeData = data || (node && node.data);
+    })), isEqual);
+  const nodeData = data;
+  const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
 
-
-  const edges = useSelector((state: RootState) => state.flow.edges);
-
-  const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`));
-  const outputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.output`));
+  const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`), isEqual);
+  const outputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.output`), isEqual);
 
   const excludeSchemaKeywords = (metadata: SchemaMetadata): Record<string, any> => {
     const schemaKeywords = ['required', 'title', 'type'];
@@ -83,8 +61,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
   const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata || {});
   const updateNodeInternals = useUpdateNodeInternals();
 
-
-  const [predecessorNodes, setPredcessorNodes] = useState(() => {
+  const [predecessorNodes, setPredecessorNodes] = useState(() => {
     return edges
       .filter((edge) => edge.target === id)
       .map((edge) => {
@@ -95,9 +72,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
-              config: {
-                title: edge.source + '_' + edge.sourceHandle
-              }
+              title: edge.targetHandle,
             }
           };
         }
@@ -110,9 +85,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     if (!nodeRef.current || !nodeData) return;
 
     const inputLabels = predecessorNodes.map((node) =>
-      String(node?.data?.config?.title || node?.id || '')
+      String(node.data?.title || node?.id || '')
     );
-    const outputLabels = nodeData?.config?.title ? [String(nodeData.config.title)] : [String(id)];
+    const outputLabels = nodeData?.title ? [String(nodeData.title)] : [String(id)];
 
     const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0);
     const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0);
@@ -155,11 +130,12 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             isConnectable={isConnectable}
           />
         </div>
-        <div className="border-r border-gray-300 h-full mx-0"></div>
+        <div className="border-r border-gray-300 h-full mx-0" />
         {!isCollapsed && (
           <div className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden" id={`input-${keyName}-label`}>
             {editingField === keyName ? (
               <Input
+                key={`input-field-${keyName}`}
                 autoFocus
                 defaultValue={String(keyName)}
                 size="sm"
@@ -190,6 +166,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           <div className="align-center flex flex-grow flex-shrink mr-[0.5rem] max-w-full overflow-hidden" id={`output-${keyName}-label`}>
             {editingField === keyName ? (
               <Input
+                key={`output-field-${keyName}`}
                 autoFocus
                 defaultValue={keyName}
                 size="sm"
@@ -209,14 +186,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             )}
           </div>
         )}
-        <div className="border-l border-gray-300 h-full mx-0"></div>
+        <div className="border-l border-gray-300 h-full mx-0" />
         <div className={`${styles.handleCell} ${styles.outputHandleCell}`} id={`output-${keyName}-handle`}>
           <Handle
             type="source"
             position={Position.Right}
             id={keyName}
-            className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-              }`}
+            className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
             isConnectable={!isCollapsed}
           />
         </div>
@@ -239,9 +215,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
-              config: {
-                title: edge.source + '.' + edge.sourceHandle
-              }
+              title: edge.targetHandle,
             }
           };
         }
@@ -258,9 +232,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: connection.fromNode.id,
             type: connection.fromNode.type,
             data: {
-              config: {
-                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
-              }
+              title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
             }
           }];
         } else {
@@ -268,9 +240,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
             id: connection.fromNode.id,
             type: connection.fromNode.type,
             data: {
-              config: {
-                title: (connection.fromNode.data as { config?: { title?: string } })?.config?.title || connection.fromNode.id
-              }
+              title: (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id
             }
           }];
         }
@@ -288,7 +258,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
       finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]));
 
     if (hasChanged) {
-      setPredcessorNodes(finalPredecessors);
+      setPredecessorNodes(finalPredecessors);
       updateNodeInternals(id);
     }
   }, [finalPredecessors, predecessorNodes, updateNodeInternals, id]);
@@ -297,30 +267,31 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
 
   const renderHandles = () => {
     if (!nodeData) return null;
-    const dedupedPredecessors = finalPredecessors.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index);
+    const dedupedPredecessors = finalPredecessors.filter((node, index, self) =>
+      self.findIndex((n) => n.id === node.id) === index
+    );
 
     return (
       <div className={`${styles.handlesWrapper}`} id="handles">
         {/* Input Handles */}
         <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
           {dedupedPredecessors.map((node) => {
-            const handleId = String(node.data?.config?.title || node.id || '');
+            const handleId = String(node.data?.title || node.id || '');
             return (
               <InputHandleRow
-                id={node.id}
+                key={`input-handle-row-${node.id}-${handleId}`}
+                id={node?.id}
                 keyName={handleId}
-                key={handleId}
               />
             );
           })}
         </div>
 
-        {/* Output Handles */}
         <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
           {nodeData?.title && (
             <OutputHandleRow
-              id={node?.id}
-              keyName={String(nodeData.config.title || id)}
+              id={id}
+              keyName={String(nodeData?.title)}
             />
           )}
         </div>
@@ -336,7 +307,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
     <>
       <div
         className={styles.dynamicNodeWrapper}
-        style={{ zIndex: props.parentNode ? 1 : 0 }}
+        style={{ zIndex: props.parentId ? 1 : 0 }}
       >
         <BaseNode
           id={id}
@@ -346,23 +317,31 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({ id, type, data, position, dis
           setIsCollapsed={setIsCollapsed}
           handleOpenModal={setIsModalOpen}
           className="hover:!bg-background"
+          positionAbsoluteX={positionAbsoluteX}
+          positionAbsoluteY={positionAbsoluteY}
+          {...props}
         >
           <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-            {isRouterNode ? (
+            {isRouterNode && (
               <div>
                 <strong>Conditional Node</strong>
               </div>
-            ) : null}
+            )}
             {renderHandles()}
           </div>
-          {displayOutput && <NodeOutputDisplay output={nodeData.run} />}
+          {displayOutput && (
+            <NodeOutputDisplay
+              key="output-display"
+              output={nodeData.run}
+            />
+          )}
         </BaseNode>
       </div>
       <NodeOutputModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
-        title={data?.config?.title || data?.title || 'Node Output'}
-        node={node}
+        title={nodeData?.title || 'Node Output'}
+        data={nodeData}
       />
     </>
   );

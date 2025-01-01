@@ -1,11 +1,6 @@
 import React from 'react';
 import Markdown from 'react-markdown';
 
-interface NodeData {
-  run?: Record<string, string>;
-}
-
-
 interface NodeOutputDisplayProps {
   output: Record<string, any>;
 }
@@ -14,9 +9,9 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
   return (
     <>
       {output && (
-        <div 
+        <div
           className='p-5'
-          style={{ maxHeight: '400px', overflowY: 'auto' }}
+          style={{ maxHeight: '400px', overflowY: 'auto', touchAction: 'none' }}
           onWheel={(e) => {
             e.stopPropagation();
             e.preventDefault();

@@ -22,10 +22,6 @@ interface DeployModalProps {
   getApiEndpoint: () => string;
 }
 
-interface WorkflowInputVariable {
-  type: string;
-  [key: string]: any;
-}
 
 interface RootState {
   flow: FlowState;
@@ -35,7 +31,10 @@ type SupportedLanguages = 'python' | 'javascript' | 'typescript' | 'rust' | 'jav
 
 const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, getApiEndpoint }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python');
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.nodes.find(node => node.type === 'InputNode')?.data.config.output_schema) || {};
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
+  const inputNode = nodes.find(node => node.type === 'InputNode');
+  const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {};
 
   // Create example request body with the actual input variables
   const exampleRequestBody = {

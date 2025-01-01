@@ -60,13 +60,28 @@ interface NodeTypesResponse {
   metadata: Record<string, NodeMetadata[]>;
 }
 
-export interface NodeType {
+export interface FieldMetadata {
+  enum?: string[];
+  default?: any;
+  title?: string;
+  minimum?: number;
+  maximum?: number;
+  type?: string;
+}
+
+export interface FlowWorkflowNodeType {
   name: string;
   config: {
     routes?: RouteCondition[];
     input_schema?: Record<string, string>;
     output_schema?: Record<string, string>;
     title?: string;
+    system_message?: string;
+    user_message?: string;
+    few_shot_examples?: Array<{
+      input: string;
+      output: string;
+    }>;
     [key: string]: any;
   };
   type: string;
@@ -74,6 +89,12 @@ export interface NodeType {
     color: string;
     acronym: string;
   };
+  metadata?: Record<string, any>;
+  data?: Record<string, any>;
+}
+
+export interface FlowWorkflowNodeTypesByCategory {
+  [category: string]: FlowWorkflowNodeType[];
 }
 
 const initialState: NodeTypesState = {
