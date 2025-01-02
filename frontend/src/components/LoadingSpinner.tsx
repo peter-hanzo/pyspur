@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center h-full">

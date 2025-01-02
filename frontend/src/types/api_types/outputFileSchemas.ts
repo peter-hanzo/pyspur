@@ -13,4 +13,4 @@ export interface OutputFileCreate {
 
 export interface OutputFileUpdate {
   id: string;
-} 
+}

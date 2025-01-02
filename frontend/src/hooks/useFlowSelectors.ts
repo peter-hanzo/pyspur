@@ -1,12 +1,12 @@
-import { useSelector } from 'react-redux';
-import { RootState } from '../store/store';
-import { nodeComparator } from '../utils/flowUtils';
-import { FlowWorkflowNode } from '../store/flowSlice';
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
+import { nodeComparator } from "../utils/flowUtils";
+import { FlowWorkflowNode } from "../store/flowSlice";
 
 export const useNode = (id: string) => {
   return useSelector(
     (state: RootState) => state.flow.nodes.find((n) => n.id === id),
-    nodeComparator
+    nodeComparator,
   );
 };
 
@@ -36,6 +36,8 @@ export const useNodeOutputs = (nodeId: string) => {
 export const useNodeTitle = (nodeId: string) => {
   return useSelector((state: RootState) => {
     const node = state.flow.nodes.find((n) => n.id === nodeId);
-    return node?.data?.config?.title || node?.data?.title || node?.type || 'Untitled';
+    return (
+      node?.data?.config?.title || node?.data?.title || node?.type || "Untitled"
+    );
   });
 };

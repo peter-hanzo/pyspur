@@ -1,12 +1,12 @@
-import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
-import flowReducer from './flowSlice';
-import { FlowState } from './flowSlice';
-import nodeTypesReducer, { NodeTypesState } from './nodeTypesSlice';
-import userPreferencesReducer from './userPreferencesSlice';
-import panelReducer from './panelSlice';
-import type { Node, Edge } from '@xyflow/react';
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { persistStore, persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage";
+import flowReducer from "./flowSlice";
+import { FlowState } from "./flowSlice";
+import nodeTypesReducer, { NodeTypesState } from "./nodeTypesSlice";
+import userPreferencesReducer from "./userPreferencesSlice";
+import panelReducer from "./panelSlice";
+import type { Node, Edge } from "@xyflow/react";
 
 // Define the RootState type
 export interface RootState {
@@ -14,7 +14,7 @@ export interface RootState {
   nodeTypes: NodeTypesState;
   userPreferences: {
     hasSeenWelcome: boolean;
-  }
+  };
   panel: {
     isNodePanelExpanded: boolean;
   };
@@ -22,9 +22,9 @@ export interface RootState {
 
 // Define the persist config
 const persistConfig = {
-  key: 'root',
+  key: "root",
   storage,
-  whitelist: ['nodes', 'edges', 'nodeTypes', 'userPreferences'],
+  whitelist: ["nodes", "edges", "nodeTypes", "userPreferences"],
 };
 
 const rootReducer = combineReducers({
@@ -41,7 +41,7 @@ const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
       },
     }),
 });

@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   ReactFlow,
   Background,
@@ -9,11 +15,11 @@ import {
   ReactFlowInstance,
   SelectionMode,
   ConnectionMode,
-} from '@xyflow/react';
+} from "@xyflow/react";
 
-import '@xyflow/react/dist/style.css';
-import { useSelector, useDispatch } from 'react-redux';
-import Operator from './footer/Operator';
+import "@xyflow/react/dist/style.css";
+import { useSelector, useDispatch } from "react-redux";
+import Operator from "./footer/Operator";
 import {
   setSelectedNode,
   deleteNode,
@@ -21,21 +27,25 @@ import {
   setNodes,
   FlowWorkflowNode,
   FlowWorkflowEdge,
-} from '../../store/flowSlice';
-import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar';
-import CustomEdge from './Edge';
-import HelperLinesRenderer from '../HelperLines';
-import { useModeStore } from '../../store/modeStore';
-import { initializeFlow, setNodeOutputs } from '../../store/flowSlice';
-import LoadingSpinner from '../LoadingSpinner';
-import { WorkflowDefinition } from '@/types/api_types/workflowSchemas';
-import { getLayoutedNodes } from '@/utils/nodeLayoutUtils';
-import { RootState } from '../../store/store';
-import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils';
-
+} from "../../store/flowSlice";
+import NodeSidebar from "../nodes/nodeSidebar/NodeSidebar";
+import CustomEdge from "./Edge";
+import HelperLinesRenderer from "../HelperLines";
+import { useModeStore } from "../../store/modeStore";
+import { initializeFlow, setNodeOutputs } from "../../store/flowSlice";
+import LoadingSpinner from "../LoadingSpinner";
+import { WorkflowDefinition } from "@/types/api_types/workflowSchemas";
+import { getLayoutedNodes } from "@/utils/nodeLayoutUtils";
+import { RootState } from "../../store/store";
+import {
+  useNodeTypes,
+  useStyledEdges,
+  useNodesWithMode,
+  useFlowEventHandlers,
+} from "../../utils/flowUtils";
 
 interface RunViewFlowCanvasProps {
-  workflowData?: { name: string, definition: WorkflowDefinition };
+  workflowData?: { name: string; definition: WorkflowDefinition };
   workflowID?: string;
   nodeOutputs?: Record<string, any>;
 }
@@ -45,56 +55,76 @@ interface HelperLines {
   vertical: number | null;
 }
 
-const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
+const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({
+  workflowData,
+  workflowID,
+  nodeOutputs,
+}) => {
   const dispatch = useDispatch();
 
-  const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data);
+  const nodeTypesConfig = useSelector(
+    (state: RootState) => state.nodeTypes.data,
+  );
 
   const { nodeTypes, isLoading } = useNodeTypes({
     nodeTypesConfig,
     readOnly: true,
-    includeCoalesceNode: false
+    includeCoalesceNode: false,
   });
 
-  const edgeTypes = useMemo<EdgeTypes>(() => ({
-    custom: (props: any) => <CustomEdge {...props} readOnly={true} />
-  }), []);
+  const edgeTypes = useMemo<EdgeTypes>(
+    () => ({
+      custom: (props: any) => <CustomEdge {...props} readOnly={true} />,
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (workflowData) {
       if (workflowData.definition.nodes) {
-        const inputNode = workflowData.definition.nodes.filter(node => node.node_type === 'InputNode');
+        const inputNode = workflowData.definition.nodes.filter(
+          (node) => node.node_type === "InputNode",
+        );
         if (inputNode.length > 0) {
           const inputSchema = inputNode[0].config.input_schema;
           if (inputSchema) {
-            const workflowInputVariables = Object.entries(inputSchema).map(([key, type]) => {
-              return { key, value: '' };
-            });
-            workflowInputVariables.forEach(variable => {
+            const workflowInputVariables = Object.entries(inputSchema).map(
+              ([key, type]) => {
+                return { key, value: "" };
+              },
+            );
+            workflowInputVariables.forEach((variable) => {
               dispatch(setWorkflowInputVariable(variable));
             });
           }
         }
       }
-      dispatch(initializeFlow({
-        nodeTypes: nodeTypesConfig,
-        definition: workflowData.definition,
-        workflowID: workflowID,
-        name: workflowData.name
-      }));
+      dispatch(
+        initializeFlow({
+          nodeTypes: nodeTypesConfig,
+          definition: workflowData.definition,
+          workflowID: workflowID,
+          name: workflowData.name,
+        }),
+      );
       dispatch(setNodeOutputs(nodeOutputs));
     }
   }, [dispatch, workflowData, workflowID]);
 
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const edges = useSelector((state: RootState) => state.flow.edges);
-  const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode);
+  const selectedNodeID = useSelector(
+    (state: RootState) => state.flow.selectedNode,
+  );
 
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  const [helperLines, setHelperLines] = useState<HelperLines>({ horizontal: null, vertical: null });
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<ReactFlowInstance | null>(null);
+  const [helperLines, setHelperLines] = useState<HelperLines>({
+    horizontal: null,
+    vertical: null,
+  });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
-
 
   const showHelperLines = false;
 
@@ -115,15 +145,12 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
   const nodesWithMode = useNodesWithMode({
     nodes,
-    mode: mode as 'pointer' | 'hand',
+    mode: mode as "pointer" | "hand",
   });
 
-  const onEdgeMouseEnter = useCallback(
-    (_: React.MouseEvent, edge: Edge) => {
-      setHoveredEdge(edge.id);
-    },
-    []
-  );
+  const onEdgeMouseEnter = useCallback((_: React.MouseEvent, edge: Edge) => {
+    setHoveredEdge(edge.id);
+  }, []);
 
   const onEdgeMouseLeave = useCallback(() => {
     setHoveredEdge(null);
@@ -138,7 +165,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     (_: React.MouseEvent, node: Node) => {
       dispatch(setSelectedNode({ nodeId: node.id }));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const onPaneClick = useCallback(() => {
@@ -156,28 +183,30 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         }
       });
     },
-    [dispatch, selectedNodeID]
+    [dispatch, selectedNodeID],
   );
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      const isFlowCanvasFocused = (event.target as HTMLElement).closest('.react-flow');
+      const isFlowCanvasFocused = (event.target as HTMLElement).closest(
+        ".react-flow",
+      );
       if (!isFlowCanvasFocused) return;
 
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        const selectedNodes = nodes.filter(node => node.selected);
+      if (event.key === "Delete" || event.key === "Backspace") {
+        const selectedNodes = nodes.filter((node) => node.selected);
         if (selectedNodes.length > 0) {
           onNodesDelete(selectedNodes);
         }
       }
     },
-    [nodes, onNodesDelete]
+    [nodes, onNodesDelete],
   );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleKeyDown]);
 
@@ -190,27 +219,29 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
   }, []);
 
   const handleLayout = useCallback(() => {
-    const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[]);
+    const layoutedNodes = getLayoutedNodes(
+      nodes as FlowWorkflowNode[],
+      edges as FlowWorkflowEdge[],
+    );
     dispatch(setNodes({ nodes: layoutedNodes }));
   }, [nodes, edges, dispatch]);
-
 
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
   const proOptions = {
-    hideAttribution: true
+    hideAttribution: true,
   };
 
   return (
-    <div style={{ position: 'relative', height: '100%' }}>
-      <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div style={{ position: "relative", height: "100%" }}>
+      <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
         <div
           style={{
-            height: '100%',
-            overflow: 'auto',
-            position: 'relative',
+            height: "100%",
+            overflow: "auto",
+            position: "relative",
             zIndex: 1,
           }}
         >
@@ -229,16 +260,20 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
             onPaneClick={onPaneClick}
             onNodesDelete={onNodesDelete}
             proOptions={proOptions}
-            panOnDrag={mode === 'hand' && !nodes.filter(Boolean).some(n => n.selected)}
+            panOnDrag={
+              mode === "hand" && !nodes.filter(Boolean).some((n) => n.selected)
+            }
             panOnScroll={true}
             zoomOnScroll={true}
             minZoom={0.1}
             maxZoom={2}
-            selectionMode={mode === 'pointer' ? SelectionMode.Full : SelectionMode.Partial}
-            selectNodesOnDrag={mode === 'pointer'}
-            selectionOnDrag={mode === 'pointer'}
-            selectionKeyCode={mode === 'pointer' ? null : undefined}
-            multiSelectionKeyCode={mode === 'pointer' ? null : undefined}
+            selectionMode={
+              mode === "pointer" ? SelectionMode.Full : SelectionMode.Partial
+            }
+            selectNodesOnDrag={mode === "pointer"}
+            selectionOnDrag={mode === "pointer"}
+            selectionKeyCode={mode === "pointer" ? null : undefined}
+            multiSelectionKeyCode={mode === "pointer" ? null : undefined}
             deleteKeyCode="Delete"
             nodesConnectable={true}
             connectionMode={ConnectionMode.Loose}
@@ -264,7 +299,10 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
             className="absolute top-0 right-0 h-full bg-white border-l border-gray-200"
             style={{ zIndex: 2 }}
           >
-            <NodeSidebar nodeID={selectedNodeID} key={`node-sidebar-${selectedNodeID}`} />
+            <NodeSidebar
+              nodeID={selectedNodeID}
+              key={`node-sidebar-${selectedNodeID}`}
+            />
           </div>
         )}
       </div>
@@ -272,7 +310,11 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
   );
 };
 
-const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
+const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({
+  workflowData,
+  workflowID,
+  nodeOutputs,
+}) => {
   return (
     <ReactFlowProvider>
       <RunViewFlowCanvasContent
@@ -283,6 +325,6 @@ const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, wor
       />
     </ReactFlowProvider>
   );
-}
+};
 
 export default RunViewFlowCanvas;

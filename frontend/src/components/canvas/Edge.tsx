@@ -1,39 +1,39 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
   getBezierPath,
   useReactFlow,
   EdgeProps,
-  Edge
-} from '@xyflow/react';
-import { Button } from '@nextui-org/react';
+  Edge,
+} from "@xyflow/react";
+import { Button } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { useDispatch } from 'react-redux';
-import { deleteEdge } from '../../store/flowSlice';
+import { useDispatch } from "react-redux";
+import { deleteEdge } from "../../store/flowSlice";
 
 // Static styles
 const staticStyles = {
   labelContainer: {
-    position: 'absolute' as const,
-    pointerEvents: 'all' as const,
+    position: "absolute" as const,
+    pointerEvents: "all" as const,
   },
   buttonContainer: {
-    display: 'flex',
-    gap: '5px',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: '4px',
-    borderRadius: '9999px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-  }
+    display: "flex",
+    gap: "5px",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: "4px",
+    borderRadius: "9999px",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+  },
 } as const;
 
 // Add this near the other static styles
 const defaultEdgeStyle = {
   strokeWidth: 2,
-  stroke: '#555',
+  stroke: "#555",
 } as const;
 
 interface CustomEdgeData extends Edge<any> {
@@ -85,52 +85,65 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
   const targetNode = reactFlowInstance.getNode(target);
 
   // Memoize the path calculation
-  const [edgePath, labelX, labelY] = useMemo(() => getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  }), [sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition]);
+  const [edgePath, labelX, labelY] = useMemo(
+    () =>
+      getBezierPath({
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+      }),
+    [sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition],
+  );
 
   // Memoize the label style
-  const labelStyle = useMemo(() => ({
-    ...staticStyles.labelContainer,
-    transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-  }), [labelX, labelY]);
+  const labelStyle = useMemo(
+    () => ({
+      ...staticStyles.labelContainer,
+      transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+    }),
+    [labelX, labelY],
+  );
 
   // Memoize handlers
   const handleAddNode = useCallback(() => {
     if (!sourceNode || !targetNode) {
-      console.error('Source or target node not found');
+      console.error("Source or target node not found");
       return;
     }
     onPopoverOpen({
       sourceNode: {
         id: sourceNode.id,
         position: sourceNode.position,
-        data: sourceNode.data
+        data: sourceNode.data,
       },
       targetNode: {
         id: targetNode.id,
         position: targetNode.position,
-        data: targetNode.data
+        data: targetNode.data,
       },
-      edgeId: id
+      edgeId: id,
     });
   }, [sourceNode, targetNode, id, onPopoverOpen]);
 
-  const handleDeleteEdge = useCallback((event: React.MouseEvent) => {
-    event.stopPropagation();
-    dispatch(deleteEdge({ edgeId: id }));
-  }, [id, dispatch]);
+  const handleDeleteEdge = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      dispatch(deleteEdge({ edgeId: id }));
+    },
+    [id, dispatch],
+  );
 
   // Memoize the combined edge style
-  const combinedStyle = useMemo(() => ({
-    ...defaultEdgeStyle,
-    ...style
-  }), [JSON.stringify(style)]);
+  const combinedStyle = useMemo(
+    () => ({
+      ...defaultEdgeStyle,
+      ...style,
+    }),
+    [JSON.stringify(style)],
+  );
 
   return (
     <>
@@ -138,10 +151,7 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
 
       {showPlusButton && !readOnly && (
         <EdgeLabelRenderer>
-          <div
-            style={labelStyle}
-            className="nodrag nopan"
-          >
+          <div style={labelStyle} className="nodrag nopan">
             <div style={staticStyles.buttonContainer}>
               <Button
                 isIconOnly
@@ -151,7 +161,11 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
                 onClick={handleAddNode}
                 className="bg-background hover:bg-default-100"
               >
-                <Icon icon="solar:add-circle-bold-duotone" className="text-primary" width={20} />
+                <Icon
+                  icon="solar:add-circle-bold-duotone"
+                  className="text-primary"
+                  width={20}
+                />
               </Button>
               <Button
                 isIconOnly
@@ -161,7 +175,11 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
                 onClick={handleDeleteEdge}
                 className="bg-background hover:bg-default-100"
               >
-                <Icon icon="solar:trash-bin-trash-bold-duotone" className="text-danger" width={20} />
+                <Icon
+                  icon="solar:trash-bin-trash-bold-duotone"
+                  className="text-danger"
+                  width={20}
+                />
               </Button>
             </div>
           </div>

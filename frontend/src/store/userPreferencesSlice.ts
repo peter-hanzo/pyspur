@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 interface UserPreferencesState {
   hasSeenWelcome: boolean;
@@ -9,7 +9,7 @@ const initialState: UserPreferencesState = {
 };
 
 const userPreferencesSlice = createSlice({
-  name: 'userPreferences',
+  name: "userPreferences",
   initialState,
   reducers: {
     markWelcomeSeen: (state) => {

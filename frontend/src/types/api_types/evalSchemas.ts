@@ -5,7 +5,7 @@ export interface EvalRunRequest {
   num_samples: number;
 }
 
-export type EvalRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type EvalRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 
 export interface EvalRunResponse {
   run_id: string;
@@ -15,4 +15,4 @@ export interface EvalRunResponse {
   start_time?: string;
   end_time?: string;
   results?: Record<string, any>;
-} 
+}

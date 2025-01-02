@@ -1,7 +1,7 @@
 // frontend/src/utils/JSPydanticModel.js
 
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
+import Ajv from "ajv";
+import addFormats from "ajv-formats";
 
 class JSPydanticModel {
   constructor(schema) {
@@ -17,7 +17,9 @@ class JSPydanticModel {
 
   createObjectFromSchema() {
     // Handle node types schema (any category)
-    const categories = Object.keys(this._schema).filter(key => Array.isArray(this._schema[key]));
+    const categories = Object.keys(this._schema).filter((key) =>
+      Array.isArray(this._schema[key]),
+    );
     if (categories.length > 0) {
       return this.processNodeTypesSchema(this._schema);
     }
@@ -31,16 +33,27 @@ class JSPydanticModel {
       const cleanedObj = this.excludeSchemaKeywords(obj);
       return cleanedObj;
     } catch (error) {
-      console.error('Error compiling schema:', error);
+      console.error("Error compiling schema:", error);
       return null;
     }
   }
 
   excludeSchemaKeywords(obj) {
-    const schemaKeywords = ['$defs', 'properties', 'anyOf', 'oneOf', 'allOf', 'items', 'additionalProperties', '$ref', 'required', 'description'];
+    const schemaKeywords = [
+      "$defs",
+      "properties",
+      "anyOf",
+      "oneOf",
+      "allOf",
+      "items",
+      "additionalProperties",
+      "$ref",
+      "required",
+      "description",
+    ];
     if (Array.isArray(obj)) {
-      return obj.map(item => this.excludeSchemaKeywords(item));
-    } else if (obj && typeof obj === 'object') {
+      return obj.map((item) => this.excludeSchemaKeywords(item));
+    } else if (obj && typeof obj === "object") {
       return Object.keys(obj).reduce((acc, key) => {
         if (!schemaKeywords.includes(key)) {
           acc[key] = this.excludeSchemaKeywords(obj[key]);
@@ -56,42 +69,50 @@ class JSPydanticModel {
     const result = {};
 
     // Get all array-type properties from the schema
-    const categories = Object.keys(schema).filter(key => Array.isArray(schema[key]));
+    const categories = Object.keys(schema).filter((key) =>
+      Array.isArray(schema[key]),
+    );
 
-    categories.forEach(category => {
+    categories.forEach((category) => {
       if (schema[category]) {
-        result[category] = schema[category].map(node => {
+        result[category] = schema[category].map((node) => {
           // Copy all fields from the original node
           const processedNode = { ...node };
 
           // Process schemas for input, output, and config
-          ['input', 'output', 'config'].forEach(key => {
+          ["input", "output", "config"].forEach((key) => {
             if (node[key]) {
               try {
                 const validator = this.ajv.compile(node[key]);
                 const obj = {};
                 validator(obj);
-                
+
                 // Merge the validated object with any existing fields for non-conditional nodes
                 processedNode[key] = {
-                  ...node[key],  // Keep original fields like title, description etc
-                  ...obj         // Add validated default values
+                  ...node[key], // Keep original fields like title, description etc
+                  ...obj, // Add validated default values
                 };
 
                 // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
-                if (node.name === 'LLMNode' && key === 'config') {
+                if (node.name === "LLMNode" && key === "config") {
                   // Make sure there's a properties object
-                  processedNode[key].properties = processedNode[key].properties || {};
+                  processedNode[key].properties =
+                    processedNode[key].properties || {};
                   processedNode[key].properties.api_base = {
-                    type: 'string',
-                    title: 'API Base',
+                    type: "string",
+                    title: "API Base",
                   };
                 }
 
                 // Exclude JSON Schema keywords from the resulting object
-                processedNode[key] = this.excludeSchemaKeywords(processedNode[key]);
+                processedNode[key] = this.excludeSchemaKeywords(
+                  processedNode[key],
+                );
               } catch (error) {
-                console.error(`Error processing ${key} schema for node:`, error);
+                console.error(
+                  `Error processing ${key} schema for node:`,
+                  error,
+                );
                 processedNode[key] = node[key] || {}; // Fallback to original or empty object
               }
             }
@@ -108,8 +129,10 @@ class JSPydanticModel {
   extractMetadata() {
     // Initialize metadata with existing categories from schema
     this._metadata = {};
-    const categories = Object.keys(this._schema).filter(key => Array.isArray(this._schema[key]));
-    categories.forEach(category => {
+    const categories = Object.keys(this._schema).filter((key) =>
+      Array.isArray(this._schema[key]),
+    );
+    categories.forEach((category) => {
       this._metadata[category] = [];
     });
 
@@ -117,19 +140,19 @@ class JSPydanticModel {
   }
 
   _extractMetadata(schema, path = []) {
-    if (!schema || typeof schema !== 'object') {
+    if (!schema || typeof schema !== "object") {
       return;
     }
 
     // If this is an anyOf/oneOf schema, flatten it by taking the first non-null type
     if (schema.anyOf || schema.oneOf) {
       const variants = schema.anyOf || schema.oneOf;
-      const nonNullVariant = variants.find(v => v.type !== 'null');
+      const nonNullVariant = variants.find((v) => v.type !== "null");
       if (nonNullVariant) {
         // Merge the parent schema's metadata with the non-null variant
         const mergedSchema = {
           ...schema,
-          ...nonNullVariant
+          ...nonNullVariant,
         };
         // Remove the anyOf/oneOf to prevent infinite recursion
         delete mergedSchema.anyOf;
@@ -140,11 +163,23 @@ class JSPydanticModel {
     }
 
     const metadataKeys = [
-      'type', 'title', 'description', 'default',
-      'minimum', 'maximum', 'minItems', 'maxItems',
-      'minLength', 'maxLength', 'pattern', 'enum',
-      'required', 'additionalProperties', 'name', 'description',
-      'visual_tag'
+      "type",
+      "title",
+      "description",
+      "default",
+      "minimum",
+      "maximum",
+      "minItems",
+      "maxItems",
+      "minLength",
+      "maxLength",
+      "pattern",
+      "enum",
+      "required",
+      "additionalProperties",
+      "name",
+      "description",
+      "visual_tag",
     ];
 
     // Get metadata at current level
@@ -161,8 +196,10 @@ class JSPydanticModel {
     }
 
     // Handle root-level arrays (any category)
-    const categories = Object.keys(schema).filter(key => Array.isArray(schema[key]));
-    categories.forEach(category => {
+    const categories = Object.keys(schema).filter((key) =>
+      Array.isArray(schema[key]),
+    );
+    categories.forEach((category) => {
       if (!this._metadata[category]) {
         this._metadata[category] = [];
       }
@@ -175,7 +212,7 @@ class JSPydanticModel {
             visual_tag: node.visual_tag,
             input: {},
             output: {},
-            config: {}
+            config: {},
           };
         } else {
           // Update existing metadata with name and visual_tag
@@ -183,13 +220,13 @@ class JSPydanticModel {
           this._metadata[category][index].visual_tag = node.visual_tag;
         }
 
-        ['input', 'output', 'config'].forEach(schemaType => {
+        ["input", "output", "config"].forEach((schemaType) => {
           if (node[schemaType]) {
             const newPath = [category, index, schemaType];
             this._extractMetadata(node[schemaType], newPath);
 
             // Handle $defs without including it in path
-            if (schemaType === 'config' && node[schemaType].$defs) {
+            if (schemaType === "config" && node[schemaType].$defs) {
               Object.entries(node[schemaType].$defs).forEach(([key, value]) => {
                 // Remove '$defs' from path
                 this._extractMetadata(value, [...newPath, key]);
@@ -197,10 +234,12 @@ class JSPydanticModel {
             }
 
             if (node[schemaType].properties) {
-              Object.entries(node[schemaType].properties).forEach(([key, value]) => {
-                // Remove 'properties' from path
-                this._extractMetadata(value, [...newPath, key]);
-              });
+              Object.entries(node[schemaType].properties).forEach(
+                ([key, value]) => {
+                  // Remove 'properties' from path
+                  this._extractMetadata(value, [...newPath, key]);
+                },
+              );
             }
           }
         });
@@ -209,11 +248,11 @@ class JSPydanticModel {
 
     // Handle $ref to definitions
     if (schema.$ref) {
-      const refPath = schema.$ref.replace(/^#\//, '').split('/');
+      const refPath = schema.$ref.replace(/^#\//, "").split("/");
       let refSchema = this._schema;
 
       // Special handling for $defs references
-      if (refPath[0] === '$defs') {
+      if (refPath[0] === "$defs") {
         const currentContext = this.findContextWithDefs(schema);
         if (currentContext && currentContext.$defs) {
           refSchema = currentContext.$defs[refPath[1]];
@@ -225,7 +264,7 @@ class JSPydanticModel {
         }
       } else {
         for (const part of refPath) {
-          if (refSchema && typeof refSchema === 'object') {
+          if (refSchema && typeof refSchema === "object") {
             refSchema = refSchema[part];
           }
         }
@@ -246,12 +285,18 @@ class JSPydanticModel {
 
     // Process array items
     if (schema.items) {
-      this._extractMetadata(schema.items, [...path, 'items']);
+      this._extractMetadata(schema.items, [...path, "items"]);
     }
 
     // Process additionalProperties
-    if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
-      this._extractMetadata(schema.additionalProperties, [...path, 'additionalProperties']);
+    if (
+      schema.additionalProperties &&
+      typeof schema.additionalProperties === "object"
+    ) {
+      this._extractMetadata(schema.additionalProperties, [
+        ...path,
+        "additionalProperties",
+      ]);
     }
   }
 
@@ -289,7 +334,7 @@ class JSPydanticModel {
       this.extractMetadata();
     }
     if (!propertyPath) return null;
-    const parts = propertyPath.split('.');
+    const parts = propertyPath.split(".");
     let current = this._metadata;
 
     for (const part of parts) {
@@ -359,7 +404,7 @@ class JSPydanticModel {
   }
 
   findParentContext(schema, currentContext = this._schema) {
-    if (!currentContext || typeof currentContext !== 'object') {
+    if (!currentContext || typeof currentContext !== "object") {
       return null;
     }
 
@@ -368,7 +413,7 @@ class JSPydanticModel {
       if (value === schema) {
         return currentContext;
       }
-      if (typeof value === 'object') {
+      if (typeof value === "object") {
         const result = this.findParentContext(schema, value);
         if (result) {
           return result;
@@ -380,17 +425,21 @@ class JSPydanticModel {
   }
 
   // Add this helper method to find the path to a context
-  findPathToContext(targetContext, currentContext = this._schema, currentPath = []) {
+  findPathToContext(
+    targetContext,
+    currentContext = this._schema,
+    currentPath = [],
+  ) {
     if (currentContext === targetContext) {
       return currentPath;
     }
 
-    if (typeof currentContext !== 'object' || currentContext === null) {
+    if (typeof currentContext !== "object" || currentContext === null) {
       return null;
     }
 
     for (const [key, value] of Object.entries(currentContext)) {
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         const newPath = [...currentPath, key];
         const result = this.findPathToContext(targetContext, value, newPath);
         if (result) {
@@ -409,11 +458,19 @@ class JSPydanticModel {
 
   _extractConstraints(schema, path = []) {
     const constraintKeys = [
-      'minimum', 'maximum', 'minItems', 'maxItems',
-      'minLength', 'maxLength', 'pattern',
-      'exclusiveMinimum', 'exclusiveMaximum',
-      'minProperties', 'maxProperties',
-      'type', 'enum'
+      "minimum",
+      "maximum",
+      "minItems",
+      "maxItems",
+      "minLength",
+      "maxLength",
+      "pattern",
+      "exclusiveMinimum",
+      "exclusiveMaximum",
+      "minProperties",
+      "maxProperties",
+      "type",
+      "enum",
     ];
 
     // Get constraints at current level
@@ -425,7 +482,7 @@ class JSPydanticModel {
     }, {});
     // Store constraints if found
     if (Object.keys(constraints).length > 0) {
-      const propertyName = path.join('.');
+      const propertyName = path.join(".");
       if (propertyName) {
         this._constraints[propertyName] = constraints;
       }
@@ -433,11 +490,11 @@ class JSPydanticModel {
 
     // Handle $ref to definitions
     if (schema.$ref) {
-      const refPath = schema.$ref.replace(/^#\//, '').split('/');
+      const refPath = schema.$ref.replace(/^#\//, "").split("/");
       let refSchema = this._schema;
 
       // Special handling for $defs references
-      if (refPath[0] === '$defs') {
+      if (refPath[0] === "$defs") {
         // If the reference is to a $defs definition, look in the current context
         const currentContext = this.findContextWithDefs(schema);
         if (currentContext && currentContext.$defs) {
@@ -446,7 +503,7 @@ class JSPydanticModel {
       } else {
         // For other references, traverse the path
         for (const part of refPath) {
-          if (refSchema && typeof refSchema === 'object') {
+          if (refSchema && typeof refSchema === "object") {
             refSchema = refSchema[part];
           } else {
             console.warn(`Unable to resolve reference path: ${schema.$ref}`);
@@ -469,14 +526,14 @@ class JSPydanticModel {
       });
     } else if (schema.anyOf || schema.oneOf || schema.allOf) {
       const schemas = schema.anyOf || schema.oneOf || schema.allOf;
-      schemas.forEach(subSchema => {
+      schemas.forEach((subSchema) => {
         this._extractConstraints(subSchema, path);
       });
     }
 
     // Process array items
     if (schema.items) {
-      this._extractConstraints(schema.items, [...path, 'items']);
+      this._extractConstraints(schema.items, [...path, "items"]);
     }
   }
 

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { runPartialWorkflow } from '../utils/api';
+import { useState } from "react";
+import { runPartialWorkflow } from "../utils/api";
 
 interface PartialRunResult {
   // Add specific result type properties based on your API response
@@ -30,24 +30,27 @@ const usePartialRun = () => {
     nodeId,
     initialInputs,
     partialOutputs,
-    rerunPredecessors
+    rerunPredecessors,
   }: PartialRunParams): Promise<PartialRunResult | undefined> => {
-
-
     setLoading(true);
     setError(null);
 
     try {
-      const data = await runPartialWorkflow(workflowId, nodeId, initialInputs, partialOutputs, rerunPredecessors);
+      const data = await runPartialWorkflow(
+        workflowId,
+        nodeId,
+        initialInputs,
+        partialOutputs,
+        rerunPredecessors,
+      );
       setResult(data);
       return data;
     } catch (err) {
-      console.error('Error during partial run:', err);
+      console.error("Error during partial run:", err);
       const error = err as PartialRunError;
       setError(error);
     } finally {
       setLoading(false);
-
     }
   };
 

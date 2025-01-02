@@ -13,7 +13,7 @@ export default function TemplateCard({
   title,
   description,
   features,
-  onUse
+  onUse,
 }: TemplateCardProps) {
   return (
     <Card className="relative w-full">

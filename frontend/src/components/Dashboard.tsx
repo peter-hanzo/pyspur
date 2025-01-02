@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from "react";
 import {
   Table,
   TableHeader,
@@ -19,25 +19,41 @@ import {
   Accordion,
   AccordionItem,
   Alert,
-  Chip
-} from '@nextui-org/react';
-import { Icon } from '@iconify/react';
-import { getWorkflows, createWorkflow, uploadDataset, startBatchRun, deleteWorkflow, getTemplates, instantiateTemplate, duplicateWorkflow, listApiKeys, getApiKey, getWorkflowRuns } from '../utils/api';
-import { useRouter } from 'next/router';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store/store';
-import TemplateCard from './cards/TemplateCard';
-import WorkflowBatchRunsTable from './WorkflowBatchRunsTable';
-import WelcomeModal from './modals/WelcomeModal';
-import { Template } from '../types/workflow';
-import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas';
-import { ApiKey } from '../utils/api';
-import { RunResponse } from '@/types/api_types/runSchemas';
-
+  Chip,
+} from "@nextui-org/react";
+import { Icon } from "@iconify/react";
+import {
+  getWorkflows,
+  createWorkflow,
+  uploadDataset,
+  startBatchRun,
+  deleteWorkflow,
+  getTemplates,
+  instantiateTemplate,
+  duplicateWorkflow,
+  listApiKeys,
+  getApiKey,
+  getWorkflowRuns,
+} from "../utils/api";
+import { useRouter } from "next/router";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
+import TemplateCard from "./cards/TemplateCard";
+import WorkflowBatchRunsTable from "./WorkflowBatchRunsTable";
+import WelcomeModal from "./modals/WelcomeModal";
+import { Template } from "../types/workflow";
+import {
+  WorkflowCreateRequest,
+  WorkflowDefinition,
+  WorkflowResponse,
+} from "@/types/api_types/workflowSchemas";
+import { ApiKey } from "../utils/api";
+import { RunResponse } from "@/types/api_types/runSchemas";
 
 const Dashboard: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowResponse | null>(null);
+  const [selectedWorkflow, setSelectedWorkflow] =
+    useState<WorkflowResponse | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const router = useRouter();
@@ -46,27 +62,31 @@ const Dashboard: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
-  const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome);
-  const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({});
+  const hasSeenWelcome = useSelector(
+    (state: RootState) => state.userPreferences.hasSeenWelcome,
+  );
+  const [workflowRuns, setWorkflowRuns] = useState<
+    Record<string, RunResponse[]>
+  >({});
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
         const workflows = await getWorkflows();
-        const runsMap = await Promise.all(workflows.map(workflow => fetchWorkflowRuns(workflow.id)))
-          .then(runs => {
-            const map: Record<string, RunResponse[]> = {};
-            workflows.forEach((workflow, i) => {
-              map[workflow.id] = runs[i];
-            });
-            return map;
+        const runsMap = await Promise.all(
+          workflows.map((workflow) => fetchWorkflowRuns(workflow.id)),
+        ).then((runs) => {
+          const map: Record<string, RunResponse[]> = {};
+          workflows.forEach((workflow, i) => {
+            map[workflow.id] = runs[i];
           });
+          return map;
+        });
         setWorkflows(workflows as WorkflowResponse[]);
         setShowWelcome(!hasSeenWelcome && workflows.length === 0);
         setWorkflowRuns(runsMap);
-
       } catch (error) {
-        console.error('Error fetching workflows:', error);
+        console.error("Error fetching workflows:", error);
       }
     };
 
@@ -79,7 +99,7 @@ const Dashboard: React.FC = () => {
         const templates = await getTemplates();
         setTemplates(templates);
       } catch (error) {
-        console.error('Error fetching templates:', error);
+        console.error("Error fetching templates:", error);
       }
     };
 
@@ -98,7 +118,7 @@ const Dashboard: React.FC = () => {
         }
         setApiKeys(newApiKeys);
       } catch (error) {
-        console.error('Error fetching API keys:', error);
+        console.error("Error fetching API keys:", error);
       } finally {
         setIsLoadingApiKeys(false);
       }
@@ -120,7 +140,7 @@ const Dashboard: React.FC = () => {
       const runs = await getWorkflowRuns(workflowId);
       return runs.slice(0, 5);
     } catch (error) {
-      console.error('Error fetching workflow runs:', error);
+      console.error("Error fetching workflow runs:", error);
     }
   };
 
@@ -143,14 +163,18 @@ const Dashboard: React.FC = () => {
 
   const handleRunWorkflow = async () => {
     if (!file || !selectedWorkflow) {
-      alert('Please upload a file');
+      alert("Please upload a file");
       return;
     }
 
     try {
       const datasetName = `Dataset_${Date.now()}`;
       const datasetDescription = `Uploaded dataset for workflow ${selectedWorkflow.name}`;
-      const uploadedDataset = await uploadDataset(datasetName, datasetDescription, file);
+      const uploadedDataset = await uploadDataset(
+        datasetName,
+        datasetDescription,
+        file,
+      );
 
       setProgress(0);
       const interval = setInterval(() => {
@@ -165,7 +189,7 @@ const Dashboard: React.FC = () => {
 
       await startBatchRun(selectedWorkflow.id, uploadedDataset.id);
     } catch (error) {
-      console.error('Error running workflow:', error);
+      console.error("Error running workflow:", error);
     }
   };
 
@@ -174,27 +198,27 @@ const Dashboard: React.FC = () => {
       const uniqueName = `New Spur ${new Date().toLocaleString()}`;
       const newWorkflow: WorkflowCreateRequest = {
         name: uniqueName,
-        description: ''
+        description: "",
       };
 
       const createdWorkflow = await createWorkflow(newWorkflow);
       router.push(`/workflows/${createdWorkflow.id}`);
     } catch (error) {
-      console.error('Error creating new workflow:', error);
+      console.error("Error creating new workflow:", error);
     }
   };
 
   const handleImportWorkflowClick = async () => {
     try {
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = 'application/json';
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "application/json";
 
       fileInput.onchange = async (event: Event) => {
         const target = event.target as HTMLInputElement;
         const file = target.files?.[0];
         if (!file) {
-          alert('No file selected. Please try again.');
+          alert("No file selected. Please try again.");
           return;
         }
 
@@ -202,7 +226,7 @@ const Dashboard: React.FC = () => {
         reader.onload = async (e: ProgressEvent<FileReader>) => {
           try {
             const result = e.target?.result;
-            if (typeof result !== 'string') return;
+            if (typeof result !== "string") return;
 
             const jsonContent: WorkflowCreateRequest = JSON.parse(result);
             const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
@@ -210,20 +234,22 @@ const Dashboard: React.FC = () => {
             const newWorkflow: WorkflowCreateRequest = {
               name: uniqueName,
               description: jsonContent.description,
-              definition: jsonContent.definition as WorkflowDefinition
+              definition: jsonContent.definition as WorkflowDefinition,
             };
             const createdWorkflow = await createWorkflow(newWorkflow);
             router.push(`/workflows/${createdWorkflow.id}`);
           } catch (error) {
-            console.error('Error processing the JSON file:', error);
-            alert('Failed to import workflow. Please ensure the file is a valid JSON.');
+            console.error("Error processing the JSON file:", error);
+            alert(
+              "Failed to import workflow. Please ensure the file is a valid JSON.",
+            );
           }
         };
         reader.readAsText(file);
       };
       fileInput.click();
     } catch (error) {
-      console.error('Error importing workflow:', error);
+      console.error("Error importing workflow:", error);
     }
   };
 
@@ -232,18 +258,24 @@ const Dashboard: React.FC = () => {
       const newWorkflow = await instantiateTemplate(template);
       router.push(`/workflows/${newWorkflow.id}`);
     } catch (error) {
-      console.error('Error using template:', error);
+      console.error("Error using template:", error);
     }
   };
 
   const handleDeleteClick = async (workflow: WorkflowResponse) => {
-    if (window.confirm(`Are you sure you want to delete workflow "${workflow.name}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete workflow "${workflow.name}"?`,
+      )
+    ) {
       try {
         await deleteWorkflow(workflow.id);
-        setWorkflows((prevWorkflows) => prevWorkflows.filter((w) => w.id !== workflow.id));
+        setWorkflows((prevWorkflows) =>
+          prevWorkflows.filter((w) => w.id !== workflow.id),
+        );
       } catch (error) {
-        console.error('Error deleting workflow:', error);
-        alert('Failed to delete workflow. Please try again.');
+        console.error("Error deleting workflow:", error);
+        alert("Failed to delete workflow. Please try again.");
       }
     }
   };
@@ -253,42 +285,61 @@ const Dashboard: React.FC = () => {
       const duplicatedWorkflow = await duplicateWorkflow(workflow.id);
       setWorkflows((prevWorkflows) => [...prevWorkflows, duplicatedWorkflow]);
     } catch (error) {
-      console.error('Error duplicating workflow:', error);
-      alert('Failed to duplicate workflow. Please try again.');
+      console.error("Error duplicating workflow:", error);
+      alert("Failed to duplicate workflow. Please try again.");
     }
   };
 
   const handlePreviousRunClick = (runId: string) => {
-    window.open(`/trace/${runId}`, '_blank');
+    window.open(`/trace/${runId}`, "_blank");
   };
 
   return (
     <div className="flex flex-col gap-2">
-      <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
+      <WelcomeModal
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+      />
       <div className="w-3/4 mx-auto p-5">
         {/* Dashboard Header */}
         <header className="mb-6 flex w-full items-center flex-col gap-2">
-          {!isLoadingApiKeys && (apiKeys.length === 0 || apiKeys.every(key => !key.value || key.value === '')) && (
-            <div className="w-full">
-              <Alert
-                variant="warning"
-                className="mb-2"
-                startContent={<Icon icon="lucide:alert-triangle" width={16} />}
-              >
-                No API keys have been set. Please configure your API keys in the settings to use the application.
-              </Alert>
-            </div>
-          )}
+          {!isLoadingApiKeys &&
+            (apiKeys.length === 0 ||
+              apiKeys.every((key) => !key.value || key.value === "")) && (
+              <div className="w-full">
+                <Alert
+                  variant="warning"
+                  className="mb-2"
+                  startContent={
+                    <Icon icon="lucide:alert-triangle" width={16} />
+                  }
+                >
+                  No API keys have been set. Please configure your API keys in
+                  the settings to use the application.
+                </Alert>
+              </div>
+            )}
           <div className="flex w-full items-center">
             <div className="flex flex-col max-w-fit" id="dashboard-title">
-              <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
-              <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
+              <h1 className="text-xl font-bold text-default-900 lg:text-3xl">
+                Dashboard
+              </h1>
+              <p className="text-small text-default-400 lg:text-medium">
+                Manage your spurs
+              </p>
             </div>
-            <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
+            <div
+              className="ml-auto flex items-center gap-2"
+              id="new-workflow-entries"
+            >
               <Button
                 className="bg-foreground text-background"
                 startContent={
-                  <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
+                  <Icon
+                    className="flex-none text-background/60"
+                    icon="lucide:plus"
+                    width={16}
+                  />
                 }
                 onPress={handleNewWorkflowClick}
               >
@@ -297,7 +348,11 @@ const Dashboard: React.FC = () => {
               <Button
                 className="bg-foreground text-background"
                 startContent={
-                  <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
+                  <Icon
+                    className="flex-none text-background/60"
+                    icon="lucide:upload"
+                    width={16}
+                  />
                 }
                 onPress={handleImportWorkflowClick}
               >
@@ -308,14 +363,15 @@ const Dashboard: React.FC = () => {
         </header>
 
         {/* Wrap sections in Accordion */}
-        <Accordion defaultExpandedKeys={["1", "2", "3"]} selectionMode="multiple">
+        <Accordion
+          defaultExpandedKeys={["1", "2", "3"]}
+          selectionMode="multiple"
+        >
           <AccordionItem
             key="1"
             aria-label="Spur Templates"
             title={
-              <h3 className="text-xl font-semibold mb-4">
-                Spur Templates
-              </h3>
+              <h3 className="text-xl font-semibold mb-4">Spur Templates</h3>
             }
           >
             {/* Spur Templates Section */}
@@ -335,17 +391,15 @@ const Dashboard: React.FC = () => {
           <AccordionItem
             key="2"
             aria-label="Recent Spurs"
-            title={
-              <h3 className="text-xl font-semibold mb-4">
-                Recent Spurs
-              </h3>
-            }
+            title={<h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>}
           >
             {/* Recent Spurs Section */}
             {workflows.length > 0 ? (
               <Table aria-label="Saved Workflows" isHeaderSticky>
                 <TableHeader columns={columns}>
-                  {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+                  {(column) => (
+                    <TableColumn key={column.key}>{column.label}</TableColumn>
+                  )}
                 </TableHeader>
                 <TableBody items={workflows}>
                   {(workflow) => (
@@ -423,11 +477,7 @@ const Dashboard: React.FC = () => {
           <AccordionItem
             key="3"
             aria-label="Spur Jobs"
-            title={
-              <h3 className="text-xl font-semibold mb-4">
-                Spur Jobs
-              </h3>
-            }
+            title={<h3 className="text-xl font-semibold mb-4">Spur Jobs</h3>}
           >
             {/* Spur Jobs Section */}
             <WorkflowBatchRunsTable />
@@ -460,7 +510,7 @@ const Dashboard: React.FC = () => {
                   onPress={handleRunWorkflow}
                   disabled={progress > 0 && progress < 100}
                 >
-                  {progress > 0 && progress < 100 ? 'Running...' : 'Run'}
+                  {progress > 0 && progress < 100 ? "Running..." : "Run"}
                 </Button>
               </ModalFooter>
             </>

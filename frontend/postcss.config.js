@@ -4,4 +4,4 @@ module.exports = {
     autoprefixer: {},
     // ... other plugins if any ...
   },
-}
+};

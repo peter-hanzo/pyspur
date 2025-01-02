@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { getNodeTypes } from '../utils/api';
-import { RootState } from './store';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { getNodeTypes } from "../utils/api";
+import { RootState } from "./store";
 
 // Define the types for the conditional node
 type ComparisonOperator =
@@ -51,7 +51,7 @@ interface NodeMetadata {
 export interface NodeTypesState {
   data: Record<string, any>;
   metadata: Record<string, NodeMetadata[]>;
-  status?: 'idle' | 'loading' | 'succeeded' | 'failed';
+  status?: "idle" | "loading" | "succeeded" | "failed";
   error?: string | null;
 }
 
@@ -100,35 +100,38 @@ export interface FlowWorkflowNodeTypesByCategory {
 const initialState: NodeTypesState = {
   data: {},
   metadata: {},
-  status: 'idle',
+  status: "idle",
   error: null,
 };
 
 export const fetchNodeTypes = createAsyncThunk<NodeTypesResponse>(
-  'nodeTypes/fetchNodeTypes',
+  "nodeTypes/fetchNodeTypes",
   async () => {
     const response = await getNodeTypes();
     return response;
-  }
+  },
 );
 
 const nodeTypesSlice = createSlice({
-  name: 'nodeTypes',
+  name: "nodeTypes",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchNodeTypes.pending, (state) => {
-        state.status = 'loading';
+        state.status = "loading";
       })
-      .addCase(fetchNodeTypes.fulfilled, (state, action: PayloadAction<NodeTypesResponse>) => {
-        state.status = 'succeeded';
-        state.data = action.payload.schema;
-        state.metadata = action.payload.metadata;
-      })
+      .addCase(
+        fetchNodeTypes.fulfilled,
+        (state, action: PayloadAction<NodeTypesResponse>) => {
+          state.status = "succeeded";
+          state.data = action.payload.schema;
+          state.metadata = action.payload.metadata;
+        },
+      )
       .addCase(fetchNodeTypes.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.error.message ?? 'An error occurred';
+        state.status = "failed";
+        state.error = action.error.message ?? "An error occurred";
       });
   },
 });
@@ -137,7 +140,7 @@ const nodeTypesSlice = createSlice({
 const findMetadataInCategory = (
   metadata: Record<string, NodeMetadata[]> | null,
   nodeType: string,
-  path: string
+  path: string,
 ): any | null => {
   if (!metadata) return null;
 
@@ -152,33 +155,37 @@ const findMetadataInCategory = (
     if (!node) continue;
 
     // Navigate the remaining path
-    const remainingPath = path.split('.');
+    const remainingPath = path.split(".");
     let current: any = node;
 
     for (const part of remainingPath) {
-      if (current && typeof current === 'object' && part in current) {
+      if (current && typeof current === "object" && part in current) {
         current = current[part];
       } else {
-        return null;  // Path not found
+        return null; // Path not found
       }
     }
 
-    return current;  // Return the found metadata
+    return current; // Return the found metadata
   }
 
-  return null;  // Node type not found in any category
+  return null; // Node type not found in any category
 };
 
 export const selectPropertyMetadata = (
   state: RootState & { nodeTypes: NodeTypesState },
-  propertyPath: string
+  propertyPath: string,
 ): any | null => {
   if (!propertyPath) return null;
 
   // Split path into nodeType and remaining path
-  const [nodeType, ...pathParts] = propertyPath.split('.');
-  const remainingPath = pathParts.join('.');
-  return findMetadataInCategory(state.nodeTypes.metadata, nodeType, remainingPath);
+  const [nodeType, ...pathParts] = propertyPath.split(".");
+  const remainingPath = pathParts.join(".");
+  return findMetadataInCategory(
+    state.nodeTypes.metadata,
+    nodeType,
+    remainingPath,
+  );
 };
 
 export default nodeTypesSlice.reducer;

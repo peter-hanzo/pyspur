@@ -2,7 +2,23 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Header from "../../components/Header";
 import { getEvalRunStatus } from "../../utils/api";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, Button, useDisclosure, Alert } from "@nextui-org/react";
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Spinner,
+  Chip,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Button,
+  useDisclosure,
+  Alert,
+} from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
 interface PerExampleResult {
@@ -21,7 +37,6 @@ interface EvalResults {
   per_example_results: PerExampleResult[];
 }
 
-
 interface AlertState {
   message: string;
   color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
@@ -35,11 +50,15 @@ const EvalResultsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
+  const [alert, setAlert] = useState<AlertState>({
+    message: "",
+    color: "default",
+    isVisible: false,
+  });
 
-  const showAlert = (message: string, color: AlertState['color']) => {
+  const showAlert = (message: string, color: AlertState["color"]) => {
     setAlert({ message, color, isVisible: true });
-    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+    setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000);
   };
 
   useEffect(() => {
@@ -52,7 +71,9 @@ const EvalResultsPage: React.FC = () => {
           run_id: evalRunData.run_id,
           eval_name: evalRunData.eval_name,
           accuracy: evalRunData.results.accuracy,
-          per_example_results: evalRunData.results.subset_metrics?.default?.per_example_results || []
+          per_example_results:
+            evalRunData.results.subset_metrics?.default?.per_example_results ||
+            [],
         };
 
         setResults(normalizedResults);
@@ -123,16 +144,17 @@ const EvalResultsPage: React.FC = () => {
               Run ID: {results.run_id} • Eval: {results.eval_name}
             </div>
           </div>
-          <Chip
-            color="success"
-            variant="flat"
-            size="lg"
-          >
+          <Chip color="success" variant="flat" size="lg">
             Accuracy: {(results.accuracy * 100).toFixed(1)}%
           </Chip>
         </div>
 
-        <Table aria-label="Eval results table" isHeaderSticky isStriped fullWidth>
+        <Table
+          aria-label="Eval results table"
+          isHeaderSticky
+          isStriped
+          fullWidth
+        >
           <TableHeader>
             <TableColumn>Example ID</TableColumn>
             <TableColumn width="40%">Prompt</TableColumn>
@@ -142,19 +164,21 @@ const EvalResultsPage: React.FC = () => {
           </TableHeader>
           <TableBody items={results.per_example_results}>
             {(item) => (
-              <TableRow key={item.example_id || item.task_id || `result-${item.predicted_answer}-${item.ground_truth_answer}`}>
+              <TableRow
+                key={
+                  item.example_id ||
+                  item.task_id ||
+                  `result-${item.predicted_answer}-${item.ground_truth_answer}`
+                }
+              >
                 <TableCell>{item.example_id || item.task_id}</TableCell>
                 <TableCell>
                   <div className="max-h-32 overflow-y-auto">
                     {renderPrompt(item.prompt)}
                   </div>
                 </TableCell>
-                <TableCell>
-                  {item.predicted_answer}
-                </TableCell>
-                <TableCell>
-                  {item.ground_truth_answer}
-                </TableCell>
+                <TableCell>{item.predicted_answer}</TableCell>
+                <TableCell>{item.ground_truth_answer}</TableCell>
                 <TableCell>
                   <Chip
                     color={item.is_correct ? "success" : "danger"}
@@ -175,7 +199,7 @@ const EvalResultsPage: React.FC = () => {
         classNames={{
           base: "max-w-[90%] h-[75vh] m-auto",
           wrapper: "w-[90%]",
-          body: "p-5"
+          body: "p-5",
         }}
         scrollBehavior="inside"
         placement="center"
@@ -194,9 +218,7 @@ const EvalResultsPage: React.FC = () => {
 
       {alert.isVisible && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Alert color={alert.color}>
-            {alert.message}
-          </Alert>
+          <Alert color={alert.color}>{alert.message}</Alert>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
-import { python } from '@codemirror/lang-python';
-import { oneDark } from '@codemirror/theme-one-dark';
+import React, { useState, useEffect } from "react";
+import CodeMirror from "@uiw/react-codemirror";
+import { python } from "@codemirror/lang-python";
+import { oneDark } from "@codemirror/theme-one-dark";
 
 interface CodeEditorProps {
   code: string;
@@ -9,11 +9,15 @@ interface CodeEditorProps {
   disabled?: boolean;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled }) => {
-  const [value, setValue] = useState<string>('');
+const CodeEditor: React.FC<CodeEditorProps> = ({
+  code,
+  onChange,
+  disabled,
+}) => {
+  const [value, setValue] = useState<string>("");
 
   useEffect(() => {
-    if (typeof code === 'string') {
+    if (typeof code === "string") {
       setValue(code);
     }
   }, [code]);

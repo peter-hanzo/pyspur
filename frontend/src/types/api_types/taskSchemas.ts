@@ -1,6 +1,11 @@
-import { WorkflowDefinition } from './workflowSchemas';
+import { WorkflowDefinition } from "./workflowSchemas";
 
-export type TaskStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type TaskStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
 
 export interface TaskResponse {
   id: string;

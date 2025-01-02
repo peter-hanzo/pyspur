@@ -2,10 +2,26 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useTheme } from "next-themes";
 import Header from "../components/Header";
-import { getEvals, startEvalRun, listEvalRuns, getEvalRunStatus } from "../utils/api";
+import {
+  getEvals,
+  startEvalRun,
+  listEvalRuns,
+  getEvalRunStatus,
+} from "../utils/api";
 import EvalCard from "../components/cards/EvalCard";
-import { Spinner, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Alert } from "@nextui-org/react";
-import { RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
+import {
+  Spinner,
+  Button,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Chip,
+  Alert,
+} from "@nextui-org/react";
+import { RadialBarChart, RadialBar, PolarAngleAxis } from "recharts";
 
 interface EvalItem {
   name: string;
@@ -19,7 +35,7 @@ interface EvalRun {
   run_id: string;
   eval_name: string;
   workflow_id: string;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
   results?: {
     accuracy?: number;
     [key: string]: any;
@@ -38,7 +54,10 @@ interface EvalCardRunProps {
   outputVariable: string;
 }
 
-const statusColorMap: Record<string, "warning" | "primary" | "success" | "danger"> = {
+const statusColorMap: Record<
+  string,
+  "warning" | "primary" | "success" | "danger"
+> = {
   PENDING: "primary",
   RUNNING: "warning",
   COMPLETED: "success",
@@ -56,7 +75,11 @@ const EvalsPage: React.FC = () => {
   const [evalRuns, setEvalRuns] = useState<EvalRun[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { theme } = useTheme();
-  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
+  const [alert, setAlert] = useState<AlertState>({
+    message: "",
+    color: "default",
+    isVisible: false,
+  });
 
   const router = useRouter();
 
@@ -74,9 +97,9 @@ const EvalsPage: React.FC = () => {
     return results;
   };
 
-  const showAlert = (message: string, color: AlertState['color']) => {
+  const showAlert = (message: string, color: AlertState["color"]) => {
     setAlert({ message, color, isVisible: true });
-    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+    setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000);
   };
 
   useEffect(() => {
@@ -107,15 +130,18 @@ const EvalsPage: React.FC = () => {
                 const evalRunData = await getEvalRunStatus(run.run_id);
                 return {
                   ...run,
-                  results: evalRunData.results
+                  results: evalRunData.results,
                 };
               } catch (error) {
-                console.error(`Error fetching results for run ${run.run_id}:`, error);
+                console.error(
+                  `Error fetching results for run ${run.run_id}:`,
+                  error,
+                );
                 return run;
               }
             }
             return run;
-          })
+          }),
         );
 
         setEvalRuns(runsDataWithResults);
@@ -133,7 +159,7 @@ const EvalsPage: React.FC = () => {
     workflowId: string,
     evalName: string,
     numSamples: number,
-    outputVariable: string
+    outputVariable: string,
   ): Promise<void> => {
     if (!workflowId) {
       showAlert("Workflow ID is missing.", "danger");
@@ -145,8 +171,16 @@ const EvalsPage: React.FC = () => {
     }
 
     try {
-      showAlert(`Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`, "default");
-      const evalRunResponse = await startEvalRun(workflowId, evalName, outputVariable, numSamples);
+      showAlert(
+        `Launching eval with output variable: ${outputVariable} and ${numSamples} samples...`,
+        "default",
+      );
+      const evalRunResponse = await startEvalRun(
+        workflowId,
+        evalName,
+        outputVariable,
+        numSamples,
+      );
       showAlert(`Eval run started.`, "success");
       setEvalRuns((prevRuns) => [...prevRuns, evalRunResponse]);
     } catch (error) {
@@ -208,19 +242,35 @@ const EvalsPage: React.FC = () => {
                           innerRadius={18}
                           outerRadius={25}
                           barSize={7}
-                          data={[{ name: 'Accuracy', value: run.results.accuracy * 100 }]}
+                          data={[
+                            {
+                              name: "Accuracy",
+                              value: run.results.accuracy * 100,
+                            },
+                          ]}
                           startAngle={90}
                           endAngle={-270}
                         >
                           <RadialBar
                             dataKey="value"
                             cornerRadius={12}
-                            fill={theme === 'dark' ? "hsl(143 55% 62%)" : "hsl(143 55% 42%)"}
+                            fill={
+                              theme === "dark"
+                                ? "hsl(143 55% 62%)"
+                                : "hsl(143 55% 42%)"
+                            }
                             background={{
-                              fill: theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
+                              fill:
+                                theme === "dark"
+                                  ? "rgba(255, 255, 255, 0.12)"
+                                  : "rgba(0, 0, 0, 0.12)",
                             }}
                           />
-                          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                          <PolarAngleAxis
+                            type="number"
+                            domain={[0, 100]}
+                            tick={false}
+                          />
                           <text
                             x={25}
                             y={25}
@@ -229,7 +279,10 @@ const EvalsPage: React.FC = () => {
                             style={{
                               fontSize: "11px",
                               fontWeight: "600",
-                              fill: theme === 'dark' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.9)'
+                              fill:
+                                theme === "dark"
+                                  ? "rgba(255, 255, 255, 0.95)"
+                                  : "rgba(0, 0, 0, 0.9)",
                             }}
                           >
                             {`${(run.results.accuracy * 100).toFixed(1)}%`}
@@ -244,7 +297,10 @@ const EvalsPage: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     {run.status === "COMPLETED" ? (
-                      <Button size="sm" onPress={() => handleViewResults(run.run_id)}>
+                      <Button
+                        size="sm"
+                        onPress={() => handleViewResults(run.run_id)}
+                      >
                         View Examples
                       </Button>
                     ) : (
@@ -276,8 +332,17 @@ const EvalsPage: React.FC = () => {
                 type={evalItem.type}
                 numSamples={evalItem.num_samples}
                 paperLink={evalItem.paper_link}
-                onRun={(workflowId: string, numSamples: number, outputVariable: string) =>
-                  handleLaunchEval(workflowId, evalItem.name, numSamples, outputVariable)
+                onRun={(
+                  workflowId: string,
+                  numSamples: number,
+                  outputVariable: string,
+                ) =>
+                  handleLaunchEval(
+                    workflowId,
+                    evalItem.name,
+                    numSamples,
+                    outputVariable,
+                  )
                 }
               />
             ))}
@@ -288,9 +353,7 @@ const EvalsPage: React.FC = () => {
       </div>
       {alert.isVisible && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Alert color={alert.color}>
-            {alert.message}
-          </Alert>
+          <Alert color={alert.color}>{alert.message}</Alert>
         </div>
       )}
     </div>

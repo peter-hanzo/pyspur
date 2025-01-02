@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Modal,
   ModalContent,
@@ -6,9 +6,9 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-} from '@nextui-org/react';
-import { useDispatch } from 'react-redux';
-import { markWelcomeSeen } from '../../store/userPreferencesSlice';
+} from "@nextui-org/react";
+import { useDispatch } from "react-redux";
+import { markWelcomeSeen } from "../../store/userPreferencesSlice";
 
 interface WelcomeModalProps {
   isOpen: boolean;

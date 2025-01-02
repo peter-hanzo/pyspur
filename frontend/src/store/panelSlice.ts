@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface PanelState {
   isNodePanelExpanded: boolean;
@@ -9,7 +9,7 @@ const initialState: PanelState = {
 };
 
 export const panelSlice = createSlice({
-  name: 'panel',
+  name: "panel",
   initialState,
   reducers: {
     setNodePanelExpanded: (state, action: PayloadAction<boolean>) => {
@@ -17,9 +17,10 @@ export const panelSlice = createSlice({
     },
     toggleNodePanelExpanded: (state) => {
       state.isNodePanelExpanded = !state.isNodePanelExpanded;
-    }
+    },
   },
 });
 
-export const { setNodePanelExpanded, toggleNodePanelExpanded  } = panelSlice.actions;
-export default panelSlice.reducer; 
+export const { setNodePanelExpanded, toggleNodePanelExpanded } =
+  panelSlice.actions;
+export default panelSlice.reducer;

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import React, { useState, useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../../store/store";
 import {
   updateNodeConfigOnly,
   selectNodeById,
@@ -9,13 +9,17 @@ import {
   FlowWorkflowNode,
   FlowWorkflowNodeConfig,
   updateNodeTitle,
-} from '../../../store/flowSlice';
-import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory, FieldMetadata } from '../../../store/nodeTypesSlice';
-import NumberInput from '../../NumberInput';
-import CodeEditor from '../../CodeEditor';
-import { jsonOptions } from '../../../constants/jsonOptions';
-import FewShotEditor from '../../textEditor/FewShotEditor';
-import TextEditor from '../../textEditor/TextEditor';
+} from "../../../store/flowSlice";
+import {
+  FlowWorkflowNodeType,
+  FlowWorkflowNodeTypesByCategory,
+  FieldMetadata,
+} from "../../../store/nodeTypesSlice";
+import NumberInput from "../../NumberInput";
+import CodeEditor from "../../CodeEditor";
+import { jsonOptions } from "../../../constants/jsonOptions";
+import FewShotEditor from "../../textEditor/FewShotEditor";
+import TextEditor from "../../textEditor/TextEditor";
 import {
   Button,
   Slider,
@@ -31,23 +35,28 @@ import {
   Alert,
   Tooltip,
 } from "@nextui-org/react";
-import { Icon } from '@iconify/react';
-import NodeOutput from '../NodeOutputDisplay';
-import SchemaEditor from './SchemaEditor';
-import { selectPropertyMetadata } from '../../../store/nodeTypesSlice';
-import { cloneDeep, set, debounce } from 'lodash';
-import isEqual from 'lodash/isEqual';
+import { Icon } from "@iconify/react";
+import NodeOutput from "../NodeOutputDisplay";
+import SchemaEditor from "./SchemaEditor";
+import { selectPropertyMetadata } from "../../../store/nodeTypesSlice";
+import { cloneDeep, set, debounce } from "lodash";
+import isEqual from "lodash/isEqual";
 // Define types for props and state
 interface NodeSidebarProps {
   nodeID: string;
 }
 
 // Update findNodeSchema to use imported types
-const findNodeSchema = (nodeType: string, nodeTypes: FlowWorkflowNodeTypesByCategory): FlowWorkflowNodeType | null => {
+const findNodeSchema = (
+  nodeType: string,
+  nodeTypes: FlowWorkflowNodeTypesByCategory,
+): FlowWorkflowNodeType | null => {
   if (!nodeTypes) return null;
 
   for (const category in nodeTypes) {
-    const nodeSchema = nodeTypes[category]?.find((n: FlowWorkflowNodeType) => n.name === nodeType);
+    const nodeSchema = nodeTypes[category]?.find(
+      (n: FlowWorkflowNodeType) => n.name === nodeType,
+    );
     if (nodeSchema) {
       return nodeSchema;
     }
@@ -55,31 +64,47 @@ const findNodeSchema = (nodeType: string, nodeTypes: FlowWorkflowNodeTypesByCate
   return null;
 };
 
-const nodeComparator = (prevNode: FlowWorkflowNode, nextNode: FlowWorkflowNode) => {
+const nodeComparator = (
+  prevNode: FlowWorkflowNode,
+  nextNode: FlowWorkflowNode,
+) => {
   if (!prevNode || !nextNode) return false;
   // Skip position and measured properties when comparing nodes
-  const { position: prevPosition, measured: prevMeasured, ...prevRest } = prevNode;
-  const { position: nextPosition, measured: nextMeasured, ...nextRest } = nextNode;
+  const {
+    position: prevPosition,
+    measured: prevMeasured,
+    ...prevRest
+  } = prevNode;
+  const {
+    position: nextPosition,
+    measured: nextMeasured,
+    ...nextRest
+  } = nextNode;
   return isEqual(prevRest, nextRest);
 };
 
-const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowNode[]) => {
+const nodesComparator = (
+  prevNodes: FlowWorkflowNode[],
+  nextNodes: FlowWorkflowNode[],
+) => {
   if (!prevNodes || !nextNodes) return false;
   if (prevNodes.length !== nextNodes.length) return false;
-  return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]));
+  return prevNodes.every((node, index) =>
+    nodeComparator(node, nextNodes[index]),
+  );
 };
 
 // Add the utility function near the top of the file
 const convertToPythonVariableName = (str: string): string => {
   // Replace spaces and hyphens with underscores
-  str = str.replace(/[\s-]/g, '_');
+  str = str.replace(/[\s-]/g, "_");
 
   // Remove any non-alphanumeric characters except underscores
-  str = str.replace(/[^a-zA-Z0-9_]/g, '');
+  str = str.replace(/[^a-zA-Z0-9_]/g, "");
 
   // Ensure the first character is a letter or underscore
   if (!/^[a-zA-Z_]/.test(str)) {
-    str = '_' + str;
+    str = "_" + str;
   }
 
   return str;
@@ -87,32 +112,46 @@ const convertToPythonVariableName = (str: string): string => {
 
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const dispatch = useDispatch();
-  const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator);
+  const nodes = useSelector(
+    (state: RootState) => state.flow.nodes,
+    nodesComparator,
+  );
   const edges = useSelector((state: RootState) => state.flow.edges, isEqual);
   const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data);
-  const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes).metadata;
+  const nodeTypesMetadata = useSelector(
+    (state: RootState) => state.nodeTypes,
+  ).metadata;
   const node = useSelector((state: RootState) => selectNodeById(state, nodeID));
-  const storedWidth = useSelector((state: RootState) => state.flow.sidebarWidth);
-  const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID]);
-  const allNodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
+  const storedWidth = useSelector(
+    (state: RootState) => state.flow.sidebarWidth,
+  );
+  const nodeConfig = useSelector(
+    (state: RootState) => state.flow.nodeConfigs[nodeID],
+  );
+  const allNodeConfigs = useSelector(
+    (state: RootState) => state.flow.nodeConfigs,
+  );
 
   const hasRunOutput = !!node?.data?.run;
 
   const [width, setWidth] = useState<number>(storedWidth);
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
-  const [nodeType, setNodeType] = useState<string>(node?.type || 'ExampleNode');
+  const [nodeType, setNodeType] = useState<string>(node?.type || "ExampleNode");
   const [nodeSchema, setNodeSchema] = useState<FlowWorkflowNodeType | null>(
-    findNodeSchema(node?.type || 'ExampleNode', nodeTypes)
+    findNodeSchema(node?.type || "ExampleNode", nodeTypes),
   );
-  const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {});
+  const [currentNodeConfig, setCurrentNodeConfig] =
+    useState<FlowWorkflowNodeConfig>(nodeConfig || {});
   const [fewShotIndex, setFewShotIndex] = useState<number | null>(null);
   const [showTitleError, setShowTitleError] = useState(false);
-  const [titleInputValue, setTitleInputValue] = useState<string>('');
+  const [titleInputValue, setTitleInputValue] = useState<string>("");
 
   const collectIncomingSchema = (nodeID: string): string[] => {
     const incomingEdges = edges.filter((edge) => edge.target === nodeID);
-    const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source));
+    const incomingNodes = incomingEdges.map((edge) =>
+      nodes.find((n) => n.id === edge.source),
+    );
     // foreach incoming node, get the output schema
     // return ['nodeTitle.foo', 'nodeTitle.bar', 'nodeTitle.baz',...]
     return incomingNodes.reduce((acc: string[], node) => {
@@ -122,51 +161,52 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         const nodeTitle = config.title || node.id;
         return [
           ...acc,
-          ...Object.keys(config.output_schema).map((key) => `${nodeTitle}.${key}`),
+          ...Object.keys(config.output_schema).map(
+            (key) => `${nodeTitle}.${key}`,
+          ),
         ];
       }
       return acc;
     }, []);
-  }
+  };
   const [incomingSchema, setIncomingSchema] = useState<string[]>(
-    collectIncomingSchema(nodeID)
+    collectIncomingSchema(nodeID),
   );
 
   useEffect(() => {
     setIncomingSchema(collectIncomingSchema(nodeID));
-  }
-    , [nodeID, nodes, edges]);
+  }, [nodeID, nodes, edges]);
 
   // Create a debounced version of the dispatch update
   const debouncedDispatch = useCallback(
     debounce((id: string, updatedModel: FlowWorkflowNodeConfig) => {
       dispatch(updateNodeConfigOnly({ id, data: updatedModel }));
     }, 300),
-    [dispatch]
+    [dispatch],
   );
 
   // Add this useEffect to handle title initialization and updates
   useEffect(() => {
     if (nodeConfig) {
-      setTitleInputValue(nodeConfig.title || node?.id || '');
+      setTitleInputValue(nodeConfig.title || node?.id || "");
     }
   }, [nodeConfig, node]); // Only depend on nodeConfig and node changes
 
   // Update the existing useEffect to initialize LLM nodes with a default model
   useEffect(() => {
     if (node) {
-      setNodeType(node.type || 'ExampleNode');
-      setNodeSchema(findNodeSchema(node.type || 'ExampleNode', nodeTypes));
+      setNodeType(node.type || "ExampleNode");
+      setNodeSchema(findNodeSchema(node.type || "ExampleNode", nodeTypes));
 
       // Initialize the model with a default value for LLM nodes
       let initialConfig = nodeConfig || {};
-      if (node.type === 'LLMNode' || node.type === 'SingleLLMCallNode') {
+      if (node.type === "LLMNode" || node.type === "SingleLLMCallNode") {
         initialConfig = {
           ...initialConfig,
           llm_info: {
             ...initialConfig.llm_info,
-            model: initialConfig.llm_info?.model || 'gpt-4o' // Set default model
-          }
+            model: initialConfig.llm_info?.model || "gpt-4o", // Set default model
+          },
         };
       }
 
@@ -175,20 +215,35 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   }, [nodeID, node, nodeTypes, nodeConfig]);
 
   // Helper function to update nested object by path
-  const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
+  const updateNestedModel = (
+    obj: FlowWorkflowNodeConfig,
+    path: string,
+    value: any,
+  ): FlowWorkflowNodeConfig => {
     const deepClone = cloneDeep(obj);
     set(deepClone, path, value);
     return deepClone;
   };
 
   // Update the input change handler to use local state immediately but debounce Redux updates for Slider
-  const handleInputChange = (key: string, value: any, isSlider: boolean = false) => {
+  const handleInputChange = (
+    key: string,
+    value: any,
+    isSlider: boolean = false,
+  ) => {
     let updatedModel: FlowWorkflowNodeConfig;
 
-    if (key.includes('.')) {
-      updatedModel = updateNestedModel(currentNodeConfig, key, value) as FlowWorkflowNodeConfig;
+    if (key.includes(".")) {
+      updatedModel = updateNestedModel(
+        currentNodeConfig,
+        key,
+        value,
+      ) as FlowWorkflowNodeConfig;
     } else {
-      updatedModel = { ...currentNodeConfig, [key]: value } as FlowWorkflowNodeConfig;
+      updatedModel = {
+        ...currentNodeConfig,
+        [key]: value,
+      } as FlowWorkflowNodeConfig;
     }
 
     setCurrentNodeConfig(updatedModel);
@@ -214,14 +269,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     label: string,
     enumValues: string[],
     fullPath: string,
-    defaultSelected?: string
+    defaultSelected?: string,
   ) => {
-    const lastTwoDots = fullPath.split('.').slice(-2).join('.');
+    const lastTwoDots = fullPath.split(".").slice(-2).join(".");
 
     // Special handling for LLM model selection
-    if (key === 'model' && fullPath.includes('llm_info')) {
+    if (key === "model" && fullPath.includes("llm_info")) {
       // Group models by provider
-      const modelsByProvider: { [key: string]: { id: string; name: string }[] } = {
+      const modelsByProvider: {
+        [key: string]: { id: string; name: string }[];
+      } = {
         OpenAI: [],
         Anthropic: [],
         Google: [],
@@ -230,22 +287,25 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       };
 
       enumValues.forEach((modelId) => {
-        if (modelId.startsWith('ollama/')) {
-          modelsByProvider.Ollama.push({ id: modelId, name: modelId.replace('ollama/', '') });
-        } else if (modelId.startsWith('claude')) {
+        if (modelId.startsWith("ollama/")) {
+          modelsByProvider.Ollama.push({
+            id: modelId,
+            name: modelId.replace("ollama/", ""),
+          });
+        } else if (modelId.startsWith("claude")) {
           modelsByProvider.Anthropic.push({ id: modelId, name: modelId });
-        } else if (modelId.startsWith('gemini')) {
+        } else if (modelId.startsWith("gemini")) {
           modelsByProvider.Google.push({ id: modelId, name: modelId });
-        } else if (modelId.startsWith('deepseek')) {
+        } else if (modelId.startsWith("deepseek")) {
           modelsByProvider.Deepseek.push({ id: modelId, name: modelId });
         } else {
           modelsByProvider.OpenAI.push({ id: modelId, name: modelId });
         }
-
       });
 
       // Ensure we have a valid default value
-      const currentValue = currentNodeConfig?.llm_info?.model || defaultSelected || 'gpt-4o';
+      const currentValue =
+        currentNodeConfig?.llm_info?.model || defaultSelected || "gpt-4o";
 
       return (
         <div key={key}>
@@ -254,34 +314,44 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             label={label}
             selectedKeys={[currentValue]}
             onChange={(e) => {
-              const updatedModel = updateNestedModel(currentNodeConfig, 'llm_info.model', e.target.value);
+              const updatedModel = updateNestedModel(
+                currentNodeConfig,
+                "llm_info.model",
+                e.target.value,
+              );
               setCurrentNodeConfig(updatedModel);
-              dispatch(updateNodeConfigOnly({ id: nodeID, data: updatedModel }));
+              dispatch(
+                updateNodeConfigOnly({ id: nodeID, data: updatedModel }),
+              );
             }}
             fullWidth
           >
-            {Object.entries(modelsByProvider).map(([provider, models], index) => (
-              models.length > 0 && (
-                <SelectSection
-                  key={`provider-${provider}`}
-                  title={provider}
-                  showDivider={index < Object.keys(modelsByProvider).length - 1}
-                >
-                  {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectSection>
-              )
-            ))}
+            {Object.entries(modelsByProvider).map(
+              ([provider, models], index) =>
+                models.length > 0 && (
+                  <SelectSection
+                    key={`provider-${provider}`}
+                    title={provider}
+                    showDivider={
+                      index < Object.keys(modelsByProvider).length - 1
+                    }
+                  >
+                    {models.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectSection>
+                ),
+            )}
           </Select>
         </div>
       );
     }
 
     // Default rendering for other enum fields
-    const currentValue = defaultSelected || currentNodeConfig[key] || enumValues[0];
+    const currentValue =
+      defaultSelected || currentNodeConfig[key] || enumValues[0];
     return (
       <div key={key}>
         <Select
@@ -302,20 +372,28 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   };
 
   const handleAddNewExample = () => {
-    const updatedExamples = [...(currentNodeConfig?.few_shot_examples || []), { input: '', output: '' }];
-    handleInputChange('few_shot_examples', updatedExamples);
+    const updatedExamples = [
+      ...(currentNodeConfig?.few_shot_examples || []),
+      { input: "", output: "" },
+    ];
+    handleInputChange("few_shot_examples", updatedExamples);
     setFewShotIndex(updatedExamples.length - 1);
   };
 
   const handleDeleteExample = (index: number) => {
     const updatedExamples = [...(currentNodeConfig?.few_shot_examples || [])];
     updatedExamples.splice(index, 1);
-    handleInputChange('few_shot_examples', updatedExamples);
+    handleInputChange("few_shot_examples", updatedExamples);
   };
 
   // Update the `getFieldMetadata` function
   const getFieldMetadata = (fullPath: string): FieldMetadata | undefined => {
-    return selectPropertyMetadata({ nodeTypes: { data: nodeTypes, metadata: nodeTypesMetadata } } as unknown as RootState, fullPath) as FieldMetadata;
+    return selectPropertyMetadata(
+      {
+        nodeTypes: { data: nodeTypes, metadata: nodeTypesMetadata },
+      } as unknown as RootState,
+      fullPath,
+    ) as FieldMetadata;
   };
 
   // Update the `renderField` function to include missing cases
@@ -323,16 +401,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     key: string,
     field: any,
     value: any,
-    parentPath: string = '',
-    isLast: boolean = false
+    parentPath: string = "",
+    isLast: boolean = false,
   ) => {
-    const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`;
+    const fullPath = `${parentPath ? `${parentPath}.` : ""}${key}`;
     const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata;
 
     // Skip api_base field if the selected model is not an Ollama model
-    if (key === 'api_base') {
+    if (key === "api_base") {
       const modelValue = currentNodeConfig?.llm_info?.model;
-      if (!modelValue || !modelValue.toString().startsWith('ollama/')) {
+      if (!modelValue || !modelValue.toString().startsWith("ollama/")) {
         return null;
       }
       // Add default value for Ollama models
@@ -354,11 +432,17 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     // Handle enum fields
     if (fieldMetadata?.enum) {
       const defaultSelected = value || fieldMetadata.default;
-      return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum, fullPath, defaultSelected);
+      return renderEnumSelect(
+        key,
+        fieldMetadata.title || key,
+        fieldMetadata.enum,
+        fullPath,
+        defaultSelected,
+      );
     }
 
     // Handle specific cases for input_schema, output_schema, and system_prompt
-    if (key === 'input_schema') {
+    if (key === "input_schema") {
       return (
         <div key={`schema-editor-input-${nodeID}`} className="my-2">
           <label className="font-semibold mb-1 block">Input Schema</label>
@@ -366,7 +450,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={`schema-editor-input-${nodeID}`}
             jsonValue={currentNodeConfig.input_schema || {}}
             onChange={(newValue) => {
-              handleInputChange('input_schema', newValue);
+              handleInputChange("input_schema", newValue);
             }}
             options={jsonOptions}
             schemaType="input_schema"
@@ -377,7 +461,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key === 'output_schema') {
+    if (key === "output_schema") {
       return (
         <div key={key} className="my-2">
           <div className="flex items-center gap-2 mb-2">
@@ -399,7 +483,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             key={`schema-editor-output-${nodeID}`}
             jsonValue={currentNodeConfig.output_schema || {}}
             onChange={(newValue) => {
-              handleInputChange('output_schema', newValue);
+              handleInputChange("output_schema", newValue);
             }}
             options={jsonOptions}
             schemaType="output_schema"
@@ -410,7 +494,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key === 'system_message') {
+    if (key === "system_message") {
       return (
         <div key={key}>
           <div className="flex items-center gap-2 mb-2">
@@ -434,7 +518,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             fieldName={key}
             inputSchema={incomingSchema}
             fieldTitle="System Message"
-            content={currentNodeConfig[key] || ''}
+            content={currentNodeConfig[key] || ""}
             setContent={(value: string) => handleInputChange(key, value)}
           />
           {!isLast && <hr className="my-2" />}
@@ -442,7 +526,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key === 'user_message') {
+    if (key === "user_message") {
       return (
         <div key={key}>
           <div className="flex items-center gap-2 mb-2">
@@ -466,7 +550,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             fieldName={key}
             inputSchema={incomingSchema}
             fieldTitle="User Message"
-            content={currentNodeConfig[key] || ''}
+            content={currentNodeConfig[key] || ""}
             setContent={(value) => handleInputChange(key, value)}
           />
           {renderFewShotExamples()}
@@ -475,7 +559,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key.endsWith('_prompt') || key.endsWith('_message')) {
+    if (key.endsWith("_prompt") || key.endsWith("_message")) {
       return (
         <div key={key}>
           <TextEditor
@@ -484,7 +568,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             fieldName={key}
             inputSchema={incomingSchema}
             fieldTitle={key}
-            content={currentNodeConfig[key] || ''}
+            content={currentNodeConfig[key] || ""}
             setContent={(value) => handleInputChange(key, value)}
           />
           {!isLast && <hr className="my-2" />}
@@ -492,7 +576,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
       );
     }
 
-    if (key === 'code') {
+    if (key === "code") {
       return (
         <CodeEditor
           key={`code-editor-${nodeID}-${key}`}
@@ -504,7 +588,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Handle other types (string, number, boolean, object)
     switch (typeof field) {
-      case 'string':
+      case "string":
         return (
           <div key={key} className="my-4">
             <Textarea
@@ -518,15 +602,21 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             {!isLast && <hr className="my-2" />}
           </div>
         );
-      case 'number':
-        if (fieldMetadata && (fieldMetadata.minimum !== undefined || fieldMetadata.maximum !== undefined)) {
+      case "number":
+        if (
+          fieldMetadata &&
+          (fieldMetadata.minimum !== undefined ||
+            fieldMetadata.maximum !== undefined)
+        ) {
           const min = fieldMetadata.minimum ?? 0;
           const max = fieldMetadata.maximum ?? 100;
 
           return (
             <div key={key} className="my-4">
               <div className="flex justify-between items-center mb-2">
-                <label className="font-semibold">{fieldMetadata.title || key}</label>
+                <label className="font-semibold">
+                  {fieldMetadata.title || key}
+                </label>
                 <span className="text-sm">{value}</span>
               </div>
               <Slider
@@ -535,12 +625,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 value={value}
                 minValue={min}
                 maxValue={max}
-                step={fieldMetadata.type === 'integer' ? 1 : 0.1}
+                step={fieldMetadata.type === "integer" ? 1 : 0.1}
                 className="w-full"
                 onChange={(newValue) => {
                   const path = parentPath ? `${parentPath}.${key}` : key;
-                  const lastTwoDots = path.split('.').slice(-2);
-                  const finalPath = lastTwoDots[0] === 'config' ? lastTwoDots[1] : lastTwoDots.join('.');
+                  const lastTwoDots = path.split(".").slice(-2);
+                  const finalPath =
+                    lastTwoDots[0] === "config"
+                      ? lastTwoDots[1]
+                      : lastTwoDots.join(".");
                   handleInputChange(finalPath, newValue, true);
                 }}
               />
@@ -559,11 +652,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             }}
           />
         );
-      case 'boolean':
+      case "boolean":
         return (
           <div key={key} className="my-4">
             <div className="flex justify-between items-center">
-              <label className="font-semibold">{fieldMetadata?.title || key}</label>
+              <label className="font-semibold">
+                {fieldMetadata?.title || key}
+              </label>
               <Switch
                 key={`switch-${nodeID}-${key}`}
                 checked={value}
@@ -573,11 +668,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             {!isLast && <hr className="my-2" />}
           </div>
         );
-      case 'object':
-        if (field && typeof field === 'object' && !Array.isArray(field)) {
+      case "object":
+        if (field && typeof field === "object" && !Array.isArray(field)) {
           return (
             <div key={key} className="my-2">
-              {Object.keys(field).map((subKey) => renderField(subKey, field[subKey], value?.[subKey], fullPath))}
+              {Object.keys(field).map((subKey) =>
+                renderField(subKey, field[subKey], value?.[subKey], fullPath),
+              )}
               {!isLast && <hr className="my-2" />}
             </div>
           );
@@ -592,12 +689,17 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
   const renderConfigFields = () => {
     if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null;
     const properties = nodeSchema.config;
-    const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type');
+    const keys = Object.keys(properties).filter(
+      (key) => key !== "title" && key !== "type",
+    );
 
     // Prioritize system_message and user_message to appear first
-    const priorityFields = ['system_message', 'user_message'];
-    const remainingKeys = keys.filter(key => !priorityFields.includes(key));
-    const orderedKeys = [...priorityFields.filter(key => keys.includes(key)), ...remainingKeys];
+    const priorityFields = ["system_message", "user_message"];
+    const remainingKeys = keys.filter((key) => !priorityFields.includes(key));
+    const orderedKeys = [
+      ...priorityFields.filter((key) => keys.includes(key)),
+      ...remainingKeys,
+    ];
 
     return orderedKeys.map((key, index) => {
       const field = properties[key];
@@ -699,20 +801,18 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     };
 
     if (isResizing) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isResizing, dispatch, width]);
 
   return (
-    <Card
-      className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
-    >
+    <Card className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto">
       {showTitleError && (
         <Alert
           key={`alert-${nodeID}`}
@@ -728,23 +828,28 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         style={{
           width: `${width}px`,
           zIndex: 2,
-          userSelect: isResizing ? 'none' : 'auto'
+          userSelect: isResizing ? "none" : "auto",
         }}
       >
         <div
           className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary hover:opacity-100 opacity-0 transition-opacity"
           onMouseDown={handleMouseDown}
           style={{
-            backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : 'transparent',
-            opacity: isResizing ? '1' : undefined
+            backgroundColor: isResizing
+              ? "var(--nextui-colors-primary)"
+              : "transparent",
+            opacity: isResizing ? "1" : undefined,
           }}
         />
 
-        <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">
+        <div
+          className="flex-1 px-6 py-1 overflow-auto max-h-screen"
+          id="node-details"
+        >
           <div className="flex justify-between items-center mb-2">
             <div>
               <h1 className="text-lg font-semibold">
-                {nodeConfig?.title || node?.id || 'Node Details'}
+                {nodeConfig?.title || node?.id || "Node Details"}
               </h1>
               <h2 className="text-xs font-semibold">{nodeType}</h2>
             </div>
@@ -767,15 +872,24 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
           <Accordion
             key={`accordion-${nodeID}`}
             selectionMode="multiple"
-            defaultExpandedKeys={hasRunOutput ? ['output'] : ['title', 'config']}
+            defaultExpandedKeys={
+              hasRunOutput ? ["output"] : ["title", "config"]
+            }
           >
-            {nodeType !== 'InputNode' && (
+            {nodeType !== "InputNode" && (
               <AccordionItem key="output" aria-label="Output" title="Outputs">
-                <NodeOutput key={`node-output-${nodeID}`} output={node?.data?.run} />
+                <NodeOutput
+                  key={`node-output-${nodeID}`}
+                  output={node?.data?.run}
+                />
               </AccordionItem>
             )}
 
-            <AccordionItem key="title" aria-label="Node Title" title="Node Title">
+            <AccordionItem
+              key="title"
+              aria-label="Node Title"
+              title="Node Title"
+            >
               <Input
                 key={`title-input-${nodeID}`}
                 value={titleInputValue}
@@ -787,7 +901,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
               />
             </AccordionItem>
 
-            <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
+            <AccordionItem
+              key="config"
+              aria-label="Node Configuration"
+              title="Node Configuration"
+            >
               {renderConfigFields()}
             </AccordionItem>
           </Accordion>

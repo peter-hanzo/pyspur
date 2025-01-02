@@ -1,26 +1,29 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Handle, Position, useConnection } from '@xyflow/react';
-import BaseNode from '../BaseNode';
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { Handle, Position, useConnection } from "@xyflow/react";
+import BaseNode from "../BaseNode";
 import {
   Input,
   Card,
   Divider,
   Button,
   Select,
-  SelectItem
-} from '@nextui-org/react';
-import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeConfigOnly } from '../../../store/flowSlice';
-import styles from '../DynamicNode.module.css';
-import { Icon } from '@iconify/react';
-import { RootState } from '../../../store/store';
-import NodeOutputDisplay from '../NodeOutputDisplay';
-import isEqual from 'lodash/isEqual';
-import { FlowWorkflowNode, FlowWorkflowNodeConfig } from '../../../store/flowSlice';
+  SelectItem,
+} from "@nextui-org/react";
+import { useDispatch, useSelector } from "react-redux";
+import { updateNodeConfigOnly } from "../../../store/flowSlice";
+import styles from "../DynamicNode.module.css";
+import { Icon } from "@iconify/react";
+import { RootState } from "../../../store/store";
+import NodeOutputDisplay from "../NodeOutputDisplay";
+import isEqual from "lodash/isEqual";
+import {
+  FlowWorkflowNode,
+  FlowWorkflowNodeConfig,
+} from "../../../store/flowSlice";
 
 interface CoalesceNodeProps {
   id: string;
-  data: FlowWorkflowNode['data'];
+  data: FlowWorkflowNode["data"];
   selected?: boolean;
 }
 
@@ -33,7 +36,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   const nodeRef = useRef<HTMLDivElement | null>(null);
 
   // We’ll dynamically compute a width that fits the labels (handles).
-  const [nodeWidth, setNodeWidth] = useState<string>('auto');
+  const [nodeWidth, setNodeWidth] = useState<string>("auto");
 
   const dispatch = useDispatch();
   const connection = useConnection();
@@ -44,12 +47,15 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
   // Node's output for display
   const nodeOutput = useSelector(
-    (state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.run
+    (state: RootState) =>
+      state.flow.nodes.find((node) => node.id === id)?.data?.run,
   );
 
   // Node's config
-  const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id]);
-  console.log('nodeConfig', nodeConfig);
+  const nodeConfig = useSelector(
+    (state: RootState) => state.flow.nodeConfigs[id],
+  );
+  console.log("nodeConfig", nodeConfig);
 
   // The CoalesceNode might have multiple incoming edges. We'll track those predecessor nodes (if any).
   const [predecessorNodes, setPredecessorNodes] = useState(() => {
@@ -58,14 +64,14 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+        if (sourceNode.type === "RouterNode" && edge.sourceHandle) {
           return {
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
               config: sourceNode.data.config,
               title: edge.targetHandle,
-            }
+            },
           };
         }
         return sourceNode;
@@ -75,7 +81,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
   // Add a type guard to check if the node is a FlowWorkflowNode
   const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
-    return 'type' in node;
+    return "type" in node;
   };
 
   // Recompute predecessor nodes whenever edges/connections change
@@ -85,14 +91,14 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       .map((edge) => {
         const sourceNode = nodes.find((node) => node.id === edge.source);
         if (!sourceNode) return null;
-        if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+        if (sourceNode.type === "RouterNode" && edge.sourceHandle) {
           return {
             id: sourceNode.id,
             type: sourceNode.type,
             data: {
               config: sourceNode.data.config,
               title: edge.targetHandle,
-            }
+            },
           };
         }
         return sourceNode;
@@ -102,18 +108,31 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     let finalPredecessors = updatedPredecessors;
 
     // If a new connection is in progress to this node, show that source node as well
-    if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
-      const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id);
+    if (
+      connection.inProgress &&
+      connection.toNode?.id === id &&
+      connection.fromNode
+    ) {
+      const existing = finalPredecessors.find(
+        (p) => p?.id === connection.fromNode?.id,
+      );
       if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-        if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-          finalPredecessors = [...finalPredecessors, {
-            id: connection.fromNode.id,
-            type: connection.fromNode.type,
-            data: {
-              config: connection.fromNode.data.config,
-              title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id
-            }
-          }];
+        if (
+          connection.fromNode.type === "RouterNode" &&
+          connection.fromHandle
+        ) {
+          finalPredecessors = [
+            ...finalPredecessors,
+            {
+              id: connection.fromNode.id,
+              type: connection.fromNode.type,
+              data: {
+                config: connection.fromNode.data.config,
+                title:
+                  connection.fromHandle.nodeId + "." + connection.fromHandle.id,
+              },
+            },
+          ];
         } else {
           finalPredecessors = [...finalPredecessors, connection.fromNode];
         }
@@ -122,15 +141,17 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
     // Deduplicate by both id and data.title (for RouterNode handles)
     finalPredecessors = finalPredecessors.filter((node, index, self) => {
-      return self.findIndex((n) => n?.id === node?.id && n?.data?.title === node?.data?.title) === index;
+      return (
+        self.findIndex(
+          (n) => n?.id === node?.id && n?.data?.title === node?.data?.title,
+        ) === index
+      );
     });
 
     // Compare to existing predecessorNodes; only set if changed
     const hasChanged =
       finalPredecessors.length !== predecessorNodes.length ||
-      finalPredecessors.some(
-        (node, i) => !isEqual(node, predecessorNodes[i])
-      );
+      finalPredecessors.some((node, i) => !isEqual(node, predecessorNodes[i]));
     if (hasChanged) {
       setPredecessorNodes(finalPredecessors);
     }
@@ -145,12 +166,12 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       .map((pred) => {
         if (!pred) return null;
         const nodeId = pred.id;
-        const handleId = pred.data?.title || '';
+        const handleId = pred.data?.title || "";
         const label = pred.data?.config?.title || handleId || pred.id;
         const value = `${nodeId}|${handleId}`;
         return {
           value,
-          label
+          label,
         };
       })
       .filter(Boolean) as { value: string; label: string }[];
@@ -162,7 +183,9 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   const usedPreferences = nodeConfig.preferences.filter(Boolean);
   const availableVariablesForIndex = (index: number) => {
     return inputVariables.filter(
-      (v) => !usedPreferences.includes(v.value) || v.value === nodeConfig.preferences[index]
+      (v) =>
+        !usedPreferences.includes(v.value) ||
+        v.value === nodeConfig.preferences[index],
     );
   };
 
@@ -172,9 +195,9 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       updateNodeConfigOnly({
         id,
         data: {
-          preferences: newPreferences
-        }
-      })
+          preferences: newPreferences,
+        },
+      }),
     );
   };
 
@@ -187,7 +210,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       updated = updated.slice(0, desiredLength);
     } else if (updated.length < desiredLength) {
       while (updated.length < desiredLength) {
-        updated.push('');
+        updated.push("");
       }
     }
 
@@ -210,7 +233,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
   /** Clear the preference at index i */
   const clearPreference = (index: number) => {
     const updated = [...nodeConfig.preferences];
-    updated[index] = '';
+    updated[index] = "";
     updatePreferences(updated);
   };
 
@@ -223,25 +246,26 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
     // We have multiple input handle labels
     const inputLabels = predecessorNodes.map(
-      (pred) => pred?.data?.config?.title || pred?.data?.title || pred?.id || ''
+      (pred) =>
+        pred?.data?.config?.title || pred?.data?.title || pred?.id || "",
     );
 
     // Output label is the node's title or fallback
-    const outputLabels = [nodeConfig?.title || 'Coalesce'];
+    const outputLabels = [nodeConfig?.title || "Coalesce"];
 
     // Compute the max length among all input labels
     const maxInputLabelLength = inputLabels.reduce(
       (max, label) => Math.max(max, label.length),
-      0
+      0,
     );
     // Compute the max length among all output labels
     const maxOutputLabelLength = outputLabels.reduce(
       (max, label) => Math.max(max, label.length),
-      0
+      0,
     );
 
     // The node's own title (for the top of the node)
-    const nodeTitle = nodeConfig?.title || 'Coalesce';
+    const nodeTitle = nodeConfig?.title || "Coalesce";
     const nodeTitleLength = nodeTitle.length;
 
     // Some extra spacing
@@ -254,13 +278,13 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     const estimatedWidth = Math.max(
       (maxInputLabelLength + maxOutputLabelLength + buffer) * 10,
       nodeTitleLength * 10,
-      minNodeWidth
+      minNodeWidth,
     );
     const finalWidth = Math.min(estimatedWidth, maxNodeWidth);
 
     // If collapsed, show auto; otherwise the computed width
     if (nodeWidth !== `${finalWidth}px`) {
-      setNodeWidth(isCollapsed ? 'auto' : `${finalWidth}px`);
+      setNodeWidth(isCollapsed ? "auto" : `${finalWidth}px`);
     }
   }, [predecessorNodes, nodeConfig?.title, isCollapsed]);
 
@@ -270,12 +294,12 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
       isCollapsed={isCollapsed}
       setIsCollapsed={setIsCollapsed}
       data={{
-        title: nodeConfig?.title || 'Coalesce',
-        color: data.color || '#38B2AC',
-        acronym: 'CL',
+        title: nodeConfig?.title || "Coalesce",
+        color: data.color || "#38B2AC",
+        acronym: "CL",
         config: nodeConfig,
         run: data.run,
-        taskStatus: data.taskStatus
+        taskStatus: data.taskStatus,
       }}
       // Use the computed nodeWidth
       style={{ width: nodeWidth }}
@@ -292,7 +316,8 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
           <div>
             {predecessorNodes.map((node) => {
               if (!node) return null;
-              const handleId = node.data?.config?.title || node.data?.title || node.id;
+              const handleId =
+                node.data?.config?.title || node.data?.title || node.id;
               return (
                 <div
                   key={`${node.id}-${handleId}`}
@@ -302,8 +327,9 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                     type="target"
                     position={Position.Left}
                     id={handleId}
-                    className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
-                      }`}
+                    className={`${styles.handle} ${styles.handleLeft} ${
+                      isCollapsed ? styles.collapsedHandleInput : ""
+                    }`}
                   />
                   {/* Show the full label if not collapsed */}
                   {!isCollapsed && (
@@ -323,7 +349,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
               {!isCollapsed && (
                 <div className="align-center flex flex-grow flex-shrink mr-2">
                   <span className="text-sm font-medium ml-auto text-foreground">
-                    {nodeConfig?.title || 'Output'}
+                    {nodeConfig?.title || "Output"}
                   </span>
                 </div>
               )}
@@ -332,8 +358,9 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                 position={Position.Right}
                 // Use node title for handle id
                 id={nodeConfig?.title || id}
-                className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-                  }`}
+                className={`${styles.handle} ${styles.handleRight} ${
+                  isCollapsed ? styles.collapsedHandleOutput : ""
+                }`}
               />
             </div>
           </div>
@@ -354,7 +381,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
               {nodeConfig.preferences.map((prefValue, i) => (
                 <Card
                   key={i}
-                  classNames={{ base: 'bg-background border-default-200 p-2' }}
+                  classNames={{ base: "bg-background border-default-200 p-2" }}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Select
@@ -362,11 +389,14 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                       size="sm"
                       selectedKeys={prefValue ? [prefValue] : []}
                       placeholder="Select variable"
-                      onChange={(e) => handlePreferenceChange(i, e.target.value)}
+                      onChange={(e) =>
+                        handlePreferenceChange(i, e.target.value)
+                      }
                       className="min-w-[200px]"
                       classNames={{
-                        trigger: 'bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto',
-                        popoverContent: 'bg-background dark:bg-background'
+                        trigger:
+                          "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto",
+                        popoverContent: "bg-background dark:bg-background",
                       }}
                       isMultiline
                     >

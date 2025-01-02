@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Input } from "@nextui-org/react";
 
 interface NumberInputProps {
@@ -8,7 +8,12 @@ interface NumberInputProps {
   disabled?: boolean;
 }
 
-const NumberInput: React.FC<NumberInputProps> = ({ label, value, onChange, disabled }) => (
+const NumberInput: React.FC<NumberInputProps> = ({
+  label,
+  value,
+  onChange,
+  disabled,
+}) => (
   <div className="my-4">
     <Input
       type="number"

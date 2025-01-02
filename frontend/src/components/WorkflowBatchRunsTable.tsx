@@ -1,7 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { getKeyValue, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, Progress} from '@nextui-org/react';
-import { Icon } from '@iconify/react';
-import { getAllRuns, downloadOutputFile } from '../utils/api';
+import React, { useState, useEffect } from "react";
+import {
+  getKeyValue,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Progress,
+} from "@nextui-org/react";
+import { Icon } from "@iconify/react";
+import { getAllRuns, downloadOutputFile } from "../utils/api";
 
 interface Workflow {
   name: string;
@@ -11,7 +21,7 @@ interface WorkflowRun {
   id: string;
   workflow: Workflow;
   input_dataset_id: string | null;
-  status: 'COMPLETED' | 'FAILED' | 'IN_PROGRESS';
+  status: "COMPLETED" | "FAILED" | "IN_PROGRESS";
   output_file_id: string;
 }
 
@@ -30,7 +40,9 @@ interface Column {
 }
 
 const WorkflowBatchRunsTable: React.FC = () => {
-  const [workflowBatchRuns, setWorkflowBatchRuns] = useState<FormattedRun[]>([]);
+  const [workflowBatchRuns, setWorkflowBatchRuns] = useState<FormattedRun[]>(
+    [],
+  );
 
   useEffect(() => {
     const fetchRuns = async () => {
@@ -40,13 +52,14 @@ const WorkflowBatchRunsTable: React.FC = () => {
           key: run.id,
           id: run.id,
           workflow_name: run.workflow.name,
-          dataset: run.input_dataset_id || 'N/A',
-          progress: run.status === 'COMPLETED' ? 100 : run.status === 'FAILED' ? 0 : 50,
+          dataset: run.input_dataset_id || "N/A",
+          progress:
+            run.status === "COMPLETED" ? 100 : run.status === "FAILED" ? 0 : 50,
           output_file_id: run.output_file_id,
         }));
         setWorkflowBatchRuns(formattedRuns);
       } catch (error) {
-        console.error('Error fetching runs:', error);
+        console.error("Error fetching runs:", error);
       }
     };
 
@@ -73,7 +86,9 @@ const WorkflowBatchRunsTable: React.FC = () => {
       {workflowBatchRuns.length > 0 ? (
         <Table aria-label="Spur Jobs" isHeaderSticky>
           <TableHeader columns={activeColumns}>
-            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+            {(column) => (
+              <TableColumn key={column.key}>{column.label}</TableColumn>
+            )}
           </TableHeader>
           <TableBody items={workflowBatchRuns}>
             {(batchRun: FormattedRun) => (

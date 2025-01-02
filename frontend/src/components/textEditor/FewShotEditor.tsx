@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import TextEditor from './TextEditor';
-import { updateNodeConfigOnly } from '../../store/flowSlice';
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import TextEditor from "./TextEditor";
+import { updateNodeConfigOnly } from "../../store/flowSlice";
 import { Button, Tabs, Tab } from "@nextui-org/react";
-import _ from 'lodash';
-import { RootState } from '../../store/store';
+import _ from "lodash";
+import { RootState } from "../../store/store";
 
 interface FewShotExample {
   input?: string;
@@ -24,18 +24,21 @@ interface Node {
 }
 
 interface InputOutputTabsProps {
-  activeTab: 'input' | 'output';
-  setActiveTab: (tab: 'input' | 'output') => void;
+  activeTab: "input" | "output";
+  setActiveTab: (tab: "input" | "output") => void;
 }
 
-const InputOutputTabs: React.FC<InputOutputTabsProps> = ({ activeTab, setActiveTab }) => {
+const InputOutputTabs: React.FC<InputOutputTabsProps> = ({
+  activeTab,
+  setActiveTab,
+}) => {
   return (
-    <div className='mb-5'>
+    <div className="mb-5">
       <div className="flex w-full flex-col items-center">
         <Tabs
           aria-label="Input/Output Options"
           selectedKey={activeTab}
-          onSelectionChange={(key) => setActiveTab(key as 'input' | 'output')}
+          onSelectionChange={(key) => setActiveTab(key as "input" | "output")}
         >
           <Tab key="input" title="Input" />
           <Tab key="output" title="Output" />
@@ -52,16 +55,23 @@ interface FewShotEditorProps {
   onDiscard: () => void;
 }
 
-const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
+const FewShotEditor: React.FC<FewShotEditorProps> = ({
+  nodeID,
+  exampleIndex,
+  onSave,
+  onDiscard,
+}) => {
   const dispatch = useDispatch();
   const node = useSelector((state: RootState) =>
-    state.flow.nodes.find((n: Node) => n.id === nodeID)
+    state.flow.nodes.find((n: Node) => n.id === nodeID),
   );
-  const [activeTab, setActiveTab] = useState<'input' | 'output'>('input');
+  const [activeTab, setActiveTab] = useState<"input" | "output">("input");
 
   const handleContentChange = (content: string) => {
     // Use lodash's cloneDeep to deep clone the few_shot_examples array
-    const updatedExamples = _.cloneDeep(node?.data?.config?.few_shot_examples || []);
+    const updatedExamples = _.cloneDeep(
+      node?.data?.config?.few_shot_examples || [],
+    );
 
     if (!updatedExamples[exampleIndex]) {
       updatedExamples[exampleIndex] = {};
@@ -71,12 +81,14 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
     updatedExamples[exampleIndex][activeTab] = content;
 
     // Dispatch the updated data to Redux
-    dispatch(updateNodeConfigOnly({
-      id: nodeID,
-      data: {
-        few_shot_examples: updatedExamples
-      }
-    }));
+    dispatch(
+      updateNodeConfigOnly({
+        id: nodeID,
+        data: {
+          few_shot_examples: updatedExamples,
+        },
+      }),
+    );
   };
 
   return (
@@ -85,7 +97,10 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
 
       <TextEditor
         key={`${activeTab}-${exampleIndex}`}
-        content={node?.data?.config?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
+        content={
+          node?.data?.config?.few_shot_examples?.[exampleIndex]?.[activeTab] ||
+          ""
+        }
         setContent={handleContentChange}
         isEditable={true}
         fieldTitle={`Example ${exampleIndex + 1} ${activeTab}`}
@@ -94,18 +109,10 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
       />
 
       <div className="mt-4">
-        <Button
-          onPress={onDiscard}
-          color="primary"
-          variant="flat"
-        >
+        <Button onPress={onDiscard} color="primary" variant="flat">
           Discard
         </Button>
-        <Button
-          onPress={onSave}
-          color="primary"
-          variant="solid"
-        >
+        <Button onPress={onSave} color="primary" variant="solid">
           Save
         </Button>
       </div>

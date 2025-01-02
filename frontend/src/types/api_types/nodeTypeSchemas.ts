@@ -6,4 +6,4 @@ export interface NodeTypeSchema {
 
 export interface MinimumNodeConfigSchema {
   node_type: NodeTypeSchema;
-} 
+}

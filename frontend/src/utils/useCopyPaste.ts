@@ -1,9 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useKeyPress, getConnectedEdges } from '@xyflow/react';
-import { setNodes, setEdges, FlowWorkflowNode, FlowWorkflowEdge } from '../store/flowSlice';
-import type { RootState } from '../store/store'; // Assuming you have a RootState type for Redux
-import type { Node, Edge } from '@xyflow/react'; // Assuming these types are provided by the library
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useKeyPress, getConnectedEdges } from "@xyflow/react";
+import {
+  setNodes,
+  setEdges,
+  FlowWorkflowNode,
+  FlowWorkflowEdge,
+} from "../store/flowSlice";
+import type { RootState } from "../store/store"; // Assuming you have a RootState type for Redux
+import type { Node, Edge } from "@xyflow/react"; // Assuming these types are provided by the library
 
 // Define types for buffered nodes and edges
 type BufferedNode = FlowWorkflowNode & { selected?: boolean };
@@ -11,8 +16,12 @@ type BufferedEdge = FlowWorkflowEdge & { selected?: boolean };
 
 export function useCopyPaste() {
   // Use proper types for Redux selectors
-  const nodes = useSelector((state: RootState) => state.flow.nodes) as BufferedNode[];
-  const edges = useSelector((state: RootState) => state.flow.edges) as BufferedEdge[];
+  const nodes = useSelector(
+    (state: RootState) => state.flow.nodes,
+  ) as BufferedNode[];
+  const edges = useSelector(
+    (state: RootState) => state.flow.edges,
+  ) as BufferedEdge[];
   const pasteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dispatch = useDispatch();
 
@@ -22,12 +31,18 @@ export function useCopyPaste() {
 
   const copy = useCallback(() => {
     const selectedNodes = nodes.filter((node) => node.selected);
-    const selectedEdges = getConnectedEdges(selectedNodes, edges).filter((edge) => {
-      const isExternalSource = selectedNodes.every((n) => n.id !== edge.source);
-      const isExternalTarget = selectedNodes.every((n) => n.id !== edge.target);
+    const selectedEdges = getConnectedEdges(selectedNodes, edges).filter(
+      (edge) => {
+        const isExternalSource = selectedNodes.every(
+          (n) => n.id !== edge.source,
+        );
+        const isExternalTarget = selectedNodes.every(
+          (n) => n.id !== edge.target,
+        );
 
-      return !(isExternalSource || isExternalTarget);
-    });
+        return !(isExternalSource || isExternalTarget);
+      },
+    );
 
     setBufferedNodes(selectedNodes);
     setBufferedEdges(selectedEdges);
@@ -35,12 +50,18 @@ export function useCopyPaste() {
 
   const cut = useCallback(() => {
     const selectedNodes = nodes.filter((node) => node.selected);
-    const selectedEdges = getConnectedEdges(selectedNodes, edges).filter((edge) => {
-      const isExternalSource = selectedNodes.every((n) => n.id !== edge.source);
-      const isExternalTarget = selectedNodes.every((n) => n.id !== edge.target);
+    const selectedEdges = getConnectedEdges(selectedNodes, edges).filter(
+      (edge) => {
+        const isExternalSource = selectedNodes.every(
+          (n) => n.id !== edge.source,
+        );
+        const isExternalTarget = selectedNodes.every(
+          (n) => n.id !== edge.target,
+        );
 
-      return !(isExternalSource || isExternalTarget);
-    });
+        return !(isExternalSource || isExternalTarget);
+      },
+    );
 
     setBufferedNodes(selectedNodes);
     setBufferedEdges(selectedEdges);
@@ -102,24 +123,26 @@ export function useCopyPaste() {
   // Handle keyboard shortcuts
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      const isFlowCanvasFocused = (event.target as HTMLElement)?.closest('.react-flow');
+      const isFlowCanvasFocused = (event.target as HTMLElement)?.closest(
+        ".react-flow",
+      );
       if (!isFlowCanvasFocused) return;
 
-      if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
+      if ((event.metaKey || event.ctrlKey) && event.key === "c") {
         copy();
-      } else if ((event.metaKey || event.ctrlKey) && event.key === 'v') {
+      } else if ((event.metaKey || event.ctrlKey) && event.key === "v") {
         paste();
-      } else if ((event.metaKey || event.ctrlKey) && event.key === 'x') {
+      } else if ((event.metaKey || event.ctrlKey) && event.key === "x") {
         cut();
       }
     },
-    [copy, paste, cut]
+    [copy, paste, cut],
   );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleKeyDown]);
 

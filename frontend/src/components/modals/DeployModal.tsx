@@ -1,5 +1,5 @@
-import React, { useState, Dispatch, SetStateAction } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, Dispatch, SetStateAction } from "react";
+import { useSelector } from "react-redux";
 import {
   Modal,
   ModalContent,
@@ -12,9 +12,9 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism';
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import { FlowState } from '@/store/flowSlice';
+import SyntaxHighlighter from "react-syntax-highlighter/dist/cjs/prism";
+import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { FlowState } from "@/store/flowSlice";
 
 interface DeployModalProps {
   isOpen: boolean;
@@ -22,28 +22,45 @@ interface DeployModalProps {
   getApiEndpoint: () => string;
 }
 
-
 interface RootState {
   flow: FlowState;
 }
 
-type SupportedLanguages = 'python' | 'javascript' | 'typescript' | 'rust' | 'java' | 'cpp';
+type SupportedLanguages =
+  | "python"
+  | "javascript"
+  | "typescript"
+  | "rust"
+  | "java"
+  | "cpp";
 
-const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, getApiEndpoint }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python');
+const DeployModal: React.FC<DeployModalProps> = ({
+  isOpen,
+  onOpenChange,
+  getApiEndpoint,
+}) => {
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<SupportedLanguages>("python");
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs);
-  const inputNode = nodes.find(node => node.type === 'InputNode');
-  const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {};
+  const inputNode = nodes.find((node) => node.type === "InputNode");
+  const workflowInputVariables = inputNode
+    ? nodeConfigs[inputNode.id]?.output_schema || {}
+    : {};
 
   // Create example request body with the actual input variables
   const exampleRequestBody = {
-    initial_inputs: Object.keys(workflowInputVariables).reduce<Record<string, any>>((acc, key) => {
-      acc[key] = workflowInputVariables[key].type === 'number' ? 0 :
-        workflowInputVariables[key].type === 'boolean' ? false :
-          "example_value";
+    initial_inputs: Object.keys(workflowInputVariables).reduce<
+      Record<string, any>
+    >((acc, key) => {
+      acc[key] =
+        workflowInputVariables[key].type === "number"
+          ? 0
+          : workflowInputVariables[key].type === "boolean"
+            ? false
+            : "example_value";
       return acc;
-    }, {})
+    }, {}),
   };
 
   const codeExamples: Record<SupportedLanguages, string> = {
@@ -135,15 +152,11 @@ int main() {
     std::cout << "Response: " << r.text << std::endl;
 
     return 0;
-}`
+}`,
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      size="2xl"
-    >
+    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
       <ModalContent>
         <ModalHeader>
           <div>API Endpoint Information</div>
@@ -157,8 +170,8 @@ int main() {
               style={oneDark}
               customStyle={{
                 margin: 0,
-                borderRadius: '8px',
-                padding: '12px',
+                borderRadius: "8px",
+                padding: "12px",
                 flex: 1,
               }}
             >
@@ -184,8 +197,8 @@ int main() {
               style={oneDark}
               customStyle={{
                 margin: 0,
-                borderRadius: '8px',
-                padding: '12px',
+                borderRadius: "8px",
+                padding: "12px",
                 flex: 1,
               }}
             >
@@ -197,7 +210,9 @@ int main() {
                 variant="light"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(JSON.stringify(exampleRequestBody, null, 2));
+                  navigator.clipboard.writeText(
+                    JSON.stringify(exampleRequestBody, null, 2),
+                  );
                 }}
               >
                 <Icon icon="solar:copy-linear" width={20} />
@@ -214,7 +229,9 @@ int main() {
                 size="sm"
                 variant="bordered"
                 value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value as SupportedLanguages)}
+                onChange={(e) =>
+                  setSelectedLanguage(e.target.value as SupportedLanguages)
+                }
                 defaultSelectedKeys={["python"]}
               >
                 {Object.keys(codeExamples).map((lang) => (
@@ -230,8 +247,8 @@ int main() {
                 style={oneDark}
                 customStyle={{
                   margin: 0,
-                  borderRadius: '8px',
-                  padding: '12px',
+                  borderRadius: "8px",
+                  padding: "12px",
                   flex: 1,
                 }}
               >
@@ -243,7 +260,9 @@ int main() {
                   variant="light"
                   size="sm"
                   onClick={() => {
-                    navigator.clipboard.writeText(codeExamples[selectedLanguage]);
+                    navigator.clipboard.writeText(
+                      codeExamples[selectedLanguage],
+                    );
                   }}
                 >
                   <Icon icon="solar:copy-linear" width={20} />

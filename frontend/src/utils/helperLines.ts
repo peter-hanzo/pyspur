@@ -37,7 +37,7 @@ interface HelperLinesResult {
 export function getHelperLines(
   change: Change,
   nodes: Node[],
-  distance: number = 5
+  distance: number = 5,
 ): HelperLinesResult {
   const defaultResult: HelperLinesResult = {
     horizontal: undefined,
@@ -99,7 +99,9 @@ export function getHelperLines(
       //  |‾‾‾‾‾‾‾‾‾‾‾|
       //  |     B     |
       //  |___________|
-      const distanceRightRight = Math.abs(nodeABounds.right - nodeBBounds.right);
+      const distanceRightRight = Math.abs(
+        nodeABounds.right - nodeBBounds.right,
+      );
 
       if (distanceRightRight < verticalDistance) {
         result.snapPosition.x = nodeBBounds.right - nodeABounds.width;
@@ -167,7 +169,9 @@ export function getHelperLines(
       //  |‾‾‾‾‾‾‾‾‾‾‾|     |‾‾‾‾‾‾‾‾‾‾‾|
       //  |     A     |     |     B     |
       //  |___________|_____|___________|
-      const distanceBottomBottom = Math.abs(nodeABounds.bottom - nodeBBounds.bottom);
+      const distanceBottomBottom = Math.abs(
+        nodeABounds.bottom - nodeBBounds.bottom,
+      );
 
       if (distanceBottomBottom < horizontalDistance) {
         result.snapPosition.y = nodeBBounds.bottom - nodeABounds.height;

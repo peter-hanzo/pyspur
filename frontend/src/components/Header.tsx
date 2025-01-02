@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Input,
   Navbar,
@@ -17,20 +17,24 @@ import {
   CircularProgress,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import SettingsCard from './modals/SettingsModal';
-import { setProjectName, updateNodeDataOnly, resetRun } from '../store/flowSlice';
-import RunModal from './modals/RunModal';
-import { getRunStatus, startRun, getWorkflow } from '../utils/api';
-import { Toaster, toast } from 'sonner'
-import { getWorkflowRuns } from '../utils/api';
-import { useRouter } from 'next/router';
-import DeployModal from './modals/DeployModal';
-import { formatDistanceStrict } from 'date-fns';
-import { useHotkeys } from 'react-hotkeys-hook';
-import store from '../store/store';
+import SettingsCard from "./modals/SettingsModal";
+import {
+  setProjectName,
+  updateNodeDataOnly,
+  resetRun,
+} from "../store/flowSlice";
+import RunModal from "./modals/RunModal";
+import { getRunStatus, startRun, getWorkflow } from "../utils/api";
+import { Toaster, toast } from "sonner";
+import { getWorkflowRuns } from "../utils/api";
+import { useRouter } from "next/router";
+import DeployModal from "./modals/DeployModal";
+import { formatDistanceStrict } from "date-fns";
+import { useHotkeys } from "react-hotkeys-hook";
+import store from "../store/store";
 
 interface HeaderProps {
-  activePage: 'dashboard' | 'workflow' | 'evals' | 'trace';
+  activePage: "dashboard" | "workflow" | "evals" | "trace";
 }
 
 interface Node {
@@ -40,7 +44,7 @@ interface Node {
   };
 }
 
-import { RootState } from '../store/store';
+import { RootState } from "../store/store";
 interface AlertState {
   message: string;
   color: "default" | "primary" | "secondary" | "success" | "warning" | "danger";
@@ -57,7 +61,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   const [workflowRuns, setWorkflowRuns] = useState<any[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const workflowId = useSelector((state: RootState) => state.flow.workflowID);
-  const [alert, setAlert] = useState<AlertState>({ message: '', color: 'default', isVisible: false });
+  const [alert, setAlert] = useState<AlertState>({
+    message: "",
+    color: "default",
+    isVisible: false,
+  });
   const testInputs = useSelector((state: RootState) => state.flow.testInputs);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
@@ -65,7 +73,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
   const router = useRouter();
   const { id } = router.query;
-  const isRun = id && id[0] == 'R';
+  const isRun = id && id[0] == "R";
 
   let currentStatusInterval: NodeJS.Timeout | null = null;
 
@@ -73,9 +81,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     try {
       const response = await getWorkflowRuns(workflowId);
       setWorkflowRuns(response);
-    }
-    catch (error) {
-      console.error('Error fetching workflow runs:', error);
+    } catch (error) {
+      console.error("Error fetching workflow runs:", error);
     }
   };
 
@@ -91,9 +98,9 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
   }, [testInputs]);
 
-  const showAlert = (message: string, color: AlertState['color']) => {
+  const showAlert = (message: string, color: AlertState["color"]) => {
     setAlert({ message, color, isVisible: true });
-    setTimeout(() => setAlert(prev => ({ ...prev, isVisible: false })), 3000);
+    setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000);
   };
 
   const updateWorkflowStatus = async (runID: string): Promise<void> => {
@@ -110,24 +117,29 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           setCompletionPercentage(statusResponse.percentage_complete);
         }
 
-        if (statusResponse.status === 'FAILED' || tasks.some(task => task.status === 'FAILED')) {
+        if (
+          statusResponse.status === "FAILED" ||
+          tasks.some((task) => task.status === "FAILED")
+        ) {
           setIsRunning(false);
           setCompletionPercentage(0);
           clearInterval(currentStatusInterval);
-          showAlert('Workflow run failed.', 'danger');
+          showAlert("Workflow run failed.", "danger");
           return;
         }
 
         if (tasks.length > 0) {
           tasks.forEach((task) => {
             const nodeId = task.node_id;
-            let node = nodes.find(node => node.id === nodeId);
+            let node = nodes.find((node) => node.id === nodeId);
             if (!node) {
               // find the node by title in nodeConfigs
               const state = store.getState();
-              const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(key => state.flow.nodeConfigs[key].title === nodeId);
+              const correspondingNodeId = Object.keys(
+                state.flow.nodeConfigs,
+              ).find((key) => state.flow.nodeConfigs[key].title === nodeId);
               if (correspondingNodeId) {
-                node = nodes.find(node => node.id === correspondingNodeId);
+                node = nodes.find((node) => node.id === correspondingNodeId);
               }
             }
             if (!node) {
@@ -137,52 +149,67 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             const nodeTaskStatus = task.status;
             if (node) {
               // Check if the task output or status is different from current node data
-              const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run);
-              const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus;
+              const isOutputDifferent =
+                JSON.stringify(output_values) !==
+                JSON.stringify(node.data?.run);
+              const isStatusDifferent =
+                nodeTaskStatus !== node.data?.taskStatus;
 
               if (isOutputDifferent || isStatusDifferent) {
-                dispatch(updateNodeDataOnly({
-                  id: node.id,
-                  data: {
-                    run: { ...node.data.run, ...output_values },
-                    taskStatus: nodeTaskStatus
-                  }
-                }));
+                dispatch(
+                  updateNodeDataOnly({
+                    id: node.id,
+                    data: {
+                      run: { ...node.data.run, ...output_values },
+                      taskStatus: nodeTaskStatus,
+                    },
+                  }),
+                );
               }
             }
           });
         }
 
-        if (statusResponse.status !== 'RUNNING') {
+        if (statusResponse.status !== "RUNNING") {
           setIsRunning(false);
           setCompletionPercentage(0);
           clearInterval(currentStatusInterval);
-          showAlert('Workflow run completed.', 'success');
+          showAlert("Workflow run completed.", "success");
         }
 
         pollCount += 1;
       } catch (error) {
-        console.error('Error fetching workflow status:', error);
+        console.error("Error fetching workflow status:", error);
         clearInterval(currentStatusInterval);
       }
     }, 1000);
   };
 
-  const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null;
+  const workflowID =
+    typeof window !== "undefined"
+      ? window.location.pathname.split("/").pop()
+      : null;
 
-  const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
+  const executeWorkflow = async (
+    inputValues: Record<string, any>,
+  ): Promise<void> => {
     if (!workflowID) return;
 
     try {
-      showAlert('Starting workflow run...', 'default');
-      const result = await startRun(workflowId, inputValues, null, 'interactive');
+      showAlert("Starting workflow run...", "default");
+      const result = await startRun(
+        workflowId,
+        inputValues,
+        null,
+        "interactive",
+      );
       setIsRunning(true);
       fetchWorkflowRuns();
       dispatch(resetRun());
       updateWorkflowStatus(result.id);
     } catch (error) {
-      console.error('Error starting workflow run:', error);
-      showAlert('Error starting workflow run.', 'danger');
+      console.error("Error starting workflow run:", error);
+      showAlert("Error starting workflow run.", "danger");
     }
   };
 
@@ -196,10 +223,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     if (currentStatusInterval) {
       clearInterval(currentStatusInterval);
     }
-    showAlert('Workflow run stopped.', 'warning');
+    showAlert("Workflow run stopped.", "warning");
   };
 
-  const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleProjectNameChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ): void => {
     dispatch(setProjectName(e.target.value));
   };
 
@@ -212,17 +241,17 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
       const workflowDetails = {
         name: workflow.name,
         definition: workflow.definition,
-        description: workflow.description
+        description: workflow.description,
       };
 
       const blob = new Blob([JSON.stringify(workflowDetails, null, 2)], {
-        type: 'application/json'
+        type: "application/json",
       });
 
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${projectName.replace(/\s+/g, '_')}.json`;
+      a.download = `${projectName.replace(/\s+/g, "_")}.json`;
 
       document.body.appendChild(a);
       a.click();
@@ -230,7 +259,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading workflow:', error);
+      console.error("Error downloading workflow:", error);
     }
   };
 
@@ -239,17 +268,19 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
   };
 
   const getApiEndpoint = (): string => {
-    if (typeof window === 'undefined') {
-      return '';
+    if (typeof window === "undefined") {
+      return "";
     }
     const baseUrl = window.location.origin;
     return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`;
   };
 
-  const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables);
+  const workflowInputVariables = useSelector(
+    (state: RootState) => state.flow.workflowInputVariables,
+  );
 
   useHotkeys(
-    ['mod+enter', 'ctrl+enter'],
+    ["mod+enter", "ctrl+enter"],
     (e) => {
       e.preventDefault();
 
@@ -258,17 +289,17 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         return;
       }
 
-      const testCase = testInputs.find(row => row.id === selectedRow)
-        ?? testInputs[0];
+      const testCase =
+        testInputs.find((row) => row.id === selectedRow) ?? testInputs[0];
 
       if (testCase) {
         const { id, ...inputValues } = testCase;
-        const inputNode = nodes.find(node => node.type === 'InputNode')
+        const inputNode = nodes.find((node) => node.type === "InputNode");
         const inputNodeId = inputNode?.data?.title || inputNode?.id;
 
         if (inputNodeId) {
           const initialInputs = {
-            [inputNodeId]: inputValues
+            [inputNodeId]: inputValues,
           };
           executeWorkflow(initialInputs);
         }
@@ -276,8 +307,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     },
     {
       enableOnFormTags: true,
-      enabled: activePage === 'workflow'
-    }
+      enabled: activePage === "workflow",
+    },
   );
 
   const updateRunStatuses = async () => {
@@ -292,17 +323,20 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
       // Then update the status of running/pending runs
       const updatedRuns = await Promise.all(
         latestRuns.map(async (run) => {
-          if (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') {
+          if (
+            run.status.toLowerCase() === "running" ||
+            run.status.toLowerCase() === "pending"
+          ) {
             const statusResponse = await getRunStatus(run.id);
             return { ...run, status: statusResponse.status };
           }
           return run;
-        })
+        }),
       );
 
       setWorkflowRuns(updatedRuns);
     } catch (error) {
-      console.error('Error updating run statuses:', error);
+      console.error("Error updating run statuses:", error);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -318,9 +352,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     <>
       {alert.isVisible && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Alert color={alert.color}>
-            {alert.message}
-          </Alert>
+          <Alert color={alert.color}>{alert.message}</Alert>
         </div>
       )}
       <Navbar
@@ -344,9 +376,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           ],
         }}
       >
-        <NavbarBrand
-          className="h-12 max-w-fit"
-        >
+        <NavbarBrand className="h-12 max-w-fit">
           {activePage === "dashboard" ? (
             <p className="font-bold text-inherit cursor-pointer">PySpur</p>
           ) : (
@@ -383,14 +413,10 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             </Link>
           </NavbarItem>
           {activePage === "workflow" && (
-            <NavbarItem isActive={activePage === "workflow"}>
-              Editor
-            </NavbarItem>
+            <NavbarItem isActive={activePage === "workflow"}>Editor</NavbarItem>
           )}
           {activePage === "trace" && (
-            <NavbarItem isActive={activePage === "trace"}>
-              Trace
-            </NavbarItem>
+            <NavbarItem isActive={activePage === "trace"}>Trace</NavbarItem>
           )}
           <NavbarItem isActive={activePage === "evals"}>
             <Link className="flex gap-2 text-inherit" href="/evals">
@@ -418,15 +444,33 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                       />
                     </NavbarItem>
                     <NavbarItem className="hidden sm:flex">
-                      <Button isIconOnly radius="full" variant="light" onClick={handleStopWorkflow}>
-                        <Icon className="text-default-500" icon="solar:stop-linear" width={22} />
+                      <Button
+                        isIconOnly
+                        radius="full"
+                        variant="light"
+                        onClick={handleStopWorkflow}
+                      >
+                        <Icon
+                          className="text-default-500"
+                          icon="solar:stop-linear"
+                          width={22}
+                        />
                       </Button>
                     </NavbarItem>
                   </>
                 ) : (
                   <NavbarItem className="hidden sm:flex">
-                    <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
-                      <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+                    <Button
+                      isIconOnly
+                      radius="full"
+                      variant="light"
+                      onClick={handleRunWorkflow}
+                    >
+                      <Icon
+                        className="text-default-500"
+                        icon="solar:play-linear"
+                        width={22}
+                      />
                     </Button>
                   </NavbarItem>
                 )}
@@ -436,7 +480,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
               <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
                 <DropdownTrigger>
                   <Button isIconOnly radius="full" variant="light">
-                    <Icon className="text-default-500" icon="solar:history-linear" width={22} />
+                    <Icon
+                      className="text-default-500"
+                      icon="solar:history-linear"
+                      width={22}
+                    />
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu>
@@ -451,15 +499,22 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                     workflowRuns.map((run, index) => (
                       <DropdownItem
                         key={index}
-                        onPress={() => window.open(`/trace/${run.id}`, '_blank')}
+                        onPress={() =>
+                          window.open(`/trace/${run.id}`, "_blank")
+                        }
                         textValue={`Version ${index + 1}`}
                       >
-                        {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') && run.start_time
-                          ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                          : (run.status.toLowerCase() === 'failed' || run.status.toLowerCase() === 'completed') && run.end_time
-                            ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                            : ''
-                          }`}
+                        {`${run.id} | ${run.status.toLowerCase()} ${
+                          (run.status.toLowerCase() === "running" ||
+                            run.status.toLowerCase() === "pending") &&
+                          run.start_time
+                            ? `for last ${formatDistanceStrict(Date.parse(run.start_time + "Z"), new Date(), { addSuffix: false })}`
+                            : (run.status.toLowerCase() === "failed" ||
+                                  run.status.toLowerCase() === "completed") &&
+                                run.end_time
+                              ? `${formatDistanceStrict(Date.parse(run.end_time + "Z"), new Date(), { addSuffix: true })}`
+                              : ""
+                        }`}
                       </DropdownItem>
                     ))
                   )}

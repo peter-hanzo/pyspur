@@ -1,10 +1,13 @@
-import { FlowWorkflowNode, FlowWorkflowNodeConfig, Position } from '@/store/flowSlice';
-import cloneDeep from 'lodash/cloneDeep';
 import {
-  FlowWorkflowNodeType, 
-  FlowWorkflowNodeTypesByCategory 
-} from '@/store/nodeTypesSlice';
-
+  FlowWorkflowNode,
+  FlowWorkflowNodeConfig,
+  Position,
+} from "@/store/flowSlice";
+import cloneDeep from "lodash/cloneDeep";
+import {
+  FlowWorkflowNodeType,
+  FlowWorkflowNodeTypesByCategory,
+} from "@/store/nodeTypesSlice";
 
 // Function to create a node based on its type
 export const createNode = (
@@ -12,7 +15,7 @@ export const createNode = (
   type: string,
   id: string,
   position: Position,
-): { node: FlowWorkflowNode, config: FlowWorkflowNodeConfig } | null => {
+): { node: FlowWorkflowNode; config: FlowWorkflowNodeConfig } | null => {
   let nodeType: FlowWorkflowNodeType | null = null;
   for (const category in nodeTypes) {
     const found = nodeTypes[category].find((node) => node.name === type);
@@ -24,7 +27,6 @@ export const createNode = (
   if (!nodeType) {
     return null;
   }
-
 
   let config = cloneDeep(nodeType.config);
   config = {

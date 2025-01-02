@@ -24,20 +24,21 @@ import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from "@/utils/api";
 import { useTheme } from "next-themes";
 
 // CellWrapper Component
-const CellWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ children, className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "flex items-center justify-between gap-2 rounded-medium bg-content2 p-4",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  ),
-);
+const CellWrapper = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ children, className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex items-center justify-between gap-2 rounded-medium bg-content2 p-4",
+      className,
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+));
 
 CellWrapper.displayName = "CellWrapper";
 
@@ -81,7 +82,11 @@ const SwitchCell = React.forwardRef<HTMLInputElement, SwitchCellProps>(
     >
       <div className="flex flex-col">
         <p className={cn("text-medium", classNames?.label)}>{label}</p>
-        <p className={cn("text-small text-default-500", classNames?.description)}>{description}</p>
+        <p
+          className={cn("text-small text-default-500", classNames?.description)}
+        >
+          {description}
+        </p>
       </div>
     </CustomSwitch>
   ),
@@ -92,7 +97,9 @@ SwitchCell.displayName = "SwitchCell";
 // APIKeys Component
 function APIKeys(props: CardProps) {
   const [keys, setKeys] = useState<{ name: string; value: string }[]>([]);
-  const [originalKeys, setOriginalKeys] = useState<{ name: string; value: string }[]>([]);
+  const [originalKeys, setOriginalKeys] = useState<
+    { name: string; value: string }[]
+  >([]);
 
   const fetchApiKeys = async () => {
     try {
@@ -101,7 +108,7 @@ function APIKeys(props: CardProps) {
         response.map(async (key: string) => {
           const value = await getApiKey(key);
           return { name: value.name, value: value.value };
-        })
+        }),
       );
 
       setKeys(keyValues);
@@ -119,8 +126,8 @@ function APIKeys(props: CardProps) {
     const { name, value } = e.target;
     setKeys((prevKeys) =>
       prevKeys.map((key) =>
-        key.name === name ? { ...key, value: value } : key
-      )
+        key.name === name ? { ...key, value: value } : key,
+      ),
     );
   };
 
@@ -137,18 +144,18 @@ function APIKeys(props: CardProps) {
     try {
       await Promise.all(
         keys.map(async ({ name, value }) => {
-          const originalKey = originalKeys.find(k => k.name === name);
+          const originalKey = originalKeys.find((k) => k.name === name);
           const trimmedValue = value.trim();
 
           // If we have a non-empty value, set it
-          if (trimmedValue !== '') {
+          if (trimmedValue !== "") {
             await setApiKey(name, trimmedValue);
           }
           // Only delete if the key previously existed and now we're clearing it
-          else if (originalKey && originalKey.value !== '') {
+          else if (originalKey && originalKey.value !== "") {
             await handleDeleteKey(name);
           }
-        })
+        }),
       );
       await fetchApiKeys(); // Refresh the list after saving
     } catch (error) {
@@ -171,11 +178,13 @@ function APIKeys(props: CardProps) {
             placeholder={`Enter value`}
             name={name}
             value={value}
-            onFocus={() => setKeys((prevKeys) =>
-              prevKeys.map((key) =>
-                key.name === name ? { ...key, value: '' } : key
+            onFocus={() =>
+              setKeys((prevKeys) =>
+                prevKeys.map((key) =>
+                  key.name === name ? { ...key, value: "" } : key,
+                ),
               )
-            )}
+            }
             onChange={handleInputChange}
             endContent={
               <Button
@@ -183,7 +192,11 @@ function APIKeys(props: CardProps) {
                 variant="light"
                 onPress={() => handleDeleteKey(name)}
               >
-                <Icon icon="solar:trash-bin-trash-bold" className="text-danger" width={20} />
+                <Icon
+                  icon="solar:trash-bin-trash-bold"
+                  className="text-danger"
+                  width={20}
+                />
               </Button>
             }
           />
@@ -191,10 +204,7 @@ function APIKeys(props: CardProps) {
       </CardBody>
       {hasChanges() && (
         <CardFooter className="flex justify-between">
-          <Button
-            onPress={saveApiKeys}
-            className="bg-primary text-white"
-          >
+          <Button onPress={saveApiKeys} className="bg-primary text-white">
             Save API Keys
           </Button>
           <Button
@@ -217,14 +227,20 @@ export default function SettingsModal(props: CardProps) {
   return (
     <>
       <Button onPress={onOpen} variant="light" isIconOnly>
-        <Icon className="text-default-500" icon="solar:settings-linear" width={24} />
+        <Icon
+          className="text-default-500"
+          icon="solar:settings-linear"
+          width={24}
+        />
       </Button>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Settings</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">
+                Settings
+              </ModalHeader>
               <ModalBody>
                 <Card {...props}>
                   <Tabs
@@ -248,8 +264,10 @@ export default function SettingsModal(props: CardProps) {
                         <SwitchCell
                           label="Dark Mode"
                           description="Toggle between light and dark theme"
-                          isSelected={theme === 'dark'}
-                          onValueChange={(isSelected) => setTheme(isSelected ? 'dark' : 'light')}
+                          isSelected={theme === "dark"}
+                          onValueChange={(isSelected) =>
+                            setTheme(isSelected ? "dark" : "light")
+                          }
                         />
                       </div>
                     </Tab>

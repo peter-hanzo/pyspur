@@ -6,7 +6,7 @@ export interface WorkflowNodeCoordinates {
 export interface TestInput {
   id: number;
   [key: string]: any;
-}  
+}
 
 export interface WorkflowNode {
   id: string;
