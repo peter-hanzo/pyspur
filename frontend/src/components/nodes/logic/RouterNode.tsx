@@ -311,7 +311,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             {/* Routes */}
             <div className="flex flex-col gap-4">
               {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
-                <Card key={routeKey} classNames={{ base: 'bg-background border-default-200 p-1' }}>
+                <Card key={routeKey} classNames={{ base: 'bg-background dark:bg-default-100/10 border-default-200 p-1' }}>
                   <div className="flex flex-col gap-3">
                     {/* Conditions */}
                     {route.conditions.map((condition, conditionIndex) => (
@@ -343,15 +343,21 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                             placeholder="Select variable"
                             className="flex-[2] min-w-[200px]"
                             classNames={{
-                              trigger: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto",
-                              value: "whitespace-normal break-words",
-                              popoverContent: "bg-background dark:bg-background"
+                              trigger: "bg-background dark:bg-default-100/10 min-h-unit-12 h-auto text-foreground",
+                              value: "whitespace-normal break-words text-foreground dark:text-foreground-100",
+                              popoverContent: "bg-background dark:bg-default-100/10 text-foreground dark:text-foreground-100",
+                              listbox: "bg-background dark:bg-default-100/10 text-foreground"
                             }}
                             isMultiline={true}
                             isDisabled={readOnly}
                           >
                             {inputVariables.map((variable) => (
-                              <SelectItem key={variable.value} value={variable.value} textValue={variable.label}>
+                              <SelectItem
+                                key={variable.value}
+                                value={variable.value}
+                                textValue={variable.label}
+                                className="bg-background dark:bg-default-100/10 text-foreground data-[hover=true]:bg-default-200/50 dark:data-[hover=true]:bg-default-100/20"
+                              >
                                 <div className="whitespace-normal">
                                   <span>{variable.label}</span>
                                 </div>
@@ -365,13 +371,19 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                             onChange={(e) => updateCondition(routeKey, conditionIndex, 'operator', e.target.value)}
                             className="w-[140px] flex-none"
                             classNames={{
-                              trigger: "bg-default-100 dark:bg-default-50",
-                              popoverContent: "bg-background dark:bg-background"
+                              trigger: "bg-background dark:bg-default-100/10 min-h-unit-12 h-auto text-foreground",
+                              value: "whitespace-normal break-words text-foreground dark:text-foreground-100",
+                              popoverContent: "bg-background dark:bg-default-100/10 text-foreground dark:text-foreground-100",
+                              listbox: "bg-background dark:bg-default-100/10 text-foreground dark:text-foreground-100"
                             }}
                             isDisabled={readOnly}
                           >
                             {OPERATORS.map((op) => (
-                              <SelectItem key={op.value} value={op.value}>
+                              <SelectItem
+                                key={op.value}
+                                value={op.value}
+                                className="bg-background dark:bg-default-100/10 text-foreground data-[hover=true]:bg-default-200/50 dark:data-[hover=true]:bg-default-100/20"
+                              >
                                 {op.label}
                               </SelectItem>
                             ))}
@@ -386,8 +398,8 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                               placeholder="Value"
                               className="flex-[2] min-w-[100px]"
                               classNames={{
-                                input: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto whitespace-normal",
-                                inputWrapper: "shadow-none min-h-unit-12 h-auto"
+                                input: "bg-background dark:bg-default-100/10 min-h-unit-12 h-auto whitespace-normal text-foreground dark:text-foreground-100",
+                                inputWrapper: "shadow-none min-h-unit-12 h-auto bg-background dark:bg-default-100/10 "
                               }}
                               isDisabled={readOnly}
                             />
@@ -412,10 +424,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                     {!readOnly && (
                       <Button
                         size="sm"
-                        variant="flat"
+                        color="primary"
+                        variant="light"
                         onClick={() => addCondition(routeKey)}
                         startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                        className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
+                        className="text-foreground"
                       >
                         Add Condition
                       </Button>
@@ -442,10 +455,10 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                 <Button
                   size="sm"
                   color="primary"
-                  variant="flat"
+                  variant="light"
                   onClick={addRoute}
                   startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                  className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
+                  className="text-foreground"
                 >
                   Add Route
                 </Button>
@@ -470,4 +483,3 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     </BaseNode>
   );
 };
-
