@@ -80,7 +80,8 @@
                     "diffEditor.ignoreTrimWhitespace": false,
                     "editor.formatOnSave": true,
                     "editor.defaultFormatter": "esbenp.prettier-vscode"
-                }
+                },
+                "prettier.configPath": "/pyspur/frontend/.prettierrc"
             }
         }
     },
