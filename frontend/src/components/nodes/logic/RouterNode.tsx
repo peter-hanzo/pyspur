@@ -1,442 +1,513 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Handle, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react';
-import BaseNode from '../BaseNode';
-import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react';
-import { useDispatch, useSelector } from 'react-redux';
-import { updateNodeData } from '../../../store/flowSlice';
-import styles from '../DynamicNode.module.css';
-import { Icon } from "@iconify/react";
-import { RootState } from '../../../store/store';
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { Handle, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react'
+import BaseNode from '../BaseNode'
+import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react'
+import { useDispatch, useSelector } from 'react-redux'
+import { FlowWorkflowNode, FlowWorkflowNodeConfig, updateNodeConfigOnly } from '../../../store/flowSlice'
+import styles from '../DynamicNode.module.css'
+import { Icon } from '@iconify/react'
+import { RootState } from '../../../store/store'
 import {
-  ComparisonOperator,
-  LogicalOperator,
-  RouteConditionRule,
-  RouteConditionGroup
-} from '../../../types/api_types/routerSchemas';
-import NodeOutputDisplay from '../NodeOutputDisplay';
+    ComparisonOperator,
+    LogicalOperator,
+    RouteConditionRule,
+    RouteConditionGroup,
+} from '../../../types/api_types/routerSchemas'
+import NodeOutputDisplay from '../NodeOutputDisplay'
+import { isEqual } from 'lodash'
 
 interface RouterNodeData {
-  color?: string;
-  config: {
-    route_map: Record<string, RouteConditionGroup>;
-    input_schema?: Record<string, string>;
-    output_schema?: Record<string, string>;
-    title?: string;
-  };
-  run?: Record<string, any>;
-  taskStatus?: string;
+    title?: string
+    color?: string
+    acronym?: string
+    run?: Record<string, any>
+    taskStatus?: string
 }
 
 interface RouterNodeProps {
-  id: string;
-  data: RouterNodeData;
-  selected?: boolean;
-  readOnly?: boolean;
+    id: string
+    data: RouterNodeData
+    selected?: boolean
+    readOnly?: boolean
 }
 
 const OPERATORS: { value: ComparisonOperator; label: string }[] = [
-  { value: ComparisonOperator.CONTAINS, label: 'Contains' },
-  { value: ComparisonOperator.EQUALS, label: 'Equals' },
-  { value: ComparisonOperator.NUMBER_EQUALS, label: 'Number Equals' },
-  { value: ComparisonOperator.GREATER_THAN, label: 'Greater Than' },
-  { value: ComparisonOperator.LESS_THAN, label: 'Less Than' },
-  { value: ComparisonOperator.STARTS_WITH, label: 'Starts With' },
-  { value: ComparisonOperator.NOT_STARTS_WITH, label: 'Does Not Start With' },
-  { value: ComparisonOperator.IS_EMPTY, label: 'Is Empty' },
-  { value: ComparisonOperator.IS_NOT_EMPTY, label: 'Is Not Empty' },
-];
+    { value: ComparisonOperator.CONTAINS, label: 'Contains' },
+    { value: ComparisonOperator.EQUALS, label: 'Equals' },
+    { value: ComparisonOperator.NUMBER_EQUALS, label: 'Number Equals' },
+    { value: ComparisonOperator.GREATER_THAN, label: 'Greater Than' },
+    { value: ComparisonOperator.LESS_THAN, label: 'Less Than' },
+    { value: ComparisonOperator.STARTS_WITH, label: 'Starts With' },
+    { value: ComparisonOperator.NOT_STARTS_WITH, label: 'Does Not Start With' },
+    { value: ComparisonOperator.IS_EMPTY, label: 'Is Empty' },
+    { value: ComparisonOperator.IS_NOT_EMPTY, label: 'Is Not Empty' },
+]
 
 const DEFAULT_CONDITION: RouteConditionRule = {
-  variable: '',
-  operator: ComparisonOperator.CONTAINS,
-  value: ''
-};
+    variable: '',
+    operator: ComparisonOperator.CONTAINS,
+    value: '',
+}
 
 const DEFAULT_ROUTE: RouteConditionGroup = {
-  conditions: [{ ...DEFAULT_CONDITION }],
-};
+    conditions: [{ ...DEFAULT_CONDITION }],
+}
 
 const estimateTextWidth = (text: string): number => {
-  // Approximate character widths (in pixels)
-  const averageCharWidth = 8;  // for normal text
-  const spaceWidth = 4;        // for spaces
-  return text.length * averageCharWidth + text.split(' ').length * spaceWidth;
-};
+    // Approximate character widths (in pixels)
+    const averageCharWidth = 8 // for normal text
+    const spaceWidth = 4 // for spaces
+    return text.length * averageCharWidth + text.split(' ').length * spaceWidth
+}
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [nodeWidth, setNodeWidth] = useState<string>('auto');
-  const nodeRef = useRef<HTMLDivElement | null>(null);
-  const dispatch = useDispatch();
-  const nodes = useSelector((state: RootState) => state.flow.nodes);
-  const edges = useSelector((state: RootState) => state.flow.edges);
-  const [predecessorNodes, setPredcessorNodes] = useState(edges.filter((edge) => edge.target === id).map((edge) => {
-    return nodes.find((node) => node.id === edge.source);
-  }));
-  const output = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.config?.run);
+    const [isCollapsed, setIsCollapsed] = useState(false)
+    const [nodeWidth, setNodeWidth] = useState<string>('auto')
+    const nodeRef = useRef<HTMLDivElement | null>(null)
+    const dispatch = useDispatch()
+    const nodes = useSelector((state: RootState) => state.flow.nodes)
+    const edges = useSelector((state: RootState) => state.flow.edges)
+    const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
+    const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
+    const [predecessorNodes, setPredecessorNodes] = useState(
+        edges
+            .filter((edge) => edge.target === id)
+            .map((edge) => nodes.find((node) => node.id === edge.source))
+            .filter(Boolean)
+    )
 
-  // Get available input variables from the connected node's output schema
-  const inputVariables = useMemo(() => {
-    if (!predecessorNodes.length) return [];
+    const connection = useConnection()
 
-    return predecessorNodes.flatMap(node => {
-      if (!node) return [];
+    // Add a type guard to check if the node is a FlowWorkflowNode
+    const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
+        return 'type' in node
+    }
 
-      const nodeTitle = node.data?.config?.title || node.id;
-      const outputSchema = node.data?.config?.output_schema || {};
+    // Recompute predecessor nodes whenever edges/connections change
+    useEffect(() => {
+        const updatedPredecessors = edges
+            .filter((edge) => edge.target === id)
+            .map((edge) => nodes.find((node) => node.id === edge.source))
+            .filter(Boolean)
 
-      return Object.entries(outputSchema).map(([key, type]) => ({
-        value: `${nodeTitle}.${key}`,
-        label: `${nodeTitle}.${key} (${type})`,
-      }));
-    });
-  }, [predecessorNodes]);
+        let finalPredecessors = updatedPredecessors
 
-
-  const connection = useConnection();
-
-  useEffect(() => {
-    // If a connection is in progress and the target node is this node
-    // temporarily show a handle for the source node as the connection is being made
-    if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
-      let predecessorNodes = edges
-        .filter((edge) => edge.target === id)
-        .map((edge) => nodes.find((node) => node.id === edge.source));
-
-      // Check if the source node is not already included
-      if (!predecessorNodes.find((node) => node?.id === connection.fromNode.id)) {
-        const fromNode = nodes.find((node) => node.id === connection.fromNode.id);
-        if (fromNode) {
-          predecessorNodes = predecessorNodes.concat(fromNode);
+        // If a new connection is in progress to this node, show that source node as well
+        if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
+            const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
+            if (!existing && isFlowWorkflowNode(connection.fromNode)) {
+                finalPredecessors = [...finalPredecessors, connection.fromNode]
+            }
         }
-      }
 
-      setPredcessorNodes(predecessorNodes);
-    } else {
-      // Update predecessor nodes when no connection is in progress
-      const updatedPredecessorNodes = edges
-        .filter((edge) => edge.target === id)
-        .map((edge) => nodes.find((node) => node.id === edge.source));
+        // Deduplicate
+        finalPredecessors = finalPredecessors.filter((node, index, self) => {
+            return self.findIndex((n) => n?.id === node?.id) === index
+        })
 
-      setPredcessorNodes(updatedPredecessorNodes);
+        // Compare to existing predecessorNodes; only set if changed
+        const hasChanged =
+            finalPredecessors.length !== predecessorNodes.length ||
+            finalPredecessors.some((node, i) => !isEqual(node, predecessorNodes[i]))
+        if (hasChanged) {
+            setPredecessorNodes(finalPredecessors)
+        }
+    }, [connection, edges, id, nodes, predecessorNodes])
+
+    // Get available input variables from the connected node's output schema
+    const inputVariables = useMemo(() => {
+        if (!predecessorNodes.length) return []
+
+        return predecessorNodes.flatMap((node) => {
+            if (!node) return []
+
+            const nodeTitle = nodeConfig?.title || node.id
+            const predNodeConfig = nodeConfigs[node.id]
+            const outputSchema = predNodeConfig?.output_schema || {}
+
+            return Object.entries(outputSchema).map(([key, type]) => ({
+                value: `${nodeTitle}.${key}`,
+                label: `${nodeTitle}.${key} (${type})`,
+            }))
+        })
+    }, [predecessorNodes, nodeConfigs])
+
+    useEffect(() => {
+        if (!nodeRef.current) return
+
+        // We have multiple input handle labels
+        const inputLabels = predecessorNodes.map((pred) => pred?.data?.config?.title || pred?.id || '')
+
+        // Output label is the node's title or fallback
+        const outputLabels = [nodeConfig?.title || 'Coalesce']
+
+        // Compute the max length among all input labels
+        const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0)
+        // Compute the max length among all output labels
+        const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0)
+
+        // The node's own title (for the top of the node)
+        const nodeTitle = nodeConfig?.title || 'Coalesce'
+        const nodeTitleLength = nodeTitle.length
+
+        // Some extra spacing
+        const buffer = 5
+
+        // Rough estimate: multiply the longest label length by ~10 for width in px.
+        const minNodeWidth = 300
+        const maxNodeWidth = 600
+
+        const estimatedWidth = Math.max(
+            (maxInputLabelLength + maxOutputLabelLength + buffer) * 10,
+            nodeTitleLength * 10,
+            minNodeWidth
+        )
+        const finalWidth = Math.min(estimatedWidth, maxNodeWidth)
+
+        // If collapsed, show auto; otherwise the computed width
+        if (nodeWidth !== `${finalWidth}px`) {
+            setNodeWidth(isCollapsed ? 'auto' : `${finalWidth}px`)
+        }
+    }, [predecessorNodes, nodeConfig?.title, isCollapsed])
+
+    const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
+        dispatch(
+            updateNodeConfigOnly({
+                id,
+                data: {
+                    ...nodeConfig,
+                    route_map: newRouteMap,
+                },
+            })
+        )
     }
-  }, [connection, nodes, edges, id]);
 
-  useEffect(() => {
-    if (!nodeRef.current || !data) return;
-
-    // Calculate widths for all variables, operators, and values
-    const allWidths = Object.entries(data.config?.route_map || {}).flatMap(([_, route]) =>
-      route.conditions.map(condition => {
-        // Variable width calculation
-        const variable = inputVariables.find(v => v.value === condition.variable);
-        const variableWidth = variable ? estimateTextWidth(variable.label) : 200; // default min width
-
-        // Operator width calculation
-        const operator = OPERATORS.find(op => op.value === condition.operator);
-        const operatorWidth = operator ? estimateTextWidth(operator.label) : 140; // default operator width
-
-        // Value width calculation
-        const valueWidth = condition.value ? estimateTextWidth(condition.value) : 150; // default value width
-
-        // Add some padding and account for gaps between elements
-        const totalRowWidth = variableWidth + operatorWidth + valueWidth + 150; // 100px for gaps and padding
-
-        return totalRowWidth;
-      })
-    );
-
-    // Get the maximum width needed for any condition row
-    const maxConditionWidth = Math.max(
-      ...allWidths,
-      400 // minimum width
-    );
-
-    // Add some padding for the card container
-    const finalWidth = `${Math.min(maxConditionWidth + 40, 800)}px`; // 800px max width
-
-    if (nodeWidth !== finalWidth) {
-      setNodeWidth(finalWidth);
+    const addRoute = () => {
+        const newRouteKey = `route${Object.keys(nodeConfig?.route_map || {}).length + 1}`
+        const newRouteMap = {
+            ...(nodeConfig?.route_map || {}),
+            [newRouteKey]: { ...DEFAULT_ROUTE },
+        }
+        handleUpdateRouteMap(newRouteMap)
     }
-  }, [data.config.route_map, inputVariables]); // Remove nodeWidth from dependencies
 
-  const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
-
-    const updatedData: RouterNodeData = {
-      ...data,
-      config: {
-        ...data.config,
-        route_map: newRouteMap,
-      },
-    };
-
-    dispatch(updateNodeData({ id, data: updatedData }));
-  };
-
-  const addRoute = () => {
-    const newRouteKey = `route${Object.keys(data.config?.route_map || {}).length + 1}`;
-    const newRouteMap = {
-      ...data.config.route_map,
-      [newRouteKey]: { ...DEFAULT_ROUTE },
-    };
-    handleUpdateRouteMap(newRouteMap);
-  };
-
-  const removeRoute = (routeKey: string) => {
-    const { [routeKey]: _, ...newRouteMap } = data.config.route_map || {};
-    handleUpdateRouteMap(newRouteMap);
-  };
-
-  const addCondition = (routeKey: string) => {
-    const newRouteMap = {
-      ...data.config.route_map,
-      [routeKey]: {
-        conditions: [
-          ...data.config.route_map[routeKey].conditions,
-          { ...DEFAULT_CONDITION, logicalOperator: 'AND' as const },
-        ],
-      },
-    };
-    handleUpdateRouteMap(newRouteMap);
-  };
-
-  const removeCondition = (routeKey: string, conditionIndex: number) => {
-    const newRouteMap = {
-      ...data.config.route_map,
-      [routeKey]: {
-        conditions: data.config.route_map[routeKey].conditions.filter(
-          (_, i) => i !== conditionIndex
-        ),
-      },
-    };
-    handleUpdateRouteMap(newRouteMap);
-  };
-
-  const updateCondition = (
-    routeKey: string,
-    conditionIndex: number,
-    field: keyof RouteConditionRule,
-    value: string
-  ) => {
-    const newRouteMap = {
-      ...data.config.route_map,
-      [routeKey]: {
-        conditions: data.config.route_map[routeKey].conditions.map((condition, i) =>
-          i === conditionIndex ? { ...condition, [field]: value } : condition
-        ),
-      },
-    };
-    handleUpdateRouteMap(newRouteMap);
-  };
-
-  useEffect(() => {
-    // If route_map is empty, initialize it with a default route
-    if (!data.config.route_map || Object.keys(data.config.route_map).length === 0) {
-      handleUpdateRouteMap({
-        route1: { ...DEFAULT_ROUTE }
-      });
+    const removeRoute = (routeKey: string) => {
+        if (!nodeConfig?.route_map) return
+        const { [routeKey]: _, ...newRouteMap } = nodeConfig.route_map
+        handleUpdateRouteMap(newRouteMap)
     }
-  }, []);
 
-  return (
-    <BaseNode
-      id={id}
-      isCollapsed={isCollapsed}
-      setIsCollapsed={setIsCollapsed}
-      data={{
-        title: data.config?.title || 'Conditional Router',
-        color: data.color || '#F6AD55',
-        acronym: 'IF',
-        config: data.config,
-        run: data.run,
-        taskStatus: data.taskStatus
-      }}
-      style={{ width: nodeWidth }}
-      className="hover:!bg-background"
-    >
-      <div className="p-3" ref={nodeRef}>
-        {/* Input handles */}
-        {predecessorNodes.map((node) => (
-          <div key={node?.id} className={`${styles.handleRow} w-full justify-start mb-4`}>
-            <Handle
-              type="target"
-              position={Position.Left}
-              id={node?.data?.config?.title || node?.id}
-              className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-            />
-            {!isCollapsed && <span className="text-sm font-medium ml-2 text-foreground">{node?.data?.config?.title || node?.id}</span>}
-          </div>
-        ))}
+    const addCondition = (routeKey: string) => {
+        if (!nodeConfig?.route_map) return
+        const newRouteMap = {
+            ...nodeConfig.route_map,
+            [routeKey]: {
+                conditions: [
+                    ...(nodeConfig.route_map[routeKey].conditions || []),
+                    { ...DEFAULT_CONDITION, logicalOperator: 'AND' as const },
+                ],
+            },
+        }
+        handleUpdateRouteMap(newRouteMap)
+    }
 
-        {!isCollapsed && (
-          <>
-            <Divider className="my-2" />
+    const removeCondition = (routeKey: string, conditionIndex: number) => {
+        if (!nodeConfig?.route_map) return
+        const newRouteMap = {
+            ...nodeConfig.route_map,
+            [routeKey]: {
+                conditions: nodeConfig.route_map[routeKey].conditions.filter((_, i) => i !== conditionIndex),
+            },
+        }
+        handleUpdateRouteMap(newRouteMap)
+    }
 
-            {/* Expressions Header */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm font-medium text-foreground">Expressions</span>
-              <Divider className="flex-grow" />
-            </div>
+    const updateCondition = (
+        routeKey: string,
+        conditionIndex: number,
+        field: keyof RouteConditionRule,
+        value: string
+    ) => {
+        if (!nodeConfig?.route_map) return
+        const newRouteMap = {
+            ...nodeConfig.route_map,
+            [routeKey]: {
+                conditions: nodeConfig.route_map[routeKey].conditions.map((condition, i) =>
+                    i === conditionIndex ? { ...condition, [field]: value } : condition
+                ),
+            },
+        }
+        handleUpdateRouteMap(newRouteMap)
+    }
 
-            {/* Routes */}
-            <div className="flex flex-col gap-4">
-              {Object.entries(data.config.route_map || {}).map(([routeKey, route]) => (
-                <Card key={routeKey} classNames={{ base: 'bg-background border-default-200 p-1' }}>
-                  <div className="flex flex-col gap-3">
-                    {/* Conditions */}
-                    {(route.conditions || []).map((condition, conditionIndex) => (
-                      <div key={conditionIndex} className="flex flex-col gap-2">
-                        {conditionIndex > 0 && (
-                          <div className="flex items-center gap-2 justify-center">
-                            <RadioGroup
-                              orientation="horizontal"
-                              value={condition.logicalOperator}
-                              onValueChange={(value) =>
-                                updateCondition(routeKey, conditionIndex, 'logicalOperator', value)
-                              }
-                              size="sm"
-                              isDisabled={readOnly}
-                            >
-                              <Radio value="AND">AND</Radio>
-                              <Radio value="OR">OR</Radio>
-                            </RadioGroup>
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-2">
-                          <Select
-                            aria-label='Select variable'
-                            size="sm"
-                            selectedKeys={condition.variable ? [condition.variable] : []}
-                            onChange={(e) =>
-                              updateCondition(routeKey, conditionIndex, 'variable', e.target.value)
-                            }
-                            placeholder="Select variable"
-                            className="flex-[2] min-w-[200px]"
-                            classNames={{
-                              trigger: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto",
-                              value: "whitespace-normal break-words",
-                              popoverContent: "bg-background dark:bg-background"
-                            }}
-                            isMultiline={true}
-                            isDisabled={readOnly}
-                          >
-                            {inputVariables.map((variable) => (
-                              <SelectItem key={variable.value} value={variable.value} textValue={variable.label}>
-                                <div className="whitespace-normal">
-                                  <span>{variable.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </Select>
-                          <Select
-                            aria-label='Select operator'
-                            size="sm"
-                            selectedKeys={condition.operator ? [condition.operator] : []}
-                            onChange={(e) => updateCondition(routeKey, conditionIndex, 'operator', e.target.value)}
-                            className="w-[140px] flex-none"
-                            classNames={{
-                              trigger: "bg-default-100 dark:bg-default-50",
-                              popoverContent: "bg-background dark:bg-background"
-                            }}
-                            isDisabled={readOnly}
-                          >
-                            {OPERATORS.map((op) => (
-                              <SelectItem key={op.value} value={op.value}>
-                                {op.label}
-                              </SelectItem>
-                            ))}
-                          </Select>
-                          {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
-                            <Input
-                              size="sm"
-                              value={condition.value}
-                              onChange={(e) =>
-                                updateCondition(routeKey, conditionIndex, 'value', e.target.value)
-                              }
-                              placeholder="Value"
-                              className="flex-[2] min-w-[100px]"
-                              classNames={{
-                                input: "bg-default-100 dark:bg-default-50 min-h-unit-12 h-auto whitespace-normal",
-                                inputWrapper: "shadow-none min-h-unit-12 h-auto"
-                              }}
-                              isDisabled={readOnly}
+    useEffect(() => {
+        // If route_map is empty, initialize it with a default route
+        if (!nodeConfig?.route_map || Object.keys(nodeConfig.route_map).length === 0) {
+            handleUpdateRouteMap({
+                route1: { ...DEFAULT_ROUTE },
+            })
+        }
+    }, [])
+
+    return (
+        <BaseNode
+            id={id}
+            isCollapsed={isCollapsed}
+            setIsCollapsed={setIsCollapsed}
+            data={{
+                title: nodeConfig?.title || 'Conditional Router',
+                color: data.color || '#F6AD55',
+                acronym: 'IF',
+                run: data.run,
+                config: nodeConfig,
+                taskStatus: data.taskStatus,
+            }}
+            style={{ width: nodeWidth }}
+            className="hover:!bg-background"
+        >
+            <div className="p-3" ref={nodeRef}>
+                {/* Input handles */}
+                {predecessorNodes.map((node) => {
+                    if (!node) return null
+                    const predNodeConfig = nodeConfigs[node.id]
+                    const handleId = predNodeConfig?.title || node.id
+                    return (
+                        <div key={node.id} className={`${styles.handleRow} w-full justify-start mb-4`}>
+                            <Handle
+                                type="target"
+                                position={Position.Left}
+                                id={handleId}
+                                className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
                             />
-                          )}
-                          {!readOnly && (
-                            <Button
-                              size="sm"
-                              color="danger"
-                              isIconOnly
-                              onClick={() => removeCondition(routeKey, conditionIndex)}
-                              disabled={route.conditions.length === 1}
-                              className="flex-none"
-                            >
-                              <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                            </Button>
-                          )}
+                            {!isCollapsed && (
+                                <span className="text-sm font-medium ml-2 text-foreground">
+                                    {predNodeConfig?.title || node.id}
+                                </span>
+                            )}
                         </div>
-                      </div>
+                    )
+                })}
+
+                {!isCollapsed && nodeConfig?.route_map && (
+                    <>
+                        <Divider className="my-2" />
+
+                        {/* Expressions Header */}
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="text-sm font-medium text-foreground">Expressions</span>
+                            <Divider className="flex-grow" />
+                        </div>
+
+                        {/* Routes */}
+                        <div className="flex flex-col gap-4">
+                            {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
+                                <Card
+                                    key={routeKey}
+                                    classNames={{
+                                        base: 'bg-background dark:bg-default-100/10 border-default-200 p-1',
+                                    }}
+                                >
+                                    <div className="flex flex-col gap-3">
+                                        {/* Conditions */}
+                                        {route.conditions.map((condition, conditionIndex) => (
+                                            <div key={conditionIndex} className="flex flex-col gap-2">
+                                                {conditionIndex > 0 && (
+                                                    <div className="flex items-center gap-2 justify-center">
+                                                        <RadioGroup
+                                                            orientation="horizontal"
+                                                            value={condition.logicalOperator}
+                                                            onValueChange={(value) =>
+                                                                updateCondition(
+                                                                    routeKey,
+                                                                    conditionIndex,
+                                                                    'logicalOperator',
+                                                                    value
+                                                                )
+                                                            }
+                                                            size="sm"
+                                                            isDisabled={readOnly}
+                                                        >
+                                                            <Radio value="AND">AND</Radio>
+                                                            <Radio value="OR">OR</Radio>
+                                                        </RadioGroup>
+                                                    </div>
+                                                )}
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Select
+                                                        aria-label="Select variable"
+                                                        size="sm"
+                                                        selectedKeys={condition.variable ? [condition.variable] : []}
+                                                        onChange={(e) =>
+                                                            updateCondition(
+                                                                routeKey,
+                                                                conditionIndex,
+                                                                'variable',
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="Select variable"
+                                                        className="flex-[2] min-w-[200px]"
+                                                        classNames={{
+                                                            trigger:
+                                                                'bg-background dark:bg-default-100/10 min-h-unit-12 h-auto text-foreground',
+                                                            value: 'whitespace-normal break-words text-foreground dark:text-foreground-100',
+                                                            popoverContent:
+                                                                'bg-background dark:bg-default-100/10 text-foreground dark:text-foreground-100',
+                                                            listbox:
+                                                                'bg-background dark:bg-default-100/10 text-foreground',
+                                                        }}
+                                                        isMultiline={true}
+                                                        isDisabled={readOnly}
+                                                    >
+                                                        {inputVariables.map((variable) => (
+                                                            <SelectItem
+                                                                key={variable.value}
+                                                                value={variable.value}
+                                                                textValue={variable.label}
+                                                                className="bg-background dark:bg-default-100/10 text-foreground data-[hover=true]:bg-default-200/50 dark:data-[hover=true]:bg-default-100/20"
+                                                            >
+                                                                <div className="whitespace-normal">
+                                                                    <span>{variable.label}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </Select>
+                                                    <Select
+                                                        aria-label="Select operator"
+                                                        size="sm"
+                                                        selectedKeys={condition.operator ? [condition.operator] : []}
+                                                        onChange={(e) =>
+                                                            updateCondition(
+                                                                routeKey,
+                                                                conditionIndex,
+                                                                'operator',
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        className="w-[140px] flex-none"
+                                                        classNames={{
+                                                            trigger:
+                                                                'bg-background dark:bg-default-100/10 min-h-unit-12 h-auto text-foreground',
+                                                            value: 'whitespace-normal break-words text-foreground dark:text-foreground-100',
+                                                            popoverContent:
+                                                                'bg-background dark:bg-default-100/10 text-foreground dark:text-foreground-100',
+                                                            listbox:
+                                                                'bg-background dark:bg-default-100/10 text-foreground dark:text-foreground-100',
+                                                        }}
+                                                        isDisabled={readOnly}
+                                                    >
+                                                        {OPERATORS.map((op) => (
+                                                            <SelectItem
+                                                                key={op.value}
+                                                                value={op.value}
+                                                                className="bg-background dark:bg-default-100/10 text-foreground data-[hover=true]:bg-default-200/50 dark:data-[hover=true]:bg-default-100/20"
+                                                            >
+                                                                {op.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </Select>
+                                                    {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
+                                                        <Input
+                                                            size="sm"
+                                                            value={condition.value}
+                                                            onChange={(e) =>
+                                                                updateCondition(
+                                                                    routeKey,
+                                                                    conditionIndex,
+                                                                    'value',
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="Value"
+                                                            className="flex-[2] min-w-[100px]"
+                                                            classNames={{
+                                                                input: 'bg-background dark:bg-default-100/10 min-h-unit-12 h-auto whitespace-normal text-foreground dark:text-foreground-100',
+                                                                inputWrapper:
+                                                                    'shadow-none min-h-unit-12 h-auto bg-background dark:bg-default-100/10 ',
+                                                            }}
+                                                            isDisabled={readOnly}
+                                                        />
+                                                    )}
+                                                    {!readOnly && (
+                                                        <Button
+                                                            size="sm"
+                                                            color="danger"
+                                                            isIconOnly
+                                                            onClick={() => removeCondition(routeKey, conditionIndex)}
+                                                            disabled={route.conditions.length === 1}
+                                                            className="flex-none"
+                                                        >
+                                                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Add Condition Button */}
+                                        {!readOnly && (
+                                            <Button
+                                                size="sm"
+                                                color="primary"
+                                                variant="light"
+                                                onClick={() => addCondition(routeKey)}
+                                                startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                                                className="text-foreground"
+                                            >
+                                                Add Condition
+                                            </Button>
+                                        )}
+
+                                        {/* Route Output Handle */}
+                                        <div className={`${styles.handleRow} w-full justify-end mt-2`}>
+                                            <div className="align-center flex flex-grow flex-shrink mr-2">
+                                                <span className="text-sm font-medium ml-auto text-foreground">
+                                                    {routeKey}
+                                                </span>
+                                            </div>
+                                            <Handle
+                                                type="source"
+                                                position={Position.Right}
+                                                id={routeKey}
+                                                className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
+                                            />
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+
+                            {/* Add Route Button */}
+                            {!readOnly && (
+                                <Button
+                                    size="sm"
+                                    color="primary"
+                                    variant="light"
+                                    onClick={addRoute}
+                                    startContent={<Icon icon="solar:add-circle-linear" width={18} />}
+                                    className="text-foreground"
+                                >
+                                    Add Route
+                                </Button>
+                            )}
+                        </div>
+                    </>
+                )}
+
+                {/* Output handles when collapsed */}
+                {isCollapsed &&
+                    nodeConfig?.route_map &&
+                    Object.keys(nodeConfig.route_map).map((routeKey) => (
+                        <div key={routeKey} className={`${styles.handleRow} w-full justify-end mt-2`}>
+                            <Handle
+                                type="source"
+                                position={Position.Right}
+                                id={routeKey}
+                                className={`${styles.handle} ${styles.handleRight} ${styles.collapsedHandleOutput}`}
+                            />
+                        </div>
                     ))}
-
-                    {/* Add Condition Button */}
-                    {!readOnly && (
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        onClick={() => addCondition(routeKey)}
-                        startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                        className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
-                      >
-                        Add Condition
-                      </Button>
-                    )}
-
-                    {/* Route Output Handle */}
-                    <div className={`${styles.handleRow} w-full justify-end mt-2`}>
-                      <div className="align-center flex flex-grow flex-shrink mr-2">
-                        <span className="text-sm font-medium ml-auto text-foreground">{routeKey}</span>
-                      </div>
-                      <Handle
-                        type="source"
-                        position={Position.Right}
-                        id={routeKey}
-                        className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              {/* Add Route Button */}
-              {!readOnly && (
-                <Button
-                  size="sm"
-                  color="primary"
-                  variant="flat"
-                  onClick={addRoute}
-                  startContent={<Icon icon="solar:add-circle-linear" width={18} />}
-                  className="bg-default-100 dark:bg-default-50 hover:bg-default-200 dark:hover:bg-default-100"
-                >
-                  Add Route
-                </Button>
-              )}
             </div>
-          </>
-        )}
-
-        {/* Output handles when collapsed */}
-        {isCollapsed && Object.keys(data.config?.route_map || {}).map((routeKey) => (
-          <div key={routeKey} className={`${styles.handleRow} w-full justify-end mt-2`}>
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={routeKey}
-              className={`${styles.handle} ${styles.handleRight} ${styles.collapsedHandleOutput}`}
-            />
-          </div>
-        ))}
-      </div>
-      <NodeOutputDisplay output={data.run} />
-    </BaseNode>
-  );
-};
+            <NodeOutputDisplay output={data.run} />
+        </BaseNode>
+    )
+}

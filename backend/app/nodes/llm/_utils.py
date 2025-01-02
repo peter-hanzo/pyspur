@@ -43,10 +43,17 @@ class LLMProvider(str, Enum):
     DEEPSEEK = "Deepseek"
 
 
+class ModelConstraints(BaseModel):
+    max_tokens: int
+    min_temperature: float = 0.0
+    max_temperature: float = 1.0
+
+
 class LLMModel(BaseModel):
     id: str
     provider: LLMProvider
     name: str
+    constraints: ModelConstraints
 
 
 class LLMModels(str, Enum):
@@ -90,135 +97,171 @@ class LLMModels(str, Enum):
 
     @classmethod
     def get_model_info(cls, model_id: str) -> LLMModel:
-        model_mapping = {
-            # OpenAI Models
+        model_registry = {
+            # OpenAI Models - all have temperature up to 2.0
             cls.GPT_4O_MINI.value: LLMModel(
                 id=cls.GPT_4O_MINI.value,
                 provider=LLMProvider.OPENAI,
-                name="GPT-4 Optimized Mini",
+                name="GPT-4O Mini",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.GPT_4O.value: LLMModel(
-                id=cls.GPT_4O.value, provider=LLMProvider.OPENAI, name="GPT-4 Optimized"
+                id=cls.GPT_4O.value,
+                provider=LLMProvider.OPENAI,
+                name="GPT-4O",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.O1_PREVIEW.value: LLMModel(
-                id=cls.O1_PREVIEW.value, provider=LLMProvider.OPENAI, name="O1 Preview"
+                id=cls.O1_PREVIEW.value,
+                provider=LLMProvider.OPENAI,
+                name="O1 Preview",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.O1_MINI.value: LLMModel(
-                id=cls.O1_MINI.value, provider=LLMProvider.OPENAI, name="O1 Mini"
+                id=cls.O1_MINI.value,
+                provider=LLMProvider.OPENAI,
+                name="O1 Mini",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.GPT_4_TURBO.value: LLMModel(
                 id=cls.GPT_4_TURBO.value,
                 provider=LLMProvider.OPENAI,
                 name="GPT-4 Turbo",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.CHATGPT_4O_LATEST.value: LLMModel(
                 id=cls.CHATGPT_4O_LATEST.value,
                 provider=LLMProvider.OPENAI,
                 name="ChatGPT-4 Optimized Latest",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             # Azure OpenAI Models
             cls.AZURE_GPT_4.value: LLMModel(
                 id=cls.AZURE_GPT_4.value,
                 provider=LLMProvider.AZURE_OPENAI,
                 name="Azure GPT-4",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.AZURE_GPT_4_TURBO.value: LLMModel(
                 id=cls.AZURE_GPT_4_TURBO.value,
                 provider=LLMProvider.AZURE_OPENAI,
                 name="Azure GPT-4 Turbo",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.AZURE_GPT_35_TURBO.value: LLMModel(
                 id=cls.AZURE_GPT_35_TURBO.value,
                 provider=LLMProvider.AZURE_OPENAI,
                 name="Azure GPT-3.5 Turbo",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             # Anthropic Models
             cls.CLAUDE_3_5_SONNET_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_5_SONNET_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Sonnet Latest",
+                constraints=ModelConstraints(max_tokens=15000, max_temperature=1.0),
             ),
             cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_5_HAIKU_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Haiku Latest",
+                constraints=ModelConstraints(max_tokens=15000, max_temperature=1.0),
             ),
             cls.CLAUDE_3_OPUS_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_OPUS_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3 Opus Latest",
+                constraints=ModelConstraints(max_tokens=15000, max_temperature=1.0),
             ),
             # Google Models
             cls.GEMINI_1_5_PRO.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO.value,
                 provider=LLMProvider.GOOGLE,
                 name="Gemini 1.5 Pro",
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_FLASH.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH.value,
                 provider=LLMProvider.GOOGLE,
                 name="Gemini 1.5 Flash",
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_PRO_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO_LATEST.value,
                 provider=LLMProvider.GOOGLE,
                 name="Gemini 1.5 Pro Latest",
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_FLASH_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH_LATEST.value,
                 provider=LLMProvider.GOOGLE,
                 name="Gemini 1.5 Flash Latest",
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=1.0),
             ),
             # Deepseek Models
             cls.DEEPSEEK_CHAT.value: LLMModel(
                 id=cls.DEEPSEEK_CHAT.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
+                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
             ),
             # Ollama Models
             cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(
                 id=cls.OLLAMA_LLAMA3_3_8B.value,
                 provider=LLMProvider.OLLAMA,
                 name="Llama 3.3 (8B)",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_LLAMA3_2_8B.value: LLMModel(
                 id=cls.OLLAMA_LLAMA3_2_8B.value,
                 provider=LLMProvider.OLLAMA,
                 name="Llama 3.2 (8B)",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_LLAMA3_2_1B.value: LLMModel(
                 id=cls.OLLAMA_LLAMA3_2_1B.value,
                 provider=LLMProvider.OLLAMA,
                 name="Llama 3.2 (1B)",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_LLAMA3_8B.value: LLMModel(
                 id=cls.OLLAMA_LLAMA3_8B.value,
                 provider=LLMProvider.OLLAMA,
                 name="Llama 3 (8B)",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_GEMMA_2.value: LLMModel(
-                id=cls.OLLAMA_GEMMA_2.value, provider=LLMProvider.OLLAMA, name="Gemma 2"
+                id=cls.OLLAMA_GEMMA_2.value,
+                provider=LLMProvider.OLLAMA,
+                name="Gemma 2",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_GEMMA_2_2B.value: LLMModel(
                 id=cls.OLLAMA_GEMMA_2_2B.value,
                 provider=LLMProvider.OLLAMA,
                 name="Gemma 2 (2B)",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_MISTRAL.value: LLMModel(
-                id=cls.OLLAMA_MISTRAL.value, provider=LLMProvider.OLLAMA, name="Mistral"
+                id=cls.OLLAMA_MISTRAL.value,
+                provider=LLMProvider.OLLAMA,
+                name="Mistral",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_CODELLAMA.value: LLMModel(
                 id=cls.OLLAMA_CODELLAMA.value,
                 provider=LLMProvider.OLLAMA,
                 name="CodeLlama",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_MIXTRAL.value: LLMModel(
                 id=cls.OLLAMA_MIXTRAL.value,
                 provider=LLMProvider.OLLAMA,
                 name="Mixtral 8x7B Instruct",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
         }
-        return model_mapping.get(model_id)
+        return model_registry.get(model_id)
 
 
 class ModelInfo(BaseModel):
