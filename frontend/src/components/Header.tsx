@@ -30,7 +30,7 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import store from '../store/store'
 
 interface HeaderProps {
-    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace'
+    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
 }
 
 interface Node {
@@ -391,6 +391,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                             Evals
                         </Link>
                     </NavbarItem>
+                    <NavbarItem isActive={activePage === 'rag'}>
+                        <Link className="flex gap-2 text-inherit" href="/rag">
+                            RAG
+                        </Link>
+                    </NavbarItem>
                 </NavbarContent>
                 {activePage === 'workflow' && (
                     <NavbarContent
@@ -457,17 +462,16 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                                                 onPress={() => window.open(`/trace/${run.id}`, '_blank')}
                                                 textValue={`Version ${index + 1}`}
                                             >
-                                                {`${run.id} | ${run.status.toLowerCase()} ${
-                                                    (run.status.toLowerCase() === 'running' ||
-                                                        run.status.toLowerCase() === 'pending') &&
+                                                {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' ||
+                                                    run.status.toLowerCase() === 'pending') &&
                                                     run.start_time
-                                                        ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                                                        : (run.status.toLowerCase() === 'failed' ||
-                                                                run.status.toLowerCase() === 'completed') &&
-                                                            run.end_time
-                                                          ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                                                          : ''
-                                                }`}
+                                                    ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                                                    : (run.status.toLowerCase() === 'failed' ||
+                                                        run.status.toLowerCase() === 'completed') &&
+                                                        run.end_time
+                                                        ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                                                        : ''
+                                                    }`}
                                             </DropdownItem>
                                         ))
                                     )}
