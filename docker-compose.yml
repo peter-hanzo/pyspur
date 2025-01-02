@@ -16,7 +16,7 @@ services:
       target: ${ENVIRONMENT:-development}
     command: bash /pyspur/backend/entrypoint.sh
     volumes:
-      - ./backend:/pyspur/backend
+      - .:/pyspur
       - ./.env:/pyspur/backend/.env
       - ${SQLITE_DB_PATH:-./backend/sqlite/}:/pyspur/backend/sqlite/
     extra_hosts:
@@ -28,7 +28,7 @@ services:
       target: ${ENVIRONMENT:-development}
     command: npm run dev
     volumes:
-      - ./frontend:/pyspur/frontend
+      - .:/pyspur
       - /pyspur/frontend/node_modules
     environment:
       - FRONTEND_PORT=${FRONTEND_PORT:-3000}

@@ -13,10 +13,10 @@ services:
 
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY:-pyspur-dev/pyspur}-backend:${VERSION:-latest}
-    command: bash /pyspur/entrypoint.sh
+    command: bash /pyspur/backend/entrypoint.sh
     volumes:
-      - ./.env:/pyspur/.env
-      - ${SQLITE_DB_PATH:-./backend/sqlite/}:/pyspur/sqlite/
+      - ./.env:/pyspur/backend/.env
+      - ${SQLITE_DB_PATH:-./backend/sqlite/}:/pyspur/backend/sqlite/
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
