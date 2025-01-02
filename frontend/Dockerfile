@@ -1,6 +1,6 @@
 # Base stage
 FROM node:23-alpine as base
-WORKDIR /app
+WORKDIR /pyspur/frontend
 COPY package*.json ./
 
 # Development stage

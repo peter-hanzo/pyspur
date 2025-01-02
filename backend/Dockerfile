@@ -1,6 +1,6 @@
 # Base stage
 FROM python:3.12 as base
-WORKDIR /pyspur
+WORKDIR /pyspur/backend
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
