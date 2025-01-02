@@ -73,8 +73,6 @@ You can get PySpur up and running in three quick steps.
 
     Go to `http://localhost:6080/` in your browser.
 
-    Enter `pyspur`/`canaryhattan` as username/password.
-
 
 Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
 
