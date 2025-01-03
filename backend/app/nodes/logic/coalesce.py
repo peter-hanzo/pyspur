@@ -77,4 +77,4 @@ class CoalesceNode(BaseNode):
                 return self.output_model(**first_non_null_output)  # type: ignore
 
         # If all values are None, return an empty output
-        return None # type: ignore
+        return None  # type: ignore

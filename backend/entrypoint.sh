@@ -7,7 +7,7 @@ if [ -f "test_ollama.sh" ]; then
 fi
 
 set -e 
-mkdir -p /pyspur/app/models/management/alembic/versions/versions
+mkdir -p /pyspur/backend/app/models/management/alembic/versions/versions
 check_for_changes() {
     alembic check
 }
