@@ -5,7 +5,6 @@ services:
       - "${NGINX_PORT:-6080}:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd
     depends_on:
       - backend
       - frontend
@@ -14,11 +13,11 @@ services:
     build: 
       context: ./backend
       target: ${ENVIRONMENT:-development}
-    command: bash /pyspur/entrypoint.sh
+    command: bash /pyspur/backend/entrypoint.sh
     volumes:
-      - ./backend:/pyspur
-      - ./.env:/pyspur/.env
-      - ${SQLITE_DB_PATH:-./backend/sqlite/}:/pyspur/sqlite/
+      - .:/pyspur
+      - ./.env:/pyspur/backend/.env
+      - ${SQLITE_DB_PATH:-./backend/sqlite/}:/pyspur/backend/sqlite/
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
@@ -28,8 +27,8 @@ services:
       target: ${ENVIRONMENT:-development}
     command: npm run dev
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - .:/pyspur
+      - /pyspur/frontend/node_modules
     environment:
       - FRONTEND_PORT=${FRONTEND_PORT:-3000}
       - FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
