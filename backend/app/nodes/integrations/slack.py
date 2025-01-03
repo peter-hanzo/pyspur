@@ -4,8 +4,8 @@ from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...utils.integrations.slack_utils import SlackClient
 
 class SlackNodeConfig(BaseNodeConfig):
-    mode: str = Field("bot", description="The mode to send the message in. Can be 'bot' or 'user'.")
-    channel: str = Field(..., description="The channel ID to send the message to.")
+    channel: str = Field("", description="The channel ID to send the message to.")
+    mode: str = Field("", description="The mode to send the message in. Can be 'bot' or 'user'.")
 
 class SlackNodeInput(BaseNodeInput):
     message: str = Field(..., description="The message to send to the Slack channel.")
