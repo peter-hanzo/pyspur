@@ -59,31 +59,31 @@ const FileUploadBox = () => {
       <div
         {...getRootProps()}
         className={`
-          border-2 border-dashed rounded-xl p-8
+          border-1 border-dashed rounded-xl p-8
           transition-all duration-300 ease-in-out
           flex flex-col items-center justify-center gap-4
           cursor-pointer
           min-h-[200px]
           ${isDragActive
-            ? 'border-primary bg-primary/5 dark:bg-primary/10 scale-[1.02]'
-            : 'border-default-300 dark:border-default-200 hover:border-primary hover:bg-default-100 dark:hover:bg-default-50/10'
+            ? 'border-primary bg-primary/5 scale-[1.02]'
+            : 'border-default-200 dark:border-default-100 hover:border-primary hover:bg-default-100 dark:hover:bg-default-50'
           }
         `}
       >
         <input {...getInputProps()} />
         <div className={`
           rounded-full p-4
-          ${isDragActive ? 'bg-primary/10 dark:bg-primary/20' : 'bg-default-100 dark:bg-default-50/10'}
+          ${isDragActive ? 'bg-primary/10' : 'bg-default-100 dark:bg-default-50'}
         `}>
           <Upload
             className={`w-8 h-8 ${isDragActive ? 'text-primary' : 'text-default-500'}`}
           />
         </div>
         <div className="text-center">
-          <p className="text-default-700 font-medium">
+          <p className="text-default-900 font-medium">
             {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
           </p>
-          <p className="text-sm text-default-500 mt-1">
+          <p className="text-sm text-default-400 mt-1">
             or click to browse
           </p>
         </div>
@@ -257,7 +257,7 @@ const KnowledgeBaseWizard: React.FC = () => {
                   value="upload"
                   description="Upload files directly from your computer"
                   classNames={{
-                    base: "border border-default-200 dark:border-default-100 rounded-lg p-4 hover:bg-default-100 dark:hover:bg-default-50/10",
+                    base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
                   }}
                 >
                   File Upload
@@ -266,7 +266,7 @@ const KnowledgeBaseWizard: React.FC = () => {
                   value="sync"
                   description="Sync content from your existing tools"
                   classNames={{
-                    base: "border border-default-200 dark:border-default-100 rounded-lg p-4 hover:bg-default-100 dark:hover:bg-default-50/10",
+                    base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
                   }}
                 >
                   Sync with Existing Tools
@@ -511,8 +511,8 @@ const KnowledgeBaseWizard: React.FC = () => {
                   value="vector"
                   description="Semantic search using vector similarity"
                   classNames={{
-                    base: "w-full border-2 border-default-200 dark:border-default-100 rounded-lg p-4 hover:bg-default-100 dark:hover:bg-default-50/10 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 dark:data-[selected=true]:bg-primary/20",
-                    wrapper: "before:border-default-200 dark:before:border-default-100",
+                    base: "w-full border-2 border-default-200 rounded-lg p-4 hover:bg-default-100 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
+                    wrapper: "before:border-default-200",
                     labelWrapper: "w-full",
                     label: "w-full font-semibold text-base",
                     description: "w-full text-default-500",
@@ -524,11 +524,11 @@ const KnowledgeBaseWizard: React.FC = () => {
                   value="fulltext"
                   description="Traditional keyword-based search"
                   classNames={{
-                    base: "w-full border-2 border-default-200 dark:border-default-100 rounded-lg p-4 hover:bg-default-100 dark:hover:bg-default-50/10 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 dark:data-[selected=true]:bg-primary/20",
-                    wrapper: "before:border-default-200 dark:before:border-default-100",
+                    base: "w-full border-2 border-default-200 rounded-lg p-4 hover:bg-default-100 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
+                    wrapper: "before:border-default-200",
                     labelWrapper: "w-full",
                     label: "w-full font-semibold text-base",
-                    description: "w-full text-default-500"
+                    description: "w-full text-default-500",
                   }}
                 >
                   Full-text Search
@@ -537,11 +537,11 @@ const KnowledgeBaseWizard: React.FC = () => {
                   value="hybrid"
                   description="Combine vector and keyword search"
                   classNames={{
-                    base: "w-full border-2 border-default-200 dark:border-default-100 rounded-lg p-4 hover:bg-default-100 dark:hover:bg-default-50/10 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 dark:data-[selected=true]:bg-primary/20",
-                    wrapper: "before:border-default-200 dark:before:border-default-100",
+                    base: "w-full border-2 border-default-200 rounded-lg p-4 hover:bg-default-100 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
+                    wrapper: "before:border-default-200",
                     labelWrapper: "w-full",
                     label: "w-full font-semibold text-base",
-                    description: "w-full text-default-500"
+                    description: "w-full text-default-500",
                   }}
                 >
                   Hybrid Search
@@ -630,40 +630,60 @@ const KnowledgeBaseWizard: React.FC = () => {
       case 3:
         return (
           <div className="flex flex-col gap-6">
-            <Card className="bg-default-50 dark:bg-default-100/10">
-              <CardBody className="gap-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-success" />
-                  <h3 className="text-lg font-medium">Configuration Summary</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-sm text-default-500">Data Source</div>
-                      <div className="font-medium">{formData.dataSource}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-default-500">Parsing Strategy</div>
-                      <div className="font-medium">{formData.parsingStrategy}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-default-500">Chunk Size</div>
-                      <div className="font-medium">{formData.chunkSize} tokens</div>
-                    </div>
+            <Card className="bg-background/60 dark:bg-background/60 backdrop-blur-lg backdrop-saturate-150 shadow-xl border-1 border-default-200">
+              <CardBody className="gap-8 p-8">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-xl font-bold text-default-900">{steps[currentStep].title}</h2>
+                    <p className="text-small text-default-400">{steps[currentStep].description}</p>
                   </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-sm text-default-500">Embedding Model</div>
-                      <div className="font-medium">{formData.embeddingModel}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-default-500">Vector Database</div>
-                      <div className="font-medium">{formData.vectorDb}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-default-500">Search Strategy</div>
-                      <div className="font-medium">{formData.searchStrategy}</div>
-                    </div>
+                  <div className="text-default-400 text-sm font-medium">
+                    Step {currentStep + 1} of {steps.length}
+                  </div>
+                </div>
+
+                <Divider className="my-4" />
+
+                <motion.div
+                  className="min-h-[300px]"
+                  key={currentStep}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {renderStepContent()}
+                </motion.div>
+
+                <Divider className="my-4" />
+
+                <div className="flex justify-between items-center">
+                  <Button
+                    color="danger"
+                    variant="light"
+                    onPress={handleCancel}
+                    className="font-medium hover:bg-danger/10"
+                  >
+                    Cancel
+                  </Button>
+                  <div className="flex gap-3">
+                    {currentStep > 0 && (
+                      <Button
+                        variant="bordered"
+                        onPress={handleBack}
+                        className="font-medium"
+                        startContent={<ArrowLeft size={18} />}
+                      >
+                        Back
+                      </Button>
+                    )}
+                    <Button
+                      color="primary"
+                      onPress={handleNext}
+                      className="font-medium"
+                      endContent={currentStep !== steps.length - 1 && <ArrowRight size={18} />}
+                    >
+                      {currentStep === steps.length - 1 ? 'Create' : 'Next'}
+                    </Button>
                   </div>
                 </div>
               </CardBody>
@@ -698,7 +718,7 @@ const KnowledgeBaseWizard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto p-6 min-h-screen bg-gradient-to-b from-background to-default-50 dark:from-background dark:to-background">
+    <div className="max-w-[1200px] mx-auto p-6 min-h-screen bg-gradient-to-b from-background to-default-50/50">
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left side - Steps */}
         <div className="w-full md:w-1/3 lg:w-1/4">
@@ -708,16 +728,14 @@ const KnowledgeBaseWizard: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary-500 bg-clip-text text-transparent">
-              Create Knowledge Base
-            </h1>
-            <p className="text-default-500 text-sm mb-8">
-              Follow the steps to configure your knowledge base settings.
-            </p>
+            <div className="flex flex-col max-w-fit mb-2">
+              <h1 className="text-3xl font-bold text-default-900">Create Knowledge Base</h1>
+              <p className="text-small text-default-400">Follow the steps to configure your knowledge base settings.</p>
+            </div>
             <Progress
               classNames={{
                 base: "mb-8",
-                track: "drop-shadow-md dark:bg-default-50",
+                track: "drop-shadow-md",
                 indicator: "bg-gradient-to-r from-primary to-primary-500",
                 label: "text-sm font-medium",
                 value: "text-sm font-medium text-default-500",
@@ -733,11 +751,11 @@ const KnowledgeBaseWizard: React.FC = () => {
                 <motion.button
                   key={index}
                   onClick={() => setCurrentStep(index)}
-                  className={`flex flex-col gap-1 rounded-xl border-2 p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg
+                  className={`flex flex-col gap-1 rounded-xl border-1 p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg
                     ${currentStep === index
-                      ? 'border-primary bg-primary/10 dark:bg-primary/20 shadow-md'
+                      ? 'border-primary bg-primary/5 shadow-md'
                       : step.isCompleted
-                        ? 'border-success/50 bg-success/5 dark:bg-success/10'
+                        ? 'border-success/50 bg-success/5'
                         : 'border-default-200 dark:border-default-100'
                     }`}
                   disabled={!step.isCompleted && index > currentStep}
@@ -748,17 +766,17 @@ const KnowledgeBaseWizard: React.FC = () => {
                     <div
                       className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors duration-300
                         ${currentStep === index
-                          ? 'bg-gradient-to-r from-primary to-primary-500 text-white shadow-md'
+                          ? 'bg-primary text-white shadow-md'
                           : step.isCompleted
                             ? 'bg-success text-white'
-                            : 'bg-default-100 dark:bg-default-50'
+                            : 'bg-default-100 text-default-600'
                         }`}
                     >
                       {step.isCompleted ? '✓' : index + 1}
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="font-semibold">{step.title}</span>
-                      <span className="text-xs text-default-500">{step.description}</span>
+                      <span className="font-semibold text-default-900">{step.title}</span>
+                      <span className="text-xs text-default-400">{step.description}</span>
                     </div>
                   </div>
                 </motion.button>
@@ -774,14 +792,12 @@ const KnowledgeBaseWizard: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Card className="bg-background/60 dark:bg-default-100/10 backdrop-blur-lg backdrop-saturate-150 shadow-xl border border-default-200 dark:border-default-100">
+          <Card className="bg-background/60 dark:bg-background/60 backdrop-blur-lg backdrop-saturate-150 shadow-xl border-1 border-default-200">
             <CardBody className="gap-8 p-8">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-500 bg-clip-text text-transparent">
-                    {steps[currentStep].title}
-                  </h2>
-                  <p className="text-default-500 text-sm mt-1">{steps[currentStep].description}</p>
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-xl font-bold text-default-900">{steps[currentStep].title}</h2>
+                  <p className="text-small text-default-400">{steps[currentStep].description}</p>
                 </div>
                 <div className="text-default-400 text-sm font-medium">
                   Step {currentStep + 1} of {steps.length}
