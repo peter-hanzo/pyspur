@@ -173,6 +173,7 @@ const KnowledgeBaseWizard: React.FC = () => {
     keywordWeight: '0.3',
     topK: '2',
     scoreThreshold: '0.7',
+    chunkingMode: 'automatic',
   })
 
   const [steps, setSteps] = useState<Step[]>([
@@ -396,92 +397,124 @@ const KnowledgeBaseWizard: React.FC = () => {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Chunk Size</span>
-                    <Tooltip content="Number of tokens per chunk. Larger chunks provide more context but may be less precise">
-                      <Info className="w-4 h-4 text-default-400" />
-                    </Tooltip>
-                  </div>
-                  <span className="text-sm text-default-500">{formData.chunkSize} tokens</span>
-                </div>
-                <div className="px-3">
-                  <Slider
-                    size="sm"
-                    step={10}
-                    minValue={100}
-                    maxValue={2000}
-                    value={Number(formData.chunkSize)}
-                    onChange={handleChunkSizeChange}
-                    classNames={{
-                      base: "max-w-full",
-                      track: "bg-default-500/30",
-                      filler: "bg-primary",
-                      thumb: "transition-all shadow-lg",
-                    }}
-                    marks={[
-                      {
-                        value: 500,
-                        label: "500",
-                      },
-                      {
-                        value: 1000,
-                        label: "1000",
-                      },
-                      {
-                        value: 1500,
-                        label: "1500",
-                      },
-                    ]}
-                    aria-label="Chunk Size"
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Chunking Mode</span>
+                <Tooltip content="Choose between automatic or manual configuration of chunk size and overlap">
+                  <Info className="w-4 h-4 text-default-400" />
+                </Tooltip>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Chunk Overlap</span>
-                    <Tooltip content="Number of overlapping tokens between chunks to maintain context">
-                      <Info className="w-4 h-4 text-default-400" />
-                    </Tooltip>
-                  </div>
-                  <span className="text-sm text-default-500">{formData.overlap} tokens</span>
-                </div>
-                <div className="px-3">
-                  <Slider
-                    size="sm"
-                    step={10}
-                    minValue={0}
-                    maxValue={500}
-                    value={Number(formData.overlap)}
-                    onChange={handleOverlapChange}
-                    classNames={{
-                      base: "max-w-full",
-                      track: "bg-default-500/30",
-                      filler: "bg-primary",
-                      thumb: "transition-all shadow-lg",
-                    }}
-                    marks={[
-                      {
-                        value: 100,
-                        label: "100",
-                      },
-                      {
-                        value: 200,
-                        label: "200",
-                      },
-                      {
-                        value: 300,
-                        label: "300",
-                      },
-                    ]}
-                    aria-label="Chunk Overlap"
-                  />
-                </div>
-              </div>
+              <RadioGroup
+                value={formData.chunkingMode}
+                onValueChange={(value) => handleInputChange('chunkingMode', value)}
+                orientation="horizontal"
+                classNames={{
+                  wrapper: "gap-4",
+                }}
+              >
+                <Radio
+                  value="automatic"
+                  description="Let the system determine optimal chunk size and overlap"
+                >
+                  Automatic
+                </Radio>
+                <Radio
+                  value="manual"
+                  description="Manually configure chunk size and overlap"
+                >
+                  Manual
+                </Radio>
+              </RadioGroup>
             </div>
+
+            {formData.chunkingMode === 'manual' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Chunk Size</span>
+                      <Tooltip content="Number of tokens per chunk. Larger chunks provide more context but may be less precise">
+                        <Info className="w-4 h-4 text-default-400" />
+                      </Tooltip>
+                    </div>
+                    <span className="text-sm text-default-500">{formData.chunkSize} tokens</span>
+                  </div>
+                  <div className="px-3">
+                    <Slider
+                      size="sm"
+                      step={10}
+                      minValue={100}
+                      maxValue={2000}
+                      value={Number(formData.chunkSize)}
+                      onChange={handleChunkSizeChange}
+                      classNames={{
+                        base: "max-w-full",
+                        track: "bg-default-500/30",
+                        filler: "bg-primary",
+                        thumb: "transition-all shadow-lg",
+                      }}
+                      marks={[
+                        {
+                          value: 500,
+                          label: "500",
+                        },
+                        {
+                          value: 1000,
+                          label: "1000",
+                        },
+                        {
+                          value: 1500,
+                          label: "1500",
+                        },
+                      ]}
+                      aria-label="Chunk Size"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Chunk Overlap</span>
+                      <Tooltip content="Number of overlapping tokens between chunks to maintain context">
+                        <Info className="w-4 h-4 text-default-400" />
+                      </Tooltip>
+                    </div>
+                    <span className="text-sm text-default-500">{formData.overlap} tokens</span>
+                  </div>
+                  <div className="px-3">
+                    <Slider
+                      size="sm"
+                      step={10}
+                      minValue={0}
+                      maxValue={500}
+                      value={Number(formData.overlap)}
+                      onChange={handleOverlapChange}
+                      classNames={{
+                        base: "max-w-full",
+                        track: "bg-default-500/30",
+                        filler: "bg-primary",
+                        thumb: "transition-all shadow-lg",
+                      }}
+                      marks={[
+                        {
+                          value: 100,
+                          label: "100",
+                        },
+                        {
+                          value: 200,
+                          label: "200",
+                        },
+                        {
+                          value: 300,
+                          label: "300",
+                        },
+                      ]}
+                      aria-label="Chunk Overlap"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )
       case 2:
