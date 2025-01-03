@@ -140,13 +140,13 @@ function APIKeys(props: CardProps) {
           const originalKey = originalKeys.find(k => k.name === name);
           const trimmedValue = value.trim();
 
-          // If we have a non-empty value, set it
-          if (trimmedValue !== '') {
-            await setApiKey(name, trimmedValue);
-          }
-          // Only delete if the key previously existed and now we're clearing it
-          else if (originalKey && originalKey.value !== '') {
-            await handleDeleteKey(name);
+          // Only save if the value has changed from its original masked value
+          if (originalKey && trimmedValue !== originalKey.value) {
+            if (trimmedValue !== '') {
+              await setApiKey(name, trimmedValue);
+            } else {
+              await handleDeleteKey(name);
+            }
           }
         })
       );
@@ -157,7 +157,10 @@ function APIKeys(props: CardProps) {
   };
 
   const hasChanges = () => {
-    return keys.some((key, index) => key.value !== originalKeys[index].value);
+    return keys.some((key) => {
+      const originalKey = originalKeys.find(k => k.name === key.name);
+      return originalKey && key.value.trim() !== originalKey.value;
+    });
   };
 
   return (
