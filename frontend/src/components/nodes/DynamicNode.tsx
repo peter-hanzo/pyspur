@@ -20,6 +20,7 @@ interface SchemaMetadata {
 interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
     readOnly?: boolean
+    outputsDisabled?: boolean
 }
 
 const DynamicNode: React.FC<DynamicNodeProps> = ({
@@ -33,6 +34,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     positionAbsoluteX,
     positionAbsoluteY,
     displayOutput,
+    outputsDisabled,
     ...props
 }) => {
     const nodeRef = useRef<HTMLDivElement | null>(null)
@@ -166,6 +168,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     }
 
     const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
+        if (outputsDisabled) return null;
         return (
             <div
                 className={`${styles.handleRow} w-full justify-end`}
