@@ -1,6 +1,12 @@
 # Base stage
 FROM python:3.12 as base
 WORKDIR /pyspur
+
+# Install bash completion
+RUN apt-get update && apt-get install -y \
+    bash-completion \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY backend/requirements.txt ./backend/
 RUN pip install -r backend/requirements.txt
 
@@ -16,5 +22,3 @@ COPY frontend/package*.json ./
 RUN npm install
 
 WORKDIR /pyspur
-# Development-specific instructions here
-

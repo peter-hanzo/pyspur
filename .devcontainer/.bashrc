@@ -1,3 +1,8 @@
+# Enable bash completion
+if [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+
 # Docker compose aliases
 alias dcup='docker compose up --build -d'
 alias dlogb='docker logs -f pyspur-backend-1 --since 5m'
