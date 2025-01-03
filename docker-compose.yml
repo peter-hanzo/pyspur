@@ -5,7 +5,6 @@ services:
       - "${NGINX_PORT:-6080}:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd
     depends_on:
       - backend
       - frontend
