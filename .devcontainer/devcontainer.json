@@ -87,7 +87,7 @@
     },
     "remoteUser": "root",
     "shutdownAction": "none",
-	"forwardPorts": ["nginx:80", "backend:8000", "frontend:3000"],
+	"forwardPorts": [6080, "backend:8000", "frontend:3000"],
     "portsAttributes": {
         "frontend:3000" :{
             "label": "frontend",
@@ -97,9 +97,9 @@
             "label": "backend",
             "onAutoForward": "silent"
         },
-        "nginx:80" :{
+        "6080" :{
             "label": "app",
-            "onAutoForward": "notify"
+            "onAutoForward": "silent"
         }
     },
     "postCreateCommand": "chmod +x .devcontainer/post-create.sh && .devcontainer/post-create.sh"
