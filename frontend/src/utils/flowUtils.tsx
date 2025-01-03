@@ -58,6 +58,7 @@ export const useNodeTypes = ({
                 } else if (includeCoalesceNode && node.name === 'CoalesceNode') {
                     types[node.name] = CoalesceNode
                 } else {
+                    const outputsDisabled = node.name === 'SlackNode';
                     types[node.name] = (props: any) => (
                         <DynamicNode
                             key={props.id}
@@ -65,6 +66,7 @@ export const useNodeTypes = ({
                             type={node.name}
                             displayOutput={true}
                             readOnly={readOnly}
+                            outputsDisabled={outputsDisabled}
                         />
                     )
                 }
