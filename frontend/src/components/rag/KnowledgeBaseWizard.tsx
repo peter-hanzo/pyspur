@@ -155,7 +155,9 @@ const KnowledgeBaseWizard: React.FC = () => {
     const nouns = ['Atlas', 'Nexus', 'Matrix', 'Archive', 'Library', 'Vault', 'Repository', 'Database', 'Collection', 'Hub'];
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    return `${randomAdjective} ${randomNoun}`;
+    const now = new Date();
+    const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+    return `${randomAdjective} ${randomNoun} - ${timestamp}`;
   };
 
   const [formData, setFormData] = useState({
@@ -536,19 +538,19 @@ const KnowledgeBaseWizard: React.FC = () => {
                   trigger: "h-12",
                 }}
               >
-                <SelectItem key="openai" value="openai">
+                <SelectItem key="openai" textValue="OpenAI Ada">
                   <div className="flex flex-col">
                     <span>OpenAI Ada</span>
                     <span className="text-tiny text-default-400">Best overall performance, hosted solution</span>
                   </div>
                 </SelectItem>
-                <SelectItem key="cohere" value="cohere">
+                <SelectItem key="cohere" textValue="Cohere">
                   <div className="flex flex-col">
                     <span>Cohere</span>
                     <span className="text-tiny text-default-400">Good multilingual support</span>
                   </div>
                 </SelectItem>
-                <SelectItem key="local" value="local">
+                <SelectItem key="local" textValue="Local Model">
                   <div className="flex flex-col">
                     <span>Local Model</span>
                     <span className="text-tiny text-default-400">Run entirely on your infrastructure</span>
@@ -565,19 +567,19 @@ const KnowledgeBaseWizard: React.FC = () => {
                   trigger: "h-12",
                 }}
               >
-                <SelectItem key="pinecone" value="pinecone">
+                <SelectItem key="pinecone" textValue="Pinecone">
                   <div className="flex flex-col">
                     <span>Pinecone</span>
                     <span className="text-tiny text-default-400">Production-ready, scalable vector database</span>
                   </div>
                 </SelectItem>
-                <SelectItem key="qdrant" value="qdrant">
+                <SelectItem key="qdrant" textValue="Qdrant">
                   <div className="flex flex-col">
                     <span>Qdrant</span>
                     <span className="text-tiny text-default-400">Open-source, high-performance</span>
                   </div>
                 </SelectItem>
-                <SelectItem key="weaviate" value="weaviate">
+                <SelectItem key="weaviate" textValue="Weaviate">
                   <div className="flex flex-col">
                     <span>Weaviate</span>
                     <span className="text-tiny text-default-400">Multi-modal vector search</span>
