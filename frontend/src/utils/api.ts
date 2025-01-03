@@ -575,5 +575,3 @@ export const syncKnowledgeBase = async (id: string): Promise<void> => {
     throw error;
   }
 };
-
-// Continue adding types for other functions similarly...

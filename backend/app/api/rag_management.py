@@ -82,7 +82,7 @@ def update_kb_status(kb_id: str, status: str, error_message: Optional[str] = Non
 
 # Endpoints
 @router.post("/", response_model=KnowledgeBaseResponse)
-async def create_knowledge_base(
+async def create_kb(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(None),
     metadata: str = Form(...),
@@ -118,7 +118,7 @@ async def create_knowledge_base(
 
 
 @router.get("/", response_model=List[KnowledgeBaseResponse])
-async def list_knowledge_bases():
+async def list_kbs():
     """List all knowledge bases"""
     try:
         # TODO: Implement listing from database
@@ -128,7 +128,7 @@ async def list_knowledge_bases():
 
 
 @router.get("/{kb_id}", response_model=KnowledgeBaseResponse)
-async def get_knowledge_base(kb_id: str):
+async def get_kb(kb_id: str):
     """Get knowledge base details"""
     try:
         # TODO: Implement retrieval from database
@@ -138,7 +138,7 @@ async def get_knowledge_base(kb_id: str):
 
 
 @router.delete("/{kb_id}")
-async def delete_knowledge_base(kb_id: str):
+async def delete_kb(kb_id: str):
     """Delete a knowledge base"""
     try:
         # TODO: Implement deletion logic
@@ -151,7 +151,7 @@ async def delete_knowledge_base(kb_id: str):
 
 
 @router.put("/{kb_id}", response_model=KnowledgeBaseResponse)
-async def update_knowledge_base(kb_id: str, update_data: KnowledgeBaseCreate):
+async def update_kb(kb_id: str, update_data: KnowledgeBaseCreate):
     """Update knowledge base configuration"""
     try:
         # TODO: Implement update logic
@@ -161,7 +161,7 @@ async def update_knowledge_base(kb_id: str, update_data: KnowledgeBaseCreate):
 
 
 @router.post("/{kb_id}/sync")
-async def sync_knowledge_base(kb_id: str, background_tasks: BackgroundTasks):
+async def sync_kb(kb_id: str, background_tasks: BackgroundTasks):
     """Sync knowledge base with external tool"""
     try:
         # TODO: Implement sync logic

@@ -19,6 +19,7 @@ import { useRouter } from 'next/router'
 import { Info, CheckCircle, ArrowLeft, ArrowRight, Upload, File } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
+import { createKnowledgeBase, KnowledgeBaseCreateRequest } from '@/utils/api'
 
 interface Step {
   title: string
@@ -26,12 +27,14 @@ interface Step {
   isCompleted: boolean
 }
 
-const FileUploadBox = () => {
+const FileUploadBox = ({ onFilesChange }: { onFilesChange: (files: File[]) => void }) => {
   const [files, setFiles] = useState<File[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles(prev => [...prev, ...acceptedFiles]);
-  }, []);
+    const newFiles = [...files, ...acceptedFiles];
+    setFiles(newFiles);
+    onFilesChange(newFiles);
+  }, [files, onFilesChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -51,7 +54,9 @@ const FileUploadBox = () => {
   });
 
   const removeFile = (name: string) => {
-    setFiles(files => files.filter(file => file.name !== name));
+    const updatedFiles = files.filter(file => file.name !== name);
+    setFiles(updatedFiles);
+    onFilesChange(updatedFiles);
   };
 
   return (
@@ -142,7 +147,20 @@ const FileUploadBox = () => {
 const KnowledgeBaseWizard: React.FC = () => {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+
+  // Add random name generator function
+  const generateRandomName = () => {
+    const adjectives = ['Smart', 'Brilliant', 'Dynamic', 'Quantum', 'Neural', 'Cosmic', 'Intelligent', 'Advanced', 'Strategic', 'Innovative'];
+    const nouns = ['Atlas', 'Nexus', 'Matrix', 'Archive', 'Library', 'Vault', 'Repository', 'Database', 'Collection', 'Hub'];
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${randomAdjective} ${randomNoun}`;
+  };
+
   const [formData, setFormData] = useState({
+    name: '',
+    description: '',
     dataSource: 'upload',
     syncTool: '',
     chunkSize: '1000',
@@ -157,11 +175,11 @@ const KnowledgeBaseWizard: React.FC = () => {
     scoreThreshold: '0.7',
   })
 
-  const steps: Step[] = [
+  const [steps, setSteps] = useState<Step[]>([
     {
       title: 'Data Source',
       description: 'Choose how to input your data',
-      isCompleted: Boolean(formData.dataSource),
+      isCompleted: Boolean(formData.name) && (formData.dataSource === 'sync' ? Boolean(formData.syncTool) : uploadedFiles.length > 0),
     },
     {
       title: 'Text Processing',
@@ -178,7 +196,7 @@ const KnowledgeBaseWizard: React.FC = () => {
       description: 'Review and create your knowledge base',
       isCompleted: false,
     },
-  ]
+  ]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -234,75 +252,117 @@ const KnowledgeBaseWizard: React.FC = () => {
     }
   ];
 
+  const handleFilesChange = (newFiles: File[]) => {
+    setUploadedFiles(newFiles);
+    // Update step completion status based on files
+    setSteps(prevSteps => prevSteps.map((step, idx) =>
+      idx === 0 ? { ...step, isCompleted: newFiles.length > 0 } : step
+    ));
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
         return (
           <div className="flex flex-col gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Select Data Source</span>
-                <Tooltip content="Choose how you want to input your documents into the knowledge base">
-                  <Info className="w-4 h-4 text-default-400" />
-                </Tooltip>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      label="Knowledge Base Name"
+                      placeholder="Enter a name for your knowledge base"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className="w-full"
+                      isRequired
+                    />
+                    <Button
+                      isIconOnly
+                      variant="flat"
+                      className="self-end h-14"
+                      onPress={() => handleInputChange('name', generateRandomName())}
+                    >
+                      🎲
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Textarea
+                    label="Description"
+                    placeholder="Enter a description for your knowledge base"
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
               </div>
-              <RadioGroup
-                value={formData.dataSource}
-                onValueChange={(value) => handleInputChange('dataSource', value)}
-                classNames={{
-                  wrapper: "gap-4",
-                }}
-              >
-                <Radio
-                  value="upload"
-                  description="Upload files directly from your computer"
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Select Data Source</span>
+                  <Tooltip content="Choose how you want to input your documents into the knowledge base">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
+                </div>
+                <RadioGroup
+                  value={formData.dataSource}
+                  onValueChange={(value) => handleInputChange('dataSource', value)}
                   classNames={{
-                    base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
+                    wrapper: "gap-4",
                   }}
                 >
-                  File Upload
-                </Radio>
-                <Radio
-                  value="sync"
-                  description="Sync content from your existing tools"
-                  classNames={{
-                    base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
-                  }}
-                >
-                  Sync with Existing Tools
-                </Radio>
-              </RadioGroup>
+                  <Radio
+                    value="upload"
+                    description="Upload files directly from your computer"
+                    classNames={{
+                      base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
+                    }}
+                  >
+                    File Upload
+                  </Radio>
+                  <Radio
+                    value="sync"
+                    description="Sync content from your existing tools"
+                    classNames={{
+                      base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
+                    }}
+                  >
+                    Sync with Existing Tools
+                  </Radio>
+                </RadioGroup>
+              </div>
+
+              {formData.dataSource === 'upload' && (
+                <div className="pl-4 border-l-2 border-primary/20">
+                  <FileUploadBox onFilesChange={handleFilesChange} />
+                </div>
+              )}
+
+              {formData.dataSource === 'sync' && (
+                <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                  <Select
+                    label="Select Tool"
+                    placeholder="Choose a tool to sync with"
+                    value={formData.syncTool}
+                    onChange={(e) => handleInputChange('syncTool', e.target.value)}
+                    classNames={{
+                      trigger: "h-12",
+                    }}
+                  >
+                    <SelectItem key="notion" value="notion" startContent={<img src="/icons/notion.svg" className="w-4 h-4" />}>
+                      Notion
+                    </SelectItem>
+                    <SelectItem key="confluence" value="confluence" startContent={<img src="/icons/confluence.svg" className="w-4 h-4" />}>
+                      Confluence
+                    </SelectItem>
+                    <SelectItem key="github" value="github" startContent={<img src="/icons/github.svg" className="w-4 h-4" />}>
+                      GitHub
+                    </SelectItem>
+                  </Select>
+                </div>
+              )}
             </div>
-
-            {formData.dataSource === 'upload' && (
-              <div className="pl-4 border-l-2 border-primary/20">
-                <FileUploadBox />
-              </div>
-            )}
-
-            {formData.dataSource === 'sync' && (
-              <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-                <Select
-                  label="Select Tool"
-                  placeholder="Choose a tool to sync with"
-                  value={formData.syncTool}
-                  onChange={(e) => handleInputChange('syncTool', e.target.value)}
-                  classNames={{
-                    trigger: "h-12",
-                  }}
-                >
-                  <SelectItem key="notion" value="notion" startContent={<img src="/icons/notion.svg" className="w-4 h-4" />}>
-                    Notion
-                  </SelectItem>
-                  <SelectItem key="confluence" value="confluence" startContent={<img src="/icons/confluence.svg" className="w-4 h-4" />}>
-                    Confluence
-                  </SelectItem>
-                  <SelectItem key="github" value="github" startContent={<img src="/icons/github.svg" className="w-4 h-4" />}>
-                    GitHub
-                  </SelectItem>
-                </Select>
-              </div>
-            )}
           </div>
         )
       case 1:
@@ -695,13 +755,45 @@ const KnowledgeBaseWizard: React.FC = () => {
     }
   }
 
-  const handleNext = () => {
-    if (currentStep < steps.length) {
+  const handleNext = async () => {
+    if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
-      // Handle form submission
-      console.log('Form submitted:', formData)
-      router.push('/rag')
+      try {
+        // Prepare the request data
+        const requestData: KnowledgeBaseCreateRequest = {
+          name: formData.name || 'New Knowledge Base',
+          description: formData.description,
+          data_source: {
+            type: formData.dataSource as 'upload' | 'sync',
+            tool: formData.dataSource === 'sync' ? formData.syncTool : undefined,
+            files: formData.dataSource === 'upload' ? uploadedFiles : undefined,
+          },
+          text_processing: {
+            parsing_strategy: formData.parsingStrategy,
+            chunk_size: Number(formData.chunkSize),
+            overlap: Number(formData.overlap),
+          },
+          embedding: {
+            model: formData.embeddingModel,
+            vector_db: formData.vectorDb,
+            search_strategy: formData.searchStrategy,
+            semantic_weight: formData.searchStrategy === 'hybrid' ? Number(formData.semanticWeight) : undefined,
+            keyword_weight: formData.searchStrategy === 'hybrid' ? Number(formData.keywordWeight) : undefined,
+            top_k: formData.searchStrategy === 'hybrid' ? Number(formData.topK) : undefined,
+            score_threshold: formData.searchStrategy === 'hybrid' ? Number(formData.scoreThreshold) : undefined,
+          },
+        }
+
+        // Make the API call
+        await createKnowledgeBase(requestData)
+
+        // Redirect to the RAG page after successful creation
+        router.push('/rag')
+      } catch (error) {
+        console.error('Error creating knowledge base:', error)
+        // You might want to show an error message to the user here
+      }
     }
   }
 
