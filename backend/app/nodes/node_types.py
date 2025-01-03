@@ -55,6 +55,13 @@ SUPPORTED_NODE_TYPES = {
         },
     ],
     "Logic": LOGIC,
+    "Integrations": [
+        {
+            "node_type_name": "SlackNode",
+            "module": ".nodes.integrations.slack",
+            "class_name": "SlackNode",
+        },
+    ],
 }
 
 DEPRECATED_NODE_TYPES = [
