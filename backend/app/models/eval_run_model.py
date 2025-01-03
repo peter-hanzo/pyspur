@@ -12,11 +12,13 @@ from datetime import datetime, timezone
 from typing import Optional, Any
 from .base_model import BaseModel
 
+
 class EvalRunStatus(PyEnum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
 
 class EvalRunModel(BaseModel):
     __tablename__ = "eval_runs"

@@ -2,37 +2,37 @@
     position: relative;
     width: 100%;
     min-height: 20px;
-  }
-  
-  .handlesWrapper {
+}
+
+.handlesWrapper {
     display: flex;
     width: 100%;
-  }
-  
-  .handlesColumn {
+}
+
+.handlesColumn {
     width: 100%;
     position: relative;
-  }
-  
-  .handleLabelCell {
+}
+
+.handleLabelCell {
     width: calc(100% - 40px);
     padding-left: 0.75rem; /* Equivalent to 'pl-3' in Tailwind */
-  }
-  
-  .handleCell {
+}
+
+.handleCell {
     width: 20px;
     vertical-align: middle;
     text-align: center;
-  }
-  
-  .handleWrapper {
+}
+
+.handleWrapper {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100%;
-  }
-  
-  .handleLabel {
+}
+
+.handleLabel {
     font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
@@ -41,9 +41,9 @@
     display: inline-block;
     position: relative;
     z-index: 1000;
-  }
-  
-  .handle {
+}
+
+.handle {
     width: 0.8rem !important;
     height: 0.8rem !important;
     background: #555 !important;
@@ -52,20 +52,19 @@
     top: auto;
     right: auto;
     transform: none;
-  }
-  
-  .handle:hover {
+}
+
+.handle:hover {
     background-color: #777;
-  }
-  
-  .collapsedHandleOutput {
+}
+
+.collapsedHandleOutput {
     position: absolute !important;
     top: 50% !important;
     right: 4px !important;
     transform: translateY(-50%) !important;
-  }
-  
-  .inputNodeWrapper {
+}
+
+.inputNodeWrapper {
     position: relative;
-  }
-  
+}

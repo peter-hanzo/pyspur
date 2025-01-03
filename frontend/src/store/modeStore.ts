@@ -1,13 +1,13 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
 
-export type Mode = 'pointer' | 'hand' | 'select' | 'connect'; // Add other valid modes as needed
+export type Mode = 'pointer' | 'hand' | 'select' | 'connect' // Add other valid modes as needed
 
 interface ModeState {
-  mode: Mode;
-  setMode: (mode: Mode) => void;
+    mode: Mode
+    setMode: (mode: Mode) => void
 }
 
 export const useModeStore = create<ModeState>((set) => ({
-  mode: 'hand',
-  setMode: (mode) => set({ mode }),
-}));
+    mode: 'hand',
+    setMode: (mode) => set({ mode }),
+}))
