@@ -45,9 +45,8 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 * **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
 
 # ⚡ Quick start 
-#### [ Instructions for Unix-like systems. Support for Windows PC coming soon ]
 
-You can get PySpur up and running in three quick steps.
+You can launch PySpur using pre-built docker images in the following steps:
 
 1. **Clone the repository:**
     ```sh
@@ -57,17 +56,20 @@ You can get PySpur up and running in three quick steps.
 
 2. **Create a .env file:**
 
-   Create a `.env` file at the root of the project. You may use `.env.example` as a starting point.
-   
-   **If you plan to use third party model providers, please add their API keys in the .env file in this step**.
-  
+    Create a `.env` file at the root of the project. You may use `.env.example` as a starting point.
+    ```sh
+    cp .env.example .env
+    ```
+    **Please go through the .env file and change configs wherver necessary**
+    **If you plan to use third party model providers, please add their API keys in the .env file in this step**.
 
 3. **Start the docker services:**
 
-    ```docker compose up --build -d```
+    ```sh
+    docker compose -f ./docker-compose.prod.yml up --build -d
+    ```
 
-    This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
-   Note: For some environments you may want to try: ```sudo docker compose up --build -d```.
+    This will start a local instance of PySpur that will store spurs in a local sqlite database (or your database if you provided it in .env file in step 2)
 
 4. **Access the portal:**
 
@@ -75,7 +77,6 @@ You can get PySpur up and running in three quick steps.
 
 
 Set up is completed. Click on "New Spur" to create a workflow, or start with one of the stock templates.
-
 
 
 5. **[Optional] Manage your LLM provider keys from the app:**
@@ -93,8 +94,22 @@ Set up is completed. Click on "New Spur" to create a workflow, or start with one
    <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
 
 
+# 🛠️ PySpur Development Setup
+#### [ Instructions for development on Unix-like systems. Development on Windows/PC not tested ]
 
-# Using PySpur with Ollama (Local Models)
+The steps for dev setup are same as above, except for step 3: we launch the app in the dev mode instead
+
+3. **Start the docker services:**
+
+    ```sh
+    docker compose up --build -d
+    ```
+
+    This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
+    Note: For some environments you may want to try: ```sudo docker compose up --build -d```.
+
+
+# 🦙 Using PySpur with Ollama (Local Models)
 
 PySpur can work with local models served using Ollama.
 
@@ -103,14 +118,14 @@ Steps to configure PySpur to work with Ollama running on the same host.
 ### 1. Configure Ollama
 To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama. 
 An easy way to do this is to launch the ollama service with the following command:
-```
+```sh
 OLLAMA_HOST="0.0.0.0" ollama serve
 ```
 
 ### 2. Update the PySpur .env file
 Next up we need to update the `OLLAMA_BASE_URL` environment value in the `.env` file.
 If your Ollama port is 11434 (the default port), then the entry in `.env` file should look like this:
-```
+```sh
 OLLAMA_BASE_URL=http://host.docker.internal:11434 
 ```
 (Please make sure that there is no trailing slash in the end!)
@@ -119,9 +134,15 @@ In PySpur's set up, `host.docker.internal` refers to the host machine where both
 
 ### 3. Launch the PySpur app
 Follow the usual steps to launch the PySpur app, starting with the command:
+```sh
+docker compose -f docker-compose.prod.yml up --build -d
 ```
-docker compose up --build -d
+
+If you wish to do PySpur development with ollama please run the following command instead of above:
+```sh
+docker compose -f docker-compose.yml up --build -d
 ```
+
 
 ### 4. Using Ollama models in the app
 You will be able to select Ollama models [`ollama/llama3.2`, `ollama/llama3`, ...] from the sidebar for LLM nodes.
@@ -144,6 +165,7 @@ PySpur only works with models that support structured-output and json mode. Most
     - [X] Merge Branches
     - [ ] Tools
     - [ ] Loops
+- [ ] RAG
 - [ ] Pipeline optimization via DSPy and related methods
 - [ ] Templates
 - [ ] Compile Spurs to Code
