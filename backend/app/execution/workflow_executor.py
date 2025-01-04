@@ -99,7 +99,9 @@ class WorkflowExecutor:
                 )
             )
 
-        if node.node_type != "CoalesceNode" and any([output is None for output in predecessor_outputs]):
+        if node.node_type != "CoalesceNode" and any(
+            [output is None for output in predecessor_outputs]
+        ):
             self._outputs[node_id] = None
             return None
 
@@ -132,16 +134,18 @@ class WorkflowExecutor:
                     return None
             else:
                 node_input[dep_id] = output
-        
+
         # Special handling for InputNode - use initial inputs
         if node.node_type == "InputNode":
             node_input = self._initial_inputs.get(node_id, {})
 
         # Only fail early for None inputs if it is NOT a CoalesceNode
-        if node.node_type != "CoalesceNode" and any([v is None for v in node_input.values()]):
+        if node.node_type != "CoalesceNode" and any(
+            [v is None for v in node_input.values()]
+        ):
             self._outputs[node_id] = None
             return None
-        
+
         # Remove None values from input
         node_input = {k: v for k, v in node_input.items() if v is not None}
 
