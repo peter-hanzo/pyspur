@@ -1,11 +1,11 @@
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional
 
+from litellm import arerank
 from pydantic import BaseModel, Field
 from tenacity import stop_after_attempt, wait_random_exponential
 
-from litellm import arerank
 from ..nodes.llm._utils import async_retry
 
 
