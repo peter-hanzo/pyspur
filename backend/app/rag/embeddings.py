@@ -224,7 +224,7 @@ class EmbeddingModels(str, Enum):
     wait=wait_random_exponential(min=30, max=120),
     stop=stop_after_attempt(3),
 )
-async def get_embedding(
+async def get_single_text_embedding(
     text: str,
     model: str,
     dimensions: Optional[int] = None,
@@ -274,7 +274,7 @@ async def get_embedding(
     wait=wait_random_exponential(min=30, max=120),
     stop=stop_after_attempt(3),
 )
-async def compute_embeddings(
+async def get_multiple_text_embeddings(
     docs: List[Any],
     model: str,
     dimensions: Optional[int] = None,
@@ -341,7 +341,7 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.dot(a, b.T) / np.outer(norm_a, norm_b)
 
 
-async def find_top_k_similar(
+async def find_top_k_similar_documents(
     query_docs: List[Any],
     candidate_docs: List[Any],
     model: str,
@@ -353,7 +353,7 @@ async def find_top_k_similar(
     encoding_format: Optional[CohereEncodingFormat] = None,
 ) -> Dict[Any, List[Dict[str, Any]]]:
     """Find top k similar documents from candidate_docs for each query doc."""
-    query_embeddings = await compute_embeddings(
+    query_embeddings = await get_multiple_text_embeddings(
         query_docs,
         model=model,
         dimensions=dimensions,
@@ -361,7 +361,7 @@ async def find_top_k_similar(
         api_key=api_key,
         encoding_format=encoding_format,
     )
-    candidate_embeddings = await compute_embeddings(
+    candidate_embeddings = await get_multiple_text_embeddings(
         candidate_docs,
         model=model,
         dimensions=dimensions,
