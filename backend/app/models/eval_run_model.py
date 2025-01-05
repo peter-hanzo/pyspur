@@ -25,7 +25,7 @@ class EvalRunModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'ER' || _intid"), nullable=False, index=True
+        String, Computed("'ER' || _intid"), nullable=False, index=True, unique=True
     )
     eval_name: Mapped[str] = mapped_column(String, nullable=False)
     workflow_id: Mapped[str] = mapped_column(String, nullable=False)

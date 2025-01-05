@@ -9,8 +9,10 @@ from .run_model import RunModel
 class WorkflowVersionModel(BaseModel):
     __tablename__ = "workflow_versions"
 
-    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
-    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
+    version: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True, unique=True
+    )
     workflow_id: Mapped[int] = mapped_column(
         ForeignKey("workflows.id"), nullable=False, index=True
     )

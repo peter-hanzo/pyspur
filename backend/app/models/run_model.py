@@ -28,7 +28,7 @@ class RunModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'R' || _intid"), nullable=False, index=True
+        String, Computed("'R' || _intid"), nullable=False, index=True, unique=True
     )
     workflow_id: Mapped[str] = mapped_column(
         String, ForeignKey("workflows.id"), nullable=False, index=True

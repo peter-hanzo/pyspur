@@ -8,9 +8,9 @@ from .base_model import BaseModel
 class DatasetModel(BaseModel):
     __tablename__ = "datasets"
 
-    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True, unique=True)
     id: Mapped[str] = mapped_column(
-        String, Computed("'DS' || _intid"), nullable=False, index=True
+        String, Computed("'DS' || _intid"), nullable=False, index=True, unique=True
     )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
