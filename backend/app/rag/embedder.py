@@ -2,13 +2,13 @@ import base64
 import json
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
+from litellm import aembedding
 from pydantic import BaseModel, Field
 from tenacity import stop_after_attempt, wait_random_exponential
 
-from litellm import aembedding
 from ..nodes.llm._utils import async_retry
 
 
