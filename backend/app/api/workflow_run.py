@@ -34,7 +34,7 @@ EVALS_DIR = Path(__file__).parent.parent / "evals" / "tasks"
 
 async def create_run_model(
     workflow_id: str,
-    workflow_version_id: int,
+    workflow_version_id: str,
     initial_inputs: Dict[str, Dict[str, Any]],
     parent_run_id: Optional[str],
     run_type: str,
@@ -75,7 +75,7 @@ async def run_workflow_blocking(
     initial_inputs = request.initial_inputs or {}
     new_run = await create_run_model(
         workflow_id,
-        workflow_version._intid,  # type: ignore
+        workflow_version.id,
         initial_inputs,
         request.parent_run_id,
         run_type,
@@ -132,7 +132,7 @@ async def run_workflow_non_blocking(
     initial_inputs = start_run_request.initial_inputs or {}
     new_run = await create_run_model(
         workflow_id,
-        workflow_version._intid,  # type: ignore
+        workflow_version.id,
         initial_inputs,
         start_run_request.parent_run_id,
         run_type,
@@ -231,7 +231,7 @@ async def batch_run_workflow_non_blocking(
 
     dataset_id = request.dataset_id
     new_run = await create_run_model(
-        workflow_id, workflow_version._intid, {}, None, "batch", db  # type: ignore
+        workflow_id, workflow_version.id, {}, None, "batch", db
     )
 
     # parse the dataset
