@@ -40,6 +40,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     const [editingField, setEditingField] = useState<string | null>(null)
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+    const [isHoveringOutput, setIsHoveringOutput] = useState(false)
 
     const nodes = useSelector(
         (state: RootState) =>
@@ -319,9 +320,11 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
 
     const baseNodeStyle = useMemo(
         () => ({
-            width: nodeWidth,
+            width: isHoveringOutput ? '600px' : nodeWidth,
+            height: isHoveringOutput ? '500px' : 'auto',
+            transition: 'width 0.3s ease, height 0.3s ease',
         }),
-        [nodeWidth]
+        [nodeWidth, isHoveringOutput]
     )
 
     return (
@@ -347,7 +350,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         )}
                         {renderHandles()}
                     </div>
-                    {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
+                    {displayOutput && (
+                        <div
+                            onMouseEnter={() => setIsHoveringOutput(true)}
+                            onMouseLeave={() => setIsHoveringOutput(false)}
+                        >
+                            <NodeOutputDisplay key="output-display" output={nodeData.run} />
+                        </div>
+                    )}
                 </BaseNode>
             </div>
             <NodeOutputModal
