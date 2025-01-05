@@ -73,20 +73,15 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                 <div
                     className="p-5"
                     style={{
-                        maxHeight: '400px',
+                        maxHeight: 'calc(100% - 40px)',
+                        height: '100%',
                         overflowY: 'auto',
                         touchAction: 'none',
-                        transition: 'max-height 0.3s ease',
                     }}
                     onWheelCapture={(e) => {
                         e.stopPropagation()
                     }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.maxHeight = '700px'
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.maxHeight = '400px'
-                    }}
+
                 >
                     <div>
                         {Object.entries(output).map(([key, value]) => (
