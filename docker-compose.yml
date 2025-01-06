@@ -9,6 +9,7 @@ services:
       - backend
       - frontend
     restart: always
+
   backend:
     build: 
       context: ./backend
@@ -26,6 +27,7 @@ services:
       db:
         condition: service_healthy
     restart: always
+
   frontend:
     build: 
       context: ./frontend
@@ -37,19 +39,16 @@ services:
     volumes:
       - .:/pyspur
       - /pyspur/frontend/node_modules
-    environment:
-      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
-      - FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
     depends_on:
       - backend
     restart: always
+
   db:
     image: postgres:17-alpine
     restart: on-failure
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-pyspur}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pyspur}
-      - POSTGRES_DB=${POSTGRES_DB:-pyspur}
+    env_file:
+      - ./.env.example
+      - ./.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
