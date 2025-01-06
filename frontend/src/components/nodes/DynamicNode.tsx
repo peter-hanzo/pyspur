@@ -38,10 +38,10 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     const nodeRef = useRef<HTMLDivElement | null>(null)
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
     const [nodeHeight, setNodeHeight] = useState<string>('auto')
+    const [isHoveringOutput, setIsHoveringOutput] = useState(false)
     const [editingField, setEditingField] = useState<string | null>(null)
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
-    const [isHoveringOutput, setIsHoveringOutput] = useState(false)
 
     const nodes = useSelector(
         (state: RootState) =>
@@ -114,14 +114,16 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
             setNodeWidth(`${finalWidth}px`)
         }
 
-        // Calculate height based on number of handles
-        const totalHandles = Math.max(inputLabels.length, outputLabels.length)
-        const handleHeight = 30 // height per handle in pixels
-        const padding = 40 // padding for top and bottom
-        const minNodeHeight = 150 // minimum height
-        const finalHeight = Math.max(minNodeHeight, totalHandles * handleHeight + padding)
-        setNodeHeight(`${finalHeight}px`)
-    }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth])
+        // Calculate height based on number of handles only when there's no run data
+        if (!nodeData.run) {
+            const totalHandles = Math.max(inputLabels.length, outputLabels.length)
+            const handleHeight = 30 // height per handle in pixels
+            const padding = 40 // padding for top and bottom
+            const minNodeHeight = 150 // minimum height
+            const finalHeight = Math.max(minNodeHeight, totalHandles * handleHeight + padding)
+            setNodeHeight(`${finalHeight}px`)
+        }
+    }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth, id])
 
     interface HandleRowProps {
         id: string
