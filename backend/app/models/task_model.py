@@ -24,9 +24,9 @@ class TaskStatus(PyEnum):
 class TaskModel(BaseModel):
     __tablename__ = "tasks"
 
-    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'T' || _intid"), nullable=False, index=True
+        String, Computed("'T' || _intid"), nullable=False, unique=True
     )
     run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     node_id: Mapped[str] = mapped_column(String, nullable=False)

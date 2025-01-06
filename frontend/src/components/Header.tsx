@@ -33,12 +33,6 @@ interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace'
 }
 
-interface Node {
-    id: string
-    data: {
-        run?: Record<string, any>
-    }
-}
 
 import { RootState } from '../store/store'
 interface AlertState {
@@ -253,7 +247,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`
     }
 
-    const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables)
 
     useHotkeys(
         ['mod+enter'],
@@ -350,10 +343,10 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             >
                 <NavbarBrand className="h-12 max-w-fit">
                     {activePage === 'dashboard' ? (
-                        <p className="font-bold text-inherit cursor-pointer">PySpur</p>
+                        <p className="font-bold text-default-900 cursor-pointer">PySpur</p>
                     ) : (
                         <Link href="/" className="cursor-pointer">
-                            <p className="font-bold text-inherit">PySpur</p>
+                            <p className="font-bold text-default-900">PySpur</p>
                         </Link>
                     )}
                 </NavbarBrand>
@@ -457,17 +450,16 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                                                 onPress={() => window.open(`/trace/${run.id}`, '_blank')}
                                                 textValue={`Version ${index + 1}`}
                                             >
-                                                {`${run.id} | ${run.status.toLowerCase()} ${
-                                                    (run.status.toLowerCase() === 'running' ||
-                                                        run.status.toLowerCase() === 'pending') &&
+                                                {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' ||
+                                                    run.status.toLowerCase() === 'pending') &&
                                                     run.start_time
-                                                        ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                                                        : (run.status.toLowerCase() === 'failed' ||
-                                                                run.status.toLowerCase() === 'completed') &&
-                                                            run.end_time
-                                                          ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                                                          : ''
-                                                }`}
+                                                    ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                                                    : (run.status.toLowerCase() === 'failed' ||
+                                                        run.status.toLowerCase() === 'completed') &&
+                                                        run.end_time
+                                                        ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                                                        : ''
+                                                    }`}
                                             </DropdownItem>
                                         ))
                                     )}

@@ -29,6 +29,11 @@ if azure_api_base.endswith("/openai"):
     azure_api_base = azure_api_base.rstrip("/openai")
 os.environ["AZURE_OPENAI_API_BASE"] = azure_api_base
 
+# Set OpenAI base URL if provided
+openai_base_url = os.getenv("OPENAI_API_BASE")
+if openai_base_url:
+    litellm.api_base = openai_base_url
+
 # If Azure OpenAi is configured, set it as the default provider
 if os.getenv("AZURE_OPENAI_API_KEY"):
     litellm.api_key = os.getenv("AZURE_OPENAI_API_KEY")

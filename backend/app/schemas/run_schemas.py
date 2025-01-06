@@ -15,7 +15,7 @@ class StartRunRequestSchema(BaseModel):
 class RunResponseSchema(BaseModel):
     id: str
     workflow_id: str
-    workflow_version_id: int
+    workflow_version_id: str
     workflow_version: WorkflowVersionResponseSchema
     status: RunStatus
     run_type: str
