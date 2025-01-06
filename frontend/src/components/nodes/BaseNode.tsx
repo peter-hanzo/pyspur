@@ -286,10 +286,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             borderWidth: isSelected
                 ? '3px'
                 : status === 'completed'
-                  ? '2px'
-                  : isHovered
-                    ? '3px'
-                    : restStyle.borderWidth || '1px',
+                    ? '2px'
+                    : isHovered
+                        ? '3px'
+                        : restStyle.borderWidth || '1px',
             borderStyle: 'solid',
             transition: 'border-color 0.1s, border-width 0.02s',
             pointerEvents: 'auto' as const,
