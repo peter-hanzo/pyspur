@@ -11,6 +11,15 @@ import NodeOutputDisplay from './NodeOutputDisplay'
 import NodeOutputModal from './NodeOutputModal'
 import isEqual from 'lodash/isEqual'
 
+const baseNodeStyle = {
+    width: 'auto',
+    minWidth: '300px',
+    maxWidth: '600px',
+    height: 'auto',
+    minHeight: '150px',
+    maxHeight: '800px',
+    transition: 'height 0.3s ease',
+}
 interface SchemaMetadata {
     required?: boolean
     title?: string
@@ -36,9 +45,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     ...props
 }) => {
     const nodeRef = useRef<HTMLDivElement | null>(null)
-    const [nodeWidth, setNodeWidth] = useState<string>('auto')
-    const [nodeHeight, setNodeHeight] = useState<string>('auto')
-    const [isHoveringOutput, setIsHoveringOutput] = useState(false)
     const [editingField, setEditingField] = useState<string | null>(null)
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
@@ -93,38 +99,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
             })
             .filter(Boolean)
     })
-
-    useEffect(() => {
-        if (!nodeRef.current || !nodeData) return
-
-        const inputLabels = predecessorNodes.map((node) => String(node.data?.title || node?.id || ''))
-        const outputLabels = nodeData?.title ? [String(nodeData.title)] : [String(id)]
-
-        const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0)
-        const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0)
-        const titleLength = ((nodeData?.title || '').length + 10) * 1.25
-
-        const maxLabelLength = Math.max(maxInputLabelLength + maxOutputLabelLength + 5, titleLength)
-
-        const minNodeWidth = 300
-        const maxNodeWidth = 600
-
-        const finalWidth = Math.min(Math.max(maxLabelLength * 10, minNodeWidth), maxNodeWidth)
-        if (nodeWidth !== `${finalWidth}px`) {
-            setNodeWidth(`${finalWidth}px`)
-        }
-
-        // Calculate height based on number of handles only when there's no run data
-        if (!nodeData.run) {
-            const totalHandles = Math.max(inputLabels.length, outputLabels.length)
-            const handleHeight = 30 // height per handle in pixels
-            const padding = 40 // padding for top and bottom
-            const minNodeHeight = 150 // minimum height
-            const finalHeight = Math.max(minNodeHeight, totalHandles * handleHeight + padding)
-            setNodeHeight(`${finalHeight}px`)
-        }
-    }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth, id])
-
     interface HandleRowProps {
         id: string
         keyName: string
@@ -329,15 +303,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
         )
     }
 
-    const baseNodeStyle = useMemo(
-        () => ({
-            width: isHoveringOutput && nodeData?.run !== undefined ? '600px' : nodeWidth,
-            height: isHoveringOutput && nodeData?.run !== undefined ? '800px' : nodeHeight,
-            transition: 'width 0.3s ease, height 0.3s ease',
-        }),
-        [nodeWidth, nodeHeight, isHoveringOutput, nodeData?.run]
-    )
-
     return (
         <>
             <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentId ? 1 : 0 }}>
@@ -361,18 +326,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         )}
                         {renderHandles()}
                     </div>
-                    {displayOutput && (
-                        <div
-                            onMouseEnter={() => setIsHoveringOutput(true)}
-                            onMouseLeave={() => setIsHoveringOutput(false)}
-                            style={{
-                                height: 'calc(100% - 60px)', // subtract space for handles
-                                marginTop: '10px'
-                            }}
-                        >
-                            <NodeOutputDisplay key="output-display" output={nodeData.run} />
-                        </div>
-                    )}
+                    {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
                 </BaseNode>
             </div>
             <NodeOutputModal
