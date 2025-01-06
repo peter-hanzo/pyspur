@@ -19,35 +19,37 @@ class SlackClient:
         self.bot_client = WebClient(token=self.bot_token)
         self.user_client = WebClient(token=self.user_token)
 
-    def send_message_as_bot(self, channel: str, text: str) -> bool:
+    def send_message_as_bot(self, channel: str, text: str) -> tuple[bool, str]:
         """
         Sends a message to the specified Slack channel.
 
         Returns:
             bool: True if successful, False otherwise.
+            str: The status message.
         """
         try:
             response = self.bot_client.chat_postMessage(channel=channel, text=text) # type: ignore
-            return response.get("ok", False)
+            return response.get("ok", False), "success"
         except SlackApiError as e:
             print(f"Error sending message: {e}")
-            return False
+            return False, str(e)
         
-    def send_message_as_user(self, channel: str, text: str) -> bool:
+    def send_message_as_user(self, channel: str, text: str) -> tuple[bool, str]:
         """
         Sends a message to the specified Slack channel as a user.
 
         Returns:
             bool: True if successful, False otherwise.
+            str: The status message.
         """
         try:
             response = self.user_client.chat_postMessage(channel=channel, text=text) # type: ignore
-            return response.get("ok", False)
+            return response.get("ok", False), "success"
         except SlackApiError as e:
             print(f"Error sending message: {e}")
-            return False
+            return False, str(e)
         
-    def send_message(self, channel: str, text: str, mode: str = "bot") -> bool:
+    def send_message(self, channel: str, text: str, mode: str = "bot") -> tuple[bool, str]:
         """
         Sends a message to the specified Slack channel.
 
@@ -58,6 +60,7 @@ class SlackClient:
 
         Returns:
             bool: True if successful, False otherwise.
+            str: The status message.
         """
         if mode == "bot":
             return self.send_message_as_bot(channel, text)

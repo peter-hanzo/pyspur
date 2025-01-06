@@ -16,8 +16,7 @@ class SlackNodeInput(BaseNodeInput):
     message: str = Field(..., description="The message to send to the Slack channel.")
 
 class SlackNodeOutput(BaseNodeOutput):
-    ok: bool = Field(..., description="Whether the message was sent successfully or not.")
-    error: str = Field(..., description="Error message if the message was not sent successfully.")
+    status: str = Field(..., description="Error message if the message was not sent successfully.")
 
 class SlackNode(BaseNode):
     name = "slack_node"
@@ -35,8 +34,8 @@ class SlackNode(BaseNode):
         message = json.dumps(input.model_dump())
 
         client = SlackClient()
-        ok = client.send_message(channel=self.config.channel, text=message, mode=self.config.mode) # type: ignore
-        return SlackNodeOutput(ok=ok, error="")
+        ok, status = client.send_message(channel=self.config.channel, text=message, mode=self.config.mode) # type: ignore
+        return SlackNodeOutput(status=status)
 
 if __name__ == "__main__":
     import asyncio
@@ -45,7 +44,7 @@ if __name__ == "__main__":
         # Example usage
         node = SlackNode(
         name="slack_node",  # Add the missing 'name' parameter
-        config=SlackNodeConfig(mode="bot", channel="#integrations")
+        config=SlackNodeConfig(mode=ModeEnum.BOT, channel="#integrations")
     )
         input_data = SlackNodeInput(message="Hello from the SlackNode!")
         output = await node.run(input_data)
