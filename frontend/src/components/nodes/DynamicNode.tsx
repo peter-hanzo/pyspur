@@ -118,7 +118,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
         const totalHandles = Math.max(inputLabels.length, outputLabels.length)
         const handleHeight = 30 // height per handle in pixels
         const padding = 40 // padding for top and bottom
-        const minNodeHeight = 500 // minimum height
+        const minNodeHeight = 150 // minimum height
         const finalHeight = Math.max(minNodeHeight, totalHandles * handleHeight + padding)
         setNodeHeight(`${finalHeight}px`)
     }, [nodeData, cleanedInputMetadata, cleanedOutputMetadata, predecessorNodes, nodeWidth])
@@ -329,11 +329,11 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
 
     const baseNodeStyle = useMemo(
         () => ({
-            width: isHoveringOutput ? '600px' : nodeWidth,
-            height: isHoveringOutput ? '800px' : nodeHeight,
+            width: isHoveringOutput && nodeData?.run !== undefined ? '600px' : nodeWidth,
+            height: isHoveringOutput && nodeData?.run !== undefined ? '800px' : nodeHeight,
             transition: 'width 0.3s ease, height 0.3s ease',
         }),
-        [nodeWidth, nodeHeight, isHoveringOutput]
+        [nodeWidth, nodeHeight, isHoveringOutput, nodeData?.run]
     )
 
     return (
