@@ -69,7 +69,7 @@ You can launch PySpur using pre-built docker images in the following steps:
     docker compose -f ./docker-compose.prod.yml up --build -d
     ```
 
-    This will start a local instance of PySpur that will store spurs in a local sqlite database (or your database if you provided it in .env file in step 2)
+    This will start a local instance of PySpur that will store spurs and other state information in a postgres database. A local postgres service is used by default. Override `POSTGRES_*` variables in the `.env` file to use an external postgres database.
 
 4. **Access the portal:**
 
@@ -105,8 +105,7 @@ The steps for dev setup are same as above, except for step 3: we launch the app 
     docker compose up --build -d
     ```
 
-    This will start a local instance of PySpur that will store spurs and their runs in a local SQLite file.
-    Note: For some environments you may want to try: ```sudo docker compose up --build -d```.
+    This will start a local instance of PySpur that will store spurs and other state information in a postgres database. A local postgres service is used by default. Override `POSTGRES_*` variables in the `.env` file to use an external postgres database.
 
 
 # 🦙 Using PySpur with Ollama (Local Models)
