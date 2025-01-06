@@ -32,12 +32,6 @@ interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
 }
 
-interface Node {
-    id: string
-    data: {
-        run?: Record<string, any>
-    }
-}
 
 import { RootState } from '../store/store'
 interface AlertState {
@@ -252,7 +246,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`
     }
 
-    const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables)
 
     useHotkeys(
         ['mod+enter', 'ctrl+enter'],
@@ -349,10 +342,10 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             >
                 <NavbarBrand className="h-12 max-w-fit">
                     {activePage === 'dashboard' ? (
-                        <p className="font-bold text-inherit cursor-pointer">PySpur</p>
+                        <p className="font-bold text-default-900 cursor-pointer">PySpur</p>
                     ) : (
                         <Link href="/" className="cursor-pointer">
-                            <p className="font-bold text-inherit">PySpur</p>
+                            <p className="font-bold text-default-900">PySpur</p>
                         </Link>
                     )}
                 </NavbarBrand>

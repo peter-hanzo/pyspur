@@ -16,9 +16,9 @@ class WorkflowModel(BaseModel):
 
     __tablename__ = "workflows"
 
-    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'S' || _intid"), nullable=False, index=True
+        String, Computed("'S' || _intid"), nullable=False, unique=True
     )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)

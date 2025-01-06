@@ -11,7 +11,7 @@ export interface StartRunRequest {
 export interface RunResponse {
     id: string
     workflow_id: string
-    workflow_version_id: number
+    workflow_version_id: string
     workflow_version: WorkflowVersionResponse
     status: RunStatus
     run_type: string
