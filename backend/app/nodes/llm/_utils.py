@@ -67,6 +67,10 @@ class LLMModels(str, Enum):
     GPT_4O = "gpt-4o"
     O1_PREVIEW = "o1-preview"
     O1_MINI = "o1-mini"
+    O1 = "o1"
+    O1_2024_12_17 = "o1-2024-12-17"
+    O1_MINI_2024_09_12 = "o1-mini-2024-09-12"
+    O1_PREVIEW_2024_09_12 = "o1-preview-2024-09-12"
     GPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O_LATEST = "chatgpt-4o-latest"
 
@@ -127,6 +131,30 @@ class LLMModels(str, Enum):
                 provider=LLMProvider.OPENAI,
                 name="O1 Mini",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.O1.value: LLMModel(
+                id=cls.O1.value,
+                provider=LLMProvider.OPENAI,
+                name="O1",
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+            ),
+            cls.O1_2024_12_17.value: LLMModel(
+                id=cls.O1_2024_12_17.value,
+                provider=LLMProvider.OPENAI,
+                name="O1 (2024-12-17)",
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+            ),
+            cls.O1_MINI_2024_09_12.value: LLMModel(
+                id=cls.O1_MINI_2024_09_12.value,
+                provider=LLMProvider.OPENAI,
+                name="O1 Mini (2024-09-12)",
+                constraints=ModelConstraints(max_tokens=65536, max_temperature=2.0),
+            ),
+            cls.O1_PREVIEW_2024_09_12.value: LLMModel(
+                id=cls.O1_PREVIEW_2024_09_12.value,
+                provider=LLMProvider.OPENAI,
+                name="O1 Preview (2024-09-12)",
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=2.0),
             ),
             cls.GPT_4_TURBO.value: LLMModel(
                 id=cls.GPT_4_TURBO.value,
