@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from backend.app.rag.chunker import ChunkingConfig, get_document_chunks
 from backend.app.rag.datastore.factory import get_datastore
+from backend.app.rag.datastore.datastore import DataStore
 from backend.app.rag.models.document_schemas import Document
 
 
@@ -54,12 +55,9 @@ router = APIRouter(prefix="/rag", tags=["rag"])
 
 
 # Utility functions
-async def initialize_datastore(vector_db: str) -> None:
-    """Initialize the vector database by setting environment variable and getting datastore instance"""
-    os.environ["DATASTORE"] = vector_db
-    datastore = await get_datastore()
-    # You might want to add any initialization logic specific to the datastore here
-    return datastore
+async def initialize_datastore(vector_db: str) -> DataStore:
+    """Initialize the vector database and return a DataStore instance"""
+    return await get_datastore(vector_db)
 
 
 async def process_document_file(file_path: Path) -> Document:
@@ -100,6 +98,7 @@ async def process_documents(
         )
 
         # Process each file
+        documents = []
         for file in files:
             # Save file
             file_path = kb_dir / file.filename
@@ -108,25 +107,13 @@ async def process_documents(
 
             # Process the document
             document = await process_document_file(file_path)
+            documents.append(document)
 
-            # Generate chunks with embeddings
-            chunks_dict = await get_document_chunks(
-                documents=[document],
-                config=chunking_config,
-                model=config.embedding.model,
-            )
-
-            # Store chunks in vector database
-            for doc_id, chunks in chunks_dict.items():
-                await datastore.upsert(
-                    chunks,
-                    {
-                        "knowledge_base_id": kb_id,
-                        "document_id": doc_id,
-                        "embedding_model": config.embedding.model,
-                        "vector_db": config.embedding.vector_db,
-                    },
-                )
+        # Store documents in vector database
+        await datastore.upsert(
+            documents=documents,
+            chunk_token_size=config.text_processing.chunk_token_size,
+        )
 
         # Update status to ready
         await update_kb_status(kb_id, "ready")
