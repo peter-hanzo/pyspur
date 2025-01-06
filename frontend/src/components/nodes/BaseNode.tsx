@@ -499,7 +499,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                 width={22}
                             />
                         </Button>
-                        {handleOpenModal && (
+                        {handleOpenModal && data?.run !== undefined && (
                             <Button
                                 key={`modal-btn-${id}`}
                                 isIconOnly
