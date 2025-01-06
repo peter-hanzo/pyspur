@@ -21,6 +21,8 @@ class SlackNodeOutput(BaseNodeOutput):
 class SlackNode(BaseNode):
     name = "slack_node"
     display_name = "Slack"
+    logo="/images/slack.png"
+
     config_model = SlackNodeConfig
     input_model = SlackNodeInput
     output_model = SlackNodeOutput
