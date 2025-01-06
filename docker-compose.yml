@@ -8,32 +8,50 @@ services:
     depends_on:
       - backend
       - frontend
-    restart: always
+    restart: on-failure
+
   backend:
     build: 
       context: ./backend
       target: ${ENVIRONMENT:-development}
+    env_file:
+      - ./.env.example
+      - ./.env
     command: bash /pyspur/backend/entrypoint.sh
     volumes:
       - .:/pyspur
       - ./.env:/pyspur/backend/.env
-      - ${SQLITE_DB_PATH:-./backend/sqlite/}:/pyspur/backend/sqlite/
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     build: 
       context: ./frontend
       target: ${ENVIRONMENT:-development}
+    env_file:
+      - ./.env.example
+      - ./.env
     command: npm run dev
     volumes:
       - .:/pyspur
       - /pyspur/frontend/node_modules
-    environment:
-      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
-      - FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
     depends_on:
       - backend
-    restart: always
+
+  db:
+    image: postgres:17-alpine
+    restart: on-failure
+    env_file:
+      - ./.env.example
+      - ./.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+        test: ['CMD-SHELL', 'pg_isready -U pyspur']
+        interval: 5s
+        timeout: 5s
 volumes:
-  node_modules:
+  postgres_data:

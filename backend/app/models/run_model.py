@@ -28,13 +28,13 @@ class RunModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'R' || _intid"), nullable=False, index=True
+        String, Computed("'R' || _intid"), nullable=False, unique=True
     )
     workflow_id: Mapped[str] = mapped_column(
         String, ForeignKey("workflows.id"), nullable=False, index=True
     )
     workflow_version_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("workflow_versions._intid"), nullable=False, index=True
+        String, ForeignKey("workflow_versions.id"), nullable=False, index=True
     )
     parent_run_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("runs.id"), nullable=True, index=True

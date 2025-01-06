@@ -7,9 +7,9 @@ from .base_model import BaseModel
 class OutputFileModel(BaseModel):
     __tablename__ = "output_files"
 
-    _intid: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'OF' || _intid"), nullable=False, index=True
+        String, Computed("'OF' || _intid"), nullable=False, unique=True
     )
     file_name: Mapped[str] = mapped_column(String, nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
