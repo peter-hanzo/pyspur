@@ -2,11 +2,16 @@ import json
 from pydantic import BaseModel, Field
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...utils.integrations.slack_utils import SlackClient
+from enum import Enum
+
+class ModeEnum(str, Enum):
+    BOT = "bot"
+    USER = "user"
 
 class SlackNodeConfig(BaseNodeConfig):
     channel: str = Field("", description="The channel ID to send the message to.")
-    mode: str = Field("", description="The mode to send the message in. Can be 'bot' or 'user'.")
-
+    mode: ModeEnum = Field(ModeEnum.BOT, description="The mode to send the message in. Can be 'bot' or 'user'.")
+    
 class SlackNodeInput(BaseNodeInput):
     message: str = Field(..., description="The message to send to the Slack channel.")
 

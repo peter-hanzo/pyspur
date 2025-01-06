@@ -288,9 +288,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <div key={key}>
                 <Select
                     key={`select-${nodeID}-${key}`}
-                    label={label}
+                    label={key}
                     selectedKeys={[currentValue]}
-                    onChange={(e) => handleInputChange(lastTwoDots, e.target.value)}
+                    onChange={(e) => handleInputChange(key, e.target.value)}
                     fullWidth
                 >
                     {enumValues.map((option) => (
