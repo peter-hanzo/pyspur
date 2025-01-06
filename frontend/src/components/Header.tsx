@@ -256,7 +256,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables)
 
     useHotkeys(
-        ['mod+enter', 'ctrl+enter'],
+        ['mod+enter'],
         (e) => {
             e.preventDefault()
 
