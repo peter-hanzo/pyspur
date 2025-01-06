@@ -26,7 +26,7 @@ class TaskModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'T' || _intid"), nullable=False, index=True, unique=True
+        String, Computed("'T' || _intid"), nullable=False, unique=True
     )
     run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     node_id: Mapped[str] = mapped_column(String, nullable=False)

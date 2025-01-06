@@ -11,7 +11,7 @@ class WorkflowVersionModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(
-        String, Computed("'WV' || _intid"), nullable=False, index=True, unique=True
+        String, Computed("'SV' || _intid"), nullable=False, unique=True
     )
     version: Mapped[int] = mapped_column(
         Integer, nullable=False, index=True, unique=True
