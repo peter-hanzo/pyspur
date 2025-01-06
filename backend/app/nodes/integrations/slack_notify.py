@@ -8,24 +8,24 @@ class ModeEnum(str, Enum):
     BOT = "bot"
     USER = "user"
 
-class SlackNodeConfig(BaseNodeConfig):
+class SlackNotifyNodeConfig(BaseNodeConfig):
     channel: str = Field("", description="The channel ID to send the message to.")
     mode: ModeEnum = Field(ModeEnum.BOT, description="The mode to send the message in. Can be 'bot' or 'user'.")
     
-class SlackNodeInput(BaseNodeInput):
+class SlackNotifyNodeInput(BaseNodeInput):
     message: str = Field(..., description="The message to send to the Slack channel.")
 
-class SlackNodeOutput(BaseNodeOutput):
+class SlackNotifyNodeOutput(BaseNodeOutput):
     status: str = Field(..., description="Error message if the message was not sent successfully.")
 
-class SlackNode(BaseNode):
-    name = "slack_node"
-    display_name = "Slack"
+class SlackNotifyNode(BaseNode):
+    name = "slack_notify_node"
+    display_name = "SlackNotify"
     logo="/images/slack.png"
 
-    config_model = SlackNodeConfig
-    input_model = SlackNodeInput
-    output_model = SlackNodeOutput
+    config_model = SlackNotifyNodeConfig
+    input_model = SlackNotifyNodeInput
+    output_model = SlackNotifyNodeOutput
 
     async def run(self, input: BaseModel) -> BaseModel:
         """
@@ -37,18 +37,18 @@ class SlackNode(BaseNode):
 
         client = SlackClient()
         ok, status = client.send_message(channel=self.config.channel, text=message, mode=self.config.mode) # type: ignore
-        return SlackNodeOutput(status=status)
+        return SlackNotifyNodeOutput(status=status)
 
 if __name__ == "__main__":
     import asyncio
 
     async def main():
         # Example usage
-        node = SlackNode(
+        node = SlackNotifyNode(
         name="slack_node",  # Add the missing 'name' parameter
-        config=SlackNodeConfig(mode=ModeEnum.BOT, channel="#integrations")
+        config=SlackNotifyNodeConfig(mode=ModeEnum.BOT, channel="#integrations")
     )
-        input_data = SlackNodeInput(message="Hello from the SlackNode!")
+        input_data = SlackNotifyNodeInput(message="Hello from the SlackNode!")
         output = await node.run(input_data)
         print(output)
 

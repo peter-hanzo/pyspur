@@ -57,9 +57,9 @@ SUPPORTED_NODE_TYPES = {
     "Logic": LOGIC,
     "Integrations": [
         {
-            "node_type_name": "SlackNode",
-            "module": ".nodes.integrations.slack",
-            "class_name": "SlackNode",
+            "node_type_name": "SlackNotifyNode",
+            "module": ".nodes.integrations.slack_notify",
+            "class_name": "SlackNotifyNode",
         },
     ],
 }
