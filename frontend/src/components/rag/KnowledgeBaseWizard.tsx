@@ -201,35 +201,72 @@ const KnowledgeBaseWizard: React.FC = () => {
     },
   ]);
 
+  const updateStepsCompletion = (currentFormData: typeof formData, currentFiles: File[]) => {
+    setSteps(prevSteps => prevSteps.map((step, idx) => {
+      switch (idx) {
+        case 0: // Data Source
+          return {
+            ...step,
+            isCompleted: Boolean(currentFormData.name) && (currentFormData.dataSource === 'sync' ? Boolean(currentFormData.syncTool) : currentFiles.length > 0),
+          }
+        case 1: // Text Processing
+          return {
+            ...step,
+            isCompleted: Boolean(currentFormData.parsingStrategy && currentFormData.chunkSize),
+          }
+        case 2: // Embedding & Retrieval
+          return {
+            ...step,
+            isCompleted: Boolean(currentFormData.embeddingModel && currentFormData.vectorDb && currentFormData.searchStrategy),
+          }
+        case 3: // Execution
+          return {
+            ...step,
+            isCompleted: false,
+          }
+        default:
+          return step
+      }
+    }));
+  };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [field]: value,
-    }))
+    };
+    setFormData(newFormData);
+    updateStepsCompletion(newFormData, uploadedFiles);
   }
 
   const handleWeightChange = (value: number) => {
     const semanticWeight = value / 100
     const keywordWeight = (100 - value) / 100
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       semanticWeight: semanticWeight.toFixed(1),
       keywordWeight: keywordWeight.toFixed(1)
-    }))
+    };
+    setFormData(newFormData);
+    updateStepsCompletion(newFormData, uploadedFiles);
   }
 
   const handleChunkSizeChange = (value: number) => {
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       chunkSize: value.toString()
-    }))
+    };
+    setFormData(newFormData);
+    updateStepsCompletion(newFormData, uploadedFiles);
   }
 
   const handleOverlapChange = (value: number) => {
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       overlap: value.toString()
-    }))
+    };
+    setFormData(newFormData);
+    updateStepsCompletion(newFormData, uploadedFiles);
   }
 
   const parsingStrategies = [
@@ -257,10 +294,7 @@ const KnowledgeBaseWizard: React.FC = () => {
 
   const handleFilesChange = (newFiles: File[]) => {
     setUploadedFiles(newFiles);
-    // Update step completion status based on files
-    setSteps(prevSteps => prevSteps.map((step, idx) =>
-      idx === 0 ? { ...step, isCompleted: newFiles.length > 0 } : step
-    ));
+    updateStepsCompletion(formData, newFiles);
   };
 
   const renderStepContent = () => {
