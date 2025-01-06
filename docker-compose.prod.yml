@@ -8,7 +8,7 @@ services:
     depends_on:
       - backend
       - frontend
-    restart: always
+    restart: on-failure
 
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY:-pyspur-dev/pyspur}-backend:${VERSION:-latest}
@@ -23,7 +23,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    restart: always
 
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY:-pyspur-dev/pyspur}-frontend:${VERSION:-latest}
@@ -33,7 +32,6 @@ services:
       - ./.env
     depends_on:
       - backend
-    restart: always
 
   db:
     image: postgres:17-alpine
