@@ -73,8 +73,6 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                 <div
                     className="p-5"
                     style={{
-                        maxHeight: 'calc(100% - 40px)',
-                        height: '100%',
                         overflowY: 'auto',
                         touchAction: 'none',
                     }}
