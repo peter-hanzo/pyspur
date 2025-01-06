@@ -5,16 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv("backend/.env", verbose=True)
 
-SLACK_BOT_TOKEN =  os.getenv("SLACK_BOT_TOKEN")
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 SLACK_USER_TOKEN = os.getenv("SLACK_USER_TOKEN")
+
 
 class SlackClient:
     def __init__(self):
         self.bot_token = SLACK_BOT_TOKEN
         self.user_token = SLACK_USER_TOKEN
-
-        if not self.bot_token:
-            raise ValueError("Slack bot token not found in environment variables.")
 
         self.bot_client = WebClient(token=self.bot_token)
         self.user_client = WebClient(token=self.user_token)
@@ -27,13 +25,17 @@ class SlackClient:
             bool: True if successful, False otherwise.
             str: The status message.
         """
+
+        if not self.bot_token:
+            raise ValueError("Slack bot token not found in environment variables.")
+
         try:
-            response = self.bot_client.chat_postMessage(channel=channel, text=text) # type: ignore
+            response = self.bot_client.chat_postMessage(channel=channel, text=text)  # type: ignore
             return response.get("ok", False), "success"
         except SlackApiError as e:
             print(f"Error sending message: {e}")
             return False, str(e)
-        
+
     def send_message_as_user(self, channel: str, text: str) -> tuple[bool, str]:
         """
         Sends a message to the specified Slack channel as a user.
@@ -42,14 +44,20 @@ class SlackClient:
             bool: True if successful, False otherwise.
             str: The status message.
         """
+
+        if not self.user_token:
+            raise ValueError("Slack user token not found in environment variables.")
+
         try:
-            response = self.user_client.chat_postMessage(channel=channel, text=text) # type: ignore
+            response = self.user_client.chat_postMessage(channel=channel, text=text)  # type: ignore
             return response.get("ok", False), "success"
         except SlackApiError as e:
             print(f"Error sending message: {e}")
             return False, str(e)
-        
-    def send_message(self, channel: str, text: str, mode: str = "bot") -> tuple[bool, str]:
+
+    def send_message(
+        self, channel: str, text: str, mode: str = "bot"
+    ) -> tuple[bool, str]:
         """
         Sends a message to the specified Slack channel.
 
@@ -69,9 +77,18 @@ class SlackClient:
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
+
 if __name__ == "__main__":
     client = SlackClient()
-    client.send_message_as_bot(channel="#integrations", text="Hello from the SlackClient!")
-    client.send_message_as_user(channel="#integrations", text="Hello from the Slack Client!")
-    client.send_message(channel="#integrations", text="Hello from the Slack Client!", mode="bot")
-    client.send_message(channel="#integrations", text="Hello from the Slack Client!", mode="user")
+    client.send_message_as_bot(
+        channel="#integrations", text="Hello from the SlackClient!"
+    )
+    client.send_message_as_user(
+        channel="#integrations", text="Hello from the Slack Client!"
+    )
+    client.send_message(
+        channel="#integrations", text="Hello from the Slack Client!", mode="bot"
+    )
+    client.send_message(
+        channel="#integrations", text="Hello from the Slack Client!", mode="user"
+    )
