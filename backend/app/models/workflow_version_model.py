@@ -13,9 +13,7 @@ class WorkflowVersionModel(BaseModel):
     id: Mapped[str] = mapped_column(
         String, Computed("'SV' || _intid"), nullable=False, unique=True
     )
-    version: Mapped[int] = mapped_column(
-        Integer, nullable=False, index=True, unique=True
-    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     workflow_id: Mapped[int] = mapped_column(
         ForeignKey("workflows.id"), nullable=False, index=True
     )

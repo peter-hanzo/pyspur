@@ -4,6 +4,7 @@ import { Button } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdge } from '../../store/flowSlice'
+import { useTheme } from 'next-themes'
 
 // Static styles
 const staticStyles = {
@@ -24,10 +25,10 @@ const staticStyles = {
 } as const
 
 // Add this near the other static styles
-const defaultEdgeStyle = {
+const getEdgeStyle = (isDark: boolean) => ({
     strokeWidth: 2,
-    stroke: '#555',
-} as const
+    stroke: isDark ? '#888' : '#555',
+}) as const
 
 interface CustomEdgeData extends Edge<any> {
     onPopoverOpen: (params: {
@@ -72,6 +73,8 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
     const { onPopoverOpen, showPlusButton } = data
     const reactFlowInstance = useReactFlow()
     const dispatch = useDispatch()
+    const { theme } = useTheme()
+    const isDark = theme === 'dark'
 
     // Get the full node objects
     const sourceNode = reactFlowInstance.getNode(source)
@@ -132,7 +135,7 @@ const CustomEdge: React.FC<CustomEdgeProps> = ({
     // Memoize the combined edge style
     const combinedStyle = useMemo(
         () => ({
-            ...defaultEdgeStyle,
+            ...getEdgeStyle(isDark),
             ...style,
         }),
         [JSON.stringify(style)]

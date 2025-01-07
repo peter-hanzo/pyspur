@@ -13,8 +13,8 @@ const NodeOutputModal = ({ isOpen, onOpenChange, title, data }) => {
                 <ModalHeader>
                     <h3>{title}</h3>
                 </ModalHeader>
-                <ModalBody>
-                    <div className="py-5">
+                <ModalBody className="max-h-[70vh] overflow-y-auto">
+                    <div>
                         {data ? <NodeOutputDisplay output={data.run} /> : <div>No output available</div>}
                     </div>
                 </ModalBody>
