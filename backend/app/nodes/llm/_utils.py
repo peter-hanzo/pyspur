@@ -467,11 +467,8 @@ async def generate_text(
         "messages": messages,
         "temperature": temperature,
     }
-    print(f"kwargs: {kwargs}")
-
     response = ""
     if json_mode:
-        print(f"Model name: {model_name}")
         if model_name.startswith("ollama"):
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
             response = await ollama_with_backoff(
