@@ -254,12 +254,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         () => ({
             ...restStyle,
             borderColor,
-            borderWidth: isSelected ? '3px' : status === 'completed' ? '2px' : restStyle.borderWidth || '1px',
             borderStyle: 'solid',
             transition: 'border-color 0.1s, border-width 0.02s',
             pointerEvents: 'auto' as const,
         }),
-        [isSelected, status, restStyle, borderColor]
+        [restStyle, borderColor]
     )
 
     const acronym = data.acronym || 'N/A'
@@ -327,7 +326,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         className={`base-node ${className || ''}`}
                         style={cardStyle}
                         classNames={{
-                            base: 'bg-background border-default-200 hover:border-[3px]',
+                            base: `bg-background border-default-200 ${
+                                isSelected ? 'border-[3px]' : status === 'completed' ? 'border-[2px]' : 'border-[1px]'
+                            } group-hover:border-[3px]`,
                         }}
                     >
                         {data && (
