@@ -326,7 +326,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         key={`card-${id}`}
                         className={`base-node ${className || ''}`}
                         style={cardStyle}
-                        isHoverable
                         classNames={{
                             base: 'bg-background border-default-200 hover:border-[3px]',
                         }}
