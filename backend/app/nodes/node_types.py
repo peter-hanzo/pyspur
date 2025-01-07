@@ -55,6 +55,13 @@ SUPPORTED_NODE_TYPES = {
         },
     ],
     "Logic": LOGIC,
+    "Integrations": [
+        {
+            "node_type_name": "SlackNotifyNode",
+            "module": ".nodes.integrations.slack_notify",
+            "class_name": "SlackNotifyNode",
+        },
+    ],
 }
 
 DEPRECATED_NODE_TYPES = [

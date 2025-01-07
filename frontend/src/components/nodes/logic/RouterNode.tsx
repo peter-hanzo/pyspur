@@ -257,7 +257,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             data={{
                 title: nodeConfig?.title || 'Conditional Router',
                 color: data.color || '#F6AD55',
-                acronym: 'IF',
+                acronym: 'RN',
                 run: data.run,
                 config: nodeConfig,
                 taskStatus: data.taskStatus,

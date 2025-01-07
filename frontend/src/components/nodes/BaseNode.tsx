@@ -13,6 +13,8 @@ import { RootState } from '../../store/store'
 import store from '../../store/store'
 import { createSelector } from '@reduxjs/toolkit'
 
+const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
+
 interface BaseNodeProps {
     isCollapsed: boolean
     setIsCollapsed: (collapsed: boolean) => void
@@ -397,16 +399,25 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                         }}
                                     />
                                 ) : (
-                                    <h3
-                                        className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
-                                        style={titleStyle}
-                                        onClick={() => {
-                                            setTitleInputValue(getNodeTitle(data))
-                                            setEditingTitle(true)
-                                        }}
-                                    >
-                                        {getNodeTitle(data)}
-                                    </h3>
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        {data.logo && (
+                                            <img
+                                                src={`${PUBLIC_URL}` + data.logo}
+                                                alt="Node Logo"
+                                                className='mr-2 max-h-8 max-w-8 mb-3'
+                                            />
+                                        )}
+                                        <h3
+                                            className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
+                                            style={titleStyle}
+                                            onClick={() => {
+                                                setTitleInputValue(getNodeTitle(data))
+                                                setEditingTitle(true)
+                                            }}
+                                        >
+                                            {getNodeTitle(data)}
+                                        </h3>
+                                    </div>
                                 )}
 
                                 <div style={staticStyles.controlsContainer}>

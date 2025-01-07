@@ -249,7 +249,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
 
 
     useHotkeys(
-        ['mod+enter', 'ctrl+enter'],
+        ['mod+enter'],
         (e) => {
             e.preventDefault()
 

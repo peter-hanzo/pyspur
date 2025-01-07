@@ -35,6 +35,7 @@ export const createNode = (
             title: id,
             acronym: nodeType.visual_tag.acronym,
             color: nodeType.visual_tag.color,
+            logo: nodeType.logo,
         },
     }
     return { node, config }
