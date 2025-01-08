@@ -731,7 +731,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold">File Input</h3>
                     <Tooltip
-                        content="Select an input variable containing a URL to a file (image, video, PDF, or audio) that Gemini can process."
+                        content="Select an input variable containing either a file URL or inline data. For inline data, use the format: data:<mime_type>;base64,<encoded_data> (e.g., data:image/jpeg;base64,/9j/...)"
                         placement="left-start"
                         showArrow={true}
                         className="max-w-xs"
@@ -745,7 +745,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 </div>
                 <div className="mb-2">
                     <Select
-                        label="File URL Variable"
+                        label="File URL or Data Variable"
                         selectedKeys={[currentNodeConfig?.url_variables?.file || '']}
                         onChange={(e) => {
                             const updatedUrlVars = e.target.value ? { file: e.target.value } : {}
@@ -759,6 +759,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </SelectItem>
                         ))}
                     </Select>
+                    <p className="text-xs text-default-500 mt-1">
+                        Supports both file URLs and inline data in the format: data:&lt;mime_type&gt;;base64,&lt;encoded_data&gt;
+                    </p>
                 </div>
             </div>
         )
