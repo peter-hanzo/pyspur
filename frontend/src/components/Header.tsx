@@ -175,11 +175,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         if (!workflowID) return
 
         try {
+            dispatch(resetRun())
             showAlert('Starting workflow run...', 'default')
             const result = await startRun(workflowId, inputValues, null, 'interactive')
             setIsRunning(true)
             fetchWorkflowRuns()
-            dispatch(resetRun())
             updateWorkflowStatus(result.id)
         } catch (error) {
             console.error('Error starting workflow run:', error)
