@@ -1,7 +1,7 @@
 import json
 from pydantic import BaseModel, Field
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from app.integrations.slack.slack import SlackClient
+from app.integrations.slack.slack_client import SlackClient
 from enum import Enum
 
 class ModeEnum(str, Enum):
