@@ -11,6 +11,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDi
 import { Icon } from '@iconify/react'
 import { List, ListOrdered } from 'lucide-react'
 import styles from './TextEditor.module.css'
+import { Markdown } from 'tiptap-markdown';
 
 interface TextEditorProps {
     nodeID: string
@@ -38,8 +39,13 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     orderedList: { keepMarks: true, keepAttributes: false },
                 }),
                 Underline,
+                Markdown.configure({
+                    html: false,
+                    transformPastedText: true,
+                    transformCopiedText: true,
+                }),
             ],
-            content: content,
+            content: content ? content : '',
             editorProps: {
                 attributes: {
                     class: [
@@ -52,14 +58,10 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                 },
             },
             onUpdate: ({ editor }) => {
-                setContent(editor.getHTML())
+                setContent(editor.storage.markdown?.getMarkdown() ?? '')
             },
             editable: isEditable,
             autofocus: 'end',
-            immediatelyRender: false,
-            parseOptions: {
-                preserveWhitespace: 'full',
-            },
         })
 
         useImperativeHandle(ref, () => ({
@@ -81,46 +83,27 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     orderedList: { keepMarks: true, keepAttributes: false },
                 }),
                 Underline,
+                Markdown.configure({
+                    html: false,
+                    transformPastedText: true,
+                    transformCopiedText: true,
+                }),
             ],
-            content: content || '',
+            content: content ? content : '',
             editorProps: {
                 attributes: {
-                    class: `w-full bg-content2 hover:bg-content3 transition-colors min-h-[40vh] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500`,
+                    class: 'w-full bg-content2 hover:bg-content3 transition-colors min-h-[40vh] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500',
                 },
             },
             onUpdate: ({ editor }) => {
-                const newContent = editor.getHTML()
+                const newContent = editor.storage.markdown?.getMarkdown() ?? ''
                 if (newContent !== content) {
                     setContent(newContent)
                 }
             },
             editable: true,
             autofocus: false,
-            immediatelyRender: false,
-            parseOptions: {
-                preserveWhitespace: 'full',
-            },
         })
-
-        React.useEffect(() => {
-            if (modalEditor && content !== modalEditor.getHTML()) {
-                modalEditor.commands.setContent(content || '')
-            }
-        }, [content, modalEditor])
-
-        React.useEffect(() => {
-            return () => {
-                if (modalEditor) {
-                    modalEditor.destroy()
-                }
-            }
-        }, [modalEditor])
-
-        useEffect(() => {
-            if (editor && content !== editor.getHTML()) {
-                editor.commands.setContent(content || '')
-            }
-        }, [content, editor])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
             if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
@@ -157,20 +140,20 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     )}
                     {Array.isArray(inputSchema)
                         ? inputSchema.map((variable) => (
-                              <Button
-                                  key={variable}
-                                  size="sm"
-                                  variant="flat"
-                                  color="primary"
-                                  onPress={() => {
-                                      if (editorInstance) {
-                                          editorInstance.chain().focus().insertContent(`{{${variable}}}`).run()
-                                      }
-                                  }}
-                              >
-                                  {variable}
-                              </Button>
-                          ))
+                            <Button
+                                key={variable}
+                                size="sm"
+                                variant="flat"
+                                color="primary"
+                                onPress={() => {
+                                    if (editorInstance) {
+                                        editorInstance.chain().focus().insertContent(`{{${variable}}}`).run()
+                                    }
+                                }}
+                            >
+                                {variable}
+                            </Button>
+                        ))
                         : null}
                 </div>
             )
@@ -249,7 +232,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
 
         const handleSave = (onClose: () => void) => {
             if (modalEditor) {
-                setContent(modalEditor.getHTML())
+                setContent(modalEditor.storage.markdown?.getMarkdown() ?? '')
             }
             onClose()
         }
