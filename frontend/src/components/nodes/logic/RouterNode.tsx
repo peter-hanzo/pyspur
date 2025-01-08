@@ -460,7 +460,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             disabled={route.conditions.length === 1}
                                                             className="flex-none"
                                                         >
-                                                            <Icon icon="solar:trash-bin-trash-linear" width={18} className="text-foreground" />
+                                                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
                                                         </Button>
                                                     )}
                                                 </div>
