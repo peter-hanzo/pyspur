@@ -61,6 +61,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.slack_notify",
             "class_name": "SlackNotifyNode",
         },
+        {
+            "node_type_name": "GoogleSheetsReadNode",
+            "module": ".nodes.integrations.google_sheets_read",
+            "class_name": "GoogleSheetsReadNode",
+        }
     ],
 }
 
