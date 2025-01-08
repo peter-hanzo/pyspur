@@ -148,9 +148,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     positionAbsoluteX,
     positionAbsoluteY,
 }) => {
-    const [isHovered, setIsHovered] = useState(false)
-    const [showControls, setShowControls] = useState(false)
-    const [isTooltipHovered, setIsTooltipHovered] = useState(false)
     const [editingTitle, setEditingTitle] = useState(false)
     const [isRunning, setIsRunning] = useState(false)
     const [showTitleError, setShowTitleError] = useState(false)
@@ -165,34 +162,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const availableOutputs = useSelector(selectAvailableOutputs, isEqual)
 
     const { executePartialRun, loading } = usePartialRun()
-
-    const handleMouseEnter = useCallback(() => {
-        setIsHovered(true)
-        setShowControls(true)
-    }, [setIsHovered, setShowControls])
-
-    const handleMouseLeave = useCallback(() => {
-        setIsHovered(false)
-        if (!isTooltipHovered) {
-            setTimeout(() => {
-                setShowControls(false)
-            }, 200)
-        }
-    }, [setIsHovered, setShowControls, isTooltipHovered])
-
-    const handleControlsMouseEnter = useCallback(() => {
-        setShowControls(true)
-        setIsTooltipHovered(true)
-    }, [setShowControls, setIsTooltipHovered])
-
-    const handleControlsMouseLeave = useCallback(() => {
-        setIsTooltipHovered(false)
-        setTimeout(() => {
-            if (!isHovered) {
-                setShowControls(false)
-            }
-        }, 300)
-    }, [isHovered, setShowControls, setIsTooltipHovered])
 
     const handleDelete = () => {
         deleteNode(id, selectedNodeId, dispatch)
@@ -285,18 +254,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         () => ({
             ...restStyle,
             borderColor,
-            borderWidth: isSelected
-                ? '3px'
-                : status === 'completed'
-                    ? '2px'
-                    : isHovered
-                        ? '3px'
-                        : restStyle.borderWidth || '1px',
             borderStyle: 'solid',
             transition: 'border-color 0.1s, border-width 0.02s',
             pointerEvents: 'auto' as const,
         }),
-        [isSelected, status, isHovered, restStyle, borderColor]
+        [restStyle, borderColor]
     )
 
     const acronym = data.acronym || 'N/A'
@@ -334,7 +296,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     )
 
     return (
-        <div style={staticStyles.container} draggable={false}>
+        <div style={staticStyles.container} draggable={false} className="group" id={`node-${id}`}>
             {showTitleError && (
                 <Alert
                     key={`alert-${id}`}
@@ -363,11 +325,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         key={`card-${id}`}
                         className={`base-node ${className || ''}`}
                         style={cardStyle}
-                        onMouseEnter={handleMouseEnter}
-                        onMouseLeave={handleMouseLeave}
-                        isHoverable
                         classNames={{
-                            base: 'bg-background border-default-200',
+                            base: `bg-background border-default-200 ${
+                                isSelected ? 'border-[3px]' : status === 'completed' ? 'border-[2px]' : 'border-[1px]'
+                            } group-hover:border-[3px]`,
                         }}
                     >
                         {data && (
@@ -404,7 +365,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             <img
                                                 src={`${PUBLIC_URL}` + data.logo}
                                                 alt="Node Logo"
-                                                className='mr-2 max-h-8 max-w-8 mb-3'
+                                                className="mr-2 max-h-8 max-w-8 mb-3"
                                             />
                                         )}
                                         <h3
@@ -449,86 +410,83 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 </div>
             </div>
 
-            {/* Controls */}
-            {(showControls || isSelected) && (
-                <Card
-                    key={`controls-card-${id}`}
-                    onMouseEnter={handleControlsMouseEnter}
-                    onMouseLeave={handleControlsMouseLeave}
-                    style={staticStyles.controlsCard}
-                    classNames={{
-                        base: 'bg-background border-default-200',
-                    }}
-                >
-                    <div className="flex flex-row gap-1">
-                        <Button
-                            key={`run-btn-${id}`}
-                            isIconOnly
-                            radius="full"
-                            variant="light"
-                            onPress={handlePartialRun}
-                            disabled={loading || isRunning}
-                        >
-                            {isRunning ? (
-                                <Spinner key={`spinner-${id}`} size="sm" color="current" />
-                            ) : (
-                                <Icon
-                                    key={`play-icon-${id}`}
-                                    className="text-default-500"
-                                    icon="solar:play-linear"
-                                    width={22}
-                                />
-                            )}
-                        </Button>
-                        {!isInputNode && (
-                            <Button
-                                key={`delete-btn-${id}`}
-                                isIconOnly
-                                radius="full"
-                                variant="light"
-                                onPress={handleDelete}
-                            >
-                                <Icon
-                                    key={`delete-icon-${id}`}
-                                    className="text-default-500"
-                                    icon="solar:trash-bin-trash-linear"
-                                    width={22}
-                                />
-                            </Button>
+            {/* Controls - Update to use CSS-based hover */}
+            <Card
+                key={`controls-card-${id}`}
+                style={staticStyles.controlsCard}
+                className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
+                classNames={{
+                    base: 'bg-background border-default-200 transition-opacity duration-200',
+                }}
+            >
+                <div className="flex flex-row gap-1">
+                    <Button
+                        key={`run-btn-${id}`}
+                        isIconOnly
+                        radius="full"
+                        variant="light"
+                        onPress={handlePartialRun}
+                        disabled={loading || isRunning}
+                    >
+                        {isRunning ? (
+                            <Spinner key={`spinner-${id}`} size="sm" color="current" />
+                        ) : (
+                            <Icon
+                                key={`play-icon-${id}`}
+                                className="text-default-500"
+                                icon="solar:play-linear"
+                                width={22}
+                            />
                         )}
+                    </Button>
+                    {!isInputNode && (
                         <Button
-                            key={`duplicate-btn-${id}`}
+                            key={`delete-btn-${id}`}
                             isIconOnly
                             radius="full"
                             variant="light"
-                            onPress={handleDuplicate}
+                            onPress={handleDelete}
                         >
                             <Icon
-                                key={`duplicate-icon-${id}`}
+                                key={`delete-icon-${id}`}
                                 className="text-default-500"
-                                icon="solar:copy-linear"
+                                icon="solar:trash-bin-trash-linear"
                                 width={22}
                             />
                         </Button>
-                        {handleOpenModal && data?.run !== undefined && (
-                            <Button
-                                key={`modal-btn-${id}`}
-                                isIconOnly
-                                radius="full"
-                                variant="light"
-                                onPress={() => handleOpenModal(true)}
-                            >
-                                <Icon
-                                    key={`view-icon-${id}`}
-                                    className="text-default-500"
-                                    icon="solar:eye-linear"
-                                    width={22}
-                                />
-                            </Button>
-                        )}
-                    </div>
-                </Card>
-            )}
+                    )}
+                    <Button
+                        key={`duplicate-btn-${id}`}
+                        isIconOnly
+                        radius="full"
+                        variant="light"
+                        onPress={handleDuplicate}
+                    >
+                        <Icon
+                            key={`duplicate-icon-${id}`}
+                            className="text-default-500"
+                            icon="solar:copy-linear"
+                            width={22}
+                        />
+                    </Button>
+                    {handleOpenModal && data?.run !== undefined && (
+                        <Button
+                            key={`modal-btn-${id}`}
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onPress={() => handleOpenModal(true)}
+                        >
+                            <Icon
+                                key={`view-icon-${id}`}
+                                className="text-default-500"
+                                icon="solar:eye-linear"
+                                width={22}
+                            />
+                        </Button>
+                    )}
+                </div>
+            </Card>
         </div>
     )
 }

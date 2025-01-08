@@ -36,7 +36,7 @@ function Operator({ handleLayout }) {
                             className="bg-background"
                         >
                             <Icon
-                                className={`${mode === ('pointer' as any) ? 'text-foreground' : 'text-default-600'}`}
+                                className={mode === ('pointer' as any) ? 'text-foreground' : 'text-foreground/60'}
                                 icon={mode === ('pointer' as any) ? 'solar:cursor-bold' : 'solar:cursor-linear'}
                                 width={16}
                             />
@@ -45,7 +45,7 @@ function Operator({ handleLayout }) {
                     <TipPopup title="Pan" shortcuts={['space']}>
                         <Button size="sm" isIconOnly onPress={() => setMode('hand')} className="bg-background">
                             <Icon
-                                className={`${mode === 'hand' ? 'text-foreground' : 'text-default-600'}`}
+                                className={mode === 'hand' ? 'text-foreground' : 'text-foreground/60'}
                                 icon={mode === 'hand' ? 'solar:hand-shake-bold' : 'solar:hand-shake-linear'}
                                 width={16}
                             />
@@ -53,7 +53,7 @@ function Operator({ handleLayout }) {
                     </TipPopup>
                     <TipPopup title="Layout Nodes">
                         <Button size="sm" isIconOnly onPress={handleLayout} className="bg-background">
-                            <Icon className="text-default-600" icon="solar:ruler-angular-linear" width={16} />
+                            <Icon className="text-foreground" icon="solar:ruler-angular-linear" width={16} />
                         </Button>
                     </TipPopup>
                 </ButtonGroup>

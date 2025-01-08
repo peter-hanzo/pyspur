@@ -412,7 +412,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                                                 onClick={handleStopWorkflow}
                                             >
                                                 <Icon
-                                                    className="text-default-500"
+                                                    className="text-foreground/60"
                                                     icon="solar:stop-linear"
                                                     width={22}
                                                 />
@@ -422,7 +422,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                                 ) : (
                                     <NavbarItem className="hidden sm:flex">
                                         <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
-                                            <Icon className="text-default-500" icon="solar:play-linear" width={22} />
+                                            <Icon className="text-foreground/60" icon="solar:play-linear" width={22} />
                                         </Button>
                                     </NavbarItem>
                                 )}
@@ -432,7 +432,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                             <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
                                 <DropdownTrigger>
                                     <Button isIconOnly radius="full" variant="light">
-                                        <Icon className="text-default-500" icon="solar:history-linear" width={22} />
+                                        <Icon className="text-foreground/60" icon="solar:history-linear" width={22} />
                                     </Button>
                                 </DropdownTrigger>
                                 <DropdownMenu>
@@ -468,12 +468,12 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Button isIconOnly radius="full" variant="light" onClick={handleDownloadWorkflow}>
-                                <Icon className="text-default-500" icon="solar:download-linear" width={24} />
+                                <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Button isIconOnly radius="full" variant="light" onClick={handleDeploy}>
-                                <Icon className="text-default-500" icon="solar:cloud-upload-linear" width={24} />
+                                <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
                             </Button>
                         </NavbarItem>
                     </NavbarContent>

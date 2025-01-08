@@ -42,7 +42,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
             const incomingSchemaKeys = incomingEdges.map((edge) => edge.source)
             const maxLabelLength = Math.max(
                 Math.max(...incomingSchemaKeys.map((label) => label.length)) +
-                    Math.max(...outputSchemaKeys.map((label) => label.length)),
+                Math.max(...outputSchemaKeys.map((label) => label.length)),
                 (nodeConfig?.title || '').length / 1.5
             )
 
@@ -122,9 +122,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         type="target"
                         position={Position.Left}
                         id={keyName}
-                        className={`${styles.handle} ${styles.handleLeft} ${
-                            isCollapsed ? styles.collapsedHandleInput : ''
-                        }`}
+                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
+                            }`}
                         isConnectable={!isCollapsed}
                     />
                 </div>
@@ -139,11 +138,11 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                                 autoFocus
                                 defaultValue={keyName}
                                 size="sm"
-                                variant="faded"
+                                variant="flat"
                                 radius="lg"
                                 classNames={{
-                                    input: 'bg-default-100',
-                                    inputWrapper: 'shadow-none',
+                                    input: 'text-default-900',
+                                    inputWrapper: 'shadow-none bg-default-100',
                                 }}
                             />
                         ) : (
@@ -183,7 +182,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                                                             autoFocus
                                                             defaultValue={key}
                                                             size="sm"
-                                                            variant="faded"
+                                                            variant="flat"
                                                             radius="lg"
                                                             onBlur={(e) => {
                                                                 const target = e.target as HTMLInputElement
@@ -212,8 +211,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                                                                 }
                                                             }}
                                                             classNames={{
-                                                                input: 'bg-default-100',
-                                                                inputWrapper: 'shadow-none',
+                                                                input: 'text-default-900',
+                                                                inputWrapper: 'shadow-none bg-default-100',
                                                             }}
                                                         />
                                                     ) : (
@@ -257,9 +256,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         type="source"
                         position={Position.Right}
                         id={nodeConfig?.title || id}
-                        className={`${styles.handle} ${styles.handleRight} ${
-                            isCollapsed ? styles.collapsedHandleOutput : ''
-                        }`}
+                        className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
+                            }`}
                         isConnectable={!isCollapsed}
                     />
                 </div>
@@ -283,7 +281,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         setNewFieldValue(validValue)
                     }}
                     size="sm"
-                    variant="faded"
+                    variant="flat"
                     radius="lg"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -291,8 +289,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         }
                     }}
                     classNames={{
-                        input: 'bg-background',
-                        inputWrapper: 'shadow-none bg-background',
+                        input: 'text-default-900',
+                        inputWrapper: 'shadow-none bg-default-100',
                     }}
                     endContent={
                         <Button
