@@ -736,11 +736,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         showArrow={true}
                         className="max-w-xs"
                     >
-                        <Icon
-                            icon="solar:question-circle-linear"
-                            className="text-default-400 cursor-help"
-                            width={20}
-                        />
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
                     </Tooltip>
                 </div>
                 <div className="mb-2">
@@ -752,15 +748,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             handleInputChange('url_variables', updatedUrlVars)
                         }}
                     >
-                        <SelectItem key="" value="">None</SelectItem>
-                        {incomingSchemaVars.map((variable) => (
+                        {['', ...incomingSchemaVars].map((variable) => (
                             <SelectItem key={variable} value={variable}>
-                                {variable}
+                                {variable || 'None'}
                             </SelectItem>
                         ))}
                     </Select>
                     <p className="text-xs text-default-500 mt-1">
-                        Supports both file URLs and inline data in the format: data:&lt;mime_type&gt;;base64,&lt;encoded_data&gt;
+                        Supports both file URLs and inline data in the format:
+                        data:&lt;mime_type&gt;;base64,&lt;encoded_data&gt;
                     </p>
                 </div>
             </div>
