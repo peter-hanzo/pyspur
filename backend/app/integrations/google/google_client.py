@@ -62,17 +62,14 @@ class GoogleSheetsClient:
 
         :return: A valid Google OAuth2 Credentials object.
         """
-        creds: Credentials
+        creds: Credentials = None # type: ignore
 
         # Load existing credentials from token file if it exists.
         if self.token_path.exists():
             creds = Credentials.from_authorized_user_file(str(self.token_path), self.scopes) # type: ignore
-        else:
-            # Raise an error if credentials file is missing.
-            raise FileNotFoundError(f"Credentials file not found: {self.credentials_path}")
 
         # If there are no valid credentials, or credentials are invalid/expired, handle accordingly.
-        if not creds or not creds.valid:
+        if not creds or not creds.valid: # type: ignore
             if creds and creds.expired and creds.refresh_token: # type: ignore
                 # Refresh the existing token.
                 try:
