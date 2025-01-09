@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 
 import docx2txt
 import pptx
-from backend.app.rag.models.document_schemas import Document, DocumentMetadata
+from .models.document_schemas import Document, DocumentMetadata
 from fastapi import UploadFile
 from loguru import logger
 from PyPDF2 import PdfReader

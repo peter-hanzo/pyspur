@@ -3,8 +3,8 @@ import uuid
 from typing import Dict, List, Optional, Tuple
 
 import tiktoken
-from backend.app.rag.embedder import EmbeddingModels, get_multiple_text_embeddings
-from backend.app.rag.models.document_schemas import (
+from .embedder import EmbeddingModels, get_multiple_text_embeddings
+from .models.document_schemas import (
     Document,
     DocumentChunk,
     DocumentChunkMetadata,

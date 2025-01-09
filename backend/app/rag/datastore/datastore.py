@@ -2,8 +2,8 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from backend.app.rag.chunker import get_document_chunks
-from backend.app.rag.models.document_schemas import (
+from ..chunker import get_document_chunks
+from ..models.document_schemas import (
     Document,
     DocumentChunk,
     DocumentMetadataFilter,

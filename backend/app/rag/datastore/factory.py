@@ -1,6 +1,6 @@
 import os
 
-from backend.app.rag.datastore.datastore import DataStore
+from .datastore import DataStore
 
 
 async def get_datastore(datastore: str) -> DataStore:

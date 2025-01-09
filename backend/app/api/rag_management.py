@@ -1,16 +1,16 @@
-from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks, File, Form
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from backend.app.rag.chunker import ChunkingConfig
-from backend.app.rag.datastore.factory import get_datastore
-from backend.app.rag.datastore.datastore import DataStore
-from backend.app.rag.models.document_schemas import Document, DocumentMetadata
+from ..rag.chunker import ChunkingConfig
+from ..rag.datastore.factory import get_datastore
+from ..rag.datastore.datastore import DataStore
+from ..rag.models.document_schemas import Document, DocumentMetadata
 import mimetypes
-from backend.app.rag.embedder import EmbeddingModels, EmbeddingModelConfig
+from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
 
 
 # Models
