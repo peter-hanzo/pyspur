@@ -16,12 +16,13 @@ import {
   Chip,
   Slider,
   Switch,
+  Alert,
 } from '@nextui-org/react'
 import { useRouter } from 'next/router'
 import { Info, CheckCircle, ArrowLeft, ArrowRight, Upload, File } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
-import { createKnowledgeBase, KnowledgeBaseCreateRequest, getEmbeddingModels, EmbeddingModelConfig } from '@/utils/api'
+import { createKnowledgeBase, KnowledgeBaseCreateRequest, getEmbeddingModels, EmbeddingModelConfig, getVectorStores, VectorStoreConfig, listApiKeys, getApiKey } from '@/utils/api'
 
 interface Step {
   title: string
@@ -151,7 +152,10 @@ const KnowledgeBaseWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [embeddingModels, setEmbeddingModels] = useState<Record<string, EmbeddingModelConfig>>({})
+  const [vectorStores, setVectorStores] = useState<Record<string, VectorStoreConfig>>({})
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [isLoadingStores, setIsLoadingStores] = useState(true)
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadEmbeddingModels = async () => {
@@ -164,7 +168,37 @@ const KnowledgeBaseWizard: React.FC = () => {
         setIsLoadingModels(false)
       }
     }
+
+    const loadVectorStores = async () => {
+      try {
+        const stores = await getVectorStores()
+        setVectorStores(stores)
+      } catch (error) {
+        console.error('Error loading vector stores:', error)
+      } finally {
+        setIsLoadingStores(false)
+      }
+    }
+
+    const loadApiKeys = async () => {
+      try {
+        const keys = await listApiKeys();
+        const keyValues: Record<string, string> = {};
+        for (const key of keys) {
+          const keyData = await getApiKey(key);
+          if (keyData.value) {
+            keyValues[key] = keyData.value;
+          }
+        }
+        setApiKeys(keyValues);
+      } catch (error) {
+        console.error('Error loading API keys:', error);
+      }
+    };
+
     loadEmbeddingModels()
+    loadVectorStores()
+    loadApiKeys()
   }, [])
 
   // Add random name generator function
@@ -445,10 +479,7 @@ const KnowledgeBaseWizard: React.FC = () => {
       case 1:
         return (
           <div className="flex flex-col gap-8">
-            {/* Vision Model Settings */}
             {renderVisionModelSettings()}
-
-            {/* Text Processing Section */}
             <Card className="p-6">
               <div className="space-y-6">
                 <div className="flex items-center gap-2">
@@ -548,200 +579,7 @@ const KnowledgeBaseWizard: React.FC = () => {
                 )}
               </div>
             </Card>
-
-            {/* Embedding & Retrieval Section */}
-            <Card className="p-6">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold">Embedding & Retrieval</h3>
-                  <Tooltip content="Configure how your text will be converted to vector embeddings and searched">
-                    <Info className="w-4 h-4 text-default-400" />
-                  </Tooltip>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Select
-                    label="Embedding Model"
-                    placeholder="Select embedding model"
-                    selectedKeys={[formData.embeddingModel]}
-                    onChange={(e) => handleInputChange('embeddingModel', e.target.value)}
-                    isLoading={isLoadingModels}
-                    classNames={{
-                      trigger: "h-12",
-                    }}
-                  >
-                    {(() => {
-                      // First, group models by provider
-                      const groupedModels = Object.entries(embeddingModels).reduce((groups, [modelId, modelInfo]) => {
-                        const provider = modelInfo.provider;
-                        if (!groups[provider]) {
-                          groups[provider] = [];
-                        }
-                        groups[provider].push({ ...modelInfo, id: modelId });
-                        return groups;
-                      }, {} as Record<string, (EmbeddingModelConfig & { id: string })[]>);
-
-                      // Then, render the sections
-                      return Object.entries(groupedModels).map(([provider, models], index, entries) => (
-                        <SelectSection
-                          key={provider}
-                          title={provider}
-                          showDivider={index < entries.length - 1}
-                        >
-                          {models.map((model) => (
-                            <SelectItem key={model.id} value={model.id} textValue={model.name}>
-                              <div className="flex flex-col">
-                                <span>{model.name}</span>
-                                <span className="text-tiny text-default-400">
-                                  {model.dimensions} dimensions
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectSection>
-                      ));
-                    })()}
-                  </Select>
-
-                  <Select
-                    label="Vector Database"
-                    placeholder="Select vector database"
-                    selectedKeys={[formData.vectorDb]}
-                    onChange={(e) => handleInputChange('vectorDb', e.target.value)}
-                    classNames={{
-                      trigger: "h-12",
-                    }}
-                  >
-                    <SelectItem key="pinecone" textValue="Pinecone">
-                      <div className="flex flex-col">
-                        <span>Pinecone</span>
-                        <span className="text-tiny text-default-400">Production-ready, scalable</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem key="qdrant" textValue="Qdrant">
-                      <div className="flex flex-col">
-                        <span>Qdrant</span>
-                        <span className="text-tiny text-default-400">Open-source, high-performance</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem key="weaviate" textValue="Weaviate">
-                      <div className="flex flex-col">
-                        <span>Weaviate</span>
-                        <span className="text-tiny text-default-400">Multi-modal vector search</span>
-                      </div>
-                    </SelectItem>
-                  </Select>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Search Strategy</span>
-                    <Tooltip content="Choose how documents will be retrieved from your knowledge base">
-                      <Info className="w-4 h-4 text-default-400" />
-                    </Tooltip>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <Card
-                      isPressable
-                      className={`p-4 cursor-pointer ${formData.searchStrategy === 'vector' ? 'border-primary bg-primary/5' : ''}`}
-                      onClick={() => handleInputChange('searchStrategy', 'vector')}
-                    >
-                      <CardBody className="p-0">
-                        <h4 className="font-semibold mb-1">Vector Search</h4>
-                        <p className="text-xs text-default-500">Semantic search using vector similarity</p>
-                      </CardBody>
-                    </Card>
-                    <Card
-                      isPressable
-                      className={`p-4 cursor-pointer ${formData.searchStrategy === 'fulltext' ? 'border-primary bg-primary/5' : ''}`}
-                      onClick={() => handleInputChange('searchStrategy', 'fulltext')}
-                    >
-                      <CardBody className="p-0">
-                        <h4 className="font-semibold mb-1">Full-text Search</h4>
-                        <p className="text-xs text-default-500">Traditional keyword-based search</p>
-                      </CardBody>
-                    </Card>
-                    <Card
-                      isPressable
-                      className={`p-4 cursor-pointer ${formData.searchStrategy === 'hybrid' ? 'border-primary bg-primary/5' : ''}`}
-                      onClick={() => handleInputChange('searchStrategy', 'hybrid')}
-                    >
-                      <CardBody className="p-0">
-                        <h4 className="font-semibold mb-1">Hybrid Search</h4>
-                        <p className="text-xs text-default-500">Combine vector and keyword search</p>
-                      </CardBody>
-                    </Card>
-                  </div>
-                </div>
-
-                {formData.searchStrategy === 'hybrid' && (
-                  <Card className="p-4 bg-default-50">
-                    <CardBody className="p-0 space-y-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Search Weight Balance</span>
-                            <Tooltip content="Balance between semantic and keyword search">
-                              <Info className="w-4 h-4 text-default-400" />
-                            </Tooltip>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Chip color="primary" variant="flat" size="sm">Semantic {formData.semanticWeight}</Chip>
-                            <span className="text-sm text-default-400">/</span>
-                            <Chip color="success" variant="flat" size="sm">Keyword {formData.keywordWeight}</Chip>
-                          </div>
-                        </div>
-                        <Slider
-                          size="sm"
-                          step={10}
-                          value={Number(formData.semanticWeight) * 100}
-                          onChange={handleWeightChange}
-                          classNames={{
-                            base: "max-w-full",
-                            track: "bg-default-500/30",
-                            filler: "bg-gradient-to-r from-primary to-success",
-                            thumb: "transition-all shadow-lg",
-                          }}
-                          aria-label="Semantic-Keyword Weight"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input
-                          type="number"
-                          label="Top K Results"
-                          placeholder="Enter Top K value"
-                          value={formData.topK}
-                          onChange={(e) => handleInputChange('topK', e.target.value)}
-                          min={1}
-                          max={100}
-                          startContent={
-                            <div className="pointer-events-none flex items-center">
-                              <span className="text-default-400 text-small">K</span>
-                            </div>
-                          }
-                        />
-                        <Input
-                          type="number"
-                          label="Score Threshold"
-                          placeholder="Enter threshold"
-                          value={formData.scoreThreshold}
-                          onChange={(e) => handleInputChange('scoreThreshold', e.target.value)}
-                          min={0}
-                          max={1}
-                          step={0.1}
-                          startContent={
-                            <div className="pointer-events-none flex items-center">
-                              <span className="text-default-400 text-small">≥</span>
-                            </div>
-                          }
-                        />
-                      </div>
-                    </CardBody>
-                  </Card>
-                )}
-              </div>
-            </Card>
+            {renderEmbeddingAndRetrievalSection()}
           </div>
         )
       case 2:
@@ -865,6 +703,236 @@ const KnowledgeBaseWizard: React.FC = () => {
       router.push('/rag')
     }
   }
+
+  const renderEmbeddingSection = () => (
+    <Select
+      label="Embedding Model"
+      placeholder="Select embedding model"
+      selectedKeys={[formData.embeddingModel]}
+      onChange={(e) => handleInputChange('embeddingModel', e.target.value)}
+      isLoading={isLoadingModels}
+      classNames={{
+        trigger: "h-12",
+      }}
+    >
+      {(() => {
+        const groupedModels = Object.entries(embeddingModels).reduce((groups, [modelId, modelInfo]) => {
+          const provider = modelInfo.provider;
+          if (!groups[provider]) {
+            groups[provider] = [];
+          }
+          groups[provider].push({ ...modelInfo, id: modelId });
+          return groups;
+        }, {} as Record<string, (EmbeddingModelConfig & { id: string })[]>);
+
+        return Object.entries(groupedModels).map(([provider, models], index, entries) => (
+          <SelectSection
+            key={provider}
+            title={provider}
+            showDivider={index < entries.length - 1}
+          >
+            {models.map((model) => (
+              <SelectItem key={model.id} value={model.id} textValue={model.name}>
+                <div className="flex flex-col">
+                  <span>{model.name}</span>
+                  <span className="text-tiny text-default-400">
+                    {model.dimensions} dimensions
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectSection>
+        ));
+      })()}
+    </Select>
+  );
+
+  const renderVectorStoreSection = () => (
+    <Select
+      label="Vector Database"
+      placeholder="Select vector database"
+      selectedKeys={[formData.vectorDb]}
+      onChange={(e) => handleInputChange('vectorDb', e.target.value)}
+      isLoading={isLoadingStores}
+      classNames={{
+        trigger: "h-12",
+      }}
+    >
+      {Object.entries(vectorStores).map(([storeId, store]) => (
+        <SelectItem key={storeId} textValue={store.name}>
+          <div className="flex flex-col">
+            <span>{store.name}</span>
+            <span className="text-tiny text-default-400">{store.description}</span>
+          </div>
+        </SelectItem>
+      ))}
+    </Select>
+  );
+
+  const renderEmbeddingAndRetrievalSection = () => (
+    <Card className="p-6">
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Embedding & Retrieval</h3>
+          <Tooltip content="Configure how your text will be converted to vector embeddings and searched">
+            <Info className="w-4 h-4 text-default-400" />
+          </Tooltip>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            {renderEmbeddingSection()}
+            {formData.embeddingModel && (
+              <ApiKeyWarning modelInfo={embeddingModels[formData.embeddingModel]} />
+            )}
+          </div>
+          <div className="space-y-2">
+            {renderVectorStoreSection()}
+            {formData.vectorDb && (
+              <ApiKeyWarning storeInfo={vectorStores[formData.vectorDb]} />
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Search Strategy</span>
+            <Tooltip content="Choose how documents will be retrieved from your knowledge base">
+              <Info className="w-4 h-4 text-default-400" />
+            </Tooltip>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <Card
+              isPressable
+              className={`p-4 cursor-pointer ${formData.searchStrategy === 'vector' ? 'border-primary bg-primary/5' : ''}`}
+              onClick={() => handleInputChange('searchStrategy', 'vector')}
+            >
+              <CardBody className="p-0">
+                <h4 className="font-semibold mb-1">Vector Search</h4>
+                <p className="text-xs text-default-500">Semantic search using vector similarity</p>
+              </CardBody>
+            </Card>
+            <Card
+              isPressable
+              className={`p-4 cursor-pointer ${formData.searchStrategy === 'fulltext' ? 'border-primary bg-primary/5' : ''}`}
+              onClick={() => handleInputChange('searchStrategy', 'fulltext')}
+            >
+              <CardBody className="p-0">
+                <h4 className="font-semibold mb-1">Full-text Search</h4>
+                <p className="text-xs text-default-500">Traditional keyword-based search</p>
+              </CardBody>
+            </Card>
+            <Card
+              isPressable
+              className={`p-4 cursor-pointer ${formData.searchStrategy === 'hybrid' ? 'border-primary bg-primary/5' : ''}`}
+              onClick={() => handleInputChange('searchStrategy', 'hybrid')}
+            >
+              <CardBody className="p-0">
+                <h4 className="font-semibold mb-1">Hybrid Search</h4>
+                <p className="text-xs text-default-500">Combine vector and keyword search</p>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+
+        {formData.searchStrategy === 'hybrid' && (
+          <Card className="p-4 bg-default-50">
+            <CardBody className="p-0 space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Search Weight Balance</span>
+                    <Tooltip content="Balance between semantic and keyword search">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Chip color="primary" variant="flat" size="sm">Semantic {formData.semanticWeight}</Chip>
+                    <span className="text-sm text-default-400">/</span>
+                    <Chip color="success" variant="flat" size="sm">Keyword {formData.keywordWeight}</Chip>
+                  </div>
+                </div>
+                <Slider
+                  size="sm"
+                  step={10}
+                  value={Number(formData.semanticWeight) * 100}
+                  onChange={handleWeightChange}
+                  classNames={{
+                    base: "max-w-full",
+                    track: "bg-default-500/30",
+                    filler: "bg-gradient-to-r from-primary to-success",
+                    thumb: "transition-all shadow-lg",
+                  }}
+                  aria-label="Semantic-Keyword Weight"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  type="number"
+                  label="Top K Results"
+                  placeholder="Enter Top K value"
+                  value={formData.topK}
+                  onChange={(e) => handleInputChange('topK', e.target.value)}
+                  min={1}
+                  max={100}
+                  startContent={
+                    <div className="pointer-events-none flex items-center">
+                      <span className="text-default-400 text-small">K</span>
+                    </div>
+                  }
+                />
+                <Input
+                  type="number"
+                  label="Score Threshold"
+                  placeholder="Enter threshold"
+                  value={formData.scoreThreshold}
+                  onChange={(e) => handleInputChange('scoreThreshold', e.target.value)}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  startContent={
+                    <div className="pointer-events-none flex items-center">
+                      <span className="text-default-400 text-small">≥</span>
+                    </div>
+                  }
+                />
+              </div>
+            </CardBody>
+          </Card>
+        )}
+      </div>
+    </Card>
+  );
+
+  const ApiKeyWarning = ({ modelInfo, storeInfo }: { modelInfo?: EmbeddingModelConfig, storeInfo?: VectorStoreConfig }) => {
+    let envVar = '';
+    let serviceName = '';
+
+    if (modelInfo) {
+      envVar = `${modelInfo.provider.toUpperCase()}_API_KEY`;
+      serviceName = modelInfo.provider;
+    } else if (storeInfo && storeInfo.api_key_env_var) {
+      envVar = storeInfo.api_key_env_var;
+      serviceName = storeInfo.name;
+    } else {
+      return null;
+    }
+
+    if (!apiKeys[envVar]) {
+      return (
+        <Alert
+          className="mt-2"
+          color="warning"
+          title={`Missing API Key for ${serviceName}`}
+        >
+          Please set the {envVar} in Settings > API Keys before using this service.
+        </Alert>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="max-w-[1200px] mx-auto p-6 min-h-screen bg-gradient-to-b from-background to-default-50/50">

@@ -11,10 +11,27 @@ router = APIRouter()
 
 
 MODEL_PROVIDER_KEYS = [
+    # LLM Providers
     {"name": "OPENAI_API_KEY", "value": ""},
+    {"name": "AZURE_OPENAI_API_KEY", "value": ""},
     {"name": "ANTHROPIC_API_KEY", "value": ""},
     {"name": "GEMINI_API_KEY", "value": ""},
     {"name": "DEEPSEEK_API_KEY", "value": ""},
+
+    # Embedding Model Providers
+    {"name": "COHERE_API_KEY", "value": ""},
+    {"name": "VOYAGE_API_KEY", "value": ""},
+    {"name": "MISTRAL_API_KEY", "value": ""},
+
+    # Vector Store Providers
+    {"name": "PINECONE_API_KEY", "value": ""},
+    {"name": "WEAVIATE_API_KEY", "value": ""},
+    {"name": "ZILLIZ_API_KEY", "value": ""},
+    {"name": "REDIS_API_KEY", "value": ""},
+    {"name": "QDRANT_API_KEY", "value": ""},
+    {"name": "AZURE_SEARCH_API_KEY", "value": ""},
+    {"name": "ELASTICSEARCH_API_KEY", "value": ""},
+    {"name": "MONGODB_API_KEY", "value": ""},
 ]
 
 

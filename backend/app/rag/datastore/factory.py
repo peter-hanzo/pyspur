@@ -1,10 +1,92 @@
 import os
+from typing import Dict, Optional
+from pydantic import BaseModel
 
 from .datastore import DataStore
 
 
+class VectorStoreConfig(BaseModel):
+    id: str
+    name: str
+    description: str
+    api_key_env_var: Optional[str] = None
+
+
+def get_vector_stores() -> Dict[str, VectorStoreConfig]:
+    """Get all available vector stores and their configurations."""
+    return {
+        "chroma": VectorStoreConfig(
+            id="chroma",
+            name="Chroma",
+            description="Open-source embedding database",
+        ),
+        "pinecone": VectorStoreConfig(
+            id="pinecone",
+            name="Pinecone",
+            description="Production-ready vector database",
+            api_key_env_var="PINECONE_API_KEY",
+        ),
+        "weaviate": VectorStoreConfig(
+            id="weaviate",
+            name="Weaviate",
+            description="Multi-modal vector search engine",
+            api_key_env_var="WEAVIATE_API_KEY",
+        ),
+        "milvus": VectorStoreConfig(
+            id="milvus",
+            name="Milvus",
+            description="Open-source vector database",
+        ),
+        "zilliz": VectorStoreConfig(
+            id="zilliz",
+            name="Zilliz",
+            description="Cloud-native vector database",
+            api_key_env_var="ZILLIZ_API_KEY",
+        ),
+        "redis": VectorStoreConfig(
+            id="redis",
+            name="Redis",
+            description="In-memory vector database",
+            api_key_env_var="REDIS_API_KEY",
+        ),
+        "qdrant": VectorStoreConfig(
+            id="qdrant",
+            name="Qdrant",
+            description="Vector database for production",
+            api_key_env_var="QDRANT_API_KEY",
+        ),
+        "azuresearch": VectorStoreConfig(
+            id="azuresearch",
+            name="Azure Cognitive Search",
+            description="Azure's vector search service",
+            api_key_env_var="AZURE_SEARCH_API_KEY",
+        ),
+        "elasticsearch": VectorStoreConfig(
+            id="elasticsearch",
+            name="Elasticsearch",
+            description="Search engine with vector support",
+            api_key_env_var="ELASTICSEARCH_API_KEY",
+        ),
+        "mongodb": VectorStoreConfig(
+            id="mongodb",
+            name="MongoDB Atlas",
+            description="Document database with vector search",
+            api_key_env_var="MONGODB_API_KEY",
+        ),
+    }
+
+
 async def get_datastore(datastore: str) -> DataStore:
+    """Initialize and return a DataStore instance for the specified vector database."""
     assert datastore is not None
+
+    # Validate the datastore is supported
+    vector_stores = get_vector_stores()
+    if datastore not in vector_stores:
+        raise ValueError(
+            f"Unsupported vector database: {datastore}. "
+            f"Try one of the following: {', '.join(vector_stores.keys())}"
+        )
 
     match datastore:
         case "chroma":
@@ -101,5 +183,5 @@ async def get_datastore(datastore: str) -> DataStore:
         case _:
             raise ValueError(
                 f"Unsupported vector database: {datastore}. "
-                f"Try one of the following: llama, elasticsearch, pinecone, weaviate, milvus, zilliz, redis, azuresearch, or qdrant"
+                f"Try one of the following: {', '.join(vector_stores.keys())}"
             )

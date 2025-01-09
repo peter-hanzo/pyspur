@@ -18,6 +18,8 @@ import {
   extendVariants,
   Switch,
   cn,
+  Divider,
+  ScrollShadow,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from '@/utils/api'
@@ -153,39 +155,114 @@ const APIKeys = (props: CardProps): React.ReactElement => {
     });
   };
 
+  // Group API keys by category
+  const groupedKeys = keys.reduce((acc, key) => {
+    if (key.name.includes('OPENAI') ||
+        key.name.includes('AZURE_OPENAI') ||
+        key.name.includes('ANTHROPIC') ||
+        key.name.includes('GEMINI') ||
+        key.name.includes('DEEPSEEK') ||
+        key.name.includes('COHERE') ||
+        key.name.includes('VOYAGE') ||
+        key.name.includes('MISTRAL')) {
+      acc.ai.push(key);
+    } else {
+      acc.vectorstore.push(key);
+    }
+    return acc;
+  }, { ai: [], vectorstore: [] } as Record<string, typeof keys>);
+
   return (
-    <Card className="max-w-xl p-2" {...props}>
-      <CardBody className="grid grid-cols-1 gap-4">
-        {keys.map(({ name, value }) => (
-          <Input
-            key={name}
-            label={name}
-            labelPlacement="outside"
-            placeholder={`Enter value`}
-            name={name}
-            value={value}
-            onFocus={() =>
-              setKeys((prevKeys) =>
-                prevKeys.map((key) => (key.name === name ? { ...key, value: '' } : key))
-              )
-            }
-            onChange={handleInputChange}
-            endContent={
-              <Button isIconOnly variant="light" onPress={() => handleDeleteKey(name)}>
-                <Icon icon="solar:trash-bin-trash-bold" className="text-danger" width={20} />
-              </Button>
-            }
-          />
-        ))}
+    <Card {...props}>
+      <CardBody className="gap-4 p-0">
+        {/* AI Models Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Icon icon="solar:brain-bold" className="text-primary" width={20} />
+            <div>
+              <h4 className="text-medium font-medium">AI Models</h4>
+              <p className="text-tiny text-default-400">API keys for Language and Embedding Models</p>
+            </div>
+          </div>
+          <ScrollShadow className="max-h-[150px]">
+            <div className="space-y-3 pr-1">
+              {groupedKeys.ai.map(({ name, value }) => (
+                <Input
+                  key={name}
+                  label={name}
+                  placeholder="Enter value"
+                  name={name}
+                  value={value}
+                  size="sm"
+                  variant="bordered"
+                  isClearable
+                  onClear={() => handleDeleteKey(name)}
+                  onFocus={() =>
+                    setKeys((prevKeys) =>
+                      prevKeys.map((key) => (key.name === name ? { ...key, value: '' } : key))
+                    )
+                  }
+                  onChange={handleInputChange}
+                />
+              ))}
+            </div>
+          </ScrollShadow>
+        </div>
+
+        <Divider />
+
+        {/* Vector Store Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Icon icon="solar:database-bold" className="text-primary" width={20} />
+            <div>
+              <h4 className="text-medium font-medium">Vector Databases</h4>
+              <p className="text-tiny text-default-400">API keys for vector databases</p>
+            </div>
+          </div>
+          <ScrollShadow className="max-h-[150px]">
+            <div className="space-y-3 pr-1">
+              {groupedKeys.vectorstore.map(({ name, value }) => (
+                <Input
+                  key={name}
+                  label={name}
+                  placeholder="Enter value"
+                  name={name}
+                  value={value}
+                  size="sm"
+                  variant="bordered"
+                  isClearable
+                  onClear={() => handleDeleteKey(name)}
+                  onFocus={() =>
+                    setKeys((prevKeys) =>
+                      prevKeys.map((key) => (key.name === name ? { ...key, value: '' } : key))
+                    )
+                  }
+                  onChange={handleInputChange}
+                />
+              ))}
+            </div>
+          </ScrollShadow>
+        </div>
       </CardBody>
       {hasChanges() && (
-        <CardFooter className="flex justify-between">
-          <Button onPress={saveApiKeys} className="bg-primary text-white">
-            Save API Keys
-          </Button>
-          <Button onPress={() => setKeys(originalKeys)} className="bg-secondary text-primary">
-            Cancel
-          </Button>
+        <CardFooter className="px-0 pt-4">
+          <div className="flex gap-2 ml-auto">
+            <Button
+              variant="light"
+              onPress={() => setKeys(originalKeys)}
+              startContent={<Icon icon="solar:close-circle-bold" width={20} />}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              onPress={saveApiKeys}
+              startContent={<Icon icon="solar:disk-bold" width={20} />}
+            >
+              Save Changes
+            </Button>
+          </div>
         </CardFooter>
       )}
     </Card>
@@ -203,55 +280,62 @@ const SettingsModal = (props: CardProps): JSX.Element => {
         <Icon className="text-default-500" icon="solar:settings-linear" width={24} />
       </Button>
 
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        size="2xl"
+        scrollBehavior="inside"
+        classNames={{
+          base: "max-h-[90vh]",
+          body: "p-0",
+        }}
+      >
         <ModalContent>
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">Settings</ModalHeader>
               <ModalBody>
-                <Card {...props}>
-                  <Tabs
-                    classNames={{
-                      tabList: 'mx-4 mt-6 text-medium',
-                      tabContent: 'text-small',
-                    }}
-                    size="lg"
+                <Tabs
+                  classNames={{
+                    tabList: "mx-4 mt-2",
+                    panel: "px-4 py-2",
+                    cursor: "bg-primary/20",
+                    tab: "max-w-fit px-4 h-10 data-[selected=true]:text-primary data-[selected=true]:font-medium",
+                    tabContent: "group-data-[selected=true]:text-primary",
+                  }}
+                >
+                  <Tab
+                    key="appearance"
+                    title={
+                      <div className="flex items-center gap-2">
+                        <Icon icon="solar:palette-bold" width={20} />
+                        <span>Appearance</span>
+                      </div>
+                    }
                   >
-                    <Tab
-                      key="appearance"
-                      textValue="Appearance"
-                      title={
-                        <div className="flex items-center gap-1.5">
-                          <Icon icon="solar:palette-bold" width={20} />
-                          <p>Appearance</p>
-                        </div>
-                      }
-                    >
-                      <div className="p-4">
+                    <Card className="border-none shadow-none bg-transparent">
+                      <CardBody>
                         <SwitchCell
                           label="Dark Mode"
                           description="Toggle between light and dark theme"
                           isSelected={theme === 'dark'}
-                          onValueChange={(isSelected) =>
-                            setTheme(isSelected ? 'dark' : 'light')
-                          }
+                          onValueChange={(isSelected) => setTheme(isSelected ? 'dark' : 'light')}
                         />
+                      </CardBody>
+                    </Card>
+                  </Tab>
+                  <Tab
+                    key="api-keys"
+                    title={
+                      <div className="flex items-center gap-2">
+                        <Icon icon="solar:key-minimalistic-bold" width={20} />
+                        <span>API Keys</span>
                       </div>
-                    </Tab>
-                    <Tab
-                      key="api-keys"
-                      textValue="API Keys"
-                      title={
-                        <div className="flex items-center gap-1.5">
-                          <Icon icon="solar:user-id-bold" width={20} />
-                          <p>API Keys</p>
-                        </div>
-                      }
-                    >
-                      <APIKeys className="p-2 shadow-none" />
-                    </Tab>
-                  </Tabs>
-                </Card>
+                    }
+                  >
+                    <APIKeys className="border-none shadow-none bg-transparent" />
+                  </Tab>
+                </Tabs>
               </ModalBody>
             </>
           )}

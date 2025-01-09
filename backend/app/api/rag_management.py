@@ -1,16 +1,21 @@
 from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks, File, Form
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-from ..rag.datastore.factory import get_datastore
+from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata
 import mimetypes
-from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
+from ..rag.embedder import (
+    EmbeddingModels,
+    EmbeddingModelConfig,
+    EmbeddingProvider,
+    CohereEncodingFormat,
+)
 
 
 # Models
@@ -192,26 +197,12 @@ async def create_kb(
         kb_config = KnowledgeBaseCreate(**metadata_dict)
 
         # Validate vector_db is supported
-        if kb_config.embedding.vector_db not in [
-            "chroma",
-            "llama",
-            "pinecone",
-            "weaviate",
-            "milvus",
-            "zilliz",
-            "redis",
-            "azurecosmosdb",
-            "qdrant",
-            "azuresearch",
-            "supabase",
-            "postgres",
-            "analyticdb",
-            "elasticsearch",
-            "mongodb",
-        ]:
+        vector_stores = get_vector_stores()
+        if kb_config.embedding.vector_db not in vector_stores:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported vector database: {kb_config.embedding.vector_db}",
+                detail=f"Unsupported vector database: {kb_config.embedding.vector_db}. "
+                f"Try one of the following: {', '.join(vector_stores.keys())}"
             )
 
         # Generate unique ID
@@ -305,5 +296,14 @@ async def get_embedding_models():
             if model_info:
                 models[model.value] = model_info
         return models
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vector_stores/", response_model=Dict[str, VectorStoreConfig])
+async def get_vector_stores_endpoint():
+    """Get all available vector stores and their configurations."""
+    try:
+        return get_vector_stores()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

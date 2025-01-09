@@ -501,6 +501,15 @@ export interface EmbeddingModelConfig {
   supported_encoding_formats?: string[];
 }
 
+// Vector Store Types
+export interface VectorStoreConfig {
+  id: string;
+  name: string;
+  description: string;
+  requires_api_key: boolean;
+  api_key_env_var?: string;
+}
+
 // RAG Management Functions
 export const createKnowledgeBase = async (data: KnowledgeBaseCreateRequest): Promise<KnowledgeBaseResponse> => {
   try {
@@ -592,6 +601,16 @@ export const getEmbeddingModels = async (): Promise<Record<string, EmbeddingMode
     return response.data;
   } catch (error) {
     console.error('Error fetching embedding models:', error);
+    throw error;
+  }
+};
+
+export const getVectorStores = async (): Promise<Record<string, VectorStoreConfig>> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/vector_stores/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vector stores:', error);
     throw error;
   }
 };
