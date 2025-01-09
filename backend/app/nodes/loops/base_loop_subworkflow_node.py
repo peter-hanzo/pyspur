@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Any, Dict, List
 from pydantic import BaseModel, create_model
 
@@ -47,9 +48,10 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
             else:
                 self.loop_outputs[node_id].append(node_outputs)
 
+    @abstractmethod
     async def stopping_condition(self, input: Dict[str, Any]) -> bool:
-        """Default stopping condition - override in subclasses"""
-        return self.iteration >= 3
+        """Determine whether to stop the loop based on the current input"""
+        pass
 
     async def run_iteration(self, input: Dict[str, Any]) -> Dict[str, Any]:
         """Run a single iteration of the loop subworkflow"""
@@ -101,84 +103,5 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
             current_input.update(iteration_output)
             self.iteration += 1
 
-        print(f"Loop outputs: {self.loop_outputs}")
         # Return final state as BaseModel
         return self.output_model.model_validate(current_input)  # type: ignore
-
-
-if __name__ == "__main__":
-    from ...schemas.workflow_schemas import (
-        WorkflowNodeSchema,
-        WorkflowLinkSchema,
-    )
-    import asyncio
-    from pprint import pprint
-
-    async def main():
-        node = BaseLoopSubworkflowNode(
-            name="test_loop",
-            config=BaseLoopSubworkflowNodeConfig(
-                loop_subworkflow=LoopSubworkflowDefinitionSchema(
-                    nodes=[
-                        WorkflowNodeSchema(
-                            id="loop_input",
-                            node_type="InputNode",
-                            config={
-                                "output_schema": {
-                                    "count": "int",
-                                    "loop_history": "dict",
-                                },
-                                "enforce_schema": False,
-                            },
-                        ),
-                        WorkflowNodeSchema(
-                            id="increment",
-                            node_type="PythonFuncNode",
-                            config={
-                                "code": """
-previous_outputs = input_model.loop_input.loop_history.get('increment', [])
-running_total = sum(output['count'] for output in previous_outputs) if previous_outputs else 0  
-running_total += input_model.loop_input.count + 1
-return {
-    'count': input_model.loop_input.count + 1,
-    'running_total': running_total
-}
-""",
-                                "output_schema": {
-                                    "count": "int",
-                                    "running_total": "int",
-                                },
-                            },
-                        ),
-                        WorkflowNodeSchema(
-                            id="loop_output",
-                            node_type="OutputNode",
-                            config={
-                                "output_map": {"count": "increment.count"},
-                                "output_schema": {"count": "int"},
-                            },
-                        ),
-                    ],
-                    links=[
-                        WorkflowLinkSchema(
-                            source_id="loop_input",
-                            target_id="increment",
-                        ),
-                        WorkflowLinkSchema(
-                            source_id="increment",
-                            target_id="loop_output",
-                        ),
-                    ],
-                ),
-            ),
-        )
-
-        class TestInput(BaseNodeInput):
-            count: int = 0
-
-        input_data = TestInput()
-        output = await node(input_data)
-        pprint(output)
-        pprint(node.subworkflow_output)
-
-    asyncio.run(main())
