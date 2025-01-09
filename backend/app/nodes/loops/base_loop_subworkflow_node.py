@@ -36,6 +36,12 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
     def _update_loop_outputs(self, iteration_output: Dict[str, Dict[str, Any]]) -> None:
         """Update the loop_outputs dictionary with the current iteration's output"""
         for node_id, node_outputs in iteration_output.items():
+            # Skip storing the special loop_state field
+            if "loop_state" in node_outputs:
+                node_outputs = {
+                    k: v for k, v in node_outputs.items() if k != "loop_state"
+                }
+
             if node_id not in self.loop_outputs:
                 self.loop_outputs[node_id] = [node_outputs]
             else:
@@ -49,11 +55,15 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
         """Run a single iteration of the loop subworkflow"""
         self.subworkflow = self.config.loop_subworkflow
         assert self.subworkflow is not None
+
+        # Inject loop outputs into the input
+        iteration_input = {**input, "loop_state": self.loop_outputs}
+
         # Execute the subworkflow
         workflow_executor = WorkflowExecutor(
             workflow=self.subworkflow, context=self.context
         )
-        outputs = await workflow_executor.run(input)
+        outputs = await workflow_executor.run(iteration_input)
 
         # Convert outputs to dict format
         iteration_outputs = {
@@ -114,7 +124,10 @@ if __name__ == "__main__":
                             id="loop_input",
                             node_type="InputNode",
                             config={
-                                "output_schema": {"count": "int"},
+                                "output_schema": {
+                                    "count": "int",
+                                    "loop_state": "dict",
+                                },
                                 "enforce_schema": False,
                             },
                         ),
@@ -122,8 +135,19 @@ if __name__ == "__main__":
                             id="increment",
                             node_type="PythonFuncNode",
                             config={
-                                "code": "return {'count': input_model.loop_input.count + 1}",
-                                "output_schema": {"count": "int"},
+                                "code": """
+previous_outputs = input_model.loop_input.loop_state.get('increment', [])
+running_total = sum(output['count'] for output in previous_outputs) if previous_outputs else 0  
+running_total += input_model.loop_input.count + 1
+return {
+    'count': input_model.loop_input.count + 1,
+    'running_total': running_total
+}
+""",
+                                "output_schema": {
+                                    "count": "int",
+                                    "running_total": "int",
+                                },
                             },
                         ),
                         WorkflowNodeSchema(
