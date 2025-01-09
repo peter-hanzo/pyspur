@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   Card,
   CardBody,
@@ -14,12 +14,13 @@ import {
   Tooltip,
   Chip,
   Slider,
+  Switch,
 } from '@nextui-org/react'
 import { useRouter } from 'next/router'
 import { Info, CheckCircle, ArrowLeft, ArrowRight, Upload, File } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
-import { createKnowledgeBase, KnowledgeBaseCreateRequest } from '@/utils/api'
+import { createKnowledgeBase, KnowledgeBaseCreateRequest, getEmbeddingModels, EmbeddingModelConfig } from '@/utils/api'
 
 interface Step {
   title: string
@@ -148,6 +149,22 @@ const KnowledgeBaseWizard: React.FC = () => {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [embeddingModels, setEmbeddingModels] = useState<Record<string, EmbeddingModelConfig>>({})
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
+
+  useEffect(() => {
+    const loadEmbeddingModels = async () => {
+      try {
+        const models = await getEmbeddingModels()
+        setEmbeddingModels(models)
+      } catch (error) {
+        console.error('Error loading embedding models:', error)
+      } finally {
+        setIsLoadingModels(false)
+      }
+    }
+    loadEmbeddingModels()
+  }, [])
 
   // Add random name generator function
   const generateRandomName = () => {
@@ -167,7 +184,9 @@ const KnowledgeBaseWizard: React.FC = () => {
     syncTool: '',
     chunkSize: '1000',
     overlap: '200',
-    parsingStrategy: 'auto',
+    useVisionModel: false,
+    visionModel: 'gpt-4o-mini',
+    visionProvider: 'openai',
     embeddingModel: 'openai',
     vectorDb: 'pinecone',
     searchStrategy: 'vector',
@@ -176,6 +195,7 @@ const KnowledgeBaseWizard: React.FC = () => {
     topK: '2',
     scoreThreshold: '0.7',
     chunkingMode: 'automatic',
+    parsingStrategy: 'auto',
   })
 
   const [steps, setSteps] = useState<Step[]>([
@@ -185,14 +205,9 @@ const KnowledgeBaseWizard: React.FC = () => {
       isCompleted: Boolean(formData.name) && (formData.dataSource === 'sync' ? Boolean(formData.syncTool) : uploadedFiles.length > 0),
     },
     {
-      title: 'Text Processing',
-      description: 'Configure document parsing and chunking',
-      isCompleted: Boolean(formData.parsingStrategy && formData.chunkSize),
-    },
-    {
-      title: 'Embedding & Retrieval',
-      description: 'Set up embedding and search configuration',
-      isCompleted: Boolean(formData.embeddingModel && formData.vectorDb && formData.searchStrategy),
+      title: 'Configuration',
+      description: 'Configure processing and embedding settings',
+      isCompleted: Boolean(formData.chunkSize && formData.embeddingModel && formData.vectorDb && formData.searchStrategy),
     },
     {
       title: 'Execution',
@@ -209,17 +224,12 @@ const KnowledgeBaseWizard: React.FC = () => {
             ...step,
             isCompleted: Boolean(currentFormData.name) && (currentFormData.dataSource === 'sync' ? Boolean(currentFormData.syncTool) : currentFiles.length > 0),
           }
-        case 1: // Text Processing
+        case 1: // Configuration
           return {
             ...step,
-            isCompleted: Boolean(currentFormData.parsingStrategy && currentFormData.chunkSize),
+            isCompleted: Boolean(currentFormData.chunkSize && currentFormData.embeddingModel && currentFormData.vectorDb && currentFormData.searchStrategy),
           }
-        case 2: // Embedding & Retrieval
-          return {
-            ...step,
-            isCompleted: Boolean(currentFormData.embeddingModel && currentFormData.vectorDb && currentFormData.searchStrategy),
-          }
-        case 3: // Execution
+        case 2: // Execution
           return {
             ...step,
             isCompleted: false,
@@ -230,7 +240,7 @@ const KnowledgeBaseWizard: React.FC = () => {
     }));
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean | number) => {
     const newFormData = {
       ...formData,
       [field]: value,
@@ -269,28 +279,57 @@ const KnowledgeBaseWizard: React.FC = () => {
     updateStepsCompletion(newFormData, uploadedFiles);
   }
 
-  const parsingStrategies = [
-    {
-      key: "auto",
-      label: "Automatic Detection",
-      description: "Automatically detect file type and apply appropriate parser"
-    },
-    {
-      key: "markdown",
-      label: "Markdown",
-      description: "Parse Markdown files with proper heading structure"
-    },
-    {
-      key: "pdf",
-      label: "PDF",
-      description: "Extract text and maintain document structure"
-    },
-    {
-      key: "html",
-      label: "HTML",
-      description: "Process HTML content with semantic structure"
-    }
+  const visionProviders = [
+    { key: "openai", label: "OpenAI GPT-4V", model: "gpt-4o-mini", envKey: "OPENAI_API_KEY" },
+    { key: "anthropic", label: "Anthropic Claude 3", model: "claude-3-opus-20240229", envKey: "ANTHROPIC_API_KEY" },
+    { key: "gemini", label: "Google Gemini", model: "gemini/gpt-4o-mini", envKey: "GEMINI_API_KEY" },
   ];
+
+  const renderVisionModelSettings = () => {
+    // Show vision model settings if there are any PDF files
+    if (uploadedFiles.some(f => f.name.toLowerCase().endsWith('.pdf'))) {
+      return (
+        <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+          <div className="flex items-center gap-2">
+            <Switch
+              isSelected={formData.useVisionModel}
+              onValueChange={(value) => handleInputChange('useVisionModel', value)}
+              size="sm"
+            >
+              Enable Vision Model for PDF Processing
+            </Switch>
+            <Tooltip content="Use AI vision models to better understand document layout and extract text">
+              <Info className="w-4 h-4 text-default-400" />
+            </Tooltip>
+          </div>
+
+          {formData.useVisionModel && (
+            <div className="space-y-4">
+              <Select
+                label="Vision Model Provider"
+                placeholder="Select vision model provider"
+                selectedKeys={[formData.visionProvider]}
+                onSelectionChange={(keys) => {
+                  const provider = Array.from(keys)[0].toString();
+                  const model = visionProviders.find(p => p.key === provider)?.model || 'gpt-4o-mini';
+                  handleInputChange('visionProvider', provider);
+                  handleInputChange('visionModel', model);
+                }}
+                className="max-w-md"
+              >
+                {visionProviders.map((provider) => (
+                  <SelectItem key={provider.key} value={provider.key}>
+                    {provider.label}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
 
   const handleFilesChange = (newFiles: File[]) => {
     setUploadedFiles(newFiles);
@@ -404,359 +443,286 @@ const KnowledgeBaseWizard: React.FC = () => {
         )
       case 1:
         return (
-          <div className="flex flex-col gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Parsing Configuration</span>
-                <Tooltip content="Configure how your documents will be processed and split into chunks">
-                  <Info className="w-4 h-4 text-default-400" />
-                </Tooltip>
-              </div>
-              <Select
-                label="Parsing Strategy"
-                placeholder="Select parsing strategy"
-                selectedKeys={[formData.parsingStrategy]}
-                onSelectionChange={(keys) => handleInputChange('parsingStrategy', Array.from(keys)[0].toString())}
-                items={parsingStrategies}
-                classNames={{
-                  trigger: "h-12",
-                }}
-              >
-                {(strategy) => (
-                  <SelectItem key={strategy.key} textValue={strategy.label}>
-                    <div className="flex flex-col">
-                      <span>{strategy.label}</span>
-                      <span className="text-tiny text-default-400">{strategy.description}</span>
-                    </div>
-                  </SelectItem>
-                )}
-              </Select>
-            </div>
+          <div className="flex flex-col gap-8">
+            {/* Vision Model Settings */}
+            {renderVisionModelSettings()}
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Chunking Mode</span>
-                <Tooltip content="Choose between automatic or manual configuration of chunk size and overlap">
-                  <Info className="w-4 h-4 text-default-400" />
-                </Tooltip>
-              </div>
-              <RadioGroup
-                value={formData.chunkingMode}
-                onValueChange={(value) => handleInputChange('chunkingMode', value)}
-                orientation="horizontal"
-                classNames={{
-                  wrapper: "gap-4",
-                }}
-              >
-                <Radio
-                  value="automatic"
-                  description="Let the system determine optimal chunk size and overlap"
-                >
-                  Automatic
-                </Radio>
-                <Radio
-                  value="manual"
-                  description="Manually configure chunk size and overlap"
-                >
-                  Manual
-                </Radio>
-              </RadioGroup>
-            </div>
-
-            {formData.chunkingMode === 'manual' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Chunk Size</span>
-                      <Tooltip content="Number of tokens per chunk. Larger chunks provide more context but may be less precise">
-                        <Info className="w-4 h-4 text-default-400" />
-                      </Tooltip>
-                    </div>
-                    <span className="text-sm text-default-500">{formData.chunkSize} tokens</span>
-                  </div>
-                  <div className="px-3">
-                    <Slider
-                      size="sm"
-                      step={10}
-                      minValue={100}
-                      maxValue={2000}
-                      value={Number(formData.chunkSize)}
-                      onChange={handleChunkSizeChange}
-                      classNames={{
-                        base: "max-w-full",
-                        track: "bg-default-500/30",
-                        filler: "bg-primary",
-                        thumb: "transition-all shadow-lg",
-                      }}
-                      marks={[
-                        {
-                          value: 500,
-                          label: "500",
-                        },
-                        {
-                          value: 1000,
-                          label: "1000",
-                        },
-                        {
-                          value: 1500,
-                          label: "1500",
-                        },
-                      ]}
-                      aria-label="Chunk Size"
-                    />
-                  </div>
+            {/* Text Processing Section */}
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">Text Processing</h3>
+                  <Tooltip content="Configure how your documents will be processed and split into chunks">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Chunk Overlap</span>
-                      <Tooltip content="Number of overlapping tokens between chunks to maintain context">
-                        <Info className="w-4 h-4 text-default-400" />
-                      </Tooltip>
-                    </div>
-                    <span className="text-sm text-default-500">{formData.overlap} tokens</span>
-                  </div>
-                  <div className="px-3">
-                    <Slider
-                      size="sm"
-                      step={10}
-                      minValue={0}
-                      maxValue={500}
-                      value={Number(formData.overlap)}
-                      onChange={handleOverlapChange}
-                      classNames={{
-                        base: "max-w-full",
-                        track: "bg-default-500/30",
-                        filler: "bg-primary",
-                        thumb: "transition-all shadow-lg",
-                      }}
-                      marks={[
-                        {
-                          value: 100,
-                          label: "100",
-                        },
-                        {
-                          value: 200,
-                          label: "200",
-                        },
-                        {
-                          value: 300,
-                          label: "300",
-                        },
-                      ]}
-                      aria-label="Chunk Overlap"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      case 2:
-        return (
-          <div className="flex flex-col gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Embedding Configuration</span>
-                <Tooltip content="Configure how your text will be converted to vector embeddings">
-                  <Info className="w-4 h-4 text-default-400" />
-                </Tooltip>
-              </div>
-              <Select
-                label="Embedding Model"
-                placeholder="Select embedding model"
-                value={formData.embeddingModel}
-                onChange={(e) => handleInputChange('embeddingModel', e.target.value)}
-                classNames={{
-                  trigger: "h-12",
-                }}
-              >
-                <SelectItem key="openai" textValue="OpenAI Ada">
-                  <div className="flex flex-col">
-                    <span>OpenAI Ada</span>
-                    <span className="text-tiny text-default-400">Best overall performance, hosted solution</span>
-                  </div>
-                </SelectItem>
-                <SelectItem key="cohere" textValue="Cohere">
-                  <div className="flex flex-col">
-                    <span>Cohere</span>
-                    <span className="text-tiny text-default-400">Good multilingual support</span>
-                  </div>
-                </SelectItem>
-                <SelectItem key="local" textValue="Local Model">
-                  <div className="flex flex-col">
-                    <span>Local Model</span>
-                    <span className="text-tiny text-default-400">Run entirely on your infrastructure</span>
-                  </div>
-                </SelectItem>
-              </Select>
 
-              <Select
-                label="Vector Database"
-                placeholder="Select vector database"
-                value={formData.vectorDb}
-                onChange={(e) => handleInputChange('vectorDb', e.target.value)}
-                classNames={{
-                  trigger: "h-12",
-                }}
-              >
-                <SelectItem key="pinecone" textValue="Pinecone">
-                  <div className="flex flex-col">
-                    <span>Pinecone</span>
-                    <span className="text-tiny text-default-400">Production-ready, scalable vector database</span>
-                  </div>
-                </SelectItem>
-                <SelectItem key="qdrant" textValue="Qdrant">
-                  <div className="flex flex-col">
-                    <span>Qdrant</span>
-                    <span className="text-tiny text-default-400">Open-source, high-performance</span>
-                  </div>
-                </SelectItem>
-                <SelectItem key="weaviate" textValue="Weaviate">
-                  <div className="flex flex-col">
-                    <span>Weaviate</span>
-                    <span className="text-tiny text-default-400">Multi-modal vector search</span>
-                  </div>
-                </SelectItem>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Search Strategy</span>
-                <Tooltip content="Choose how documents will be retrieved from your knowledge base">
-                  <Info className="w-4 h-4 text-default-400" />
-                </Tooltip>
-              </div>
-              <RadioGroup
-                value={formData.searchStrategy}
-                onValueChange={(value) => handleInputChange('searchStrategy', value)}
-                classNames={{
-                  wrapper: "grid grid-cols-1 gap-4 w-full",
-                }}
-              >
-                <Radio
-                  value="vector"
-                  description="Semantic search using vector similarity"
+                <RadioGroup
+                  value={formData.chunkingMode}
+                  onValueChange={(value) => handleInputChange('chunkingMode', value)}
+                  orientation="horizontal"
                   classNames={{
-                    base: "w-full border-2 border-default-200 rounded-lg p-4 hover:bg-default-100 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
-                    wrapper: "before:border-default-200",
-                    labelWrapper: "w-full",
-                    label: "w-full font-semibold text-base",
-                    description: "w-full text-default-500",
+                    wrapper: "gap-4",
                   }}
                 >
-                  Vector Search
-                </Radio>
-                <Radio
-                  value="fulltext"
-                  description="Traditional keyword-based search"
-                  classNames={{
-                    base: "w-full border-2 border-default-200 rounded-lg p-4 hover:bg-default-100 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
-                    wrapper: "before:border-default-200",
-                    labelWrapper: "w-full",
-                    label: "w-full font-semibold text-base",
-                    description: "w-full text-default-500",
-                  }}
-                >
-                  Full-text Search
-                </Radio>
-                <Radio
-                  value="hybrid"
-                  description="Combine vector and keyword search"
-                  classNames={{
-                    base: "w-full border-2 border-default-200 rounded-lg p-4 hover:bg-default-100 cursor-pointer data-[selected=true]:border-primary data-[selected=true]:bg-primary/5",
-                    wrapper: "before:border-default-200",
-                    labelWrapper: "w-full",
-                    label: "w-full font-semibold text-base",
-                    description: "w-full text-default-500",
-                  }}
-                >
-                  Hybrid Search
-                </Radio>
-              </RadioGroup>
+                  <Radio
+                    value="automatic"
+                    description="Let the system determine optimal chunk size and overlap"
+                  >
+                    Automatic
+                  </Radio>
+                  <Radio
+                    value="manual"
+                    description="Manually configure chunk size and overlap"
+                  >
+                    Manual
+                  </Radio>
+                </RadioGroup>
 
-              {formData.searchStrategy === 'hybrid' && (
-                <div className="space-y-6 pl-4 border-l-2 border-primary/20">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Weighted Score</span>
-                        <Tooltip content="Balance between semantic and keyword search. Higher semantic weight means more emphasis on meaning over exact matches.">
-                          <Info className="w-4 h-4 text-default-400" />
-                        </Tooltip>
+                {formData.chunkingMode === 'manual' && (
+                  <div className="grid grid-cols-2 gap-6 p-4 bg-default-50 rounded-lg">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Chunk Size</span>
+                          <Tooltip content="Number of tokens per chunk. Larger chunks provide more context but may be less precise">
+                            <Info className="w-4 h-4 text-default-400" />
+                          </Tooltip>
+                        </div>
+                        <Chip size="sm" variant="flat">{formData.chunkSize} tokens</Chip>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-primary">SEMANTIC {formData.semanticWeight}</span>
-                        <span className="text-sm text-default-400">/</span>
-                        <span className="text-sm text-success">KEYWORD {formData.keywordWeight}</span>
-                      </div>
-                    </div>
-                    <div className="px-3">
                       <Slider
                         size="sm"
                         step={10}
-                        value={Number(formData.semanticWeight) * 100}
-                        onChange={handleWeightChange}
+                        minValue={100}
+                        maxValue={2000}
+                        value={Number(formData.chunkSize)}
+                        onChange={handleChunkSizeChange}
                         classNames={{
                           base: "max-w-full",
                           track: "bg-default-500/30",
-                          filler: "bg-gradient-to-r from-primary to-success",
+                          filler: "bg-primary",
                           thumb: "transition-all shadow-lg",
                         }}
-                        aria-label="Semantic-Keyword Weight"
+                        marks={[
+                          { value: 500, label: "500" },
+                          { value: 1000, label: "1000" },
+                          { value: 1500, label: "1500" },
+                        ]}
+                        aria-label="Chunk Size"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Chunk Overlap</span>
+                          <Tooltip content="Number of overlapping tokens between chunks to maintain context">
+                            <Info className="w-4 h-4 text-default-400" />
+                          </Tooltip>
+                        </div>
+                        <Chip size="sm" variant="flat">{formData.overlap} tokens</Chip>
+                      </div>
+                      <Slider
+                        size="sm"
+                        step={10}
+                        minValue={0}
+                        maxValue={500}
+                        value={Number(formData.overlap)}
+                        onChange={handleOverlapChange}
+                        classNames={{
+                          base: "max-w-full",
+                          track: "bg-default-500/30",
+                          filler: "bg-primary",
+                          thumb: "transition-all shadow-lg",
+                        }}
+                        marks={[
+                          { value: 100, label: "100" },
+                          { value: 200, label: "200" },
+                          { value: 300, label: "300" },
+                        ]}
+                        aria-label="Chunk Overlap"
                       />
                     </div>
                   </div>
+                )}
+              </div>
+            </Card>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Top K</span>
-                        <Tooltip content="Maximum number of results to return">
-                          <Info className="w-4 h-4 text-default-400" />
-                        </Tooltip>
+            {/* Embedding & Retrieval Section */}
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">Embedding & Retrieval</h3>
+                  <Tooltip content="Configure how your text will be converted to vector embeddings and searched">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label="Embedding Model"
+                    placeholder="Select embedding model"
+                    selectedKeys={[formData.embeddingModel]}
+                    onChange={(e) => handleInputChange('embeddingModel', e.target.value)}
+                    isLoading={isLoadingModels}
+                    classNames={{
+                      trigger: "h-12",
+                    }}
+                  >
+                    {Object.entries(embeddingModels).map(([modelId, modelInfo]) => (
+                      <SelectItem key={modelId} textValue={modelInfo.name}>
+                        <div className="flex flex-col">
+                          <span>{modelInfo.name}</span>
+                          <span className="text-tiny text-default-400">
+                            {modelInfo.provider} - {modelInfo.dimensions} dimensions
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </Select>
+
+                  <Select
+                    label="Vector Database"
+                    placeholder="Select vector database"
+                    selectedKeys={[formData.vectorDb]}
+                    onChange={(e) => handleInputChange('vectorDb', e.target.value)}
+                    classNames={{
+                      trigger: "h-12",
+                    }}
+                  >
+                    <SelectItem key="pinecone" textValue="Pinecone">
+                      <div className="flex flex-col">
+                        <span>Pinecone</span>
+                        <span className="text-tiny text-default-400">Production-ready, scalable</span>
                       </div>
-                      <Input
-                        type="number"
-                        placeholder="Enter Top K value"
-                        value={formData.topK || "2"}
-                        onChange={(e) => handleInputChange('topK', e.target.value)}
-                        min={1}
-                        max={100}
-                        classNames={{
-                          input: "h-12",
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Score Threshold</span>
-                        <Tooltip content="Minimum similarity score required for a result to be included">
-                          <Info className="w-4 h-4 text-default-400" />
-                        </Tooltip>
+                    </SelectItem>
+                    <SelectItem key="qdrant" textValue="Qdrant">
+                      <div className="flex flex-col">
+                        <span>Qdrant</span>
+                        <span className="text-tiny text-default-400">Open-source, high-performance</span>
                       </div>
-                      <Input
-                        type="number"
-                        placeholder="Enter threshold"
-                        value={formData.scoreThreshold || "0.7"}
-                        onChange={(e) => handleInputChange('scoreThreshold', e.target.value)}
-                        min={0}
-                        max={1}
-                        step={0.1}
-                        classNames={{
-                          input: "h-12",
-                        }}
-                      />
-                    </div>
+                    </SelectItem>
+                    <SelectItem key="weaviate" textValue="Weaviate">
+                      <div className="flex flex-col">
+                        <span>Weaviate</span>
+                        <span className="text-tiny text-default-400">Multi-modal vector search</span>
+                      </div>
+                    </SelectItem>
+                  </Select>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Search Strategy</span>
+                    <Tooltip content="Choose how documents will be retrieved from your knowledge base">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Card
+                      isPressable
+                      className={`p-4 cursor-pointer ${formData.searchStrategy === 'vector' ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => handleInputChange('searchStrategy', 'vector')}
+                    >
+                      <CardBody className="p-0">
+                        <h4 className="font-semibold mb-1">Vector Search</h4>
+                        <p className="text-xs text-default-500">Semantic search using vector similarity</p>
+                      </CardBody>
+                    </Card>
+                    <Card
+                      isPressable
+                      className={`p-4 cursor-pointer ${formData.searchStrategy === 'fulltext' ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => handleInputChange('searchStrategy', 'fulltext')}
+                    >
+                      <CardBody className="p-0">
+                        <h4 className="font-semibold mb-1">Full-text Search</h4>
+                        <p className="text-xs text-default-500">Traditional keyword-based search</p>
+                      </CardBody>
+                    </Card>
+                    <Card
+                      isPressable
+                      className={`p-4 cursor-pointer ${formData.searchStrategy === 'hybrid' ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => handleInputChange('searchStrategy', 'hybrid')}
+                    >
+                      <CardBody className="p-0">
+                        <h4 className="font-semibold mb-1">Hybrid Search</h4>
+                        <p className="text-xs text-default-500">Combine vector and keyword search</p>
+                      </CardBody>
+                    </Card>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {formData.searchStrategy === 'hybrid' && (
+                  <Card className="p-4 bg-default-50">
+                    <CardBody className="p-0 space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Search Weight Balance</span>
+                            <Tooltip content="Balance between semantic and keyword search">
+                              <Info className="w-4 h-4 text-default-400" />
+                            </Tooltip>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Chip color="primary" variant="flat" size="sm">Semantic {formData.semanticWeight}</Chip>
+                            <span className="text-sm text-default-400">/</span>
+                            <Chip color="success" variant="flat" size="sm">Keyword {formData.keywordWeight}</Chip>
+                          </div>
+                        </div>
+                        <Slider
+                          size="sm"
+                          step={10}
+                          value={Number(formData.semanticWeight) * 100}
+                          onChange={handleWeightChange}
+                          classNames={{
+                            base: "max-w-full",
+                            track: "bg-default-500/30",
+                            filler: "bg-gradient-to-r from-primary to-success",
+                            thumb: "transition-all shadow-lg",
+                          }}
+                          aria-label="Semantic-Keyword Weight"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input
+                          type="number"
+                          label="Top K Results"
+                          placeholder="Enter Top K value"
+                          value={formData.topK}
+                          onChange={(e) => handleInputChange('topK', e.target.value)}
+                          min={1}
+                          max={100}
+                          startContent={
+                            <div className="pointer-events-none flex items-center">
+                              <span className="text-default-400 text-small">K</span>
+                            </div>
+                          }
+                        />
+                        <Input
+                          type="number"
+                          label="Score Threshold"
+                          placeholder="Enter threshold"
+                          value={formData.scoreThreshold}
+                          onChange={(e) => handleInputChange('scoreThreshold', e.target.value)}
+                          min={0}
+                          max={1}
+                          step={0.1}
+                          startContent={
+                            <div className="pointer-events-none flex items-center">
+                              <span className="text-default-400 text-small">≥</span>
+                            </div>
+                          }
+                        />
+                      </div>
+                    </CardBody>
+                  </Card>
+                )}
+              </div>
+            </Card>
           </div>
         )
-      case 3:
+      case 2:
         return (
           <div className="flex flex-col gap-6">
             <Card className="bg-background/60 dark:bg-background/60 backdrop-blur-lg backdrop-saturate-150 shadow-xl border-1 border-default-200">

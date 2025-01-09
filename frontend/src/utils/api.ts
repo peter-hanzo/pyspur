@@ -491,6 +491,16 @@ export interface KnowledgeBaseResponse {
   error_message?: string;
 }
 
+// Embedding Model Types
+export interface EmbeddingModelConfig {
+  id: string;
+  provider: string;
+  name: string;
+  dimensions: number;
+  max_input_length: number;
+  supported_encoding_formats?: string[];
+}
+
 // RAG Management Functions
 export const createKnowledgeBase = async (data: KnowledgeBaseCreateRequest): Promise<KnowledgeBaseResponse> => {
   try {
@@ -572,6 +582,16 @@ export const syncKnowledgeBase = async (id: string): Promise<void> => {
     await axios.post(`${API_BASE_URL}/rag/${id}/sync/`);
   } catch (error) {
     console.error('Error syncing knowledge base:', error);
+    throw error;
+  }
+};
+
+export const getEmbeddingModels = async (): Promise<Record<string, EmbeddingModelConfig>> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/embedding_models/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching embedding models:', error);
     throw error;
   }
 };

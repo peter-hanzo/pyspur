@@ -1,25 +1,28 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
-from typing import List, Optional
+from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 import json
 import uuid
 from datetime import datetime
-import os
 from pathlib import Path
-from backend.app.rag.chunker import ChunkingConfig, get_document_chunks
+from backend.app.rag.chunker import ChunkingConfig
 from backend.app.rag.datastore.factory import get_datastore
 from backend.app.rag.datastore.datastore import DataStore
-from backend.app.rag.models.document_schemas import Document
+from backend.app.rag.models.document_schemas import Document, DocumentMetadata
+import mimetypes
+from backend.app.rag.embedder import EmbeddingModels, EmbeddingModelConfig
 
 
 # Models
 class TextProcessingConfig(BaseModel):
-    parsing_strategy: str
     chunk_token_size: int = 200  # Default value from original chunker
     min_chunk_size_chars: int = 350  # Default value from original chunker
     min_chunk_length_to_embed: int = 5  # Default value from original chunker
     embeddings_batch_size: int = 128  # Default value from original chunker
     max_num_chunks: int = 10000  # Default value from original chunker
+    use_vision_model: bool = False  # Whether to use vision model for PDF parsing
+    vision_model: Optional[str] = None  # Model to use for vision-based parsing
+    vision_provider: Optional[str] = None  # Provider for vision model (openai, anthropic, gemini)
 
 
 class EmbeddingConfig(BaseModel):
@@ -60,20 +63,45 @@ async def initialize_datastore(vector_db: str) -> DataStore:
     return await get_datastore(vector_db)
 
 
-async def process_document_file(file_path: Path) -> Document:
+async def process_document_file(file_path: Path, mimetype: Optional[str] = None) -> Document:
     """Process a single document file and return a Document object"""
-    # TODO: Implement document parsing based on file type
-    with open(file_path, "r") as f:
+    # Get file type if not provided
+    if mimetype is None:
+        mimetype, _ = mimetypes.guess_type(str(file_path))
+
+    if not mimetype:
+        # Try to guess from extension
+        ext = file_path.suffix.lower()
+        if ext == '.md' or ext == '.mdx':
+            mimetype = 'text/markdown'
+        elif ext == '.txt':
+            mimetype = 'text/plain'
+        elif ext == '.html' or ext == '.htm':
+            mimetype = 'text/html'
+        else:
+            raise ValueError(f"Unsupported file type: {ext}")
+
+    metadata = DocumentMetadata(
+        source=str(file_path.name),
+        type=str(file_path.suffix[1:]),  # Remove the dot from extension
+        created_at=datetime.utcnow().isoformat(),
+        metadata={
+            'mime_type': mimetype
+        }
+    )
+
+    with open(file_path, "rb") as f:  # Changed to binary mode
         content = f.read()
 
-    return Document(
-        text=content,
-        metadata={
-            "source": file_path.name,
-            "file_type": file_path.suffix[1:],  # Remove the dot from extension
-            "created_at": datetime.utcnow().isoformat(),
-        },
-    )
+        # For text-based files, decode the content
+        if mimetype.startswith('text/'):
+            content = content.decode('utf-8')
+        elif isinstance(content, bytes):
+            # For binary files, use base64 encoding
+            import base64
+            content = base64.b64encode(content).decode('utf-8')
+
+        return Document(text=str(content), metadata=metadata)
 
 
 async def process_documents(
@@ -88,31 +116,48 @@ async def process_documents(
         # Initialize the vector database
         datastore = await initialize_datastore(config.embedding.vector_db)
 
-        # Create chunking config from the text processing config
-        chunking_config = ChunkingConfig(
-            chunk_token_size=config.text_processing.chunk_token_size,
-            min_chunk_size_chars=config.text_processing.min_chunk_size_chars,
-            min_chunk_length_to_embed=config.text_processing.min_chunk_length_to_embed,
-            embeddings_batch_size=config.text_processing.embeddings_batch_size,
-            max_num_chunks=config.text_processing.max_num_chunks,
-        )
-
         # Process each file
-        documents = []
+        documents: List[Document] = []
         for file in files:
-            # Save file
-            file_path = kb_dir / file.filename
-            with open(file_path, "wb") as f:
-                f.write(file.file.read())
+            if file.filename:  # Check if filename exists
+                # Save file
+                file_path = kb_dir / file.filename
+                content = await file.read()
+                with open(file_path, "wb") as f:
+                    f.write(content)
 
-            # Process the document
-            document = await process_document_file(file_path)
-            documents.append(document)
+                # Process the document
+                document = await process_document_file(file_path, file.content_type)
+                documents.append(document)
+
+        # Get the API key for the selected vision provider
+        vision_api_key = None
+        if config.text_processing.use_vision_model and config.text_processing.vision_provider:
+            provider_env_keys = {
+                'openai': 'OPENAI_API_KEY',
+                'anthropic': 'ANTHROPIC_API_KEY',
+                'gemini': 'GEMINI_API_KEY',
+            }
+            env_key = provider_env_keys.get(config.text_processing.vision_provider)
+            if env_key:
+                from backend.app.api.key_management import get_env_variable
+                vision_api_key = get_env_variable(env_key)
+                if not vision_api_key:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"API key not found for {config.text_processing.vision_provider}. Please set it in Settings > API Keys."
+                    )
 
         # Store documents in vector database
         await datastore.upsert(
             documents=documents,
             chunk_token_size=config.text_processing.chunk_token_size,
+            vision_config={
+                "enabled": config.text_processing.use_vision_model,
+                "model": config.text_processing.vision_model,
+                "api_key": vision_api_key,
+                "provider": config.text_processing.vision_provider,
+            } if config.text_processing.use_vision_model else None
         )
 
         # Update status to ready
@@ -246,5 +291,19 @@ async def sync_kb(kb_id: str, background_tasks: BackgroundTasks):
         # 2. Fetch new/updated content
         # 3. Process and update vector database
         pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/embedding_models/", response_model=Dict[str, EmbeddingModelConfig])
+async def get_embedding_models():
+    """Get all available embedding models and their configurations."""
+    try:
+        models = {}
+        for model in EmbeddingModels:
+            model_info = EmbeddingModels.get_model_info(model.value)
+            if model_info:
+                models[model.value] = model_info
+        return models
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

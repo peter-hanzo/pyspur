@@ -1,8 +1,9 @@
 import csv
 import mimetypes
 import os
+import asyncio
 from io import BufferedReader
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import docx2txt
 import pptx
@@ -10,6 +11,7 @@ from backend.app.rag.models.document_schemas import Document, DocumentMetadata
 from fastapi import UploadFile
 from loguru import logger
 from PyPDF2 import PdfReader
+from pyzerox import zerox
 
 
 async def get_document_from_file(
@@ -45,7 +47,30 @@ def extract_text_from_filepath(filepath: str, mimetype: Optional[str] = None) ->
     return extracted_text
 
 
-def extract_text_from_file(file: BufferedReader, mimetype: str) -> str:
+def extract_text_from_file(file: BufferedReader, mimetype: str, vision_config: Optional[Dict[str, Any]] = None) -> str:
+    if vision_config and mimetype == "application/pdf":
+        # Save to temporary file for vision model processing
+        temp_file_path = "/tmp/temp_vision_file.pdf"
+        with open(temp_file_path, "wb") as temp_file:
+            temp_file.write(file.read())
+
+        try:
+            # Process with vision model
+            extracted_text = asyncio.run(extract_text_with_vision_model(
+                file_path=temp_file_path,
+                model=vision_config.get("model", "gpt-4o-mini"),
+                api_key=vision_config.get("api_key"),
+                provider=vision_config.get("provider"),
+                system_prompt=vision_config.get("system_prompt")
+            ))
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+
+        return extracted_text
+
+    # Existing text extraction logic
     if mimetype == "application/pdf":
         # Extract text from pdf using PyPDF2
         reader = PdfReader(file)
@@ -115,3 +140,41 @@ async def extract_text_from_form_file(file: UploadFile):
     os.remove(temp_file_path)
 
     return extracted_text
+
+
+async def extract_text_with_vision_model(
+    file_path: str,
+    model: str = "gpt-4o-mini",
+    api_key: Optional[str] = None,
+    provider: Optional[str] = None,
+    system_prompt: Optional[str] = None,
+) -> str:
+    """Extract text from a document using vision models via pyzerox."""
+    kwargs: Dict[str, Any] = {}
+
+    # Set up environment variables based on provider
+    if provider == "openai" and api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
+    elif provider == "azure" and api_key:
+        os.environ["AZURE_API_KEY"] = api_key
+    elif provider == "gemini" and api_key:
+        os.environ["GEMINI_API_KEY"] = api_key
+    elif provider == "anthropic" and api_key:
+        os.environ["ANTHROPIC_API_KEY"] = api_key
+    elif provider == "vertex_ai" and api_key:
+        kwargs = {"vertex_credentials": api_key}
+
+    try:
+        # Process the document with zerox
+        result = await zerox(
+            file_path=file_path,
+            model=model,
+            output_dir="/tmp/zerox_output",  # Temporary output directory
+            custom_system_prompt=system_prompt,
+            cleanup=True,  # Clean up temporary files
+            **kwargs
+        )
+        return str(result)
+    except Exception as e:
+        logger.error(f"Error in vision model processing: {e}")
+        raise e
