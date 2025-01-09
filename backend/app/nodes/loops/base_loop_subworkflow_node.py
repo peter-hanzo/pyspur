@@ -36,10 +36,10 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
     def _update_loop_outputs(self, iteration_output: Dict[str, Dict[str, Any]]) -> None:
         """Update the loop_outputs dictionary with the current iteration's output"""
         for node_id, node_outputs in iteration_output.items():
-            # Skip storing the special loop_state field
-            if "loop_state" in node_outputs:
+            # Skip storing the special loop_history field
+            if "loop_history" in node_outputs:
                 node_outputs = {
-                    k: v for k, v in node_outputs.items() if k != "loop_state"
+                    k: v for k, v in node_outputs.items() if k != "loop_history"
                 }
 
             if node_id not in self.loop_outputs:
@@ -57,7 +57,7 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
         assert self.subworkflow is not None
 
         # Inject loop outputs into the input
-        iteration_input = {**input, "loop_state": self.loop_outputs}
+        iteration_input = {**input, "loop_history": self.loop_outputs}
 
         # Execute the subworkflow
         workflow_executor = WorkflowExecutor(
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                             config={
                                 "output_schema": {
                                     "count": "int",
-                                    "loop_state": "dict",
+                                    "loop_history": "dict",
                                 },
                                 "enforce_schema": False,
                             },
@@ -136,7 +136,7 @@ if __name__ == "__main__":
                             node_type="PythonFuncNode",
                             config={
                                 "code": """
-previous_outputs = input_model.loop_input.loop_state.get('increment', [])
+previous_outputs = input_model.loop_input.loop_history.get('increment', [])
 running_total = sum(output['count'] for output in previous_outputs) if previous_outputs else 0  
 running_total += input_model.loop_input.count + 1
 return {
