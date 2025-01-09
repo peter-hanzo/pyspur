@@ -94,6 +94,7 @@ class LLMModels(str, Enum):
     DEEPSEEK_CHAT = "deepseek/deepseek-chat"
 
     # Ollama Models
+    OLLAMA_PHI4 = "ollama/phi4"
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
     OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
     OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
@@ -239,6 +240,12 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
             ),
             # Ollama Models
+            cls.OLLAMA_PHI4.value: LLMModel(
+                id=cls.OLLAMA_PHI4.value,
+                provider=LLMProvider.OLLAMA,
+                name="Phi 4",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
             cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(
                 id=cls.OLLAMA_LLAMA3_3_8B.value,
                 provider=LLMProvider.OLLAMA,
