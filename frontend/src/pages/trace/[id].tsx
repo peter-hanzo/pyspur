@@ -42,13 +42,13 @@ const TracePage: React.FC = () => {
                     // Roll out the workflow definition if tasks are available
                     const { rolledOutDefinition, outputs } = data.tasks
                         ? rolloutWorkflowDefinition({
-                              workflowDefinition: data.workflow_version.definition,
-                              tasks: data.tasks,
-                          })
+                            workflowDefinition: data.workflow_version.definition,
+                            tasks: data.tasks,
+                        })
                         : {
-                              rolledOutDefinition: data.workflow_version.definition,
-                              outputs: data.outputs,
-                          }
+                            rolledOutDefinition: data.workflow_version.definition,
+                            outputs: data.outputs,
+                        }
 
                     setWorkflowData({
                         name: data.workflow_version.name,
@@ -76,7 +76,7 @@ const TracePage: React.FC = () => {
     return (
         <PersistGate loading={null} persistor={persistor}>
             <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-                <Header activePage="trace" />
+                <Header activePage="trace" associatedWorkflowId={workflowId} />
                 <div style={{ flexGrow: 1 }}>
                     <RunViewFlowCanvas workflowData={workflowData} nodeOutputs={nodeOutputs} workflowID={workflowId} />
                 </div>

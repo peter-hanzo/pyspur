@@ -91,6 +91,7 @@ export interface FlowWorkflowNodeType {
     }
     metadata?: Record<string, any>
     data?: Record<string, any>
+    logo?: string
 }
 
 export interface FlowWorkflowNodeTypesByCategory {
@@ -106,6 +107,7 @@ const initialState: NodeTypesState = {
 
 export const fetchNodeTypes = createAsyncThunk<NodeTypesResponse>('nodeTypes/fetchNodeTypes', async () => {
     const response = await getNodeTypes()
+    console.log('Node types fetched:', response)
     return response
 })
 

@@ -150,6 +150,11 @@ Please make sure the model you select is explicitly downloaded in ollama. That i
 ## Note on supported models
 PySpur only works with models that support structured-output and json mode. Most newer models should be good, but it would still be good to confirm this from Ollama documentation for the model you wish to use.
 
+# ⭐ Support us
+
+You can support us in our work by leaving a star! Thank you!
+
+![star](https://github.com/user-attachments/assets/71f65273-6755-469d-be44-087bb89d5e76)
 
 # 🗺️ Roadmap
 
@@ -175,4 +180,6 @@ PySpur only works with models that support structured-output and json mode. Most
 
 Your feedback will be massively appreciated.
 Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
+
+
 

@@ -41,6 +41,12 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 "config": config_schema,
                 "visual_tag": node_class.get_default_visual_tag().model_dump(),
             }
+
+            # Add the logo if available
+            logo = node_type.logo
+            if logo:
+                node_schema["logo"] = logo
+
             node_schemas.append(node_schema)
         response[group_name] = node_schemas
 

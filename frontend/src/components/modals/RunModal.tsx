@@ -173,7 +173,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             <ModalContent>
                 {(onClose) => (
                     <>
-                        <ModalHeader className="flex flex-col gap-1">Select Test Input To Run or Save</ModalHeader>
+                        <ModalHeader className="flex flex-col gap-1">Run Test Cases</ModalHeader>
                         <ModalBody>
                             <div className="overflow-x-auto">
                                 <Table

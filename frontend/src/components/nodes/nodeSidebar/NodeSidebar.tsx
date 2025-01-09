@@ -288,9 +288,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <div key={key}>
                 <Select
                     key={`select-${nodeID}-${key}`}
-                    label={label}
+                    label={key}
                     selectedKeys={[currentValue]}
-                    onChange={(e) => handleInputChange(lastTwoDots, e.target.value)}
+                    onChange={(e) => handleInputChange(key, e.target.value)}
                     fullWidth
                 >
                     {enumValues.map((option) => (
@@ -592,8 +592,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
     }
 
-    // Update the `renderConfigFields` function to include missing logic
-    const renderConfigFields = () => {
+    // Update renderConfigFields to include URL variable configuration
+    const renderConfigFields = (): React.ReactNode => {
         if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null
         const properties = nodeSchema.config
         const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type')
@@ -603,12 +603,17 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         const remainingKeys = keys.filter((key) => !priorityFields.includes(key))
         const orderedKeys = [...priorityFields.filter((key) => keys.includes(key)), ...remainingKeys]
 
-        return orderedKeys.map((key, index) => {
-            const field = properties[key]
-            const value = currentNodeConfig[key]
-            const isLast = index === orderedKeys.length - 1
-            return renderField(key, field, value, `${nodeType}.config`, isLast)
-        })
+        return (
+            <React.Fragment>
+                {orderedKeys.map((key, index) => {
+                    const field = properties[key]
+                    const value = currentNodeConfig[key]
+                    const isLast = index === orderedKeys.length - 1
+                    return renderField(key, field, value, `${nodeType}.config`, isLast)
+                })}
+                {renderUrlVariableConfig()}
+            </React.Fragment>
+        )
     }
 
     // Update the `renderFewShotExamples` function
@@ -712,6 +717,51 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             window.removeEventListener('mouseup', handleMouseUp)
         }
     }, [isResizing, dispatch, width])
+
+    const renderUrlVariableConfig = () => {
+        // Only show for LLM nodes with Gemini models
+        if (!currentNodeConfig?.llm_info?.model || !String(currentNodeConfig.llm_info.model).startsWith('gemini')) {
+            return null
+        }
+
+        const incomingSchemaVars = collectIncomingSchema(nodeID)
+
+        return (
+            <div className="my-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">File Input</h3>
+                    <Tooltip
+                        content="Select an input variable containing either a file URL or inline data. For inline data, use the format: data:<mime_type>;base64,<encoded_data> (e.g., data:image/jpeg;base64,/9j/...)"
+                        placement="left-start"
+                        showArrow={true}
+                        className="max-w-xs"
+                    >
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
+                    </Tooltip>
+                </div>
+                <div className="mb-2">
+                    <Select
+                        label="File URL or Data Variable"
+                        selectedKeys={[currentNodeConfig?.url_variables?.file || '']}
+                        onChange={(e) => {
+                            const updatedUrlVars = e.target.value ? { file: e.target.value } : {}
+                            handleInputChange('url_variables', updatedUrlVars)
+                        }}
+                    >
+                        {['', ...incomingSchemaVars].map((variable) => (
+                            <SelectItem key={variable} value={variable}>
+                                {variable || 'None'}
+                            </SelectItem>
+                        ))}
+                    </Select>
+                    <p className="text-xs text-default-500 mt-1">
+                        Supports both file URLs and inline data in the format:
+                        data:&lt;mime_type&gt;;base64,&lt;encoded_data&gt;
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <Card className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto">

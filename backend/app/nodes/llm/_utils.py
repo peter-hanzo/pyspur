@@ -85,15 +85,16 @@ class LLMModels(str, Enum):
     CLAUDE_3_OPUS_LATEST = "claude-3-opus-latest"
 
     # Google Models
-    GEMINI_1_5_PRO = "gemini-1.5-pro"
-    GEMINI_1_5_FLASH = "gemini-1.5-flash"
-    GEMINI_1_5_PRO_LATEST = "gemini-1.5-pro-latest"
-    GEMINI_1_5_FLASH_LATEST = "gemini-1.5-flash-latest"
+    GEMINI_1_5_PRO = "gemini/gemini-1.5-pro"
+    GEMINI_1_5_FLASH = "gemini/gemini-1.5-flash"
+    GEMINI_1_5_PRO_LATEST = "gemini/gemini-1.5-pro-latest"
+    GEMINI_1_5_FLASH_LATEST = "gemini/gemini-1.5-flash-latest"
 
     # Deepseek Models
     DEEPSEEK_CHAT = "deepseek/deepseek-chat"
 
     # Ollama Models
+    OLLAMA_PHI4 = "ollama/phi4"
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
     OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
     OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
@@ -239,6 +240,12 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
             ),
             # Ollama Models
+            cls.OLLAMA_PHI4.value: LLMModel(
+                id=cls.OLLAMA_PHI4.value,
+                provider=LLMProvider.OLLAMA,
+                name="Phi 4",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
             cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(
                 id=cls.OLLAMA_LLAMA3_3_8B.value,
                 provider=LLMProvider.OLLAMA,
@@ -459,6 +466,7 @@ async def generate_text(
     json_mode: bool = False,
     max_tokens: int = 100000,
     api_base: Optional[str] = None,
+    url_variables: Optional[Dict[str, str]] = None,
 ) -> str:
     kwargs = {
         "model": model_name,
@@ -466,7 +474,7 @@ async def generate_text(
         "messages": messages,
         "temperature": temperature,
     }
-
+    response = ""
     if json_mode:
         if model_name.startswith("ollama"):
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
@@ -477,6 +485,26 @@ async def generate_text(
                 format="json",
                 api_base=api_base,
             )
+        # Handle Gemini models with URL variables
+        elif model_name.startswith("gemini") and url_variables:
+            # Transform messages to include URL content
+            transformed_messages = []
+            for msg in messages:
+                if msg["role"] == "user":
+                    content = [{"type": "text", "text": msg["content"]}]
+                    # Add any URL variables as image_url or other supported types
+                    for var_type, url in url_variables.items():
+                        if url:  # Only add if URL is provided
+                            content.append(
+                                {
+                                    "type": f"{var_type}_url",
+                                    f"{var_type}_url": {"url": url},
+                                }
+                            )
+                    msg["content"] = content
+                transformed_messages.append(msg)
+            kwargs["messages"] = transformed_messages
+            response = await completion_with_backoff(**kwargs)
         else:
             # For both Azure and OpenAI, we need to set the response_format to json_object
             kwargs["response_format"] = {"type": "json_object"}
@@ -489,30 +517,30 @@ async def generate_text(
                 },
             )
             response = await completion_with_backoff(**kwargs)
-
-            # Verify JSON Response
-            try:
-                json.loads(response)
-            except json.JSONDecodeError:
-                logging.error(f"Response is not valid JSON: {response}")
-                # Try to fix common json issues
-                if not response.startswith("{"):
-                    # Extract JSON if there is extra text
-                    json_match = re.search(r"\{.*\}", response, re.DOTALL)
-                    if json_match:
-                        response = json_match.group(0)
-                    else:
-                        # Create a valid json response
-                        response = (
-                            "{"
-                            + f'"error": "Invalid response format", "original_response": "{response}"'
-                            + "}"
-                        )
-                raise ValueError("Response is not valid JSON")
     else:
         response = await completion_with_backoff(**kwargs)
 
-    return cast(str, response)
+    # Ensure response is valid JSON
+    try:
+        json.loads(response)
+        return response
+    except json.JSONDecodeError:
+        logging.error(f"Response is not valid JSON: {response}")
+        # Try to fix common json issues
+        if not response.startswith("{"):
+            # Extract JSON if there is extra text
+            json_match = re.search(r"\{.*\}", response, re.DOTALL)
+            if json_match:
+                response = json_match.group(0)
+                try:
+                    json.loads(response)
+                    return response
+                except json.JSONDecodeError:
+                    pass
+
+        # If all attempts to parse JSON fail, wrap the response in a JSON structure
+        sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+        return f'{{"output": "{sanitized_response}"}}'
 
 
 def encode_image(image_path: str) -> str:

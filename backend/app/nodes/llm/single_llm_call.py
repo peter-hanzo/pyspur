@@ -29,6 +29,10 @@ class SingleLLMCallNodeConfig(VariableOutputBaseNodeConfig):
         description="The user message for the LLM, serialized from input_schema",
     )
     few_shot_examples: Optional[List[Dict[str, str]]] = None
+    url_variables: Optional[Dict[str, str]] = Field(
+        None,
+        description="Optional mapping of URL types (image, video, pdf) to input schema variables for Gemini models",
+    )
 
 
 class SingleLLMCallNodeInput(BaseNodeInput):
@@ -64,7 +68,6 @@ class SingleLLMCallNode(VariableOutputBaseNode):
         raw_input_dict = input.model_dump()
 
         # Render system_message
-
         system_message = Template(self.config.system_message).render(raw_input_dict)
         system_message += f"\nMake sure the output is a JSON Object like this: {self.config.output_schema}"
 
@@ -90,12 +93,26 @@ class SingleLLMCallNode(VariableOutputBaseNode):
         )
 
         model_name = LLMModels(self.config.llm_info.model).value
+
+        # Process URL variables if they exist and we're using a Gemini model
+        url_vars = None
+        if model_name.startswith("gemini") and self.config.url_variables:
+            url_vars = {}
+            if "file" in self.config.url_variables:
+                # Split the input variable reference (e.g. "input_node.video_url")
+                node_id, var_name = self.config.url_variables["file"].split(".")
+                # Get the value from the input using the node_id
+                if node_id in raw_input_dict and var_name in raw_input_dict[node_id]:
+                    # Always use image_url format regardless of file type
+                    url_vars["image"] = raw_input_dict[node_id][var_name]
+
         assistant_message_str = await generate_text(
             messages=messages,
             model_name=model_name,
             temperature=self.config.llm_info.temperature,
             max_tokens=self.config.llm_info.max_tokens,
             json_mode=True,
+            url_variables=url_vars,
         )
         assistant_message_dict = json.loads(assistant_message_str)
 

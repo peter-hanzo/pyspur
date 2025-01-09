@@ -53,7 +53,7 @@ const UndoRedo: FC = () => {
                     onClick={handleUndo}
                     isDisabled={history.past.length === 0}
                 >
-                    <Icon icon="solar:undo-left-linear" width={16} className="text-default-600" />
+                    <Icon icon="solar:undo-left-linear" width={16} className="text-foreground" />
                 </Button>
             </TipPopup>
             <TipPopup title="Redo" shortcuts={['ctrl', 'y']}>
@@ -65,7 +65,7 @@ const UndoRedo: FC = () => {
                     onClick={handleRedo}
                     isDisabled={history.future.length === 0}
                 >
-                    <Icon icon="solar:undo-right-linear" width={16} className="text-default-600" />
+                    <Icon icon="solar:undo-right-linear" width={16} className="text-foreground" />
                 </Button>
             </TipPopup>
         </>

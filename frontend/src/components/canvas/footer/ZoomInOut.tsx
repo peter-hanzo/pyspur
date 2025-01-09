@@ -23,13 +23,13 @@ const ZoomInOut: React.FC = () => {
             <div className="zoom-controls flex items-center gap-2">
                 <TipPopup title="Zoom Out" shortcuts={['ctrl', '-']}>
                     <Button isIconOnly variant="light" onClick={handleZoomOut}>
-                        <Icon icon="solar:minimize-square-linear" width={16} className="text-default-600" />
+                        <Icon icon="solar:minimize-square-linear" width={16} className="text-foreground" />
                     </Button>
                 </TipPopup>
-                <span className="text-sm text-default-600">{(zoom * 100).toFixed(0)}%</span>
+                <span className="text-sm text-foreground">{(zoom * 100).toFixed(0)}%</span>
                 <TipPopup title="Zoom In" shortcuts={['ctrl', '+']}>
                     <Button isIconOnly variant="light" onClick={handleZoomIn}>
-                        <Icon icon="solar:maximize-square-linear" width={16} className="text-default-600" />
+                        <Icon icon="solar:maximize-square-linear" width={16} className="text-foreground" />
                     </Button>
                 </TipPopup>
             </div>
