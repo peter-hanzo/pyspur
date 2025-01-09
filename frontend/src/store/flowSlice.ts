@@ -32,6 +32,7 @@ export interface NodeData {
     title?: string
     acronym?: string
     color?: string
+    logo?: string
 }
 
 export interface BaseNode {

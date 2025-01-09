@@ -37,8 +37,8 @@
             "temperature": 0.7,
             "top_p": 1
           },
-          "system_message": "<p>You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.</p><p></p><p>The user will provide you with a topic and audience, and you have to devise a short joke for that.</p><p></p><p>You can roast the person if a person is mentioned, it's only among friends.</p>",
-          "user_message": "<p>Your audience is: {{input_node.audience}}</p><p>The topic should be about {{input_node.topic}} </p>",
+          "system_message": "You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.\n\nThe user will provide you with a topic and audience, and you have to devise a short joke for that.\n\nYou can roast the person if a person is mentioned, it's only among friends.",
+          "user_message": "Your audience is: {{input_node.audience}}\nThe topic should be about {{input_node.topic}}",
           "few_shot_examples": null,
           "samples": 10,
           "rating_prompt": "Rate the following joke on a scale from 0 to 10, where 0 is poor and 10 is excellent. \nConsider factors such as surprise, relatability, and punchiness. Respond with only a number.",
@@ -65,8 +65,8 @@
             "temperature": 0.7,
             "top_p": 1
           },
-          "system_message": "<p>Your goal is to refine a joke to make it more vulgar and concise. It's just among friends, so you can get roasty.</p><ul><li><p>Be mean</p></li><li><p>Have dark humour</p></li><li><p>Be very punchy</p></li></ul>",
-          "user_message": "<p>{{JokeDrafter.initial_joke}}</p>",
+          "system_message": "Your goal is to refine a joke to make it more vulgar and concise. It's just among friends, so you can get roasty.\n\n- Be mean\n- Have dark humour\n- Be very punchy",
+          "user_message": "{{JokeDrafter.initial_joke}}",
           "few_shot_examples": null,
           "samples": 3,
           "rating_prompt": "Rate the following response on a scale from 0 to 10, where 0 is poor and 10 is excellent. Consider factors such as relevance, coherence, and helpfulness. Respond with only a number.",
@@ -93,8 +93,8 @@
             "temperature": 0.7,
             "top_p": 1
           },
-          "system_message": "<p>You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.</p><p></p><p>The user will provide you with a topic and audience, and you have to devise a short joke for that.</p><p></p><p>You can roast the person if a person is mentioned, it's only among friends.</p>",
-          "user_message": "<p>Your audience is: {{input_node.audience}}</p><p>The topic should be about {{input_node.topic}} </p>",
+          "system_message": "You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.\n\nThe user will provide you with a topic and audience, and you have to devise a short joke for that.\n\nYou can roast the person if a person is mentioned, it's only among friends.",
+          "user_message": "Your audience is: {{input_node.audience}}\nThe topic should be about {{input_node.topic}}",
           "few_shot_examples": null
         },
         "coordinates": {
@@ -120,8 +120,8 @@
     "test_inputs": [
       {
         "id": 1732123761259,
-        "topic": "<p>A bald guy called Jean in his twenties</p>",
-        "audience": "<p>Young and Educated</p>"
+        "topic": "Emacs vs. Vim",
+        "audience": "Software Engineers"
       }
     ]
   },

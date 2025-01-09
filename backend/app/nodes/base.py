@@ -58,7 +58,7 @@ class BaseNode(ABC):
     display_name: str = (
         ""  # Will be used for config title, defaults to class name if not set
     )
-
+    logo: Optional[str] = None
     config_model: Type[BaseModel]
     output_model: Type[BaseNodeOutput]
     input_model: Type[BaseNodeInput]

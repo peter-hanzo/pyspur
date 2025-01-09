@@ -33,6 +33,7 @@ import { CoalesceNode } from '../components/nodes/logic/CoalesceNode'
 import { v4 as uuidv4 } from 'uuid'
 import { RootState } from '../store/store'
 import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
+import { useTheme } from 'next-themes'
 
 interface UseNodeTypesOptions {
     nodeTypesConfig: FlowWorkflowNodeTypesByCategory | undefined
@@ -282,6 +283,9 @@ export const useStyledEdges = ({
     handlePopoverOpen,
     readOnly = false,
 }: StyledEdgesOptions) => {
+    const { theme } = useTheme()
+    const isDark = theme === 'dark'
+
     return useMemo(() => {
         return edges.map((edge) => ({
             ...edge,
@@ -289,22 +293,22 @@ export const useStyledEdges = ({
             style: {
                 stroke: readOnly
                     ? edge.id === hoveredEdge
-                        ? 'black'
+                        ? isDark ? '#fff' : '#000'
                         : edge.source === hoveredNode || edge.target === hoveredNode
-                          ? 'black'
-                          : '#555'
+                            ? isDark ? '#fff' : '#000'
+                            : isDark ? '#888' : '#555'
                     : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
-                      ? '#555'
-                      : '#999',
+                        ? isDark ? '#fff' : '#555'
+                        : isDark ? '#666' : '#999',
                 strokeWidth: readOnly
                     ? edge.id === hoveredEdge
                         ? 4
                         : edge.source === hoveredNode || edge.target === hoveredNode
-                          ? 4
-                          : 2
+                            ? 4
+                            : 2
                     : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
-                      ? 3
-                      : 1.5,
+                        ? 3
+                        : 1.5,
             },
             data: {
                 ...edge.data,
@@ -313,7 +317,7 @@ export const useStyledEdges = ({
             },
             key: edge.id,
         }))
-    }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen, readOnly])
+    }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen, readOnly, isDark])
 }
 
 interface NodesWithModeOptions {

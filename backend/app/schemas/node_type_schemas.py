@@ -22,6 +22,12 @@ class NodeTypeSchema(BaseModel):
         """Get the display name for the node type, falling back to class name if not set."""
         node_class = self.node_class
         return node_class.display_name or node_class.__name__
+    
+    @property
+    def logo(self) -> str:
+        """Get the logo for the node type, falling back to None if not set."""
+        node_class = self.node_class
+        return node_class.logo or ""
 
     @property
     def config_title(self) -> str:
