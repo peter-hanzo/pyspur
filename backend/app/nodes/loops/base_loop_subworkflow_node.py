@@ -7,11 +7,11 @@ from ..subworkflow.base_subworkflow_node import (
     BaseSubworkflowNode,
     BaseSubworkflowNodeConfig,
 )
-from ...schemas.workflow_schemas import LoopSubworkflowDefinitionSchema
+from ...schemas.workflow_schemas import WorkflowDefinitionSchema
 
 
 class BaseLoopSubworkflowNodeConfig(BaseSubworkflowNodeConfig):
-    loop_subworkflow: LoopSubworkflowDefinitionSchema
+    loop_subworkflow: WorkflowDefinitionSchema
 
 
 class BaseLoopSubworkflowNodeInput(BaseNodeInput):

@@ -134,12 +134,3 @@ class WorkflowVersionResponseSchema(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class LoopSubworkflowDefinitionSchema(BaseModel):
-    """
-    A subworkflow definition for a loop.
-    """
-
-    nodes: List[WorkflowNodeSchema]
-    links: List[WorkflowLinkSchema]
