@@ -7,6 +7,7 @@ import {
   Textarea,
   Select,
   SelectItem,
+  SelectSection,
   Divider,
   RadioGroup,
   Radio,
@@ -569,16 +570,37 @@ const KnowledgeBaseWizard: React.FC = () => {
                       trigger: "h-12",
                     }}
                   >
-                    {Object.entries(embeddingModels).map(([modelId, modelInfo]) => (
-                      <SelectItem key={modelId} textValue={modelInfo.name}>
-                        <div className="flex flex-col">
-                          <span>{modelInfo.name}</span>
-                          <span className="text-tiny text-default-400">
-                            {modelInfo.provider} - {modelInfo.dimensions} dimensions
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      // First, group models by provider
+                      const groupedModels = Object.entries(embeddingModels).reduce((groups, [modelId, modelInfo]) => {
+                        const provider = modelInfo.provider;
+                        if (!groups[provider]) {
+                          groups[provider] = [];
+                        }
+                        groups[provider].push({ ...modelInfo, id: modelId });
+                        return groups;
+                      }, {} as Record<string, (EmbeddingModelConfig & { id: string })[]>);
+
+                      // Then, render the sections
+                      return Object.entries(groupedModels).map(([provider, models], index, entries) => (
+                        <SelectSection
+                          key={provider}
+                          title={provider}
+                          showDivider={index < entries.length - 1}
+                        >
+                          {models.map((model) => (
+                            <SelectItem key={model.id} value={model.id} textValue={model.name}>
+                              <div className="flex flex-col">
+                                <span>{model.name}</span>
+                                <span className="text-tiny text-default-400">
+                                  {model.dimensions} dimensions
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectSection>
+                      ));
+                    })()}
                   </Select>
 
                   <Select

@@ -5,7 +5,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from ..rag.chunker import ChunkingConfig
+
 from ..rag.datastore.factory import get_datastore
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata
@@ -54,7 +54,7 @@ class KnowledgeBaseResponse(BaseModel):
     error_message: Optional[str] = None
 
 
-router = APIRouter(prefix="/rag", tags=["rag"])
+router = APIRouter()
 
 
 # Utility functions
