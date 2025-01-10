@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict, Set
+from typing import Any, Dict, Optional, Set
 
 from pydantic import BaseModel, Field
 from jinja2 import Template
@@ -10,8 +10,8 @@ from ...utils.pydantic_utils import get_nested_field
 
 
 class BaseSubworkflowNodeConfig(BaseNodeConfig):
-    input_map: Dict[str, str] = Field(
-        default={},
+    input_map: Optional[Dict[str, str]] = Field(
+        default=None,
         title="Input map",
         description="Map of input variables to subworkflow input fields expressed as Dict[<subworkflow_input_field>, <input_variable_path>]",
     )
@@ -47,7 +47,7 @@ class BaseSubworkflowNode(BaseNode, ABC):
         return dependencies
 
     def _map_input(self, input: BaseModel) -> Dict[str, Any]:
-        if self.config.input_map == {}:
+        if self.config.input_map == {} or self.config.input_map is None:
             return input.model_dump()
         mapped_input: Dict[str, Any] = {}
         for subworkflow_input_field, input_var_path in self.config.input_map.items():
