@@ -44,6 +44,7 @@ class InputNode(VariableOutputBaseNode):
         input: (
             Dict[str, str | int | bool | float | Dict[str, Any] | List[Any]]
             | Dict[str, BaseNodeOutput]
+            | Dict[str, BaseNodeInput]
             | BaseNodeInput
         ),
     ) -> BaseNodeOutput:
