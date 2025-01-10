@@ -1,4 +1,12 @@
-from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks, File, Form, Depends
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    HTTPException,
+    BackgroundTasks,
+    File,
+    Form,
+    Depends,
+)
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 import json
@@ -7,8 +15,8 @@ from datetime import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
 
-from ..models.kb_model import KnowledgeBaseModel
-from ..db.session import get_db
+from ..models.knowledge_base_model import KnowledgeBaseModel
+from ..database import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata
@@ -24,6 +32,7 @@ from ..rag.embedder import (
 # Models
 class KnowledgeBaseCreationJob(BaseModel):
     """Status of a knowledge base creation job"""
+
     id: str
     status: str = "pending"  # pending, processing, completed, failed
     progress: float = 0.0  # 0 to 1
@@ -45,7 +54,9 @@ class TextProcessingConfig(BaseModel):
     max_num_chunks: int = 10000  # Default value from original chunker
     use_vision_model: bool = False  # Whether to use vision model for PDF parsing
     vision_model: Optional[str] = None  # Model to use for vision-based parsing
-    vision_provider: Optional[str] = None  # Provider for vision model (openai, anthropic, gemini)
+    vision_provider: Optional[str] = (
+        None  # Provider for vision model (openai, anthropic, gemini)
+    )
 
 
 class EmbeddingConfig(BaseModel):
@@ -86,7 +97,9 @@ async def initialize_datastore(vector_db: str) -> DataStore:
     return await get_datastore(vector_db)
 
 
-async def process_document_file(file_path: Path, mimetype: Optional[str] = None) -> Document:
+async def process_document_file(
+    file_path: Path, mimetype: Optional[str] = None
+) -> Document:
     """Process a single document file and return a Document object"""
     # Get file type if not provided
     if mimetype is None:
@@ -95,12 +108,12 @@ async def process_document_file(file_path: Path, mimetype: Optional[str] = None)
     if not mimetype:
         # Try to guess from extension
         ext = file_path.suffix.lower()
-        if ext == '.md' or ext == '.mdx':
-            mimetype = 'text/markdown'
-        elif ext == '.txt':
-            mimetype = 'text/plain'
-        elif ext == '.html' or ext == '.htm':
-            mimetype = 'text/html'
+        if ext == ".md" or ext == ".mdx":
+            mimetype = "text/markdown"
+        elif ext == ".txt":
+            mimetype = "text/plain"
+        elif ext == ".html" or ext == ".htm":
+            mimetype = "text/html"
         else:
             raise ValueError(f"Unsupported file type: {ext}")
 
@@ -108,21 +121,20 @@ async def process_document_file(file_path: Path, mimetype: Optional[str] = None)
         source=str(file_path.name),
         type=str(file_path.suffix[1:]),  # Remove the dot from extension
         created_at=datetime.utcnow().isoformat(),
-        metadata={
-            'mime_type': mimetype
-        }
+        metadata={"mime_type": mimetype},
     )
 
     with open(file_path, "rb") as f:  # Changed to binary mode
         content = f.read()
 
         # For text-based files, decode the content
-        if mimetype.startswith('text/'):
-            content = content.decode('utf-8')
+        if mimetype.startswith("text/"):
+            content = content.decode("utf-8")
         elif isinstance(content, bytes):
             # For binary files, use base64 encoding
             import base64
-            content = base64.b64encode(content).decode('utf-8')
+
+            content = base64.b64encode(content).decode("utf-8")
 
         return Document(text=str(content), metadata=metadata)
 
@@ -150,7 +162,9 @@ async def update_kb_creation_job(
     if status:
         job.status = status
         # Update KB status in database
-        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == job_id).first()
+        kb = (
+            db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == job_id).first()
+        )
         if kb:
             kb.status = status
             if error_message:
@@ -192,7 +206,7 @@ async def process_documents(
             status="processing",
             current_step="saving_files",
             total_files=len(files),
-            processed_files=0
+            processed_files=0,
         )
 
         # Initialize the vector database
@@ -213,7 +227,7 @@ async def process_documents(
                     kb_id,
                     progress=(i + 1) / len(files) * 0.3,  # First 30% is file saving
                     processed_files=i + 1,
-                    current_step="parsing_documents"
+                    current_step="parsing_documents",
                 )
 
                 # Process the document
@@ -222,61 +236,63 @@ async def process_documents(
 
         # Get the API key for the selected vision provider
         vision_api_key = None
-        if config.text_processing.use_vision_model and config.text_processing.vision_provider:
+        if (
+            config.text_processing.use_vision_model
+            and config.text_processing.vision_provider
+        ):
             provider_env_keys = {
-                'openai': 'OPENAI_API_KEY',
-                'anthropic': 'ANTHROPIC_API_KEY',
-                'gemini': 'GEMINI_API_KEY',
+                "openai": "OPENAI_API_KEY",
+                "anthropic": "ANTHROPIC_API_KEY",
+                "gemini": "GEMINI_API_KEY",
             }
             env_key = provider_env_keys.get(config.text_processing.vision_provider)
             if env_key:
                 from backend.app.api.key_management import get_env_variable
+
                 vision_api_key = get_env_variable(env_key)
                 if not vision_api_key:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"API key not found for {config.text_processing.vision_provider}. Please set it in Settings > API Keys."
+                        detail=f"API key not found for {config.text_processing.vision_provider}. Please set it in Settings > API Keys.",
                     )
 
         # Update status to embedding
         await update_kb_creation_job(
             kb_id,
             progress=0.4,  # 40% progress after parsing
-            current_step="creating_embeddings"
+            current_step="creating_embeddings",
         )
 
         # Store documents in vector database
         await datastore.upsert(
             documents=documents,
             chunk_token_size=config.text_processing.chunk_token_size,
-            vision_config={
-                "enabled": config.text_processing.use_vision_model,
-                "model": config.text_processing.vision_model,
-                "api_key": vision_api_key,
-                "provider": config.text_processing.vision_provider,
-            } if config.text_processing.use_vision_model else None,
+            vision_config=(
+                {
+                    "enabled": config.text_processing.use_vision_model,
+                    "model": config.text_processing.vision_model,
+                    "api_key": vision_api_key,
+                    "provider": config.text_processing.vision_provider,
+                }
+                if config.text_processing.use_vision_model
+                else None
+            ),
             on_chunk_embedded=lambda chunks_processed, total_chunks: update_kb_creation_job(
                 kb_id,
-                progress=0.4 + (chunks_processed / total_chunks * 0.6),  # Last 60% is embedding
+                progress=0.4
+                + (chunks_processed / total_chunks * 0.6),  # Last 60% is embedding
                 processed_chunks=chunks_processed,
-                total_chunks=total_chunks
-            )
+                total_chunks=total_chunks,
+            ),
         )
 
         # Update status to completed
         await update_kb_creation_job(
-            kb_id,
-            status="completed",
-            progress=1.0,
-            current_step="completed"
+            kb_id, status="completed", progress=1.0, current_step="completed"
         )
 
     except Exception as e:
-        await update_kb_creation_job(
-            kb_id,
-            status="failed",
-            error_message=str(e)
-        )
+        await update_kb_creation_job(kb_id, status="failed", error_message=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -310,7 +326,7 @@ async def create_kb(
             raise HTTPException(
                 status_code=400,
                 detail=f"Unsupported vector database: {kb_config.embedding.vector_db}. "
-                f"Try one of the following: {', '.join(vector_stores.keys())}"
+                f"Try one of the following: {', '.join(vector_stores.keys())}",
             )
 
         # Create knowledge base record
@@ -333,7 +349,7 @@ async def create_kb(
             id=kb.id,
             created_at=now,
             updated_at=now,
-            total_files=len(files) if files else 0
+            total_files=len(files) if files else 0,
         )
 
         # Create initial response
