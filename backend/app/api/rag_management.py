@@ -1,11 +1,14 @@
-from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks, File, Form
+from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks, File, Form, Depends
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 import json
 import uuid
 from datetime import datetime
 from pathlib import Path
+from sqlalchemy.orm import Session
 
+from ..models.kb_model import KnowledgeBaseModel
+from ..db.session import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata
@@ -137,6 +140,7 @@ async def update_kb_creation_job(
     total_chunks: Optional[int] = None,
     processed_chunks: Optional[int] = None,
     error_message: Optional[str] = None,
+    db: Session = Depends(get_db),
 ) -> None:
     """Update the status of a knowledge base creation job"""
     if job_id not in kb_creation_jobs:
@@ -145,6 +149,18 @@ async def update_kb_creation_job(
     job = kb_creation_jobs[job_id]
     if status:
         job.status = status
+        # Update KB status in database
+        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == job_id).first()
+        if kb:
+            kb.status = status
+            if error_message:
+                kb.error_message = error_message
+            if processed_chunks and total_chunks:
+                kb.chunk_count = processed_chunks
+            if processed_files:
+                kb.document_count = processed_files
+            db.commit()
+
     if progress is not None:
         job.progress = progress
     if current_step:
@@ -281,6 +297,7 @@ async def create_kb(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(None),
     metadata: str = Form(...),
+    db: Session = Depends(get_db),
 ):
     try:
         # Parse metadata
@@ -296,13 +313,24 @@ async def create_kb(
                 f"Try one of the following: {', '.join(vector_stores.keys())}"
             )
 
-        # Generate unique ID
-        kb_id = str(uuid.uuid4())
+        # Create knowledge base record
+        kb = KnowledgeBaseModel(
+            name=kb_config.name,
+            description=kb_config.description,
+            status="processing",
+            document_count=len(files) if files else 0,
+            chunk_count=0,
+            text_processing_config=kb_config.text_processing.dict(),
+            embedding_config=kb_config.embedding.dict(),
+        )
+        db.add(kb)
+        db.commit()
+        db.refresh(kb)
 
         # Create initial job status
         now = datetime.utcnow().isoformat()
-        kb_creation_jobs[kb_id] = KnowledgeBaseCreationJob(
-            id=kb_id,
+        kb_creation_jobs[kb.id] = KnowledgeBaseCreationJob(
+            id=kb.id,
             created_at=now,
             updated_at=now,
             total_files=len(files) if files else 0
@@ -310,19 +338,19 @@ async def create_kb(
 
         # Create initial response
         response = KnowledgeBaseResponse(
-            id=kb_id,
+            id=kb.id,
             name=kb_config.name,
             description=kb_config.description,
             status="processing",
-            created_at=now,
-            updated_at=now,
+            created_at=kb.created_at.isoformat(),
+            updated_at=kb.updated_at.isoformat(),
             document_count=len(files) if files else 0,
-            chunk_count=0,  # This will be updated during processing
+            chunk_count=0,
         )
 
         # Start background processing
         if files:
-            background_tasks.add_task(process_documents, kb_id, files, kb_config)
+            background_tasks.add_task(process_documents, kb.id, files, kb_config)
 
         return response
 
@@ -331,11 +359,24 @@ async def create_kb(
 
 
 @router.get("/", response_model=List[KnowledgeBaseResponse])
-async def list_kbs():
+async def list_kbs(db: Session = Depends(get_db)):
     """List all knowledge bases"""
     try:
-        # TODO: Implement listing from database
-        return []
+        kbs = db.query(KnowledgeBaseModel).all()
+        return [
+            KnowledgeBaseResponse(
+                id=kb.id,
+                name=kb.name,
+                description=kb.description,
+                status=kb.status,
+                created_at=kb.created_at.isoformat(),
+                updated_at=kb.updated_at.isoformat(),
+                document_count=kb.document_count,
+                chunk_count=kb.chunk_count,
+                error_message=kb.error_message,
+            )
+            for kb in kbs
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

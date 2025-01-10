@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Table,
   TableHeader,
@@ -15,50 +15,71 @@ import {
   Input,
   useDisclosure,
   Chip,
+  Spinner,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import { useRouter } from 'next/router'
-
-interface KnowledgeBase {
-  id: string
-  name: string
-  description: string
-  documentCount: number
-  lastUpdated: string
-  status: 'active' | 'processing' | 'error'
-}
-
-const dummyData: KnowledgeBase[] = [
-  {
-    id: 'kb-1',
-    name: 'Product Documentation',
-    description: 'Contains all product manuals and technical specifications',
-    documentCount: 150,
-    lastUpdated: '2024-03-15',
-    status: 'active',
-  },
-  {
-    id: 'kb-2',
-    name: 'Customer Support FAQ',
-    description: 'Frequently asked questions and troubleshooting guides',
-    documentCount: 75,
-    lastUpdated: '2024-03-14',
-    status: 'active',
-  },
-  {
-    id: 'kb-3',
-    name: 'Research Papers',
-    description: 'Collection of academic papers and research documents',
-    documentCount: 200,
-    lastUpdated: '2024-03-13',
-    status: 'processing',
-  },
-]
+import { listKnowledgeBases, deleteKnowledgeBase, KnowledgeBaseResponse } from '@/utils/api'
 
 const KnowledgeBases: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
-  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>(dummyData)
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBaseResponse[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+
+  useEffect(() => {
+    fetchKnowledgeBases()
+  }, [])
+
+  const fetchKnowledgeBases = async () => {
+    try {
+      setIsLoading(true)
+      const data = await listKnowledgeBases()
+      setKnowledgeBases(data)
+    } catch (error) {
+      console.error('Error fetching knowledge bases:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCreateKnowledgeBase = () => {
+    router.push('/rag/create')
+  }
+
+  const handleDeleteKnowledgeBase = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this knowledge base?')) {
+      try {
+        await deleteKnowledgeBase(id)
+        await fetchKnowledgeBases()
+      } catch (error) {
+        console.error('Error deleting knowledge base:', error)
+      }
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ready':
+        return 'success'
+      case 'processing':
+        return 'warning'
+      case 'failed':
+        return 'danger'
+      default:
+        return 'default'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
   const columns = [
     { key: 'name', label: 'Name' },
@@ -69,27 +90,12 @@ const KnowledgeBases: React.FC = () => {
     { key: 'actions', label: 'Actions' },
   ]
 
-  const handleCreateKnowledgeBase = () => {
-    router.push('/rag/create')
-  }
-
-  const handleDeleteKnowledgeBase = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this knowledge base?')) {
-      setKnowledgeBases((prev) => prev.filter((kb) => kb.id !== id))
-    }
-  }
-
-  const getStatusColor = (status: KnowledgeBase['status']) => {
-    switch (status) {
-      case 'active':
-        return 'success'
-      case 'processing':
-        return 'warning'
-      case 'error':
-        return 'danger'
-      default:
-        return 'default'
-    }
+  if (isLoading) {
+    return (
+      <div className="w-3/4 mx-auto p-5 flex justify-center items-center h-[50vh]">
+        <Spinner size="lg" />
+      </div>
+    )
   }
 
   return (
@@ -116,7 +122,7 @@ const KnowledgeBases: React.FC = () => {
         <TableHeader columns={columns}>
           {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
         </TableHeader>
-        <TableBody items={knowledgeBases}>
+        <TableBody items={knowledgeBases} emptyContent="No knowledge bases found">
           {(item) => (
             <TableRow key={item.id}>
               <TableCell>
@@ -124,9 +130,9 @@ const KnowledgeBases: React.FC = () => {
                   {item.name}
                 </Chip>
               </TableCell>
-              <TableCell>{item.description}</TableCell>
-              <TableCell>{item.documentCount}</TableCell>
-              <TableCell>{item.lastUpdated}</TableCell>
+              <TableCell>{item.description || '-'}</TableCell>
+              <TableCell>{item.document_count}</TableCell>
+              <TableCell>{formatDate(item.updated_at)}</TableCell>
               <TableCell>
                 <Chip size="sm" color={getStatusColor(item.status)} variant="flat">
                   {item.status}
