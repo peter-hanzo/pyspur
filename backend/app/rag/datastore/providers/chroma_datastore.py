@@ -12,8 +12,8 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import chromadb
-from backend.app.rag.chunker import get_document_chunks
-from backend.app.rag.models.document_schemas import (
+from ...chunker import get_document_chunks
+from ...models.document_schemas import (
     Document,
     DocumentChunk,
     DocumentChunkMetadata,
