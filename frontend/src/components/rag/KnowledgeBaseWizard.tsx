@@ -216,7 +216,6 @@ const KnowledgeBaseWizard: React.FC = () => {
     name: '',
     description: '',
     dataSource: 'upload',
-    syncTool: '',
     chunkSize: '1000',
     overlap: '200',
     useVisionModel: false,
@@ -236,8 +235,8 @@ const KnowledgeBaseWizard: React.FC = () => {
   const [steps, setSteps] = useState<Step[]>([
     {
       title: 'Data Source',
-      description: 'Choose how to input your data',
-      isCompleted: Boolean(formData.name) && (formData.dataSource === 'sync' ? Boolean(formData.syncTool) : uploadedFiles.length > 0),
+      description: 'Upload your documents',
+      isCompleted: Boolean(formData.name) && uploadedFiles.length > 0,
     },
     {
       title: 'Configuration',
@@ -257,7 +256,7 @@ const KnowledgeBaseWizard: React.FC = () => {
         case 0: // Data Source
           return {
             ...step,
-            isCompleted: Boolean(currentFormData.name) && (currentFormData.dataSource === 'sync' ? Boolean(currentFormData.syncTool) : currentFiles.length > 0),
+            isCompleted: Boolean(currentFormData.name) && currentFiles.length > 0,
           }
         case 1: // Configuration
           return {
@@ -411,68 +410,13 @@ const KnowledgeBaseWizard: React.FC = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Select Data Source</span>
-                  <Tooltip content="Choose how you want to input your documents into the knowledge base">
+                  <span className="text-sm font-medium">Upload Documents</span>
+                  <Tooltip content="Upload your documents to create a knowledge base">
                     <Info className="w-4 h-4 text-default-400" />
                   </Tooltip>
                 </div>
-                <RadioGroup
-                  value={formData.dataSource}
-                  onValueChange={(value) => handleInputChange('dataSource', value)}
-                  classNames={{
-                    wrapper: "gap-4",
-                  }}
-                >
-                  <Radio
-                    value="upload"
-                    description="Upload files directly from your computer"
-                    classNames={{
-                      base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
-                    }}
-                  >
-                    File Upload
-                  </Radio>
-                  <Radio
-                    value="sync"
-                    description="Sync content from your existing tools"
-                    classNames={{
-                      base: "border border-default-200 rounded-lg p-4 hover:bg-default-100",
-                    }}
-                  >
-                    Sync with Existing Tools
-                  </Radio>
-                </RadioGroup>
+                <FileUploadBox onFilesChange={handleFilesChange} />
               </div>
-
-              {formData.dataSource === 'upload' && (
-                <div className="pl-4 border-l-2 border-primary/20">
-                  <FileUploadBox onFilesChange={handleFilesChange} />
-                </div>
-              )}
-
-              {formData.dataSource === 'sync' && (
-                <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-                  <Select
-                    label="Select Tool"
-                    placeholder="Choose a tool to sync with"
-                    value={formData.syncTool}
-                    onChange={(e) => handleInputChange('syncTool', e.target.value)}
-                    classNames={{
-                      trigger: "h-12",
-                    }}
-                  >
-                    <SelectItem key="notion" value="notion" startContent={<img src="/icons/notion.svg" className="w-4 h-4" />}>
-                      Notion
-                    </SelectItem>
-                    <SelectItem key="confluence" value="confluence" startContent={<img src="/icons/confluence.svg" className="w-4 h-4" />}>
-                      Confluence
-                    </SelectItem>
-                    <SelectItem key="github" value="github" startContent={<img src="/icons/github.svg" className="w-4 h-4" />}>
-                      GitHub
-                    </SelectItem>
-                  </Select>
-                </div>
-              )}
             </div>
           </div>
         )
@@ -660,9 +604,8 @@ const KnowledgeBaseWizard: React.FC = () => {
           name: formData.name || 'New Knowledge Base',
           description: formData.description,
           data_source: {
-            type: formData.dataSource as 'upload' | 'sync',
-            tool: formData.dataSource === 'sync' ? formData.syncTool : undefined,
-            files: formData.dataSource === 'upload' ? uploadedFiles : undefined,
+            type: 'upload',
+            files: uploadedFiles,
           },
           text_processing: {
             parsing_strategy: formData.parsingStrategy,
@@ -926,7 +869,7 @@ const KnowledgeBaseWizard: React.FC = () => {
           color="warning"
           title={`Missing API Key for ${serviceName}`}
         >
-          Please set the {envVar} in Settings > API Keys before using this service.
+          Please set the {envVar} in Settings &gt; API Keys before using this service.
         </Alert>
       );
     }
