@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Dict, List
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
 
 from ..base import BaseNodeInput, BaseNodeOutput
 from ...execution.workflow_executor import WorkflowExecutor
@@ -83,14 +83,14 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
 
     async def run(self, input: BaseModel) -> BaseModel:
         """Execute the loop subworkflow until stopping condition is met"""
-        # Create output model dynamically based on input fields
-        self.output_model = create_model(
-            f"{self.name}",
-            __base__=BaseLoopSubworkflowNodeOutput,
-            **{
-                field_name: (field_info.annotation, ...)  # type: ignore
-                for field_name, field_info in input.model_fields.items()
-            },
+        # Create output model dynamically based on the schema of the output node
+        output_node = next(
+            node
+            for node in self.config.loop_subworkflow.nodes
+            if node.node_type == "OutputNode"
+        )
+        self.output_model = self.create_output_model_class(
+            output_node.config.get("output_schema", {})
         )
 
         # Initialize state
