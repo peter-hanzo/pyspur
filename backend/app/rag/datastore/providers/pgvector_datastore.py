@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.app.rag.models.document_schemas import (
+from ...models.document_schemas import (
     DocumentChunk,
     DocumentChunkMetadata,
     DocumentChunkWithScore,
@@ -11,9 +11,9 @@ from backend.app.rag.models.document_schemas import (
     QueryWithEmbedding,
 )
 from loguru import logger
-from services.date import to_unix_timestamp
+from ..services.date import to_unix_timestamp
 
-from datastore.datastore import DataStore
+from ..datastore import DataStore
 
 
 # interface for Postgres client to implement pg based Datastore providers

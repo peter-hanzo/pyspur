@@ -5,7 +5,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import weaviate
-from backend.app.rag.models.document_schemas import (
+from ...models.document_schemas import (
     DocumentChunk,
     DocumentChunkMetadata,
     DocumentChunkWithScore,
@@ -18,7 +18,7 @@ from loguru import logger
 from weaviate import Client
 from weaviate.util import generate_uuid5
 
-from datastore.datastore import DataStore
+from ..datastore import DataStore
 
 WEAVIATE_URL_DEFAULT = "http://localhost:8080"
 WEAVIATE_CLASS = os.environ.get("WEAVIATE_CLASS", "OpenAIDocument")

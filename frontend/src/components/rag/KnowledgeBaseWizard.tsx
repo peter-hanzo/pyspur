@@ -902,7 +902,8 @@ const KnowledgeBaseWizard: React.FC = () => {
       return null;
     }
 
-    if (!apiKeys[envVar]) {
+    // Only show warning if the service requires an API key and it's not set
+    if (envVar && (!apiKeys[envVar] || apiKeys[envVar] === '')) {
       return (
         <Alert
           className="mt-2"

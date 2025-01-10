@@ -24,7 +24,7 @@ from backend.app.rag.models.document_schemas import (
     Source,
 )
 
-from datastore.datastore import DataStore
+from ..datastore import DataStore
 
 CHROMA_IN_MEMORY = os.environ.get("CHROMA_IN_MEMORY", "True")
 CHROMA_PERSISTENCE_DIR = os.environ.get("CHROMA_PERSISTENCE_DIR", "openai")

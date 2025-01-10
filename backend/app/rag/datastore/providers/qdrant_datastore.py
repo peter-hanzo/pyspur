@@ -3,7 +3,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import qdrant_client
-from backend.app.rag.models.document_schemas import (
+from ...models.document_schemas import (
     DocumentChunk,
     DocumentChunkWithScore,
     DocumentMetadataFilter,
@@ -14,9 +14,9 @@ from grpc._channel import _InactiveRpcError
 from qdrant_client.http import models as rest
 from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.http.models import PayloadSchemaType
-from services.date import to_unix_timestamp
+from ..services.date import to_unix_timestamp
 
-from datastore.datastore import DataStore
+from ..datastore import DataStore
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost")
 QDRANT_PORT = os.environ.get("QDRANT_PORT", "6333")

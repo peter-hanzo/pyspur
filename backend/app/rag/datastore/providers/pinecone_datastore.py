@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 import pinecone
-from backend.app.rag.models.document_schemas import (
+from ...models.document_schemas import (
     DocumentChunk,
     DocumentChunkMetadata,
     DocumentChunkWithScore,
@@ -13,10 +13,10 @@ from backend.app.rag.models.document_schemas import (
     Source,
 )
 from loguru import logger
-from services.date import to_unix_timestamp
+from ..services.date import to_unix_timestamp
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from datastore.datastore import DataStore
+from ..datastore import DataStore
 
 # Read environment variables for Pinecone configuration
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")

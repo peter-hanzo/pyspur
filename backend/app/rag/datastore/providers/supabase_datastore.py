@@ -1,11 +1,10 @@
 import os
-from datetime import datetime
 from typing import Any, List
 
-from backend.app.rag.models.document_schemas import DocumentMetadataFilter
+from ...models.document_schemas import DocumentMetadataFilter
 from supabase import Client
 
-from datastore.providers.pgvector_datastore import PGClient, PgVectorDataStore
+from ..providers.pgvector_datastore import PGClient, PgVectorDataStore
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 assert SUPABASE_URL is not None, "SUPABASE_URL is not set"
