@@ -455,6 +455,20 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
 }
 
 // RAG Management Types
+export interface KnowledgeBaseCreationJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  current_step: string;
+  total_files: number;
+  processed_files: number;
+  total_chunks: number;
+  processed_chunks: number;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface KnowledgeBaseCreateRequest {
   name: string;
   description?: string;
@@ -611,6 +625,16 @@ export const getVectorStores = async (): Promise<Record<string, VectorStoreConfi
     return response.data;
   } catch (error) {
     console.error('Error fetching vector stores:', error);
+    throw error;
+  }
+};
+
+export const getKnowledgeBaseJobStatus = async (id: string): Promise<KnowledgeBaseCreationJob> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/${id}/job`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting knowledge base job status:', error);
     throw error;
   }
 };

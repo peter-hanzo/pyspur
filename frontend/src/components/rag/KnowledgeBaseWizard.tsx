@@ -17,12 +17,13 @@ import {
   Slider,
   Switch,
   Alert,
+  Spinner,
 } from '@nextui-org/react'
 import { useRouter } from 'next/router'
 import { Info, CheckCircle, ArrowLeft, ArrowRight, Upload, File } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
-import { createKnowledgeBase, KnowledgeBaseCreateRequest, getEmbeddingModels, EmbeddingModelConfig, getVectorStores, VectorStoreConfig, listApiKeys, getApiKey } from '@/utils/api'
+import { createKnowledgeBase, KnowledgeBaseCreateRequest, getEmbeddingModels, EmbeddingModelConfig, getVectorStores, VectorStoreConfig, listApiKeys, getApiKey, getKnowledgeBaseJobStatus, KnowledgeBaseCreationJob } from '@/utils/api'
 
 interface Step {
   title: string
@@ -156,6 +157,8 @@ const KnowledgeBaseWizard: React.FC = () => {
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [isLoadingStores, setIsLoadingStores] = useState(true)
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [jobStatus, setJobStatus] = useState<KnowledgeBaseCreationJob | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadEmbeddingModels = async () => {
@@ -200,6 +203,47 @@ const KnowledgeBaseWizard: React.FC = () => {
     loadVectorStores()
     loadApiKeys()
   }, [])
+
+  // Add cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  const startPollingJobStatus = useCallback((jobId: string) => {
+    // Clear any existing interval
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
+    // Start polling every 2 seconds
+    const interval = setInterval(async () => {
+      try {
+        const status = await getKnowledgeBaseJobStatus(jobId);
+        setJobStatus(status);
+
+        // Stop polling if the job is completed or failed
+        if (status.status === 'completed' || status.status === 'failed') {
+          clearInterval(interval);
+          setPollingInterval(null);
+
+          // Redirect to RAG page if completed
+          if (status.status === 'completed') {
+            router.push('/rag');
+          }
+        }
+      } catch (error) {
+        console.error('Error polling job status:', error);
+        clearInterval(interval);
+        setPollingInterval(null);
+      }
+    }, 2000);
+
+    setPollingInterval(interval);
+  }, [router]);
 
   // Add random name generator function
   const generateRandomName = () => {
@@ -529,68 +573,51 @@ const KnowledgeBaseWizard: React.FC = () => {
       case 2:
         return (
           <div className="flex flex-col gap-6">
-            <Card className="bg-background/60 dark:bg-background/60 backdrop-blur-lg backdrop-saturate-150 shadow-xl border-1 border-default-200">
-              <CardBody className="gap-8 p-8">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
-                    <h2 className="text-xl font-bold text-default-900">{steps[currentStep].title}</h2>
-                    <p className="text-small text-default-400">{steps[currentStep].description}</p>
-                  </div>
-                  <div className="text-default-400 text-sm font-medium">
-                    Step {currentStep + 1} of {steps.length}
-                  </div>
+            {jobStatus ? (
+              renderProcessingStep()
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Review and Create</h3>
+                  <p className="text-sm text-default-400">
+                    Review your settings and create your knowledge base.
+                  </p>
                 </div>
 
-                <Divider className="my-4" />
-
-                <motion.div
-                  className="min-h-[300px]"
-                  key={currentStep}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {renderStepContent()}
-                </motion.div>
-
-                <Divider className="my-4" />
-
-                <div className="flex justify-between items-center">
-                  <Button
-                    color="danger"
-                    variant="light"
-                    onPress={handleCancel}
-                    className="font-medium hover:bg-danger/10"
-                  >
-                    Cancel
-                  </Button>
-                  <div className="flex gap-3">
-                    {currentStep > 0 && (
-                      <Button
-                        variant="bordered"
-                        onPress={handleBack}
-                        className="font-medium"
-                        startContent={<ArrowLeft size={18} />}
-                      >
-                        Back
-                      </Button>
-                    )}
-                    <Button
-                      color="primary"
-                      onPress={handleNext}
-                      className="font-medium"
-                      endContent={currentStep !== steps.length - 1 && <ArrowRight size={18} />}
-                    >
-                      {currentStep === steps.length - 1 ? 'Create' : 'Next'}
-                    </Button>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
+                <Card className="p-4">
+                  <CardBody className="gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-sm font-medium">Name</span>
+                        <p className="text-sm text-default-400">{formData.name}</p>
+                      </div>
+                      {formData.description && (
+                        <div>
+                          <span className="text-sm font-medium">Description</span>
+                          <p className="text-sm text-default-400">{formData.description}</p>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-sm font-medium">Files</span>
+                        <p className="text-sm text-default-400">{uploadedFiles.length} files selected</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Embedding Model</span>
+                        <p className="text-sm text-default-400">{embeddingModels[formData.embeddingModel]?.name}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Vector Database</span>
+                        <p className="text-sm text-default-400">{vectorStores[formData.vectorDb]?.name}</p>
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </div>
+            )}
           </div>
-        )
+        );
       default:
-        return null
+        return null;
     }
   }
 
@@ -624,10 +651,11 @@ const KnowledgeBaseWizard: React.FC = () => {
         }
 
         // Make the API call
-        await createKnowledgeBase(requestData)
+        const response = await createKnowledgeBase(requestData)
 
-        // Redirect to the RAG page after successful creation
-        router.push('/rag')
+        // Start polling job status
+        startPollingJobStatus(response.id);
+
       } catch (error) {
         console.error('Error creating knowledge base:', error)
         // You might want to show an error message to the user here
@@ -747,7 +775,11 @@ const KnowledgeBaseWizard: React.FC = () => {
           <div className="grid grid-cols-3 gap-4">
             <Card
               isPressable
-              className={`p-4 cursor-pointer ${formData.searchStrategy === 'vector' ? 'border-primary bg-primary/5' : ''}`}
+              className={`p-4 cursor-pointer transition-all duration-300 ${
+                formData.searchStrategy === 'vector'
+                  ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 ring-offset-2 ring-offset-background'
+                  : ''
+              }`}
               onClick={() => handleInputChange('searchStrategy', 'vector')}
             >
               <CardBody className="p-0">
@@ -757,7 +789,11 @@ const KnowledgeBaseWizard: React.FC = () => {
             </Card>
             <Card
               isPressable
-              className={`p-4 cursor-pointer ${formData.searchStrategy === 'fulltext' ? 'border-primary bg-primary/5' : ''}`}
+              className={`p-4 cursor-pointer transition-all duration-300 ${
+                formData.searchStrategy === 'fulltext'
+                  ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 ring-offset-2 ring-offset-background'
+                  : ''
+              }`}
               onClick={() => handleInputChange('searchStrategy', 'fulltext')}
             >
               <CardBody className="p-0">
@@ -767,7 +803,11 @@ const KnowledgeBaseWizard: React.FC = () => {
             </Card>
             <Card
               isPressable
-              className={`p-4 cursor-pointer ${formData.searchStrategy === 'hybrid' ? 'border-primary bg-primary/5' : ''}`}
+              className={`p-4 cursor-pointer transition-all duration-300 ${
+                formData.searchStrategy === 'hybrid'
+                  ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 ring-offset-2 ring-offset-background'
+                  : ''
+              }`}
               onClick={() => handleInputChange('searchStrategy', 'hybrid')}
             >
               <CardBody className="p-0">
@@ -875,6 +915,59 @@ const KnowledgeBaseWizard: React.FC = () => {
     }
 
     return null;
+  };
+
+  const renderProcessingStep = () => {
+    if (!jobStatus) return null;
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{jobStatus.current_step}</span>
+            <span className="text-sm text-default-400">{Math.round(jobStatus.progress * 100)}%</span>
+          </div>
+          <Progress
+            value={jobStatus.progress * 100}
+            color={jobStatus.status === 'failed' ? 'danger' : 'primary'}
+            className="w-full"
+          />
+        </div>
+
+        <div className="space-y-4">
+          {jobStatus.total_files > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span>Files Processed</span>
+              <span>{jobStatus.processed_files} / {jobStatus.total_files}</span>
+            </div>
+          )}
+
+          {jobStatus.total_chunks > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span>Chunks Processed</span>
+              <span>{jobStatus.processed_chunks} / {jobStatus.total_chunks}</span>
+            </div>
+          )}
+        </div>
+
+        {jobStatus.status === 'failed' && (
+          <Alert color="danger" className="mt-4">
+            {jobStatus.error_message || 'An error occurred while processing your knowledge base.'}
+          </Alert>
+        )}
+
+        <div className="flex items-center gap-2 text-sm text-default-400">
+          <Spinner size="sm" />
+          <span>
+            {jobStatus.status === 'failed'
+              ? 'Processing failed'
+              : jobStatus.status === 'completed'
+                ? 'Processing complete'
+                : 'Processing your documents...'}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   return (

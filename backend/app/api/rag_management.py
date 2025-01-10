@@ -19,6 +19,21 @@ from ..rag.embedder import (
 
 
 # Models
+class KnowledgeBaseCreationJob(BaseModel):
+    """Status of a knowledge base creation job"""
+    id: str
+    status: str = "pending"  # pending, processing, completed, failed
+    progress: float = 0.0  # 0 to 1
+    current_step: str = "initializing"  # parsing, chunking, embedding, etc.
+    total_files: int = 0
+    processed_files: int = 0
+    total_chunks: int = 0
+    processed_chunks: int = 0
+    error_message: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
 class TextProcessingConfig(BaseModel):
     chunk_token_size: int = 200  # Default value from original chunker
     min_chunk_size_chars: int = 350  # Default value from original chunker
@@ -109,6 +124,43 @@ async def process_document_file(file_path: Path, mimetype: Optional[str] = None)
         return Document(text=str(content), metadata=metadata)
 
 
+# In-memory job storage (replace with database in production)
+kb_creation_jobs: Dict[str, KnowledgeBaseCreationJob] = {}
+
+
+async def update_kb_creation_job(
+    job_id: str,
+    status: Optional[str] = None,
+    progress: Optional[float] = None,
+    current_step: Optional[str] = None,
+    processed_files: Optional[int] = None,
+    total_chunks: Optional[int] = None,
+    processed_chunks: Optional[int] = None,
+    error_message: Optional[str] = None,
+) -> None:
+    """Update the status of a knowledge base creation job"""
+    if job_id not in kb_creation_jobs:
+        return
+
+    job = kb_creation_jobs[job_id]
+    if status:
+        job.status = status
+    if progress is not None:
+        job.progress = progress
+    if current_step:
+        job.current_step = current_step
+    if processed_files is not None:
+        job.processed_files = processed_files
+    if total_chunks is not None:
+        job.total_chunks = total_chunks
+    if processed_chunks is not None:
+        job.processed_chunks = processed_chunks
+    if error_message:
+        job.error_message = error_message
+
+    job.updated_at = datetime.utcnow().isoformat()
+
+
 async def process_documents(
     kb_id: str, files: List[UploadFile], config: KnowledgeBaseCreate
 ):
@@ -118,18 +170,35 @@ async def process_documents(
         kb_dir = Path(f"data/knowledge_bases/{kb_id}")
         kb_dir.mkdir(parents=True, exist_ok=True)
 
+        # Initialize job status
+        await update_kb_creation_job(
+            kb_id,
+            status="processing",
+            current_step="saving_files",
+            total_files=len(files),
+            processed_files=0
+        )
+
         # Initialize the vector database
         datastore = await initialize_datastore(config.embedding.vector_db)
 
         # Process each file
         documents: List[Document] = []
-        for file in files:
+        for i, file in enumerate(files):
             if file.filename:  # Check if filename exists
                 # Save file
                 file_path = kb_dir / file.filename
                 content = await file.read()
                 with open(file_path, "wb") as f:
                     f.write(content)
+
+                # Update progress
+                await update_kb_creation_job(
+                    kb_id,
+                    progress=(i + 1) / len(files) * 0.3,  # First 30% is file saving
+                    processed_files=i + 1,
+                    current_step="parsing_documents"
+                )
 
                 # Process the document
                 document = await process_document_file(file_path, file.content_type)
@@ -153,6 +222,13 @@ async def process_documents(
                         detail=f"API key not found for {config.text_processing.vision_provider}. Please set it in Settings > API Keys."
                     )
 
+        # Update status to embedding
+        await update_kb_creation_job(
+            kb_id,
+            progress=0.4,  # 40% progress after parsing
+            current_step="creating_embeddings"
+        )
+
         # Store documents in vector database
         await datastore.upsert(
             documents=documents,
@@ -162,14 +238,29 @@ async def process_documents(
                 "model": config.text_processing.vision_model,
                 "api_key": vision_api_key,
                 "provider": config.text_processing.vision_provider,
-            } if config.text_processing.use_vision_model else None
+            } if config.text_processing.use_vision_model else None,
+            on_chunk_embedded=lambda chunks_processed, total_chunks: update_kb_creation_job(
+                kb_id,
+                progress=0.4 + (chunks_processed / total_chunks * 0.6),  # Last 60% is embedding
+                processed_chunks=chunks_processed,
+                total_chunks=total_chunks
+            )
         )
 
-        # Update status to ready
-        await update_kb_status(kb_id, "ready")
+        # Update status to completed
+        await update_kb_creation_job(
+            kb_id,
+            status="completed",
+            progress=1.0,
+            current_step="completed"
+        )
 
     except Exception as e:
-        await update_kb_status(kb_id, "failed", str(e))
+        await update_kb_creation_job(
+            kb_id,
+            status="failed",
+            error_message=str(e)
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -208,14 +299,23 @@ async def create_kb(
         # Generate unique ID
         kb_id = str(uuid.uuid4())
 
+        # Create initial job status
+        now = datetime.utcnow().isoformat()
+        kb_creation_jobs[kb_id] = KnowledgeBaseCreationJob(
+            id=kb_id,
+            created_at=now,
+            updated_at=now,
+            total_files=len(files) if files else 0
+        )
+
         # Create initial response
         response = KnowledgeBaseResponse(
             id=kb_id,
             name=kb_config.name,
             description=kb_config.description,
             status="processing",
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat(),
+            created_at=now,
+            updated_at=now,
             document_count=len(files) if files else 0,
             chunk_count=0,  # This will be updated during processing
         )
@@ -307,3 +407,11 @@ async def get_vector_stores_endpoint():
         return get_vector_stores()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{kb_id}/job", response_model=KnowledgeBaseCreationJob)
+async def get_kb_creation_job_status(kb_id: str):
+    """Get the status of a knowledge base creation job"""
+    if kb_id not in kb_creation_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return kb_creation_jobs[kb_id]
