@@ -81,8 +81,14 @@ return {
                             id="loop_output",
                             node_type="OutputNode",
                             config={
-                                "output_map": {"count": "increment.count"},
-                                "output_schema": {"count": "int"},
+                                "output_map": {
+                                    "count": "increment.count",
+                                    "running_total": "increment.running_total",
+                                },
+                                "output_schema": {
+                                    "count": "int",
+                                    "running_total": "int",
+                                },
                             },
                         ),
                     ],
@@ -107,6 +113,6 @@ return {
         input_data = TestInput()
         output = await node(input_data)
         pprint(output)
-        pprint(node.subworkflow_output)
+        pprint(node.subworkflow_outputs)
 
     asyncio.run(main())
