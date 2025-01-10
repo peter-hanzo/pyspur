@@ -45,7 +45,7 @@ if __name__ == "__main__":
         node = ForLoopNode(
             name="test_loop",
             config=ForLoopNodeConfig(
-                loop_subworkflow=WorkflowDefinitionSchema(
+                subworkflow=WorkflowDefinitionSchema(
                     nodes=[
                         WorkflowNodeSchema(
                             id="loop_input",

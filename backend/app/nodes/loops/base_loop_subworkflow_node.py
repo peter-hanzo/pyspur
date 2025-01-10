@@ -12,7 +12,7 @@ from ...schemas.workflow_schemas import WorkflowDefinitionSchema
 
 
 class BaseLoopSubworkflowNodeConfig(BaseSubworkflowNodeConfig):
-    loop_subworkflow: WorkflowDefinitionSchema
+    subworkflow: WorkflowDefinitionSchema
 
 
 class BaseLoopSubworkflowNodeInput(BaseNodeInput):
@@ -55,7 +55,7 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
 
     async def run_iteration(self, input: Dict[str, Any]) -> Dict[str, Any]:
         """Run a single iteration of the loop subworkflow"""
-        self.subworkflow = self.config.loop_subworkflow
+        self.subworkflow = self.config.subworkflow
         assert self.subworkflow is not None
 
         # Inject loop outputs into the input
@@ -86,22 +86,22 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
         # Create output model dynamically based on the schema of the output node
         output_node = next(
             node
-            for node in self.config.loop_subworkflow.nodes
+            for node in self.config.subworkflow.nodes
             if node.node_type == "OutputNode"
         )
         self.output_model = self.create_output_model_class(
             output_node.config.get("output_schema", {})
         )
 
-        # Initialize state
-        self.setup()
-        current_input = input.model_dump()
+        current_input = self._map_input(input)
 
         # Run iterations until stopping condition is met
         while not await self.stopping_condition(current_input):
             iteration_output = await self.run_iteration(current_input)
             current_input.update(iteration_output)
             self.iteration += 1
+
+        self.subworkflow_outputs = self.loop_outputs
 
         # Return final state as BaseModel
         return self.output_model.model_validate(current_input)  # type: ignore
