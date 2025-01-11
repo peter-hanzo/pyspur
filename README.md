@@ -44,7 +44,7 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 * **JSON configs** of workflow graphs, enabling easy sharing and version control.
 * **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
 
-# ⚡ Quick start 
+# ⚡ Quick start
 
 You can launch PySpur using pre-built docker images in the following steps:
 
@@ -115,7 +115,7 @@ PySpur can work with local models served using Ollama.
 Steps to configure PySpur to work with Ollama running on the same host.
 
 ### 1. Configure Ollama
-To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama. 
+To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama.
 An easy way to do this is to launch the ollama service with the following command:
 ```sh
 OLLAMA_HOST="0.0.0.0" ollama serve
@@ -125,7 +125,7 @@ OLLAMA_HOST="0.0.0.0" ollama serve
 Next up we need to update the `OLLAMA_BASE_URL` environment value in the `.env` file.
 If your Ollama port is 11434 (the default port), then the entry in `.env` file should look like this:
 ```sh
-OLLAMA_BASE_URL=http://host.docker.internal:11434 
+OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 (Please make sure that there is no trailing slash in the end!)
 
@@ -180,6 +180,3 @@ You can support us in our work by leaving a star! Thank you!
 
 Your feedback will be massively appreciated.
 Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
-
-
-

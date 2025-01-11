@@ -7,10 +7,9 @@ from fastapi import (
     Form,
     Depends,
 )
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from typing import List, Optional, Dict
+from pydantic import BaseModel
 import json
-import uuid
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy.orm import Session
@@ -20,13 +19,8 @@ from ..database import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata
-import mimetypes
-from ..rag.embedder import (
-    EmbeddingModels,
-    EmbeddingModelConfig,
-    EmbeddingProvider,
-    CohereEncodingFormat,
-)
+from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
+from ..rag.pipeline import process_documents as process_documents_pipeline, ProcessingError
 
 
 # Models
@@ -200,89 +194,52 @@ async def process_documents(
         kb_dir = Path(f"data/knowledge_bases/{kb_id}")
         kb_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize job status
-        await update_kb_creation_job(
-            kb_id,
-            status="processing",
-            current_step="saving_files",
-            total_files=len(files),
-            processed_files=0,
-        )
-
-        # Initialize the vector database
-        datastore = await initialize_datastore(config.embedding.vector_db)
-
-        # Process each file
-        documents: List[Document] = []
-        for i, file in enumerate(files):
-            if file.filename:  # Check if filename exists
-                # Save file
+        # Save uploaded files
+        file_infos = []
+        for file in files:
+            if file.filename:
                 file_path = kb_dir / file.filename
                 content = await file.read()
                 with open(file_path, "wb") as f:
                     f.write(content)
+                file_infos.append({
+                    "path": str(file_path),
+                    "mime_type": file.content_type,
+                    "name": file.filename
+                })
 
-                # Update progress
-                await update_kb_creation_job(
-                    kb_id,
-                    progress=(i + 1) / len(files) * 0.3,  # First 30% is file saving
-                    processed_files=i + 1,
-                    current_step="parsing_documents",
-                )
-
-                # Process the document
-                document = await process_document_file(file_path, file.content_type)
-                documents.append(document)
-
-        # Get the API key for the selected vision provider
-        vision_api_key = None
-        if (
-            config.text_processing.use_vision_model
-            and config.text_processing.vision_provider
-        ):
-            provider_env_keys = {
-                "openai": "OPENAI_API_KEY",
-                "anthropic": "ANTHROPIC_API_KEY",
-                "gemini": "GEMINI_API_KEY",
-            }
-            env_key = provider_env_keys.get(config.text_processing.vision_provider)
-            if env_key:
-                from backend.app.api.key_management import get_env_variable
-
-                vision_api_key = get_env_variable(env_key)
-                if not vision_api_key:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"API key not found for {config.text_processing.vision_provider}. Please set it in Settings > API Keys.",
-                    )
-
-        # Update status to embedding
-        await update_kb_creation_job(
-            kb_id,
-            progress=0.4,  # 40% progress after parsing
-            current_step="creating_embeddings",
-        )
-
-        # Store documents in vector database
-        await datastore.upsert(
-            documents=documents,
-            chunk_token_size=config.text_processing.chunk_token_size,
-            vision_config=(
+        # Prepare configuration
+        processing_config = {
+            "chunk_token_size": config.text_processing.chunk_token_size,
+            "min_chunk_size_chars": config.text_processing.min_chunk_size_chars,
+            "min_chunk_length_to_embed": config.text_processing.min_chunk_length_to_embed,
+            "embeddings_batch_size": config.text_processing.embeddings_batch_size,
+            "max_num_chunks": config.text_processing.max_num_chunks,
+            "embedding_model": config.embedding.model,
+            "vector_db": config.embedding.vector_db,
+            "vision_config": (
                 {
                     "enabled": config.text_processing.use_vision_model,
                     "model": config.text_processing.vision_model,
-                    "api_key": vision_api_key,
                     "provider": config.text_processing.vision_provider,
                 }
                 if config.text_processing.use_vision_model
                 else None
             ),
-            on_chunk_embedded=lambda chunks_processed, total_chunks: update_kb_creation_job(
+        }
+
+        # Process documents using the pipeline
+        await process_documents_pipeline(
+            kb_id=kb_id,
+            files=file_infos,
+            config=processing_config,
+            on_progress=lambda progress, step, processed, total: update_kb_creation_job(
                 kb_id,
-                progress=0.4
-                + (chunks_processed / total_chunks * 0.6),  # Last 60% is embedding
-                processed_chunks=chunks_processed,
-                total_chunks=total_chunks,
+                progress=progress,
+                current_step=step,
+                processed_files=processed if step == "parsing" else None,
+                processed_chunks=processed if step == "embedding" else None,
+                total_chunks=total if step == "embedding" else None,
             ),
         )
 
@@ -291,6 +248,9 @@ async def process_documents(
             kb_id, status="completed", progress=1.0, current_step="completed"
         )
 
+    except ProcessingError as e:
+        await update_kb_creation_job(kb_id, status="failed", error_message=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         await update_kb_creation_job(kb_id, status="failed", error_message=str(e))
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,5 @@
-import os
 import uuid
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import tiktoken
 from .embedder import EmbeddingModels, get_multiple_text_embeddings
@@ -26,7 +25,6 @@ class ChunkingConfig(BaseModel):
     max_num_chunks: int = 10000
 
 
-# Modify get_text_chunks to accept config
 def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
     """
     Split a text into chunks based on the provided configuration.
@@ -79,7 +77,6 @@ def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
     return chunks
 
 
-# Update create_document_chunks to accept config
 def create_document_chunks(
     doc: Document, config: ChunkingConfig
 ) -> Tuple[List[DocumentChunk], str]:
@@ -100,7 +97,7 @@ def create_document_chunks(
     text_chunks = get_text_chunks(doc.text, config)
 
     metadata = (
-        DocumentChunkMetadata(**doc.metadata.__dict__)
+        DocumentChunkMetadata(**doc.metadata.dict())
         if doc.metadata is not None
         else DocumentChunkMetadata()
     )
@@ -119,10 +116,9 @@ def create_document_chunks(
     return doc_chunks, doc_id
 
 
-# Update get_document_chunks to accept config
 async def get_document_chunks(
     documents: List[Document],
-    config: ChunkingConfig,
+    chunk_token_size: Optional[Union[int, ChunkingConfig]] = None,
     model: str = EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value,
 ) -> Dict[str, List[DocumentChunk]]:
     """
@@ -130,12 +126,20 @@ async def get_document_chunks(
 
     Args:
         documents: The list of documents to convert.
-        config: ChunkingConfig containing the chunking parameters.
+        chunk_token_size: Either a ChunkingConfig object or a legacy integer chunk size.
         model: The embedding model to use.
 
     Returns:
         A dictionary mapping document ids to their chunks.
     """
+    # Handle legacy integer chunk_token_size
+    if isinstance(chunk_token_size, int):
+        config = ChunkingConfig(chunk_token_size=chunk_token_size)
+    elif isinstance(chunk_token_size, ChunkingConfig):
+        config = chunk_token_size
+    else:
+        config = ChunkingConfig()  # Use defaults
+
     chunks: Dict[str, List[DocumentChunk]] = {}
     all_chunks: List[DocumentChunk] = []
 
