@@ -1,8 +1,11 @@
 from pathlib import Path
 import json
 import uuid
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import List, Dict, Any, Optional, Callable
+import arrow
+import numpy as np
+
+from loguru import logger
 
 from .parser import extract_text_from_file
 from .chunker import ChunkingConfig, create_document_chunks
@@ -20,7 +23,7 @@ async def process_documents(
     kb_id: str,
     files: List[Dict[str, Any]],
     config: Dict[str, Any],
-    on_progress: Optional[callable] = None,
+    on_progress: Optional[Callable[[float, str, int, int], None]] = None,
 ) -> str:
     """
     Process documents through the RAG pipeline with intermediate storage.
@@ -34,9 +37,12 @@ async def process_documents(
     Returns:
         str: Knowledge base ID
     """
+    logger.debug(f"Starting document processing for kb_id={kb_id} with {len(files)} files.")
+
     try:
         # Create directory structure
         base_dir = Path(f"data/knowledge_bases/{kb_id}")
+        logger.debug(f"Base directory set to: {base_dir}")
         base_dir.mkdir(parents=True, exist_ok=True)
 
         (base_dir / "raw").mkdir(exist_ok=True)
@@ -50,14 +56,15 @@ async def process_documents(
         # 1. Parse documents
         documents: List[Document] = []
         for i, file_info in enumerate(files):
+            logger.debug(f"Parsing file {i+1}/{len(files)}: {file_info.get('path')}")
             file_path = Path(file_info["path"])
 
             # Create document metadata
             metadata = DocumentMetadata(
                 source=file_path.name,
-                created_at=datetime.utcnow().isoformat(),
+                created_at=arrow.utcnow().isoformat(),
                 author=file_info.get("author"),
-                document_type=file_path.suffix[1:],  # Remove the dot
+                type=file_path.suffix[1:],  # Remove the dot
             )
 
             # Extract text
@@ -97,6 +104,8 @@ async def process_documents(
         all_chunks: List[DocumentChunk] = []
         chunks_by_doc: Dict[str, List[DocumentChunk]] = {}
 
+        logger.debug(f"Starting chunk creation for {len(documents)} documents.")
+
         for i, doc in enumerate(documents):
             # Create chunks
             doc_chunks, doc_id = create_document_chunks(doc, chunking_config)
@@ -107,7 +116,7 @@ async def process_documents(
             chunks_path = base_dir / "chunks" / f"{doc_id}.json"
             with open(chunks_path, "w") as f:
                 json.dump(
-                    [chunk.dict() for chunk in doc_chunks],
+                    [chunk.model_dump() for chunk in doc_chunks],
                     f,
                     indent=2
                 )
@@ -120,13 +129,18 @@ async def process_documents(
                     len(documents)
                 )
 
+            logger.debug(f"Created {len(doc_chunks)} chunks for doc_id={doc_id}")
+
+        logger.debug("Chunk creation completed, moving on to embedding generation.")
+
         # 3. Create embeddings
         chunk_texts = [chunk.text for chunk in all_chunks]
-        embeddings = await get_multiple_text_embeddings(
+        embeddings: np.ndarray = await get_multiple_text_embeddings(
             docs=chunk_texts,
             model=config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value),
             batch_size=chunking_config.embeddings_batch_size
         )
+        logger.debug(f"Embeddings generated for {len(all_chunks)} chunks.")
 
         # Update chunks with embeddings
         for i, chunk in enumerate(all_chunks):
@@ -149,16 +163,23 @@ async def process_documents(
                     len(all_chunks)
                 )
 
+            logger.debug(f"Saved embedding JSON file at index {i} for doc_id={doc_id}")
+
         # 4. Initialize datastore
         datastore = await get_datastore(config["vector_db"])
+        logger.debug("Datastore initialized, starting to upsert chunks.")
 
         # 5. Insert chunks into datastore
-        doc_ids = await datastore._upsert(chunks_by_doc)
+        await datastore._upsert(chunks_by_doc)
+        logger.debug("All chunks successfully upserted into datastore.")
 
         if on_progress:
             on_progress(1.0, "completed", len(files), len(files))
 
+        logger.debug(f"Document processing completed for kb_id={kb_id}.")
+
         return kb_id
 
     except Exception as e:
+        logger.error(f"Error occurred during processing: {e}")
         raise ProcessingError(f"Error processing documents: {str(e)}")
