@@ -7,18 +7,19 @@ from fastapi import (
     Form,
     Depends,
 )
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, TypedDict, Sequence, cast
 from pydantic import BaseModel
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session
+import mimetypes
 
 from ..models.knowledge_base_model import KnowledgeBaseModel
 from ..database import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
 from ..rag.datastore.datastore import DataStore
-from ..rag.models.document_schemas import Document, DocumentMetadata
+from ..rag.models.document_schemas import Document, DocumentMetadata, Source
 from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
 from ..rag.pipeline import process_documents as process_documents_pipeline, ProcessingError
 
@@ -112,22 +113,22 @@ async def process_document_file(
             raise ValueError(f"Unsupported file type: {ext}")
 
     metadata = DocumentMetadata(
-        source=str(file_path.name),
-        type=str(file_path.suffix[1:]),  # Remove the dot from extension
-        created_at=datetime.utcnow().isoformat(),
-        metadata={"mime_type": mimetype},
+        source=Source.file,
+        source_id=str(file_path.name),
+        created_at=datetime.now(timezone.utc).isoformat(),
+        url=None,
+        author=None,
     )
 
     with open(file_path, "rb") as f:  # Changed to binary mode
         content = f.read()
 
         # For text-based files, decode the content
-        if mimetype.startswith("text/"):
+        if mimetype and mimetype.startswith("text/"):
             content = content.decode("utf-8")
-        elif isinstance(content, bytes):
+        else:
             # For binary files, use base64 encoding
             import base64
-
             content = base64.b64encode(content).decode("utf-8")
 
         return Document(text=str(content), metadata=metadata)
@@ -135,6 +136,12 @@ async def process_document_file(
 
 # In-memory job storage (replace with database in production)
 kb_creation_jobs: Dict[str, KnowledgeBaseCreationJob] = {}
+
+
+class FileInfo(TypedDict):
+    path: str
+    mime_type: Optional[str]
+    name: Optional[str]
 
 
 async def update_kb_creation_job(
@@ -146,7 +153,7 @@ async def update_kb_creation_job(
     total_chunks: Optional[int] = None,
     processed_chunks: Optional[int] = None,
     error_message: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: Optional[Session] = None,
 ) -> None:
     """Update the status of a knowledge base creation job"""
     if job_id not in kb_creation_jobs:
@@ -156,18 +163,19 @@ async def update_kb_creation_job(
     if status:
         job.status = status
         # Update KB status in database
-        kb = (
-            db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == job_id).first()
-        )
-        if kb:
-            kb.status = status
-            if error_message:
-                kb.error_message = error_message
-            if processed_chunks and total_chunks:
-                kb.chunk_count = processed_chunks
-            if processed_files:
-                kb.document_count = processed_files
-            db.commit()
+        if db is not None:
+            kb = (
+                db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == job_id).first()
+            )
+            if kb:
+                kb.status = status
+                if error_message:
+                    kb.error_message = error_message
+                if processed_chunks and total_chunks:
+                    kb.chunk_count = processed_chunks
+                if processed_files:
+                    kb.document_count = processed_files
+                db.commit()
 
     if progress is not None:
         job.progress = progress
@@ -182,32 +190,14 @@ async def update_kb_creation_job(
     if error_message:
         job.error_message = error_message
 
-    job.updated_at = datetime.utcnow().isoformat()
+    job.updated_at = datetime.now(timezone.utc).isoformat()
 
 
 async def process_documents(
-    kb_id: str, files: List[UploadFile], config: KnowledgeBaseCreate
+    kb_id: str, file_infos: Sequence[FileInfo], config: KnowledgeBaseCreate, db: Session
 ):
     """Background task to process uploaded documents"""
     try:
-        # Create directory for knowledge base
-        kb_dir = Path(f"data/knowledge_bases/{kb_id}")
-        kb_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save uploaded files
-        file_infos = []
-        for file in files:
-            if file.filename:
-                file_path = kb_dir / file.filename
-                content = await file.read()
-                with open(file_path, "wb") as f:
-                    f.write(content)
-                file_infos.append({
-                    "path": str(file_path),
-                    "mime_type": file.content_type,
-                    "name": file.filename
-                })
-
         # Prepare configuration
         processing_config = {
             "chunk_token_size": config.text_processing.chunk_token_size,
@@ -228,31 +218,38 @@ async def process_documents(
             ),
         }
 
+        # Convert FileInfo to Dict[str, Any] as required by process_documents_pipeline
+        files_dict = [{"path": f["path"], "mime_type": f["mime_type"], "name": f["name"]} for f in file_infos]
+
         # Process documents using the pipeline
-        await process_documents_pipeline(
-            kb_id=kb_id,
-            files=file_infos,
-            config=processing_config,
-            on_progress=lambda progress, step, processed, total: update_kb_creation_job(
+        def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+            return cast(None, update_kb_creation_job(
                 kb_id,
                 progress=progress,
                 current_step=step,
                 processed_files=processed if step == "parsing" else None,
                 processed_chunks=processed if step == "embedding" else None,
                 total_chunks=total if step == "embedding" else None,
-            ),
+                db=db
+            ))
+
+        await process_documents_pipeline(
+            kb_id=kb_id,
+            files=files_dict,
+            config=processing_config,
+            on_progress=progress_callback,
         )
 
         # Update status to completed
         await update_kb_creation_job(
-            kb_id, status="completed", progress=1.0, current_step="completed"
+            kb_id, status="completed", progress=1.0, current_step="completed", db=db
         )
 
     except ProcessingError as e:
-        await update_kb_creation_job(kb_id, status="failed", error_message=str(e))
+        await update_kb_creation_job(kb_id, status="failed", error_message=str(e), db=db)
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        await update_kb_creation_job(kb_id, status="failed", error_message=str(e))
+        await update_kb_creation_job(kb_id, status="failed", error_message=str(e), db=db)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -296,21 +293,39 @@ async def create_kb(
             status="processing",
             document_count=len(files) if files else 0,
             chunk_count=0,
-            text_processing_config=kb_config.text_processing.dict(),
-            embedding_config=kb_config.embedding.dict(),
+            text_processing_config=kb_config.text_processing.model_dump(),
+            embedding_config=kb_config.embedding.model_dump(),
         )
         db.add(kb)
         db.commit()
         db.refresh(kb)
 
         # Create initial job status
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         kb_creation_jobs[kb.id] = KnowledgeBaseCreationJob(
             id=kb.id,
             created_at=now,
             updated_at=now,
             total_files=len(files) if files else 0,
         )
+
+        # Read files and prepare file info before starting background task
+        file_infos: List[FileInfo] = []
+        if files:
+            kb_dir = Path(f"data/knowledge_bases/{kb.id}")
+            kb_dir.mkdir(parents=True, exist_ok=True)
+
+            for file in files:
+                if file.filename:
+                    file_path = kb_dir / file.filename
+                    content = await file.read()
+                    with open(file_path, "wb") as f:
+                        f.write(content)
+                    file_infos.append(FileInfo(
+                        path=str(file_path),
+                        mime_type=file.content_type,
+                        name=file.filename
+                    ))
 
         # Create initial response
         response = KnowledgeBaseResponse(
@@ -325,8 +340,8 @@ async def create_kb(
         )
 
         # Start background processing
-        if files:
-            background_tasks.add_task(process_documents, kb.id, files, kb_config)
+        if file_infos:
+            background_tasks.add_task(process_documents, kb.id, file_infos, kb_config, db)
 
         return response
 
@@ -404,10 +419,10 @@ async def sync_kb(kb_id: str, background_tasks: BackgroundTasks):
 
 
 @router.get("/embedding_models/", response_model=Dict[str, EmbeddingModelConfig])
-async def get_embedding_models():
+async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
     """Get all available embedding models and their configurations."""
     try:
-        models = {}
+        models: Dict[str, EmbeddingModelConfig] = {}
         for model in EmbeddingModels:
             model_info = EmbeddingModels.get_model_info(model.value)
             if model_info:
@@ -418,7 +433,7 @@ async def get_embedding_models():
 
 
 @router.get("/vector_stores/", response_model=Dict[str, VectorStoreConfig])
-async def get_vector_stores_endpoint():
+async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
     """Get all available vector stores and their configurations."""
     try:
         return get_vector_stores()

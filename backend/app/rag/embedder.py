@@ -1,13 +1,17 @@
 import logging
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
-
+from typing import List, Optional, Callable, Any, TypeAlias, Dict
 import numpy as np
+import numpy.typing as npt
+
 from litellm import aembedding
 from pydantic import BaseModel, Field
 from tenacity import stop_after_attempt, wait_random_exponential
 
 from ..nodes.llm._utils import async_retry
+
+
+EmbeddingArray: TypeAlias = npt.NDArray[np.float32]
 
 
 class EmbeddingProvider(str, Enum):
@@ -38,8 +42,8 @@ class EmbeddingModelConfig(BaseModel):
 
 class EmbeddingModels(str, Enum):
     # OpenAI Models
-    TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
-    TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
+    TEXT_EMBEDDING_3_SMALL = "openai/text-embedding-3-small"
+    TEXT_EMBEDDING_3_LARGE = "openai/text-embedding-3-large"
 
     # Azure OpenAI Models
     AZURE_TEXT_EMBEDDING_3_SMALL = "azure/text-embedding-3-small"

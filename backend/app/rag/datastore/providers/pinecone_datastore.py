@@ -2,7 +2,7 @@ import asyncio
 import os
 from typing import Any, Dict, List, Optional
 
-import pinecone
+from pinecone import Pinecone, ServerlessSpec
 from ...models.document_schemas import (
     DocumentChunk,
     DocumentChunkMetadata,
@@ -20,14 +20,25 @@ from ..datastore import DataStore
 
 # Read environment variables for Pinecone configuration
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
-PINECONE_ENVIRONMENT = os.environ.get("PINECONE_ENVIRONMENT")
 PINECONE_INDEX = os.environ.get("PINECONE_INDEX")
-assert PINECONE_API_KEY is not None
-assert PINECONE_ENVIRONMENT is not None
-assert PINECONE_INDEX is not None
+PINECONE_CLOUD = os.environ.get("PINECONE_CLOUD", "aws")
+PINECONE_REGION = os.environ.get("PINECONE_REGION", "us-west-2")
 
-# Initialize Pinecone with the API key and environment
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
+# Validate required environment variables
+missing_vars = []
+if not PINECONE_API_KEY:
+    missing_vars.append("PINECONE_API_KEY")
+if not PINECONE_INDEX:
+    missing_vars.append("PINECONE_INDEX")
+
+if missing_vars:
+    raise ValueError(
+        f"Missing required environment variables for Pinecone: {', '.join(missing_vars)}. "
+        "Please set these variables in your environment or .env file."
+    )
+
+# Initialize Pinecone client
+pc = Pinecone(api_key=PINECONE_API_KEY)
 
 # Set the batch size for upserting vectors to Pinecone
 UPSERT_BATCH_SIZE = 100
@@ -38,30 +49,34 @@ EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION", 256))
 class PineconeDataStore(DataStore):
     def __init__(self):
         # Check if the index name is specified and exists in Pinecone
-        if PINECONE_INDEX and PINECONE_INDEX not in pinecone.list_indexes():
+        if PINECONE_INDEX and PINECONE_INDEX not in pc.list_indexes().names():
             # Get all fields in the metadata object in a list
-            fields_to_index = list(DocumentChunkMetadata.__fields__.keys())
+            fields_to_index = list(DocumentChunkMetadata.model_fields.keys())
 
             # Create a new index with the specified name, dimension, and metadata configuration
             try:
                 logger.info(
                     f"Creating index {PINECONE_INDEX} with metadata config {fields_to_index}"
                 )
-                pinecone.create_index(
-                    PINECONE_INDEX,
+                pc.create_index(
+                    name=PINECONE_INDEX,
                     dimension=EMBEDDING_DIMENSION,
+                    spec=ServerlessSpec(
+                        cloud=PINECONE_CLOUD,
+                        region=PINECONE_REGION
+                    ),
                     metadata_config={"indexed": fields_to_index},
                 )
-                self.index = pinecone.Index(PINECONE_INDEX)
+                self.index = pc.Index(name=PINECONE_INDEX)
                 logger.info(f"Index {PINECONE_INDEX} created successfully")
             except Exception as e:
                 logger.error(f"Error creating index {PINECONE_INDEX}: {e}")
                 raise e
-        elif PINECONE_INDEX and PINECONE_INDEX in pinecone.list_indexes():
+        elif PINECONE_INDEX and PINECONE_INDEX in pc.list_indexes().names():
             # Connect to an existing index with the specified name
             try:
                 logger.info(f"Connecting to existing index {PINECONE_INDEX}")
-                self.index = pinecone.Index(PINECONE_INDEX)
+                self.index = pc.Index(name=PINECONE_INDEX)
                 logger.info(f"Connected to index {PINECONE_INDEX} successfully")
             except Exception as e:
                 logger.error(f"Error connecting to index {PINECONE_INDEX}: {e}")
@@ -129,7 +144,7 @@ class PineconeDataStore(DataStore):
                 # Query the index with the query embedding, filter, and top_k
                 query_response = self.index.query(
                     # namespace=namespace,
-                    top_k=query.top_k,
+                    top_k=query.top_k or 10,  # Default to 10 if top_k is None
                     vector=query.embedding,
                     filter=pinecone_filter,
                     include_metadata=True,
@@ -164,7 +179,7 @@ class PineconeDataStore(DataStore):
                     text=(
                         str(metadata["text"]) if metadata and "text" in metadata else ""
                     ),
-                    metadata=metadata_without_text,
+                    metadata=DocumentChunkMetadata(**metadata_without_text) if metadata_without_text else None,
                 )
                 query_results.append(result)
             return QueryResult(query=query.query, results=query_results)
@@ -233,7 +248,7 @@ class PineconeDataStore(DataStore):
         # For each field in the MetadataFilter, check if it has a value and add the corresponding pinecone filter expression
         # For start_date and end_date, uses the $gte and $lte operators respectively
         # For other fields, uses the $eq operator
-        for field, value in filter.dict().items():
+        for field, value in filter.model_dump().items():
             if value is not None:
                 if field == "start_date":
                     pinecone_filter["created_at"] = pinecone_filter.get(
@@ -260,7 +275,7 @@ class PineconeDataStore(DataStore):
 
         # For each field in the Metadata, check if it has a value and add it to the pinecone metadata dict
         # For fields that are dates, convert them to unix timestamps
-        for field, value in metadata.dict().items():
+        for field, value in metadata.model_dump().items():
             if value is not None:
                 if field in ["created_at"]:
                     pinecone_metadata[field] = to_unix_timestamp(value)

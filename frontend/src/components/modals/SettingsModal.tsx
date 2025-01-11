@@ -85,54 +85,89 @@ const SwitchCell = React.forwardRef<HTMLInputElement, SwitchCellProps>(
 
 SwitchCell.displayName = 'SwitchCell'
 
+// Provider Types
+interface ProviderParameter {
+  name: string;
+  description: string;
+  required: boolean;
+  type: string;
+}
+
+interface ProviderConfig {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  parameters: ProviderParameter[];
+  icon: string;
+}
+
 // APIKeys Component
 const APIKeys = (props: CardProps): React.ReactElement => {
-  const [keys, setKeys] = useState<{ name: string; value: string }[]>([])
-  const [originalKeys, setOriginalKeys] = useState<{ name: string; value: string }[]>([])
+  const [keys, setKeys] = useState<{ name: string; value: string }[]>([]);
+  const [originalKeys, setOriginalKeys] = useState<{ name: string; value: string }[]>([]);
+  const [providers, setProviders] = useState<ProviderConfig[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderConfig | null>(null);
+
+  const fetchProviders = async () => {
+    try {
+      const response = await fetch('/api/env-mgmt/providers');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setProviders(data);
+      } else {
+        console.error('Expected providers data to be an array');
+        setProviders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      setProviders([]);
+    }
+  };
 
   const fetchApiKeys = async () => {
     try {
-      const response = await listApiKeys()
+      const response = await listApiKeys();
       const keyValues = await Promise.all(
         response.map(async (key: string) => {
-          const value = await getApiKey(key)
-          return { name: value.name, value: value.value }
+          const value = await getApiKey(key);
+          return { name: value.name, value: value.value };
         })
-      )
+      );
 
-      setKeys(keyValues)
-      setOriginalKeys(keyValues)
+      setKeys(keyValues);
+      setOriginalKeys(keyValues);
     } catch (error) {
-      console.error('Error fetching API keys:', error)
+      console.error('Error fetching API keys:', error);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchApiKeys()
-  }, [])
+    fetchProviders();
+    fetchApiKeys();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setKeys((prevKeys) => prevKeys.map((key) => (key.name === name ? { ...key, value: value } : key)))
-  }
+    const { name, value } = e.target;
+    setKeys((prevKeys) => prevKeys.map((key) => (key.name === name ? { ...key, value: value } : key)));
+  };
 
   const handleDeleteKey = async (name: string) => {
     try {
-      await deleteApiKey(name)
-      await fetchApiKeys() // Refresh the list after deletion
+      await deleteApiKey(name);
+      await fetchApiKeys();
     } catch (error) {
-      console.error('Error deleting API key:', error)
+      console.error('Error deleting API key:', error);
     }
-  }
+  };
 
   const saveApiKeys = async () => {
     try {
       await Promise.all(
         keys.map(async ({ name, value }) => {
-          const originalKey = originalKeys.find((k) => k.name === name)
-          const trimmedValue = value.trim()
+          const originalKey = originalKeys.find((k) => k.name === name);
+          const trimmedValue = value.trim();
 
-          // Only save if the value has changed from its original masked value
           if (originalKey && trimmedValue !== originalKey.value) {
             if (trimmedValue !== '') {
               await setApiKey(name, trimmedValue);
@@ -142,7 +177,7 @@ const APIKeys = (props: CardProps): React.ReactElement => {
           }
         })
       );
-      await fetchApiKeys(); // Refresh the list after saving
+      await fetchApiKeys();
     } catch (error) {
       console.error("Error saving API keys:", error);
     }
@@ -155,102 +190,159 @@ const APIKeys = (props: CardProps): React.ReactElement => {
     });
   };
 
-  // Group API keys by category
-  const groupedKeys = keys.reduce((acc, key) => {
-    if (key.name.includes('OPENAI') ||
-        key.name.includes('AZURE_OPENAI') ||
-        key.name.includes('ANTHROPIC') ||
-        key.name.includes('GEMINI') ||
-        key.name.includes('DEEPSEEK') ||
-        key.name.includes('COHERE') ||
-        key.name.includes('VOYAGE') ||
-        key.name.includes('MISTRAL')) {
-      acc.ai.push(key);
-    } else {
-      acc.vectorstore.push(key);
-    }
-    return acc;
-  }, { ai: [], vectorstore: [] } as Record<string, typeof keys>);
+  const getProviderIcon = (iconName: string) => {
+    const iconMap: Record<string, string> = {
+      // LLM Providers
+      openai: "logos:openai-icon",
+      azure: "logos:microsoft-azure",
+      anthropic: "logos:anthropic",
+      google: "logos:google-icon",
+      deepseek: "solar:code-circle-bold",
+      cohere: "solar:magic-stick-3-bold",
+      voyage: "solar:rocket-bold",
+      mistral: "solar:stars-bold",
+
+      // Vector Store Providers
+      pinecone: "logos:pinecone",
+      weaviate: "logos:weaviate",
+      qdrant: "logos:qdrant",
+      database: "solar:database-bold",
+    };
+    return iconMap[iconName] || iconMap.database;
+  };
+
+  const renderProviderGrid = () => {
+    const vectorStoreProviders = providers.filter(p => p.category === 'vectorstore');
+    const llmProviders = providers.filter(p => p.category === 'llm');
+
+    return (
+      <div className="space-y-6">
+        {/* LLM Providers */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon icon="solar:brain-bold" className="text-primary" width={20} />
+            <div>
+              <h4 className="text-medium font-medium">AI Models</h4>
+              <p className="text-tiny text-default-400">Configure your AI model providers</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {llmProviders.map((provider) => (
+              <Card
+                key={provider.id}
+                isPressable
+                onPress={() => setSelectedProvider(provider)}
+                className={cn(
+                  "border-2",
+                  selectedProvider?.id === provider.id ? "border-primary" : "border-transparent"
+                )}
+              >
+                <CardBody className="gap-2">
+                  <div className="flex items-center gap-2">
+                    <Icon icon={getProviderIcon(provider.icon)} width={24} />
+                    <div>
+                      <h5 className="text-small font-medium">{provider.name}</h5>
+                      <p className="text-tiny text-default-400">{provider.description}</p>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Vector Store Providers */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon icon="solar:database-bold" className="text-primary" width={20} />
+            <div>
+              <h4 className="text-medium font-medium">Vector Databases</h4>
+              <p className="text-tiny text-default-400">Configure your vector database providers</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {vectorStoreProviders.map((provider) => (
+              <Card
+                key={provider.id}
+                isPressable
+                onPress={() => setSelectedProvider(provider)}
+                className={cn(
+                  "border-2",
+                  selectedProvider?.id === provider.id ? "border-primary" : "border-transparent"
+                )}
+              >
+                <CardBody className="gap-2">
+                  <div className="flex items-center gap-2">
+                    <Icon icon={getProviderIcon(provider.icon)} width={24} />
+                    <div>
+                      <h5 className="text-small font-medium">{provider.name}</h5>
+                      <p className="text-tiny text-default-400">{provider.description}</p>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Selected Provider Configuration */}
+        {selectedProvider && (
+          <Card className="mt-6">
+            <CardBody className="gap-4">
+              <div className="flex items-center gap-2">
+                <Icon icon={getProviderIcon(selectedProvider.icon)} width={24} />
+                <div>
+                  <h4 className="text-medium font-medium">{selectedProvider.name} Configuration</h4>
+                  <p className="text-tiny text-default-400">{selectedProvider.description}</p>
+                </div>
+              </div>
+              <Divider />
+              <div className="space-y-3">
+                {selectedProvider.parameters.map((param) => {
+                  const key = keys.find(k => k.name === param.name);
+                  return (
+                    <Input
+                      key={param.name}
+                      label={param.description}
+                      placeholder={`Enter ${param.description.toLowerCase()}`}
+                      name={param.name}
+                      value={key?.value || ''}
+                      type={param.type === 'password' ? 'password' : 'text'}
+                      size="sm"
+                      variant="bordered"
+                      isClearable
+                      onClear={() => handleDeleteKey(param.name)}
+                      onFocus={() =>
+                        setKeys((prevKeys) =>
+                          prevKeys.map((key) => (key.name === param.name ? { ...key, value: '' } : key))
+                        )
+                      }
+                      onChange={handleInputChange}
+                    />
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card {...props}>
       <CardBody className="gap-4 p-0">
-        {/* AI Models Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Icon icon="solar:brain-bold" className="text-primary" width={20} />
-            <div>
-              <h4 className="text-medium font-medium">AI Models</h4>
-              <p className="text-tiny text-default-400">API keys for Language and Embedding Models</p>
-            </div>
-          </div>
-          <ScrollShadow className="max-h-[150px]">
-            <div className="space-y-3 pr-1">
-              {groupedKeys.ai.map(({ name, value }) => (
-                <Input
-                  key={name}
-                  label={name}
-                  placeholder="Enter value"
-                  name={name}
-                  value={value}
-                  size="sm"
-                  variant="bordered"
-                  isClearable
-                  onClear={() => handleDeleteKey(name)}
-                  onFocus={() =>
-                    setKeys((prevKeys) =>
-                      prevKeys.map((key) => (key.name === name ? { ...key, value: '' } : key))
-                    )
-                  }
-                  onChange={handleInputChange}
-                />
-              ))}
-            </div>
-          </ScrollShadow>
-        </div>
-
-        <Divider />
-
-        {/* Vector Store Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Icon icon="solar:database-bold" className="text-primary" width={20} />
-            <div>
-              <h4 className="text-medium font-medium">Vector Databases</h4>
-              <p className="text-tiny text-default-400">API keys for vector databases</p>
-            </div>
-          </div>
-          <ScrollShadow className="max-h-[150px]">
-            <div className="space-y-3 pr-1">
-              {groupedKeys.vectorstore.map(({ name, value }) => (
-                <Input
-                  key={name}
-                  label={name}
-                  placeholder="Enter value"
-                  name={name}
-                  value={value}
-                  size="sm"
-                  variant="bordered"
-                  isClearable
-                  onClear={() => handleDeleteKey(name)}
-                  onFocus={() =>
-                    setKeys((prevKeys) =>
-                      prevKeys.map((key) => (key.name === name ? { ...key, value: '' } : key))
-                    )
-                  }
-                  onChange={handleInputChange}
-                />
-              ))}
-            </div>
-          </ScrollShadow>
-        </div>
+        {renderProviderGrid()}
       </CardBody>
       {hasChanges() && (
         <CardFooter className="px-0 pt-4">
           <div className="flex gap-2 ml-auto">
             <Button
               variant="light"
-              onPress={() => setKeys(originalKeys)}
+              onPress={() => {
+                setKeys(originalKeys);
+                setSelectedProvider(null);
+              }}
               startContent={<Icon icon="solar:close-circle-bold" width={20} />}
             >
               Cancel

@@ -1,2 +1,3 @@
 # ignore the test database file
 test.db
+data/

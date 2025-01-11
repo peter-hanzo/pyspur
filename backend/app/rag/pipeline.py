@@ -1,16 +1,21 @@
 from pathlib import Path
 import json
 import uuid
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional, Callable, Coroutine, cast
 import arrow
-import numpy as np
 
 from loguru import logger
 
 from .parser import extract_text_from_file
 from .chunker import ChunkingConfig, create_document_chunks
 from .embedder import get_multiple_text_embeddings, EmbeddingModels
-from .models.document_schemas import Document, DocumentMetadata, DocumentChunk
+from .models.document_schemas import (
+    Document,
+    DocumentWithChunks,
+    DocumentMetadata,
+    DocumentChunk,
+    Source
+)
 from .datastore.factory import get_datastore
 
 
@@ -19,11 +24,23 @@ class ProcessingError(Exception):
     pass
 
 
+async def _call_progress(
+    on_progress: Optional[Callable[[float, str, int, int], Coroutine[Any, Any, None]]],
+    progress: float,
+    stage: str,
+    current: int,
+    total: int
+) -> None:
+    """Helper function to safely call the progress callback"""
+    if on_progress:
+        await on_progress(progress, stage, current, total)
+
+
 async def process_documents(
     kb_id: str,
     files: List[Dict[str, Any]],
     config: Dict[str, Any],
-    on_progress: Optional[Callable[[float, str, int, int], None]] = None,
+    on_progress: Optional[Callable[[float, str, int, int], Coroutine[Any, Any, None]]] = None,
 ) -> str:
     """
     Process documents through the RAG pipeline with intermediate storage.
@@ -32,7 +49,7 @@ async def process_documents(
         kb_id: Knowledge base ID
         files: List of file information (path, type, etc.)
         config: Configuration for processing
-        on_progress: Callback for progress updates
+        on_progress: Async callback for progress updates
 
     Returns:
         str: Knowledge base ID
@@ -50,8 +67,7 @@ async def process_documents(
         (base_dir / "embeddings").mkdir(exist_ok=True)
 
         # Initialize progress
-        if on_progress:
-            on_progress(0.0, "parsing", 0, len(files))
+        await _call_progress(on_progress, 0.0, "parsing", 0, len(files))
 
         # 1. Parse documents
         documents: List[Document] = []
@@ -61,10 +77,10 @@ async def process_documents(
 
             # Create document metadata
             metadata = DocumentMetadata(
-                source=file_path.name,
+                source=Source.file,
+                source_id=file_path.name,
                 created_at=arrow.utcnow().isoformat(),
                 author=file_info.get("author"),
-                type=file_path.suffix[1:],  # Remove the dot
             )
 
             # Extract text
@@ -84,13 +100,13 @@ async def process_documents(
             doc = Document(id=doc_id, text=text, metadata=metadata)
             documents.append(doc)
 
-            if on_progress:
-                on_progress(
-                    (i + 1) / len(files) * 0.3,  # First 30% for parsing
-                    "parsing",
-                    i + 1,
-                    len(files)
-                )
+            await _call_progress(
+                on_progress,
+                (i + 1) / len(files) * 0.3,  # First 30% for parsing
+                "parsing",
+                i + 1,
+                len(files)
+            )
 
         # 2. Create chunks
         chunking_config = ChunkingConfig(
@@ -121,60 +137,80 @@ async def process_documents(
                     indent=2
                 )
 
-            if on_progress:
-                on_progress(
-                    0.3 + (i + 1) / len(documents) * 0.3,  # 30-60% for chunking
-                    "chunking",
-                    i + 1,
-                    len(documents)
-                )
-
-            logger.debug(f"Created {len(doc_chunks)} chunks for doc_id={doc_id}")
+            await _call_progress(
+                on_progress,
+                0.3 + (i + 1) / len(documents) * 0.3,  # 30-60% for chunking
+                "chunking",
+                i + 1,
+                len(documents)
+            )
 
         logger.debug("Chunk creation completed, moving on to embedding generation.")
 
         # 3. Create embeddings
         chunk_texts = [chunk.text for chunk in all_chunks]
-        embeddings: np.ndarray = await get_multiple_text_embeddings(
-            docs=chunk_texts,
-            model=config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value),
-            batch_size=chunking_config.embeddings_batch_size
-        )
-        logger.debug(f"Embeddings generated for {len(all_chunks)} chunks.")
+        try:
+            embeddings: Any = await get_multiple_text_embeddings(
+                docs=chunk_texts,
+                model=config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value),
+                batch_size=chunking_config.embeddings_batch_size,
+                api_key=config.get("openai_api_key")  # Add API key from config
+            )
+            logger.debug(f"Embeddings generated for {len(all_chunks)} chunks.")
+        except Exception as e:
+            logger.error(f"Error generating embeddings: {str(e)}")
+            raise ProcessingError(f"Failed to generate embeddings: {str(e)}")
 
         # Update chunks with embeddings
         for i, chunk in enumerate(all_chunks):
-            chunk.embedding = embeddings[i].tolist()
+            embedding_list = embeddings[i].tolist()
+            if not isinstance(embedding_list, list):
+                embedding_list = [float(x) for x in embedding_list]
+            chunk.embedding = embedding_list
 
             # Save embeddings
             doc_id = chunk.metadata.document_id
-            emb_path = base_dir / "embeddings" / f"{doc_id}_{i}.json"
-            with open(emb_path, "w") as f:
-                json.dump(
-                    {"chunk_id": chunk.id, "embedding": chunk.embedding},
-                    f
-                )
+            if doc_id is not None:  # Add null check
+                emb_path = base_dir / "embeddings" / f"{doc_id}_{i}.json"
+                with open(emb_path, "w") as f:
+                    json.dump(
+                        {"chunk_id": chunk.id, "embedding": embedding_list},
+                        f
+                    )
 
-            if on_progress:
-                on_progress(
-                    0.6 + (i + 1) / len(all_chunks) * 0.3,  # 60-90% for embeddings
-                    "embedding",
-                    i + 1,
-                    len(all_chunks)
-                )
-
-            logger.debug(f"Saved embedding JSON file at index {i} for doc_id={doc_id}")
+            await _call_progress(
+                on_progress,
+                0.6 + (i + 1) / len(all_chunks) * 0.3,  # 60-90% for embeddings
+                "embedding",
+                i + 1,
+                len(all_chunks)
+            )
 
         # 4. Initialize datastore
         datastore = await get_datastore(config["vector_db"])
         logger.debug("Datastore initialized, starting to upsert chunks.")
 
         # 5. Insert chunks into datastore
-        await datastore._upsert(chunks_by_doc)
+        # Convert chunks_by_doc to list of documents with chunks
+        docs_to_upsert: List[DocumentWithChunks] = []
+        for doc_id, chunks in chunks_by_doc.items():
+            # Find original document metadata
+            original_doc = next((d for d in documents if d.id == doc_id), None)
+            if original_doc is None or original_doc.metadata is None:
+                continue
+
+            doc = DocumentWithChunks(
+                id=doc_id,
+                text=original_doc.text,
+                metadata=original_doc.metadata,
+                chunks=chunks
+            )
+            docs_to_upsert.append(doc)
+
+        await datastore.upsert(cast(List[Document], docs_to_upsert), chunk_token_size=chunking_config.chunk_token_size)
         logger.debug("All chunks successfully upserted into datastore.")
 
-        if on_progress:
-            on_progress(1.0, "completed", len(files), len(files))
+        await _call_progress(on_progress, 1.0, "completed", len(files), len(files))
 
         logger.debug(f"Document processing completed for kb_id={kb_id}.")
 
