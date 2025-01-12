@@ -279,7 +279,7 @@ const KnowledgeBaseWizard: React.FC = () => {
   const [steps, setSteps] = useState<Step[]>([
     {
       title: 'Data Source',
-      description: 'Upload your documents',
+      description: 'Name your knowledge base and optionally upload documents',
       isCompleted: false,
     },
     {
@@ -305,7 +305,7 @@ const KnowledgeBaseWizard: React.FC = () => {
         case 0: // Data Source
           return {
             ...step,
-            isCompleted: Boolean(currentFormData.name) && currentFiles.length > 0,
+            isCompleted: Boolean(currentFormData.name),
           }
         case 1: // Configuration
           return {
@@ -457,13 +457,30 @@ const KnowledgeBaseWizard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Upload Documents</span>
-                  <Tooltip content="Upload your documents to create a knowledge base">
-                    <Info className="w-4 h-4 text-default-400" />
-                  </Tooltip>
+              <Divider className="my-4" />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Upload Documents (Optional)</span>
+                    <Tooltip content="You can upload documents now or add them later">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  </div>
+                  <Chip
+                    variant="flat"
+                    color="primary"
+                    size="sm"
+                    className="capitalize"
+                  >
+                    Optional
+                  </Chip>
                 </div>
+
+                <Alert className="mb-4">
+                  You can create an empty knowledge base now and add documents later. This is useful if you want to set up the configuration first.
+                </Alert>
+
                 <FileUploadBox onFilesChange={handleFilesChange} />
               </div>
             </div>
@@ -635,10 +652,10 @@ const KnowledgeBaseWizard: React.FC = () => {
         const requestData: KnowledgeBaseCreateRequest = {
           name: formData.name || 'New Knowledge Base',
           description: formData.description,
-          data_source: {
+          data_source: uploadedFiles.length > 0 ? {
             type: 'upload',
             files: uploadedFiles,
-          },
+          } : undefined,
           text_processing: {
             parsing_strategy: formData.parsingStrategy,
             chunk_size: Number(formData.chunkSize),
@@ -658,8 +675,13 @@ const KnowledgeBaseWizard: React.FC = () => {
         // Make the API call
         const response = await createKnowledgeBase(requestData)
 
-        // Start polling job status
-        startPollingJobStatus(response.id);
+        // Only start polling if files were uploaded
+        if (uploadedFiles.length > 0) {
+          startPollingJobStatus(response.id);
+        } else {
+          // Redirect immediately for empty knowledge bases
+          router.push('/rag');
+        }
 
       } catch (error) {
         console.error('Error creating knowledge base:', error)

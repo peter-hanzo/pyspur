@@ -541,14 +541,14 @@ export const createKnowledgeBase = async (data: KnowledgeBaseCreateRequest): Pro
     }));
 
     // Add files if present
-    if (data.data_source.type === 'upload' && data.data_source.files) {
+    if (data.data_source?.type === 'upload' && data.data_source.files) {
       data.data_source.files.forEach((file) => {
         formData.append('files', file);
       });
     }
 
     // Add sync tool info if present
-    if (data.data_source.type === 'sync' && data.data_source.tool) {
+    if (data.data_source?.type === 'sync' && data.data_source.tool) {
       formData.append('sync_tool', data.data_source.tool);
     }
 

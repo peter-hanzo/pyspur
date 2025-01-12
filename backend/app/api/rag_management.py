@@ -290,7 +290,7 @@ async def create_kb(
         kb = KnowledgeBaseModel(
             name=kb_config.name,
             description=kb_config.description,
-            status="processing",
+            status="ready" if not files else "processing",  # Set status to ready if no files
             document_count=len(files) if files else 0,
             chunk_count=0,
             text_processing_config=kb_config.text_processing.model_dump(),
@@ -300,18 +300,18 @@ async def create_kb(
         db.commit()
         db.refresh(kb)
 
-        # Create initial job status
-        now = datetime.now(timezone.utc).isoformat()
-        kb_creation_jobs[kb.id] = KnowledgeBaseCreationJob(
-            id=kb.id,
-            created_at=now,
-            updated_at=now,
-            total_files=len(files) if files else 0,
-        )
-
-        # Read files and prepare file info before starting background task
-        file_infos: List[FileInfo] = []
+        # Create initial job status only if files are present
         if files:
+            now = datetime.now(timezone.utc).isoformat()
+            kb_creation_jobs[kb.id] = KnowledgeBaseCreationJob(
+                id=kb.id,
+                created_at=now,
+                updated_at=now,
+                total_files=len(files),
+            )
+
+            # Read files and prepare file info before starting background task
+            file_infos: List[FileInfo] = []
             kb_dir = Path(f"data/knowledge_bases/{kb.id}")
             kb_dir.mkdir(parents=True, exist_ok=True)
 
@@ -327,21 +327,21 @@ async def create_kb(
                         name=file.filename
                     ))
 
+            # Start background processing only if there are files
+            if file_infos:
+                background_tasks.add_task(process_documents, kb.id, file_infos, kb_config, db)
+
         # Create initial response
         response = KnowledgeBaseResponse(
             id=kb.id,
             name=kb_config.name,
             description=kb_config.description,
-            status="processing",
+            status="ready" if not files else "processing",
             created_at=kb.created_at.isoformat(),
             updated_at=kb.updated_at.isoformat(),
             document_count=len(files) if files else 0,
             chunk_count=0,
         )
-
-        # Start background processing
-        if file_infos:
-            background_tasks.add_task(process_documents, kb.id, file_infos, kb_config, db)
 
         return response
 
