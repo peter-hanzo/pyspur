@@ -586,7 +586,7 @@ export const getKnowledgeBase = async (id: string): Promise<KnowledgeBaseRespons
 
 export const deleteKnowledgeBase = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/rag/${id}/`);
+    await axios.delete(`${API_BASE_URL}/rag/${id}`);
   } catch (error) {
     console.error('Error deleting knowledge base:', error);
     throw error;

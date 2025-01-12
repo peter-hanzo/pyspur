@@ -19,7 +19,7 @@ from ..models.knowledge_base_model import KnowledgeBaseModel
 from ..database import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
 from ..rag.datastore.datastore import DataStore
-from ..rag.models.document_schemas import Document, DocumentMetadata, Source
+from ..rag.models.document_schemas import Document, DocumentMetadata, Source, DocumentMetadataFilter
 from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
 from ..rag.pipeline import process_documents as process_documents_pipeline, ProcessingError
 
@@ -382,15 +382,44 @@ async def get_kb(kb_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{kb_id}")
-async def delete_kb(kb_id: str):
+@router.delete("/{kb_id}", include_in_schema=True)
+@router.delete("/{kb_id}/", include_in_schema=True)
+async def delete_kb(kb_id: str, db: Session = Depends(get_db)):
     """Delete a knowledge base"""
     try:
-        # TODO: Implement deletion logic
-        # 1. Remove from vector database
-        # 2. Delete files
-        # 3. Remove from tracking database
-        pass
+        # Get the knowledge base from the database
+        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
+        if not kb:
+            raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+        # Initialize vector database client
+        vector_db = await get_datastore(kb.embedding_config["vector_db"], kb.embedding_config.get("model"))
+
+        # Delete vectors from vector database
+        await vector_db.delete(
+            filter=DocumentMetadataFilter(
+                document_id=kb_id,
+            ),
+            delete_all=False,
+        )
+
+        # Delete files from filesystem
+        kb_dir = Path(f"data/knowledge_bases/{kb_id}")
+        if kb_dir.exists():
+            import shutil
+            shutil.rmtree(kb_dir)
+
+        # Remove from tracking database
+        db.delete(kb)
+        db.commit()
+
+        # Clean up job status if exists
+        if kb_id in kb_creation_jobs:
+            del kb_creation_jobs[kb_id]
+
+        return {"message": "Knowledge base deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
