@@ -280,12 +280,12 @@ const KnowledgeBaseWizard: React.FC = () => {
     {
       title: 'Data Source',
       description: 'Upload your documents',
-      isCompleted: Boolean(formData.name) && uploadedFiles.length > 0,
+      isCompleted: false,
     },
     {
       title: 'Configuration',
       description: 'Configure processing and embedding settings',
-      isCompleted: Boolean(formData.chunkSize && formData.embeddingModel && formData.vectorDb && formData.searchStrategy),
+      isCompleted: false,
     },
     {
       title: 'Execution',
@@ -293,6 +293,11 @@ const KnowledgeBaseWizard: React.FC = () => {
       isCompleted: false,
     },
   ]);
+
+  useEffect(() => {
+    // Initialize steps completion state
+    updateStepsCompletion(formData, uploadedFiles);
+  }, []);
 
   const updateStepsCompletion = (currentFormData: typeof formData, currentFiles: File[]) => {
     setSteps(prevSteps => prevSteps.map((step, idx) => {
@@ -305,7 +310,7 @@ const KnowledgeBaseWizard: React.FC = () => {
         case 1: // Configuration
           return {
             ...step,
-            isCompleted: Boolean(currentFormData.chunkSize && currentFormData.embeddingModel && currentFormData.vectorDb && currentFormData.searchStrategy),
+            isCompleted: currentStep > 0 && Boolean(currentFormData.chunkSize && currentFormData.embeddingModel && currentFormData.vectorDb && currentFormData.searchStrategy),
           }
         case 2: // Execution
           return {
