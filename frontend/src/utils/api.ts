@@ -586,7 +586,7 @@ export const getKnowledgeBase = async (id: string): Promise<KnowledgeBaseRespons
 
 export const deleteKnowledgeBase = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${API_BASE_URL}/rag/${id}`);
+    await axios.delete(`${API_BASE_URL}/rag/${id}/`);
   } catch (error) {
     console.error('Error deleting knowledge base:', error);
     throw error;
@@ -634,10 +634,29 @@ export const getVectorStores = async (): Promise<Record<string, VectorStoreConfi
 
 export const getKnowledgeBaseJobStatus = async (id: string): Promise<KnowledgeBaseCreationJob> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/${id}/job`);
+    const response = await axios.get(`${API_BASE_URL}/rag/${id}/job/`);
     return response.data;
   } catch (error) {
     console.error('Error getting knowledge base job status:', error);
     throw error;
   }
 };
+
+export const addDocumentsToKnowledgeBase = async (id: string, files: File[]): Promise<any> => {
+  try {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+
+    const response = await axios.post(`${API_BASE_URL}/rag/${id}/documents/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error adding documents to knowledge base:', error)
+    throw error
+  }
+}

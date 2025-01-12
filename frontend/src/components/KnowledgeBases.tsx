@@ -215,6 +215,13 @@ const KnowledgeBases: React.FC = () => {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Icon
+                    icon="solar:upload-bold"
+                    className="cursor-pointer text-default-400"
+                    height={18}
+                    width={18}
+                    onClick={() => router.push(`/rag/${item.id}/add-documents`)}
+                  />
+                  <Icon
                     icon="solar:pen-bold"
                     className="cursor-pointer text-default-400"
                     height={18}

@@ -7,7 +7,7 @@ from fastapi import (
     Form,
     Depends,
 )
-from typing import List, Optional, Dict, TypedDict, Sequence, cast
+from typing import List, Optional, Dict, TypedDict, Sequence
 from pydantic import BaseModel
 import json
 from datetime import datetime, timezone
@@ -164,11 +164,18 @@ async def update_kb_creation_job(
         job.status = status
         # Update KB status in database
         if db is not None:
-            kb = (
-                db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == job_id).first()
-            )
+            # Extract the KB ID from the job ID (format: KB_ID_add_TIMESTAMP)
+            kb_id = job_id.split("_add_")[0] if "_add_" in job_id else job_id
+            kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
             if kb:
-                kb.status = status
+                # Update KB status based on job status
+                if status == "completed":
+                    kb.status = "ready"
+                elif status == "failed":
+                    kb.status = "failed"
+                else:
+                    kb.status = "processing"
+
                 if error_message:
                     kb.error_message = error_message
                 if processed_chunks and total_chunks:
@@ -194,7 +201,11 @@ async def update_kb_creation_job(
 
 
 async def process_documents(
-    kb_id: str, file_infos: Sequence[FileInfo], config: KnowledgeBaseCreate, db: Session
+    kb_id: str,
+    job_id: str,
+    file_infos: Sequence[FileInfo],
+    config: KnowledgeBaseCreate,
+    db: Session
 ):
     """Background task to process uploaded documents"""
     try:
@@ -222,16 +233,16 @@ async def process_documents(
         files_dict = [{"path": f["path"], "mime_type": f["mime_type"], "name": f["name"]} for f in file_infos]
 
         # Process documents using the pipeline
-        def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
-            return cast(None, update_kb_creation_job(
-                kb_id,
+        async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+            await update_kb_creation_job(
+                job_id,
                 progress=progress,
                 current_step=step,
                 processed_files=processed if step == "parsing" else None,
                 processed_chunks=processed if step == "embedding" else None,
                 total_chunks=total if step == "embedding" else None,
                 db=db
-            ))
+            )
 
         await process_documents_pipeline(
             kb_id=kb_id,
@@ -242,14 +253,14 @@ async def process_documents(
 
         # Update status to completed
         await update_kb_creation_job(
-            kb_id, status="completed", progress=1.0, current_step="completed", db=db
+            job_id, status="completed", progress=1.0, current_step="completed", db=db
         )
 
     except ProcessingError as e:
-        await update_kb_creation_job(kb_id, status="failed", error_message=str(e), db=db)
+        await update_kb_creation_job(job_id, status="failed", error_message=str(e), db=db)
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        await update_kb_creation_job(kb_id, status="failed", error_message=str(e), db=db)
+        await update_kb_creation_job(job_id, status="failed", error_message=str(e), db=db)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -329,7 +340,7 @@ async def create_kb(
 
             # Start background processing only if there are files
             if file_infos:
-                background_tasks.add_task(process_documents, kb.id, file_infos, kb_config, db)
+                background_tasks.add_task(process_documents, kb.id, kb.id, file_infos, kb_config, db)
 
         # Create initial response
         response = KnowledgeBaseResponse(
@@ -372,12 +383,28 @@ async def list_kbs(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{kb_id}", response_model=KnowledgeBaseResponse)
-async def get_kb(kb_id: str):
+@router.get("/{kb_id}", response_model=KnowledgeBaseResponse, include_in_schema=True)
+@router.get("/{kb_id}/", response_model=KnowledgeBaseResponse, include_in_schema=True)
+async def get_kb(kb_id: str, db: Session = Depends(get_db)):
     """Get knowledge base details"""
     try:
-        # TODO: Implement retrieval from database
-        raise HTTPException(status_code=404, detail="Knowledge base not found")
+        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
+        if not kb:
+            raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+        return KnowledgeBaseResponse(
+            id=kb.id,
+            name=kb.name,
+            description=kb.description,
+            status=kb.status,
+            created_at=kb.created_at.isoformat(),
+            updated_at=kb.updated_at.isoformat(),
+            document_count=kb.document_count,
+            chunk_count=kb.chunk_count,
+            error_message=kb.error_message,
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -470,9 +497,81 @@ async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{kb_id}/job", response_model=KnowledgeBaseCreationJob)
-async def get_kb_creation_job_status(kb_id: str):
+@router.get("/{job_id}/job", response_model=KnowledgeBaseCreationJob)
+@router.get("/{job_id}/job/", response_model=KnowledgeBaseCreationJob)
+async def get_kb_creation_job_status(job_id: str):
     """Get the status of a knowledge base creation job"""
-    if kb_id not in kb_creation_jobs:
-        raise HTTPException(status_code=404, detail="Job not found")
-    return kb_creation_jobs[kb_id]
+    # Try exact job ID first
+    if job_id in kb_creation_jobs:
+        return kb_creation_jobs[job_id]
+
+    # If not found, try looking for any job that starts with the given ID
+    matching_job_ids = [job_key for job_key in kb_creation_jobs.keys() if job_key.startswith(job_id)]
+    if matching_job_ids:
+        return kb_creation_jobs[matching_job_ids[-1]]  # Return the most recent job
+
+    raise HTTPException(status_code=404, detail="Job not found")
+
+
+@router.post("/{kb_id}/documents", include_in_schema=True)
+@router.post("/{kb_id}/documents/", include_in_schema=True)
+async def add_documents_to_kb(
+    kb_id: str,
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    """Add documents to an existing knowledge base"""
+    try:
+        # Get the knowledge base from the database
+        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
+        if not kb:
+            raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+        # Create job status with a unique ID
+        job_id = f"{kb_id}_add_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        now = datetime.now(timezone.utc).isoformat()
+        kb_creation_jobs[job_id] = KnowledgeBaseCreationJob(
+            id=job_id,
+            created_at=now,
+            updated_at=now,
+            total_files=len(files),
+        )
+
+        # Read files and prepare file info
+        file_infos: List[FileInfo] = []
+        kb_dir = Path(f"data/knowledge_bases/{kb_id}")
+        kb_dir.mkdir(parents=True, exist_ok=True)
+
+        for file in files:
+            if file.filename:
+                file_path = kb_dir / file.filename
+                content = await file.read()
+                with open(file_path, "wb") as f:
+                    f.write(content)
+                file_infos.append(FileInfo(
+                    path=str(file_path),
+                    mime_type=file.content_type,
+                    name=file.filename
+                ))
+
+        # Update knowledge base status
+        kb.status = "processing"
+        kb.document_count += len(files)
+        db.commit()
+
+        # Create config from stored settings
+        kb_config = KnowledgeBaseCreate(
+            name=kb.name,
+            description=kb.description,
+            text_processing=TextProcessingConfig(**kb.text_processing_config),
+            embedding=EmbeddingConfig(**kb.embedding_config),
+        )
+
+        # Start background processing
+        background_tasks.add_task(process_documents, kb_id, job_id, file_infos, kb_config, db)
+
+        return {"id": job_id}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
