@@ -43,11 +43,9 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 # Set the batch size for upserting vectors to Pinecone
 UPSERT_BATCH_SIZE = 100
 
-EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION", 256))
-
-
 class PineconeDataStore(DataStore):
-    def __init__(self):
+    def __init__(self, embedding_dimension: Optional[int] = None):
+        super().__init__(embedding_dimension=embedding_dimension)
         # Check if the index name is specified and exists in Pinecone
         if PINECONE_INDEX and PINECONE_INDEX not in pc.list_indexes().names():
             # Get all fields in the metadata object in a list
@@ -60,7 +58,7 @@ class PineconeDataStore(DataStore):
                 )
                 pc.create_index(
                     name=PINECONE_INDEX,
-                    dimension=EMBEDDING_DIMENSION,
+                    dimension=self.embedding_dimension or 1536,  # Default to 1536 if not specified
                     spec=ServerlessSpec(
                         cloud=PINECONE_CLOUD,
                         region=PINECONE_REGION
@@ -88,6 +86,9 @@ class PineconeDataStore(DataStore):
         Takes in a dict from document id to list of document chunks and inserts them into the index.
         Return a list of document ids.
         """
+        if not isinstance(chunks, dict):
+            raise ValueError("Expected chunks to be a dictionary")
+
         # Initialize a list of ids to return
         doc_ids: List[str] = []
         # Initialize a list of vectors to upsert
@@ -104,7 +105,12 @@ class PineconeDataStore(DataStore):
                 # Add the text and document id to the metadata dict
                 pinecone_metadata["text"] = chunk.text
                 pinecone_metadata["document_id"] = doc_id
-                vector = (chunk.id, chunk.embedding, pinecone_metadata)
+                # Convert embedding values to float
+                float_embedding = [float(val) for val in chunk.embedding]
+                # Log embedding details
+                logger.debug(f"Chunk {chunk.id} embedding stats - length: {len(float_embedding)}, non-zero values: {sum(1 for x in float_embedding if x != 0)}, sample: {float_embedding[:5]}")
+
+                vector = (chunk.id, float_embedding, pinecone_metadata)
                 vectors.append(vector)
 
         # Split the vectors list into batches of the specified size
@@ -199,9 +205,10 @@ class PineconeDataStore(DataStore):
         delete_all: Optional[bool] = None,
     ) -> bool:
         """
-        Removes vectors by ids, filter, or everything from the index.
+        Removes vectors by ids, filter, or everything in the datastore.
+        Multiple parameters can be used at once.
+        Returns whether the operation was successful.
         """
-        # Delete all vectors from the index if delete_all is True
         if delete_all:
             try:
                 logger.info(f"Deleting all vectors from index")
@@ -210,32 +217,62 @@ class PineconeDataStore(DataStore):
                 return True
             except Exception as e:
                 logger.error(f"Error deleting all vectors: {e}")
-                raise e
+                return False
 
-        # Convert the metadata filter object to a dict with pinecone filter expressions
-        pinecone_filter = self._get_pinecone_filter(filter)
-        # Delete vectors that match the filter from the index if the filter is not empty
-        if pinecone_filter != {}:
+        if ids and len(ids) > 0:
             try:
-                logger.info(f"Deleting vectors with filter {pinecone_filter}")
-                self.index.delete(filter=pinecone_filter)
-                logger.info(f"Deleted vectors with filter successfully")
+                # First, query to get the chunk IDs associated with these document IDs
+                dummy_vector: List[float] = [0.0] * (self.embedding_dimension or 1536)  # Default to 1536 if not specified
+                query_response = self.index.query(
+                    vector=dummy_vector,  # Dummy vector for metadata-only query
+                    filter={"document_id": {"$in": ids}},
+                    top_k=10000,  # Get as many matches as possible
+                    include_metadata=True
+                )
+
+                # Extract the chunk IDs from the response
+                chunk_ids: List[str] = []
+                if hasattr(query_response, 'matches'):
+                    chunk_ids = [str(match.id) for match in query_response.matches]
+
+                if chunk_ids:
+                    logger.info(f"Deleting vectors with chunk ids {chunk_ids}")
+                    self.index.delete(ids=chunk_ids)
+                    logger.info(f"Deleted vectors with ids successfully")
+
+                return True
+            except Exception as e:
+                logger.error(f"Error deleting vectors with ids {ids}: {e}")
+                return False
+
+        if filter:
+            try:
+                pinecone_filter = self._get_pinecone_filter(filter)
+                # Query to get the IDs of vectors that match the filter
+                dummy_vector: List[float] = [0.0] * (self.embedding_dimension or 1536)  # Default to 1536 if not specified
+                query_response = self.index.query(
+                    vector=dummy_vector,  # Dummy vector for metadata-only query
+                    filter=pinecone_filter,
+                    top_k=10000,  # Get as many matches as possible
+                    include_metadata=True
+                )
+
+                # Extract the IDs from the response
+                chunk_ids: List[str] = []
+                if hasattr(query_response, 'matches'):
+                    chunk_ids = [str(match.id) for match in query_response.matches]
+
+                if chunk_ids:
+                    logger.info(f"Deleting vectors with chunk ids {chunk_ids}")
+                    self.index.delete(ids=chunk_ids)
+                    logger.info(f"Deleted vectors with filter successfully")
+
+                return True
             except Exception as e:
                 logger.error(f"Error deleting vectors with filter: {e}")
-                raise e
+                return False
 
-        # Delete vectors that match the document ids from the index if the ids list is not empty
-        if ids is not None and len(ids) > 0:
-            try:
-                logger.info(f"Deleting vectors with ids {ids}")
-                pinecone_filter = {"document_id": {"$in": ids}}
-                self.index.delete(filter=pinecone_filter)  # type: ignore
-                logger.info(f"Deleted vectors with ids successfully")
-            except Exception as e:
-                logger.error(f"Error deleting vectors with ids: {e}")
-                raise e
-
-        return True
+        return False
 
     def _get_pinecone_filter(
         self, filter: Optional[DocumentMetadataFilter] = None

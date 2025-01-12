@@ -101,10 +101,12 @@ class WeaviateDataStore(DataStore):
 
         return error_messages
 
-    def __init__(self):
+    def __init__(self, embedding_dimension: Optional[int] = None):
+        super().__init__(embedding_dimension=embedding_dimension)
         auth_credentials = self._build_auth_credentials()
-
-        url = os.environ.get("WEAVIATE_URL", WEAVIATE_URL_DEFAULT)
+        url = WEAVIATE_URL
+        if not url:
+            raise ValueError("WEAVIATE_URL is not set")
 
         logger.debug(
             f"Connecting to weaviate instance at {url} with credential type {type(auth_credentials).__name__}"
@@ -114,8 +116,6 @@ class WeaviateDataStore(DataStore):
             batch_size=WEAVIATE_BATCH_SIZE,
             dynamic=WEAVIATE_BATCH_DYNAMIC,  # type: ignore
             callback=self.handle_errors,  # type: ignore
-            timeout_retries=WEAVIATE_BATCH_TIMEOUT_RETRIES,
-            num_workers=WEAVIATE_BATCH_NUM_WORKERS,
         )
 
         if self.client.schema.contains(SCHEMA):
@@ -125,7 +125,6 @@ class WeaviateDataStore(DataStore):
             logger.debug(
                 f"Found index {WEAVIATE_CLASS} with properties {current_schema_properties}"
             )
-            logger.debug("Will reuse this schema")
         else:
             new_schema_properties = extract_schema_properties(SCHEMA)
             logger.debug(

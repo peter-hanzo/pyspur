@@ -150,12 +150,32 @@ async def process_documents(
         # 3. Create embeddings
         chunk_texts = [chunk.text for chunk in all_chunks]
         try:
+            logger.debug(f"Requesting embeddings for {len(chunk_texts)} chunks")
+            logger.debug(f"First chunk text: {chunk_texts[0][:100]}...")  # Log first chunk for debugging
+
+            # Use OpenAI's text-embedding-3-small by default which has 1536 dimensions
+            embedding_model = config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value)
+            model_info = EmbeddingModels.get_model_info(embedding_model)
+            if not model_info:
+                raise ValueError(f"Unknown embedding model: {embedding_model}")
+
+            logger.debug(f"Using embedding model: {embedding_model} with {model_info.dimensions} dimensions")
+
             embeddings: Any = await get_multiple_text_embeddings(
                 docs=chunk_texts,
-                model=config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value),
+                model=embedding_model,
+                dimensions=model_info.dimensions,
                 batch_size=chunking_config.embeddings_batch_size,
-                api_key=config.get("openai_api_key")  # Add API key from config
+                api_key=config.get("openai_api_key")
             )
+
+            # Log embedding details
+            logger.debug(f"Embeddings type: {type(embeddings)}")
+            if len(embeddings) > 0:
+                logger.debug(f"First embedding type: {type(embeddings[0])}")
+                logger.debug(f"First embedding shape or length: {len(embeddings[0]) if isinstance(embeddings[0], list) else embeddings[0].shape if hasattr(embeddings[0], 'shape') else 'unknown'}")
+                logger.debug(f"First embedding sample (first 5 values): {str(embeddings[0][:5])}")
+
             logger.debug(f"Embeddings generated for {len(all_chunks)} chunks.")
         except Exception as e:
             logger.error(f"Error generating embeddings: {str(e)}")
@@ -163,10 +183,22 @@ async def process_documents(
 
         # Update chunks with embeddings
         for i, chunk in enumerate(all_chunks):
-            embedding_list = embeddings[i].tolist()
-            if not isinstance(embedding_list, list):
-                embedding_list = [float(x) for x in embedding_list]
-            chunk.embedding = embedding_list
+            # Ensure we have a valid embedding array
+            if embeddings[i] is None:
+                logger.error(f"No embedding generated for chunk {i}")
+                continue
+
+            # Convert embedding to list of floats
+            try:
+                embedding_list = embeddings[i].tolist() if hasattr(embeddings[i], 'tolist') else embeddings[i]
+                if not isinstance(embedding_list, list):
+                    embedding_list = [float(x) for x in embedding_list]
+                else:
+                    embedding_list = [float(x) for x in embedding_list]
+                chunk.embedding = embedding_list
+            except Exception as e:
+                logger.error(f"Error converting embedding: {str(e)}")
+                continue
 
             # Save embeddings
             doc_id = chunk.metadata.document_id
@@ -187,7 +219,10 @@ async def process_documents(
             )
 
         # 4. Initialize datastore
-        datastore = await get_datastore(config["vector_db"])
+        datastore = await get_datastore(
+            config["vector_db"],
+            embedding_model=embedding_model
+        )
         logger.debug("Datastore initialized, starting to upsert chunks.")
 
         # 5. Insert chunks into datastore

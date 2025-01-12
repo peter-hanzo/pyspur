@@ -36,6 +36,7 @@ CHROMA_COLLECTION = os.environ.get("CHROMA_COLLECTION", "openaiembeddings")
 class ChromaDataStore(DataStore):
     def __init__(
         self,
+        embedding_dimension: Optional[int] = None,
         in_memory: bool = CHROMA_IN_MEMORY,  # type: ignore
         persistence_dir: Optional[str] = CHROMA_PERSISTENCE_DIR,
         collection_name: str = CHROMA_COLLECTION,
@@ -43,6 +44,7 @@ class ChromaDataStore(DataStore):
         port: str = CHROMA_PORT,
         client: Optional[chromadb.Client] = None,
     ):
+        super().__init__(embedding_dimension=embedding_dimension)
         if client:
             self._client = client
         else:

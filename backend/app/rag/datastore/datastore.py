@@ -13,6 +13,9 @@ from ..models.document_schemas import (
 
 
 class DataStore(ABC):
+    def __init__(self, embedding_dimension: Optional[int] = None):
+        self.embedding_dimension = embedding_dimension
+
     async def upsert(
         self, documents: List[Document], chunk_token_size: Optional[int] = None
     ) -> List[str]:
@@ -35,7 +38,7 @@ class DataStore(ABC):
             ]
         )
 
-        chunks = get_document_chunks(documents, chunk_token_size)
+        chunks = await get_document_chunks(documents, chunk_token_size)
 
         return await self._upsert(chunks)
 

@@ -324,14 +324,32 @@ async def get_multiple_text_embeddings(
                         )
                     kwargs["encoding_format"] = encoding_format
 
+            # Log the request details
+            logging.debug(f"Requesting embeddings for batch of size {len(batch)}")
+            logging.debug(f"First text in batch (truncated): {batch[0][:100]}...")
+            logging.debug(f"Using model: {model} with kwargs: {kwargs}")
+
             response = await aembedding(**kwargs)
-            batch_embeddings = [data.embedding for data in response.data]
+            batch_embeddings = [item["embedding"] for item in response.data]
             all_embeddings.extend(batch_embeddings)
+
+            # Validate embeddings
+            for i, emb in enumerate(batch_embeddings):
+                if not emb or len(emb) == 0:
+                    raise ValueError(f"Empty embedding received for text at index {i}")
+                if all(v == 0 for v in emb):
+                    raise ValueError(f"All-zero embedding received for text at index {i}")
+
+            # Log success
+            logging.debug(f"Successfully processed batch of {len(batch)} texts")
+
         except Exception as e:
-            logging.error(f"Error obtaining embeddings for batch: {e}")
-            # Add zero embeddings for failed batch
-            dims = dimensions or EmbeddingModels.get_model_info(model).dimensions
-            all_embeddings.extend([[0] * dims] * len(batch))
+            logging.error(f"Error obtaining embeddings for batch: {str(e)}")
+            logging.error("Batch details:")
+            logging.error(f"- Batch size: {len(batch)}")
+            logging.error(f"- Model: {model}")
+            logging.error(f"- First text (truncated): {batch[0][:100]}...")
+            raise  # Re-raise the exception to be handled by the retry decorator
 
     return np.array(all_embeddings)
 

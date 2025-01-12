@@ -32,20 +32,14 @@ class QdrantDataStore(DataStore):
 
     def __init__(
         self,
+        embedding_dimension: Optional[int] = None,
         collection_name: Optional[str] = None,
-        vector_size: int = EMBEDDING_DIMENSION,
         distance: str = "Cosine",
         recreate_collection: bool = False,
     ):
-        """
-        Args:
-            collection_name: Name of the collection to be used
-            vector_size: Size of the embedding stored in a collection
-            distance:
-                Any of "Cosine" / "Euclid" / "Dot". Distance function to measure
-                similarity
-        """
-        self.client = qdrant_client.QdrantClient(
+        super().__init__(embedding_dimension=embedding_dimension)
+        self.collection_name = collection_name or QDRANT_COLLECTION
+        self._client = qdrant_client.QdrantClient(
             url=QDRANT_URL,
             port=int(QDRANT_PORT),
             grpc_port=int(QDRANT_GRPC_PORT),
@@ -53,10 +47,11 @@ class QdrantDataStore(DataStore):
             prefer_grpc=True,
             timeout=10,
         )
-        self.collection_name = collection_name or QDRANT_COLLECTION
-
-        # Set up the collection so the points might be inserted or queried
-        self._set_up_collection(vector_size, distance, recreate_collection)
+        self._set_up_collection(
+            vector_size=self.embedding_dimension or 1536,  # Default to 1536 if not specified
+            distance=distance,
+            recreate_collection=recreate_collection,
+        )
 
     async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
         """
@@ -68,7 +63,7 @@ class QdrantDataStore(DataStore):
             for _, chunks in chunks.items()
             for chunk in chunks
         ]
-        self.client.upsert(
+        self._client.upsert(
             collection_name=self.collection_name,
             points=points,  # type: ignore
             wait=True,
@@ -85,7 +80,7 @@ class QdrantDataStore(DataStore):
         search_requests = [
             self._convert_query_to_search_request(query) for query in queries
         ]
-        results = self.client.search_batch(
+        results = self._client.search_batch(
             collection_name=self.collection_name,
             requests=search_requests,
         )
@@ -122,7 +117,7 @@ class QdrantDataStore(DataStore):
                 filter, ids
             )
 
-        response = self.client.delete(
+        response = self._client.delete(
             collection_name=self.collection_name,
             points_selector=points_selector,  # type: ignore
         )
@@ -249,7 +244,7 @@ class QdrantDataStore(DataStore):
             self._recreate_collection(distance, vector_size)
 
         try:
-            collection_info = self.client.get_collection(self.collection_name)
+            collection_info = self._client.get_collection(self.collection_name)
             current_distance = collection_info.config.params.vectors.distance  # type: ignore
             current_vector_size = collection_info.config.params.vectors.size  # type: ignore
 
@@ -272,7 +267,7 @@ class QdrantDataStore(DataStore):
             self._recreate_collection(distance, vector_size)
 
     def _recreate_collection(self, distance: rest.Distance, vector_size: int):
-        self.client.recreate_collection(
+        self._client.recreate_collection(
             self.collection_name,
             vectors_config=rest.VectorParams(
                 size=vector_size,
@@ -282,7 +277,7 @@ class QdrantDataStore(DataStore):
 
         # Create the payload index for the document_id metadata attribute, as it is
         # used to delete the document related entries
-        self.client.create_payload_index(
+        self._client.create_payload_index(
             self.collection_name,
             field_name="metadata.document_id",
             field_type=PayloadSchemaType.KEYWORD,
@@ -290,7 +285,7 @@ class QdrantDataStore(DataStore):
 
         # Create the payload index for the created_at attribute, to make the lookup
         # by range filters faster
-        self.client.create_payload_index(
+        self._client.create_payload_index(
             self.collection_name,
             field_name="created_at",
             field_schema=PayloadSchemaType.INTEGER,

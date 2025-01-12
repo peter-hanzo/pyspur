@@ -58,7 +58,8 @@ class PGClient(ABC):
 
 # abstract class for Postgres based Datastore providers that implements DataStore interface
 class PgVectorDataStore(DataStore):
-    def __init__(self):
+    def __init__(self, embedding_dimension: Optional[int] = None):
+        super().__init__(embedding_dimension=embedding_dimension)
         self.client = self.create_db_client()
 
     @abstractmethod
