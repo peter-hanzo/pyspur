@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, List
 from dotenv import load_dotenv, set_key, unset_key, dotenv_values
 import os
+from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
+from ..rag.datastore.factory import get_vector_stores, VectorStoreConfig
 
 # Load existing environment variables from the .env file
 load_dotenv(".env")
@@ -294,3 +296,42 @@ async def delete_api_key(name: str):
         raise HTTPException(status_code=404, detail="Key not found")
     delete_env_variable(name)
     return {"message": f"Key '{name}' deleted successfully"}
+
+@router.get("/embedding-models/", response_model=Dict[str, EmbeddingModelConfig])
+async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
+    """Get all available embedding models and their configurations."""
+    try:
+        models: Dict[str, EmbeddingModelConfig] = {}
+        for model in EmbeddingModels:
+            model_info = EmbeddingModels.get_model_info(model.value)
+            if model_info:
+                # Find the corresponding provider config
+                provider_config = next(
+                    (p for p in PROVIDER_CONFIGS if p.id == model_info.provider.value.lower()),
+                    None
+                )
+                if provider_config:
+                    # Add required environment variables from the provider config
+                    model_info.required_env_vars = [p.name for p in provider_config.parameters if p.required]
+                models[model.value] = model_info
+        return models
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vector-stores/", response_model=Dict[str, VectorStoreConfig])
+async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
+    """Get all available vector stores and their configurations."""
+    try:
+        stores = get_vector_stores()
+        # Add required environment variables from provider configs
+        for store_id, store in stores.items():
+            provider_config = next(
+                (p for p in PROVIDER_CONFIGS if p.id == store_id),
+                None
+            )
+            if provider_config:
+                store.required_env_vars = [p.name for p in provider_config.parameters if p.required]
+        return stores
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

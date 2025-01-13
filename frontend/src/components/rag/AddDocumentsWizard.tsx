@@ -12,7 +12,7 @@ import {
 } from '@nextui-org/react'
 import { useRouter } from 'next/router'
 import { Info, ArrowLeft, CheckCircle } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import FileUploadBox from './FileUploadBox'
 import { addDocumentsToKnowledgeBase, getKnowledgeBase, getKnowledgeBaseJobStatus, KnowledgeBaseCreationJob } from '@/utils/api'
 

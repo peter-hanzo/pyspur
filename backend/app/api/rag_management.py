@@ -17,12 +17,11 @@ import mimetypes
 
 from ..models.knowledge_base_model import KnowledgeBaseModel
 from ..database import get_db
-from ..rag.datastore.factory import get_datastore, get_vector_stores, VectorStoreConfig
+from ..rag.datastore.factory import get_datastore, get_vector_stores
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata, Source, DocumentMetadataFilter
-from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
 from ..rag.pipeline import process_documents as process_documents_pipeline, ProcessingError
-from .key_management import PROVIDER_CONFIGS
+
 
 
 # Models
@@ -449,68 +448,6 @@ async def delete_kb(kb_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.put("/{kb_id}/", response_model=KnowledgeBaseResponse)
-async def update_kb(kb_id: str, update_data: KnowledgeBaseCreate):
-    """Update knowledge base configuration"""
-    try:
-        # TODO: Implement update logic
-        raise HTTPException(status_code=404, detail="Knowledge base not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/{kb_id}/sync/")
-async def sync_kb(kb_id: str, background_tasks: BackgroundTasks):
-    """Sync knowledge base with external tool"""
-    try:
-        # TODO: Implement sync logic
-        # 1. Get sync configuration
-        # 2. Fetch new/updated content
-        # 3. Process and update vector database
-        pass
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/embedding-models/", response_model=Dict[str, EmbeddingModelConfig])
-async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
-    """Get all available embedding models and their configurations."""
-    try:
-        models: Dict[str, EmbeddingModelConfig] = {}
-        for model in EmbeddingModels:
-            model_info = EmbeddingModels.get_model_info(model.value)
-            if model_info:
-                # Find the corresponding provider config
-                provider_config = next(
-                    (p for p in PROVIDER_CONFIGS if p.id == model_info.provider.value.lower()),
-                    None
-                )
-                if provider_config:
-                    # Add required environment variables from the provider config
-                    model_info.required_env_vars = [p.name for p in provider_config.parameters if p.required]
-                models[model.value] = model_info
-        return models
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/vector-stores/", response_model=Dict[str, VectorStoreConfig])
-async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
-    """Get all available vector stores and their configurations."""
-    try:
-        stores = get_vector_stores()
-        # Add required environment variables from provider configs
-        for store_id, store in stores.items():
-            provider_config = next(
-                (p for p in PROVIDER_CONFIGS if p.id == store_id),
-                None
-            )
-            if provider_config:
-                store.required_env_vars = [p.name for p in provider_config.parameters if p.required]
-        return stores
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{job_id}/job/", response_model=KnowledgeBaseCreationJob)

@@ -615,7 +615,7 @@ export const syncKnowledgeBase = async (id: string): Promise<void> => {
 
 export const getEmbeddingModels = async (): Promise<Record<string, EmbeddingModelConfig>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/embedding-models/`);
+    const response = await axios.get(`${API_BASE_URL}/env-mgmt/embedding-models/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching embedding models:', error);
@@ -625,7 +625,7 @@ export const getEmbeddingModels = async (): Promise<Record<string, EmbeddingMode
 
 export const getVectorStores = async (): Promise<Record<string, VectorStoreConfig>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/vector-stores/`);
+    const response = await axios.get(`${API_BASE_URL}/env-mgmt/vector-stores/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching vector stores:', error);
