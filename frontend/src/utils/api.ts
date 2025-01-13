@@ -1,11 +1,10 @@
 import axios from 'axios'
-import testInput from '../constants/test_input.js' // Import the test input directly
 import JSPydanticModel from './JSPydanticModel' // Import the JSPydanticModel class
 import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
 import { DatasetResponse, DatasetListResponse } from '@/types/api_types/datasetSchemas'
 import { EvalRunRequest, EvalRunResponse } from '@/types/api_types/evalSchemas'
 import { NodeTypeSchema, MinimumNodeConfigSchema } from '@/types/api_types/nodeTypeSchemas'
-import { OutputFileResponse, OutputFileCreate, OutputFileUpdate } from '@/types/api_types/outputFileSchemas'
+import { OutputFileResponse } from '@/types/api_types/outputFileSchemas'
 import { RunResponse } from '@/types/api_types/runSchemas'
 
 const API_BASE_URL =
@@ -616,7 +615,7 @@ export const syncKnowledgeBase = async (id: string): Promise<void> => {
 
 export const getEmbeddingModels = async (): Promise<Record<string, EmbeddingModelConfig>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/embedding_models/`);
+    const response = await axios.get(`${API_BASE_URL}/rag/embedding-models/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching embedding models:', error);
@@ -626,7 +625,7 @@ export const getEmbeddingModels = async (): Promise<Record<string, EmbeddingMode
 
 export const getVectorStores = async (): Promise<Record<string, VectorStoreConfig>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/vector_stores/`);
+    const response = await axios.get(`${API_BASE_URL}/rag/vector-stores/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching vector stores:', error);

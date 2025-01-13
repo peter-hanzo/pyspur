@@ -38,10 +38,8 @@ const KnowledgeBases: React.FC = () => {
 
   // Add button refs and useButton hooks
   const uploadRef = useRef<HTMLButtonElement | null>(null)
-  const editRef = useRef<HTMLButtonElement | null>(null)
   const deleteRef = useRef<HTMLButtonElement | null>(null)
   const {getButtonProps: getUploadProps} = useButton({ref: uploadRef})
-  const {getButtonProps: getEditProps} = useButton({ref: editRef})
   const {getButtonProps: getDeleteProps} = useButton({ref: deleteRef})
 
   useEffect(() => {
@@ -223,30 +221,32 @@ const KnowledgeBases: React.FC = () => {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Icon
-                    icon="solar:upload-bold"
-                    className="cursor-pointer text-default-400"
-                    height={18}
-                    width={18}
-                    {...getUploadProps()}
-                    onClick={() => router.push(`/rag/${item.id}/add-documents`)}
-                  />
-                  <Icon
-                    icon="solar:pen-bold"
-                    className="cursor-pointer text-default-400"
-                    height={18}
-                    width={18}
-                    {...getEditProps()}
-                    onClick={() => {}}
-                  />
-                  <Icon
-                    icon="solar:trash-bin-trash-bold"
-                    className="cursor-pointer text-default-400"
-                    height={18}
-                    width={18}
-                    {...getDeleteProps()}
-                    onClick={() => handleDeleteKnowledgeBase(item.id)}
-                  />
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    size="sm"
+                    onPress={() => router.push(`/rag/${item.id}/add-documents`)}
+                  >
+                    <Icon
+                      icon="solar:upload-bold"
+                      className="text-default-400"
+                      height={18}
+                      width={18}
+                    />
+                  </Button>
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    size="sm"
+                    onPress={() => handleDeleteKnowledgeBase(item.id)}
+                  >
+                    <Icon
+                      icon="solar:trash-bin-trash-bold"
+                      className="text-default-400"
+                      height={18}
+                      width={18}
+                    />
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>

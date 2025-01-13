@@ -473,7 +473,7 @@ async def sync_kb(kb_id: str, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/embedding_models/", response_model=Dict[str, EmbeddingModelConfig])
+@router.get("/embedding-models/", response_model=Dict[str, EmbeddingModelConfig])
 async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
     """Get all available embedding models and their configurations."""
     try:
@@ -495,7 +495,7 @@ async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/vector_stores/", response_model=Dict[str, VectorStoreConfig])
+@router.get("/vector-stores/", response_model=Dict[str, VectorStoreConfig])
 async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
     """Get all available vector stores and their configurations."""
     try:
