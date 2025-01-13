@@ -159,6 +159,16 @@ const KnowledgeBaseWizard: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [jobStatus, setJobStatus] = useState<KnowledgeBaseCreationJob | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [nameAlert, setNameAlert] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (nameAlert) {
+      const timer = setTimeout(() => {
+        setNameAlert(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [nameAlert]);
 
   useEffect(() => {
     const loadEmbeddingModels = async () => {
@@ -426,30 +436,32 @@ const KnowledgeBaseWizard: React.FC = () => {
           <div className="flex flex-col gap-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      label="Knowledge Base Name"
-                      placeholder="Enter a name for your knowledge base"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="w-full"
-                      isRequired
-                    />
-                    <Button
-                      isIconOnly
-                      variant="flat"
-                      className="self-end h-14"
-                      onPress={() => handleInputChange('name', generateRandomName())}
-                    >
-                      🎲
-                    </Button>
-                  </div>
+                <div className="flex gap-2">
+                  <Input
+                    label="Knowledge Base Name"
+                    placeholder="Optional - Enter a name or leave empty for a random name"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full"
+                    endContent={
+                      <Tooltip content="Leave empty for a randomly generated name">
+                        <Info className="w-4 h-4 text-default-400" />
+                      </Tooltip>
+                    }
+                  />
+                  <Button
+                    isIconOnly
+                    variant="flat"
+                    className="self-end h-14"
+                    onPress={() => handleInputChange('name', generateRandomName())}
+                  >
+                    🎲
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   <Textarea
                     label="Description"
-                    placeholder="Enter a description for your knowledge base"
+                    placeholder="Optional - Enter a description for your knowledge base"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     className="w-full"
@@ -645,12 +657,26 @@ const KnowledgeBaseWizard: React.FC = () => {
 
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
+      // If we're on the first step and no name is provided, generate one
+      if (currentStep === 0 && !formData.name.trim()) {
+        const randomName = generateRandomName();
+        handleInputChange('name', randomName);
+        setNameAlert(`Using generated name: ${randomName}`);
+      }
       setCurrentStep(currentStep + 1)
     } else {
       try {
+        // If we're creating and no name is provided, generate one
+        let finalName = formData.name;
+        if (!finalName.trim()) {
+          finalName = generateRandomName();
+          handleInputChange('name', finalName);
+          setNameAlert(`Using generated name: ${finalName}`);
+        }
+
         // Prepare the request data
         const requestData: KnowledgeBaseCreateRequest = {
-          name: formData.name || 'New Knowledge Base',
+          name: finalName,
           description: formData.description,
           data_source: uploadedFiles.length > 0 ? {
             type: 'upload',
@@ -1017,7 +1043,7 @@ const KnowledgeBaseWizard: React.FC = () => {
             </div>
             <Progress
               classNames={{
-                base: "mb-8",
+                base: "mb-4",
                 track: "drop-shadow-md",
                 indicator: "bg-gradient-to-r from-primary to-primary-500",
                 label: "text-sm font-medium",
@@ -1029,6 +1055,26 @@ const KnowledgeBaseWizard: React.FC = () => {
               showValueLabel={true}
               valueLabel={`${currentStep + 1} of ${steps.length}`}
             />
+
+            <AnimatePresence>
+              {nameAlert && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Alert
+                    className="mb-4"
+                    color="primary"
+                    startContent={<Info className="h-4 w-4" />}
+                  >
+                    {nameAlert}
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="flex flex-col gap-4">
               {steps.map((step, index) => (
                 <motion.button
