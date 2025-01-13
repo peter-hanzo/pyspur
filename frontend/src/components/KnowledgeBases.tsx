@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Table,
   TableHeader,
@@ -18,6 +18,7 @@ import {
   Spinner,
   Selection,
   Progress,
+  useButton,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import { useRouter } from 'next/router'
@@ -34,6 +35,14 @@ const KnowledgeBases: React.FC = () => {
     isDeleting: false,
   })
   const router = useRouter()
+
+  // Add button refs and useButton hooks
+  const uploadRef = useRef<HTMLButtonElement | null>(null)
+  const editRef = useRef<HTMLButtonElement | null>(null)
+  const deleteRef = useRef<HTMLButtonElement | null>(null)
+  const {getButtonProps: getUploadProps} = useButton({ref: uploadRef})
+  const {getButtonProps: getEditProps} = useButton({ref: editRef})
+  const {getButtonProps: getDeleteProps} = useButton({ref: deleteRef})
 
   useEffect(() => {
     fetchKnowledgeBases()
@@ -219,6 +228,7 @@ const KnowledgeBases: React.FC = () => {
                     className="cursor-pointer text-default-400"
                     height={18}
                     width={18}
+                    {...getUploadProps()}
                     onClick={() => router.push(`/rag/${item.id}/add-documents`)}
                   />
                   <Icon
@@ -226,13 +236,15 @@ const KnowledgeBases: React.FC = () => {
                     className="cursor-pointer text-default-400"
                     height={18}
                     width={18}
-                    onClick={() => { }}
+                    {...getEditProps()}
+                    onClick={() => {}}
                   />
                   <Icon
                     icon="solar:trash-bin-trash-bold"
                     className="cursor-pointer text-default-400"
                     height={18}
                     width={18}
+                    {...getDeleteProps()}
                     onClick={() => handleDeleteKnowledgeBase(item.id)}
                   />
                 </div>

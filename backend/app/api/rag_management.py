@@ -384,7 +384,7 @@ async def list_kbs(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{kb_id}", response_model=KnowledgeBaseResponse, include_in_schema=True)
+@router.get("/{kb_id}/", response_model=KnowledgeBaseResponse, include_in_schema=True)
 async def get_kb(kb_id: str, db: Session = Depends(get_db)):
     """Get knowledge base details"""
     try:
@@ -409,7 +409,7 @@ async def get_kb(kb_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{kb_id}", include_in_schema=True)
+@router.delete("/{kb_id}/", include_in_schema=True)
 async def delete_kb(kb_id: str, db: Session = Depends(get_db)):
     """Delete a knowledge base"""
     try:
@@ -450,7 +450,7 @@ async def delete_kb(kb_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/{kb_id}", response_model=KnowledgeBaseResponse)
+@router.put("/{kb_id}/", response_model=KnowledgeBaseResponse)
 async def update_kb(kb_id: str, update_data: KnowledgeBaseCreate):
     """Update knowledge base configuration"""
     try:
@@ -460,7 +460,7 @@ async def update_kb(kb_id: str, update_data: KnowledgeBaseCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{kb_id}/sync")
+@router.post("/{kb_id}/sync/")
 async def sync_kb(kb_id: str, background_tasks: BackgroundTasks):
     """Sync knowledge base with external tool"""
     try:
@@ -513,7 +513,7 @@ async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{job_id}/job", response_model=KnowledgeBaseCreationJob)
+@router.get("/{job_id}/job/", response_model=KnowledgeBaseCreationJob)
 async def get_kb_creation_job_status(job_id: str):
     """Get the status of a knowledge base creation job"""
     # Try exact job ID first
@@ -528,7 +528,7 @@ async def get_kb_creation_job_status(job_id: str):
     raise HTTPException(status_code=404, detail="Job not found")
 
 
-@router.post("/{kb_id}/documents", include_in_schema=True)
+@router.post("/{kb_id}/documents/", include_in_schema=True)
 async def add_documents_to_kb(
     kb_id: str,
     background_tasks: BackgroundTasks,

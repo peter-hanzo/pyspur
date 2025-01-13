@@ -646,19 +646,19 @@ export const getKnowledgeBaseJobStatus = async (id: string): Promise<KnowledgeBa
 
 export const addDocumentsToKnowledgeBase = async (id: string, files: File[]): Promise<any> => {
   try {
-    const formData = new FormData()
+    const formData = new FormData();
     files.forEach(file => {
-      formData.append('files', file)
-    })
+      formData.append('files', file);
+    });
 
     const response = await axios.post(`${API_BASE_URL}/rag/${id}/documents/`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    })
-    return response.data
+    });
+    return response.data;
   } catch (error) {
-    console.error('Error adding documents to knowledge base:', error)
-    throw error
+    console.error('Error adding documents to knowledge base:', error);
+    throw error;
   }
-}
+};
