@@ -29,7 +29,7 @@ import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { AlertState } from '../types/alert'
 
 interface HeaderProps {
-    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace'
+    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
     associatedWorkflowId?: string
 }
 

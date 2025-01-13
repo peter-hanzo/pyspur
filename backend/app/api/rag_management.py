@@ -7,7 +7,7 @@ from fastapi import (
     Form,
     Depends,
 )
-from typing import List, Optional, Dict, TypedDict, Sequence
+from typing import List, Optional, Dict, TypedDict, Sequence, Union, Any
 from pydantic import BaseModel
 import json
 from datetime import datetime, timezone
@@ -15,12 +15,13 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 import mimetypes
 
-from ..models.knowledge_base_model import KnowledgeBaseModel
+from ..models.knowledge_base_model import DocumentCollectionModel, VectorIndexModel
 from ..database import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores
 from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata, Source, DocumentMetadataFilter
-from ..rag.pipeline import process_documents as process_documents_pipeline, ProcessingError
+from ..rag.knowledge_base import KnowledgeBase
+from ..rag.pipeline import ProcessingError
 
 
 
@@ -81,6 +82,50 @@ class KnowledgeBaseResponse(BaseModel):
     document_count: int
     chunk_count: int
     error_message: Optional[str] = None
+
+
+class DocumentCollectionCreate(BaseModel):
+    """Request model for creating a document collection"""
+    name: str
+    description: Optional[str] = None
+    text_processing: TextProcessingConfig
+
+
+class VectorIndexCreate(BaseModel):
+    """Request model for creating a vector index"""
+    name: str
+    description: Optional[str] = None
+    collection_id: str
+    embedding: EmbeddingConfig
+
+
+class DocumentCollectionResponse(BaseModel):
+    """Response model for document collection operations"""
+    id: str
+    name: str
+    description: Optional[str] = None
+    status: str
+    created_at: str
+    updated_at: str
+    document_count: int
+    chunk_count: int
+    error_message: Optional[str] = None
+
+
+class VectorIndexResponse(BaseModel):
+    """Response model for vector index operations"""
+    id: str
+    name: str
+    description: Optional[str] = None
+    collection_id: str
+    status: str
+    created_at: str
+    updated_at: str
+    document_count: int
+    chunk_count: int
+    error_message: Optional[str] = None
+    embedding_model: str
+    vector_db: str
 
 
 router = APIRouter()
@@ -204,56 +249,64 @@ async def process_documents(
     kb_id: str,
     job_id: str,
     file_infos: Sequence[FileInfo],
-    config: KnowledgeBaseCreate,
+    config: Union[DocumentCollectionCreate, KnowledgeBaseCreate],
     db: Session
 ):
     """Background task to process uploaded documents"""
     try:
+        # Create knowledge base manager
+        kb = KnowledgeBase(kb_id)
+
         # Prepare configuration
-        processing_config = {
+        processing_config: Dict[str, Any] = {
             "chunk_token_size": config.text_processing.chunk_token_size,
             "min_chunk_size_chars": config.text_processing.min_chunk_size_chars,
             "min_chunk_length_to_embed": config.text_processing.min_chunk_length_to_embed,
             "embeddings_batch_size": config.text_processing.embeddings_batch_size,
             "max_num_chunks": config.text_processing.max_num_chunks,
-            "embedding_model": config.embedding.model,
-            "vector_db": config.embedding.vector_db,
-            "vision_config": (
-                {
+        }
+
+        # Add embedding config if it's a KnowledgeBaseCreate
+        if isinstance(config, KnowledgeBaseCreate):
+            processing_config["embedding_model"] = config.embedding.model
+            processing_config["vector_db"] = config.embedding.vector_db
+            if config.text_processing.use_vision_model:
+                processing_config["vision_config"] = {
                     "enabled": config.text_processing.use_vision_model,
                     "model": config.text_processing.vision_model,
                     "provider": config.text_processing.vision_provider,
                 }
-                if config.text_processing.use_vision_model
-                else None
-            ),
-        }
+            else:
+                processing_config["vision_config"] = None
 
-        # Convert FileInfo to Dict[str, Any] as required by process_documents_pipeline
+        # Convert FileInfo to Dict[str, Any]
         files_dict = [{"path": f["path"], "mime_type": f["mime_type"], "name": f["name"]} for f in file_infos]
 
-        # Process documents using the pipeline
-        async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+        # Process documents and create chunks
+        async def doc_progress_callback(progress: float, step: str, processed: int, total: int) -> None:
             await update_kb_creation_job(
                 job_id,
                 progress=progress,
                 current_step=step,
                 processed_files=processed if step == "parsing" else None,
-                processed_chunks=processed if step == "embedding" else None,
-                total_chunks=total if step == "embedding" else None,
+                processed_chunks=processed if step == "chunking" else None,
+                total_chunks=total if step == "chunking" else None,
                 db=db
             )
 
-        await process_documents_pipeline(
-            kb_id=kb_id,
+        await kb.process_documents(
             files=files_dict,
             config=processing_config,
-            on_progress=progress_callback,
+            on_progress=doc_progress_callback,
         )
 
         # Update status to completed
         await update_kb_creation_job(
-            job_id, status="completed", progress=1.0, current_step="completed", db=db
+            job_id,
+            status="completed",
+            progress=1.0,
+            current_step="completed",
+            db=db
         )
 
     except ProcessingError as e:
@@ -525,4 +578,390 @@ async def add_documents_to_kb(
         return {"id": job_id}
 
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/collections/", response_model=DocumentCollectionResponse)
+async def create_document_collection(
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile] = File(None),
+    metadata: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Create a new document collection"""
+    try:
+        # Parse metadata
+        metadata_dict = json.loads(metadata)
+        collection_config = DocumentCollectionCreate(**metadata_dict)
+
+        # Create document collection record
+        collection = DocumentCollectionModel(
+            name=collection_config.name,
+            description=collection_config.description,
+            status="ready" if not files else "processing",
+            document_count=len(files) if files else 0,
+            chunk_count=0,
+            text_processing_config=collection_config.text_processing.model_dump(),
+        )
+        db.add(collection)
+        db.commit()
+        db.refresh(collection)
+
+        # Create initial job status only if files are present
+        if files:
+            now = datetime.now(timezone.utc).isoformat()
+            kb_creation_jobs[collection.id] = KnowledgeBaseCreationJob(
+                id=collection.id,
+                created_at=now,
+                updated_at=now,
+                total_files=len(files),
+            )
+
+            # Read files and prepare file info
+            file_infos: List[FileInfo] = []
+            collection_dir = Path(f"data/knowledge_bases/{collection.id}")
+            collection_dir.mkdir(parents=True, exist_ok=True)
+
+            for file in files:
+                if file.filename:
+                    file_path = collection_dir / file.filename
+                    content = await file.read()
+                    with open(file_path, "wb") as f:
+                        f.write(content)
+                    file_infos.append(FileInfo(
+                        path=str(file_path),
+                        mime_type=file.content_type,
+                        name=file.filename
+                    ))
+
+            # Start background processing only if there are files
+            if file_infos:
+                background_tasks.add_task(process_documents, collection.id, collection.id, file_infos, collection_config, db)
+
+        # Create initial response
+        response = DocumentCollectionResponse(
+            id=collection.id,
+            name=collection_config.name,
+            description=collection_config.description,
+            status="ready" if not files else "processing",
+            created_at=collection.created_at.isoformat(),
+            updated_at=collection.updated_at.isoformat(),
+            document_count=len(files) if files else 0,
+            chunk_count=0,
+        )
+
+        return response
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/collections/", response_model=List[DocumentCollectionResponse])
+async def list_document_collections(db: Session = Depends(get_db)):
+    """List all document collections"""
+    try:
+        collections = db.query(DocumentCollectionModel).all()
+        return [
+            DocumentCollectionResponse(
+                id=collection.id,
+                name=collection.name,
+                description=collection.description,
+                status=collection.status,
+                created_at=collection.created_at.isoformat(),
+                updated_at=collection.updated_at.isoformat(),
+                document_count=collection.document_count,
+                chunk_count=collection.chunk_count,
+                error_message=collection.error_message,
+            )
+            for collection in collections
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/collections/{collection_id}/", response_model=DocumentCollectionResponse)
+async def get_document_collection(collection_id: str, db: Session = Depends(get_db)):
+    """Get document collection details"""
+    try:
+        collection = db.query(DocumentCollectionModel).filter(
+            DocumentCollectionModel.id == collection_id
+        ).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Document collection not found")
+
+        return DocumentCollectionResponse(
+            id=collection.id,
+            name=collection.name,
+            description=collection.description,
+            status=collection.status,
+            created_at=collection.created_at.isoformat(),
+            updated_at=collection.updated_at.isoformat(),
+            document_count=collection.document_count,
+            chunk_count=collection.chunk_count,
+            error_message=collection.error_message,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/collections/{collection_id}/")
+async def delete_document_collection(collection_id: str, db: Session = Depends(get_db)):
+    """Delete a document collection"""
+    try:
+        # Get the document collection from the database
+        collection = db.query(DocumentCollectionModel).filter(
+            DocumentCollectionModel.id == collection_id
+        ).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Document collection not found")
+
+        # Delete files from filesystem
+        collection_dir = Path(f"data/knowledge_bases/{collection_id}")
+        if collection_dir.exists():
+            import shutil
+            shutil.rmtree(collection_dir)
+
+        # Remove from tracking database
+        db.delete(collection)
+        db.commit()
+
+        # Clean up job status if exists
+        if collection_id in kb_creation_jobs:
+            del kb_creation_jobs[collection_id]
+
+        return {"message": "Document collection deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/indices/", response_model=VectorIndexResponse)
+async def create_vector_index(
+    background_tasks: BackgroundTasks,
+    index_config: VectorIndexCreate,
+    db: Session = Depends(get_db),
+):
+    """Create a new vector index from a document collection"""
+    try:
+        # Validate vector_db is supported
+        vector_stores = get_vector_stores()
+        if index_config.embedding.vector_db not in vector_stores:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported vector database: {index_config.embedding.vector_db}. "
+                f"Try one of the following: {', '.join(vector_stores.keys())}",
+            )
+
+        # Check if collection exists
+        collection = db.query(DocumentCollectionModel).filter(
+            DocumentCollectionModel.id == index_config.collection_id
+        ).first()
+        if not collection:
+            raise HTTPException(status_code=404, detail="Document collection not found")
+
+        # Create vector index record
+        index = VectorIndexModel(
+            name=index_config.name,
+            description=index_config.description,
+            status="processing",
+            document_count=collection.document_count,
+            chunk_count=collection.chunk_count,
+            embedding_config=index_config.embedding.model_dump(),
+            collection_id=collection.id,
+        )
+        db.add(index)
+        db.commit()
+        db.refresh(index)
+
+        # Create job status
+        now = datetime.now(timezone.utc).isoformat()
+        kb_creation_jobs[index.id] = KnowledgeBaseCreationJob(
+            id=index.id,
+            created_at=now,
+            updated_at=now,
+            total_chunks=collection.chunk_count,
+        )
+
+        # Start background processing
+        background_tasks.add_task(
+            create_vector_index_from_collection,
+            index.id,
+            index_config.collection_id,
+            index_config,
+            db
+        )
+
+        # Create response
+        response = VectorIndexResponse(
+            id=index.id,
+            name=index_config.name,
+            description=index_config.description,
+            collection_id=index_config.collection_id,
+            status="processing",
+            created_at=index.created_at.isoformat(),
+            updated_at=index.updated_at.isoformat(),
+            document_count=collection.document_count,
+            chunk_count=collection.chunk_count,
+            embedding_model=index_config.embedding.model,
+            vector_db=index_config.embedding.vector_db,
+        )
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/indices/", response_model=List[VectorIndexResponse])
+async def list_vector_indices(db: Session = Depends(get_db)):
+    """List all vector indices"""
+    try:
+        indices = db.query(VectorIndexModel).all()
+        return [
+            VectorIndexResponse(
+                id=index.id,
+                name=index.name,
+                description=index.description,
+                collection_id=index.collection_id,
+                status=index.status,
+                created_at=index.created_at.isoformat(),
+                updated_at=index.updated_at.isoformat(),
+                document_count=index.document_count,
+                chunk_count=index.chunk_count,
+                error_message=index.error_message,
+                embedding_model=index.embedding_config["model"],
+                vector_db=index.embedding_config["vector_db"],
+            )
+            for index in indices
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/indices/{index_id}/", response_model=VectorIndexResponse)
+async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
+    """Get vector index details"""
+    try:
+        index = db.query(VectorIndexModel).filter(
+            VectorIndexModel.id == index_id
+        ).first()
+        if not index:
+            raise HTTPException(status_code=404, detail="Vector index not found")
+
+        return VectorIndexResponse(
+            id=index.id,
+            name=index.name,
+            description=index.description,
+            collection_id=index.collection_id,
+            status=index.status,
+            created_at=index.created_at.isoformat(),
+            updated_at=index.updated_at.isoformat(),
+            document_count=index.document_count,
+            chunk_count=index.chunk_count,
+            error_message=index.error_message,
+            embedding_model=index.embedding_config["model"],
+            vector_db=index.embedding_config["vector_db"],
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/indices/{index_id}/")
+async def delete_vector_index(index_id: str, db: Session = Depends(get_db)):
+    """Delete a vector index"""
+    try:
+        # Get the vector index from the database
+        index = db.query(VectorIndexModel).filter(
+            VectorIndexModel.id == index_id
+        ).first()
+        if not index:
+            raise HTTPException(status_code=404, detail="Vector index not found")
+
+        # Initialize vector database client
+        vector_db = await get_datastore(
+            index.embedding_config["vector_db"],
+            index.embedding_config.get("model")
+        )
+
+        # Delete vectors from vector database
+        await vector_db.delete(
+            filter=DocumentMetadataFilter(
+                document_id=index_id,
+            ),
+            delete_all=False,
+        )
+
+        # Delete files from filesystem
+        index_dir = Path(f"data/vector_indices/{index_id}")
+        if index_dir.exists():
+            import shutil
+            shutil.rmtree(index_dir)
+
+        # Remove from tracking database
+        db.delete(index)
+        db.commit()
+
+        # Clean up job status if exists
+        if index_id in kb_creation_jobs:
+            del kb_creation_jobs[index_id]
+
+        return {"message": "Vector index deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def create_vector_index_from_collection(
+    index_id: str,
+    collection_id: str,
+    config: VectorIndexCreate,
+    db: Session
+):
+    """Background task to create a vector index from a document collection"""
+    try:
+        # Create knowledge base manager
+        kb = KnowledgeBase(collection_id)
+
+        # Prepare configuration
+        processing_config = {
+            "embedding_model": config.embedding.model,
+            "vector_db": config.embedding.vector_db,
+            "embeddings_batch_size": 128,  # Default value
+        }
+
+        # Create vector index
+        async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+            await update_kb_creation_job(
+                index_id,
+                progress=progress,
+                current_step=step,
+                processed_chunks=processed if step == "embedding" else None,
+                total_chunks=total if step == "embedding" else None,
+                db=db
+            )
+
+        await kb.create_vector_index(processing_config, progress_callback)
+
+        # Update status to completed
+        await update_kb_creation_job(
+            index_id,
+            status="completed",
+            progress=1.0,
+            current_step="completed",
+            db=db
+        )
+
+    except ProcessingError as e:
+        await update_kb_creation_job(index_id, status="failed", error_message=str(e), db=db)
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        await update_kb_creation_job(index_id, status="failed", error_message=str(e), db=db)
         raise HTTPException(status_code=500, detail=str(e))

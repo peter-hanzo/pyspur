@@ -19,14 +19,42 @@ import {
   Selection,
   Progress,
   useButton,
+  Tabs,
+  Tab,
+  Card,
+  CardBody,
+  Divider,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import { useRouter } from 'next/router'
 import { listKnowledgeBases, deleteKnowledgeBase, KnowledgeBaseResponse } from '@/utils/api'
 
+interface DocumentCollection {
+  id: string
+  name: string
+  description: string
+  document_count: number
+  chunk_count: number
+  created_at: string
+  updated_at: string
+  status: 'ready' | 'processing' | 'failed'
+  error_message?: string
+  has_embeddings: boolean
+  config?: {
+    chunk_token_size?: number
+    embeddings_batch_size?: number
+  }
+}
+
+interface VectorIndex extends DocumentCollection {
+  vector_db: string
+  embedding_model: string
+}
+
 const KnowledgeBases: React.FC = () => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
-  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBaseResponse[]>([])
+  const [documentCollections, setDocumentCollections] = useState<DocumentCollection[]>([])
+  const [vectorIndices, setVectorIndices] = useState<VectorIndex[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
   const [deleteProgress, setDeleteProgress] = useState<{ current: number; total: number; isDeleting: boolean }>({
@@ -50,7 +78,25 @@ const KnowledgeBases: React.FC = () => {
     try {
       setIsLoading(true)
       const data = await listKnowledgeBases()
-      setKnowledgeBases(data)
+
+      // Split into document collections and vector indices
+      const collections: DocumentCollection[] = []
+      const indices: VectorIndex[] = []
+
+      data.forEach((kb: KnowledgeBaseResponse) => {
+        if (kb.has_embeddings && kb.config?.vector_db && kb.config?.embedding_model) {
+          indices.push({
+            ...kb,
+            vector_db: kb.config.vector_db,
+            embedding_model: kb.config.embedding_model
+          })
+        } else {
+          collections.push(kb)
+        }
+      })
+
+      setDocumentCollections(collections)
+      setVectorIndices(indices)
     } catch (error) {
       console.error('Error fetching knowledge bases:', error)
     } finally {
@@ -58,69 +104,34 @@ const KnowledgeBases: React.FC = () => {
     }
   }
 
-  const handleCreateKnowledgeBase = () => {
+  const handleCreateCollection = () => {
     router.push('/rag/create')
   }
 
-  const handleDeleteKnowledgeBase = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this knowledge base?')) {
+  const handleDeleteCollection = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this document collection?')) {
       try {
         await deleteKnowledgeBase(id)
         await fetchKnowledgeBases()
       } catch (error) {
-        console.error('Error deleting knowledge base:', error)
+        console.error('Error deleting document collection:', error)
       }
     }
   }
 
-  const hasSelection = selectedKeys === "all" || (selectedKeys instanceof Set && selectedKeys.size > 0)
-
-  const getSelectedCount = () => {
-    if (selectedKeys === "all") {
-      return knowledgeBases.length;
-    }
-    return selectedKeys instanceof Set ? selectedKeys.size : 0;
-  }
-
-  const handleBulkDelete = async () => {
-    let selectedIds: string[] = [];
-    if (selectedKeys === "all") {
-      selectedIds = knowledgeBases.map(kb => kb.id);
-    } else {
-      selectedIds = Array.from(selectedKeys).filter((key): key is string => typeof key === 'string');
-    }
-
-    if (selectedIds.length === 0) return;
-
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} knowledge base(s)?`)) {
+  const handleDeleteIndex = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this vector index?')) {
       try {
-        setDeleteProgress({
-          current: 0,
-          total: selectedIds.length,
-          isDeleting: true,
-        });
-
-        // Delete KBs sequentially to show accurate progress
-        for (let i = 0; i < selectedIds.length; i++) {
-          await deleteKnowledgeBase(selectedIds[i]);
-          setDeleteProgress(prev => ({
-            ...prev,
-            current: i + 1,
-          }));
-        }
-
-        await fetchKnowledgeBases();
-        setSelectedKeys(new Set([]));
+        await deleteKnowledgeBase(id)
+        await fetchKnowledgeBases()
       } catch (error) {
-        console.error('Error deleting knowledge bases:', error);
-      } finally {
-        setDeleteProgress({
-          current: 0,
-          total: 0,
-          isDeleting: false,
-        });
+        console.error('Error deleting vector index:', error)
       }
     }
+  }
+
+  const handleCreateIndex = async (collectionId: string) => {
+    router.push(`/rag/${collectionId}/create-index`)
   }
 
   const getStatusColor = (status: string) => {
@@ -146,10 +157,22 @@ const KnowledgeBases: React.FC = () => {
     })
   }
 
-  const columns = [
+  const collectionColumns = [
     { key: 'name', label: 'Name' },
     { key: 'description', label: 'Description' },
     { key: 'documentCount', label: 'Documents' },
+    { key: 'chunkCount', label: 'Chunks' },
+    { key: 'lastUpdated', label: 'Last Updated' },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Actions' },
+  ]
+
+  const indexColumns = [
+    { key: 'name', label: 'Name' },
+    { key: 'vectorDb', label: 'Vector DB' },
+    { key: 'embeddingModel', label: 'Embedding Model' },
+    { key: 'documentCount', label: 'Documents' },
+    { key: 'chunkCount', label: 'Chunks' },
     { key: 'lastUpdated', label: 'Last Updated' },
     { key: 'status', label: 'Status' },
     { key: 'actions', label: 'Actions' },
@@ -163,96 +186,183 @@ const KnowledgeBases: React.FC = () => {
     )
   }
 
+  const renderDocumentCollectionsTable = () => (
+    <Card>
+      <CardBody>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-bold">Document Collections</h2>
+            <p className="text-small text-default-400">Manage your parsed and chunked documents</p>
+          </div>
+          <Button
+            className="bg-foreground text-background"
+            startContent={<Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />}
+            onPress={handleCreateCollection}
+          >
+            New Collection
+          </Button>
+        </div>
+        <Table
+          aria-label="Document Collections"
+          isHeaderSticky
+          classNames={{
+            base: "max-h-[400px] overflow-scroll",
+          }}
+        >
+          <TableHeader columns={collectionColumns}>
+            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+          </TableHeader>
+          <TableBody items={documentCollections} emptyContent="No document collections found">
+            {(item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <Chip size="sm" variant="flat" className="cursor-pointer">
+                    {item.name}
+                  </Chip>
+                </TableCell>
+                <TableCell>{item.description || '-'}</TableCell>
+                <TableCell>{item.document_count}</TableCell>
+                <TableCell>{item.chunk_count}</TableCell>
+                <TableCell>{formatDate(item.updated_at)}</TableCell>
+                <TableCell>
+                  <Chip size="sm" color={getStatusColor(item.status)} variant="flat">
+                    {item.status}
+                  </Chip>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      isIconOnly
+                      variant="light"
+                      size="sm"
+                      onPress={() => handleCreateIndex(item.id)}
+                    >
+                      <Icon
+                        icon="solar:graph-new-bold"
+                        className="text-default-400"
+                        height={18}
+                        width={18}
+                      />
+                    </Button>
+                    <Button
+                      isIconOnly
+                      variant="light"
+                      size="sm"
+                      onPress={() => router.push(`/rag/${item.id}/add-documents`)}
+                    >
+                      <Icon
+                        icon="solar:upload-bold"
+                        className="text-default-400"
+                        height={18}
+                        width={18}
+                      />
+                    </Button>
+                    <Button
+                      isIconOnly
+                      variant="light"
+                      size="sm"
+                      onPress={() => handleDeleteCollection(item.id)}
+                    >
+                      <Icon
+                        icon="solar:trash-bin-trash-bold"
+                        className="text-default-400"
+                        height={18}
+                        width={18}
+                      />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardBody>
+    </Card>
+  )
+
+  const renderVectorIndicesTable = () => (
+    <Card>
+      <CardBody>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-bold">Vector Indices</h2>
+            <p className="text-small text-default-400">Manage your embedded document collections</p>
+          </div>
+        </div>
+        <Table
+          aria-label="Vector Indices"
+          isHeaderSticky
+          classNames={{
+            base: "max-h-[400px] overflow-scroll",
+          }}
+        >
+          <TableHeader columns={indexColumns}>
+            {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+          </TableHeader>
+          <TableBody items={vectorIndices} emptyContent="No vector indices found">
+            {(item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <Chip size="sm" variant="flat" className="cursor-pointer">
+                    {item.name}
+                  </Chip>
+                </TableCell>
+                <TableCell>
+                  <Chip size="sm" variant="flat" color="primary">
+                    {item.vector_db}
+                  </Chip>
+                </TableCell>
+                <TableCell>
+                  <Chip size="sm" variant="flat" color="secondary">
+                    {item.embedding_model}
+                  </Chip>
+                </TableCell>
+                <TableCell>{item.document_count}</TableCell>
+                <TableCell>{item.chunk_count}</TableCell>
+                <TableCell>{formatDate(item.updated_at)}</TableCell>
+                <TableCell>
+                  <Chip size="sm" color={getStatusColor(item.status)} variant="flat">
+                    {item.status}
+                  </Chip>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      isIconOnly
+                      variant="light"
+                      size="sm"
+                      onPress={() => handleDeleteIndex(item.id)}
+                    >
+                      <Icon
+                        icon="solar:trash-bin-trash-bold"
+                        className="text-default-400"
+                        height={18}
+                        width={18}
+                      />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardBody>
+    </Card>
+  )
+
   return (
     <div className="w-3/4 mx-auto p-5">
-      <header className="mb-6 flex w-full items-center flex-col gap-2">
-        <div className="flex w-full items-center">
-          <div className="flex flex-col max-w-fit">
-            <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Knowledge Bases</h1>
-            <p className="text-small text-default-400 lg:text-medium">Manage your RAG knowledge bases</p>
-          </div>
-          <div className="ml-auto flex gap-2">
-            {hasSelection && (
-              <Button
-                color="danger"
-                variant="flat"
-                startContent={<Icon icon="solar:trash-bin-trash-bold" width={16} />}
-                onPress={handleBulkDelete}
-              >
-                Delete Selected ({getSelectedCount()})
-              </Button>
-            )}
-            <Button
-              className="bg-foreground text-background"
-              startContent={<Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />}
-              onPress={handleCreateKnowledgeBase}
-            >
-              New Knowledge Base
-            </Button>
-          </div>
+      <header className="mb-6">
+        <div className="flex flex-col max-w-fit">
+          <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Knowledge Base Management</h1>
+          <p className="text-small text-default-400 lg:text-medium">Manage your RAG document collections and vector indices</p>
         </div>
       </header>
 
-      <Table
-        aria-label="Knowledge Bases"
-        isHeaderSticky
-        selectionMode="multiple"
-        selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
-      >
-        <TableHeader columns={columns}>
-          {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-        </TableHeader>
-        <TableBody items={knowledgeBases} emptyContent="No knowledge bases found">
-          {(item) => (
-            <TableRow key={item.id}>
-              <TableCell>
-                <Chip size="sm" variant="flat" className="cursor-pointer">
-                  {item.name}
-                </Chip>
-              </TableCell>
-              <TableCell>{item.description || '-'}</TableCell>
-              <TableCell>{item.document_count}</TableCell>
-              <TableCell>{formatDate(item.updated_at)}</TableCell>
-              <TableCell>
-                <Chip size="sm" color={getStatusColor(item.status)} variant="flat">
-                  {item.status}
-                </Chip>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Button
-                    isIconOnly
-                    variant="light"
-                    size="sm"
-                    onPress={() => router.push(`/rag/${item.id}/add-documents`)}
-                  >
-                    <Icon
-                      icon="solar:upload-bold"
-                      className="text-default-400"
-                      height={18}
-                      width={18}
-                    />
-                  </Button>
-                  <Button
-                    isIconOnly
-                    variant="light"
-                    size="sm"
-                    onPress={() => handleDeleteKnowledgeBase(item.id)}
-                  >
-                    <Icon
-                      icon="solar:trash-bin-trash-bold"
-                      className="text-default-400"
-                      height={18}
-                      width={18}
-                    />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <div className="space-y-6">
+        {renderDocumentCollectionsTable()}
+        {renderVectorIndicesTable()}
+      </div>
 
       <Modal
         isOpen={deleteProgress.isDeleting}
@@ -262,7 +372,7 @@ const KnowledgeBases: React.FC = () => {
       >
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">
-            Deleting Knowledge Bases
+            Deleting Knowledge Base
           </ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-4">
@@ -277,32 +387,10 @@ const KnowledgeBases: React.FC = () => {
                 }}
               />
               <p className="text-sm text-center text-default-500">
-                Deleting {deleteProgress.current} of {deleteProgress.total} knowledge bases...
+                Deleting {deleteProgress.current} of {deleteProgress.total} items...
               </p>
             </div>
           </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">Create Knowledge Base</ModalHeader>
-              <ModalBody>
-                <Input label="Name" placeholder="Enter knowledge base name" />
-                <Input label="Description" placeholder="Enter description" />
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Cancel
-                </Button>
-                <Button color="primary" onPress={onClose}>
-                  Create
-                </Button>
-              </ModalFooter>
-            </>
-          )}
         </ModalContent>
       </Modal>
     </div>

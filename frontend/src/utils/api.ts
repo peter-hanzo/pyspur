@@ -498,13 +498,20 @@ export interface KnowledgeBaseCreateRequest {
 export interface KnowledgeBaseResponse {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   status: 'processing' | 'ready' | 'failed';
   created_at: string;
   updated_at: string;
   document_count: number;
   chunk_count: number;
   error_message?: string;
+  has_embeddings: boolean;
+  config?: {
+    vector_db?: string;
+    embedding_model?: string;
+    chunk_token_size?: number;
+    embeddings_batch_size?: number;
+  };
 }
 
 // Embedding Model Types
@@ -658,6 +665,180 @@ export const addDocumentsToKnowledgeBase = async (id: string, files: File[]): Pr
     return response.data;
   } catch (error) {
     console.error('Error adding documents to knowledge base:', error);
+    throw error;
+  }
+};
+
+// Document Collection Types
+export interface DocumentCollectionCreateRequest {
+  name: string;
+  description?: string;
+  text_processing: {
+    chunk_token_size: number;
+    min_chunk_size_chars: number;
+    min_chunk_length_to_embed: number;
+    embeddings_batch_size: number;
+    max_num_chunks: number;
+    use_vision_model: boolean;
+    vision_model?: string;
+    vision_provider?: string;
+  };
+}
+
+export interface DocumentCollectionResponse {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'processing' | 'ready' | 'failed';
+  created_at: string;
+  updated_at: string;
+  document_count: number;
+  chunk_count: number;
+  error_message?: string;
+}
+
+// Vector Index Types
+export interface VectorIndexCreateRequest {
+  name: string;
+  description?: string;
+  collection_id: string;
+  embedding: {
+    model: string;
+    vector_db: string;
+    search_strategy: string;
+    semantic_weight?: number;
+    keyword_weight?: number;
+    top_k?: number;
+    score_threshold?: number;
+  };
+}
+
+export interface VectorIndexResponse {
+  id: string;
+  name: string;
+  description?: string;
+  collection_id: string;
+  status: 'processing' | 'ready' | 'failed';
+  created_at: string;
+  updated_at: string;
+  document_count: number;
+  chunk_count: number;
+  error_message?: string;
+  embedding_model: string;
+  vector_db: string;
+}
+
+// Document Collection Functions
+export const createDocumentCollection = async (data: DocumentCollectionCreateRequest, files?: File[]): Promise<DocumentCollectionResponse> => {
+  try {
+    const formData = new FormData();
+
+    // Add metadata
+    formData.append('metadata', JSON.stringify(data));
+
+    // Add files if present
+    if (files) {
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/rag/collections/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating document collection:', error);
+    throw error;
+  }
+};
+
+export const listDocumentCollections = async (): Promise<DocumentCollectionResponse[]> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/collections/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error listing document collections:', error);
+    throw error;
+  }
+};
+
+export const getDocumentCollection = async (id: string): Promise<DocumentCollectionResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/collections/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting document collection:', error);
+    throw error;
+  }
+};
+
+export const deleteDocumentCollection = async (id: string): Promise<void> => {
+  try {
+    await axios.delete(`${API_BASE_URL}/rag/collections/${id}/`);
+  } catch (error) {
+    console.error('Error deleting document collection:', error);
+    throw error;
+  }
+};
+
+export const addDocumentsToCollection = async (id: string, files: File[]): Promise<any> => {
+  try {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+
+    const response = await axios.post(`${API_BASE_URL}/rag/collections/${id}/documents/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding documents to collection:', error);
+    throw error;
+  }
+};
+
+// Vector Index Functions
+export const createVectorIndex = async (data: VectorIndexCreateRequest): Promise<VectorIndexResponse> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/rag/indices/`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating vector index:', error);
+    throw error;
+  }
+};
+
+export const listVectorIndices = async (): Promise<VectorIndexResponse[]> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/indices/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error listing vector indices:', error);
+    throw error;
+  }
+};
+
+export const getVectorIndex = async (id: string): Promise<VectorIndexResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/indices/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting vector index:', error);
+    throw error;
+  }
+};
+
+export const deleteVectorIndex = async (id: string): Promise<void> => {
+  try {
+    await axios.delete(`${API_BASE_URL}/rag/indices/${id}/`);
+  } catch (error) {
+    console.error('Error deleting vector index:', error);
     throw error;
   }
 };
