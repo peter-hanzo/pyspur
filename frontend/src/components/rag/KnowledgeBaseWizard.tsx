@@ -815,31 +815,21 @@ const KnowledgeBaseWizard: React.FC = () => {
               </CardBody>
             </Card>
             <Card
-              isPressable
-              className={`p-4 cursor-pointer transition-all duration-300 ${
-                formData.searchStrategy === 'fulltext'
-                  ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 ring-offset-2 ring-offset-background'
-                  : ''
-              }`}
-              onClick={() => handleInputChange('searchStrategy', 'fulltext')}
+              isDisabled
+              className="p-4 cursor-not-allowed opacity-50"
             >
               <CardBody className="p-0">
                 <h4 className="font-semibold mb-1">Full-text Search</h4>
-                <p className="text-xs text-default-500">Traditional keyword-based search</p>
+                <p className="text-xs text-default-500">Traditional keyword-based search (Coming Soon)</p>
               </CardBody>
             </Card>
             <Card
-              isPressable
-              className={`p-4 cursor-pointer transition-all duration-300 ${
-                formData.searchStrategy === 'hybrid'
-                  ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30 ring-offset-2 ring-offset-background'
-                  : ''
-              }`}
-              onClick={() => handleInputChange('searchStrategy', 'hybrid')}
+              isDisabled
+              className="p-4 cursor-not-allowed opacity-50"
             >
               <CardBody className="p-0">
                 <h4 className="font-semibold mb-1">Hybrid Search</h4>
-                <p className="text-xs text-default-500">Combine vector and keyword search</p>
+                <p className="text-xs text-default-500">Combine vector and keyword search (Coming Soon)</p>
               </CardBody>
             </Card>
           </div>
