@@ -59,6 +59,13 @@ You can monitor the application logs using these commands:
 
 All log commands show the last 5 minutes of logs and continue to tail new entries.
 
+### Docker commands
+
+```bash
+docker compose down
+docker compose up --build
+```
+
 ## Customization
 
 You can customize the development environment by:
