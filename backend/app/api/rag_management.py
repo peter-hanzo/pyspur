@@ -22,6 +22,7 @@ from ..rag.datastore.datastore import DataStore
 from ..rag.models.document_schemas import Document, DocumentMetadata, Source, DocumentMetadataFilter
 from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
 from ..rag.pipeline import process_documents as process_documents_pipeline, ProcessingError
+from .key_management import PROVIDER_CONFIGS
 
 
 # Models
@@ -480,6 +481,14 @@ async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
         for model in EmbeddingModels:
             model_info = EmbeddingModels.get_model_info(model.value)
             if model_info:
+                # Find the corresponding provider config
+                provider_config = next(
+                    (p for p in PROVIDER_CONFIGS if p.id == model_info.provider.value.lower()),
+                    None
+                )
+                if provider_config:
+                    # Add required environment variables from the provider config
+                    model_info.required_env_vars = [p.name for p in provider_config.parameters if p.required]
                 models[model.value] = model_info
         return models
     except Exception as e:
@@ -490,7 +499,16 @@ async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
 async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
     """Get all available vector stores and their configurations."""
     try:
-        return get_vector_stores()
+        stores = get_vector_stores()
+        # Add required environment variables from provider configs
+        for store_id, store in stores.items():
+            provider_config = next(
+                (p for p in PROVIDER_CONFIGS if p.id == store_id),
+                None
+            )
+            if provider_config:
+                store.required_env_vars = [p.name for p in provider_config.parameters if p.required]
+        return stores
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -38,6 +38,7 @@ class EmbeddingModelConfig(BaseModel):
     dimensions: int = Field(default=1536)
     max_input_length: int = Field(default=8191)
     supported_encoding_formats: Optional[List[CohereEncodingFormat]] = None
+    required_env_vars: List[str] = Field(default_factory=list)
 
 
 class EmbeddingModels(str, Enum):

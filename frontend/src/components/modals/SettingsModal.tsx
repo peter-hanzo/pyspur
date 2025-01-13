@@ -206,6 +206,8 @@ const APIKeys = (props: CardProps): React.ReactElement => {
       pinecone: "logos:pinecone",
       weaviate: "logos:weaviate",
       qdrant: "logos:qdrant",
+      chroma: "solar:database-minimalistic-bold",
+      supabase: "logos:supabase-icon",
       database: "solar:database-bold",
     };
     return iconMap[iconName] || iconMap.database;

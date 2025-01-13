@@ -916,28 +916,40 @@ const KnowledgeBaseWizard: React.FC = () => {
   );
 
   const ApiKeyWarning = ({ modelInfo, storeInfo }: { modelInfo?: EmbeddingModelConfig, storeInfo?: VectorStoreConfig }) => {
-    let envVar = '';
+    let missingParams: string[] = [];
     let serviceName = '';
 
     if (modelInfo) {
-      envVar = `${modelInfo.provider.toUpperCase()}_API_KEY`;
-      serviceName = modelInfo.provider;
-    } else if (storeInfo && storeInfo.api_key_env_var) {
-      envVar = storeInfo.api_key_env_var;
+      // For model providers, check their required parameters
+      modelInfo.required_env_vars.forEach(envVar => {
+        if (!apiKeys[envVar] || apiKeys[envVar] === '') {
+          missingParams.push(envVar);
+        }
+      });
+      serviceName = modelInfo.name;
+    } else if (storeInfo) {
+      // For vector store providers, check all their required parameters
+      storeInfo.required_env_vars.forEach(envVar => {
+        if (!apiKeys[envVar] || apiKeys[envVar] === '') {
+          missingParams.push(envVar);
+        }
+      });
       serviceName = storeInfo.name;
     } else {
       return null;
     }
 
-    // Only show warning if the service requires an API key and it's not set
-    if (envVar && (!apiKeys[envVar] || apiKeys[envVar] === '')) {
+    // Only show warning if there are missing required parameters
+    if (missingParams.length > 0) {
       return (
         <Alert
           className="mt-2"
           color="warning"
-          title={`Missing API Key for ${serviceName}`}
+          title={`Missing Configuration for ${serviceName}`}
         >
-          Please set the {envVar} in Settings &gt; API Keys before using this service.
+          {missingParams.length === 1
+            ? `Please set the ${missingParams[0]} in Settings > API Keys before using this service.`
+            : `Please set the following in Settings > API Keys before using this service: ${missingParams.join(', ')}`}
         </Alert>
       );
     }

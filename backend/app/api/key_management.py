@@ -145,6 +145,32 @@ PROVIDER_CONFIGS = [
             ProviderParameter(name="QDRANT_URL", description="Qdrant Instance URL", type="text"),
         ],
     ),
+    ProviderConfig(
+        id="chroma",
+        name="Chroma",
+        description="Open-source embedding database",
+        category="vectorstore",
+        icon="chroma",
+        parameters=[
+            ProviderParameter(name="CHROMA_IN_MEMORY", description="Run Chroma in memory", type="text"),
+            ProviderParameter(name="CHROMA_PERSISTENCE_DIR", description="Directory for Chroma persistence", type="text"),
+            ProviderParameter(name="CHROMA_HOST", description="Chroma server host", type="text"),
+            ProviderParameter(name="CHROMA_PORT", description="Chroma server port", type="text"),
+            ProviderParameter(name="CHROMA_COLLECTION", description="Chroma collection name", type="text"),
+        ],
+    ),
+    ProviderConfig(
+        id="supabase",
+        name="Supabase",
+        description="Open-source vector database",
+        category="vectorstore",
+        icon="supabase",
+        parameters=[
+            ProviderParameter(name="SUPABASE_URL", description="Supabase Project URL", type="text"),
+            ProviderParameter(name="SUPABASE_ANON_KEY", description="Supabase Anonymous Key", type="password", required=False),
+            ProviderParameter(name="SUPABASE_SERVICE_ROLE_KEY", description="Supabase Service Role Key", type="password", required=False),
+        ],
+    ),
 ]
 
 # For backward compatibility, create a flat list of all parameter names

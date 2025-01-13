@@ -1,5 +1,5 @@
-from typing import Dict, Optional
-from pydantic import BaseModel
+from typing import Dict, Optional, List
+from pydantic import BaseModel, Field
 
 from ..embedder import EmbeddingModels
 from .datastore import DataStore
@@ -9,7 +9,9 @@ class VectorStoreConfig(BaseModel):
     id: str
     name: str
     description: str
+    requires_api_key: bool = False
     api_key_env_var: Optional[str] = None
+    required_env_vars: List[str] = Field(default_factory=list)
 
 
 def get_vector_stores() -> Dict[str, VectorStoreConfig]:
@@ -19,29 +21,59 @@ def get_vector_stores() -> Dict[str, VectorStoreConfig]:
             id="chroma",
             name="Chroma",
             description="Open-source embedding database",
+            required_env_vars=[
+                "CHROMA_IN_MEMORY",
+                "CHROMA_PERSISTENCE_DIR",
+                "CHROMA_HOST",
+                "CHROMA_PORT",
+                "CHROMA_COLLECTION"
+            ],
         ),
         "pinecone": VectorStoreConfig(
             id="pinecone",
             name="Pinecone",
             description="Production-ready vector database",
             api_key_env_var="PINECONE_API_KEY",
+            required_env_vars=[
+                "PINECONE_API_KEY",
+                "PINECONE_INDEX",
+                "PINECONE_CLOUD",
+                "PINECONE_REGION"
+            ],
         ),
         "weaviate": VectorStoreConfig(
             id="weaviate",
             name="Weaviate",
             description="Multi-modal vector search engine",
             api_key_env_var="WEAVIATE_API_KEY",
+            required_env_vars=[
+                "WEAVIATE_API_KEY",
+                "WEAVIATE_URL",
+                "WEAVIATE_CLASS"
+            ],
         ),
         "supabase": VectorStoreConfig(
             id="supabase",
             name="Supabase",
             description="Open-source vector database",
+            required_env_vars=[
+                "SUPABASE_URL",
+                "SUPABASE_ANON_KEY",
+                "SUPABASE_SERVICE_ROLE_KEY"
+            ],
         ),
         "qdrant": VectorStoreConfig(
             id="qdrant",
             name="Qdrant",
             description="Vector database for production",
             api_key_env_var="QDRANT_API_KEY",
+            required_env_vars=[
+                "QDRANT_API_KEY",
+                "QDRANT_URL",
+                "QDRANT_COLLECTION",
+                "QDRANT_PORT",
+                "QDRANT_GRPC_PORT"
+            ],
         ),
     }
 

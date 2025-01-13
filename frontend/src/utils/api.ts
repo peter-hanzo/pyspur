@@ -516,6 +516,7 @@ export interface EmbeddingModelConfig {
   dimensions: number;
   max_input_length: number;
   supported_encoding_formats?: string[];
+  required_env_vars: string[];
 }
 
 // Vector Store Types
@@ -525,6 +526,7 @@ export interface VectorStoreConfig {
   description: string;
   requires_api_key: boolean;
   api_key_env_var?: string;
+  required_env_vars: string[];
 }
 
 // RAG Management Functions
