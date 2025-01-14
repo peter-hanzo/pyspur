@@ -116,6 +116,21 @@ const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string>
     return {}
 }
 
+// Add this helper function near the top, after extractSchemaFromJsonSchema
+const generateJsonSchemaFromSchema = (schema: Record<string, string>): string => {
+    const jsonSchema = {
+        type: 'object',
+        required: Object.keys(schema),
+        properties: {} as Record<string, { type: string }>,
+    }
+
+    for (const [key, type] of Object.entries(schema)) {
+        jsonSchema.properties[key] = { type }
+    }
+
+    return JSON.stringify(jsonSchema, null, 2)
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -431,7 +446,29 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         key={`schema-editor-output-${nodeID}`}
                         jsonValue={currentNodeConfig.output_schema || {}}
                         onChange={(newValue) => {
-                            handleInputChange('output_schema', newValue)
+                            // Update both output_schema and output_json_schema
+                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
+                            const updates = {
+                                output_schema: newValue,
+                                output_json_schema: jsonSchema,
+                            }
+
+                            // Update local state
+                            setCurrentNodeConfig((prev) => ({
+                                ...prev,
+                                ...updates,
+                            }))
+
+                            // Update Redux store
+                            dispatch(
+                                updateNodeConfigOnly({
+                                    id: nodeID,
+                                    data: {
+                                        ...currentNodeConfig,
+                                        ...updates,
+                                    },
+                                })
+                            )
                         }}
                         options={jsonOptions}
                         schemaType="output_schema"
