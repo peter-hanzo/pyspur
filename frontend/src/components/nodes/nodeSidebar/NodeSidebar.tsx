@@ -85,6 +85,37 @@ const convertToPythonVariableName = (str: string): string => {
     return str
 }
 
+// Add this helper function near the top of the file, after other utility functions
+const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string> => {
+    try {
+        // First try to parse the string directly
+        let parsed: Record<string, any>
+        try {
+            parsed = JSON.parse(jsonSchema.trim())
+        } catch {
+            // cleaning is required for some escaped characters
+            const cleaned = jsonSchema
+                .replace(/\\"/g, '"')
+                .replace(/\\\[/g, '[') // e.g. from `\\[` to `[`
+                .replace(/\\\]/g, ']')
+            parsed = JSON.parse(cleaned)
+        }
+
+        if (parsed.properties) {
+            const schema: Record<string, string> = {}
+            for (const [key, value] of Object.entries(parsed.properties)) {
+                if (typeof value === 'object' && 'type' in value) {
+                    schema[key] = (value as { type: string }).type
+                }
+            }
+            return schema
+        }
+    } catch (error) {
+        console.error('Error parsing JSON schema:', error)
+    }
+    return {}
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -405,6 +436,62 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         options={jsonOptions}
                         schemaType="output_schema"
                         nodeId={nodeID}
+                    />
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            )
+        }
+
+        if (key === 'output_json_schema') {
+            return (
+                <div key={key}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Output JSON Schema</h3>
+                        <Tooltip
+                            content="The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                    </div>
+                    <TextEditor
+                        key={`text-editor-output-json-schema-${nodeID}`}
+                        nodeID={nodeID}
+                        fieldName={key}
+                        inputSchema={incomingSchema}
+                        fieldTitle="Output JSON Schema"
+                        content={currentNodeConfig[key] || ''}
+                        setContent={(value: string) => {
+                            // Update both output_json_schema and output_schema
+                            const simpleSchema = extractSchemaFromJsonSchema(value)
+                            const updates = {
+                                output_json_schema: value,
+                                output_schema: simpleSchema,
+                            }
+
+                            // Update local state
+                            setCurrentNodeConfig((prev) => ({
+                                ...prev,
+                                ...updates,
+                            }))
+
+                            // Update Redux store
+                            dispatch(
+                                updateNodeConfigOnly({
+                                    id: nodeID,
+                                    data: {
+                                        ...currentNodeConfig,
+                                        ...updates,
+                                    },
+                                })
+                            )
+                        }}
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
