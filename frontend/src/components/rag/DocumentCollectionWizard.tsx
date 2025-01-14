@@ -91,9 +91,6 @@ export const DocumentCollectionWizard = () => {
 
   const handleFilesChange = (newFiles: File[]) => {
     setFiles(newFiles);
-    if (newFiles.length > 0 && activeStep === 0) {
-      setActiveStep(1);
-    }
   };
 
   const handleConfigChange = (field: keyof TextProcessingConfig) => (
