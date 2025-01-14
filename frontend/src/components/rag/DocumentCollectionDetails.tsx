@@ -12,40 +12,68 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  Accordion,
+  AccordionItem,
 } from '@nextui-org/react';
 import {
   getDocumentCollection,
   addDocumentsToCollection,
   deleteDocumentCollection,
+  getCollectionDocuments,
 } from '@/utils/api';
-import type { DocumentCollectionResponse } from '@/utils/api';
+import type { DocumentCollectionResponse, DocumentWithChunks } from '@/utils/api';
+import FileUploadBox from './FileUploadBox';
+import ChunkCard from '../cards/ChunkCard';
 
 export const DocumentCollectionDetails: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isAddDocumentsOpen,
+    onOpen: onAddDocumentsOpen,
+    onClose: onAddDocumentsClose
+  } = useDisclosure();
+  const {
+    isOpen: isDocumentTextOpen,
+    onOpen: onDocumentTextOpen,
+    onClose: onDocumentTextClose
+  } = useDisclosure();
+  const {
+    isOpen: isChunkTextOpen,
+    onOpen: onChunkTextOpen,
+    onClose: onChunkTextClose
+  } = useDisclosure();
   const [collection, setCollection] = useState<DocumentCollectionResponse | null>(null);
+  const [documents, setDocuments] = useState<DocumentWithChunks[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentWithChunks | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAddingDocuments, setIsAddingDocuments] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedChunk, setSelectedChunk] = useState<{ text: string } | null>(null);
 
   useEffect(() => {
-    const fetchCollection = async () => {
+    const fetchData = async () => {
       try {
         if (!id || typeof id !== 'string') return;
-        const data = await getDocumentCollection(id);
-        setCollection(data);
+        const [collectionData, documentsData] = await Promise.all([
+          getDocumentCollection(id),
+          getCollectionDocuments(id),
+        ]);
+        setCollection(collectionData);
+        setDocuments(documentsData);
         setError(null);
       } catch (error) {
-        console.error('Error fetching collection:', error);
-        setError('Error loading collection details');
+        console.error('Error fetching data:', error);
+        setError('Error loading collection data');
       } finally {
         setIsLoading(false);
       }
     };
-    fetchCollection();
+    fetchData();
   }, [id]);
 
   const handleDelete = async () => {
@@ -63,16 +91,24 @@ export const DocumentCollectionDetails: React.FC = () => {
     }
   };
 
-  const handleAddDocuments = async (files: FileList) => {
+  const handleAddDocuments = async (files: FileList | File[]) => {
     try {
       if (!id || typeof id !== 'string') return;
       setIsAddingDocuments(true);
+      setError(null);
       await addDocumentsToCollection(id, Array.from(files));
       setSuccess('Documents added successfully');
-      // Refresh collection details
-      const data = await getDocumentCollection(id);
-      setCollection(data);
+      // Refresh data
+      const [collectionData, documentsData] = await Promise.all([
+        getDocumentCollection(id),
+        getCollectionDocuments(id),
+      ]);
+      setCollection(collectionData);
+      setDocuments(documentsData);
       setError(null);
+      // Close modal and reset state
+      onAddDocumentsClose();
+      setSelectedFiles([]);
     } catch (error) {
       console.error('Error adding documents:', error);
       setError('Error adding documents');
@@ -128,18 +164,7 @@ export const DocumentCollectionDetails: React.FC = () => {
                   color="primary"
                   variant="bordered"
                   isLoading={isAddingDocuments}
-                  onPress={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.multiple = true;
-                    input.onchange = (e) => {
-                      const files = (e.target as HTMLInputElement).files;
-                      if (files) {
-                        handleAddDocuments(files);
-                      }
-                    };
-                    input.click();
-                  }}
+                  onPress={onAddDocumentsOpen}
                 >
                   Add Documents
                 </Button>
@@ -147,7 +172,7 @@ export const DocumentCollectionDetails: React.FC = () => {
                   color="primary"
                   onPress={() => router.push(`/rag/indices/new?collection=${id}`)}
                 >
-                  Create Index
+                  Create Vector Index
                 </Button>
                 <Button
                   color="danger"
@@ -163,45 +188,69 @@ export const DocumentCollectionDetails: React.FC = () => {
               <p className="text-default-500">{collection.description}</p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardBody>
-                  <div className="flex flex-col gap-1">
-                    <h6 className="text-medium font-semibold">Status</h6>
-                    <p className="text-default-500">{collection.status}</p>
+            {documents.length === 0 ? (
+              <Card className="bg-default-50">
+                <CardBody className="py-8">
+                  <div className="flex flex-col items-center gap-4">
+                    <p className="text-default-500">No documents in this collection yet</p>
+                    <Button
+                      color="primary"
+                      variant="bordered"
+                      isLoading={isAddingDocuments}
+                      onPress={onAddDocumentsOpen}
+                    >
+                      Add Your First Document
+                    </Button>
                   </div>
                 </CardBody>
               </Card>
-
-              <Card>
-                <CardBody>
-                  <div className="flex flex-col gap-1">
-                    <h6 className="text-medium font-semibold">Documents</h6>
-                    <p className="text-default-500">{collection.document_count}</p>
-                  </div>
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardBody>
-                  <div className="flex flex-col gap-1">
-                    <h6 className="text-medium font-semibold">Chunks</h6>
-                    <p className="text-default-500">{collection.chunk_count}</p>
-                  </div>
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardBody>
-                  <div className="flex flex-col gap-1">
-                    <h6 className="text-medium font-semibold">Created</h6>
-                    <p className="text-default-500">
-                      {new Date(collection.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
+            ) : (
+              <Accordion>
+                {documents.map((doc) => (
+                  <AccordionItem
+                    key={doc.id}
+                    aria-label={`Document ${doc.metadata?.source_id || doc.id}`}
+                    title={
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">
+                          {doc.metadata?.source_id || doc.id}
+                        </span>
+                        <div className="flex items-center gap-4">
+                          <Button
+                            size="sm"
+                            variant="light"
+                            onPress={() => {
+                              setSelectedDocument(doc);
+                              onDocumentTextOpen();
+                            }}
+                          >
+                            View Document
+                          </Button>
+                          <span className="text-small text-default-500">
+                            {doc.chunks.length} chunks
+                          </span>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <div className="flex flex-col gap-4 p-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {doc.chunks.map((chunk) => (
+                          <ChunkCard
+                            key={chunk.id}
+                            text={chunk.text}
+                            onViewFull={() => {
+                              setSelectedChunk(chunk);
+                              onChunkTextOpen();
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
 
             {collection.error_message && (
               <Card className="bg-danger-50">
@@ -229,6 +278,110 @@ export const DocumentCollectionDetails: React.FC = () => {
             </Button>
             <Button color="danger" isLoading={isDeleting} onPress={handleDelete}>
               Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isAddDocumentsOpen}
+        onClose={onAddDocumentsClose}
+        size="4xl"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          <ModalHeader>Add Documents</ModalHeader>
+          <ModalBody>
+            <div className="flex flex-col gap-6">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <h6 className="text-medium font-semibold">Upload Documents</h6>
+                  <p className="text-small text-default-500">
+                    Select documents to add to your collection. The documents will be processed using the collection's existing configuration.
+                  </p>
+                </div>
+
+                <FileUploadBox onFilesChange={setSelectedFiles} />
+              </div>
+
+              {error && (
+                <Card className="bg-danger-50">
+                  <CardBody>
+                    <p className="text-danger">{error}</p>
+                  </CardBody>
+                </Card>
+              )}
+
+              {success && (
+                <Card className="bg-success-50">
+                  <CardBody>
+                    <p className="text-success">{success}</p>
+                  </CardBody>
+                </Card>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="bordered" onPress={onAddDocumentsClose}>
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              isLoading={isAddingDocuments}
+              isDisabled={selectedFiles.length === 0}
+              onPress={() => handleAddDocuments(selectedFiles)}
+            >
+              Add Documents
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isDocumentTextOpen}
+        onClose={onDocumentTextClose}
+        size="4xl"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          <ModalHeader>Document Text</ModalHeader>
+          <ModalBody>
+            <Card>
+              <CardBody>
+                <p className="whitespace-pre-wrap text-small">
+                  {selectedDocument?.text}
+                </p>
+              </CardBody>
+            </Card>
+          </ModalBody>
+          <ModalFooter>
+            <Button onPress={onDocumentTextClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={isChunkTextOpen}
+        onClose={onChunkTextClose}
+        size="4xl"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          <ModalHeader>Chunk Text</ModalHeader>
+          <ModalBody>
+            <Card>
+              <CardBody>
+                <p className="whitespace-pre-wrap text-small">
+                  {selectedChunk?.text}
+                </p>
+              </CardBody>
+            </Card>
+          </ModalBody>
+          <ModalFooter>
+            <Button onPress={onChunkTextClose}>
+              Close
             </Button>
           </ModalFooter>
         </ModalContent>

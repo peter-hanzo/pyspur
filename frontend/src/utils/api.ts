@@ -841,3 +841,26 @@ export const deleteVectorIndex = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
+export interface DocumentChunk {
+  id: string;
+  text: string;
+  metadata?: Record<string, any>;
+}
+
+export interface DocumentWithChunks {
+  id: string;
+  text: string;
+  metadata?: Record<string, any>;
+  chunks: DocumentChunk[];
+}
+
+export const getCollectionDocuments = async (id: string): Promise<DocumentWithChunks[]> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/rag/collections/${id}/documents/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting collection documents:', error);
+    throw error;
+  }
+};

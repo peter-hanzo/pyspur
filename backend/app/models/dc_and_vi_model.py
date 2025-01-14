@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any, Literal
-from sqlalchemy import Computed, Integer, String, DateTime, JSON, ForeignKey
+from sqlalchemy import Computed, Integer, String, DateTime, JSON, ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from .base_model import BaseModel
 
 
@@ -39,10 +39,15 @@ class DocumentCollectionModel(BaseModel):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        server_onupdate=text("NOW()"),
+        nullable=False
     )
 
 
@@ -78,8 +83,13 @@ class VectorIndexModel(BaseModel):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        server_default=text("NOW()"),
+        server_onupdate=text("NOW()"),
+        nullable=False
     )

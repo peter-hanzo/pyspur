@@ -1,128 +1,93 @@
-import React, { useState, useCallback } from 'react'
-import { Button } from '@nextui-org/react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useDropzone } from 'react-dropzone'
-import { Upload, File } from 'lucide-react'
+import React, { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Card, CardBody, Button } from '@nextui-org/react';
+import { Upload, X } from 'lucide-react';
 
 interface FileUploadBoxProps {
-  onFilesChange: (files: File[]) => void
+  onFilesChange: (files: File[]) => void;
 }
 
 const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
-  const [files, setFiles] = useState<File[]>([])
+  const [files, setFiles] = useState<File[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = [...files, ...acceptedFiles]
-    setFiles(newFiles)
-    onFilesChange(newFiles)
-  }, [files, onFilesChange])
+    setFiles(prev => [...prev, ...acceptedFiles]);
+    onFilesChange([...files, ...acceptedFiles]);
+  }, [files, onFilesChange]);
+
+  const removeFile = (index: number) => {
+    const newFiles = files.filter((_, i) => i !== index);
+    setFiles(newFiles);
+    onFilesChange(newFiles);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'text/plain': ['.txt'],
-      'text/markdown': ['.md', '.mdx'],
       'application/pdf': ['.pdf'],
-      'text/html': ['.html'],
+      'text/plain': ['.txt'],
+      'text/markdown': ['.md'],
+      'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'text/csv': ['.csv'],
-      'application/xml': ['.xml'],
-      'application/epub+zip': ['.epub'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
     },
-    maxSize: 15 * 1024 * 1024, // 15MB
-  })
-
-  const removeFile = (name: string) => {
-    const updatedFiles = files.filter(file => file.name !== name)
-    setFiles(updatedFiles)
-    onFilesChange(updatedFiles)
-  }
+  });
 
   return (
     <div className="space-y-4">
-      <div
-        {...getRootProps()}
-        className={`
-          border-1 border-dashed rounded-xl p-8
-          transition-all duration-300 ease-in-out
-          flex flex-col items-center justify-center gap-4
-          cursor-pointer
-          min-h-[200px]
-          ${isDragActive
-            ? 'border-primary bg-primary/5 scale-[1.02]'
-            : 'border-default-200 dark:border-default-100 hover:border-primary hover:bg-default-100 dark:hover:bg-default-50'
-          }
-        `}
-      >
+      <div {...getRootProps()}>
         <input {...getInputProps()} />
-        <div className={`
-          rounded-full p-4
-          ${isDragActive ? 'bg-primary/10' : 'bg-default-100 dark:bg-default-50'}
-        `}>
-          <Upload
-            className={`w-8 h-8 ${isDragActive ? 'text-primary' : 'text-default-500'}`}
-          />
-        </div>
-        <div className="text-center">
-          <p className="text-default-900 font-medium">
-            {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
-          </p>
-          <p className="text-sm text-default-400 mt-1">
-            or click to browse
-          </p>
-        </div>
-        <div className="text-xs text-default-400 text-center max-w-sm">
-          Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, CSV, EML, MSG, PPTX, XML, EPUB, PPT, MD, HTM. Max 15MB each.
-        </div>
+        <Card className={`border-2 border-dashed transition-colors cursor-pointer
+          ${isDragActive ? 'border-primary bg-primary/5' : 'border-default-200 hover:border-primary'}`}
+        >
+          <CardBody className="py-8">
+            <div className="flex flex-col items-center gap-4">
+              <Upload className={`w-8 h-8 ${isDragActive ? 'text-primary' : 'text-default-400'}`} />
+              <div className="text-center">
+                <p className="text-default-500">
+                  {isDragActive
+                    ? 'Drop the files here'
+                    : 'Drag and drop files here or click to browse'}
+                </p>
+                <p className="text-xs text-default-400 mt-1">
+                  Supported formats: PDF, TXT, MD, DOC, DOCX
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
-      <AnimatePresence>
-        {files.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-2"
-          >
-            <div className="text-sm font-medium text-default-700">
-              Selected Files ({files.length})
-            </div>
-            <div className="space-y-2">
-              {files.map((file) => (
-                <motion.div
-                  key={file.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="flex items-center justify-between p-3 rounded-lg bg-default-50 border border-default-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <File className="w-4 h-4 text-default-500" />
-                    <div>
-                      <div className="text-sm font-medium text-default-700">{file.name}</div>
-                      <div className="text-xs text-default-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </div>
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Selected Files ({files.length})</p>
+          <div className="space-y-2">
+            {files.map((file, index) => (
+              <Card key={index} className="bg-default-50">
+                <CardBody className="py-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{file.name}</span>
+                      <span className="text-xs text-default-400">
+                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
                     </div>
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      onPress={() => removeFile(index)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    color="danger"
-                    variant="light"
-                    onPress={() => removeFile(file.name)}
-                  >
-                    Remove
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default FileUploadBox
+export default FileUploadBox;

@@ -22,6 +22,13 @@ from ..models.dc_and_vi_model import (
 from ..database import get_db
 from ..rag.document_collection import DocumentStore
 from ..rag.vector_index import VectorIndex
+from ..rag.models.document_schemas import (
+    Document,
+    DocumentWithChunks,
+    DocumentMetadata,
+    DocumentChunk,
+    Source
+)
 
 
 # Models
@@ -573,14 +580,14 @@ async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
 
 
 # Add progress tracking endpoints
-@router.get("/collections/{collection_id}/progress", response_model=ProcessingProgress)
+@router.get("/collections/{collection_id}/progress/", response_model=ProcessingProgress)
 async def get_collection_progress(collection_id: str):
     """Get document collection processing progress"""
     if collection_id not in collection_progress:
         raise HTTPException(status_code=404, detail="No progress information found")
     return collection_progress[collection_id]
 
-@router.get("/indices/{index_id}/progress", response_model=ProcessingProgress)
+@router.get("/indices/{index_id}/progress/", response_model=ProcessingProgress)
 async def get_index_progress(index_id: str):
     """Get vector index processing progress"""
     if index_id not in index_progress:
@@ -588,7 +595,7 @@ async def get_index_progress(index_id: str):
     return index_progress[index_id]
 
 
-@router.post("/collections/{collection_id}/documents", response_model=DocumentCollectionResponse)
+@router.post("/collections/{collection_id}/documents/", response_model=DocumentCollectionResponse)
 async def add_documents_to_collection(
     collection_id: str,
     background_tasks: BackgroundTasks,
@@ -666,7 +673,7 @@ async def add_documents_to_collection(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete("/collections/{collection_id}/documents/{document_id}")
+@router.delete("/collections/{collection_id}/documents/{document_id}/")
 async def delete_document_from_collection(
     collection_id: str,
     document_id: str,
@@ -704,5 +711,20 @@ async def delete_document_from_collection(
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/collections/{collection_id}/documents/", response_model=List[DocumentWithChunks])
+async def get_collection_documents(collection_id: str):
+    """Get all documents and their chunks for a collection"""
+    try:
+        doc_store = DocumentStore(collection_id)
+        documents = []
+        for doc_id in doc_store.list_documents():
+            doc = doc_store.get_document(doc_id)
+            if doc:
+                documents.append(doc)
+        return documents
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

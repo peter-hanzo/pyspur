@@ -29,8 +29,16 @@ export const KnowledgeBases: React.FC = () => {
           listDocumentCollections(),
           listVectorIndices(),
         ]);
-        setCollections(collectionsData);
-        setIndices(indicesData);
+        // Sort collections by created_at in descending order
+        const sortedCollections = [...collectionsData].sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        // Sort indices by created_at in descending order
+        const sortedIndices = [...indicesData].sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setCollections(sortedCollections);
+        setIndices(sortedIndices);
         setError(null);
       } catch (error) {
         console.error('Error fetching data:', error);
