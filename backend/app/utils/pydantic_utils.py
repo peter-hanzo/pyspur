@@ -127,3 +127,34 @@ def json_schema_to_pydantic_type(json_schema: Dict[str, Any]) -> Any:
         return Optional[Any]  # Use Optional[Any] for nullable fields
     else:
         raise ValueError(f"Unsupported JSON schema type: {type_}")
+
+
+def json_schema_to_simple_schema(json_schema: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Converts a JSON schema to a simple schema.
+
+    Args:
+        json_schema: The JSON schema to convert.
+
+    Returns:
+        A simple schema.
+    """
+    simple_schema: Dict[str, str] = {}
+
+    for prop, prop_details in json_schema.get("properties", {}).items():
+        prop_type = prop_details.get("type")
+        if prop_type == "object":
+            simple_schema[prop] = "dict"
+        elif prop_type == "array":
+            simple_schema[prop] = "list"
+        elif prop_type == "integer":
+            simple_schema[prop] = "int"
+        elif prop_type == "number":
+            simple_schema[prop] = "float"
+        elif prop_type == "boolean":
+            simple_schema[prop] = "bool"
+        elif prop_type == "string":
+            simple_schema[prop] = "str"
+        else:
+            simple_schema[prop] = "Any"
+    return simple_schema
