@@ -108,17 +108,18 @@ export const DocumentCollectionWizard = () => {
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-
+      console.log('Submitting...');
+      console.log(config);
       const requestData: DocumentCollectionCreateRequest = {
         name: config.name,
         description: config.description,
         text_processing: {
-          chunk_token_size: config.chunkingMode === 'automatic' ? 1000 : config.chunk_token_size,
-          min_chunk_size_chars: config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars,
+          chunk_token_size: files.length === 0 ? 1000 : (config.chunkingMode === 'automatic' ? 1000 : config.chunk_token_size),
+          min_chunk_size_chars: files.length === 0 ? 100 : (config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars),
           min_chunk_length_to_embed: 10,
           embeddings_batch_size: 32,
           max_num_chunks: 1000,
-          use_vision_model: config.use_vision_model,
+          use_vision_model: files.length === 0 ? false : config.use_vision_model,
           ...(config.use_vision_model && config.vision_model && {
             vision_model: config.vision_model,
             vision_provider: config.vision_provider
@@ -227,11 +228,62 @@ export const DocumentCollectionWizard = () => {
                   </Chip>
                 </div>
 
-                <Alert className="mb-4">
-                  You can create an empty collection now and add documents later. This is useful if you want to set up the configuration first.
-                </Alert>
+                <div className="flex flex-col gap-4">
+                  <Button
+                    variant="flat"
+                    color="primary"
+                    className="w-full"
+                    onPress={async () => {
+                      let nameToUse = config.name;
+                      if (!config.name.trim()) {
+                        nameToUse = generateRandomName();
+                        setConfig(prev => ({ ...prev, name: nameToUse }));
+                        setNameAlert(`Using generated name: ${nameToUse}`);
+                      }
 
-                <FileUploadBox onFilesChange={handleFilesChange} />
+                      try {
+                        setIsSubmitting(true);
+                        console.log('Submitting...');
+                        const requestData: DocumentCollectionCreateRequest = {
+                          name: nameToUse,
+                          description: config.description,
+                          text_processing: {
+                            chunk_token_size: files.length === 0 ? 1000 : (config.chunkingMode === 'automatic' ? 1000 : config.chunk_token_size),
+                            min_chunk_size_chars: files.length === 0 ? 100 : (config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars),
+                            min_chunk_length_to_embed: 10,
+                            embeddings_batch_size: 32,
+                            max_num_chunks: 1000,
+                            use_vision_model: files.length === 0 ? false : config.use_vision_model,
+                            ...(config.use_vision_model && config.vision_model && {
+                              vision_model: config.vision_model,
+                              vision_provider: config.vision_provider
+                            }),
+                          },
+                        };
+
+                        const response = await createDocumentCollection(requestData, files.length > 0 ? files : undefined);
+                        setAlert({ type: 'success', message: 'Document collection created successfully' });
+                        router.push(`/rag/collections/${response.id}`);
+                      } catch (error) {
+                        console.error('Error creating collection:', error);
+                        setAlert({ type: 'error', message: 'Error creating document collection' });
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                    startContent={<CheckCircle className="w-4 h-4" />}
+                  >
+                    Create Empty Collection
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <Divider className="flex-1" />
+                    <span className="text-default-400">or</span>
+                    <Divider className="flex-1" />
+                  </div>
+
+                  <FileUploadBox onFilesChange={handleFilesChange} />
+                </div>
               </div>
             </div>
           </div>

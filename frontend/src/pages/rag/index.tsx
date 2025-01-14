@@ -7,7 +7,6 @@ export default function RAGPage() {
     <div className="App relative">
       <Header activePage="rag" />
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Knowledge Bases</h1>
         <KnowledgeBases />
       </div>
     </div>

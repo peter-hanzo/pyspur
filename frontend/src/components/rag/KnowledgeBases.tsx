@@ -4,20 +4,19 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
   Spinner,
-  Tab,
-  Tabs,
 } from '@nextui-org/react';
+import { Icon } from '@iconify/react';
 import {
   listDocumentCollections,
   listVectorIndices,
 } from '@/utils/api';
 import type { DocumentCollectionResponse, VectorIndexResponse } from '@/utils/api';
+import DocumentCollectionCard from '../cards/DocumentCollectionCard';
+import VectorIndexCard from '../cards/VectorIndexCard';
 
 export const KnowledgeBases: React.FC = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('collections');
   const [collections, setCollections] = useState<DocumentCollectionResponse[]>([]);
   const [indices, setIndices] = useState<VectorIndexResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,52 +42,6 @@ export const KnowledgeBases: React.FC = () => {
     fetchData();
   }, []);
 
-  const renderCollectionCard = (collection: DocumentCollectionResponse) => (
-    <Card
-      key={collection.id}
-      isPressable
-      onPress={() => router.push(`/rag/collections/${collection.id}`)}
-      className="w-full"
-    >
-      <CardBody>
-        <div className="flex flex-col gap-2">
-          <h4 className="text-large font-bold">{collection.name}</h4>
-          {collection.description && (
-            <p className="text-small text-default-500">{collection.description}</p>
-          )}
-          <div className="flex flex-col gap-1 mt-2">
-            <p className="text-small">Documents: {collection.document_count}</p>
-            <p className="text-small">Chunks: {collection.chunk_count}</p>
-            <p className="text-small">Status: {collection.status}</p>
-          </div>
-        </div>
-      </CardBody>
-    </Card>
-  );
-
-  const renderIndexCard = (index: VectorIndexResponse) => (
-    <Card
-      key={index.id}
-      isPressable
-      onPress={() => router.push(`/rag/indices/${index.id}`)}
-      className="w-full"
-    >
-      <CardBody>
-        <div className="flex flex-col gap-2">
-          <h4 className="text-large font-bold">{index.name}</h4>
-          {index.description && (
-            <p className="text-small text-default-500">{index.description}</p>
-          )}
-          <div className="flex flex-col gap-1 mt-2">
-            <p className="text-small">Documents: {index.document_count}</p>
-            <p className="text-small">Chunks: {index.chunk_count}</p>
-            <p className="text-small">Status: {index.status}</p>
-          </div>
-        </div>
-      </CardBody>
-    </Card>
-  );
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -98,62 +51,84 @@ export const KnowledgeBases: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {error && (
-        <Card className="bg-danger-50">
-          <CardBody>
-            <p className="text-danger">{error}</p>
-          </CardBody>
-        </Card>
-      )}
+    <div className="flex flex-col gap-2">
+      <div className="w-3/4 mx-auto p-5">
+        {error && (
+          <Card className="bg-danger-50 mb-6">
+            <CardBody>
+              <p className="text-danger">{error}</p>
+            </CardBody>
+          </Card>
+        )}
 
-      <Tabs
-        selectedKey={activeTab}
-        onSelectionChange={(key) => setActiveTab(key.toString())}
-      >
-        <Tab key="collections" title="Document Collections">
-          <div className="flex flex-col gap-4 mt-4">
-            <div>
-              <Button
-                color="primary"
-                onPress={() => router.push('/rag/collections/new')}
-              >
-                Create Collection
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {collections.length > 0 ? (
-                collections.map(renderCollectionCard)
-              ) : (
-                <p className="text-default-500">
-                  No document collections found. Create one to get started.
-                </p>
-              )}
+        {/* Dashboard Header */}
+        <header className="mb-6 flex w-full items-center flex-col gap-2">
+          <div className="flex w-full items-center">
+            <div className="flex flex-col max-w-fit">
+              <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Knowledge Bases</h1>
+              <p className="text-small text-default-400 lg:text-medium">Manage your document collections and vector indices</p>
             </div>
           </div>
-        </Tab>
-        <Tab key="indices" title="Vector Indices">
-          <div className="flex flex-col gap-4 mt-4">
-            <div>
-              <Button
-                color="primary"
-                onPress={() => router.push('/rag/indices/new')}
-              >
-                Create Index
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {indices.length > 0 ? (
-                indices.map(renderIndexCard)
-              ) : (
-                <p className="text-default-500">
-                  No vector indices found. Create one to get started.
-                </p>
-              )}
-            </div>
+        </header>
+
+        {/* Document Collections Section */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Document Collections</h2>
+            <Button
+              className="bg-foreground text-background"
+              startContent={<Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />}
+              onPress={() => router.push('/rag/collections/new')}
+            >
+              Create Collection
+            </Button>
           </div>
-        </Tab>
-      </Tabs>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {collections.length > 0 ? (
+              collections.map((collection) => (
+                <DocumentCollectionCard
+                  key={collection.id}
+                  collection={collection}
+                  onClick={(id) => router.push(`/rag/collections/${id}`)}
+                />
+              ))
+            ) : (
+              <p className="text-default-500">
+                No document collections found. Create one to get started.
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* Vector Indices Section */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Vector Indices</h2>
+            <Button
+              className="bg-foreground text-background"
+              startContent={<Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />}
+              onPress={() => router.push('/rag/indices/new')}
+            >
+              Create Index
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {indices.length > 0 ? (
+              indices.map((index) => (
+                <VectorIndexCard
+                  key={index.id}
+                  index={index}
+                  onClick={(id) => router.push(`/rag/indices/${id}`)}
+                />
+              ))
+            ) : (
+              <p className="text-default-500">
+                No vector indices found. Create one to get started.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 };
