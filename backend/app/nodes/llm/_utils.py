@@ -11,10 +11,12 @@ import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
 from ollama import AsyncClient
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
-from ._providers import OllamaOptions, _setup_azure_configuration
+from ...utils.pydantic_utils import json_schema_to_model
+
+from ._providers import OllamaOptions, setup_azure_configuration
 
 # uncomment for debugging litellm issues
 # litellm.set_verbose=True
@@ -425,7 +427,7 @@ async def completion_with_backoff(**kwargs) -> str:
         if model.startswith("azure/") or (
             os.getenv("AZURE_OPENAI_API_KEY") and not model.startswith("ollama/")
         ):
-            azure_kwargs = _setup_azure_configuration(kwargs)
+            azure_kwargs = setup_azure_configuration(kwargs)
             logging.info(f"Using Azure config for model: {azure_kwargs['model']}")
             try:
                 response = await acompletion(**azure_kwargs)
@@ -467,6 +469,8 @@ async def generate_text(
     max_tokens: int = 100000,
     api_base: Optional[str] = None,
     url_variables: Optional[Dict[str, str]] = None,
+    output_json_schema: Optional[str] = None,
+    output_schema: Optional[Dict[str, Any]] = None,
 ) -> str:
     kwargs = {
         "model": model_name,
@@ -475,6 +479,52 @@ async def generate_text(
         "temperature": temperature,
     }
     response = ""
+    if output_json_schema is None and output_schema is None:
+        output_schema = {"output": "string"}
+        output_json_schema = {
+            "type": "object",
+            "properties": {"output": {"type": "string"}},
+            "required": ["output"],
+        }
+    elif output_json_schema is None and output_schema is not None:
+        output_json_schema = convert_output_schema_to_json_schema(output_schema)
+    elif output_json_schema is not None:
+        output_json_schema = json.loads(output_json_schema)
+    output_json_schema["additionalProperties"] = False
+
+    # check if the model supports response format
+    if "response_format" in litellm.get_supported_openai_params(model=model_name):
+        if litellm.supports_response_schema(model=model_name, custom_llm_provider=None):
+            if "name" not in output_json_schema and "schema" not in output_json_schema:
+                output_json_schema = {
+                    "schema": output_json_schema,
+                    "strict": True,
+                    "name": "output",
+                }
+            # response_model = json_schema_to_model(output_json_schema)
+            # kwargs["response_format"] = response_model
+            kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": output_json_schema,
+            }
+        else:
+            kwargs["response_format"] = {"type": "json_object"}
+            if output_schema:
+                schema_for_prompt = json.dumps(output_schema)
+            elif output_json_schema:
+                schema_for_prompt = json.dumps(output_json_schema)
+            else:
+                schema_for_prompt = json.dumps({"output": "string"})
+            system_message = next(
+                message for message in messages if message["role"] == "system"
+            )
+            system_message["content"] += (
+                "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
+                + schema_for_prompt
+            )
+    else:
+        raise ValueError(f"Model {model_name} does not support response format")
+
     if json_mode:
         if model_name.startswith("ollama"):
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
@@ -507,7 +557,7 @@ async def generate_text(
             response = await completion_with_backoff(**kwargs)
         else:
             # For both Azure and OpenAI, we need to set the response_format to json_object
-            kwargs["response_format"] = {"type": "json_object"}
+            # kwargs["response_format"] = {"type": "json_object"}
             # Add system message to enforce JSON mode
             messages.insert(
                 0,
@@ -543,6 +593,33 @@ async def generate_text(
         return f'{{"output": "{sanitized_response}"}}'
 
 
+def convert_output_schema_to_json_schema(
+    output_schema: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Convert a simple output schema to a JSON schema.
+    Simple output schema is a dictionary with field names and types.
+    Types can be one of 'str', 'int', 'float' or 'bool'.
+    """
+    json_schema = {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": False,
+    }
+    for field, field_type in output_schema.items():
+        if field_type == "str" or field_type == "string":
+            json_schema["properties"][field] = {"type": "string"}
+        elif field_type == "int" or field_type == "integer":
+            json_schema["properties"][field] = {"type": "integer"}
+        elif field_type == "float" or field_type == "number":
+            json_schema["properties"][field] = {"type": "number"}
+        elif field_type == "bool" or field_type == "boolean":
+            json_schema["properties"][field] = {"type": "boolean"}
+        json_schema["required"].append(field)
+    return json_schema
+
+
 def encode_image(image_path: str) -> str:
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
@@ -562,7 +639,6 @@ async def ollama_with_backoff(
     Args:
         model: The name of the Ollama model to use
         messages: List of message dictionaries with 'role' and 'content'
-        response_model: Optional Pydantic model for response validation
         options: OllamaOptions instance with model parameters
         max_retries: Maximum number of retries
         initial_wait: Initial wait time between retries in seconds
