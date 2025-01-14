@@ -86,7 +86,7 @@ const convertToPythonVariableName = (str: string): string => {
 }
 
 // Add this helper function near the top of the file, after other utility functions
-const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string> => {
+const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string> | null => {
     try {
         // First try to parse the string directly
         let parsed: Record<string, any>
@@ -94,10 +94,7 @@ const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string>
             parsed = JSON.parse(jsonSchema.trim())
         } catch {
             // cleaning is required for some escaped characters
-            const cleaned = jsonSchema
-                .replace(/\\"/g, '"')
-                .replace(/\\\[/g, '[') // e.g. from `\\[` to `[`
-                .replace(/\\\]/g, ']')
+            const cleaned = jsonSchema.replace(/\\"/g, '"').replace(/\\\[/g, '[').replace(/\\\]/g, ']')
             parsed = JSON.parse(cleaned)
         }
 
@@ -108,27 +105,36 @@ const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string>
                     schema[key] = (value as { type: string }).type
                 }
             }
-            return schema
+            return Object.keys(schema).length > 0 ? schema : null
         }
+        return null
     } catch (error) {
         console.error('Error parsing JSON schema:', error)
+        return null
     }
-    return {}
 }
 
 // Add this helper function near the top, after extractSchemaFromJsonSchema
-const generateJsonSchemaFromSchema = (schema: Record<string, string>): string => {
-    const jsonSchema = {
-        type: 'object',
-        required: Object.keys(schema),
-        properties: {} as Record<string, { type: string }>,
-    }
+const generateJsonSchemaFromSchema = (schema: Record<string, string>): string | null => {
+    if (!schema || Object.keys(schema).length === 0) return null
 
-    for (const [key, type] of Object.entries(schema)) {
-        jsonSchema.properties[key] = { type }
-    }
+    try {
+        const jsonSchema = {
+            type: 'object',
+            required: Object.keys(schema),
+            properties: {} as Record<string, { type: string }>,
+        }
 
-    return JSON.stringify(jsonSchema, null, 2)
+        for (const [key, type] of Object.entries(schema)) {
+            if (!key || !type) return null
+            jsonSchema.properties[key] = { type }
+        }
+
+        return JSON.stringify(jsonSchema, null, 2)
+    } catch (error) {
+        console.error('Error generating JSON schema:', error)
+        return null
+    }
 }
 
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
@@ -446,29 +452,37 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         key={`schema-editor-output-${nodeID}`}
                         jsonValue={currentNodeConfig.output_schema || {}}
                         onChange={(newValue) => {
-                            // Update both output_schema and output_json_schema
-                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
-                            const updates = {
-                                output_schema: newValue,
-                                output_json_schema: jsonSchema,
+                            if (Object.keys(newValue).length === 0) {
+                                // If schema is empty, just update output_schema
+                                handleInputChange('output_schema', newValue)
+                                return
                             }
 
-                            // Update local state
-                            setCurrentNodeConfig((prev) => ({
-                                ...prev,
-                                ...updates,
-                            }))
-
-                            // Update Redux store
-                            dispatch(
-                                updateNodeConfigOnly({
-                                    id: nodeID,
-                                    data: {
-                                        ...currentNodeConfig,
-                                        ...updates,
-                                    },
-                                })
-                            )
+                            // Try to generate JSON schema
+                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
+                            if (jsonSchema) {
+                                // Update both if valid
+                                const updates = {
+                                    output_schema: newValue,
+                                    output_json_schema: jsonSchema,
+                                }
+                                setCurrentNodeConfig((prev) => ({
+                                    ...prev,
+                                    ...updates,
+                                }))
+                                dispatch(
+                                    updateNodeConfigOnly({
+                                        id: nodeID,
+                                        data: {
+                                            ...currentNodeConfig,
+                                            ...updates,
+                                        },
+                                    })
+                                )
+                            } else {
+                                // Update only output_schema if JSON schema generation fails
+                                handleInputChange('output_schema', newValue)
+                            }
                         }}
                         options={jsonOptions}
                         schemaType="output_schema"
@@ -505,29 +519,37 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         fieldTitle="Output JSON Schema"
                         content={currentNodeConfig[key] || ''}
                         setContent={(value: string) => {
-                            // Update both output_json_schema and output_schema
-                            const simpleSchema = extractSchemaFromJsonSchema(value)
-                            const updates = {
-                                output_json_schema: value,
-                                output_schema: simpleSchema,
+                            if (!value.trim()) {
+                                // If JSON schema is empty, just update output_json_schema
+                                handleInputChange('output_json_schema', value)
+                                return
                             }
 
-                            // Update local state
-                            setCurrentNodeConfig((prev) => ({
-                                ...prev,
-                                ...updates,
-                            }))
-
-                            // Update Redux store
-                            dispatch(
-                                updateNodeConfigOnly({
-                                    id: nodeID,
-                                    data: {
-                                        ...currentNodeConfig,
-                                        ...updates,
-                                    },
-                                })
-                            )
+                            // Try to extract simple schema
+                            const simpleSchema = extractSchemaFromJsonSchema(value)
+                            if (simpleSchema) {
+                                // Update both if valid
+                                const updates = {
+                                    output_json_schema: value,
+                                    output_schema: simpleSchema,
+                                }
+                                setCurrentNodeConfig((prev) => ({
+                                    ...prev,
+                                    ...updates,
+                                }))
+                                dispatch(
+                                    updateNodeConfigOnly({
+                                        id: nodeID,
+                                        data: {
+                                            ...currentNodeConfig,
+                                            ...updates,
+                                        },
+                                    })
+                                )
+                            } else {
+                                // Update only output_json_schema if schema extraction fails
+                                handleInputChange('output_json_schema', value)
+                            }
                         }}
                     />
                     {!isLast && <hr className="my-2" />}
