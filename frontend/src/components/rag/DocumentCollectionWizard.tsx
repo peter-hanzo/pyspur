@@ -38,10 +38,6 @@ interface TextProcessingConfig {
 
 const steps = ['Upload Documents', 'Configure Processing', 'Create Collection'];
 
-const numberFields = [
-  'chunk_token_size',
-  'min_chunk_size_chars',
-] as const;
 
 const generateRandomName = () => {
   const adjectives = ['Smart', 'Brilliant', 'Dynamic', 'Quantum', 'Neural', 'Cosmic', 'Intelligent', 'Advanced', 'Strategic', 'Innovative'];
