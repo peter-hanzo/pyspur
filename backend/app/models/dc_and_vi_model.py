@@ -1,8 +1,12 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal
 from sqlalchemy import Computed, Integer, String, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from .base_model import BaseModel
+
+
+# Define valid status values
+DocumentStatus = Literal["processing", "ready", "error", "deleted"]
 
 
 class DocumentCollectionModel(BaseModel):
@@ -15,13 +19,17 @@ class DocumentCollectionModel(BaseModel):
     )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
-    status: Mapped[str] = mapped_column(String, nullable=False, default="processing")
+    status: Mapped[DocumentStatus] = mapped_column(String, nullable=False, default="processing")
     document_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(String)
 
     # Store configuration
-    text_processing_config: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
+    text_processing_config: Mapped[Dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Configuration for text processing including: chunk_token_size, min_chunk_size_chars, etc."
+    )
 
     # Relationships
     vector_indices: Mapped[list["VectorIndexModel"]] = relationship(
@@ -48,13 +56,17 @@ class VectorIndexModel(BaseModel):
     )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
-    status: Mapped[str] = mapped_column(String, nullable=False, default="processing")
+    status: Mapped[DocumentStatus] = mapped_column(String, nullable=False, default="processing")
     document_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(String)
 
     # Store configuration
-    embedding_config: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
+    embedding_config: Mapped[Dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Configuration for embeddings including: model, dimensions, batch_size, etc."
+    )
 
     # Foreign key to document collection
     collection_id: Mapped[str] = mapped_column(

@@ -53,6 +53,15 @@ class DocumentStore:
             if on_progress:
                 await on_progress(0.0, "parsing", 0, len(files))
 
+            # Get vision configuration if enabled
+            vision_config = None
+            if config.get("use_vision_model", False):
+                vision_config = {
+                    "model": config.get("vision_model"),
+                    "provider": config.get("vision_provider"),
+                    "api_key": config.get("api_key"),
+                }
+
             # 1. Parse documents
             documents: List[Document] = []
             for i, file_info in enumerate(files):
@@ -67,12 +76,12 @@ class DocumentStore:
                     author=file_info.get("author"),
                 )
 
-                # Extract text
+                # Extract text with vision model if enabled and file is PDF
                 with open(file_path, "rb") as f:
                     text = extract_text_from_file(
                         f,
                         file_info["mime_type"],
-                        config.get("vision_config")
+                        vision_config if file_info["mime_type"] == "application/pdf" else None
                     )
 
                 # Save raw text

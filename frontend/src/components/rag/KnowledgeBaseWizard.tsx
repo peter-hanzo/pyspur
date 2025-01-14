@@ -283,7 +283,6 @@ const KnowledgeBaseWizard: React.FC = () => {
     topK: '2',
     scoreThreshold: '0.7',
     chunkingMode: 'automatic',
-    parsingStrategy: 'auto',
   })
 
   const [steps, setSteps] = useState<Step[]>([
@@ -683,7 +682,6 @@ const KnowledgeBaseWizard: React.FC = () => {
             files: uploadedFiles,
           } : undefined,
           text_processing: {
-            parsing_strategy: formData.parsingStrategy,
             chunk_size: Number(formData.chunkSize),
             overlap: Number(formData.overlap),
           },

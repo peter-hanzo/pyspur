@@ -480,7 +480,6 @@ export interface KnowledgeBaseCreateRequest {
     files?: File[];
   };
   text_processing: {
-    parsing_strategy: string;
     chunk_size: number;
     overlap: number;
   };
@@ -757,7 +756,7 @@ export const createDocumentCollection = async (data: DocumentCollectionCreateReq
 
 export const listDocumentCollections = async (): Promise<DocumentCollectionResponse[]> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/`);
+    const response = await axios.get(`${API_BASE_URL}/rag/collections/`);
     return response.data;
   } catch (error) {
     console.error('Error listing document collections:', error);

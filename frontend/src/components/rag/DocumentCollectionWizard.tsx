@@ -15,6 +15,9 @@ import {
   Chip,
   Alert,
   Spinner,
+  RadioGroup,
+  Radio,
+  Slider,
 } from '@nextui-org/react';
 import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { createDocumentCollection } from '@/utils/api';
@@ -27,12 +30,10 @@ interface TextProcessingConfig {
   description: string;
   chunk_token_size: number;
   min_chunk_size_chars: number;
-  min_chunk_length_to_embed: number;
-  embeddings_batch_size: number;
-  max_num_chunks: number;
   use_vision_model: boolean;
   vision_model?: string;
   vision_provider?: string;
+  chunkingMode: 'automatic' | 'manual';
 }
 
 const steps = ['Upload Documents', 'Configure Processing', 'Create Collection'];
@@ -40,26 +41,32 @@ const steps = ['Upload Documents', 'Configure Processing', 'Create Collection'];
 const numberFields = [
   'chunk_token_size',
   'min_chunk_size_chars',
-  'min_chunk_length_to_embed',
-  'embeddings_batch_size',
-  'max_num_chunks',
 ] as const;
 
-export const DocumentCollectionWizard: React.FC = () => {
+const generateRandomName = () => {
+  const adjectives = ['Smart', 'Brilliant', 'Dynamic', 'Quantum', 'Neural', 'Cosmic', 'Intelligent', 'Advanced', 'Strategic', 'Innovative'];
+  const nouns = ['Atlas', 'Nexus', 'Matrix', 'Archive', 'Library', 'Vault', 'Repository', 'Database', 'Collection', 'Hub'];
+  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+  const now = new Date();
+  const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+  return `${randomAdjective} ${randomNoun} - ${timestamp}`;
+};
+
+export const DocumentCollectionWizard = () => {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [nameAlert, setNameAlert] = useState<string | null>(null);
   const [config, setConfig] = useState<TextProcessingConfig>({
     name: '',
     description: '',
     chunk_token_size: 1000,
     min_chunk_size_chars: 100,
-    min_chunk_length_to_embed: 10,
-    embeddings_batch_size: 32,
-    max_num_chunks: 1000,
     use_vision_model: false,
+    chunkingMode: 'automatic',
   });
 
   // Clear alert after 3 seconds
@@ -72,6 +79,16 @@ export const DocumentCollectionWizard: React.FC = () => {
     }
   }, [alert]);
 
+  // Clear name alert after 3 seconds
+  useEffect(() => {
+    if (nameAlert) {
+      const timer = setTimeout(() => {
+        setNameAlert(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [nameAlert]);
+
   const handleFilesChange = (newFiles: File[]) => {
     setFiles(newFiles);
     if (newFiles.length > 0 && activeStep === 0) {
@@ -80,52 +97,38 @@ export const DocumentCollectionWizard: React.FC = () => {
   };
 
   const handleConfigChange = (field: keyof TextProcessingConfig) => (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const value = event.target.type === 'checkbox'
-      ? event.target.checked
-      : numberFields.includes(field as any)
-        ? parseInt(event.target.value, 10)
-        : event.target.value;
+      ? (event.target as HTMLInputElement).checked
+      : event.target.value;
     setConfig((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
   };
 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append('files', file);
-      });
 
-      const requestData = {
+      const requestData: DocumentCollectionCreateRequest = {
         name: config.name,
         description: config.description,
         text_processing: {
-          chunk_token_size: config.chunk_token_size,
-          min_chunk_size_chars: config.min_chunk_size_chars,
-          min_chunk_length_to_embed: config.min_chunk_length_to_embed,
-          embeddings_batch_size: config.embeddings_batch_size,
-          max_num_chunks: config.max_num_chunks,
+          chunk_token_size: config.chunkingMode === 'automatic' ? 1000 : config.chunk_token_size,
+          min_chunk_size_chars: config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars,
+          min_chunk_length_to_embed: 10,
+          embeddings_batch_size: 32,
+          max_num_chunks: 1000,
           use_vision_model: config.use_vision_model,
-          ...(config.vision_model && { vision_model: config.vision_model }),
-          ...(config.vision_provider && { vision_provider: config.vision_provider }),
+          ...(config.use_vision_model && config.vision_model && {
+            vision_model: config.vision_model,
+            vision_provider: config.vision_provider
+          }),
         },
       };
 
-      formData.append('config', JSON.stringify(requestData));
-
-      const collection = await createDocumentCollection(formData);
+      const response = await createDocumentCollection(requestData, files.length > 0 ? files : undefined);
       setAlert({ type: 'success', message: 'Document collection created successfully' });
-      router.push(`/rag/collections/${collection.id}`);
+      router.push(`/rag/collections/${response.id}`);
     } catch (error) {
       console.error('Error creating collection:', error);
       setAlert({ type: 'error', message: 'Error creating document collection' });
@@ -134,101 +137,210 @@ export const DocumentCollectionWizard: React.FC = () => {
     }
   };
 
+  const handleNext = () => {
+    if (activeStep < steps.length - 1) {
+      // If we're on the first step and no name is provided, generate one
+      if (activeStep === 0 && !config.name.trim()) {
+        const randomName = generateRandomName();
+        setConfig(prev => ({ ...prev, name: randomName }));
+        setNameAlert(`Using generated name: ${randomName}`);
+      }
+      setActiveStep((prevStep) => prevStep + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handleBack = () => {
+    setActiveStep((prevStep) => prevStep - 1);
+  };
+
+  const handleInputChange = (field: keyof TextProcessingConfig, value: string | boolean | number) => {
+    setConfig((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleChunkSizeChange = (value: number) => {
+    setConfig((prev) => ({ ...prev, chunk_token_size: value }));
+  };
+
+  const handleOverlapChange = (value: number) => {
+    setConfig((prev) => ({ ...prev, min_chunk_size_chars: value }));
+  };
+
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
         return (
-          <div className="space-y-4">
-            <Alert className="mb-4">
-              You can create an empty collection now and add documents later. This is useful if you want to set up the configuration first.
-            </Alert>
-            <FileUploadBox onFilesChange={handleFilesChange} />
+          <div className="flex flex-col gap-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    label="Collection Name"
+                    placeholder="Optional - Enter a name or leave empty for a random name"
+                    value={config.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full"
+                    endContent={
+                      <Tooltip content="Leave empty for a randomly generated name">
+                        <Info className="w-4 h-4 text-default-400" />
+                      </Tooltip>
+                    }
+                  />
+                  <Button
+                    isIconOnly
+                    variant="flat"
+                    className="self-end h-14"
+                    onPress={() => handleInputChange('name', generateRandomName())}
+                  >
+                    🎲
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Textarea
+                    label="Description"
+                    placeholder="Optional - Enter a description for your collection"
+                    value={config.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <Divider className="my-4" />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Upload Documents</span>
+                    <Tooltip content="You can upload documents now or add them later">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  </div>
+                  <Chip
+                    variant="flat"
+                    color="primary"
+                    size="sm"
+                    className="capitalize"
+                  >
+                    Optional
+                  </Chip>
+                </div>
+
+                <Alert className="mb-4">
+                  You can create an empty collection now and add documents later. This is useful if you want to set up the configuration first.
+                </Alert>
+
+                <FileUploadBox onFilesChange={handleFilesChange} />
+              </div>
+            </div>
           </div>
         );
 
       case 1:
         return (
-          <div className="grid gap-6">
-            <Input
-              label="Collection Name"
-              value={config.name}
-              onChange={handleConfigChange('name')}
-              isRequired
-            />
-            <Textarea
-              label="Description"
-              value={config.description}
-              onChange={handleConfigChange('description')}
-              minRows={3}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="number"
-                label="Chunk Token Size"
-                value={config.chunk_token_size.toString()}
-                onChange={handleConfigChange('chunk_token_size')}
-                isRequired
-              />
-              <Input
-                type="number"
-                label="Min Chunk Size (chars)"
-                value={config.min_chunk_size_chars.toString()}
-                onChange={handleConfigChange('min_chunk_size_chars')}
-                isRequired
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="number"
-                label="Min Length to Embed"
-                value={config.min_chunk_length_to_embed.toString()}
-                onChange={handleConfigChange('min_chunk_length_to_embed')}
-                isRequired
-              />
-              <Input
-                type="number"
-                label="Batch Size"
-                value={config.embeddings_batch_size.toString()}
-                onChange={handleConfigChange('embeddings_batch_size')}
-                isRequired
-              />
-            </div>
-            <Input
-              type="number"
-              label="Max Number of Chunks"
-              value={config.max_num_chunks.toString()}
-              onChange={handleConfigChange('max_num_chunks')}
-              isRequired
-            />
-            <div className="flex items-center gap-2">
-              <Switch
-                isSelected={config.use_vision_model}
-                onValueChange={(checked) => setConfig(prev => ({ ...prev, use_vision_model: checked }))}
-              />
-              <span>Use Vision Model for PDFs</span>
-            </div>
-            {config.use_vision_model && (
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Vision Model"
-                  placeholder="Select vision model"
-                  selectedKeys={config.vision_model ? [config.vision_model] : []}
-                  onChange={(e) => handleConfigChange('vision_model')(e as any)}
+          <div className="flex flex-col gap-8">
+            {renderVisionModelSettings()}
+
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">Text Processing</h3>
+                  <Tooltip content="Configure how your documents will be processed and split into chunks">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
+                </div>
+
+                <RadioGroup
+                  value={config.chunkingMode}
+                  onValueChange={value => handleInputChange('chunkingMode', value)}
+                  orientation="horizontal"
+                  classNames={{
+                    wrapper: "gap-4",
+                  }}
                 >
-                  <SelectItem key="gpt-4-vision" value="gpt-4-vision">GPT-4 Vision</SelectItem>
-                  <SelectItem key="claude-3" value="claude-3">Claude 3</SelectItem>
-                </Select>
-                <Select
-                  label="Vision Provider"
-                  placeholder="Select provider"
-                  selectedKeys={config.vision_provider ? [config.vision_provider] : []}
-                  onChange={(e) => handleConfigChange('vision_provider')(e as any)}
-                >
-                  <SelectItem key="openai" value="openai">OpenAI</SelectItem>
-                  <SelectItem key="anthropic" value="anthropic">Anthropic</SelectItem>
-                </Select>
+                  <Radio
+                    value="automatic"
+                    description="Let the system determine optimal chunk size and overlap"
+                  >
+                    Automatic
+                  </Radio>
+                  <Radio
+                    value="manual"
+                    description="Manually configure chunk size and overlap"
+                  >
+                    Manual
+                  </Radio>
+                </RadioGroup>
+
+                {config.chunkingMode === 'manual' && (
+                  <div className="grid grid-cols-2 gap-6 p-4 bg-default-50 rounded-lg">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Chunk Size</span>
+                          <Tooltip content="Number of tokens per chunk. Larger chunks provide more context but may be less precise">
+                            <Info className="w-4 h-4 text-default-400" />
+                          </Tooltip>
+                        </div>
+                        <Chip size="sm" variant="flat">{config.chunk_token_size} tokens</Chip>
+                      </div>
+                      <Slider
+                        size="sm"
+                        step={10}
+                        minValue={100}
+                        maxValue={2000}
+                        value={config.chunk_token_size}
+                        onChange={handleChunkSizeChange}
+                        classNames={{
+                          base: "max-w-full",
+                          track: "bg-default-500/30",
+                          filler: "bg-primary",
+                          thumb: "transition-all shadow-lg",
+                        }}
+                        marks={[
+                          { value: 500, label: "500" },
+                          { value: 1000, label: "1000" },
+                          { value: 1500, label: "1500" },
+                        ]}
+                        aria-label="Chunk Size"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Chunk Overlap</span>
+                          <Tooltip content="Number of overlapping tokens between chunks to maintain context">
+                            <Info className="w-4 h-4 text-default-400" />
+                          </Tooltip>
+                        </div>
+                        <Chip size="sm" variant="flat">{config.min_chunk_size_chars} tokens</Chip>
+                      </div>
+                      <Slider
+                        size="sm"
+                        step={10}
+                        minValue={0}
+                        maxValue={500}
+                        value={config.min_chunk_size_chars}
+                        onChange={handleOverlapChange}
+                        classNames={{
+                          base: "max-w-full",
+                          track: "bg-default-500/30",
+                          filler: "bg-primary",
+                          thumb: "transition-all shadow-lg",
+                        }}
+                        marks={[
+                          { value: 100, label: "100" },
+                          { value: 200, label: "200" },
+                          { value: 300, label: "300" },
+                        ]}
+                        aria-label="Chunk Overlap"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </Card>
           </div>
         );
 
@@ -259,26 +371,16 @@ export const DocumentCollectionWizard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="font-medium">Chunk Token Size:</div>
-                    <div className="text-default-500">{config.chunk_token_size}</div>
+                    <div className="text-default-500">
+                      {config.chunkingMode === 'automatic' ? 'Automatic' : `${config.chunk_token_size} tokens`}
+                    </div>
                   </div>
                   <div>
                     <div className="font-medium">Min Chunk Size:</div>
-                    <div className="text-default-500">{config.min_chunk_size_chars} chars</div>
+                    <div className="text-default-500">
+                      {config.chunkingMode === 'automatic' ? 'Automatic' : `${config.min_chunk_size_chars} tokens`}
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="font-medium">Min Length to Embed:</div>
-                    <div className="text-default-500">{config.min_chunk_length_to_embed}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Batch Size:</div>
-                    <div className="text-default-500">{config.embeddings_batch_size}</div>
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium">Max Chunks:</div>
-                  <div className="text-default-500">{config.max_num_chunks}</div>
                 </div>
                 <div>
                   <div className="font-medium">Vision Model:</div>
@@ -297,6 +399,62 @@ export const DocumentCollectionWizard: React.FC = () => {
       default:
         return null;
     }
+  };
+
+  const renderVisionModelSettings = () => {
+    // Show vision model settings if there are any PDF files
+    if (files.some(f => f.name.toLowerCase().endsWith('.pdf'))) {
+      return (
+        <Card className="p-6">
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">PDF Processing</h3>
+              <Tooltip content="Configure how PDF documents will be processed">
+                <Info className="w-4 h-4 text-default-400" />
+              </Tooltip>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  isSelected={config.use_vision_model}
+                  onValueChange={(checked) => setConfig(prev => ({ ...prev, use_vision_model: checked }))}
+                  size="sm"
+                >
+                  Enable Vision Model for PDF Processing
+                </Switch>
+                <Tooltip content="Use AI vision models to better understand document layout and extract text">
+                  <Info className="w-4 h-4 text-default-400" />
+                </Tooltip>
+              </div>
+
+              {config.use_vision_model && (
+                <div className="space-y-4">
+                  <Select
+                    label="Vision Model"
+                    placeholder="Select vision model"
+                    selectedKeys={config.vision_model ? [`${config.vision_model}|${config.vision_provider}`] : []}
+                    onSelectionChange={(keys) => {
+                      const value = Array.from(keys)[0]?.toString() || '';
+                      const [model, provider] = value.split('|');
+                      setConfig(prev => ({
+                        ...prev,
+                        vision_model: model,
+                        vision_provider: provider
+                      }));
+                    }}
+                  >
+                    <SelectItem key="gpt-4-vision|openai">GPT-4 Vision (OpenAI)</SelectItem>
+                    <SelectItem key="claude-3|anthropic">Claude 3 (Anthropic)</SelectItem>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      );
+    }
+    return null;
   };
 
   return (
@@ -328,6 +486,25 @@ export const DocumentCollectionWizard: React.FC = () => {
               showValueLabel={true}
               valueLabel={`${activeStep + 1} of ${steps.length}`}
             />
+
+            <AnimatePresence>
+              {nameAlert && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Alert
+                    className="mb-4"
+                    color="primary"
+                    startContent={<Info className="h-4 w-4" />}
+                  >
+                    {nameAlert}
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <AnimatePresence>
               {alert && (
@@ -436,8 +613,8 @@ export const DocumentCollectionWizard: React.FC = () => {
                     endContent={activeStep !== steps.length - 1 && <ArrowRight size={18} />}
                     isLoading={isSubmitting}
                     isDisabled={
-                      (activeStep === 0 && files.length === 0) ||
-                      (activeStep === 1 && !config.name)
+                      (activeStep === 1 && !config.name) ||
+                      (activeStep === steps.length - 1 && isSubmitting)
                     }
                   >
                     {activeStep === steps.length - 1 ? 'Create Collection' : 'Next'}

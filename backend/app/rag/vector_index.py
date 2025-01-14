@@ -1,20 +1,20 @@
 from pathlib import Path
 import json
-from typing import List, Dict, Any, Optional, Callable, Coroutine, cast
+from typing import List, Dict, Any, Optional, Callable, Coroutine
 from loguru import logger
 
 from .embedder import get_multiple_text_embeddings, EmbeddingModels
 from .models.document_schemas import (
     Document,
     DocumentWithChunks,
-    DocumentChunk
+    DocumentChunk,
+    DocumentMetadataFilter
 )
 from .datastore.factory import get_datastore
-from .document_store import DocumentStore
 
 
 class ProcessingError(Exception):
-    """Custom exception for processing errors"""
+    """Custom exception for vector processing errors"""
     pass
 
 
@@ -66,7 +66,7 @@ class VectorIndex:
 
     async def create_from_document_collection(
         self,
-        collection_id: str,
+        docs_with_chunks: List[DocumentWithChunks],
         config: Dict[str, Any],
         on_progress: Optional[Callable[[float, str, int, int], Coroutine[Any, Any, None]]] = None,
     ) -> str:
@@ -74,39 +74,25 @@ class VectorIndex:
         Create a vector index from a document collection.
 
         Args:
-            collection_id: Document collection ID
+            docs_with_chunks: List of documents with their chunks
             config: Configuration for processing
             on_progress: Async callback for progress updates
 
         Returns:
             str: Vector index ID
         """
-        logger.debug(f"Creating vector index from collection_id={collection_id}")
-
         try:
             # Update config
             self.update_config(config)
-
-            # Initialize document store
-            doc_store = DocumentStore(collection_id)
-
-            # Get all documents
-            doc_ids = doc_store.list_documents()
-            if not doc_ids:
-                logger.warning(f"No documents found for collection_id={collection_id}")
-                return self.index_id
-
-            # Load all documents with chunks
-            docs_with_chunks: List[DocumentWithChunks] = []
-            for doc_id in doc_ids:
-                doc = doc_store.get_document(doc_id)
-                if doc:
-                    docs_with_chunks.append(doc)
 
             # Get all chunks
             all_chunks: List[DocumentChunk] = []
             for doc in docs_with_chunks:
                 all_chunks.extend(doc.chunks)
+
+            if not all_chunks:
+                logger.warning("No chunks found to process")
+                return self.index_id
 
             # Initialize progress
             await _call_progress(on_progress, 0.0, "embedding", 0, len(all_chunks))
@@ -115,8 +101,6 @@ class VectorIndex:
             chunk_texts = [chunk.text for chunk in all_chunks]
 
             try:
-                logger.debug(f"Requesting embeddings for {len(chunk_texts)} chunks")
-
                 # Use OpenAI's text-embedding-3-small by default
                 embedding_model = config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value)
                 model_info = EmbeddingModels.get_model_info(embedding_model)
@@ -125,7 +109,7 @@ class VectorIndex:
 
                 logger.debug(f"Using embedding model: {embedding_model} with {model_info.dimensions} dimensions")
 
-                embeddings: Any = await get_multiple_text_embeddings(
+                embeddings = await get_multiple_text_embeddings(
                     docs=chunk_texts,
                     model=embedding_model,
                     dimensions=model_info.dimensions,
@@ -133,7 +117,6 @@ class VectorIndex:
                     api_key=config.get("openai_api_key")
                 )
 
-                # Log embedding details
                 logger.debug(f"Embeddings generated for {len(all_chunks)} chunks.")
             except Exception as e:
                 logger.error(f"Error generating embeddings: {str(e)}")
@@ -141,7 +124,6 @@ class VectorIndex:
 
             # Update chunks with embeddings
             for i, chunk in enumerate(all_chunks):
-                # Ensure we have a valid embedding array
                 if embeddings[i] is None:
                     logger.error(f"No embedding generated for chunk {i}")
                     continue
@@ -149,24 +131,21 @@ class VectorIndex:
                 # Convert embedding to list of floats
                 try:
                     embedding_list = embeddings[i].tolist() if hasattr(embeddings[i], 'tolist') else embeddings[i]
-                    if not isinstance(embedding_list, list):
-                        embedding_list = [float(x) for x in embedding_list]
-                    else:
-                        embedding_list = [float(x) for x in embedding_list]
+                    embedding_list = [float(x) for x in embedding_list]
                     chunk.embedding = embedding_list
+
+                    # Save embeddings
+                    doc_id = chunk.metadata.document_id
+                    if doc_id is not None:
+                        emb_path = self.embeddings_dir / f"{doc_id}_{i}.json"
+                        with open(emb_path, "w") as f:
+                            json.dump(
+                                {"chunk_id": chunk.id, "embedding": embedding_list},
+                                f
+                            )
                 except Exception as e:
                     logger.error(f"Error converting embedding: {str(e)}")
                     continue
-
-                # Save embeddings
-                doc_id = chunk.metadata.document_id
-                if doc_id is not None:  # Add null check
-                    emb_path = self.embeddings_dir / f"{doc_id}_{i}.json"
-                    with open(emb_path, "w") as f:
-                        json.dump(
-                            {"chunk_id": chunk.id, "embedding": embedding_list},
-                            f
-                        )
 
                 await _call_progress(
                     on_progress,
@@ -209,3 +188,30 @@ class VectorIndex:
             "has_embeddings": self.embeddings_dir.exists() and any(self.embeddings_dir.iterdir()),
             "config": self.get_config()
         }
+
+    async def delete(self) -> bool:
+        """Delete the vector index and its data."""
+        try:
+            # Initialize datastore
+            datastore = await get_datastore(
+                self.config["vector_db"],
+                embedding_model=self.config.get("embedding_model")
+            )
+
+            # Delete vectors from vector database
+            await datastore.delete(
+                filter=DocumentMetadataFilter(
+                    document_id=self.index_id,
+                ),
+                delete_all=False,
+            )
+
+            # Delete files from filesystem
+            if self.base_dir.exists():
+                import shutil
+                shutil.rmtree(self.base_dir)
+
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting vector index: {e}")
+            return False
