@@ -55,6 +55,13 @@ SUPPORTED_NODE_TYPES = {
         },
     ],
     "Logic": LOGIC,
+    "Loop": [
+        {
+            "node_type_name": "ForLoopNode",
+            "module": ".nodes.loops.for_loop_node",
+            "class_name": "ForLoopNode",
+        },
+    ],
     "Integrations": [
         {
             "node_type_name": "SlackNotifyNode",
