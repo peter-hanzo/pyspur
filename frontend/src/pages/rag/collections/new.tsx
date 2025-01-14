@@ -1,10 +1,12 @@
 import React from 'react';
 import { DocumentCollectionWizard } from '@/components/rag/DocumentCollectionWizard';
+import Header from '@/components/Header';
 
 export default function NewDocumentCollectionPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Create Document Collection</h1>
+ <div className="App relative">
+              <Header activePage="rag" />
+
       <DocumentCollectionWizard />
     </div>
   );

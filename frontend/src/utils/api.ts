@@ -757,7 +757,7 @@ export const createDocumentCollection = async (data: DocumentCollectionCreateReq
 
 export const listDocumentCollections = async (): Promise<DocumentCollectionResponse[]> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/rag/collections/`);
+    const response = await axios.get(`${API_BASE_URL}/rag/`);
     return response.data;
   } catch (error) {
     console.error('Error listing document collections:', error);

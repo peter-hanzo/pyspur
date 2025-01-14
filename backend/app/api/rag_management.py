@@ -15,7 +15,10 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 import mimetypes
 
-from ..models.knowledge_base_model import DocumentCollectionModel, VectorIndexModel
+from ..models.knowledge_base_model import (
+    DocumentCollectionModel,
+    VectorIndexModel,
+)
 from ..database import get_db
 from ..rag.datastore.factory import get_datastore, get_vector_stores
 from ..rag.datastore.datastore import DataStore
@@ -207,26 +210,26 @@ async def update_kb_creation_job(
     job = kb_creation_jobs[job_id]
     if status:
         job.status = status
-        # Update KB status in database
+        # Update collection status in database
         if db is not None:
-            # Extract the KB ID from the job ID (format: KB_ID_add_TIMESTAMP)
-            kb_id = job_id.split("_add_")[0] if "_add_" in job_id else job_id
-            kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
-            if kb:
-                # Update KB status based on job status
+            # Extract the collection ID from the job ID (format: DC_ID_add_TIMESTAMP)
+            collection_id = job_id.split("_add_")[0] if "_add_" in job_id else job_id
+            collection = db.query(DocumentCollectionModel).filter(DocumentCollectionModel.id == collection_id).first()
+            if collection:
+                # Update collection status based on job status
                 if status == "completed":
-                    kb.status = "ready"
+                    collection.status = "ready"
                 elif status == "failed":
-                    kb.status = "failed"
+                    collection.status = "failed"
                 else:
-                    kb.status = "processing"
+                    collection.status = "processing"
 
                 if error_message:
-                    kb.error_message = error_message
+                    collection.error_message = error_message
                 if processed_chunks and total_chunks:
-                    kb.chunk_count = processed_chunks
+                    collection.chunk_count = processed_chunks
                 if processed_files:
-                    kb.document_count = processed_files
+                    collection.document_count = processed_files
                 db.commit()
 
     if progress is not None:
@@ -246,7 +249,7 @@ async def update_kb_creation_job(
 
 
 async def process_documents(
-    kb_id: str,
+    collection_id: str,
     job_id: str,
     file_infos: Sequence[FileInfo],
     config: Union[DocumentCollectionCreate, KnowledgeBaseCreate],
@@ -255,7 +258,7 @@ async def process_documents(
     """Background task to process uploaded documents"""
     try:
         # Create knowledge base manager
-        kb = KnowledgeBase(kb_id)
+        kb = KnowledgeBase(collection_id)
 
         # Prepare configuration
         processing_config: Dict[str, Any] = {
@@ -351,7 +354,7 @@ async def create_kb(
             )
 
         # Create knowledge base record
-        kb = KnowledgeBaseModel(
+        kb = DocumentCollectionModel(
             name=kb_config.name,
             description=kb_config.description,
             status="ready" if not files else "processing",  # Set status to ready if no files
@@ -417,7 +420,7 @@ async def create_kb(
 async def list_kbs(db: Session = Depends(get_db)):
     """List all knowledge bases"""
     try:
-        kbs = db.query(KnowledgeBaseModel).all()
+        kbs = db.query(DocumentCollectionModel).all()
         return [
             KnowledgeBaseResponse(
                 id=kb.id,
@@ -440,7 +443,7 @@ async def list_kbs(db: Session = Depends(get_db)):
 async def get_kb(kb_id: str, db: Session = Depends(get_db)):
     """Get knowledge base details"""
     try:
-        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
+        kb = db.query(DocumentCollectionModel).filter(DocumentCollectionModel.id == kb_id).first()
         if not kb:
             raise HTTPException(status_code=404, detail="Knowledge base not found")
 
@@ -466,7 +469,7 @@ async def delete_kb(kb_id: str, db: Session = Depends(get_db)):
     """Delete a knowledge base"""
     try:
         # Get the knowledge base from the database
-        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
+        kb = db.query(DocumentCollectionModel).filter(DocumentCollectionModel.id == kb_id).first()
         if not kb:
             raise HTTPException(status_code=404, detail="Knowledge base not found")
 
@@ -528,7 +531,7 @@ async def add_documents_to_kb(
     """Add documents to an existing knowledge base"""
     try:
         # Get the knowledge base from the database
-        kb = db.query(KnowledgeBaseModel).filter(KnowledgeBaseModel.id == kb_id).first()
+        kb = db.query(DocumentCollectionModel).filter(DocumentCollectionModel.id == kb_id).first()
         if not kb:
             raise HTTPException(status_code=404, detail="Knowledge base not found")
 
