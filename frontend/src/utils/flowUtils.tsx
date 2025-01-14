@@ -293,22 +293,32 @@ export const useStyledEdges = ({
             style: {
                 stroke: readOnly
                     ? edge.id === hoveredEdge
-                        ? isDark ? '#fff' : '#000'
+                        ? isDark
+                            ? '#fff'
+                            : '#000'
                         : edge.source === hoveredNode || edge.target === hoveredNode
-                            ? isDark ? '#fff' : '#000'
-                            : isDark ? '#888' : '#555'
+                          ? isDark
+                              ? '#fff'
+                              : '#000'
+                          : isDark
+                            ? '#888'
+                            : '#555'
                     : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
-                        ? isDark ? '#fff' : '#555'
-                        : isDark ? '#666' : '#999',
+                      ? isDark
+                          ? '#fff'
+                          : '#555'
+                      : isDark
+                        ? '#666'
+                        : '#999',
                 strokeWidth: readOnly
                     ? edge.id === hoveredEdge
                         ? 4
                         : edge.source === hoveredNode || edge.target === hoveredNode
-                            ? 4
-                            : 2
+                          ? 4
+                          : 2
                     : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
-                        ? 3
-                        : 1.5,
+                      ? 3
+                      : 1.5,
             },
             data: {
                 ...edge.data,
@@ -413,4 +423,29 @@ export const deleteNode = (nodeId: string, selectedNodeId: string | null, dispat
     if (selectedNodeId === nodeId) {
         dispatch(setSelectedNode({ nodeId: null }))
     }
+}
+
+export const getPredecessorFields = (nodeId: string, nodes: FlowWorkflowNode[], edges: Edge[]): string[] => {
+    // Find all incoming edges to this node
+    const incomingEdges = edges.filter((edge) => edge.target === nodeId)
+
+    // Get all predecessor nodes
+    const predecessorNodes = incomingEdges
+        .map((edge) => nodes.find((node) => node.id === edge.source))
+        .filter((node): node is FlowWorkflowNode => node !== undefined)
+
+    // Generate field options using dot notation
+    const fields: string[] = []
+    predecessorNodes.forEach((node) => {
+        const nodeTitle = getNodeTitle(node.data)
+        // Get output schema from node's data or config
+        const outputSchema = node.data?.config?.output_schema || node.data?.output_schema || []
+
+        // Add each field with dot notation
+        outputSchema.forEach((field: { name: string }) => {
+            fields.push(`${nodeTitle}.${field.name}`)
+        })
+    })
+
+    return fields.sort()
 }
