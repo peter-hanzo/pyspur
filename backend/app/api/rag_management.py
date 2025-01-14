@@ -266,6 +266,9 @@ async def create_document_collection(
                     detail="Invalid vision model configuration"
                 )
 
+        # Get current timestamp
+        now = datetime.now(timezone.utc)
+
         # Create document collection record
         collection = DocumentCollectionModel(
             name=collection_config.name,
@@ -274,6 +277,8 @@ async def create_document_collection(
             document_count=len(files) if files else 0,
             chunk_count=0,
             text_processing_config=collection_config.text_processing.model_dump(),
+            created_at=now,
+            updated_at=now,
         )
         db.add(collection)
         db.commit()
