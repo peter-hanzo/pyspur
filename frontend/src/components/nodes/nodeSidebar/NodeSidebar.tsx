@@ -503,6 +503,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
+        if (key === 'input_map') {
+            return renderInputMapField(key, value, incomingSchema, handleInputChange)
+        }
+
         // Handle other types (string, number, boolean, object)
         switch (typeof field) {
             case 'string':
@@ -759,6 +763,38 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         data:&lt;mime_type&gt;;base64,&lt;encoded_data&gt;
                     </p>
                 </div>
+            </div>
+        )
+    }
+
+    const renderInputMapField = (
+        key: string,
+        value: any,
+        incomingSchema: string[],
+        handleInputChange: (key: string, value: any) => void
+    ) => {
+        return (
+            <div key={key} className="my-2">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">Input Mapping</h3>
+                    <Tooltip
+                        content="Map input fields from predecessor nodes to this node's input schema. Use the dropdown to select available fields from connected nodes."
+                        placement="left-start"
+                        showArrow={true}
+                        className="max-w-xs"
+                    >
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
+                    </Tooltip>
+                </div>
+                <SchemaEditor
+                    key={`input-map-editor-${nodeID}`}
+                    jsonValue={value || {}}
+                    onChange={(newValue) => handleInputChange(key, newValue)}
+                    options={jsonOptions}
+                    schemaType="input_map"
+                    nodeId={nodeID}
+                    availableFields={incomingSchema}
+                />
             </div>
         )
     }
