@@ -261,12 +261,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                                             />
                                         </NavbarItem>
                                         <NavbarItem className="hidden sm:flex">
-                                            <Button
-                                                isIconOnly
-                                                radius="full"
-                                                variant="light"
-                                                onClick={stopWorkflow}
-                                            >
+                                            <Button isIconOnly radius="full" variant="light" onClick={stopWorkflow}>
                                                 <Icon
                                                     className="text-foreground/60"
                                                     icon="solar:stop-linear"
@@ -306,16 +301,17 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                                                 onPress={() => window.open(`/trace/${run.id}`, '_blank')}
                                                 textValue={`Version ${index + 1}`}
                                             >
-                                                {`${run.id} | ${run.status.toLowerCase()} ${(run.status.toLowerCase() === 'running' ||
-                                                    run.status.toLowerCase() === 'pending') &&
+                                                {`${run.id} | ${run.status.toLowerCase()} ${
+                                                    (run.status.toLowerCase() === 'running' ||
+                                                        run.status.toLowerCase() === 'pending') &&
                                                     run.start_time
-                                                    ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                                                    : (run.status.toLowerCase() === 'failed' ||
-                                                        run.status.toLowerCase() === 'completed') &&
-                                                        run.end_time
-                                                        ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                                                        : ''
-                                                    }`}
+                                                        ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                                                        : (run.status.toLowerCase() === 'failed' ||
+                                                                run.status.toLowerCase() === 'completed') &&
+                                                            run.end_time
+                                                          ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                                                          : ''
+                                                }`}
                                             </DropdownItem>
                                         ))
                                     )}

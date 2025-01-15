@@ -356,9 +356,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                         renderValue={(items) => {
                                                             return items.map((item) => (
                                                                 <div key={item.key} className="flex items-center">
-                                                                    <span className="text-default-700 dark:text-default-300">{item.textValue}</span>
+                                                                    <span className="text-default-700 dark:text-default-300">
+                                                                        {item.textValue}
+                                                                    </span>
                                                                 </div>
-                                                            ));
+                                                            ))
                                                         }}
                                                         isMultiline={true}
                                                         isDisabled={readOnly}
@@ -398,9 +400,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                         renderValue={(items) => {
                                                             return items.map((item) => (
                                                                 <div key={item.key} className="flex items-center">
-                                                                    <span className="text-default-700 dark:text-default-300">{item.textValue}</span>
+                                                                    <span className="text-default-700 dark:text-default-300">
+                                                                        {item.textValue}
+                                                                    </span>
                                                                 </div>
-                                                            ));
+                                                            ))
                                                         }}
                                                         isDisabled={readOnly}
                                                     >
@@ -431,22 +435,22 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             placeholder="Value"
                                                             className="flex-[2] min-w-[100px]"
                                                             classNames={{
-                                                                label: "text-default-700 dark:text-default-300",
+                                                                label: 'text-default-700 dark:text-default-300',
                                                                 input: [
-                                                                    "text-default-700 !text-default-700",
-                                                                    "dark:!text-default-300",
-                                                                    "placeholder:text-default-700",
-                                                                    "dark:placeholder:text-default-300",
-                                                                    "[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-700",
-                                                                    "dark:[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-300"
+                                                                    'text-default-700 !text-default-700',
+                                                                    'dark:!text-default-300',
+                                                                    'placeholder:text-default-700',
+                                                                    'dark:placeholder:text-default-300',
+                                                                    '[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-700',
+                                                                    'dark:[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-300',
                                                                 ],
-                                                                innerWrapper: "bg-transparent",
+                                                                innerWrapper: 'bg-transparent',
                                                                 inputWrapper: [
-                                                                    "bg-default-100 dark:bg-default-50/10",
-                                                                    "hover:bg-default-200 dark:hover:bg-default-50/20",
-                                                                    "group-data-[focus=true]:bg-default-100 dark:group-data-[focus=true]:bg-default-50/30",
-                                                                    "!border-0"
-                                                                ]
+                                                                    'bg-default-100 dark:bg-default-50/10',
+                                                                    'hover:bg-default-200 dark:hover:bg-default-50/20',
+                                                                    'group-data-[focus=true]:bg-default-100 dark:group-data-[focus=true]:bg-default-50/30',
+                                                                    '!border-0',
+                                                                ],
                                                             }}
                                                             isDisabled={readOnly}
                                                         />
@@ -474,7 +478,13 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                 color="primary"
                                                 variant="light"
                                                 onClick={() => addCondition(routeKey)}
-                                                startContent={<Icon icon="solar:add-circle-linear" width={18} className="text-foreground" />}
+                                                startContent={
+                                                    <Icon
+                                                        icon="solar:add-circle-linear"
+                                                        width={18}
+                                                        className="text-foreground"
+                                                    />
+                                                }
                                                 className="text-foreground"
                                             >
                                                 Add Condition
@@ -506,7 +516,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                     color="primary"
                                     variant="light"
                                     onClick={addRoute}
-                                    startContent={<Icon icon="solar:add-circle-linear" width={18} className="text-foreground" />}
+                                    startContent={
+                                        <Icon icon="solar:add-circle-linear" width={18} className="text-foreground" />
+                                    }
                                     className="text-foreground"
                                 >
                                     Add Route

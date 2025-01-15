@@ -11,7 +11,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDi
 import { Icon } from '@iconify/react'
 import { List, ListOrdered } from 'lucide-react'
 import styles from './TextEditor.module.css'
-import { Markdown } from 'tiptap-markdown';
+import { Markdown } from 'tiptap-markdown'
 
 interface TextEditorProps {
     nodeID: string
@@ -140,20 +140,20 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     )}
                     {Array.isArray(inputSchema)
                         ? inputSchema.map((variable) => (
-                            <Button
-                                key={variable}
-                                size="sm"
-                                variant="flat"
-                                color="primary"
-                                onPress={() => {
-                                    if (editorInstance) {
-                                        editorInstance.chain().focus().insertContent(`{{${variable}}}`).run()
-                                    }
-                                }}
-                            >
-                                {variable}
-                            </Button>
-                        ))
+                              <Button
+                                  key={variable}
+                                  size="sm"
+                                  variant="flat"
+                                  color="primary"
+                                  onPress={() => {
+                                      if (editorInstance) {
+                                          editorInstance.chain().focus().insertContent(`{{${variable}}}`).run()
+                                      }
+                                  }}
+                              >
+                                  {variable}
+                              </Button>
+                          ))
                         : null}
                 </div>
             )

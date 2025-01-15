@@ -25,10 +25,11 @@ const staticStyles = {
 } as const
 
 // Add this near the other static styles
-const getEdgeStyle = (isDark: boolean) => ({
-    strokeWidth: 2,
-    stroke: isDark ? '#888' : '#555',
-}) as const
+const getEdgeStyle = (isDark: boolean) =>
+    ({
+        strokeWidth: 2,
+        stroke: isDark ? '#888' : '#555',
+    }) as const
 
 interface CustomEdgeData extends Edge<any> {
     onPopoverOpen: (params: {

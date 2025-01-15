@@ -42,7 +42,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
             const incomingSchemaKeys = incomingEdges.map((edge) => edge.source)
             const maxLabelLength = Math.max(
                 Math.max(...incomingSchemaKeys.map((label) => label.length)) +
-                Math.max(...outputSchemaKeys.map((label) => label.length)),
+                    Math.max(...outputSchemaKeys.map((label) => label.length)),
                 (nodeConfig?.title || '').length / 1.5
             )
 
@@ -122,8 +122,9 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         type="target"
                         position={Position.Left}
                         id={keyName}
-                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''
-                            }`}
+                        className={`${styles.handle} ${styles.handleLeft} ${
+                            isCollapsed ? styles.collapsedHandleInput : ''
+                        }`}
                         isConnectable={!isCollapsed}
                     />
                 </div>
@@ -256,8 +257,9 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         type="source"
                         position={Position.Right}
                         id={nodeConfig?.title || id}
-                        className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''
-                            }`}
+                        className={`${styles.handle} ${styles.handleRight} ${
+                            isCollapsed ? styles.collapsedHandleOutput : ''
+                        }`}
                         isConnectable={!isCollapsed}
                     />
                 </div>
