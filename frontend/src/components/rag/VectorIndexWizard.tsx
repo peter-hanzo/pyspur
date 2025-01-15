@@ -169,8 +169,7 @@ export const VectorIndexWizard: React.FC = () => {
 
   const handleNext = () => {
     if (activeStep < steps.length - 1) {
-      // If we're on the first step and no name is provided, generate one
-      if (activeStep === 1 && !config.name.trim()) {
+      if (activeStep === 0 && !config.name.trim()) {
         const randomName = generateRandomName();
         setConfig(prev => ({ ...prev, name: randomName }));
         setNameAlert(`Using generated name: ${randomName}`);
@@ -336,33 +335,21 @@ export const VectorIndexWizard: React.FC = () => {
     switch (step) {
       case 0:
         return (
-          <div className="space-y-4">
-            <Select
-              label="Document Collection"
-              placeholder="Select a document collection"
-              selectedKeys={config.collection_id ? [config.collection_id] : []}
-              onChange={(e) => handleConfigChange('collection_id')(e as any)}
-              isRequired
-            >
-              {collections.map((collection) => (
-                <SelectItem key={collection.id} value={collection.id}>
-                  {collection.name}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-        );
-
-      case 1:
-        return (
           <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Configure Index</h3>
-              <Tooltip content="Configure your vector index settings">
-                <Info className="w-4 h-4 text-default-400" />
-              </Tooltip>
-            </div>
             <div className="space-y-4">
+              <Select
+                label="Document Collection"
+                placeholder="Select a document collection"
+                selectedKeys={config.collection_id ? [config.collection_id] : []}
+                onChange={(e) => handleConfigChange('collection_id')(e as any)}
+                isRequired
+              >
+                {collections.map((collection) => (
+                  <SelectItem key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </SelectItem>
+                ))}
+              </Select>
               <div className="flex gap-2">
                 <Input
                   label="Index Name"
@@ -396,25 +383,37 @@ export const VectorIndexWizard: React.FC = () => {
                   </Tooltip>
                 }
               />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium">Embedding Model</span>
-                    <Tooltip content="Configure how your text will be converted to vector embeddings">
-                      <Info className="w-4 h-4 text-default-400" />
-                    </Tooltip>
-                  </div>
-                  {renderEmbeddingSection()}
+            </div>
+          </div>
+        );
+
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">Configure Index</h3>
+              <Tooltip content="Configure your vector index settings">
+                <Info className="w-4 h-4 text-default-400" />
+              </Tooltip>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium">Embedding Model</span>
+                  <Tooltip content="Configure how your text will be converted to vector embeddings">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium">Vector Database</span>
-                    <Tooltip content="Choose where your vector embeddings will be stored">
-                      <Info className="w-4 h-4 text-default-400" />
-                    </Tooltip>
-                  </div>
-                  {renderVectorStoreSection()}
+                {renderEmbeddingSection()}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium">Vector Database</span>
+                  <Tooltip content="Choose where your vector embeddings will be stored">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
                 </div>
+                {renderVectorStoreSection()}
               </div>
             </div>
           </div>
@@ -618,7 +617,7 @@ export const VectorIndexWizard: React.FC = () => {
                     isLoading={isSubmitting}
                     isDisabled={
                       (activeStep === 0 && !config.collection_id) ||
-                      (activeStep === 1 && (!config.name || !config.embedding_model || !config.vector_db))
+                      (activeStep === 1 && (!config.embedding_model || !config.vector_db))
                     }
                   >
                     {activeStep === steps.length - 1 ? 'Create Index' : 'Next'}
