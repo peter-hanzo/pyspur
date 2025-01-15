@@ -511,14 +511,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    <TextEditor
+                    <CodeEditor
                         key={`text-editor-output-json-schema-${nodeID}`}
-                        nodeID={nodeID}
-                        fieldName={key}
-                        inputSchema={incomingSchema}
-                        fieldTitle="Output JSON Schema"
-                        content={currentNodeConfig[key] || ''}
-                        setContent={(value: string) => {
+                        code={currentNodeConfig[key] || ''}
+                        onChange={(value: string) => {
                             if (!value.trim()) {
                                 // If JSON schema is empty, just update output_json_schema
                                 handleInputChange('output_json_schema', value)

@@ -24,7 +24,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled }) => 
     }
 
     return (
-        <div className="code-editor">
+        <div className="code-editor w-full">
             <label className="text-sm font-semibold mb-2 block">Code Editor</label>
             <CodeMirror
                 value={value}
