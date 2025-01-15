@@ -106,17 +106,17 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     defaultSelectedKeys={['str']}
                     className="max-w-xs p-2 w-1/3"
                 >
-                    <SelectItem key="str" value="str">
-                        str
+                    <SelectItem key="str" value="string">
+                        string
                     </SelectItem>
-                    <SelectItem key="bool" value="bool">
-                        bool
+                    <SelectItem key="bool" value="boolean">
+                        boolean
                     </SelectItem>
-                    <SelectItem key="int" value="int">
-                        int
+                    <SelectItem key="int" value="integer">
+                        integer
                     </SelectItem>
-                    <SelectItem key="float" value="float">
-                        float
+                    <SelectItem key="float" value="number">
+                        number
                     </SelectItem>
                 </Select>
                 <Button
