@@ -15,6 +15,7 @@ from app.models.output_file_model import OutputFileModel  # type: ignore
 from app.models.dataset_model import DatasetModel  # type: ignore
 from app.models.base_model import BaseModel
 from app.models.eval_run_model import EvalRunModel  # type: ignore
+from app.models.dc_and_vi_model import DocumentCollectionModel, VectorIndexModel  # type: ignore
 
 # Import database URL
 from app.database import DATABASE_URL

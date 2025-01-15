@@ -293,22 +293,32 @@ export const useStyledEdges = ({
             style: {
                 stroke: readOnly
                     ? edge.id === hoveredEdge
-                        ? isDark ? '#fff' : '#000'
+                        ? isDark
+                            ? '#fff'
+                            : '#000'
                         : edge.source === hoveredNode || edge.target === hoveredNode
-                            ? isDark ? '#fff' : '#000'
-                            : isDark ? '#888' : '#555'
+                          ? isDark
+                              ? '#fff'
+                              : '#000'
+                          : isDark
+                            ? '#888'
+                            : '#555'
                     : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
-                        ? isDark ? '#fff' : '#555'
-                        : isDark ? '#666' : '#999',
+                      ? isDark
+                          ? '#fff'
+                          : '#555'
+                      : isDark
+                        ? '#666'
+                        : '#999',
                 strokeWidth: readOnly
                     ? edge.id === hoveredEdge
                         ? 4
                         : edge.source === hoveredNode || edge.target === hoveredNode
-                            ? 4
-                            : 2
+                          ? 4
+                          : 2
                     : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
-                        ? 3
-                        : 1.5,
+                      ? 3
+                      : 1.5,
             },
             data: {
                 ...edge.data,
