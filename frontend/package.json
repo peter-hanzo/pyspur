@@ -40,7 +40,6 @@
         "clsx": "^2.1.1",
         "cmdk": "1.0.0",
         "codemirror": "^6.0.1",
-        "codemirror-json-schema": "^0.8.0",
         "date-fns": "^4.1.0",
         "framer-motion": "^11.13.5",
         "install": "^0.13.0",
