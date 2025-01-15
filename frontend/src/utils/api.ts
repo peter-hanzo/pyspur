@@ -874,17 +874,21 @@ export interface ProcessingProgress {
   processed_files: number;
   total_chunks: number;
   processed_chunks: number;
-  error_message?: string;
+  error_message: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export const getIndexProgress = async (index_id: string): Promise<ProcessingProgress> => {
+export const getIndexProgress = async (indexId: string): Promise<ProcessingProgress | null> => {
   try {
-    const response = await axios.get<ProcessingProgress>(`${API_BASE_URL}/rag/indices/${index_id}/progress/`);
+    const response = await axios.get<ProcessingProgress>(`${API_BASE_URL}/rag/indices/${indexId}/progress/`);
     return response.data;
-  } catch (error) {
-    console.error('Error getting index progress:', error);
+  } catch (error: any) {
+    // For 404, return null instead of throwing
+    if (error.response?.status === 404) {
+      return null;
+    }
+    // For other errors, throw
     throw error;
   }
 };

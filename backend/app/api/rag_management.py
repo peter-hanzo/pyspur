@@ -8,12 +8,10 @@ from fastapi import (
     Depends,
 )
 from typing import List, Dict, Optional, Any, cast
-from pydantic import BaseModel
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session
-import os
 from loguru import logger
 
 from ..models.dc_and_vi_model import (
@@ -25,120 +23,16 @@ from ..models.dc_and_vi_model import (
 from ..database import get_db
 from ..rag.document_collection import DocumentStore
 from ..rag.vector_index import VectorIndex
-from ..rag.models.document_schemas import (
-    Document,
-    DocumentWithChunks,
-    DocumentMetadata,
-    DocumentChunk,
-    Source
+from ..rag.models.document_schemas import DocumentWithChunks
+from ..schemas.rag_schemas import (
+    TextProcessingConfig,
+    EmbeddingConfig,
+    DocumentCollectionCreate,
+    VectorIndexCreate,
+    DocumentCollectionResponse,
+    VectorIndexResponse,
+    ProcessingProgress,
 )
-from ..models.dc_and_vi_model import ProcessingProgressModel
-
-
-# Models
-class TextProcessingConfig(BaseModel):
-    chunk_token_size: int = 200  # Default value from original chunker
-    min_chunk_size_chars: int = 350  # Default value from original chunker
-    min_chunk_length_to_embed: int = 5  # Default value from original chunker
-    embeddings_batch_size: int = 128  # Default value from original chunker
-    max_num_chunks: int = 10000  # Default value from original chunker
-    use_vision_model: bool = False  # Whether to use vision model for PDF parsing
-    vision_model: Optional[str] = None  # Model to use for vision-based parsing
-    vision_provider: Optional[str] = None  # Provider for vision model
-
-    def get_vision_config(self) -> Optional[Dict[str, Any]]:
-        """Get vision configuration with API key if vision model is enabled."""
-        if not self.use_vision_model or not self.vision_model or not self.vision_provider:
-            return None
-
-        # Get API key based on provider
-        api_key = None
-        if self.vision_provider == "openai":
-            api_key = os.getenv("OPENAI_API_KEY")
-        elif self.vision_provider == "anthropic":
-            api_key = os.getenv("ANTHROPIC_API_KEY")
-
-        if not api_key:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Missing API key for vision provider {self.vision_provider}"
-            )
-
-        return {
-            "model": self.vision_model,
-            "provider": self.vision_provider,
-            "api_key": api_key,
-        }
-
-
-class EmbeddingConfig(BaseModel):
-    model: str
-    vector_db: str
-    search_strategy: str
-    semantic_weight: Optional[float] = None
-    keyword_weight: Optional[float] = None
-    top_k: Optional[int] = None
-    score_threshold: Optional[float] = None
-
-
-class DocumentCollectionCreate(BaseModel):
-    """Request model for creating a document collection"""
-    name: str
-    description: Optional[str] = None
-    text_processing: TextProcessingConfig
-
-
-class VectorIndexCreate(BaseModel):
-    """Request model for creating a vector index"""
-    name: str
-    description: Optional[str] = None
-    collection_id: str
-    embedding: EmbeddingConfig
-
-
-class DocumentCollectionResponse(BaseModel):
-    """Response model for document collection operations"""
-    id: str
-    name: str
-    description: Optional[str] = None
-    status: str
-    created_at: str
-    updated_at: str
-    document_count: int
-    chunk_count: int
-    error_message: Optional[str] = None
-
-
-class VectorIndexResponse(BaseModel):
-    """Response model for vector index operations"""
-    id: str
-    name: str
-    description: Optional[str] = None
-    collection_id: str
-    status: str
-    created_at: str
-    updated_at: str
-    document_count: int
-    chunk_count: int
-    error_message: Optional[str] = None
-    embedding_model: str
-    vector_db: str
-
-
-# Progress tracking models
-class ProcessingProgress(BaseModel):
-    """Base model for tracking processing progress"""
-    id: str
-    status: str = "pending"  # pending, processing, completed, failed
-    progress: float = 0.0  # 0 to 1
-    current_step: str = "initializing"  # parsing, chunking, embedding, etc.
-    total_files: int = 0
-    processed_files: int = 0
-    total_chunks: int = 0
-    processed_chunks: int = 0
-    error_message: Optional[str] = None
-    created_at: str
-    updated_at: str
 
 # In-memory progress tracking (replace with database in production)
 collection_progress: Dict[str, ProcessingProgress] = {}
@@ -173,7 +67,8 @@ async def update_collection_progress(
                 DocumentCollectionModel.id == collection_id
             ).first()
             if collection:
-                collection.status = "ready" if status == "completed" else status
+                new_status = cast(DocumentStatus, "ready" if status == "completed" else status)
+                collection.status = new_status
                 if error_message:
                     collection.error_message = error_message
                 if processed_chunks and total_chunks:
@@ -224,10 +119,10 @@ async def update_index_progress(
             "created_at": now,
             "updated_at": now,
             "status": status or "processing",
-            "progress": progress or 0.0,
+            "progress": float(progress or 0.0),
             "current_step": current_step or "",
-            "total_chunks": total_chunks or 0,
-            "processed_chunks": processed_chunks or 0,
+            "total_chunks": int(total_chunks or 0),
+            "processed_chunks": int(processed_chunks or 0),
             "error_message": error_message,
         }
         progress_record = ProcessingProgressModel(**values)
@@ -242,20 +137,20 @@ async def update_index_progress(
             ).first()
             if index:
                 new_status = "ready" if status == "completed" else status
-                setattr(index, "status", cast(DocumentStatus, new_status))
+                setattr(index, "status", new_status)
                 if error_message:
                     setattr(index, "error_message", error_message)
                 if processed_chunks:
-                    setattr(index, "chunk_count", processed_chunks)
+                    setattr(index, "chunk_count", int(processed_chunks))
 
         if progress is not None:
-            setattr(progress_record, "progress", progress)
+            setattr(progress_record, "progress", float(progress))
         if current_step:
             setattr(progress_record, "current_step", current_step)
         if total_chunks is not None:
-            setattr(progress_record, "total_chunks", total_chunks)
+            setattr(progress_record, "total_chunks", int(total_chunks))
         if processed_chunks is not None:
-            setattr(progress_record, "processed_chunks", processed_chunks)
+            setattr(progress_record, "processed_chunks", int(processed_chunks))
         if error_message:
             setattr(progress_record, "error_message", error_message)
 
@@ -396,20 +291,21 @@ async def create_vector_index(
         db.commit()
         db.refresh(index)
 
-        # Initialize progress tracking
-        now_str = now.isoformat()
-        index_progress[index.id] = ProcessingProgress(
+        # Initialize progress tracking in database
+        progress_record = ProcessingProgressModel(
             id=index.id,
             status="processing",
             progress=0.0,
             current_step="initializing",
-            total_files=collection.document_count,
+            total_files=int(collection.document_count),
             processed_files=0,
-            total_chunks=collection.chunk_count,
+            total_chunks=int(collection.chunk_count),
             processed_chunks=0,
-            created_at=now_str,
-            updated_at=now_str,
+            created_at=now,
+            updated_at=now,
         )
+        db.add(progress_record)
+        db.commit()
         logger.debug(f"Initialized progress tracking for index {index.id}")
 
         # Start background processing
@@ -453,8 +349,8 @@ async def create_vector_index(
             updated_at=index.updated_at.isoformat(),
             document_count=index.document_count,
             chunk_count=index.chunk_count,
-            embedding_model=index.embedding_config["model"],
-            vector_db=index.embedding_config["vector_db"],
+            embedding_model=index_config.embedding.model,
+            vector_db=index_config.embedding.vector_db,
         )
 
     except HTTPException:
@@ -648,15 +544,15 @@ async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
     logger.debug(f"Progress data for index {index_id}: {progress_record.__dict__}")
 
     return ProcessingProgress(
-        id=progress_record.id,
-        status=progress_record.status,
-        progress=progress_record.progress,
-        current_step=progress_record.current_step,
-        total_files=progress_record.total_files,
-        processed_files=progress_record.processed_files,
-        total_chunks=progress_record.total_chunks,
-        processed_chunks=progress_record.processed_chunks,
-        error_message=progress_record.error_message,
+        id=str(progress_record.id),
+        status=str(progress_record.status),
+        progress=float(progress_record.progress),
+        current_step=str(progress_record.current_step),
+        total_files=int(progress_record.total_files),
+        processed_files=int(progress_record.processed_files),
+        total_chunks=int(progress_record.total_chunks),
+        processed_chunks=int(progress_record.processed_chunks),
+        error_message=str(progress_record.error_message) if progress_record.error_message else None,
         created_at=progress_record.created_at.isoformat(),
         updated_at=progress_record.updated_at.isoformat(),
     )

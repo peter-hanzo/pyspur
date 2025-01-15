@@ -1,10 +1,8 @@
 from typing import Optional, Dict, Any, Literal
-from sqlalchemy import Computed, Integer, String, DateTime, JSON, ForeignKey, text, Column, Float, Enum
+from sqlalchemy import Computed, Integer, String, DateTime, JSON, ForeignKey, text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
 from .base_model import BaseModel
-import enum
-
 
 # Define valid status values
 DocumentStatus = Literal["processing", "ready", "error", "deleted"]
@@ -100,14 +98,23 @@ class ProcessingProgressModel(BaseModel):
     """Model for tracking processing progress"""
     __tablename__ = "processing_progress"
 
-    id = Column(String, primary_key=True)
-    status = Column(String, nullable=False, default="pending")
-    progress = Column(Float, nullable=False, default=0.0)
-    current_step = Column(String, nullable=False, default="initializing")
-    total_files = Column(Integer, nullable=False, default=0)
-    processed_files = Column(Integer, nullable=False, default=0)
-    total_chunks = Column(Integer, nullable=False, default=0)
-    processed_chunks = Column(Integer, nullable=False, default=0)
-    error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
+    progress: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    current_step: Mapped[str] = mapped_column(String, nullable=False, default="initializing")
+    total_files: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    processed_files: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_chunks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    processed_chunks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC)
+    )

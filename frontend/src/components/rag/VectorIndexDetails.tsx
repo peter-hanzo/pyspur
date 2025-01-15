@@ -38,6 +38,7 @@ export const VectorIndexDetails: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const [progressData, setProgressData] = useState<ProcessingProgress | null>(null);
+  const [progressError, setProgressError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,16 +61,38 @@ export const VectorIndexDetails: React.FC = () => {
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
+    let isPollingEnabled = true;
 
     const pollProgress = async () => {
       try {
-        if (!id || typeof id !== 'string' || !index || index.status !== 'processing') return;
+        // Only poll if we're in a state that needs progress updates
+        if (!id || typeof id !== 'string' || !index) return;
+
+        // If the index is not in processing state, don't poll
+        if (index.status !== 'processing') {
+          setProgressError(null);
+          return;
+        }
 
         const data = await getIndexProgress(id);
-        if (data) {
+
+        // If no data is returned (404), show message and stop polling
+        if (!data) {
+          if (isPollingEnabled) {
+            setProgressError("Progress information is not available");
+            if (pollInterval) {
+              clearInterval(pollInterval);
+            }
+          }
+          return;
+        }
+
+        // Only update state if we're still polling
+        if (isPollingEnabled) {
           setProgress(data.progress);
           setCurrentStep(data.current_step);
           setProgressData(data);
+          setProgressError(null);
 
           // If processing is complete, refresh the index data
           if (data.status === 'completed' || data.current_step === 'completed') {
@@ -88,18 +111,26 @@ export const VectorIndexDetails: React.FC = () => {
           }
         }
       } catch (error) {
+        // Only set error if we're still polling
+        if (!isPollingEnabled) return;
+
         console.error('Error fetching progress:', error);
+        setProgressError("Unable to fetch progress updates");
+        if (pollInterval) {
+          clearInterval(pollInterval);
+        }
       }
     };
 
     if (index?.status === 'processing' && currentStep !== 'completed') {
-      // Poll every 2 seconds
-      pollInterval = setInterval(pollProgress, 2000);
       // Initial poll
       pollProgress();
+      // Poll every 2 seconds
+      pollInterval = setInterval(pollProgress, 2000);
     }
 
     return () => {
+      isPollingEnabled = false;
       if (pollInterval) {
         clearInterval(pollInterval);
       }
@@ -228,7 +259,7 @@ export const VectorIndexDetails: React.FC = () => {
               <Chip variant="flat" size="sm">
                 <div className="flex items-center gap-1">
                   <Icon icon="solar:layers-linear" width={16} />
-                  <span>{index.chunk_count} Chunks</span>
+                  <span>{index.chunk_count} chunks</span>
                 </div>
               </Chip>
             </div>
@@ -249,6 +280,21 @@ export const VectorIndexDetails: React.FC = () => {
                     color="primary"
                     className="w-full"
                   />
+                  {currentStep && (
+                    <div className="flex justify-between items-center text-sm text-default-500">
+                      <span>Current step: {currentStep}</span>
+                      {progressData && (
+                        <span>
+                          {progressData.processed_chunks} / {progressData.total_chunks} chunks
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {progressError && (
+                    <div className="text-sm text-danger mt-2">
+                      {progressError}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -274,22 +320,24 @@ export const VectorIndexDetails: React.FC = () => {
                           <>{index.chunk_count} chunks</>
                         )}
                       </span>
-                      {(currentStep === 'embedding' || currentStep === 'uploading') && (
+                      {(currentStep === 'embedding' || currentStep === 'uploading') && !progressError && (
                         <Spinner size="sm" />
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-default-400">
-                  <Spinner size="sm" />
-                  <span>
-                    {currentStep === 'embedding' && 'Generating embeddings...'}
-                    {currentStep === 'uploading' && 'Uploading to vector store...'}
-                    {currentStep === 'completed' && 'Processing complete'}
-                    {!currentStep && 'Processing your documents...'}
-                  </span>
-                </div>
+                {!progressError && (
+                  <div className="flex items-center gap-2 text-sm text-default-400">
+                    <Spinner size="sm" />
+                    <span>
+                      {currentStep === 'embedding' && 'Generating embeddings...'}
+                      {currentStep === 'uploading' && 'Uploading to vector store...'}
+                      {currentStep === 'completed' && 'Processing complete'}
+                      {!currentStep && 'Processing your documents...'}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
