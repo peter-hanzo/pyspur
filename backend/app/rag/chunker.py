@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import tiktoken
 from .embedder import EmbeddingModels, get_multiple_text_embeddings
-from .models.document_schemas import (
+from .schemas.document_schemas import (
     Document,
     DocumentChunk,
     DocumentChunkMetadata,
