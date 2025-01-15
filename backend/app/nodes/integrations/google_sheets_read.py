@@ -35,12 +35,16 @@ class GoogleSheetsReadNode(BaseNode):
         """
         sheets_client = GoogleSheetsClient()
 
-        success, result = sheets_client.read_sheet(
-            spreadsheet_id=self.config.spreadsheet_id,
-            range_name=self.config.range_name,
-        )
+        try:
+            success, result = sheets_client.read_sheet(
+                spreadsheet_id=self.config.spreadsheet_id,
+                range_name=self.config.range_name,
+            )
 
-        if success:
-            return GoogleSheetsReadNodeOutput(data=result)
-        else:
-            return GoogleSheetsReadNodeOutput(data=f"Error: {result}")
+            if success:
+                return GoogleSheetsReadNodeOutput(data=result)
+            else:
+                return GoogleSheetsReadNodeOutput(data=f"Error: {result}")
+
+        except Exception as e:
+            return GoogleSheetsReadNodeOutput(data=f"Exception occurred: {str(e)}")
