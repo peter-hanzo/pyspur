@@ -1,7 +1,7 @@
 """add_progress_status
 
-Revision ID: 005
-Revises: 004
+Revision ID: 004
+Revises: 003
 Create Date: 2025-01-15 00:31:27.898484
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '005'
-down_revision: Union[str, None] = '004'
+revision: str = '004'
+down_revision: Union[str, None] = '003'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
