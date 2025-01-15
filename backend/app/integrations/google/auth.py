@@ -23,7 +23,6 @@ async def store_token(token: TokenInput):
     try:
         with open(TOKEN_FILE_PATH, 'w') as token_file:
             current_time = time.time()
-            print(current_time)
             token_data = {
                 "access_token": token.access_token,
                 "expires_at": current_time + token.expires_in
