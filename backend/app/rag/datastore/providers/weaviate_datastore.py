@@ -5,7 +5,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import weaviate
-from ...models.document_schemas import (
+from ...schemas.document_schemas import (
     DocumentChunk,
     DocumentChunkMetadata,
     DocumentChunkWithScore,

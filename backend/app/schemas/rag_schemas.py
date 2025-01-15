@@ -4,7 +4,7 @@ import os
 from fastapi import HTTPException
 
 # Models
-class TextProcessingConfig(BaseModel):
+class TextProcessingConfigSchema(BaseModel):
     chunk_token_size: int = 200  # Default value from original chunker
     min_chunk_size_chars: int = 350  # Default value from original chunker
     min_chunk_length_to_embed: int = 5  # Default value from original chunker
@@ -39,7 +39,7 @@ class TextProcessingConfig(BaseModel):
         }
 
 
-class EmbeddingConfig(BaseModel):
+class EmbeddingConfigSchema(BaseModel):
     model: str
     vector_db: str
     search_strategy: str
@@ -49,22 +49,22 @@ class EmbeddingConfig(BaseModel):
     score_threshold: Optional[float] = None
 
 
-class DocumentCollectionCreate(BaseModel):
+class DocumentCollectionCreateSchema(BaseModel):
     """Request model for creating a document collection"""
     name: str
     description: Optional[str] = None
-    text_processing: TextProcessingConfig
+    text_processing: TextProcessingConfigSchema
 
 
-class VectorIndexCreate(BaseModel):
+class VectorIndexCreateSchema(BaseModel):
     """Request model for creating a vector index"""
     name: str
     description: Optional[str] = None
     collection_id: str
-    embedding: EmbeddingConfig
+    embedding: EmbeddingConfigSchema
 
 
-class DocumentCollectionResponse(BaseModel):
+class DocumentCollectionResponseSchema(BaseModel):
     """Response model for document collection operations"""
     id: str
     name: str
@@ -77,7 +77,7 @@ class DocumentCollectionResponse(BaseModel):
     error_message: Optional[str] = None
 
 
-class VectorIndexResponse(BaseModel):
+class VectorIndexResponseSchema(BaseModel):
     """Response model for vector index operations"""
     id: str
     name: str
@@ -94,7 +94,7 @@ class VectorIndexResponse(BaseModel):
 
 
 # Progress tracking models
-class ProcessingProgress(BaseModel):
+class ProcessingProgressSchema(BaseModel):
     """Base model for tracking processing progress"""
     id: str
     status: str = "pending"  # pending, processing, completed, failed

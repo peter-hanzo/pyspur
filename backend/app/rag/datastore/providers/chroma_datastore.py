@@ -13,7 +13,7 @@ from typing import Dict, List, Optional
 
 import chromadb
 from ...chunker import get_document_chunks
-from ...models.document_schemas import (
+from ...schemas.document_schemas import (
     Document,
     DocumentChunk,
     DocumentChunkMetadata,

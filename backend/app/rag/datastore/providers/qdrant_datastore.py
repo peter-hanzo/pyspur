@@ -3,7 +3,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import qdrant_client
-from ...models.document_schemas import (
+from ...schemas.document_schemas import (
     DocumentChunk,
     DocumentChunkWithScore,
     DocumentMetadataFilter,

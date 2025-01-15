@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
 from ..chunker import get_document_chunks
-from ..models.document_schemas import (
+from ..schemas.document_schemas import (
     Document,
     DocumentChunk,
     DocumentMetadataFilter,

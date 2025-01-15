@@ -23,20 +23,18 @@ from ..models.dc_and_vi_model import (
 from ..database import get_db
 from ..rag.document_collection import DocumentStore
 from ..rag.vector_index import VectorIndex
-from ..rag.models.document_schemas import DocumentWithChunks
+from ..rag.schemas.document_schemas import DocumentWithChunks
 from ..schemas.rag_schemas import (
-    TextProcessingConfig,
-    EmbeddingConfig,
-    DocumentCollectionCreate,
-    VectorIndexCreate,
-    DocumentCollectionResponse,
-    VectorIndexResponse,
-    ProcessingProgress,
+    DocumentCollectionCreateSchema,
+    VectorIndexCreateSchema,
+    DocumentCollectionResponseSchema,
+    VectorIndexResponseSchema,
+    ProcessingProgressSchema,
 )
 
 # In-memory progress tracking (replace with database in production)
-collection_progress: Dict[str, ProcessingProgress] = {}
-index_progress: Dict[str, ProcessingProgress] = {}
+collection_progress: Dict[str, ProcessingProgressSchema] = {}
+index_progress: Dict[str, ProcessingProgressSchema] = {}
 
 async def update_collection_progress(
     collection_id: str,
@@ -52,7 +50,7 @@ async def update_collection_progress(
     """Update document collection processing progress"""
     if collection_id not in collection_progress:
         now = datetime.now(timezone.utc).isoformat()
-        collection_progress[collection_id] = ProcessingProgress(
+        collection_progress[collection_id] = ProcessingProgressSchema(
             id=collection_id,
             created_at=now,
             updated_at=now,
@@ -161,7 +159,7 @@ async def update_index_progress(
 router = APIRouter()
 
 
-@router.post("/collections/", response_model=DocumentCollectionResponse)
+@router.post("/collections/", response_model=DocumentCollectionResponseSchema)
 async def create_document_collection(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(None),
@@ -172,7 +170,7 @@ async def create_document_collection(
     try:
         # Parse metadata
         metadata_dict = json.loads(metadata)
-        collection_config = DocumentCollectionCreate(**metadata_dict)
+        collection_config = DocumentCollectionCreateSchema(**metadata_dict)
 
         # Validate vision model configuration if enabled
         if collection_config.text_processing.use_vision_model:
@@ -244,7 +242,7 @@ async def create_document_collection(
                 )
 
         # Create response
-        return DocumentCollectionResponse(
+        return DocumentCollectionResponseSchema(
             id=collection.id,
             name=collection.name,
             description=collection.description,
@@ -259,10 +257,10 @@ async def create_document_collection(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/indices/", response_model=VectorIndexResponse)
+@router.post("/indices/", response_model=VectorIndexResponseSchema)
 async def create_vector_index(
     background_tasks: BackgroundTasks,
-    index_config: VectorIndexCreate,
+    index_config: VectorIndexCreateSchema,
     db: Session = Depends(get_db),
 ):
     """Create a new vector index from a document collection"""
@@ -339,7 +337,7 @@ async def create_vector_index(
         )
 
         # Create response
-        return VectorIndexResponse(
+        return VectorIndexResponseSchema(
             id=index.id,
             name=index.name,
             description=index.description,
@@ -387,13 +385,13 @@ async def delete_vector_index(index_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/collections/", response_model=List[DocumentCollectionResponse])
+@router.get("/collections/", response_model=List[DocumentCollectionResponseSchema])
 async def list_document_collections(db: Session = Depends(get_db)):
     """List all document collections"""
     try:
         collections = db.query(DocumentCollectionModel).all()
         return [
-            DocumentCollectionResponse(
+            DocumentCollectionResponseSchema(
                 id=collection.id,
                 name=collection.name,
                 description=collection.description,
@@ -410,7 +408,7 @@ async def list_document_collections(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/collections/{collection_id}/", response_model=DocumentCollectionResponse)
+@router.get("/collections/{collection_id}/", response_model=DocumentCollectionResponseSchema)
 async def get_document_collection(collection_id: str, db: Session = Depends(get_db)):
     """Get document collection details"""
     try:
@@ -420,7 +418,7 @@ async def get_document_collection(collection_id: str, db: Session = Depends(get_
         if not collection:
             raise HTTPException(status_code=404, detail="Document collection not found")
 
-        return DocumentCollectionResponse(
+        return DocumentCollectionResponseSchema(
             id=collection.id,
             name=collection.name,
             description=collection.description,
@@ -465,13 +463,13 @@ async def delete_document_collection(collection_id: str, db: Session = Depends(g
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/indices/", response_model=List[VectorIndexResponse])
+@router.get("/indices/", response_model=List[VectorIndexResponseSchema])
 async def list_vector_indices(db: Session = Depends(get_db)):
     """List all vector indices"""
     try:
         indices = db.query(VectorIndexModel).all()
         return [
-            VectorIndexResponse(
+            VectorIndexResponseSchema(
                 id=index.id,
                 name=index.name,
                 description=index.description,
@@ -491,7 +489,7 @@ async def list_vector_indices(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/indices/{index_id}/", response_model=VectorIndexResponse)
+@router.get("/indices/{index_id}/", response_model=VectorIndexResponseSchema)
 async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
     """Get vector index details"""
     try:
@@ -501,7 +499,7 @@ async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
         if not index:
             raise HTTPException(status_code=404, detail="Vector index not found")
 
-        return VectorIndexResponse(
+        return VectorIndexResponseSchema(
             id=index.id,
             name=index.name,
             description=index.description,
@@ -522,14 +520,14 @@ async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
 
 
 # Add progress tracking endpoints
-@router.get("/collections/{collection_id}/progress/", response_model=ProcessingProgress)
+@router.get("/collections/{collection_id}/progress/", response_model=ProcessingProgressSchema)
 async def get_collection_progress(collection_id: str):
     """Get document collection processing progress"""
     if collection_id not in collection_progress:
         raise HTTPException(status_code=404, detail="No progress information found")
     return collection_progress[collection_id]
 
-@router.get("/indices/{index_id}/progress/", response_model=ProcessingProgress)
+@router.get("/indices/{index_id}/progress/", response_model=ProcessingProgressSchema)
 async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
     """Get vector index processing progress"""
     logger.debug(f"Getting progress for index {index_id}")
@@ -543,7 +541,7 @@ async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
 
     logger.debug(f"Progress data for index {index_id}: {progress_record.__dict__}")
 
-    return ProcessingProgress(
+    return ProcessingProgressSchema(
         id=str(progress_record.id),
         status=str(progress_record.status),
         progress=float(progress_record.progress),
@@ -558,7 +556,7 @@ async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/collections/{collection_id}/documents/", response_model=DocumentCollectionResponse)
+@router.post("/collections/{collection_id}/documents/", response_model=DocumentCollectionResponseSchema)
 async def add_documents_to_collection(
     collection_id: str,
     background_tasks: BackgroundTasks,
@@ -620,7 +618,7 @@ async def add_documents_to_collection(
                 progress_callback
             )
 
-        return DocumentCollectionResponse(
+        return DocumentCollectionResponseSchema(
             id=collection.id,
             name=collection.name,
             description=collection.description,

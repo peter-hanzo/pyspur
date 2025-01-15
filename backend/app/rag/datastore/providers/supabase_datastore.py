@@ -1,7 +1,7 @@
 import os
 from typing import Any, List
 
-from ...models.document_schemas import DocumentMetadataFilter
+from ...schemas.document_schemas import DocumentMetadataFilter
 from supabase import Client
 
 from ..providers.pgvector_datastore import PGClient, PgVectorDataStore

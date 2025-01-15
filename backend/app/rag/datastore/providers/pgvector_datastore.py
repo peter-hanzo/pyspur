@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ...models.document_schemas import (
+from ...schemas.document_schemas import (
     DocumentChunk,
     DocumentChunkMetadata,
     DocumentChunkWithScore,
