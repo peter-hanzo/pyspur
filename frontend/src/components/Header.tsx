@@ -20,7 +20,7 @@ import { Icon } from '@iconify/react'
 import SettingsCard from './modals/SettingsModal'
 import { setProjectName, updateNodeDataOnly, resetRun } from '../store/flowSlice'
 import RunModal from './modals/RunModal'
-import { getRunStatus, startRun, getWorkflow } from '../utils/api'
+import { getRunStatus, startRun, getWorkflow, validateToken } from '../utils/api'
 import { Toaster, toast } from 'sonner'
 import { getWorkflowRuns } from '../utils/api'
 import { useRouter } from 'next/router'
@@ -172,7 +172,19 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null
 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
-        if (!workflowID) return
+        if (!workflowID) return;
+
+        const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
+
+        if (hasGoogleSheetsReadNode) {
+            const response = await validateToken()
+            console.log('Token check response:', response)
+            if (!response.is_valid) {
+                const baseUrl = window.location.origin
+                window.open(`${baseUrl}/google/auth`, '_blank');
+                return;
+            }
+        }
 
         try {
             showAlert('Starting workflow run...', 'default')
