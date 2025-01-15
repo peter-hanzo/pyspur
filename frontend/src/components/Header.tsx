@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     Input,
@@ -18,37 +18,29 @@ import {
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import SettingsCard from './modals/SettingsModal'
-import { setProjectName, updateNodeDataOnly, resetRun } from '../store/flowSlice'
+import { setProjectName } from '../store/flowSlice'
 import RunModal from './modals/RunModal'
-import { getRunStatus, startRun, getWorkflow, validateToken } from '../utils/api'
-import { Toaster, toast } from 'sonner'
-import { getWorkflowRuns } from '../utils/api'
+import { getWorkflow } from '../utils/api'
 import { useRouter } from 'next/router'
 import DeployModal from './modals/DeployModal'
 import { formatDistanceStrict } from 'date-fns'
 import { useHotkeys } from 'react-hotkeys-hook'
-import store from '../store/store'
+import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
+import { AlertState } from '../types/alert'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace'
+    associatedWorkflowId?: string
 }
-
 
 import { RootState } from '../store/store'
-interface AlertState {
-    message: string
-    color: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'
-    isVisible: boolean
-}
 
-const Header: React.FC<HeaderProps> = ({ activePage }) => {
+const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const projectName = useSelector((state: RootState) => state.flow.projectName)
-    const [isRunning, setIsRunning] = useState<boolean>(false)
     const [isDebugModalOpen, setIsDebugModalOpen] = useState<boolean>(false)
     const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false)
-    const [workflowRuns, setWorkflowRuns] = useState<any[]>([])
     const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
     const workflowId = useSelector((state: RootState) => state.flow.workflowID)
     const [alert, setAlert] = useState<AlertState>({
@@ -58,29 +50,25 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     })
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
     const [selectedRow, setSelectedRow] = useState<number | null>(null)
-    const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false)
-    const [completionPercentage, setCompletionPercentage] = useState<number>(0)
 
     const router = useRouter()
     const { id } = router.query
     const isRun = id && id[0] == 'R'
 
-    let currentStatusInterval: NodeJS.Timeout | null = null
-
-    const fetchWorkflowRuns = async () => {
-        try {
-            const response = await getWorkflowRuns(workflowId)
-            setWorkflowRuns(response)
-        } catch (error) {
-            console.error('Error fetching workflow runs:', error)
-        }
+    const showAlert = (message: string, color: AlertState['color']) => {
+        setAlert({ message, color, isVisible: true })
+        setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000)
     }
 
-    useEffect(() => {
-        if (workflowId) {
-            fetchWorkflowRuns()
-        }
-    }, [workflowId])
+    const {
+        isRunning,
+        completionPercentage,
+        workflowRuns,
+        isUpdatingStatus,
+        executeWorkflow,
+        stopWorkflow,
+        updateRunStatuses,
+    } = useWorkflowExecution({ onAlert: showAlert })
 
     useEffect(() => {
         if (testInputs.length > 0 && !selectedRow) {
@@ -88,128 +76,8 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         }
     }, [testInputs])
 
-    const showAlert = (message: string, color: AlertState['color']) => {
-        setAlert({ message, color, isVisible: true })
-        setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000)
-    }
-
-    const updateWorkflowStatus = async (runID: string): Promise<void> => {
-        let pollCount = 0
-        if (currentStatusInterval) {
-            clearInterval(currentStatusInterval)
-        }
-        currentStatusInterval = setInterval(async () => {
-            try {
-                const statusResponse = await getRunStatus(runID)
-                const tasks = statusResponse.tasks
-
-                if (statusResponse.percentage_complete !== undefined) {
-                    setCompletionPercentage(statusResponse.percentage_complete)
-                }
-
-                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
-                    setIsRunning(false)
-                    setCompletionPercentage(0)
-                    clearInterval(currentStatusInterval)
-                    showAlert('Workflow run failed.', 'danger')
-                    return
-                }
-
-                if (tasks.length > 0) {
-                    tasks.forEach((task) => {
-                        const nodeId = task.node_id
-                        let node = nodes.find((node) => node.id === nodeId)
-                        if (!node) {
-                            // find the node by title in nodeConfigs
-                            const state = store.getState()
-                            const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(
-                                (key) => state.flow.nodeConfigs[key].title === nodeId
-                            )
-                            if (correspondingNodeId) {
-                                node = nodes.find((node) => node.id === correspondingNodeId)
-                            }
-                        }
-                        if (!node) {
-                            return
-                        }
-                        const output_values = task.outputs || {}
-                        const nodeTaskStatus = task.status
-                        if (node) {
-                            // Check if the task output or status is different from current node data
-                            const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run)
-                            const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus
-
-                            if (isOutputDifferent || isStatusDifferent) {
-                                dispatch(
-                                    updateNodeDataOnly({
-                                        id: node.id,
-                                        data: {
-                                            run: { ...node.data.run, ...output_values },
-                                            taskStatus: nodeTaskStatus,
-                                        },
-                                    })
-                                )
-                            }
-                        }
-                    })
-                }
-
-                if (statusResponse.status !== 'RUNNING') {
-                    setIsRunning(false)
-                    setCompletionPercentage(0)
-                    clearInterval(currentStatusInterval)
-                    showAlert('Workflow run completed.', 'success')
-                }
-
-                pollCount += 1
-            } catch (error) {
-                console.error('Error fetching workflow status:', error)
-                clearInterval(currentStatusInterval)
-            }
-        }, 1000)
-    }
-
-    const workflowID = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : null
-
-    const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
-        if (!workflowID) return;
-
-        const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
-
-        if (hasGoogleSheetsReadNode) {
-            const response = await validateToken()
-            console.log('Token check response:', response)
-            if (!response.is_valid) {
-                const baseUrl = window.location.origin
-                window.open(`${baseUrl}/google/auth`, '_blank');
-                return;
-            }
-        }
-
-        try {
-            showAlert('Starting workflow run...', 'default')
-            const result = await startRun(workflowId, inputValues, null, 'interactive')
-            setIsRunning(true)
-            fetchWorkflowRuns()
-            dispatch(resetRun())
-            updateWorkflowStatus(result.id)
-        } catch (error) {
-            console.error('Error starting workflow run:', error)
-            showAlert('Error starting workflow run.', 'danger')
-        }
-    }
-
     const handleRunWorkflow = async (): Promise<void> => {
         setIsDebugModalOpen(true)
-    }
-
-    const handleStopWorkflow = (): void => {
-        setIsRunning(false)
-        setCompletionPercentage(0)
-        if (currentStatusInterval) {
-            clearInterval(currentStatusInterval)
-        }
-        showAlert('Workflow run stopped.', 'warning')
     }
 
     const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -217,10 +85,10 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
     }
 
     const handleDownloadWorkflow = async (): Promise<void> => {
-        if (!workflowID) return
+        if (!workflowId) return
 
         try {
-            const workflow = await getWorkflow(workflowID)
+            const workflow = await getWorkflow(workflowId)
 
             const workflowDetails = {
                 name: workflow.name,
@@ -259,6 +127,11 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`
     }
 
+    useEffect(() => {
+        if (isHistoryOpen) {
+            updateRunStatuses()
+        }
+    }, [isHistoryOpen])
 
     useHotkeys(
         ['mod+enter'],
@@ -290,40 +163,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
             enabled: activePage === 'workflow',
         }
     )
-
-    const updateRunStatuses = async () => {
-        if (!workflowId || !isHistoryOpen) return
-
-        setIsUpdatingStatus(true)
-        try {
-            // First fetch the latest workflow runs
-            const latestRuns = await getWorkflowRuns(workflowId)
-            setWorkflowRuns(latestRuns)
-
-            // Then update the status of running/pending runs
-            const updatedRuns = await Promise.all(
-                latestRuns.map(async (run) => {
-                    if (run.status.toLowerCase() === 'running' || run.status.toLowerCase() === 'pending') {
-                        const statusResponse = await getRunStatus(run.id)
-                        return { ...run, status: statusResponse.status }
-                    }
-                    return run
-                })
-            )
-
-            setWorkflowRuns(updatedRuns)
-        } catch (error) {
-            console.error('Error updating run statuses:', error)
-        } finally {
-            setIsUpdatingStatus(false)
-        }
-    }
-
-    useEffect(() => {
-        if (isHistoryOpen) {
-            updateRunStatuses()
-        }
-    }, [isHistoryOpen])
 
     return (
         <>
@@ -421,7 +260,7 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                                                 isIconOnly
                                                 radius="full"
                                                 variant="light"
-                                                onClick={handleStopWorkflow}
+                                                onClick={stopWorkflow}
                                             >
                                                 <Icon
                                                     className="text-foreground/60"
@@ -487,6 +326,18 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
                             <Button isIconOnly radius="full" variant="light" onClick={handleDeploy}>
                                 <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
                             </Button>
+                        </NavbarItem>
+                    </NavbarContent>
+                )}
+                {activePage === 'trace' && associatedWorkflowId && (
+                    <NavbarContent
+                        className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+                        justify="end"
+                    >
+                        <NavbarItem>
+                            <Link href={`/workflows/${associatedWorkflowId}`}>
+                                <Button variant="light">Go To Workflow</Button>
+                            </Link>
                         </NavbarItem>
                     </NavbarContent>
                 )}

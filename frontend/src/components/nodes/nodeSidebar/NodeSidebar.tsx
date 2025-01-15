@@ -85,6 +85,69 @@ const convertToPythonVariableName = (str: string): string => {
     return str
 }
 
+// Add this helper function near the top of the file, after other utility functions
+const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string> | null => {
+    try {
+        // First try to parse the string directly
+        let parsed: Record<string, any>
+        try {
+            parsed = JSON.parse(jsonSchema.trim())
+        } catch {
+            try {
+                // cleaning is required for some escaped characters
+                let cleaned = jsonSchema
+                    .replace(/\\"/g, '"') // Replace escaped quotes
+                    .replace(/\\\[/g, '[') // Replace escaped brackets
+                    .replace(/\\\]/g, ']')
+                    .replace(/\\n/g, '') // Remove newlines
+                    .replace(/\\t/g, '') // Remove tabs
+                    .replace(/\\/g, '') // Remove remaining backslashes
+                    .trim()
+                parsed = JSON.parse(cleaned.trim())
+            } catch {
+                return null
+            }
+        }
+
+        if (parsed.properties) {
+            const schema: Record<string, string> = {}
+            for (const [key, value] of Object.entries(parsed.properties)) {
+                if (typeof value === 'object' && 'type' in value) {
+                    schema[key] = (value as { type: string }).type
+                }
+            }
+            return Object.keys(schema).length > 0 ? schema : null
+        }
+        return null
+    } catch (error) {
+        console.error('Error parsing JSON schema:', error)
+        return null
+    }
+}
+
+// Add this helper function near the top, after extractSchemaFromJsonSchema
+const generateJsonSchemaFromSchema = (schema: Record<string, string>): string | null => {
+    if (!schema || Object.keys(schema).length === 0) return null
+
+    try {
+        const jsonSchema = {
+            type: 'object',
+            required: Object.keys(schema),
+            properties: {} as Record<string, { type: string }>,
+        }
+
+        for (const [key, type] of Object.entries(schema)) {
+            if (!key || !type) return null
+            jsonSchema.properties[key] = { type }
+        }
+
+        return JSON.stringify(jsonSchema, null, 2)
+    } catch (error) {
+        console.error('Error generating JSON schema:', error)
+        return null
+    }
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -400,11 +463,101 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         key={`schema-editor-output-${nodeID}`}
                         jsonValue={currentNodeConfig.output_schema || {}}
                         onChange={(newValue) => {
-                            handleInputChange('output_schema', newValue)
+                            if (Object.keys(newValue).length === 0) {
+                                // If schema is empty, just update output_schema
+                                handleInputChange('output_schema', newValue)
+                                return
+                            }
+
+                            // Try to generate JSON schema
+                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
+                            if (jsonSchema) {
+                                // Update both if valid
+                                const updates = {
+                                    output_schema: newValue,
+                                    output_json_schema: jsonSchema,
+                                }
+                                setCurrentNodeConfig((prev) => ({
+                                    ...prev,
+                                    ...updates,
+                                }))
+                                dispatch(
+                                    updateNodeConfigOnly({
+                                        id: nodeID,
+                                        data: {
+                                            ...currentNodeConfig,
+                                            ...updates,
+                                        },
+                                    })
+                                )
+                            } else {
+                                // Update only output_schema if JSON schema generation fails
+                                handleInputChange('output_schema', newValue)
+                            }
                         }}
                         options={jsonOptions}
                         schemaType="output_schema"
                         nodeId={nodeID}
+                    />
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            )
+        }
+
+        if (key === 'output_json_schema') {
+            return (
+                <div key={key}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Output JSON Schema</h3>
+                        <Tooltip
+                            content="The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                    </div>
+                    <CodeEditor
+                        key={`text-editor-output-json-schema-${nodeID}`}
+                        code={currentNodeConfig[key] || ''}
+                        onChange={(value: string) => {
+                            if (!value.trim()) {
+                                // If JSON schema is empty, just update output_json_schema
+                                handleInputChange('output_json_schema', value)
+                                return
+                            }
+
+                            // Try to extract simple schema
+                            const simpleSchema = extractSchemaFromJsonSchema(value)
+                            if (simpleSchema) {
+                                // Update both if valid
+                                const updates = {
+                                    output_json_schema: value,
+                                    output_schema: simpleSchema,
+                                }
+                                setCurrentNodeConfig((prev) => ({
+                                    ...prev,
+                                    ...updates,
+                                }))
+                                dispatch(
+                                    updateNodeConfigOnly({
+                                        id: nodeID,
+                                        data: {
+                                            ...currentNodeConfig,
+                                            ...updates,
+                                        },
+                                    })
+                                )
+                            } else {
+                                // Update only output_json_schema if schema extraction fails
+                                handleInputChange('output_json_schema', value)
+                            }
+                        }}
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
@@ -731,34 +884,33 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold">File Input</h3>
                     <Tooltip
-                        content="Select an input variable containing a URL to a file (image, video, PDF, or audio) that Gemini can process."
+                        content="Select an input variable containing either a file URL or inline data. For inline data, use the format: data:<mime_type>;base64,<encoded_data> (e.g., data:image/jpeg;base64,/9j/...)"
                         placement="left-start"
                         showArrow={true}
                         className="max-w-xs"
                     >
-                        <Icon
-                            icon="solar:question-circle-linear"
-                            className="text-default-400 cursor-help"
-                            width={20}
-                        />
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
                     </Tooltip>
                 </div>
                 <div className="mb-2">
                     <Select
-                        label="File URL Variable"
+                        label="File URL or Data Variable"
                         selectedKeys={[currentNodeConfig?.url_variables?.file || '']}
                         onChange={(e) => {
                             const updatedUrlVars = e.target.value ? { file: e.target.value } : {}
                             handleInputChange('url_variables', updatedUrlVars)
                         }}
                     >
-                        <SelectItem key="" value="">None</SelectItem>
-                        {incomingSchemaVars.map((variable) => (
+                        {['', ...incomingSchemaVars].map((variable) => (
                             <SelectItem key={variable} value={variable}>
-                                {variable}
+                                {variable || 'None'}
                             </SelectItem>
                         ))}
                     </Select>
+                    <p className="text-xs text-default-500 mt-1">
+                        Supports both file URLs and inline data in the format:
+                        data:&lt;mime_type&gt;;base64,&lt;encoded_data&gt;
+                    </p>
                 </div>
             </div>
         )

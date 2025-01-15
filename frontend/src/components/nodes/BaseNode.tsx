@@ -188,7 +188,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
         executePartialRun({
             workflowId,
-            nodeId: id,
+            nodeId: data.title,
             initialInputs,
             partialOutputs: availableOutputs,
             rerunPredecessors,

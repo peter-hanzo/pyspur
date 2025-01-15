@@ -8,7 +8,10 @@ import { NodeTypeSchema, MinimumNodeConfigSchema } from '@/types/api_types/nodeT
 import { OutputFileResponse, OutputFileCreate, OutputFileUpdate } from '@/types/api_types/outputFileSchemas'
 import { RunResponse } from '@/types/api_types/runSchemas'
 
-const API_BASE_URL = typeof window !== 'undefined' ? `http://${window.location.host}/api` : 'http://localhost:6080/api'
+const API_BASE_URL =
+    typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.host}/api`
+        : 'http://localhost:6080/api'
 
 export interface ApiKey {
     name: string

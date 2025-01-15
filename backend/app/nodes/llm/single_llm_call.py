@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from jinja2 import Template
 from pydantic import BaseModel, Field
 
+from ...utils.pydantic_utils import json_schema_to_model
+
 from ..base import (
     BaseNodeInput,
     BaseNodeOutput,
@@ -32,6 +34,10 @@ class SingleLLMCallNodeConfig(VariableOutputBaseNodeConfig):
     url_variables: Optional[Dict[str, str]] = Field(
         None,
         description="Optional mapping of URL types (image, video, pdf) to input schema variables for Gemini models",
+    )
+    output_json_schema: Optional[str] = Field(
+        None,
+        description="The JSON schema for the output of the LLM. When provided this will be passed to the LLMs that support JSON schema validation.",
     )
 
 
@@ -61,7 +67,13 @@ class SingleLLMCallNode(VariableOutputBaseNode):
     output_model = SingleLLMCallNodeOutput
 
     def setup(self) -> None:
-        return super().setup()
+        super().setup()
+        if self.config.output_json_schema:
+            self.output_model = json_schema_to_model(
+                json.loads(self.config.output_json_schema),
+                self.name,
+                SingleLLMCallNodeOutput,
+            )  # type: ignore
 
     async def run(self, input: BaseModel) -> BaseModel:
         # Grab the entire dictionary from the input
@@ -69,7 +81,6 @@ class SingleLLMCallNode(VariableOutputBaseNode):
 
         # Render system_message
         system_message = Template(self.config.system_message).render(raw_input_dict)
-        system_message += f"\nMake sure the output is a JSON Object like this: {self.config.output_schema}"
 
         try:
             # If user_message is empty, dump the entire raw dictionary
@@ -94,8 +105,8 @@ class SingleLLMCallNode(VariableOutputBaseNode):
 
         model_name = LLMModels(self.config.llm_info.model).value
 
+        url_vars: Optional[Dict[str, str]] = None
         # Process URL variables if they exist and we're using a Gemini model
-        url_vars = None
         if model_name.startswith("gemini") and self.config.url_variables:
             url_vars = {}
             if "file" in self.config.url_variables:
@@ -113,6 +124,8 @@ class SingleLLMCallNode(VariableOutputBaseNode):
             max_tokens=self.config.llm_info.max_tokens,
             json_mode=True,
             url_variables=url_vars,
+            output_json_schema=self.config.output_json_schema,
+            output_schema=self.config.output_schema,
         )
         assistant_message_dict = json.loads(assistant_message_str)
 
@@ -132,25 +145,42 @@ if __name__ == "__main__":
             name="WeatherBot",
             config=SingleLLMCallNodeConfig(
                 llm_info=ModelInfo(
-                    model=LLMModels.GPT_4O, temperature=0.1, max_tokens=100
+                    model=LLMModels.GPT_4O, temperature=0.4, max_tokens=100
                 ),
-                system_message="This is a simple test prompt for {{ Input.your_name }}.",
-                user_message="Hello, my name is {{ Input.your_name }}. I want to ask: {{ Input.user_message }}",
-                output_schema={"response": "str", "what_was_my_name_again?": "str"},
+                system_message="You are a helpful assistant.",
+                user_message="Hello, my name is {{ name }}. I want to ask: {{ question }}",
+                output_schema={
+                    # "answer": "str",
+                    # "name_of_user": "str",
+                },
+                url_variables=None,
+                output_json_schema=json.dumps(
+                    {
+                        "type": "object",
+                        "properties": {
+                            "answer": {"type": "string"},
+                            "name_of_user": {"type": "string"},
+                        },
+                        "required": ["answer", "name_of_user"],
+                    }
+                ),
             ),
         )
 
         simple_input = create_model(
             "SimpleInput",
-            your_name=(str, ...),
-            user_message=(str, ...),
-            __base__=BaseNodeOutput,
+            name=(str, ...),
+            question=(str, ...),
+            __base__=BaseNodeInput,
         ).model_validate(
-            {"your_name": "Alice", "user_message": "What is the weather like today?"}
+            {
+                "name": "Alice",
+                "question": "What is the weather like in New York in January?",
+            }
         )
 
         print("[DEBUG] Testing simple_llm_node now...")
-        simple_output = await simple_llm_node({"Input": simple_input})
+        simple_output = await simple_llm_node(simple_input)
         print("[DEBUG] Test Output from single_llm_call:", simple_output)
 
     asyncio.run(test_llm_nodes())
