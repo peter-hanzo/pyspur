@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from app.integrations.google.google_client import GoogleSheetsClient
+from app.integrations.google.client import GoogleSheetsClient
 
 
 class GoogleSheetsReadNodeConfig(BaseNodeConfig):
@@ -22,7 +22,7 @@ class GoogleSheetsReadNode(BaseNode):
     Node that reads data from a specified range in a Google Sheet.
     """
     name = "google_sheets_read_node"
-    display_name = "Google Sheets Read"
+    display_name = "GoogleSheetsRead"
 
     config_model = GoogleSheetsReadNodeConfig
     input_model = GoogleSheetsReadNodeInput
