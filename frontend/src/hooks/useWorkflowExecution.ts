@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeDataOnly, resetRun } from '../store/flowSlice'
-import { getRunStatus, startRun, getWorkflow, getWorkflowRuns } from '../utils/api'
+import { getRunStatus, startRun, getWorkflowRuns, validateGoogleAccessToken } from '../utils/api'
 import { RootState } from '../store/store'
 import store from '../store/store'
 import { AlertColor } from '../types/alert'
@@ -103,6 +103,18 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
         if (!workflowId) return
+
+    const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
+
+    if (hasGoogleSheetsReadNode) {
+        const response = await validateGoogleAccessToken()
+        console.log('Token check response:', response)
+        if (!response.is_valid) {
+            const baseUrl = window.location.origin
+            window.open(`${baseUrl}/google/auth`, '_blank');
+            return;
+        }
+    }
 
         try {
             dispatch(resetRun())

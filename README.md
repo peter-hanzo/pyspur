@@ -16,8 +16,19 @@
   </a>
 </p>
 
-
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
+
+
+# 🕸️ Why PySpur?
+
+- 🖐️ **Drag-and-drop**: Visually build and test workflows in seconds.
+- 🧪 **Evals**: Quickly test and refine agent steps interactively.
+- 🧰 **Tools**: Connect to Slack, Google Sheets, GitHub, and more.
+- 🗃️ **RAG**: Parse, chunk, embed, and upsert data into a vector DB in a few clicks.
+- 🚀 **1-Click Deploy**: Publish as an API and integrate wherever you want.
+- 🤖 **Multi-agent**: Orchestrate and manage conversations across multiple agents.
+- 🐍 **Python-based**: Add new nodes by creating a single Python file.
+- 🎛️ **Flexible**: Agnostic to LLMs, embedders, and vector databases.
 
 # ✨ Core Benefits
 
@@ -36,13 +47,6 @@ https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
 ## Coming soon: Self-improvement
 
 https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
-
-
-# 🕸️ Why PySpur?
-
-* **Easy-to-hack**, eg., one can add new workflow nodes by simply creating a single Python file.
-* **JSON configs** of workflow graphs, enabling easy sharing and version control.
-* **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
 
 # ⚡ Quick start
 

@@ -85,6 +85,69 @@ const convertToPythonVariableName = (str: string): string => {
     return str
 }
 
+// Add this helper function near the top of the file, after other utility functions
+const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string> | null => {
+    try {
+        // First try to parse the string directly
+        let parsed: Record<string, any>
+        try {
+            parsed = JSON.parse(jsonSchema.trim())
+        } catch {
+            try {
+                // cleaning is required for some escaped characters
+                let cleaned = jsonSchema
+                    .replace(/\\"/g, '"') // Replace escaped quotes
+                    .replace(/\\\[/g, '[') // Replace escaped brackets
+                    .replace(/\\\]/g, ']')
+                    .replace(/\\n/g, '') // Remove newlines
+                    .replace(/\\t/g, '') // Remove tabs
+                    .replace(/\\/g, '') // Remove remaining backslashes
+                    .trim()
+                parsed = JSON.parse(cleaned.trim())
+            } catch {
+                return null
+            }
+        }
+
+        if (parsed.properties) {
+            const schema: Record<string, string> = {}
+            for (const [key, value] of Object.entries(parsed.properties)) {
+                if (typeof value === 'object' && 'type' in value) {
+                    schema[key] = (value as { type: string }).type
+                }
+            }
+            return Object.keys(schema).length > 0 ? schema : null
+        }
+        return null
+    } catch (error) {
+        console.error('Error parsing JSON schema:', error)
+        return null
+    }
+}
+
+// Add this helper function near the top, after extractSchemaFromJsonSchema
+const generateJsonSchemaFromSchema = (schema: Record<string, string>): string | null => {
+    if (!schema || Object.keys(schema).length === 0) return null
+
+    try {
+        const jsonSchema = {
+            type: 'object',
+            required: Object.keys(schema),
+            properties: {} as Record<string, { type: string }>,
+        }
+
+        for (const [key, type] of Object.entries(schema)) {
+            if (!key || !type) return null
+            jsonSchema.properties[key] = { type }
+        }
+
+        return JSON.stringify(jsonSchema, null, 2)
+    } catch (error) {
+        console.error('Error generating JSON schema:', error)
+        return null
+    }
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -166,7 +229,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
             setCurrentNodeConfig(initialConfig)
         }
-    }, [nodeID, node, nodeTypes, nodeConfig])
+    }, [nodeID, node, nodeTypes, nodeConfig]) // nodeConfig dependency handles updates
 
     // Helper function to update nested object by path
     const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
@@ -188,9 +251,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             } as FlowWorkflowNodeConfig
         }
 
+        // Update local state first
         setCurrentNodeConfig(updatedModel)
 
-        // Always update Redux store with the full updated model
+        // Then update Redux store
         if (isSlider) {
             debouncedDispatch(nodeID, updatedModel)
         } else {
@@ -400,11 +464,101 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         key={`schema-editor-output-${nodeID}`}
                         jsonValue={currentNodeConfig.output_schema || {}}
                         onChange={(newValue) => {
-                            handleInputChange('output_schema', newValue)
+                            if (Object.keys(newValue).length === 0) {
+                                // If schema is empty, just update output_schema
+                                handleInputChange('output_schema', newValue)
+                                return
+                            }
+
+                            // Try to generate JSON schema
+                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
+                            if (jsonSchema) {
+                                // Update both if valid
+                                const updates = {
+                                    output_schema: newValue,
+                                    output_json_schema: jsonSchema,
+                                }
+                                setCurrentNodeConfig((prev) => ({
+                                    ...prev,
+                                    ...updates,
+                                }))
+                                dispatch(
+                                    updateNodeConfigOnly({
+                                        id: nodeID,
+                                        data: {
+                                            ...currentNodeConfig,
+                                            ...updates,
+                                        },
+                                    })
+                                )
+                            } else {
+                                // Update only output_schema if JSON schema generation fails
+                                handleInputChange('output_schema', newValue)
+                            }
                         }}
                         options={jsonOptions}
                         schemaType="output_schema"
                         nodeId={nodeID}
+                    />
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            )
+        }
+
+        if (key === 'output_json_schema') {
+            return (
+                <div key={key}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Output JSON Schema</h3>
+                        <Tooltip
+                            content="The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                    </div>
+                    <CodeEditor
+                        key={`text-editor-output-json-schema-${nodeID}`}
+                        code={currentNodeConfig[key] || ''}
+                        onChange={(value: string) => {
+                            if (!value.trim()) {
+                                // If JSON schema is empty, just update output_json_schema
+                                handleInputChange('output_json_schema', value)
+                                return
+                            }
+
+                            // Try to extract simple schema
+                            const simpleSchema = extractSchemaFromJsonSchema(value)
+                            if (simpleSchema) {
+                                // Update both if valid
+                                const updates = {
+                                    output_json_schema: value,
+                                    output_schema: simpleSchema,
+                                }
+                                setCurrentNodeConfig((prev) => ({
+                                    ...prev,
+                                    ...updates,
+                                }))
+                                dispatch(
+                                    updateNodeConfigOnly({
+                                        id: nodeID,
+                                        data: {
+                                            ...currentNodeConfig,
+                                            ...updates,
+                                        },
+                                    })
+                                )
+                            } else {
+                                // Update only output_json_schema if schema extraction fails
+                                handleInputChange('output_json_schema', value)
+                            }
+                        }}
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
@@ -764,7 +918,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     return (
-        <Card className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto">
+        <Card className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
+            style={{ width: `${width}px` }}>
             {showTitleError && (
                 <Alert
                     key={`alert-${nodeID}`}
@@ -778,18 +933,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <div
                 className="absolute top-0 right-0 h-full flex"
                 style={{
-                    width: `${width}px`,
+                    width: '100%',
                     zIndex: 2,
                     userSelect: isResizing ? 'none' : 'auto',
                 }}
             >
                 <div
-                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary hover:opacity-100 opacity-0 transition-opacity"
+                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize transition-colors duration-200"
                     onMouseDown={handleMouseDown}
                     style={{
-                        backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : 'transparent',
-                        opacity: isResizing ? '1' : undefined,
+                        backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : undefined,
+                        opacity: isResizing ? 1 : 0,
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => !isResizing && (e.currentTarget.style.opacity = '0')}
                 />
 
                 <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">
