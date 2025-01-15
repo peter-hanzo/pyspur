@@ -22,6 +22,8 @@ class GoogleSheetsClient:
                 access_token = token_data.get("access_token")
                 if not access_token:
                     raise RuntimeError("No access token found in token file.")
+        else:
+            raise FileNotFoundError("Token file does not exist.")
 
         # Load existing credentials from token file if it exists.
         creds = Credentials(token=access_token) # type: ignore
