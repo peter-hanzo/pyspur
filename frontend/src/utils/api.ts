@@ -457,7 +457,7 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
     }
 }
 
-export const storeToken = async (accessToken: string, expiresIn: string): Promise<any> => {
+export const storeGoogleAccessToken = async (accessToken: string, expiresIn: string): Promise<any> => {
     try {
         const response = await axios.post(`${API_BASE_URL}/google/store_token/`, {
             access_token: accessToken,
@@ -470,7 +470,7 @@ export const storeToken = async (accessToken: string, expiresIn: string): Promis
     }
 }
 
-export const validateToken = async (): Promise<any> => {
+export const validateGoogleAccessToken = async (): Promise<any> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/google/validate_token/`);
         return response.data;

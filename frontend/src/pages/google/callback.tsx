@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { storeToken } from '@/utils/api'
+import { storeGoogleAccessToken } from '@/utils/api'
 
 const GoogleCallbackPage: React.FC = () => {
     const [statusMessage, setStatusMessage] = useState('Processing authentication...')
@@ -20,7 +20,7 @@ const GoogleCallbackPage: React.FC = () => {
                 }
 
                 // Store the new token
-                await storeToken(accessToken, expiresIn)
+                await storeGoogleAccessToken(accessToken, expiresIn)
                 setStatusMessage('Token stored successfully! You may close this window.')
                 window.close()
             } catch (error) {

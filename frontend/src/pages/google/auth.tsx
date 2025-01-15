@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { validateToken } from '@/utils/api'
+import { validateGoogleAccessToken } from '@/utils/api'
 
 const GoogleAuthPage: React.FC = () => {
     const router = useRouter()
@@ -45,7 +45,7 @@ const GoogleAuthPage: React.FC = () => {
 
         // check if the token is already stored
         const validateStoredToken = async () => {
-            const response = await validateToken()
+            const response = await validateGoogleAccessToken()
             if (response.is_valid) {
                 router.push('/')
             } else {
