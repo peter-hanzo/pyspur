@@ -83,6 +83,9 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
         <div className="w-full px-4 py-10 my-10">
             <InputOutputTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
+            <div className="mb-2 font-medium text-foreground">
+                Example {exampleIndex + 1} {activeTab}
+            </div>
             <TextEditor
                 key={`${activeTab}-${exampleIndex}`}
                 content={node?.data?.config?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
