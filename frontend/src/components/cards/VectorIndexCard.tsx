@@ -17,7 +17,6 @@ export default function VectorIndexCard({ index, onClick }: VectorIndexCardProps
         >
             <CardBody className="relative min-h-[180px] bg-gradient-to-br from-content1 to-default-100/50 p-6">
                 <div className="flex items-center gap-2 mb-2">
-                    <Icon icon="solar:chart-2-linear" className="text-default-600" width={24} />
                     <h2 className="text-xl font-semibold">{index.name}</h2>
                 </div>
                 {index.description && (
