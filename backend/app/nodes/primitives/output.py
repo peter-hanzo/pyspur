@@ -15,7 +15,7 @@ class OutputNodeConfig(VariableOutputBaseNodeConfig):
     """
 
     output_map: Dict[str, str] = Field(
-        default={},
+        default=dict[str, str](),
         title="Output Map",
         description="A dictionary mapping input field names to output field names.",
     )

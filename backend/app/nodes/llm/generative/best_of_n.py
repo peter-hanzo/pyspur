@@ -1,6 +1,9 @@
+import json
 from typing import Dict, List
 
 from pydantic import Field
+
+from ....utils.pydantic_utils import json_schema_to_simple_schema
 
 from ....nodes.base import BaseNodeInput, BaseNodeOutput
 from ....schemas.workflow_schemas import (
@@ -82,6 +85,7 @@ class BestOfNNode(BaseSubworkflowNode):
                     "system_message": self.config.system_message,
                     "user_message": self.config.user_message,
                     "output_schema": self.config.output_schema,
+                    "output_json_schema": self.config.output_json_schema,
                 },
             )
             nodes.append(gen_node)
@@ -119,11 +123,17 @@ class BestOfNNode(BaseSubworkflowNode):
 
         # Create a PickOneNode to select the JSON string with the highest rating
         pick_one_node_id = "pick_one_node"
+        if self.config.output_json_schema:
+            output_schema = json_schema_to_simple_schema(
+                json.loads(self.config.output_json_schema)
+            )
+        else:
+            output_schema = self.config.output_schema
         pick_one_node = WorkflowNodeSchema(
             id=pick_one_node_id,
             node_type="PythonFuncNode",
             config={
-                "output_schema": self.config.output_schema,
+                "output_schema": output_schema,
                 "code": (
                     """gen_and_ratings = input_model.model_dump()\n"""
                     """print(gen_and_ratings)\n"""
@@ -161,10 +171,9 @@ class BestOfNNode(BaseSubworkflowNode):
             id=output_node_id,
             node_type="OutputNode",
             config={
-                "output_schema": self.config.output_schema,
+                "output_schema": output_schema,
                 "output_map": {
-                    f"{k}": f"pick_one_node.{k}"
-                    for k in self.config.output_schema.keys()
+                    f"{k}": f"pick_one_node.{k}" for k in output_schema.keys()
                 },
             },
         )
@@ -199,6 +208,8 @@ if __name__ == "__main__":
             system_message="You are a helpful assistant.",
             user_message="",
             output_schema={"response": "str"},
+            url_variables=None,
+            output_json_schema=None,
         ),
     )
     import asyncio
