@@ -8,11 +8,13 @@ import {
   Textarea,
   Select,
   SelectItem,
+  SelectSection,
   Progress,
   Divider,
   Chip,
   Spinner,
   Alert,
+  Tooltip,
 } from '@nextui-org/react';
 import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import {
@@ -20,6 +22,8 @@ import {
   getEmbeddingModels,
   getVectorStores,
   listDocumentCollections,
+  listApiKeys,
+  getApiKey,
 } from '@/utils/api';
 import type {
   DocumentCollectionResponse,
@@ -56,6 +60,16 @@ const steps = [
   },
 ];
 
+const generateRandomName = () => {
+  const adjectives = ['Smart', 'Brilliant', 'Dynamic', 'Quantum', 'Neural', 'Cosmic', 'Intelligent', 'Advanced', 'Strategic', 'Innovative'];
+  const nouns = ['Atlas', 'Nexus', 'Matrix', 'Archive', 'Library', 'Vault', 'Repository', 'Database', 'Collection', 'Hub'];
+  const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+  const now = new Date();
+  const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+  return `${randomAdjective} ${randomNoun} - ${timestamp}`;
+};
+
 export const VectorIndexWizard: React.FC = () => {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
@@ -63,6 +77,9 @@ export const VectorIndexWizard: React.FC = () => {
   const [collections, setCollections] = useState<DocumentCollectionResponse[]>([]);
   const [embeddingModels, setEmbeddingModels] = useState<Record<string, EmbeddingModelConfig>>({});
   const [vectorStores, setVectorStores] = useState<Record<string, VectorStoreConfig>>({});
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
+  const [isLoadingStores, setIsLoadingStores] = useState(true);
   const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [config, setConfig] = useState<EmbeddingConfig>({
     name: '',
@@ -72,6 +89,44 @@ export const VectorIndexWizard: React.FC = () => {
     vector_db: '',
     search_strategy: 'vector',
   });
+  const [nameAlert, setNameAlert] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [modelsData, storesData] = await Promise.all([
+          getEmbeddingModels(),
+          getVectorStores(),
+        ]);
+        setEmbeddingModels(modelsData);
+        setVectorStores(storesData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoadingModels(false);
+        setIsLoadingStores(false);
+      }
+    };
+
+    const loadApiKeys = async () => {
+      try {
+        const keys = await listApiKeys();
+        const keyValues: Record<string, string> = {};
+        for (const key of keys) {
+          const keyData = await getApiKey(key);
+          if (keyData.value) {
+            keyValues[key] = keyData.value;
+          }
+        }
+        setApiKeys(keyValues);
+      } catch (error) {
+        console.error('Error loading API keys:', error);
+      }
+    };
+
+    loadData();
+    loadApiKeys();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,8 +157,28 @@ export const VectorIndexWizard: React.FC = () => {
     }
   }, [alert]);
 
+  // Clear name alert after 3 seconds
+  useEffect(() => {
+    if (nameAlert) {
+      const timer = setTimeout(() => {
+        setNameAlert(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [nameAlert]);
+
   const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
+    if (activeStep < steps.length - 1) {
+      // If we're on the first step and no name is provided, generate one
+      if (activeStep === 1 && !config.name.trim()) {
+        const randomName = generateRandomName();
+        setConfig(prev => ({ ...prev, name: randomName }));
+        setNameAlert(`Using generated name: ${randomName}`);
+      }
+      setActiveStep((prevStep) => prevStep + 1);
+    } else {
+      handleSubmit();
+    }
   };
 
   const handleBack = () => {
@@ -145,6 +220,118 @@ export const VectorIndexWizard: React.FC = () => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
+  const ApiKeyWarning = ({ modelInfo, storeInfo }: { modelInfo?: EmbeddingModelConfig, storeInfo?: VectorStoreConfig }) => {
+    let missingParams: string[] = [];
+    let serviceName = '';
+
+    if (modelInfo) {
+      modelInfo.required_env_vars.forEach(envVar => {
+        if (!apiKeys[envVar] || apiKeys[envVar] === '') {
+          missingParams.push(envVar);
+        }
+      });
+      serviceName = modelInfo.name;
+    } else if (storeInfo) {
+      storeInfo.required_env_vars.forEach(envVar => {
+        if (!apiKeys[envVar] || apiKeys[envVar] === '') {
+          missingParams.push(envVar);
+        }
+      });
+      serviceName = storeInfo.name;
+    } else {
+      return null;
+    }
+
+    if (missingParams.length > 0) {
+      return (
+        <Alert
+          className="mt-2"
+          color="warning"
+          title={`Missing Configuration for ${serviceName}`}
+        >
+          {missingParams.length === 1
+            ? `Please set the ${missingParams[0]} in Settings > API Keys before using this service.`
+            : `Please set the following in Settings > API Keys before using this service: ${missingParams.join(', ')}`}
+        </Alert>
+      );
+    }
+
+    return null;
+  };
+
+  const renderEmbeddingSection = () => (
+    <div className="space-y-2">
+      <Select
+        placeholder="Select embedding model"
+        selectedKeys={[config.embedding_model]}
+        onChange={(e) => handleConfigChange('embedding_model')(e as any)}
+        isLoading={isLoadingModels}
+        classNames={{
+          trigger: "h-12",
+        }}
+      >
+        {(() => {
+          const groupedModels = Object.entries(embeddingModels).reduce((groups, [modelId, modelInfo]) => {
+            const provider = modelInfo.provider || 'Other';
+            if (!groups[provider]) {
+              groups[provider] = [];
+            }
+            groups[provider].push({ ...modelInfo, id: modelId });
+            return groups;
+          }, {} as Record<string, (EmbeddingModelConfig & { id: string })[]>);
+
+          return Object.entries(groupedModels).map(([provider, models], index, entries) => (
+            <SelectSection
+              key={provider}
+              title={provider}
+              showDivider={index < entries.length - 1}
+            >
+              {models.map((model) => (
+                <SelectItem key={model.id} value={model.id} textValue={model.name}>
+                  <div className="flex flex-col">
+                    <span>{model.name}</span>
+                    <span className="text-tiny text-default-400">
+                      {model.dimensions} dimensions
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectSection>
+          ));
+        })()}
+      </Select>
+      {config.embedding_model && (
+        <ApiKeyWarning modelInfo={embeddingModels[config.embedding_model]} />
+      )}
+    </div>
+  );
+
+  const renderVectorStoreSection = () => (
+    <div className="space-y-2">
+      <Select
+        placeholder="Select vector database"
+        selectedKeys={[config.vector_db]}
+        onChange={(e) => handleConfigChange('vector_db')(e as any)}
+        isLoading={isLoadingStores}
+        classNames={{
+          trigger: "h-12",
+        }}
+      >
+        {Object.entries(vectorStores).map(([storeId, store]) => (
+          <SelectItem key={storeId} value={storeId} textValue={store.name}>
+            <div className="flex flex-col">
+              <span>{store.name}</span>
+              <span className="text-tiny text-default-400">{store.description}</span>
+            </div>
+          </SelectItem>
+        ))}
+      </Select>
+      {config.vector_db && (
+        <ApiKeyWarning storeInfo={vectorStores[config.vector_db]} />
+      )}
+    </div>
+  );
+
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
@@ -169,45 +356,66 @@ export const VectorIndexWizard: React.FC = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <Input
-              label="Index Name"
-              value={config.name}
-              onChange={handleConfigChange('name')}
-              isRequired
-            />
-            <Textarea
-              label="Description"
-              value={config.description}
-              onChange={handleConfigChange('description')}
-              minRows={3}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label="Embedding Model"
-                placeholder="Select embedding model"
-                selectedKeys={config.embedding_model ? [config.embedding_model] : []}
-                onChange={(e) => handleConfigChange('embedding_model')(e as any)}
-                isRequired
-              >
-                {Object.entries(embeddingModels).map(([id, model]) => (
-                  <SelectItem key={id} value={id}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </Select>
-              <Select
-                label="Vector Database"
-                placeholder="Select vector database"
-                selectedKeys={config.vector_db ? [config.vector_db] : []}
-                onChange={(e) => handleConfigChange('vector_db')(e as any)}
-                isRequired
-              >
-                {Object.entries(vectorStores).map(([id, store]) => (
-                  <SelectItem key={id} value={id}>
-                    {store.name}
-                  </SelectItem>
-                ))}
-              </Select>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">Configure Index</h3>
+              <Tooltip content="Configure your vector index settings">
+                <Info className="w-4 h-4 text-default-400" />
+              </Tooltip>
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  label="Index Name"
+                  placeholder="Optional - Enter a name or leave empty for a random name"
+                  value={config.name}
+                  onChange={handleConfigChange('name')}
+                  className="w-full"
+                  endContent={
+                    <Tooltip content="Leave empty for a randomly generated name">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  }
+                />
+                <Button
+                  isIconOnly
+                  variant="flat"
+                  className="self-end h-14"
+                  onPress={() => handleConfigChange('name')({ target: { value: generateRandomName() } } as any)}
+                >
+                  🎲
+                </Button>
+              </div>
+              <Textarea
+                label="Description"
+                value={config.description}
+                onChange={handleConfigChange('description')}
+                minRows={3}
+                endContent={
+                  <Tooltip content="Optional description of your vector index">
+                    <Info className="w-4 h-4 text-default-400" />
+                  </Tooltip>
+                }
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-medium">Embedding Model</span>
+                    <Tooltip content="Configure how your text will be converted to vector embeddings">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  </div>
+                  {renderEmbeddingSection()}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-medium">Vector Database</span>
+                    <Tooltip content="Choose where your vector embeddings will be stored">
+                      <Info className="w-4 h-4 text-default-400" />
+                    </Tooltip>
+                  </div>
+                  {renderVectorStoreSection()}
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -290,6 +498,25 @@ export const VectorIndexWizard: React.FC = () => {
               showValueLabel={true}
               valueLabel={`${activeStep + 1} of ${steps.length}`}
             />
+
+            <AnimatePresence>
+              {nameAlert && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Alert
+                    className="mb-4"
+                    color="primary"
+                    startContent={<Info className="h-4 w-4" />}
+                  >
+                    {nameAlert}
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <AnimatePresence>
               {alert && (

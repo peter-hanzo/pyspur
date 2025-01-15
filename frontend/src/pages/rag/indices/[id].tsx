@@ -1,11 +1,16 @@
 import React from 'react';
 import { VectorIndexDetails } from '@/components/rag/VectorIndexDetails';
+import Header from '@/components/Header';
 
-export default function VectorIndexPage() {
+const VectorIndexPage: React.FC = () => {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Vector Index</h1>
-      <VectorIndexDetails />
+    <div className="App relative">
+      <Header activePage="rag" />
+      <div className="p-6 pt-4">
+        <VectorIndexDetails />
+      </div>
     </div>
   );
-}
+};
+
+export default VectorIndexPage;

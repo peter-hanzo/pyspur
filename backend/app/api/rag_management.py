@@ -358,6 +358,7 @@ async def create_vector_index(
             raise HTTPException(status_code=404, detail="Document collection not found")
 
         # Create vector index record
+        now = datetime.now(timezone.utc)
         index = VectorIndexModel(
             name=index_config.name,
             description=index_config.description,
@@ -366,6 +367,8 @@ async def create_vector_index(
             chunk_count=collection.chunk_count,
             embedding_config=index_config.embedding.model_dump(),
             collection_id=collection.id,
+            created_at=now,
+            updated_at=now,
         )
         db.add(index)
         db.commit()
