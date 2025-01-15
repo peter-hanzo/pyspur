@@ -454,4 +454,27 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
     }
 }
 
+export const storeToken = async (accessToken: string, expiresIn: string): Promise<any> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/google/store_token/`, {
+            access_token: accessToken,
+            expires_in: expiresIn,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error storing token:', error);
+        throw error;
+    }
+}
+
+export const validateToken = async (): Promise<any> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/google/validate_token/`);
+        return response.data;
+    } catch (error) {
+        console.error('Error checking token:', error);
+        throw error;
+    }
+}
+
 // Continue adding types for other functions similarly...
