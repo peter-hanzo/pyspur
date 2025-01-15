@@ -27,13 +27,16 @@ class OllamaOptions(BaseModel):
     stop: Optional[list[str]] = Field(
         default=None, description="Stop sequences to end generation"
     )
+    response_format: Optional[str] = Field(
+        default=None, description="Format of the response"
+    )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary, excluding None values"""
         return {k: v for k, v in self.model_dump().items() if v is not None}
 
 
-def _setup_azure_configuration(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def setup_azure_configuration(kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """
     Helper function to configure Azure settings from environment variables.
     This strips the 'azure/' prefix from the model, removes any 'response_format'
