@@ -5,7 +5,7 @@ import numpy as np
 from loguru import logger
 
 from .embedder import get_multiple_text_embeddings, EmbeddingModels
-from .models.document_schemas import (
+from .schemas.document_schemas import (
     Document,
     DocumentWithChunks,
     DocumentChunk,

@@ -8,7 +8,7 @@ from loguru import logger
 
 from .parser import extract_text_from_file
 from .chunker import ChunkingConfig, create_document_chunks
-from .models.document_schemas import (
+from .schemas.document_schemas import (
     Document,
     DocumentWithChunks,
     DocumentMetadata,
