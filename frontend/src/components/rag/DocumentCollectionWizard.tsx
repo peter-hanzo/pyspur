@@ -462,13 +462,14 @@ export const DocumentCollectionWizard = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Switch
+                  isDisabled
                   isSelected={config.use_vision_model}
                   onValueChange={(checked) => setConfig(prev => ({ ...prev, use_vision_model: checked }))}
                   size="sm"
                 >
-                  Enable Vision Model for PDF Processing
+                  Enable Vision Model for PDF Processing (Coming Soon)
                 </Switch>
-                <Tooltip content="Use AI vision models to better understand document layout and extract text">
+                <Tooltip content="Use AI vision models to better understand document layout and extract text. This feature is coming soon!">
                   <Info className="w-4 h-4 text-default-400" />
                 </Tooltip>
               </div>
