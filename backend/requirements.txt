@@ -181,3 +181,4 @@ xyzservices==2024.9.0
 yarl==1.18.3
 zipp==3.21.0
 slack-sdk==3.34.0
+itsdangerous==2.2.0
