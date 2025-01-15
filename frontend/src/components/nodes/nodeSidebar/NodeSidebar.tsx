@@ -93,9 +93,20 @@ const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string>
         try {
             parsed = JSON.parse(jsonSchema.trim())
         } catch {
-            // cleaning is required for some escaped characters
-            const cleaned = jsonSchema.replace(/\\"/g, '"').replace(/\\\[/g, '[').replace(/\\\]/g, ']')
-            parsed = JSON.parse(cleaned)
+            try {
+                // cleaning is required for some escaped characters
+                let cleaned = jsonSchema
+                    .replace(/\\"/g, '"') // Replace escaped quotes
+                    .replace(/\\\[/g, '[') // Replace escaped brackets
+                    .replace(/\\\]/g, ']')
+                    .replace(/\\n/g, '') // Remove newlines
+                    .replace(/\\t/g, '') // Remove tabs
+                    .replace(/\\/g, '') // Remove remaining backslashes
+                    .trim()
+                parsed = JSON.parse(cleaned.trim())
+            } catch {
+                return null
+            }
         }
 
         if (parsed.properties) {
