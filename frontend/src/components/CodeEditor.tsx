@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { python } from '@codemirror/lang-python'
+import { json } from '@codemirror/lang-json'
+
 import { oneDark } from '@codemirror/theme-one-dark'
 
 interface CodeEditorProps {
@@ -30,7 +32,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled }) => 
                 value={value}
                 height="200px"
                 theme={oneDark}
-                extensions={[python()]}
+                extensions={[python(), json()]}
                 onChange={handleEditorChange}
                 className="border"
                 editable={!disabled}
