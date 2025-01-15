@@ -918,7 +918,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     return (
-        <Card className="fixed top-16 bottom-4 right-4 w-96 p-4 rounded-xl border border-solid border-default-200 overflow-auto">
+        <Card className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
+            style={{ width: `${width}px` }}>
             {showTitleError && (
                 <Alert
                     key={`alert-${nodeID}`}
@@ -932,18 +933,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             <div
                 className="absolute top-0 right-0 h-full flex"
                 style={{
-                    width: `${width}px`,
+                    width: '100%',
                     zIndex: 2,
                     userSelect: isResizing ? 'none' : 'auto',
                 }}
             >
                 <div
-                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary hover:opacity-100 opacity-0 transition-opacity"
+                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize transition-colors duration-200"
                     onMouseDown={handleMouseDown}
                     style={{
-                        backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : 'transparent',
-                        opacity: isResizing ? '1' : undefined,
+                        backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : undefined,
+                        opacity: isResizing ? 1 : 0,
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => !isResizing && (e.currentTarget.style.opacity = '0')}
                 />
 
                 <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">
