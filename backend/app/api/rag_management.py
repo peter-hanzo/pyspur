@@ -7,17 +7,20 @@ from fastapi import (
     Form,
     Depends,
 )
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, cast
 from pydantic import BaseModel
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy.orm import Session
 import os
+from loguru import logger
 
 from ..models.dc_and_vi_model import (
     DocumentCollectionModel,
     VectorIndexModel,
+    ProcessingProgressModel,
+    DocumentStatus,
 )
 from ..database import get_db
 from ..rag.document_collection import DocumentStore
@@ -29,6 +32,7 @@ from ..rag.models.document_schemas import (
     DocumentChunk,
     Source
 )
+from ..models.dc_and_vi_model import ProcessingProgressModel
 
 
 # Models
@@ -204,42 +208,60 @@ async def update_index_progress(
     db: Optional[Session] = None,
 ) -> None:
     """Update vector index processing progress"""
-    if index_id not in index_progress:
-        now = datetime.now(timezone.utc).isoformat()
-        index_progress[index_id] = ProcessingProgress(
-            id=index_id,
-            created_at=now,
-            updated_at=now,
-        )
+    if not db:
+        return
 
-    progress_obj = index_progress[index_id]
-    if status:
-        progress_obj.status = status
-        # Update index status in database
-        if db is not None:
+    # Get or create progress record
+    progress_record = db.query(ProcessingProgressModel).filter(
+        ProcessingProgressModel.id == index_id
+    ).first()
+
+    if not progress_record:
+        now = datetime.now(timezone.utc)
+        # Create a dictionary of values to initialize the model
+        values: Dict[str, Any] = {
+            "id": index_id,
+            "created_at": now,
+            "updated_at": now,
+            "status": status or "processing",
+            "progress": progress or 0.0,
+            "current_step": current_step or "",
+            "total_chunks": total_chunks or 0,
+            "processed_chunks": processed_chunks or 0,
+            "error_message": error_message,
+        }
+        progress_record = ProcessingProgressModel(**values)
+        db.add(progress_record)
+    else:
+        # Update fields using setattr to handle SQLAlchemy types
+        if status:
+            setattr(progress_record, "status", status)
+            # Update index status in database
             index = db.query(VectorIndexModel).filter(
                 VectorIndexModel.id == index_id
             ).first()
             if index:
-                index.status = "ready" if status == "completed" else status
+                new_status = "ready" if status == "completed" else status
+                setattr(index, "status", cast(DocumentStatus, new_status))
                 if error_message:
-                    index.error_message = error_message
+                    setattr(index, "error_message", error_message)
                 if processed_chunks:
-                    index.chunk_count = processed_chunks
-                db.commit()
+                    setattr(index, "chunk_count", processed_chunks)
 
-    if progress is not None:
-        progress_obj.progress = progress
-    if current_step:
-        progress_obj.current_step = current_step
-    if total_chunks is not None:
-        progress_obj.total_chunks = total_chunks
-    if processed_chunks is not None:
-        progress_obj.processed_chunks = processed_chunks
-    if error_message:
-        progress_obj.error_message = error_message
+        if progress is not None:
+            setattr(progress_record, "progress", progress)
+        if current_step:
+            setattr(progress_record, "current_step", current_step)
+        if total_chunks is not None:
+            setattr(progress_record, "total_chunks", total_chunks)
+        if processed_chunks is not None:
+            setattr(progress_record, "processed_chunks", processed_chunks)
+        if error_message:
+            setattr(progress_record, "error_message", error_message)
 
-    progress_obj.updated_at = datetime.now(timezone.utc).isoformat()
+        setattr(progress_record, "updated_at", datetime.now(timezone.utc))
+
+    db.commit()
 
 router = APIRouter()
 
@@ -374,6 +396,22 @@ async def create_vector_index(
         db.commit()
         db.refresh(index)
 
+        # Initialize progress tracking
+        now_str = now.isoformat()
+        index_progress[index.id] = ProcessingProgress(
+            id=index.id,
+            status="processing",
+            progress=0.0,
+            current_step="initializing",
+            total_files=collection.document_count,
+            processed_files=0,
+            total_chunks=collection.chunk_count,
+            processed_chunks=0,
+            created_at=now_str,
+            updated_at=now_str,
+        )
+        logger.debug(f"Initialized progress tracking for index {index.id}")
+
         # Start background processing
         doc_store = DocumentStore(collection.id)
         vector_index = VectorIndex(index.id)
@@ -386,13 +424,13 @@ async def create_vector_index(
                 docs_with_chunks.append(doc)
 
         # Create progress callback
-        async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+        async def progress_callback(progress: float, step: str, processed_chunks: int, total_chunks: int) -> None:
             await update_index_progress(
                 index.id,
                 progress=progress,
                 current_step=step,
-                processed_chunks=processed if step == "embedding" else None,
-                total_chunks=total if step == "embedding" else None,
+                processed_chunks=processed_chunks,
+                total_chunks=total_chunks,
                 db=db
             )
 
@@ -596,11 +634,32 @@ async def get_collection_progress(collection_id: str):
     return collection_progress[collection_id]
 
 @router.get("/indices/{index_id}/progress/", response_model=ProcessingProgress)
-async def get_index_progress(index_id: str):
+async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
     """Get vector index processing progress"""
-    if index_id not in index_progress:
+    logger.debug(f"Getting progress for index {index_id}")
+
+    progress_record = db.query(ProcessingProgressModel).filter(
+        ProcessingProgressModel.id == index_id
+    ).first()
+
+    if not progress_record:
         raise HTTPException(status_code=404, detail="No progress information found")
-    return index_progress[index_id]
+
+    logger.debug(f"Progress data for index {index_id}: {progress_record.__dict__}")
+
+    return ProcessingProgress(
+        id=progress_record.id,
+        status=progress_record.status,
+        progress=progress_record.progress,
+        current_step=progress_record.current_step,
+        total_files=progress_record.total_files,
+        processed_files=progress_record.processed_files,
+        total_chunks=progress_record.total_chunks,
+        processed_chunks=progress_record.processed_chunks,
+        error_message=progress_record.error_message,
+        created_at=progress_record.created_at.isoformat(),
+        updated_at=progress_record.updated_at.isoformat(),
+    )
 
 
 @router.post("/collections/{collection_id}/documents/", response_model=DocumentCollectionResponse)

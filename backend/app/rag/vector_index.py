@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
-from typing import List, Dict, Any, Optional, Callable, Coroutine
+from typing import List, Dict, Any, Optional, Callable, Coroutine, cast, Union, Sequence
+import numpy as np
 from loguru import logger
 
 from .embedder import get_multiple_text_embeddings, EmbeddingModels
@@ -22,12 +23,12 @@ async def _call_progress(
     on_progress: Optional[Callable[[float, str, int, int], Coroutine[Any, Any, None]]],
     progress: float,
     stage: str,
-    current: int,
-    total: int
+    processed_chunks: int,
+    total_chunks: int
 ) -> None:
     """Helper function to safely call the progress callback"""
     if on_progress:
-        await on_progress(progress, stage, current, total)
+        await on_progress(progress, stage, processed_chunks, total_chunks)
 
 
 class VectorIndex:
@@ -109,7 +110,16 @@ class VectorIndex:
 
                 logger.debug(f"Using embedding model: {embedding_model} with {model_info.dimensions} dimensions")
 
-                embeddings = await get_multiple_text_embeddings(
+                # Report starting embeddings phase
+                await _call_progress(
+                    on_progress,
+                    0.0,
+                    "embedding",
+                    0,  # processed_chunks
+                    len(all_chunks)  # total_chunks
+                )
+
+                embeddings: Sequence[Union[List[float], np.ndarray]] = await get_multiple_text_embeddings(
                     docs=chunk_texts,
                     model=embedding_model,
                     dimensions=model_info.dimensions,
@@ -123,6 +133,7 @@ class VectorIndex:
                 raise ProcessingError(f"Failed to generate embeddings: {str(e)}")
 
             # Update chunks with embeddings
+            processed_chunks = 0
             for i, chunk in enumerate(all_chunks):
                 if embeddings[i] is None:
                     logger.error(f"No embedding generated for chunk {i}")
@@ -143,17 +154,28 @@ class VectorIndex:
                                 {"chunk_id": chunk.id, "embedding": embedding_list},
                                 f
                             )
+                    processed_chunks += 1
                 except Exception as e:
                     logger.error(f"Error converting embedding: {str(e)}")
                     continue
 
+                # Update progress for embedding phase (0-70%)
                 await _call_progress(
                     on_progress,
-                    (i + 1) / len(all_chunks) * 0.8,  # First 80% for embeddings
+                    (i + 1) / len(all_chunks) * 0.7,
                     "embedding",
-                    i + 1,
-                    len(all_chunks)
+                    processed_chunks,  # processed_chunks
+                    len(all_chunks)  # total_chunks
                 )
+
+            # Report starting vector store upload
+            await _call_progress(
+                on_progress,
+                0.7,
+                "uploading",
+                processed_chunks,  # processed_chunks
+                len(all_chunks)  # total_chunks
+            )
 
             # Initialize datastore
             datastore = await get_datastore(
@@ -169,7 +191,14 @@ class VectorIndex:
             )
             logger.debug("All chunks successfully upserted into datastore.")
 
-            await _call_progress(on_progress, 1.0, "completed", len(all_chunks), len(all_chunks))
+            # Update progress for completion
+            await _call_progress(
+                on_progress,
+                1.0,
+                "completed",
+                processed_chunks,  # processed_chunks
+                len(all_chunks)  # total_chunks
+            )
 
             return self.index_id
 

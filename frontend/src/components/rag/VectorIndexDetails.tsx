@@ -21,6 +21,8 @@ import {
   getVectorIndex,
   deleteVectorIndex,
   getDocumentCollection,
+  getIndexProgress,
+  ProcessingProgress
 } from '@/utils/api';
 import type { VectorIndexResponse, DocumentCollectionResponse } from '@/utils/api';
 
@@ -33,6 +35,9 @@ export const VectorIndexDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState<string | null>(null);
+  const [progressData, setProgressData] = useState<ProcessingProgress | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +57,54 @@ export const VectorIndexDetails: React.FC = () => {
     };
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+
+    const pollProgress = async () => {
+      try {
+        if (!id || typeof id !== 'string' || !index || index.status !== 'processing') return;
+
+        const data = await getIndexProgress(id);
+        if (data) {
+          setProgress(data.progress);
+          setCurrentStep(data.current_step);
+          setProgressData(data);
+
+          // If processing is complete, refresh the index data
+          if (data.status === 'completed' || data.current_step === 'completed') {
+            const indexData = await getVectorIndex(id);
+            setIndex({
+              ...indexData,
+              status: 'ready'
+            });
+            setProgress(1);
+            setCurrentStep('completed');
+            // Clear the interval since we're done
+            if (pollInterval) {
+              clearInterval(pollInterval);
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error);
+      }
+    };
+
+    if (index?.status === 'processing' && currentStep !== 'completed') {
+      // Poll every 2 seconds
+      pollInterval = setInterval(pollProgress, 2000);
+      // Initial poll
+      pollProgress();
+    }
+
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [id, index?.status, currentStep]);
 
   const handleDelete = async () => {
     try {
@@ -187,10 +240,12 @@ export const VectorIndexDetails: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Processing Documents</span>
-                    <span className="text-sm text-default-400">50%</span>
+                    <span className="text-sm text-default-400">
+                      {Math.round(progress * 100)}%
+                    </span>
                   </div>
                   <Progress
-                    value={50}
+                    value={Math.round(progress * 100)}
                     color="primary"
                     className="w-full"
                   />
@@ -198,19 +253,42 @@ export const VectorIndexDetails: React.FC = () => {
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span>Documents Processed</span>
-                    <span>{Math.floor(index.document_count / 2)} / {index.document_count}</span>
+                    <span>Documents</span>
+                    <span>{index.document_count} Documents</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span>Chunks Processed</span>
-                    <span>{Math.floor(index.chunk_count / 2)} / {index.chunk_count}</span>
+                    <span>Chunks</span>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {currentStep === 'embedding' && (
+                          <>Processing {progressData?.processed_chunks || 0} of {progressData?.total_chunks || index.chunk_count} chunks</>
+                        )}
+                        {currentStep === 'uploading' && (
+                          <>Uploading {progressData?.processed_chunks || 0} chunks</>
+                        )}
+                        {currentStep === 'completed' && (
+                          <>{index.chunk_count} chunks</>
+                        )}
+                        {!currentStep && (
+                          <>{index.chunk_count} chunks</>
+                        )}
+                      </span>
+                      {(currentStep === 'embedding' || currentStep === 'uploading') && (
+                        <Spinner size="sm" />
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-default-400">
                   <Spinner size="sm" />
-                  <span>Processing your documents...</span>
+                  <span>
+                    {currentStep === 'embedding' && 'Generating embeddings...'}
+                    {currentStep === 'uploading' && 'Uploading to vector store...'}
+                    {currentStep === 'completed' && 'Processing complete'}
+                    {!currentStep && 'Processing your documents...'}
+                  </span>
                 </div>
               </div>
             )}

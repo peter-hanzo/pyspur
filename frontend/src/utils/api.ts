@@ -864,3 +864,27 @@ export const getCollectionDocuments = async (id: string): Promise<DocumentWithCh
     throw error;
   }
 };
+
+export interface ProcessingProgress {
+  id: string;
+  status: string;
+  progress: number;
+  current_step: string;
+  total_files: number;
+  processed_files: number;
+  total_chunks: number;
+  processed_chunks: number;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getIndexProgress = async (index_id: string): Promise<ProcessingProgress> => {
+  try {
+    const response = await axios.get<ProcessingProgress>(`${API_BASE_URL}/rag/indices/${index_id}/progress/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting index progress:', error);
+    throw error;
+  }
+};
