@@ -232,22 +232,26 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
 
         const handleSave = (onClose: () => void) => {
             if (modalEditor) {
-                setContent(modalEditor.storage.markdown?.getMarkdown() ?? '')
+                const newContent = modalEditor.storage.markdown?.getMarkdown() ?? ''
+                if (editor) {
+                    editor.commands.setContent(newContent)
+                }
+                setContent(newContent)
+                onClose()
             }
-            onClose()
         }
 
         return (
-            <div>
-                {fieldTitle && (
-                    <div className="flex justify-between items-center mb-2 ml-2 font-semibold">
-                        <span>{fieldTitle}</span>
-                        {!fullScreen && (
-                            <Button onPress={onOpen} isIconOnly>
-                                <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
-                            </Button>
-                        )}
-                    </div>
+            <div className="relative">
+                {!fullScreen && (
+                    <Button
+                        onPress={onOpen}
+                        isIconOnly
+                        className="absolute top-0 right-0 z-10"
+                        size="sm"
+                    >
+                        <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
+                    </Button>
                 )}
 
                 {isEditable && renderToolbar(editor)}

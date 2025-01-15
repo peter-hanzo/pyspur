@@ -229,7 +229,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
             setCurrentNodeConfig(initialConfig)
         }
-    }, [nodeID, node, nodeTypes, nodeConfig])
+    }, [nodeID, node, nodeTypes, nodeConfig]) // nodeConfig dependency handles updates
 
     // Helper function to update nested object by path
     const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
@@ -251,9 +251,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             } as FlowWorkflowNodeConfig
         }
 
+        // Update local state first
         setCurrentNodeConfig(updatedModel)
 
-        // Always update Redux store with the full updated model
+        // Then update Redux store
         if (isSlider) {
             debouncedDispatch(nodeID, updatedModel)
         } else {
