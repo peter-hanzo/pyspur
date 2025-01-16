@@ -326,9 +326,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         className={`base-node ${className || ''}`}
                         style={cardStyle}
                         classNames={{
-                            base: `bg-background border-default-200 ${
-                                isSelected ? 'border-[3px]' : status === 'completed' ? 'border-[2px]' : 'border-[1px]'
-                            } group-hover:border-[3px]`,
+                            base: `bg-background outline outline-default-200 outline-offset-0 ${
+                                isSelected
+                                    ? 'outline-[3px]'
+                                    : status === 'completed'
+                                      ? 'outline-[2px]'
+                                      : 'outline-[1px]'
+                            } group-hover:outline-[3px]`,
                         }}
                     >
                         {data && (
