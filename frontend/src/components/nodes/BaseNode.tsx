@@ -255,7 +255,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             ...restStyle,
             borderColor,
             borderStyle: 'solid',
-            transition: 'outline-width 0.2s',
+            transition: 'all 0.2s ease',
             pointerEvents: 'auto' as const,
         }),
         [restStyle, borderColor]
@@ -332,7 +332,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                     : status === 'completed'
                                       ? 'outline-[2px]'
                                       : 'outline-[1px]'
-                            } group-hover:outline-[3px]`,
+                            } group-hover:outline-[3px] transition-all duration-300`,
                         }}
                     >
                         {data && (
