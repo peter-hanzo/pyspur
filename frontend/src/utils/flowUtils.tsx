@@ -34,8 +34,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { RootState } from '../store/store'
 import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
 import { useTheme } from 'next-themes'
-import BaseGroupNode from '@/components/nodes/BaseGroupNode'
-import DynamicGroupNode from '@/components/nodes/DynamicGroupNode'
 
 interface UseNodeTypesOptions {
     nodeTypesConfig: FlowWorkflowNodeTypesByCategory | undefined
@@ -61,15 +59,7 @@ export const useNodeTypes = ({
                 } else if (includeCoalesceNode && node.name === 'CoalesceNode') {
                     types[node.name] = CoalesceNode
                 } else if (node.name === 'ForLoopNode') {
-                    types[node.name] = (props: any) => (
-                        <DynamicNode
-                            key={props.id}
-                            {...props}
-                            readOnly={readOnly}
-                            displaySubflow={true}
-                            displayResizer={true}
-                        />
-                    )
+                    types[node.name] = (props: any) => <DynamicNode key={props.id} {...props} readOnly={readOnly} />
                 } else {
                     types[node.name] = (props: any) => (
                         <DynamicNode
