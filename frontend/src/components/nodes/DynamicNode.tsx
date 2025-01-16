@@ -58,15 +58,12 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     positionAbsoluteX,
     positionAbsoluteY,
     displayOutput,
-    displaySubflow,
-    displayResizer,
     ...props
 }) => {
     const nodeRef = useRef<HTMLDivElement | null>(null)
     const [editingField, setEditingField] = useState<string | null>(null)
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
-    const [isResizing, setIsResizing] = useState(false)
 
     const nodes = useSelector(
         (state: RootState) =>
@@ -324,17 +321,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
 
     return (
         <>
-            {displayResizer && (
-                <NodeResizer
-                    minWidth={parseInt(baseNodeStyle.minWidth)}
-                    minHeight={parseInt(baseNodeStyle.minHeight)}
-                    isVisible={true}
-                    handleStyle={nodeResizerHandleStyle}
-                    onResizeStart={() => setIsResizing(true)}
-                    onResizeEnd={() => setIsResizing(false)}
-                    lineStyle={{ visibility: 'hidden' }}
-                />
-            )}
             <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentId ? 1 : 0 }}>
                 <BaseNode
                     id={id}
@@ -356,15 +342,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         )}
                         {renderHandles()}
                     </div>
-                    {displaySubflow && (
-                        <CardBody className="p-4 border-t border-divider">
-                            <div
-                                className={`w-full h-full min-h-[150px] rounded-lg border-2 border-dashed ${
-                                    true ? 'border-primary/50' : 'border-default-300'
-                                } ${isResizing ? 'pointer-events-none' : ''}`}
-                            ></div>
-                        </CardBody>
-                    )}
                     {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
                 </BaseNode>
             </div>
