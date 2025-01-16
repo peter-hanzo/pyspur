@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react'
-import { Handle, useHandleConnections, NodeProps, useConnection, Position, useUpdateNodeInternals } from '@xyflow/react'
+import {
+    Handle,
+    useHandleConnections,
+    NodeProps,
+    useConnection,
+    Position,
+    useUpdateNodeInternals,
+    NodeResizer,
+} from '@xyflow/react'
 import { useSelector } from 'react-redux'
 import BaseNode from './BaseNode'
 import styles from './DynamicNode.module.css'
-import { Input } from '@nextui-org/react'
+import { CardBody, Input } from '@nextui-org/react'
 import { FlowWorkflowNode } from '../../store/flowSlice'
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice'
 import { RootState } from '../../store/store'
@@ -20,15 +28,23 @@ const baseNodeStyle = {
     maxHeight: '800px',
     transition: 'height 0.3s ease',
 }
+
+const nodeResizerHandleStyle = {
+    width: '10px',
+    height: '10px',
+    borderRadius: '3px',
+}
 interface SchemaMetadata {
     required?: boolean
     title?: string
     type?: string
     [key: string]: any
 }
-interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
+export interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
     readOnly?: boolean
+    displaySubflow?: boolean
+    displayResizer?: boolean
 }
 
 const DynamicNode: React.FC<DynamicNodeProps> = ({
@@ -42,12 +58,15 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     positionAbsoluteX,
     positionAbsoluteY,
     displayOutput,
+    displaySubflow,
+    displayResizer,
     ...props
 }) => {
     const nodeRef = useRef<HTMLDivElement | null>(null)
     const [editingField, setEditingField] = useState<string | null>(null)
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+    const [isResizing, setIsResizing] = useState(false)
 
     const nodes = useSelector(
         (state: RootState) =>
@@ -305,6 +324,17 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
 
     return (
         <>
+            {displayResizer && (
+                <NodeResizer
+                    minWidth={parseInt(baseNodeStyle.minWidth)}
+                    minHeight={parseInt(baseNodeStyle.minHeight)}
+                    isVisible={true}
+                    handleStyle={nodeResizerHandleStyle}
+                    onResizeStart={() => setIsResizing(true)}
+                    onResizeEnd={() => setIsResizing(false)}
+                    lineStyle={{ visibility: 'hidden' }}
+                />
+            )}
             <div className={styles.dynamicNodeWrapper} style={{ zIndex: props.parentId ? 1 : 0 }}>
                 <BaseNode
                     id={id}
@@ -326,6 +356,15 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         )}
                         {renderHandles()}
                     </div>
+                    {displaySubflow && (
+                        <CardBody className="p-4 border-t border-divider">
+                            <div
+                                className={`w-full h-full min-h-[150px] rounded-lg border-2 border-dashed ${
+                                    true ? 'border-primary/50' : 'border-default-300'
+                                } ${isResizing ? 'pointer-events-none' : ''}`}
+                            ></div>
+                        </CardBody>
+                    )}
                     {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
                 </BaseNode>
             </div>
