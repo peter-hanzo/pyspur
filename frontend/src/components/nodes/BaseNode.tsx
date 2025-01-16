@@ -15,7 +15,7 @@ import { createSelector } from '@reduxjs/toolkit'
 
 const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
 
-interface BaseNodeProps {
+export interface BaseNodeProps {
     isCollapsed: boolean
     setIsCollapsed: (collapsed: boolean) => void
     id: string
@@ -255,7 +255,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             ...restStyle,
             borderColor,
             borderStyle: 'solid',
-            transition: 'border-color 0.1s, border-width 0.02s',
+            transition: 'outline-width 0.2s',
             pointerEvents: 'auto' as const,
         }),
         [restStyle, borderColor]
