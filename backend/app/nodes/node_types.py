@@ -65,6 +65,16 @@ SUPPORTED_NODE_TYPES = {
             "node_type_name": "GoogleSheetsReadNode",
             "module": ".nodes.integrations.google_sheets_read",
             "class_name": "GoogleSheetsReadNode",
+        },
+        {
+            "node_type_name": "YouTubeTranscriptNode",
+            "module": ".nodes.integrations.youtube_transcript",
+            "class_name": "YouTubeTranscriptNode",
+        },
+        {
+            "node_type_name": "GitHubListPullRequestsNode",
+            "module": ".nodes.integrations.github_list_pull_requests",
+            "class_name": "GitHubListPullRequestsNode",
         }
     ],
 }
