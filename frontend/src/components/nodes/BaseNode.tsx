@@ -360,11 +360,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                 <CardHeader key={`header-${id}`} style={headerStyle}>
                                     {editingTitle ? (
                                         <Input
-                                            key={`input-${id}`}
                                             autoFocus
                                             value={titleInputValue}
                                             size="sm"
-                                            variant="faded"
+                                            variant="bordered"
                                             radius="lg"
                                             onChange={(e) => {
                                                 const validValue = convertToPythonVariableName(e.target.value)
@@ -380,8 +379,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                                 }
                                             }}
                                             classNames={{
-                                                input: 'bg-default-100',
-                                                inputWrapper: 'shadow-none',
+                                                input: 'text-foreground dark:text-white',
+                                                inputWrapper: 'dark:bg-default-100/50 bg-default-100',
                                             }}
                                         />
                                     ) : (
