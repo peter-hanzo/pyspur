@@ -26,7 +26,7 @@ const baseNodeStyle = {
     height: 'auto',
     minHeight: '150px',
     maxHeight: '800px',
-    transition: 'height 0.3s ease',
+    transition: 'height 0.3s ease, width 0.3s ease',
 }
 
 const nodeResizerHandleStyle = {
