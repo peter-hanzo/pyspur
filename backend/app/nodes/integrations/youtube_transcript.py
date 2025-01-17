@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.youtube_tools import YouTubeTools
 
+import logging
+
 class YouTubeTranscriptNodeConfig(BaseNodeConfig):
     video_url: str = Field("", description="The YouTube video url to fetch the transcript for.")
 
@@ -28,7 +30,8 @@ class YouTubeTranscriptNode(BaseNode):
             transcript: str = yt.get_youtube_video_captions(url=self.config.video_url)
             return YouTubeTranscriptNodeOutput(transcript=transcript)
         except Exception as e:
-            raise Exception(f"Failed to get video ID from URL: {e}")
+            logging.error(f"Failed to get transcript: {e}")
+            return YouTubeTranscriptNodeOutput(transcript="")
         
 if __name__ == "__main__":
     import asyncio

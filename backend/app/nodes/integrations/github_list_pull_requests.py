@@ -1,5 +1,6 @@
 # add node for github list pull requests
 
+import logging
 from pydantic import BaseModel, Field
 from app.nodes.base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
@@ -31,7 +32,8 @@ class GitHubListPullRequestsNode(BaseNode):
             pull_requests = gh.list_pull_requests(repo_name=self.config.repo_name, state=self.config.state)
             return GitHubListPullRequestsNodeOutput(pull_requests=pull_requests)
         except Exception as e:
-            raise Exception(f"Failed to get pull requests: {e}")
+            logging.error(f"Failed to get pull requests: {e}")
+            return GitHubListPullRequestsNodeOutput(pull_requests="")
         
 if __name__ == "__main__":
     import asyncio
