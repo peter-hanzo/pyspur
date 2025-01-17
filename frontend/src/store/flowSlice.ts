@@ -74,6 +74,7 @@ export interface FlowWorkflowNode {
         acronym: string
         color: string
         run?: Record<string, any>
+        error?: string
         taskStatus?: string
         [key: string]: any
     }

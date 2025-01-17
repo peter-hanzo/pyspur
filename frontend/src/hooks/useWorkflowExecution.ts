@@ -41,14 +41,6 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     setCompletionPercentage(statusResponse.percentage_complete)
                 }
 
-                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
-                    setIsRunning(false)
-                    setCompletionPercentage(0)
-                    clearInterval(currentStatusInterval)
-                    onAlert('Workflow run failed.', 'danger')
-                    return
-                }
-
                 if (tasks.length > 0) {
                     tasks.forEach((task) => {
                         const nodeId = task.node_id
@@ -79,6 +71,7 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                                         id: node.id,
                                         data: {
                                             run: { ...node.data.run, ...output_values },
+                                            error: task.error || null,
                                             taskStatus: nodeTaskStatus,
                                         },
                                     })
@@ -93,6 +86,13 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     setCompletionPercentage(0)
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
+                }
+                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
+                    setIsRunning(false)
+                    setCompletionPercentage(0)
+                    clearInterval(currentStatusInterval)
+                    onAlert('Workflow run failed.', 'danger')
+                    return
                 }
             } catch (error) {
                 console.error('Error fetching workflow status:', error)
