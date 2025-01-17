@@ -104,7 +104,7 @@ class VectorIndexModel(BaseModel):
     )
 
 
-class ProcessingProgressModel(BaseModel):
+class DocumentProcessingProgressModel(BaseModel):
     """Model for tracking processing progress"""
 
     __tablename__ = "processing_progress"

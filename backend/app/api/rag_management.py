@@ -17,7 +17,7 @@ from loguru import logger
 from ..models.dc_and_vi_model import (
     DocumentCollectionModel,
     VectorIndexModel,
-    ProcessingProgressModel,
+    DocumentProcessingProgressModel,
     DocumentStatus,
 )
 from ..database import get_db
@@ -35,6 +35,7 @@ from ..schemas.rag_schemas import (
 # In-memory progress tracking (replace with database in production)
 collection_progress: Dict[str, ProcessingProgressSchema] = {}
 index_progress: Dict[str, ProcessingProgressSchema] = {}
+
 
 async def update_collection_progress(
     collection_id: str,
@@ -61,11 +62,15 @@ async def update_collection_progress(
         progress_obj.status = status
         # Update collection status in database
         if db is not None:
-            collection = db.query(DocumentCollectionModel).filter(
-                DocumentCollectionModel.id == collection_id
-            ).first()
+            collection = (
+                db.query(DocumentCollectionModel)
+                .filter(DocumentCollectionModel.id == collection_id)
+                .first()
+            )
             if collection:
-                new_status = cast(DocumentStatus, "ready" if status == "completed" else status)
+                new_status = cast(
+                    DocumentStatus, "ready" if status == "completed" else status
+                )
                 collection.status = new_status
                 if error_message:
                     collection.error_message = error_message
@@ -90,6 +95,7 @@ async def update_collection_progress(
 
     progress_obj.updated_at = datetime.now(timezone.utc).isoformat()
 
+
 async def update_index_progress(
     index_id: str,
     status: Optional[str] = None,
@@ -105,9 +111,11 @@ async def update_index_progress(
         return
 
     # Get or create progress record
-    progress_record = db.query(ProcessingProgressModel).filter(
-        ProcessingProgressModel.id == index_id
-    ).first()
+    progress_record = (
+        db.query(DocumentProcessingProgressModel)
+        .filter(DocumentProcessingProgressModel.id == index_id)
+        .first()
+    )
 
     if not progress_record:
         now = datetime.now(timezone.utc)
@@ -123,16 +131,18 @@ async def update_index_progress(
             "processed_chunks": int(processed_chunks or 0),
             "error_message": error_message,
         }
-        progress_record = ProcessingProgressModel(**values)
+        progress_record = DocumentProcessingProgressModel(**values)
         db.add(progress_record)
     else:
         # Update fields using setattr to handle SQLAlchemy types
         if status:
             setattr(progress_record, "status", status)
             # Update index status in database
-            index = db.query(VectorIndexModel).filter(
-                VectorIndexModel.id == index_id
-            ).first()
+            index = (
+                db.query(VectorIndexModel)
+                .filter(VectorIndexModel.id == index_id)
+                .first()
+            )
             if index:
                 new_status = "ready" if status == "completed" else status
                 setattr(index, "status", new_status)
@@ -156,6 +166,7 @@ async def update_index_progress(
 
     db.commit()
 
+
 router = APIRouter()
 
 
@@ -177,8 +188,7 @@ async def create_document_collection(
             vision_config = collection_config.text_processing.get_vision_config()
             if not vision_config:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Invalid vision model configuration"
+                    status_code=400, detail="Invalid vision model configuration"
                 )
 
         # Get current timestamp
@@ -212,18 +222,22 @@ async def create_document_collection(
                     content = await file.read()
                     with open(file_path, "wb") as f:
                         f.write(content)
-                    file_infos.append({
-                        "path": str(file_path),
-                        "mime_type": file.content_type,
-                        "name": file.filename
-                    })
+                    file_infos.append(
+                        {
+                            "path": str(file_path),
+                            "mime_type": file.content_type,
+                            "name": file.filename,
+                        }
+                    )
 
             # Start background processing
             if file_infos:
                 doc_store = DocumentStore(collection.id)
 
                 # Create progress callback
-                async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+                async def progress_callback(
+                    progress: float, step: str, processed: int, total: int
+                ) -> None:
                     await update_collection_progress(
                         collection.id,
                         progress=progress,
@@ -231,14 +245,14 @@ async def create_document_collection(
                         processed_files=processed if step == "parsing" else None,
                         processed_chunks=processed if step == "chunking" else None,
                         total_chunks=total if step == "chunking" else None,
-                        db=db
+                        db=db,
                     )
 
                 background_tasks.add_task(
                     doc_store.process_documents,
                     file_infos,
                     collection_config.text_processing.model_dump(),
-                    progress_callback
+                    progress_callback,
                 )
 
         # Create response
@@ -266,9 +280,11 @@ async def create_vector_index(
     """Create a new vector index from a document collection"""
     try:
         # Check if collection exists
-        collection = db.query(DocumentCollectionModel).filter(
-            DocumentCollectionModel.id == index_config.collection_id
-        ).first()
+        collection = (
+            db.query(DocumentCollectionModel)
+            .filter(DocumentCollectionModel.id == index_config.collection_id)
+            .first()
+        )
         if not collection:
             raise HTTPException(status_code=404, detail="Document collection not found")
 
@@ -290,7 +306,7 @@ async def create_vector_index(
         db.refresh(index)
 
         # Initialize progress tracking in database
-        progress_record = ProcessingProgressModel(
+        progress_record = DocumentProcessingProgressModel(
             id=index.id,
             status="processing",
             progress=0.0,
@@ -311,21 +327,23 @@ async def create_vector_index(
         vector_index = VectorIndex(index.id)
 
         # Get documents with chunks
-        docs_with_chunks = []
+        docs_with_chunks: List[DocumentWithChunks] = []
         for doc_id in doc_store.list_documents():
             doc = doc_store.get_document(doc_id)
             if doc:
                 docs_with_chunks.append(doc)
 
         # Create progress callback
-        async def progress_callback(progress: float, step: str, processed_chunks: int, total_chunks: int) -> None:
+        async def progress_callback(
+            progress: float, step: str, processed_chunks: int, total_chunks: int
+        ) -> None:
             await update_index_progress(
                 index.id,
                 progress=progress,
                 current_step=step,
                 processed_chunks=processed_chunks,
                 total_chunks=total_chunks,
-                db=db
+                db=db,
             )
 
         # Start vector index creation
@@ -333,7 +351,7 @@ async def create_vector_index(
             vector_index.create_from_document_collection,
             docs_with_chunks,
             index_config.embedding.model_dump(),
-            progress_callback
+            progress_callback,
         )
 
         # Create response
@@ -362,9 +380,9 @@ async def delete_vector_index(index_id: str, db: Session = Depends(get_db)):
     """Delete a vector index"""
     try:
         # Get the vector index from the database
-        index = db.query(VectorIndexModel).filter(
-            VectorIndexModel.id == index_id
-        ).first()
+        index = (
+            db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
+        )
         if not index:
             raise HTTPException(status_code=404, detail="Vector index not found")
 
@@ -372,7 +390,9 @@ async def delete_vector_index(index_id: str, db: Session = Depends(get_db)):
         vector_index = VectorIndex(index.id)
         success = await vector_index.delete()
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to delete vector index data")
+            raise HTTPException(
+                status_code=500, detail="Failed to delete vector index data"
+            )
 
         # Remove from tracking database
         db.delete(index)
@@ -408,13 +428,17 @@ async def list_document_collections(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/collections/{collection_id}/", response_model=DocumentCollectionResponseSchema)
+@router.get(
+    "/collections/{collection_id}/", response_model=DocumentCollectionResponseSchema
+)
 async def get_document_collection(collection_id: str, db: Session = Depends(get_db)):
     """Get document collection details"""
     try:
-        collection = db.query(DocumentCollectionModel).filter(
-            DocumentCollectionModel.id == collection_id
-        ).first()
+        collection = (
+            db.query(DocumentCollectionModel)
+            .filter(DocumentCollectionModel.id == collection_id)
+            .first()
+        )
         if not collection:
             raise HTTPException(status_code=404, detail="Document collection not found")
 
@@ -440,9 +464,11 @@ async def delete_document_collection(collection_id: str, db: Session = Depends(g
     """Delete a document collection"""
     try:
         # Get the document collection from the database
-        collection = db.query(DocumentCollectionModel).filter(
-            DocumentCollectionModel.id == collection_id
-        ).first()
+        collection = (
+            db.query(DocumentCollectionModel)
+            .filter(DocumentCollectionModel.id == collection_id)
+            .first()
+        )
         if not collection:
             raise HTTPException(status_code=404, detail="Document collection not found")
 
@@ -450,6 +476,7 @@ async def delete_document_collection(collection_id: str, db: Session = Depends(g
         collection_dir = Path(f"data/knowledge_bases/{collection_id}")
         if collection_dir.exists():
             import shutil
+
             shutil.rmtree(collection_dir)
 
         # Remove from tracking database
@@ -493,9 +520,9 @@ async def list_vector_indices(db: Session = Depends(get_db)):
 async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
     """Get vector index details"""
     try:
-        index = db.query(VectorIndexModel).filter(
-            VectorIndexModel.id == index_id
-        ).first()
+        index = (
+            db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
+        )
         if not index:
             raise HTTPException(status_code=404, detail="Vector index not found")
 
@@ -520,21 +547,26 @@ async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
 
 
 # Add progress tracking endpoints
-@router.get("/collections/{collection_id}/progress/", response_model=ProcessingProgressSchema)
+@router.get(
+    "/collections/{collection_id}/progress/", response_model=ProcessingProgressSchema
+)
 async def get_collection_progress(collection_id: str):
     """Get document collection processing progress"""
     if collection_id not in collection_progress:
         raise HTTPException(status_code=404, detail="No progress information found")
     return collection_progress[collection_id]
 
+
 @router.get("/indices/{index_id}/progress/", response_model=ProcessingProgressSchema)
 async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
     """Get vector index processing progress"""
     logger.debug(f"Getting progress for index {index_id}")
 
-    progress_record = db.query(ProcessingProgressModel).filter(
-        ProcessingProgressModel.id == index_id
-    ).first()
+    progress_record = (
+        db.query(DocumentProcessingProgressModel)
+        .filter(DocumentProcessingProgressModel.id == index_id)
+        .first()
+    )
 
     if not progress_record:
         raise HTTPException(status_code=404, detail="No progress information found")
@@ -550,13 +582,20 @@ async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
         processed_files=int(progress_record.processed_files),
         total_chunks=int(progress_record.total_chunks),
         processed_chunks=int(progress_record.processed_chunks),
-        error_message=str(progress_record.error_message) if progress_record.error_message else None,
+        error_message=(
+            str(progress_record.error_message)
+            if progress_record.error_message
+            else None
+        ),
         created_at=progress_record.created_at.isoformat(),
         updated_at=progress_record.updated_at.isoformat(),
     )
 
 
-@router.post("/collections/{collection_id}/documents/", response_model=DocumentCollectionResponseSchema)
+@router.post(
+    "/collections/{collection_id}/documents/",
+    response_model=DocumentCollectionResponseSchema,
+)
 async def add_documents_to_collection(
     collection_id: str,
     background_tasks: BackgroundTasks,
@@ -566,9 +605,11 @@ async def add_documents_to_collection(
     """Add documents to an existing collection"""
     try:
         # Get the document collection
-        collection = db.query(DocumentCollectionModel).filter(
-            DocumentCollectionModel.id == collection_id
-        ).first()
+        collection = (
+            db.query(DocumentCollectionModel)
+            .filter(DocumentCollectionModel.id == collection_id)
+            .first()
+        )
         if not collection:
             raise HTTPException(status_code=404, detail="Document collection not found")
 
@@ -583,11 +624,13 @@ async def add_documents_to_collection(
                 content = await file.read()
                 with open(file_path, "wb") as f:
                     f.write(content)
-                file_infos.append({
-                    "path": str(file_path),
-                    "mime_type": file.content_type,
-                    "name": file.filename
-                })
+                file_infos.append(
+                    {
+                        "path": str(file_path),
+                        "mime_type": file.content_type,
+                        "name": file.filename,
+                    }
+                )
 
         # Update collection status
         collection.status = "processing"
@@ -600,7 +643,9 @@ async def add_documents_to_collection(
             doc_store = DocumentStore(collection.id)
 
             # Create progress callback
-            async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
+            async def progress_callback(
+                progress: float, step: str, processed: int, total: int
+            ) -> None:
                 await update_collection_progress(
                     collection.id,
                     progress=progress,
@@ -608,14 +653,14 @@ async def add_documents_to_collection(
                     processed_files=processed if step == "parsing" else None,
                     processed_chunks=processed if step == "chunking" else None,
                     total_chunks=total if step == "chunking" else None,
-                    db=db
+                    db=db,
                 )
 
             background_tasks.add_task(
                 doc_store.process_documents,
                 file_infos,
                 collection.text_processing_config,
-                progress_callback
+                progress_callback,
             )
 
         return DocumentCollectionResponseSchema(
@@ -643,9 +688,11 @@ async def delete_document_from_collection(
     """Delete a document from a collection"""
     try:
         # Get the document collection
-        collection = db.query(DocumentCollectionModel).filter(
-            DocumentCollectionModel.id == collection_id
-        ).first()
+        collection = (
+            db.query(DocumentCollectionModel)
+            .filter(DocumentCollectionModel.id == collection_id)
+            .first()
+        )
         if not collection:
             raise HTTPException(status_code=404, detail="Document collection not found")
 
@@ -655,7 +702,9 @@ async def delete_document_from_collection(
         # Check if document exists
         doc = doc_store.get_document(document_id)
         if not doc:
-            raise HTTPException(status_code=404, detail="Document not found in collection")
+            raise HTTPException(
+                status_code=404, detail="Document not found in collection"
+            )
 
         # Delete document
         success = doc_store.delete_document(document_id)
@@ -676,12 +725,14 @@ async def delete_document_from_collection(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/collections/{collection_id}/documents/", response_model=List[DocumentWithChunks])
-async def get_collection_documents(collection_id: str):
+@router.get(
+    "/collections/{collection_id}/documents/", response_model=List[DocumentWithChunks]
+)
+async def get_collection_documents(collection_id: str) -> List[DocumentWithChunks]:
     """Get all documents and their chunks for a collection"""
     try:
         doc_store = DocumentStore(collection_id)
-        documents = []
+        documents: List[DocumentWithChunks] = []
         for doc_id in doc_store.list_documents():
             doc = doc_store.get_document(doc_id)
             if doc:
