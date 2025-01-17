@@ -16,6 +16,7 @@ class YouTubeTranscriptNodeOutput(BaseNodeOutput):
 class YouTubeTranscriptNode(BaseNode):
     name = "youtube_transcript_node"
     display_name = "YouTubeTranscript"
+    logo="/images/youtube.png"
 
     config_model = YouTubeTranscriptNodeConfig
     input_model = YouTubeTranscriptNodeInput
