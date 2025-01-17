@@ -13,6 +13,7 @@ class TaskResponseSchema(BaseModel):
     status: TaskStatus
     inputs: Optional[Any]
     outputs: Optional[Any]
+    error: Optional[str]
     start_time: Optional[datetime]
     end_time: Optional[datetime]
     subworkflow: Optional[WorkflowDefinitionSchema]
