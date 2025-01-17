@@ -456,6 +456,10 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
     }
 }
 
+export interface StoreGoogleAccessTokenResponse {
+    message: string;
+}
+
 export const storeGoogleAccessToken = async (accessToken: string, expiresIn: string): Promise<any> => {
     try {
         const response = await axios.post(`${API_BASE_URL}/google/store_token/`, {
@@ -469,7 +473,11 @@ export const storeGoogleAccessToken = async (accessToken: string, expiresIn: str
     }
 }
 
-export const validateGoogleAccessToken = async (): Promise<any> => {
+export interface GoogleAccessTokenValidationResponse {
+    is_valid: boolean;
+}
+
+export const validateGoogleAccessToken = async (): Promise<GoogleAccessTokenValidationResponse> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/google/validate_token/`);
         return response.data;
