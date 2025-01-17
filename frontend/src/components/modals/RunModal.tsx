@@ -24,7 +24,7 @@ import { AppDispatch } from '../../store/store'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import FileUploadBox from '../rag/FileUploadBox'
-import { uploadTestFiles } from '@/utils/api'
+import { uploadTestFiles, deleteTestFile } from '@/utils/api'
 
 interface RunModalProps {
     isOpen: boolean
@@ -112,6 +112,26 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         setUploadedFiles(prev => ({ ...prev, [nodeId]: files }))
 
         try {
+            if (files.length === 0) {
+                // If no files, clear the file path from editor contents
+                const fileFields = workflowInputVariableNames.filter(field =>
+                    field.toLowerCase().includes('file')
+                )
+                if (fileFields.length > 0) {
+                    const field = fileFields[0]
+                    const currentPath = editorContents[field]
+                    // If there was a file path, delete it from the backend
+                    if (currentPath) {
+                        await deleteTestFile(workflowID, nodeId, currentPath)
+                    }
+                    setEditorContents(prev => ({
+                        ...prev,
+                        [field]: ''
+                    }))
+                }
+                return
+            }
+
             const paths = await uploadTestFiles(workflowID, nodeId, files)
             setFilePaths(prev => ({ ...prev, ...paths }))
 
@@ -120,13 +140,19 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                 field.toLowerCase().includes('file')
             )
             if (fileFields.length > 0) {
+                const field = fileFields[0]
+                const currentPath = editorContents[field]
+                // If there was a previous file, delete it from the backend
+                if (currentPath) {
+                    await deleteTestFile(workflowID, nodeId, currentPath)
+                }
                 setEditorContents(prev => ({
                     ...prev,
-                    [fileFields[0]]: paths[nodeId][0] // Set the first file field to the first uploaded file path
+                    [field]: paths[nodeId][0] // Set the first file field to the first uploaded file path
                 }))
             }
         } catch (error) {
-            console.error('Error uploading files:', error)
+            console.error('Error handling files:', error)
         }
     }
 

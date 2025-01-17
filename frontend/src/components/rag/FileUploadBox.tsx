@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Card, CardBody, Button } from '@nextui-org/react'
-import { Upload, X } from 'lucide-react'
+import { Card, CardBody, Button, Chip } from '@nextui-org/react'
+import { Upload, X, AlertCircle } from 'lucide-react'
 
 interface FileUploadBoxProps {
     onFilesChange: (files: File[]) => void
@@ -24,7 +24,10 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple =
     const removeFile = (index: number) => {
         const newFiles = files.filter((_, i) => i !== index)
         setFiles(newFiles)
-        onFilesChange(newFiles)
+        // Only trigger onFilesChange if we have files to upload
+        if (newFiles.length > 0) {
+            onFilesChange(newFiles)
+        }
     }
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -59,6 +62,11 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple =
                                 <p className="text-xs text-default-400 mt-1">
                                     Supported formats: PDF, TXT, MD, DOC, DOCX
                                 </p>
+                                {!multiple && files.length > 0 && (
+                                    <p className="text-xs text-warning mt-1">
+                                        New file upload will replace the existing file
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </CardBody>
@@ -67,7 +75,10 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple =
 
             {files.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-sm font-medium">Selected {multiple ? `Files (${files.length})` : 'File'}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">Selected {multiple ? `Files (${files.length})` : 'File'}</p>
+                        {!multiple && <Chip size="sm" variant="flat" color="warning">Single file mode</Chip>}
+                    </div>
                     <div className="space-y-2">
                         {files.map((file, index) => (
                             <Card key={index} className="bg-default-50">
