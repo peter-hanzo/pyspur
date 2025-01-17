@@ -136,7 +136,7 @@ class WorkflowExecutor:
                 node_input[dep_id] = output
 
         # Special handling for InputNode - use initial inputs
-        if node.node_type == "InputNode":
+        if node.node_type == "InputNode" and not node.parent_id:
             node_input = self._initial_inputs.get(node_id, {})
 
         # Only fail early for None inputs if it is NOT a CoalesceNode
@@ -153,6 +153,26 @@ class WorkflowExecutor:
         if not node_input:
             self._outputs[node_id] = None
             return None
+
+        # If node is a parent node, pass its child nodes in config.subworkflow
+        subworkflow_nodes = [
+            child_node
+            for child_node in self.workflow.nodes
+            if child_node.parent_id == node_id
+        ]
+        if subworkflow_nodes:
+            subworkflow_links = [
+                link
+                for link in self.workflow.links
+                if link.source_id in [node.id for node in subworkflow_nodes]
+                and link.target_id in [node.id for node in subworkflow_nodes]
+            ]
+            subworkflow = WorkflowDefinitionSchema(
+                nodes=subworkflow_nodes, links=subworkflow_links
+            )
+            node.config["subworkflow"] = subworkflow
+        else:
+            node.config.pop("subworkflow", None)
 
         node_instance = NodeFactory.create_node(
             node_name=node.title, node_type_name=node.node_type, config=node.config
@@ -223,13 +243,22 @@ class WorkflowExecutor:
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
-            (node for node in self.workflow.nodes if node.node_type == "InputNode")
+            (
+                node
+                for node in self.workflow.nodes
+                if node.node_type == "InputNode" and not node.parent_id
+            ),
         )
         self._initial_inputs[input_node.id] = input
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
             nodes_to_run = set(node_ids)
+
+        # skip nodes that have parent nodes, as they will be executed as part of their parent node
+        for node in self.workflow.nodes:
+            if node.parent_id:
+                nodes_to_run.discard(node.id)
 
         # Start tasks for all nodes
         for node_id in nodes_to_run:
