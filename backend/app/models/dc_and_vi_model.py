@@ -6,11 +6,10 @@ from sqlalchemy import (
     DateTime,
     JSON,
     ForeignKey,
-    text,
     Float,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from .base_model import BaseModel
 
 # Define valid status values
@@ -50,13 +49,12 @@ class DocumentCollectionModel(BaseModel):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        DateTime, default=datetime.now(timezone.utc)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=text("NOW()"),
-        server_onupdate=text("NOW()"),
-        nullable=False,
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
     )
 
 
@@ -94,20 +92,19 @@ class VectorIndexModel(BaseModel):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=text("NOW()"), nullable=False
+        DateTime, default=datetime.now(timezone.utc)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=text("NOW()"),
-        server_onupdate=text("NOW()"),
-        nullable=False,
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
     )
 
 
 class DocumentProcessingProgressModel(BaseModel):
     """Model for tracking processing progress"""
 
-    __tablename__ = "processing_progress"
+    __tablename__ = "document_processing_progress"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
@@ -121,11 +118,10 @@ class DocumentProcessingProgressModel(BaseModel):
     processed_chunks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
+        DateTime, default=datetime.now(timezone.utc)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
     )
