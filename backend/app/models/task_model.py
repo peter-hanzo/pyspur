@@ -19,6 +19,7 @@ class TaskStatus(PyEnum):
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    CANCELED = "CANCELED"
 
 
 class TaskModel(BaseModel):
@@ -38,6 +39,7 @@ class TaskModel(BaseModel):
     )
     inputs: Mapped[Any] = mapped_column(JSON, nullable=True)
     outputs: Mapped[Any] = mapped_column(JSON, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     start_time: Mapped[Optional[datetime]] = mapped_column(
         DateTime, default=datetime.now(timezone.utc)
     )
