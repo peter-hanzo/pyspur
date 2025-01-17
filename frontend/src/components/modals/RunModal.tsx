@@ -23,11 +23,13 @@ import { RootState } from '../../store/store'
 import { AppDispatch } from '../../store/store'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
+import FileUploadBox from '../rag/FileUploadBox'
+import { uploadTestFiles } from '@/utils/api'
 
 interface RunModalProps {
     isOpen: boolean
     onOpenChange: (isOpen: boolean) => void
-    onRun: (initialInputs: Record<string, any>) => void
+    onRun: (initialInputs: Record<string, any>, files?: Record<string, string[]>) => void
     onSave?: () => void
 }
 
@@ -47,6 +49,8 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
     const [selectedRow, setSelectedRow] = useState<string | null>(null)
     const [editorContents, setEditorContents] = useState<Record<string, string>>({})
+    const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
+    const [filePaths, setFilePaths] = useState<Record<string, string[]>>({})
 
     const dispatch = useDispatch<AppDispatch>()
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
@@ -95,6 +99,17 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     const handleBlur = () => {
         setEditingCell(null)
+    }
+
+    const handleFilesChange = async (nodeId: string, files: File[]) => {
+        setUploadedFiles(prev => ({ ...prev, [nodeId]: files }))
+
+        try {
+            const paths = await uploadTestFiles(nodeId, files)
+            setFilePaths(prev => ({ ...prev, ...paths }))
+        } catch (error) {
+            console.error('Error uploading files:', error)
+        }
     }
 
     const renderCell = (row: TestInput, field: string) => {
@@ -152,7 +167,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             [inputNode.id]: inputValues,
         }
 
-        onRun(initialInputs)
+        onRun(initialInputs, filePaths)
     }
 
     const handleSave = () => {
@@ -160,6 +175,103 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             onSave()
         }
         onOpenChange(false)
+    }
+
+    const renderStepContent = (step: number) => {
+        switch (step) {
+            case 0:
+                return (
+                    <div className="flex flex-col gap-6">
+                        <div className="overflow-x-auto">
+                            <Table
+                                aria-label="Test cases table"
+                                selectionMode="single"
+                                disabledKeys={editingCell ? new Set([editingCell.rowId.toString()]) : new Set()}
+                                selectedKeys={selectedRow ? [selectedRow] : new Set()}
+                                onSelectionChange={(selection) => {
+                                    const selectedKey = Array.from(selection)[0]?.toString() || null
+                                    setSelectedRow(selectedKey)
+                                }}
+                                classNames={{
+                                    base: 'min-w-[800px]',
+                                    table: 'min-w-full',
+                                }}
+                            >
+                                <TableHeader>
+                                    {[
+                                        <TableColumn key="id">ID</TableColumn>,
+                                        ...workflowInputVariableNames.map((field) => (
+                                            <TableColumn key={field}>{field}</TableColumn>
+                                        )),
+                                        <TableColumn key="actions">Actions</TableColumn>,
+                                    ]}
+                                </TableHeader>
+                                <TableBody>
+                                    {testData.map((row) => (
+                                        <TableRow key={row.id}>
+                                            {[
+                                                <TableCell key="id">{row.id}</TableCell>,
+                                                ...workflowInputVariableNames.map((field) => (
+                                                    <TableCell key={field}>{renderCell(row, field)}</TableCell>
+                                                )),
+                                                <TableCell key="actions">
+                                                    <Button
+                                                        isIconOnly
+                                                        size="sm"
+                                                        variant="light"
+                                                        onPress={() => handleDeleteRow(row.id)}
+                                                    >
+                                                        <Icon icon="solar:trash-bin-trash-linear" />
+                                                    </Button>
+                                                </TableCell>,
+                                            ]}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        <div className="flex gap-2 overflow-x-auto">
+                            {workflowInputVariableNames.map((field) => (
+                                <div key={field} className="w-[300px] min-w-[300px]">
+                                    <div className="mb-2 font-medium text-foreground">
+                                        {field}
+                                    </div>
+                                    {field.toLowerCase().includes('file') ? (
+                                        <FileUploadBox
+                                            onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
+                                        />
+                                    ) : (
+                                        <TextEditor
+                                            nodeID={`newRow-${field}`}
+                                            fieldName={field}
+                                            fieldTitle={field}
+                                            inputSchema={[]}
+                                            content={editorContents[field] || ''}
+                                            setContent={(value: string) => {
+                                                setEditorContents((prev) => ({
+                                                    ...prev,
+                                                    [field]: value,
+                                                }))
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                            <div className="flex-none">
+                                <Button
+                                    color="primary"
+                                    onPress={handleAddRow}
+                                    isDisabled={Object.values(editorContents).every((v) => !v?.trim())}
+                                >
+                                    Add Row
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            // ... rest of the cases ...
+        }
     }
 
     return (

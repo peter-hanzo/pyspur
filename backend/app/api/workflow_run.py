@@ -1,7 +1,7 @@
 import asyncio
 import os
 import json
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from pathlib import Path  # Import Path for directory handling
@@ -73,6 +73,13 @@ async def run_workflow_blocking(
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
 
     initial_inputs = request.initial_inputs or {}
+
+    # Handle file paths if present
+    if request.files:
+        for node_id, file_paths in request.files.items():
+            if node_id in initial_inputs:
+                initial_inputs[node_id]["files"] = file_paths
+
     new_run = await create_run_model(
         workflow_id,
         workflow_version.id,
@@ -376,3 +383,36 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
                 db.refresh(run)
 
     return runs
+
+
+# Add new endpoint for file uploads
+@router.post("/upload_test_files/")
+async def upload_test_files(
+    files: List[UploadFile] = File(...),
+    node_id: str = Form(...),
+    db: Session = Depends(get_db),
+) -> Dict[str, List[str]]:
+    """Upload files for test inputs and return their paths"""
+    try:
+        # Create directory for test files if it doesn't exist
+        test_files_dir = Path("data/test_files")
+        test_files_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save files and collect paths
+        saved_paths = []
+        for file in files:
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_filename = f"{timestamp}_{file.filename}"
+            file_path = test_files_dir / safe_filename
+
+            # Save file
+            content = await file.read()
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            saved_paths.append(str(file_path))
+
+        return {node_id: saved_paths}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
