@@ -933,9 +933,14 @@ export const getIndexProgress = async (indexId: string): Promise<ProcessingProgr
     }
 }
 
-export const uploadTestFiles = async (nodeId: string, files: File[]): Promise<Record<string, string[]>> => {
+export const uploadTestFiles = async (
+    workflowId: string,
+    nodeId: string,
+    files: File[]
+): Promise<Record<string, string[]>> => {
     try {
         const formData = new FormData()
+        formData.append('workflow_id', workflowId)
         formData.append('node_id', nodeId)
         files.forEach((file) => {
             formData.append('files', file)

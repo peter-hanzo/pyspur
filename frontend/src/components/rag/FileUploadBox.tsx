@@ -5,17 +5,20 @@ import { Upload, X } from 'lucide-react'
 
 interface FileUploadBoxProps {
     onFilesChange: (files: File[]) => void
+    multiple?: boolean
 }
 
-const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
+const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple = true }) => {
     const [files, setFiles] = useState<File[]>([])
 
     const onDrop = useCallback(
         (acceptedFiles: File[]) => {
-            setFiles((prev) => [...prev, ...acceptedFiles])
-            onFilesChange([...files, ...acceptedFiles])
+            // In single file mode, only keep the latest file
+            const newFiles = multiple ? [...files, ...acceptedFiles] : [acceptedFiles[0]]
+            setFiles(newFiles)
+            onFilesChange(newFiles)
         },
-        [files, onFilesChange]
+        [files, onFilesChange, multiple]
     )
 
     const removeFile = (index: number) => {
@@ -33,6 +36,7 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
             'application/msword': ['.doc'],
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
         },
+        multiple, // Allow multiple files only when multiple prop is true
     })
 
     return (
@@ -49,8 +53,8 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
                             <div className="text-center">
                                 <p className="text-default-500">
                                     {isDragActive
-                                        ? 'Drop the files here'
-                                        : 'Drag and drop files here or click to browse'}
+                                        ? 'Drop the file here'
+                                        : `Drag and drop ${multiple ? 'files' : 'a file'} here or click to browse`}
                                 </p>
                                 <p className="text-xs text-default-400 mt-1">
                                     Supported formats: PDF, TXT, MD, DOC, DOCX
@@ -63,7 +67,7 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
 
             {files.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-sm font-medium">Selected Files ({files.length})</p>
+                    <p className="text-sm font-medium">Selected {multiple ? `Files (${files.length})` : 'File'}</p>
                     <div className="space-y-2">
                         {files.map((file, index) => (
                             <Card key={index} className="bg-default-50">

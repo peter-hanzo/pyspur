@@ -41,6 +41,7 @@ interface EditingCell {
 const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
+    const workflowID = useSelector((state: RootState) => state.flow.workflowID)
     const inputNode = nodes.find((node) => node.type === 'InputNode')
     const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {}
     const workflowInputVariableNames = Object.keys(workflowInputVariables)
@@ -73,12 +74,16 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     }, [isOpen, testData])
 
     const handleAddRow = () => {
+        // Check if we have any content to add
+        const hasContent = Object.values(editorContents).some(v => v?.trim())
+        if (!hasContent) return
+
         const newTestInput: TestInput = {
             id: Date.now(),
             ...editorContents,
         }
         setTestData([...testData, newTestInput])
-        setEditorContents({})
+        setEditorContents({}) // Clear editor contents
         dispatch(addTestInput(newTestInput))
         saveWorkflow()
     }
@@ -102,11 +107,24 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     }
 
     const handleFilesChange = async (nodeId: string, files: File[]) => {
+        if (!workflowID) return
+
         setUploadedFiles(prev => ({ ...prev, [nodeId]: files }))
 
         try {
-            const paths = await uploadTestFiles(nodeId, files)
+            const paths = await uploadTestFiles(workflowID, nodeId, files)
             setFilePaths(prev => ({ ...prev, ...paths }))
+
+            // Update the editor contents with the file path
+            const fileFields = workflowInputVariableNames.filter(field =>
+                field.toLowerCase().includes('file')
+            )
+            if (fileFields.length > 0) {
+                setEditorContents(prev => ({
+                    ...prev,
+                    [fileFields[0]]: paths[nodeId][0] // Set the first file field to the first uploaded file path
+                }))
+            }
         } catch (error) {
             console.error('Error uploading files:', error)
         }
@@ -115,6 +133,19 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     const renderCell = (row: TestInput, field: string) => {
         const isEditing = editingCell?.rowId === row.id && editingCell?.field === field
         const content = row[field]
+
+        // Handle file paths
+        if (field.toLowerCase().includes('file') && content) {
+            const fileName = content.split('/').pop() // Get just the filename from the path
+            return (
+                <div className="flex items-center gap-2">
+                    <Icon icon="material-symbols:file-present" className="text-primary" />
+                    <Tooltip content={content} showArrow={true}>
+                        <span className="max-w-[200px] truncate">{fileName}</span>
+                    </Tooltip>
+                </div>
+            )
+        }
 
         if (isEditing) {
             return (
@@ -239,6 +270,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                     </div>
                                     {field.toLowerCase().includes('file') ? (
                                         <FileUploadBox
+                                            multiple={false}
                                             onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
                                         />
                                     ) : (
@@ -344,6 +376,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                         </div>
                                         {field.toLowerCase().includes('file') ? (
                                             <FileUploadBox
+                                                multiple={false}
                                                 onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
                                             />
                                         ) : (
