@@ -32,13 +32,13 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # ✨ Core Benefits
 
-## Modular Building Blocks
-
-https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
-
 ## Debug at Node Level:
 
 https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
+
+## Modular Building Blocks
+
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
 ## Evaluate Final Performance
 
@@ -171,9 +171,9 @@ You can support us in our work by leaving a star! Thank you!
     - [X] LLM Nodes
     - [X] If-Else
     - [X] Merge Branches
-    - [ ] Tools
+    - [X] Tools
     - [ ] Loops
-- [ ] RAG
+- [X] RAG
 - [ ] Pipeline optimization via DSPy and related methods
 - [ ] Templates
 - [ ] Compile Spurs to Code
