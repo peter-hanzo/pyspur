@@ -104,17 +104,17 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
         if (!workflowId) return
 
-    const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
+        const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
 
-    if (hasGoogleSheetsReadNode) {
-        const response = await validateGoogleAccessToken()
-        console.log('Token check response:', response)
-        if (!response.is_valid) {
-            const baseUrl = window.location.origin
-            window.open(`${baseUrl}/google/auth`, '_blank');
-            return;
+        if (hasGoogleSheetsReadNode) {
+            const response = await validateGoogleAccessToken()
+            console.log('Token check response:', response)
+            if (!response.is_valid) {
+                const baseUrl = window.location.origin
+                window.open(`${baseUrl}/google/auth`, '_blank')
+                return
+            }
         }
-    }
 
         try {
             dispatch(resetRun())
