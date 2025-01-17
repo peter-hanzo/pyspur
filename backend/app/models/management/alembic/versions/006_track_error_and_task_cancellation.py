@@ -38,7 +38,7 @@ def upgrade() -> None:
     )
 
     # Update TaskStatus enum type
-    op.execute("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'CANCELLED'")
+    op.execute("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'CANCELED'")
     # ### end Alembic commands ###
 
 
