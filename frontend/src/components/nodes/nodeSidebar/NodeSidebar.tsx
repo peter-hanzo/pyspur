@@ -434,7 +434,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={incomingSchema}
-                        fieldTitle="System Message"
                         content={currentNodeConfig[key] || ''}
                         setContent={(value: string) => handleInputChange(key, value)}
                     />
@@ -466,7 +465,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={incomingSchema}
-                        fieldTitle="User Message"
                         content={currentNodeConfig[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
                     />
@@ -855,13 +853,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         selectionMode="multiple"
                         defaultExpandedKeys={hasRunOutput ? ['output'] : ['title', 'config']}
                     >
-                        {nodeType !== 'InputNode' && (
-                            <AccordionItem key="output" aria-label="Output" title="Outputs">
-                                <NodeOutput key={`node-output-${nodeID}`} output={node?.data?.run} />
-                            </AccordionItem>
-                        )}
-
-                        <AccordionItem key="title" aria-label="Node Title" title="Node Title">
+                        <AccordionItem key="output" aria-label="Output" title="Outputs">
+                            <NodeOutput key={`node-output-${nodeID}`} output={node?.data?.run} />
+                        </AccordionItem>
+                        <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
                             <Input
                                 key={`title-input-${nodeID}`}
                                 value={titleInputValue}
@@ -871,9 +866,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 fullWidth
                                 description="Use underscores instead of spaces"
                             />
-                        </AccordionItem>
-
-                        <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
+                            <hr className="my-2" />
                             {renderConfigFields()}
                         </AccordionItem>
                     </Accordion>
