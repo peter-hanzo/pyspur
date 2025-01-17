@@ -342,19 +342,25 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                         <div className="mb-2 font-medium text-foreground">
                                             {field}
                                         </div>
-                                        <TextEditor
-                                            nodeID={`newRow-${field}`}
-                                            fieldName={field}
-                                            fieldTitle={field}
-                                            inputSchema={[]}
-                                            content={editorContents[field] || ''}
-                                            setContent={(value: string) => {
-                                                setEditorContents((prev) => ({
-                                                    ...prev,
-                                                    [field]: value,
-                                                }))
-                                            }}
-                                        />
+                                        {field.toLowerCase().includes('file') ? (
+                                            <FileUploadBox
+                                                onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
+                                            />
+                                        ) : (
+                                            <TextEditor
+                                                nodeID={`newRow-${field}`}
+                                                fieldName={field}
+                                                fieldTitle={field}
+                                                inputSchema={[]}
+                                                content={editorContents[field] || ''}
+                                                setContent={(value: string) => {
+                                                    setEditorContents((prev) => ({
+                                                        ...prev,
+                                                        [field]: value,
+                                                    }))
+                                                }}
+                                            />
+                                        )}
                                     </div>
                                 ))}
                                 <div className="flex-none">

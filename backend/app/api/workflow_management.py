@@ -1,7 +1,8 @@
 from typing import Dict, List
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+from pathlib import Path
 
 from ..schemas.workflow_schemas import (
     WorkflowCreateRequestSchema,
@@ -275,3 +276,35 @@ def get_workflow_output_variables(
                 continue
 
     return output_variables
+
+
+@router.post("/upload_test_files/")
+async def upload_test_files(
+    files: List[UploadFile] = File(...),
+    node_id: str = Form(...),
+    db: Session = Depends(get_db),
+) -> Dict[str, List[str]]:
+    """Upload files for test inputs and return their paths"""
+    try:
+        # Create directory for test files if it doesn't exist
+        test_files_dir = Path("data/test_files")
+        test_files_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save files and collect paths
+        saved_paths: List[str] = []
+        for file in files:
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_filename = f"{timestamp}_{file.filename}"
+            file_path = test_files_dir / safe_filename
+
+            # Save file
+            content = await file.read()
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            saved_paths.append(str(file_path))
+
+        return {node_id: saved_paths}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

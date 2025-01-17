@@ -941,7 +941,7 @@ export const uploadTestFiles = async (nodeId: string, files: File[]): Promise<Re
             formData.append('files', file)
         })
 
-        const response = await axios.post(`${API_BASE_URL}/run/upload_test_files/`, formData, {
+        const response = await axios.post(`${API_BASE_URL}/wf/upload_test_files/`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
