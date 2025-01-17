@@ -69,6 +69,7 @@ export interface FlowWorkflowNode {
     id: string
     type: string
     position: WorkflowNodeCoordinates
+    parentId?: string
     data: {
         title: string
         acronym: string

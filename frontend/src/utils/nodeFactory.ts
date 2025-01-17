@@ -7,7 +7,8 @@ export const createNode = (
     nodeTypes: FlowWorkflowNodeTypesByCategory,
     type: string,
     id: string,
-    position: Position
+    position: Position,
+    parentId: string | null = null
 ): { node: FlowWorkflowNode; config: FlowWorkflowNodeConfig } | null => {
     let nodeType: FlowWorkflowNodeType | null = null
     for (const category in nodeTypes) {
@@ -31,6 +32,7 @@ export const createNode = (
         id,
         type: nodeType.name,
         position,
+        parentId,
         data: {
             title: id,
             acronym: nodeType.visual_tag.acronym,

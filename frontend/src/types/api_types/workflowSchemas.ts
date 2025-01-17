@@ -15,6 +15,7 @@ export interface WorkflowNode {
     config: Record<string, any>
     coordinates?: WorkflowNodeCoordinates
     subworkflow?: WorkflowDefinition
+    parent_id?: string
 }
 
 export interface WorkflowLink {
