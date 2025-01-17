@@ -456,6 +456,10 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
     }
 }
 
+export interface StoreGoogleAccessTokenResponse {
+    message: string;
+}
+
 export const storeGoogleAccessToken = async (accessToken: string, expiresIn: string): Promise<any> => {
     try {
         const response = await axios.post(`${API_BASE_URL}/google/store_token/`, {
