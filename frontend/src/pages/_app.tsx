@@ -10,7 +10,7 @@ const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
     return (
         <Provider store={store}>
             <NextUIProvider>
-                <NextThemesProvider attribute="class" defaultTheme="dark">
+                <NextThemesProvider attribute="class" defaultTheme="light">
                     <Component {...pageProps} />
                 </NextThemesProvider>
             </NextUIProvider>

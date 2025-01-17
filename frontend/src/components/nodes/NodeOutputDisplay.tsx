@@ -14,7 +14,11 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             return 'python'
         }
         // C++ indicators
-        if (code.includes('#include') || /\b(cout|cin|endl)\b/.test(code) || /\b(int|void|class)\s+\w+\s*\(/.test(code)) {
+        if (
+            code.includes('#include') ||
+            /\b(cout|cin|endl)\b/.test(code) ||
+            /\b(int|void|class)\s+\w+\s*\(/.test(code)
+        ) {
             return 'cpp'
         }
         // TypeScript/JavaScript indicators
@@ -34,17 +38,32 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         // More comprehensive heuristic for code detection
         const codeIndicators = [
             // General syntax
-            '{', '}', '()', '=>', ';',
+            '{',
+            '}',
+            '()',
+            '=>',
+            ';',
             // Function definitions
-            'function', 'def ', 'class ',
+            'function',
+            'def ',
+            'class ',
             // Variable declarations
-            'const ', 'let ', 'var ', 'int ', 'float ',
+            'const ',
+            'let ',
+            'var ',
+            'int ',
+            'float ',
             // Imports
-            'import ', 'from ', '#include',
+            'import ',
+            'from ',
+            '#include',
             // Control structures
-            'if ', 'for ', 'while ', 'return '
+            'if ',
+            'for ',
+            'while ',
+            'return ',
         ]
-        return value.includes('\n') && codeIndicators.some(indicator => value.includes(indicator))
+        return value.includes('\n') && codeIndicators.some((indicator) => value.includes(indicator))
     }
 
     const renderValue = (value: any) => {
@@ -79,15 +98,12 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                     onWheelCapture={(e) => {
                         e.stopPropagation()
                     }}
-
                 >
                     <div>
                         {Object.entries(output).map(([key, value]) => (
                             <div key={key} className="my-2 flex flex-col items-start">
                                 <label className="text-sm font-semibold mb-1 block">{key}:</label>
-                                <div className="ml-2 mt-auto w-full">
-                                    {renderValue(value)}
-                                </div>
+                                <div className="ml-2 mt-auto w-full">{renderValue(value)}</div>
                             </div>
                         ))}
                     </div>
@@ -97,4 +113,4 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
     )
 }
 
-export default NodeOutputDisplay;
+export default NodeOutputDisplay

@@ -6,6 +6,7 @@ import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } fr
 import { Icon } from '@iconify/react'
 import usePartialRun from '../../hooks/usePartialRun'
 import { TaskStatus } from '@/types/api_types/taskSchemas'
+import { AlertState } from '../../types/alert'
 import isEqual from 'lodash/isEqual'
 import { FlowWorkflowNode } from '@/store/flowSlice'
 import { getNodeTitle, duplicateNode, deleteNode } from '../../utils/flowUtils'
@@ -152,6 +153,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const [isRunning, setIsRunning] = useState(false)
     const [showTitleError, setShowTitleError] = useState(false)
     const [titleInputValue, setTitleInputValue] = useState('')
+    const [alert, setAlert] = useState<AlertState>({
+        message: '',
+        color: 'default',
+        isVisible: false,
+    })
     const dispatch = useDispatch()
 
     // Only keep the selectors we need for this component's functionality
@@ -162,6 +168,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const availableOutputs = useSelector(selectAvailableOutputs, isEqual)
 
     const { executePartialRun, loading } = usePartialRun()
+
+    const showAlert = (message: string, color: AlertState['color']) => {
+        setAlert({ message, color, isVisible: true })
+        setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000)
+    }
 
     const handleDelete = () => {
         deleteNode(id, selectedNodeId, dispatch)
@@ -176,7 +187,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         duplicateNode(id, positionAbsoluteX, positionAbsoluteY, dispatch, store.getState as () => RootState)
     }
 
-    const handlePartialRun = () => {
+    const handlePartialRun = async () => {
         if (!data) {
             return
         }
@@ -186,36 +197,45 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         const workflowId = window.location.pathname.split('/').pop()
         if (!workflowId) return
 
-        executePartialRun({
-            workflowId,
-            nodeId: id,
-            initialInputs,
-            partialOutputs: availableOutputs,
-            rerunPredecessors,
-        })
-            .then((result) => {
-                if (result) {
-                    Object.entries(result).forEach(([nodeId, output_values]) => {
-                        if (output_values) {
-                            dispatch(
-                                updateNodeDataOnly({
-                                    id: nodeId,
-                                    data: {
-                                        run: {
-                                            ...(data?.run || {}),
-                                            ...(output_values || {}),
-                                        },
+        try {
+            const result = await executePartialRun({
+                workflowId,
+                nodeId: data.title,
+                initialInputs,
+                partialOutputs: availableOutputs,
+                rerunPredecessors,
+            })
+
+            if (result) {
+                Object.entries(result).forEach(([nodeId, output_values]) => {
+                    if (output_values) {
+                        dispatch(
+                            updateNodeDataOnly({
+                                id: nodeId,
+                                data: {
+                                    run: {
+                                        ...(data?.run || {}),
+                                        ...(output_values || {}),
                                     },
-                                })
-                            )
-                            dispatch(setSelectedNode({ nodeId }))
-                        }
-                    })
-                }
-            })
-            .finally(() => {
-                setIsRunning(false)
-            })
+                                },
+                            })
+                        )
+                        dispatch(setSelectedNode({ nodeId }))
+                    }
+                })
+                showAlert('Node execution completed successfully', 'success')
+            }
+        } catch (error: any) {
+            console.error('Error running node:', error)
+            // Extract error message from the response if available
+            const errorMessage =
+                error.response?.data?.detail || 'Node execution failed. Please check the inputs and try again.'
+            showAlert(errorMessage, 'danger')
+            // Prevent the error from propagating to the global error handler
+            return
+        } finally {
+            setIsRunning(false)
+        }
     }
 
     const isSelected = String(id) === String(selectedNodeId)
@@ -296,202 +316,208 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     )
 
     return (
-        <div style={staticStyles.container} draggable={false} className="group" id={`node-${id}`}>
-            {showTitleError && (
-                <Alert
-                    key={`alert-${id}`}
-                    className="absolute -top-16 left-0 right-0 z-50"
-                    color="danger"
-                    onClose={() => setShowTitleError(false)}
-                >
-                    Title cannot contain whitespace. Use underscores instead.
-                </Alert>
+        <>
+            {alert.isVisible && (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <Alert color={alert.color}>{alert.message}</Alert>
+                </div>
             )}
-            {/* Container to hold the Handle and the content */}
-            <div>
-                {/* Hidden target handle covering the entire node */}
-                <Handle
-                    key={`handle-${id}`}
-                    type="target"
-                    position={Position.Left}
-                    id={`node-body-${id}`}
-                    style={staticStyles.targetHandle}
-                    isConnectable={true}
-                    isConnectableStart={false}
-                />
-
-                <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
-                    <Card
-                        key={`card-${id}`}
-                        className={`base-node ${className || ''}`}
-                        style={cardStyle}
-                        classNames={{
-                            base: `bg-background outline outline-default-200 outline-offset-0 ${
-                                isSelected
-                                    ? 'outline-[3px]'
-                                    : status === 'completed'
-                                      ? 'outline-[2px]'
-                                      : 'outline-[1px]'
-                            } group-hover:outline-[3px] transition-all duration-300`,
-                        }}
+            <div style={staticStyles.container} draggable={false} className="group" id={`node-${id}`}>
+                {showTitleError && (
+                    <Alert
+                        key={`alert-${id}`}
+                        className="absolute -top-16 left-0 right-0 z-50"
+                        color="danger"
+                        onClose={() => setShowTitleError(false)}
                     >
-                        {data && (
-                            <CardHeader key={`header-${id}`} style={headerStyle}>
-                                {editingTitle ? (
-                                    <Input
-                                        key={`input-${id}`}
-                                        autoFocus
-                                        value={titleInputValue}
-                                        size="sm"
-                                        variant="faded"
-                                        radius="lg"
-                                        onChange={(e) => {
-                                            const validValue = convertToPythonVariableName(e.target.value)
-                                            setTitleInputValue(validValue)
-                                            handleTitleChange(validValue)
-                                        }}
-                                        onBlur={() => setEditingTitle(false)}
-                                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                            if (e.key === 'Enter' || e.key === 'Escape') {
+                        Title cannot contain whitespace. Use underscores instead.
+                    </Alert>
+                )}
+                {/* Container to hold the Handle and the content */}
+                <div>
+                    {/* Hidden target handle covering the entire node */}
+                    <Handle
+                        key={`handle-${id}`}
+                        type="target"
+                        position={Position.Left}
+                        id={`node-body-${id}`}
+                        style={staticStyles.targetHandle}
+                        isConnectable={true}
+                        isConnectableStart={false}
+                    />
+
+                    <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
+                        <Card
+                            key={`card-${id}`}
+                            className={`base-node ${className || ''}`}
+                            style={cardStyle}
+                            classNames={{
+                                base: `bg-background border-default-200 ${
+                                    isSelected
+                                        ? 'border-[3px]'
+                                        : status === 'completed'
+                                          ? 'border-[2px]'
+                                          : 'border-[1px]'
+                                } group-hover:border-[3px]`,
+                            }}
+                        >
+                            {data && (
+                                <CardHeader key={`header-${id}`} style={headerStyle}>
+                                    {editingTitle ? (
+                                        <Input
+                                            autoFocus
+                                            value={titleInputValue}
+                                            size="sm"
+                                            variant="bordered"
+                                            radius="lg"
+                                            onChange={(e) => {
+                                                const validValue = convertToPythonVariableName(e.target.value)
+                                                setTitleInputValue(validValue)
+                                                handleTitleChange(validValue)
+                                            }}
+                                            onBlur={() => setEditingTitle(false)}
+                                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                                if (e.key === 'Enter' || e.key === 'Escape') {
+                                                    e.stopPropagation()
+                                                    e.preventDefault()
+                                                    setEditingTitle(false)
+                                                }
+                                            }}
+                                            classNames={{
+                                                input: 'text-foreground dark:text-white',
+                                                inputWrapper: 'dark:bg-default-100/50 bg-default-100',
+                                            }}
+                                        />
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            {data.logo && (
+                                                <img
+                                                    src={`${PUBLIC_URL}` + data.logo}
+                                                    alt="Node Logo"
+                                                    className="mr-2 max-h-8 max-w-8 mb-3"
+                                                />
+                                            )}
+                                            <h3
+                                                className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
+                                                style={titleStyle}
+                                                onClick={() => {
+                                                    setTitleInputValue(getNodeTitle(data))
+                                                    setEditingTitle(true)
+                                                }}
+                                            >
+                                                {getNodeTitle(data)}
+                                            </h3>
+                                        </div>
+                                    )}
+
+                                    <div style={staticStyles.controlsContainer}>
+                                        <Button
+                                            key={`collapse-btn-${id}`}
+                                            size="sm"
+                                            variant="flat"
+                                            style={staticStyles.collapseButton}
+                                            onClick={(e) => {
                                                 e.stopPropagation()
-                                                e.preventDefault()
-                                                setEditingTitle(false)
-                                            }
-                                        }}
-                                        classNames={{
-                                            input: 'bg-default-100',
-                                            inputWrapper: 'shadow-none',
-                                        }}
-                                    />
-                                ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        {data.logo && (
-                                            <img
-                                                src={`${PUBLIC_URL}` + data.logo}
-                                                alt="Node Logo"
-                                                className="mr-2 max-h-8 max-w-8 mb-3"
-                                            />
-                                        )}
-                                        <h3
-                                            className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
-                                            style={titleStyle}
-                                            onClick={() => {
-                                                setTitleInputValue(getNodeTitle(data))
-                                                setEditingTitle(true)
+                                                setIsCollapsed(!isCollapsed)
                                             }}
                                         >
-                                            {getNodeTitle(data)}
-                                        </h3>
+                                            {isCollapsed ? '▼' : '▲'}
+                                        </Button>
+
+                                        <div style={tagStyle} className="node-acronym-tag">
+                                            {acronym}
+                                        </div>
                                     </div>
-                                )}
+                                </CardHeader>
+                            )}
+                            {!isCollapsed && <Divider key={`divider-${id}`} />}
 
-                                <div style={staticStyles.controlsContainer}>
-                                    <Button
-                                        key={`collapse-btn-${id}`}
-                                        size="sm"
-                                        variant="flat"
-                                        style={staticStyles.collapseButton}
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            setIsCollapsed(!isCollapsed)
-                                        }}
-                                    >
-                                        {isCollapsed ? '▼' : '▲'}
-                                    </Button>
-
-                                    <div style={tagStyle} className="node-acronym-tag">
-                                        {acronym}
-                                    </div>
-                                </div>
-                            </CardHeader>
-                        )}
-                        {!isCollapsed && <Divider key={`divider-${id}`} />}
-
-                        <CardBody key={`body-${id}`} className="px-1">
-                            {children}
-                        </CardBody>
-                    </Card>
+                            <CardBody key={`body-${id}`} className="px-1">
+                                {children}
+                            </CardBody>
+                        </Card>
+                    </div>
                 </div>
+
+                {/* Controls - Update to use CSS-based hover */}
+                <Card
+                    key={`controls-card-${id}`}
+                    style={staticStyles.controlsCard}
+                    className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
+                    classNames={{
+                        base: 'bg-background border-default-200 transition-opacity duration-200',
+                    }}
+                >
+                    <div className="flex flex-row gap-1">
+                        <Button
+                            key={`run-btn-${id}`}
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onPress={handlePartialRun}
+                            disabled={loading || isRunning}
+                        >
+                            {isRunning ? (
+                                <Spinner key={`spinner-${id}`} size="sm" color="current" />
+                            ) : (
+                                <Icon
+                                    key={`play-icon-${id}`}
+                                    className="text-default-500"
+                                    icon="solar:play-linear"
+                                    width={22}
+                                />
+                            )}
+                        </Button>
+                        {!isInputNode && (
+                            <Button
+                                key={`delete-btn-${id}`}
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onPress={handleDelete}
+                            >
+                                <Icon
+                                    key={`delete-icon-${id}`}
+                                    className="text-default-500"
+                                    icon="solar:trash-bin-trash-linear"
+                                    width={22}
+                                />
+                            </Button>
+                        )}
+                        <Button
+                            key={`duplicate-btn-${id}`}
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onPress={handleDuplicate}
+                        >
+                            <Icon
+                                key={`duplicate-icon-${id}`}
+                                className="text-default-500"
+                                icon="solar:copy-linear"
+                                width={22}
+                            />
+                        </Button>
+                        {handleOpenModal && data?.run !== undefined && (
+                            <Button
+                                key={`modal-btn-${id}`}
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onPress={() => handleOpenModal(true)}
+                            >
+                                <Icon
+                                    key={`view-icon-${id}`}
+                                    className="text-default-500"
+                                    icon="solar:eye-linear"
+                                    width={22}
+                                />
+                            </Button>
+                        )}
+                    </div>
+                </Card>
             </div>
-
-            {/* Controls - Update to use CSS-based hover */}
-            <Card
-                key={`controls-card-${id}`}
-                style={staticStyles.controlsCard}
-                className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
-                classNames={{
-                    base: 'bg-background border-default-200 transition-opacity duration-200',
-                }}
-            >
-                <div className="flex flex-row gap-1">
-                    <Button
-                        key={`run-btn-${id}`}
-                        isIconOnly
-                        radius="full"
-                        variant="light"
-                        onPress={handlePartialRun}
-                        disabled={loading || isRunning}
-                    >
-                        {isRunning ? (
-                            <Spinner key={`spinner-${id}`} size="sm" color="current" />
-                        ) : (
-                            <Icon
-                                key={`play-icon-${id}`}
-                                className="text-default-500"
-                                icon="solar:play-linear"
-                                width={22}
-                            />
-                        )}
-                    </Button>
-                    {!isInputNode && (
-                        <Button
-                            key={`delete-btn-${id}`}
-                            isIconOnly
-                            radius="full"
-                            variant="light"
-                            onPress={handleDelete}
-                        >
-                            <Icon
-                                key={`delete-icon-${id}`}
-                                className="text-default-500"
-                                icon="solar:trash-bin-trash-linear"
-                                width={22}
-                            />
-                        </Button>
-                    )}
-                    <Button
-                        key={`duplicate-btn-${id}`}
-                        isIconOnly
-                        radius="full"
-                        variant="light"
-                        onPress={handleDuplicate}
-                    >
-                        <Icon
-                            key={`duplicate-icon-${id}`}
-                            className="text-default-500"
-                            icon="solar:copy-linear"
-                            width={22}
-                        />
-                    </Button>
-                    {handleOpenModal && data?.run !== undefined && (
-                        <Button
-                            key={`modal-btn-${id}`}
-                            isIconOnly
-                            radius="full"
-                            variant="light"
-                            onPress={() => handleOpenModal(true)}
-                        >
-                            <Icon
-                                key={`view-icon-${id}`}
-                                className="text-default-500"
-                                icon="solar:eye-linear"
-                                width={22}
-                            />
-                        </Button>
-                    )}
-                </div>
-            </Card>
-        </div>
+        </>
     )
 }
 

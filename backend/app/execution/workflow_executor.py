@@ -2,6 +2,8 @@ import asyncio
 from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
+from pydantic import ValidationError
+
 from ..nodes.base import BaseNodeOutput
 from ..nodes.factory import NodeFactory
 
@@ -235,11 +237,16 @@ class WorkflowExecutor:
         # Handle precomputed outputs first
         if precomputed_outputs:
             for node_id, output in precomputed_outputs.items():
-                self._outputs[node_id] = NodeFactory.create_node(
-                    node_name=self._node_dict[node_id].title,
-                    node_type_name=self._node_dict[node_id].node_type,
-                    config=self._node_dict[node_id].config,
-                ).output_model.model_validate(output)
+                try:
+                    self._outputs[node_id] = NodeFactory.create_node(
+                        node_name=self._node_dict[node_id].title,
+                        node_type_name=self._node_dict[node_id].node_type,
+                        config=self._node_dict[node_id].config,
+                    ).output_model.model_validate(output)
+                except ValidationError as e:
+                    print(
+                        f"[WARNING]: Precomputed output validation failed for node {node_id}: {e}\n skipping precomputed output"
+                    )
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(

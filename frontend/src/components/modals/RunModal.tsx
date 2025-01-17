@@ -227,6 +227,9 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                             <div className="flex gap-2 overflow-x-auto">
                                 {workflowInputVariableNames.map((field) => (
                                     <div key={field} className="w-[300px] min-w-[300px]">
+                                        <div className="mb-2 font-medium text-foreground">
+                                            {field}
+                                        </div>
                                         <TextEditor
                                             nodeID={`newRow-${field}`}
                                             fieldName={field}

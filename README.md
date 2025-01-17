@@ -16,18 +16,29 @@
   </a>
 </p>
 
-
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
+
+# 🕸️ Why PySpur?
+
+- 🖐️ **Drag-and-drop**: Visually build and test workflows in seconds.
+- 🧪 **Evals**: Quickly test and refine agent steps interactively.
+- 🧰 **Tools**: Connect to Slack, Google Sheets, GitHub, and more.
+- 🗃️ **RAG**: Parse, chunk, embed, and upsert data into a vector DB in a few clicks.
+- 🚀 **1-Click Deploy**: Publish as an API and integrate wherever you want.
+- 🤖 **Multi-agent**: Orchestrate and manage conversations across multiple agents.
+- 🐍 **Python-based**: Add new nodes by creating a single Python file.
+- 🎛️ **Flexible**: Agnostic to LLMs, embedders, and vector databases.
+
 # ✨ Core Benefits
-
-## Modular Building Blocks
-
-https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
 ## Debug at Node Level:
 
 https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
+
+## Modular Building Blocks
+
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
 ## Evaluate Final Performance
 
@@ -37,14 +48,7 @@ https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
 
 https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 
-
-# 🕸️ Why PySpur?
-
-* **Easy-to-hack**, eg., one can add new workflow nodes by simply creating a single Python file.
-* **JSON configs** of workflow graphs, enabling easy sharing and version control.
-* **Lightweight** via minimal dependencies, avoiding bloated LLM frameworks.
-
-# ⚡ Quick start 
+# ⚡ Quick start
 
 You can launch PySpur using pre-built docker images in the following steps:
 
@@ -115,7 +119,7 @@ PySpur can work with local models served using Ollama.
 Steps to configure PySpur to work with Ollama running on the same host.
 
 ### 1. Configure Ollama
-To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama. 
+To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama.
 An easy way to do this is to launch the ollama service with the following command:
 ```sh
 OLLAMA_HOST="0.0.0.0" ollama serve
@@ -125,7 +129,7 @@ OLLAMA_HOST="0.0.0.0" ollama serve
 Next up we need to update the `OLLAMA_BASE_URL` environment value in the `.env` file.
 If your Ollama port is 11434 (the default port), then the entry in `.env` file should look like this:
 ```sh
-OLLAMA_BASE_URL=http://host.docker.internal:11434 
+OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 (Please make sure that there is no trailing slash in the end!)
 
@@ -167,9 +171,9 @@ You can support us in our work by leaving a star! Thank you!
     - [X] LLM Nodes
     - [X] If-Else
     - [X] Merge Branches
-    - [ ] Tools
+    - [X] Tools
     - [ ] Loops
-- [ ] RAG
+- [X] RAG
 - [ ] Pipeline optimization via DSPy and related methods
 - [ ] Templates
 - [ ] Compile Spurs to Code
@@ -180,6 +184,3 @@ You can support us in our work by leaving a star! Thank you!
 
 Your feedback will be massively appreciated.
 Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
-
-
-
