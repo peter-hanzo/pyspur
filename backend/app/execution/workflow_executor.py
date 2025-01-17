@@ -153,6 +153,18 @@ class WorkflowExecutor:
             # Remove None values from input
             node_input = {k: v for k, v in node_input.items() if v is not None}
 
+            # update task recorder with inputs
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.RUNNING,
+                    inputs={
+                        dep_id: output.model_dump()
+                        for dep_id, output in node_input.items()
+                        if node.node_type != "InputNode"
+                    },
+                )
+
             # If node_input is empty, return None
             if not node_input:
                 self._outputs[node_id] = None
@@ -166,11 +178,6 @@ class WorkflowExecutor:
                 self.task_recorder.update_task(
                     node_id=node_id,
                     status=TaskStatus.RUNNING,
-                    inputs={
-                        dep_id: output.model_dump()
-                        for dep_id, output in node_input.items()
-                        if node.node_type != "InputNode"
-                    },
                     subworkflow=node_instance.subworkflow,
                 )
 
