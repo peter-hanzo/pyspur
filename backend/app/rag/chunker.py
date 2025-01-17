@@ -1,14 +1,15 @@
 import uuid
 from typing import Dict, List, Optional, Tuple, Union
+from jinja2 import Template
 
 import tiktoken
-from .embedder import EmbeddingModels, get_multiple_text_embeddings
+from .embedder import EmbeddingModels, get_multiple_text_embeddings, EmbeddingArray
 from .schemas.document_schemas import (
     Document,
     DocumentChunk,
     DocumentChunkMetadata,
+    ChunkingConfig,
 )
-from pydantic import BaseModel
 
 # Global variables
 tokenizer = tiktoken.get_encoding(
@@ -16,13 +17,30 @@ tokenizer = tiktoken.get_encoding(
 )  # The encoding scheme to use for tokenization
 
 
-# Constants
-class ChunkingConfig(BaseModel):
-    chunk_token_size: int = 200
-    min_chunk_size_chars: int = 350
-    min_chunk_length_to_embed: int = 5
-    embeddings_batch_size: int = 128
-    max_num_chunks: int = 10000
+def apply_template(text: str, template: str, metadata_template: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
+    """Apply Jinja template to chunk text and metadata."""
+    try:
+        # Create template context
+        context = {
+            "text": text,
+            # Add more context variables as needed
+        }
+
+        # Process text template
+        text_template = Template(template)
+        processed_text = text_template.render(**context)
+
+        # Process metadata templates
+        processed_metadata: Dict[str, str] = {}
+        for key, template_str in metadata_template.items():
+            metadata_template_obj = Template(template_str)
+            processed_metadata[key] = metadata_template_obj.render(**context)
+
+        return processed_text, processed_metadata
+    except Exception as e:
+        # Log error and return original text with basic metadata
+        print(f"Error applying template: {e}")
+        return text, {"type": "text_chunk", "error": str(e)}
 
 
 def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
@@ -40,7 +58,7 @@ def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
         return []
 
     tokens = tokenizer.encode(text, disallowed_special=())
-    chunks = []
+    chunks: List[str] = []
     num_chunks = 0
 
     while tokens and num_chunks < config.max_num_chunks:
@@ -97,19 +115,34 @@ def create_document_chunks(
     text_chunks = get_text_chunks(doc.text, config)
 
     metadata = (
-        DocumentChunkMetadata(**doc.metadata.dict())
+        DocumentChunkMetadata(**doc.metadata.model_dump())
         if doc.metadata is not None
         else DocumentChunkMetadata()
     )
     metadata.document_id = doc_id
 
-    doc_chunks = []
+    doc_chunks: List[DocumentChunk] = []
     for i, text_chunk in enumerate(text_chunks):
         chunk_id = f"{doc_id}_{i}"
+
+        # Apply template if enabled
+        if config.template.enabled:
+            processed_text, processed_metadata = apply_template(
+                text_chunk,
+                config.template.template,
+                config.template.metadata_template or {}
+            )
+            # Update metadata with processed metadata
+            chunk_metadata = metadata.model_copy()
+            chunk_metadata.custom_metadata = processed_metadata
+        else:
+            processed_text = text_chunk
+            chunk_metadata = metadata
+
         doc_chunk = DocumentChunk(
             id=chunk_id,
-            text=text_chunk,
-            metadata=metadata,
+            text=processed_text,
+            metadata=chunk_metadata,
         )
         doc_chunks.append(doc_chunk)
 
@@ -152,7 +185,7 @@ async def get_document_chunks(
         return {}
 
     chunk_texts = [chunk.text for chunk in all_chunks]
-    embeddings = await get_multiple_text_embeddings(
+    embeddings: EmbeddingArray = await get_multiple_text_embeddings(
         docs=chunk_texts, model=model, batch_size=config.embeddings_batch_size
     )
 

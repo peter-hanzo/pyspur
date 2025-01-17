@@ -710,6 +710,10 @@ export interface DocumentCollectionCreateRequest {
         use_vision_model: boolean
         vision_model?: string
         vision_provider?: string
+        template?: {
+            template: string
+            metadata_template: Record<string, string>
+        }
     }
 }
 
@@ -921,6 +925,43 @@ export const getIndexProgress = async (indexId: string): Promise<ProcessingProgr
             return null
         }
         // For other errors, throw
+        throw error
+    }
+}
+
+export interface ChunkPreviewResponse {
+    original_text: string
+    processed_text: string
+    metadata: Record<string, string>
+    total_chunks: number
+}
+
+export const previewChunk = async (
+    text: string,
+    config: {
+        chunk_token_size: number
+        min_chunk_size_chars: number
+        min_chunk_length_to_embed: number
+        template: {
+            enabled: boolean
+            template: string
+            metadata_template: Record<string, string>
+        }
+    }
+): Promise<ChunkPreviewResponse> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/rag/collections/preview_chunk/`, {
+            text,
+            chunking_config: {
+                chunk_token_size: config.chunk_token_size,
+                min_chunk_size_chars: config.min_chunk_size_chars,
+                min_chunk_length_to_embed: config.min_chunk_length_to_embed,
+                template: config.template
+            }
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error previewing chunk:', error)
         throw error
     }
 }

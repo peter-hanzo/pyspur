@@ -6,6 +6,7 @@ from fastapi import (
     File,
     Form,
     Depends,
+    Body,
 )
 from typing import List, Dict, Optional, Any, cast
 import json
@@ -23,7 +24,11 @@ from ..models.dc_and_vi_model import (
 from ..database import get_db
 from ..rag.document_collection import DocumentStore
 from ..rag.vector_index import VectorIndex
-from ..rag.schemas.document_schemas import DocumentWithChunks
+from ..rag.schemas.document_schemas import (
+    DocumentWithChunks,
+    ChunkingConfig,
+    ChunkTemplate,
+)
 from ..schemas.rag_schemas import (
     DocumentCollectionCreateSchema,
     VectorIndexCreateSchema,
@@ -31,6 +36,7 @@ from ..schemas.rag_schemas import (
     VectorIndexResponseSchema,
     ProcessingProgressSchema,
 )
+from ..rag.chunker import get_text_chunks, apply_template
 
 # In-memory progress tracking (replace with database in production)
 collection_progress: Dict[str, ProcessingProgressSchema] = {}
@@ -688,4 +694,47 @@ async def get_collection_documents(collection_id: str):
                 documents.append(doc)
         return documents
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/collections/preview_chunk/")
+async def preview_chunk(
+    text: str = Body(...),
+    chunking_config: ChunkingConfig = Body(...),
+) -> Dict[str, Any]:
+    """Preview how a text will be chunked and formatted with templates."""
+    try:
+        # Get chunks using the provided configuration
+        chunks = get_text_chunks(text, chunking_config)
+
+        # If no chunks were generated, return error
+        if not chunks:
+            raise HTTPException(
+                status_code=400,
+                detail="No chunks could be generated with the provided configuration"
+            )
+
+        # Take the first chunk for preview
+        preview_chunk = chunks[0]
+
+        # Apply template if enabled
+        if chunking_config.template.enabled:
+            processed_text, processed_metadata = apply_template(
+                preview_chunk,
+                chunking_config.template.template,
+                chunking_config.template.metadata_template or {}
+            )
+        else:
+            processed_text = preview_chunk
+            processed_metadata = {"type": "text_chunk"}
+
+        return {
+            "original_text": preview_chunk,
+            "processed_text": processed_text,
+            "metadata": processed_metadata,
+            "total_chunks": len(chunks)
+        }
+
+    except Exception as e:
+        logger.error(f"Error previewing chunk: {e}")
         raise HTTPException(status_code=500, detail=str(e))
