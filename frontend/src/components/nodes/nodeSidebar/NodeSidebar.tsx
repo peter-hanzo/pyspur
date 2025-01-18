@@ -393,7 +393,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     const initializeOutputJsonSchema = () => {
-        const jsonSchema = generateJsonSchemaFromSchema(currentNodeConfig.output_schema)
+        const jsonSchema = generateJsonSchemaFromSchema(nodeConfig.output_schema)
         if (jsonSchema) {
             const updates = {
                 output_json_schema: jsonSchema,
@@ -415,7 +415,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     useEffect(() => {
-        if (currentNodeConfig.output_schema && !currentNodeConfig.output_json_schema) {
+        if (nodeConfig.output_schema && !currentNodeConfig.output_json_schema) {
             initializeOutputJsonSchema()
         }
     }, [])
