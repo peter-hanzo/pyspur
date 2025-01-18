@@ -97,6 +97,7 @@
     },
     "devDependencies": {
         "autoprefixer": "^10.x",
+        "eslint": "^8.x",
         "postcss": "^8.x",
         "tailwindcss": "^3.x",
         "typescript": "^5.7.2"
