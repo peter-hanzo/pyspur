@@ -18,6 +18,7 @@ class GitHubListPullRequestsNodeOutput(BaseNodeOutput):
 class GitHubListPullRequestsNode(BaseNode):
     name = "github_list_pull_requests_node"
     display_name = "GitHubListPullRequests"
+    logo="/images/github.png"
 
     config_model = GitHubListPullRequestsNodeConfig
     input_model = GitHubListPullRequestsNodeInput
