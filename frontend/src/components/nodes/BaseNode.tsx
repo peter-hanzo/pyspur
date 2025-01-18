@@ -228,7 +228,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         } catch (error: any) {
             console.error('Error running node:', error)
             // Extract error message from the response if available
-            const errorMessage = error.response?.data?.detail || 'Node execution failed. Please check the inputs and try again.'
+            const errorMessage =
+                error.response?.data?.detail || 'Node execution failed. Please check the inputs and try again.'
             showAlert(errorMessage, 'danger')
             // Prevent the error from propagating to the global error handler
             return
@@ -258,7 +259,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         case 'FAILED':
             borderColor = 'red'
             break
-        case 'CANCELLED':
+        case 'CANCELED':
             borderColor = 'gray'
             break
         default:
@@ -352,7 +353,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                             style={cardStyle}
                             classNames={{
                                 base: `bg-background border-default-200 ${
-                                    isSelected ? 'border-[3px]' : status === 'completed' ? 'border-[2px]' : 'border-[1px]'
+                                    isSelected
+                                        ? 'border-[3px]'
+                                        : status === 'completed'
+                                          ? 'border-[2px]'
+                                          : 'border-[1px]'
                                 } group-hover:border-[3px]`,
                             }}
                         >
