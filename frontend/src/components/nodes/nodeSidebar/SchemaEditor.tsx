@@ -22,7 +22,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     nodeId,
 }) => {
     const [newKey, setNewKey] = useState<string>('')
-    const [newType, setNewType] = useState<string>('str')
+    const [newType, setNewType] = useState<string>('string')
     const [editingField, setEditingField] = useState<string | null>(null)
     const dispatch = useDispatch()
 
@@ -38,7 +38,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             }
             onChange(updatedJson)
             setNewKey('')
-            setNewType('str')
+            setNewType('string')
         }
     }
 
@@ -50,7 +50,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     const getType = (value: any): string => {
         if (typeof value === 'object' && value !== null) {
-            return value.type || 'str'
+            return value.type || 'string'
         }
         return value
     }
@@ -103,20 +103,26 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     onChange={(e) => setNewType(e.target.value)}
                     disabled={disabled}
                     label="Type"
-                    defaultSelectedKeys={['str']}
+                    defaultSelectedKeys={['string']}
                     className="max-w-xs p-2 w-1/3"
                 >
-                    <SelectItem key="str" value="string">
+                    <SelectItem key="string" value="string">
                         string
                     </SelectItem>
-                    <SelectItem key="bool" value="boolean">
+                    <SelectItem key="boolean" value="boolean">
                         boolean
                     </SelectItem>
-                    <SelectItem key="int" value="integer">
+                    <SelectItem key="integer" value="integer">
                         integer
                     </SelectItem>
-                    <SelectItem key="float" value="number">
+                    <SelectItem key="number" value="number">
                         number
+                    </SelectItem>
+                    <SelectItem key="object" value="object">
+                        object
+                    </SelectItem>
+                    <SelectItem key="array" value="array">
+                        array
                     </SelectItem>
                 </Select>
                 <Button
