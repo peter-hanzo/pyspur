@@ -392,6 +392,34 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         ) as FieldMetadata
     }
 
+    const initializeOutputJsonSchema = () => {
+        if (currentNodeConfig.output_schema && !currentNodeConfig.output_json_schema) {
+            const jsonSchema = generateJsonSchemaFromSchema(currentNodeConfig.output_schema)
+            if (jsonSchema) {
+                const updates = {
+                    output_json_schema: jsonSchema,
+                }
+                setCurrentNodeConfig((prev) => ({
+                    ...prev,
+                    ...updates,
+                }))
+                dispatch(
+                    updateNodeConfigOnly({
+                        id: nodeID,
+                        data: {
+                            ...currentNodeConfig,
+                            ...updates,
+                        },
+                    })
+                )
+            }
+        }
+    }
+    
+    useEffect(() => {
+        initializeOutputJsonSchema()
+    }, [currentNodeConfig.output_schema])
+
     // Update the `renderField` function to include missing cases
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
