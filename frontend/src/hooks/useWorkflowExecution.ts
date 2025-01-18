@@ -26,13 +26,14 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const [workflowRuns, setWorkflowRuns] = useState<WorkflowRun[]>([])
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false)
 
-    let currentStatusInterval: NodeJS.Timeout | null = null
+    // Create array to track all intervals for this run
+    let statusIntervals: NodeJS.Timeout[] = []
 
     const updateWorkflowStatus = async (runID: string): Promise<void> => {
-        if (currentStatusInterval) {
-            clearInterval(currentStatusInterval)
-        }
-        currentStatusInterval = setInterval(async () => {
+        // Clear any existing intervals
+        statusIntervals.forEach((interval) => clearInterval(interval))
+
+        let currentStatusInterval = setInterval(async () => {
             try {
                 const statusResponse = await getRunStatus(runID)
                 const tasks = statusResponse.tasks
@@ -84,21 +85,30 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                 if (statusResponse.status !== 'RUNNING') {
                     setIsRunning(false)
                     setCompletionPercentage(0)
+                    // Clear all intervals
+                    statusIntervals.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
                 }
                 if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
                     setIsRunning(false)
                     setCompletionPercentage(0)
+                    // Clear all intervals
+                    statusIntervals.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run failed.', 'danger')
                     return
                 }
             } catch (error) {
                 console.error('Error fetching workflow status:', error)
+                // Clear all intervals
+                statusIntervals.forEach((interval) => clearInterval(interval))
                 clearInterval(currentStatusInterval)
             }
         }, 1000)
+
+        // Track the new interval
+        statusIntervals.push(currentStatusInterval)
     }
 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
@@ -132,8 +142,8 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const stopWorkflow = (): void => {
         setIsRunning(false)
         setCompletionPercentage(0)
-        if (currentStatusInterval) {
-            clearInterval(currentStatusInterval)
+        if (statusIntervals.length > 0) {
+            statusIntervals.forEach((interval) => clearInterval(interval))
         }
         onAlert('Workflow run stopped.', 'warning')
     }
