@@ -659,7 +659,7 @@ const flowSlice = createSlice({
         resetRun: (state) => {
             state.nodes = state.nodes.map((node) => ({
                 ...node,
-                data: { ...node.data, run: undefined, taskStatus: undefined },
+                data: { ...node.data, run: undefined, taskStatus: undefined, error: undefined },
             }))
         },
 
