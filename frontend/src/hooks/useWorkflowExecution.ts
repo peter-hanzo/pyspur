@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeDataOnly, resetRun } from '../store/flowSlice'
 import { getRunStatus, startRun, getWorkflowRuns, validateGoogleAccessToken } from '../utils/api'
@@ -27,11 +27,11 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false)
 
     // Create array to track all intervals for this run
-    let statusIntervals: NodeJS.Timeout[] = []
+    const statusIntervals = useRef<NodeJS.Timeout[]>([])
 
     const updateWorkflowStatus = async (runID: string): Promise<void> => {
         // Clear any existing intervals
-        statusIntervals.forEach((interval) => clearInterval(interval))
+        statusIntervals.current.forEach((interval) => clearInterval(interval))
 
         let currentStatusInterval = setInterval(async () => {
             try {
@@ -86,7 +86,7 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     setIsRunning(false)
                     setCompletionPercentage(0)
                     // Clear all intervals
-                    statusIntervals.forEach((interval) => clearInterval(interval))
+                    statusIntervals.current.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
                 }
@@ -94,7 +94,7 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     setIsRunning(false)
                     setCompletionPercentage(0)
                     // Clear all intervals
-                    statusIntervals.forEach((interval) => clearInterval(interval))
+                    statusIntervals.current.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run failed.', 'danger')
                     return
@@ -102,13 +102,13 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
             } catch (error) {
                 console.error('Error fetching workflow status:', error)
                 // Clear all intervals
-                statusIntervals.forEach((interval) => clearInterval(interval))
+                statusIntervals.current.forEach((interval) => clearInterval(interval))
                 clearInterval(currentStatusInterval)
             }
         }, 1000)
 
         // Track the new interval
-        statusIntervals.push(currentStatusInterval)
+        statusIntervals.current.push(currentStatusInterval)
     }
 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
@@ -142,8 +142,8 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const stopWorkflow = (): void => {
         setIsRunning(false)
         setCompletionPercentage(0)
-        if (statusIntervals.length > 0) {
-            statusIntervals.forEach((interval) => clearInterval(interval))
+        if (statusIntervals.current.length > 0) {
+            statusIntervals.current.forEach((interval) => clearInterval(interval))
         }
         onAlert('Workflow run stopped.', 'warning')
     }
