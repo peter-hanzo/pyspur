@@ -418,7 +418,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     
     useEffect(() => {
         initializeOutputJsonSchema()
-    }, [currentNodeConfig.output_schema])
+    }, [])
 
     // Update the `renderField` function to include missing cases
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
