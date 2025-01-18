@@ -41,14 +41,6 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     setCompletionPercentage(statusResponse.percentage_complete)
                 }
 
-                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
-                    setIsRunning(false)
-                    setCompletionPercentage(0)
-                    clearInterval(currentStatusInterval)
-                    onAlert('Workflow run failed.', 'danger')
-                    return
-                }
-
                 if (tasks.length > 0) {
                     tasks.forEach((task) => {
                         const nodeId = task.node_id
@@ -79,6 +71,7 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                                         id: node.id,
                                         data: {
                                             run: { ...node.data.run, ...output_values },
+                                            error: task.error || null,
                                             taskStatus: nodeTaskStatus,
                                         },
                                     })
@@ -94,6 +87,13 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
                 }
+                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
+                    setIsRunning(false)
+                    setCompletionPercentage(0)
+                    clearInterval(currentStatusInterval)
+                    onAlert('Workflow run failed.', 'danger')
+                    return
+                }
             } catch (error) {
                 console.error('Error fetching workflow status:', error)
                 clearInterval(currentStatusInterval)
@@ -104,17 +104,17 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
         if (!workflowId) return
 
-    const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
+        const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
 
-    if (hasGoogleSheetsReadNode) {
-        const response = await validateGoogleAccessToken()
-        console.log('Token check response:', response)
-        if (!response.is_valid) {
-            const baseUrl = window.location.origin
-            window.open(`${baseUrl}/google/auth`, '_blank');
-            return;
+        if (hasGoogleSheetsReadNode) {
+            const response = await validateGoogleAccessToken()
+            console.log('Token check response:', response)
+            if (!response.is_valid) {
+                const baseUrl = window.location.origin
+                window.open(`${baseUrl}/google/auth`, '_blank')
+                return
+            }
         }
-    }
 
         try {
             dispatch(resetRun())

@@ -76,15 +76,16 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
     const nodes = useSelector((state: RootState) => state.flow.nodes, isEqual)
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
+    const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs, isEqual)
     const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode)
 
     const saveWorkflow = useSaveWorkflow()
 
     useEffect(() => {
-        if (nodes.length > 0 || edges.length > 0) {
+        if (nodes.length > 0 || edges.length > 0 || Object.keys(nodeConfigs).length > 0) {
             saveWorkflow()
         }
-    }, [nodes, edges, saveWorkflow])
+    }, [nodes, edges, nodeConfigs, saveWorkflow])
 
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
     const [helperLines, setHelperLines] = useState<HelperLines>({

@@ -183,6 +183,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             const config = allNodeConfigs[node.id]
             if (config?.output_schema) {
                 const nodeTitle = config.title || node.id
+                if (node.type === 'RouterNode') {
+                    return [...acc, ...Object.keys(config.output_schema).map((key) => `${key}`)]
+                }
                 return [...acc, ...Object.keys(config.output_schema).map((key) => `${nodeTitle}.${key}`)]
             }
             return acc
