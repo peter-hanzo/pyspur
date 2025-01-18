@@ -111,7 +111,11 @@ class SingleLLMCallNode(VariableOutputBaseNode):
             url_vars = {}
             if "file" in self.config.url_variables:
                 # Split the input variable reference (e.g. "input_node.video_url")
-                node_id, var_name = self.config.url_variables["file"].split(".")
+                parts = self.config.url_variables["file"].split(".")
+                if len(parts) == 2:
+                    node_id, var_name = parts
+                else:
+                    node_id, var_name = parts[0], parts[-1]
                 # Get the value from the input using the node_id
                 if node_id in raw_input_dict and var_name in raw_input_dict[node_id]:
                     # Always use image_url format regardless of file type
