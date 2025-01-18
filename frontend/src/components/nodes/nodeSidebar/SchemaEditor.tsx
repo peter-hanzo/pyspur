@@ -50,7 +50,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     const getType = (value: any): string => {
         if (typeof value === 'object' && value !== null) {
-            return value.type || 'str'
+            return value.type || 'string'
         }
         return value
     }
