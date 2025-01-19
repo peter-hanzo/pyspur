@@ -301,7 +301,7 @@ if __name__ == "__main__":
                     "id": "input_node",
                     "title": "",
                     "node_type": "InputNode",
-                    "config": {"output_schema": {"question": "str"}},
+                    "config": {"output_schema": {"question": "string"}},
                     "coordinates": {"x": 281.25, "y": 128.75},
                 },
                 {
@@ -311,8 +311,8 @@ if __name__ == "__main__":
                     "config": {
                         "samples": 1,
                         "output_schema": {
-                            "response": "str",
-                            "next_potential_question": "str",
+                            "response": "string",
+                            "next_potential_question": "string",
                         },
                         "llm_info": {
                             "model": "gpt-4o",
@@ -332,7 +332,7 @@ if __name__ == "__main__":
                     "config": {
                         "title": "OutputNodeConfig",
                         "type": "object",
-                        "output_schema": {"question": "str", "response": "str"},
+                        "output_schema": {"question": "string", "response": "string"},
                         "output_map": {
                             "question": "bon_node.next_potential_question",
                             "response": "bon_node.response",

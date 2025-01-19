@@ -207,7 +207,7 @@ if __name__ == "__main__":
             llm_info=ModelInfo(model=LLMModels.GPT_4O, max_tokens=150, temperature=1),
             system_message="You are a helpful assistant.",
             user_message="",
-            output_schema={"response": "str"},
+            output_schema={"response": "string"},
             url_variables=None,
             output_json_schema=None,
         ),
