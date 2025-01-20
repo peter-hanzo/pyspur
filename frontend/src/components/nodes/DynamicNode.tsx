@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react'
-import { Handle, useHandleConnections, NodeProps, useConnection, Position, useUpdateNodeInternals } from '@xyflow/react'
+import {
+    Handle,
+    useHandleConnections,
+    NodeProps,
+    useConnection,
+    Position,
+    useUpdateNodeInternals,
+    NodeResizer,
+} from '@xyflow/react'
 import { useSelector } from 'react-redux'
 import BaseNode from './BaseNode'
 import styles from './DynamicNode.module.css'
-import { Input } from '@nextui-org/react'
+import { CardBody, Input } from '@nextui-org/react'
 import { FlowWorkflowNode } from '../../store/flowSlice'
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice'
 import { RootState } from '../../store/store'
@@ -19,7 +27,13 @@ const baseNodeStyle = {
     height: 'auto',
     minHeight: '150px',
     maxHeight: '800px',
-    transition: 'height 0.3s ease',
+    transition: 'height 0.3s ease, width 0.3s ease',
+}
+
+const nodeResizerHandleStyle = {
+    width: '10px',
+    height: '10px',
+    borderRadius: '3px',
 }
 interface SchemaMetadata {
     required?: boolean
@@ -27,9 +41,11 @@ interface SchemaMetadata {
     type?: string
     [key: string]: any
 }
-interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
+export interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
     readOnly?: boolean
+    displaySubflow?: boolean
+    displayResizer?: boolean
 }
 
 const DynamicNode: React.FC<DynamicNodeProps> = ({

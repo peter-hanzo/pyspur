@@ -183,9 +183,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             const config = allNodeConfigs[node.id]
             if (config?.output_schema) {
                 const nodeTitle = config.title || node.id
-                if (node.type === 'RouterNode') {
-                    return [...acc, ...Object.keys(config.output_schema).map((key) => `${key}`)]
-                }
                 return [...acc, ...Object.keys(config.output_schema).map((key) => `${nodeTitle}.${key}`)]
             }
             return acc
@@ -393,7 +390,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     const initializeOutputJsonSchema = () => {
-        const jsonSchema = generateJsonSchemaFromSchema(currentNodeConfig.output_schema)
+        const jsonSchema = generateJsonSchemaFromSchema(nodeConfig.output_schema)
         if (jsonSchema) {
             const updates = {
                 output_json_schema: jsonSchema,
@@ -415,7 +412,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     useEffect(() => {
-        if (currentNodeConfig.output_schema && !currentNodeConfig.output_json_schema) {
+        if (nodeConfig.output_schema && !currentNodeConfig.output_json_schema) {
             initializeOutputJsonSchema()
         }
     }, [])
@@ -619,7 +616,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={incomingSchema}
-                        fieldTitle="System Message"
                         content={currentNodeConfig[key] || ''}
                         setContent={(value: string) => handleInputChange(key, value)}
                     />
@@ -651,7 +647,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={incomingSchema}
-                        fieldTitle="User Message"
                         content={currentNodeConfig[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
                     />
@@ -686,6 +681,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     onChange={(newValue: string) => handleInputChange(key, newValue)}
                 />
             )
+        }
+
+        if (key === 'input_map') {
+            return renderInputMapField(key, value, incomingSchema, handleInputChange)
         }
 
         // Handle other types (string, number, boolean, object)
@@ -948,6 +947,38 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         )
     }
 
+    const renderInputMapField = (
+        key: string,
+        value: any,
+        incomingSchema: string[],
+        handleInputChange: (key: string, value: any) => void
+    ) => {
+        return (
+            <div key={key} className="my-2">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">Input Mapping</h3>
+                    <Tooltip
+                        content="Map input fields from predecessor nodes to this node's input schema. Use the dropdown to select available fields from connected nodes."
+                        placement="left-start"
+                        showArrow={true}
+                        className="max-w-xs"
+                    >
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
+                    </Tooltip>
+                </div>
+                <SchemaEditor
+                    key={`input-map-editor-${nodeID}`}
+                    jsonValue={value || {}}
+                    onChange={(newValue) => handleInputChange(key, newValue)}
+                    options={jsonOptions}
+                    schemaType="input_map"
+                    nodeId={nodeID}
+                    availableFields={incomingSchema}
+                />
+            </div>
+        )
+    }
+
     return (
         <Card
             className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
@@ -1009,13 +1040,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         selectionMode="multiple"
                         defaultExpandedKeys={hasRunOutput ? ['output'] : ['title', 'config']}
                     >
-                        {nodeType !== 'InputNode' && (
-                            <AccordionItem key="output" aria-label="Output" title="Outputs">
-                                <NodeOutput key={`node-output-${nodeID}`} output={node?.data?.run} />
-                            </AccordionItem>
-                        )}
-
-                        <AccordionItem key="title" aria-label="Node Title" title="Node Title">
+                        <AccordionItem key="output" aria-label="Output" title="Outputs">
+                            <NodeOutput key={`node-output-${nodeID}`} output={node?.data?.run} />
+                        </AccordionItem>
+                        <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
                             <Input
                                 key={`title-input-${nodeID}`}
                                 value={titleInputValue}
@@ -1025,9 +1053,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 fullWidth
                                 description="Use underscores instead of spaces"
                             />
-                        </AccordionItem>
-
-                        <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
+                            <hr className="my-2" />
                             {renderConfigFields()}
                         </AccordionItem>
                     </Accordion>

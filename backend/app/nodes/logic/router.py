@@ -124,7 +124,7 @@ class RouterNode(BaseNode):
         """
         output_model = create_model(  # type: ignore
             f"{self.name}",
-            **{field_name: (field_type, ...) for field_name, field_type in input.__fields__.items()},  # type: ignore
+            **{field_name: (field_type, ...) for field_name, field_type in input.model_fields.items()},  # type: ignore
             __base__=RouterNodeOutput,
         )
         # Create fields for each route with Optional[input type]
@@ -143,7 +143,7 @@ class RouterNode(BaseNode):
 
         for route_name, route in self.config.route_map.items():
             if self._evaluate_route_conditions(input, route):
-                output[route_name] = output_model(**input.model_dump())
+                output[route_name] = output_model(**input.model_dump())  # type: ignore
 
         return self.output_model(**output)  # type: ignore
 
@@ -189,4 +189,7 @@ if __name__ == "__main__":
 
     input_data = TestInput(name="Alice", age=20, is_student=True, grade="B")
     output = asyncio.run(node(input_data))
-    print(output)
+    import json
+
+    print(json.dumps(output.model_json_schema(), indent=2))
+    print(json.dumps(output.model_dump(), indent=2))
