@@ -240,7 +240,8 @@ const flowSlice = createSlice({
                         x: node.coordinates.x,
                         y: node.coordinates.y,
                     },
-                    node.parent_id
+                    node.parent_id,
+                    node.dimensions
                 )
                 // Load the config directly from the definition instead of creating fresh
                 state.nodeConfigs[node.id] = node.config
