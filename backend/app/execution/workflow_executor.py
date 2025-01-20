@@ -239,13 +239,22 @@ class WorkflowExecutor:
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
-            (node for node in self.workflow.nodes if node.node_type == "InputNode")
+            (
+                node
+                for node in self.workflow.nodes
+                if node.node_type == "InputNode" and not node.parent_id
+            ),
         )
         self._initial_inputs[input_node.id] = input
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
             nodes_to_run = set(node_ids)
+
+        # skip nodes that have parent nodes, as they will be executed as part of their parent node
+        for node in self.workflow.nodes:
+            if node.parent_id:
+                nodes_to_run.discard(node.id)
 
         # Start tasks for all nodes
         for node_id in nodes_to_run:

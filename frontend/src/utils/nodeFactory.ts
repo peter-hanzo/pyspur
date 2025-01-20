@@ -7,7 +7,9 @@ export const createNode = (
     nodeTypes: FlowWorkflowNodeTypesByCategory,
     type: string,
     id: string,
-    position: Position
+    position: Position,
+    parentId: string | null = null,
+    dimensions: { width: number; height: number } | null = null
 ): { node: FlowWorkflowNode; config: FlowWorkflowNodeConfig } | null => {
     let nodeType: FlowWorkflowNodeType | null = null
     for (const category in nodeTypes) {
@@ -26,17 +28,23 @@ export const createNode = (
         ...config,
         title: id,
     }
+    const extent = parentId ? 'parent' : undefined
 
     const node: FlowWorkflowNode = {
         id,
         type: nodeType.name,
         position,
+        measured: dimensions,
+        parentId,
+        extent,
         data: {
             title: id,
             acronym: nodeType.visual_tag.acronym,
             color: nodeType.visual_tag.color,
             logo: nodeType.logo,
         },
+        width: dimensions?.width,
+        height: dimensions?.height,
     }
     return { node, config }
 }

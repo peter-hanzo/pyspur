@@ -8,6 +8,8 @@ import {
     ReactFlowInstance,
     SelectionMode,
     ConnectionMode,
+    Node,
+    useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useSelector, useDispatch } from 'react-redux'
@@ -31,6 +33,8 @@ import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
 import { RootState } from '../../store/store'
 import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils'
 import isEqual from 'lodash/isEqual'
+import { onNodeDragOverGroupNode, onNodeDragStopOverGroupNode } from '../nodes/loops/groupNodeUtils'
+import { MouseEvent as ReactMouseEvent } from 'react'
 
 // Type definitions
 
@@ -108,6 +112,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     const showHelperLines = false
 
     const mode = useModeStore((state) => state.mode)
+
+    const { getIntersectingNodes, getNodes, updateNode } = useReactFlow()
 
     const handlePopoverOpen = useCallback(
         ({
@@ -256,6 +262,20 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         [nodes, nodeTypesConfig, reactFlowInstance, dispatch, setPopoverContentVisible]
     )
 
+    const onNodeDrag = useCallback(
+        (event: ReactMouseEvent, node: Node) => {
+            onNodeDragOverGroupNode(event, node, nodes, dispatch, getIntersectingNodes, getNodes, updateNode)
+        },
+        [nodes, dispatch, getIntersectingNodes]
+    )
+
+    const onNodeDragStop = useCallback(
+        (event: ReactMouseEvent, node: Node) => {
+            onNodeDragStopOverGroupNode(event, node, nodes, dispatch, getIntersectingNodes, getNodes, updateNode)
+        },
+        [nodes, dispatch, getIntersectingNodes]
+    )
+
     if (isLoading) {
         return <LoadingSpinner />
     }
@@ -351,6 +371,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                         onEdgeMouseEnter={onEdgeMouseEnter}
                         onEdgeMouseLeave={onEdgeMouseLeave}
                         snapToGrid={false}
+                        onNodeDrag={onNodeDrag}
+                        onNodeDragStop={onNodeDragStop}
                     >
                         <Background />
                         {showHelperLines && (
