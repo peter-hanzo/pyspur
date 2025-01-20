@@ -9,7 +9,10 @@ def get_nested_field(field_name_with_dots: str, model: BaseModel) -> Any:
     field_names = field_name_with_dots.split(".")
     value = model
     for field_name in field_names:
-        value = getattr(value, field_name)
+        if isinstance(value, dict):
+            return value.get(field_name, None)  # type: ignore
+        else:
+            value = getattr(value, field_name)
     return value
 
 
