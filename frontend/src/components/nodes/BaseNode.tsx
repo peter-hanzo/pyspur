@@ -244,27 +244,27 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     const nodeRunStatus: TaskStatus = data.taskStatus as TaskStatus
 
-    let borderColor = 'gray'
+    let outlineColor = 'gray'
 
     switch (nodeRunStatus) {
         case 'PENDING':
-            borderColor = 'yellow'
+            outlineColor = 'yellow'
             break
         case 'RUNNING':
-            borderColor = 'blue'
+            outlineColor = 'blue'
             break
         case 'COMPLETED':
-            borderColor = '#4CAF50'
+            outlineColor = '#4CAF50'
             break
         case 'FAILED':
-            borderColor = 'red'
+            outlineColor = 'red'
             break
         case 'CANCELED':
-            borderColor = 'gray'
+            outlineColor = 'gray'
             break
         default:
             if (status === 'completed') {
-                borderColor = '#4CAF50'
+                outlineColor = '#4CAF50'
             }
     }
 
@@ -273,12 +273,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const cardStyle = React.useMemo(
         () => ({
             ...restStyle,
-            borderColor,
-            borderStyle: 'solid',
+            outlineColor,
+            outlineStyle: 'solid',
+            outlineOffset: '0',
             transition: 'all 0.2s ease',
             pointerEvents: 'auto' as const,
         }),
-        [restStyle, borderColor]
+        [restStyle, outlineColor]
     )
 
     const acronym = data.acronym || 'N/A'
@@ -352,13 +353,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                             className={`base-node ${className || ''}`}
                             style={cardStyle}
                             classNames={{
-                                base: `bg-background border-default-200 ${
+                                base: `bg-background outline-default-200 ${
                                     isSelected
-                                        ? 'border-[3px]'
+                                        ? 'outline-[3px]'
                                         : status === 'completed'
-                                          ? 'border-[2px]'
-                                          : 'border-[1px]'
-                                } group-hover:border-[3px]`,
+                                          ? 'outline-[2px]'
+                                          : 'outline-[1px]'
+                                } group-hover:outline-[3px]`,
                             }}
                         >
                             {data && (
