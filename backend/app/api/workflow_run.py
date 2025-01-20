@@ -1,7 +1,7 @@
 import asyncio
 import os
 import json
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from pathlib import Path  # Import Path for directory handling
@@ -25,7 +25,6 @@ from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
 from ..execution.task_recorder import TaskRecorder
 from ..utils.workflow_version_utils import fetch_workflow_version
 from ..execution.workflow_execution_context import WorkflowExecutionContext
-from ..utils.path_utils import get_test_files_dir
 
 router = APIRouter()
 
@@ -384,36 +383,3 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
                 db.refresh(run)
 
     return runs
-
-
-# Add new endpoint for file uploads
-@router.post("/upload_test_files/")
-async def upload_test_files(
-    files: List[UploadFile] = File(...),
-    node_id: str = Form(...),
-    db: Session = Depends(get_db),
-) -> Dict[str, List[str]]:
-    """Upload files for test inputs and return their paths"""
-    try:
-        test_files_dir = get_test_files_dir()
-
-        # Save files and collect paths
-        saved_paths = []
-        for file in files:
-            # Generate unique filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_filename = f"{timestamp}_{file.filename}"
-            file_path = test_files_dir / safe_filename
-
-            # Save file
-            content = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(content)
-
-            # Store path relative to project root
-            relative_path = f"data/test_files/{safe_filename}"
-            saved_paths.append(relative_path)
-
-        return {node_id: saved_paths}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

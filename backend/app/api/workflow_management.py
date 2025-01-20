@@ -316,7 +316,7 @@ async def upload_test_files(
                 f.write(content)
 
             # Store relative path
-            saved_paths.append(str(file_path.relative_to(Path("data/test_files"))))
+            saved_paths.append(f"{workflow_id}/{safe_filename}")
 
         return {node_id: saved_paths}
     except Exception as e:

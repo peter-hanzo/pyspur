@@ -957,13 +957,3 @@ export const uploadTestFiles = async (
         throw error
     }
 }
-
-export const deleteTestFile = async (workflowId: string, nodeId: string, filePath: string): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/workflow/test_files`, {
-        data: {
-            workflow_id: workflowId,
-            node_id: nodeId,
-            file_path: filePath
-        }
-    })
-}
