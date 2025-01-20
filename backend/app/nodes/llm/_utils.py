@@ -94,6 +94,7 @@ class LLMModels(str, Enum):
 
     # Deepseek Models
     DEEPSEEK_CHAT = "deepseek/deepseek-chat"
+    DEEPSEEK_REASONER = "deepseek/deepseek-reasoner"
 
     # Ollama Models
     OLLAMA_PHI4 = "ollama/phi4"
@@ -239,6 +240,12 @@ class LLMModels(str, Enum):
                 id=cls.DEEPSEEK_CHAT.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
+                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
+            ),
+            cls.DEEPSEEK_REASONER.value: LLMModel(
+                id=cls.DEEPSEEK_REASONER.value,
+                provider=LLMProvider.DEEPSEEK,
+                name="Deepseek Reasoner",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
             ),
             # Ollama Models
@@ -478,6 +485,9 @@ async def generate_text(
         "messages": messages,
         "temperature": temperature,
     }
+    if model_name == "deepseek/deepseek-reasoner":
+        kwargs.pop("temperature")
+
     response = ""
     if output_json_schema is None and output_schema is None:
         output_schema = {"output": "string"}
