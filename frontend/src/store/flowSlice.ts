@@ -232,10 +232,16 @@ const flowSlice = createSlice({
             state.nodeTypes = action.payload.nodeTypes
             const { nodes, links } = definition
             state.nodes = nodes.map((node) => {
-                const { node: nodeObj } = createNode(state.nodeTypes, node.node_type, node.id, {
-                    x: node.coordinates.x,
-                    y: node.coordinates.y,
-                })
+                const { node: nodeObj } = createNode(
+                    state.nodeTypes,
+                    node.node_type,
+                    node.id,
+                    {
+                        x: node.coordinates.x,
+                        y: node.coordinates.y,
+                    },
+                    node.parent_id
+                )
                 // Load the config directly from the definition instead of creating fresh
                 state.nodeConfigs[node.id] = node.config
                 return nodeObj
