@@ -838,6 +838,24 @@ const flowSlice = createSlice({
             // Store the config
             state.nodeConfigs[node.id] = config
         },
+
+        updateNodeParentAndCoordinates: (
+            state,
+            action: PayloadAction<{
+                nodeId: string
+                parentId: string
+                position: Position
+                extent?: 'parent' | 'viewport'
+            }>
+        ) => {
+            const { nodeId, parentId, position } = action.payload
+            const node = state.nodes.find((n) => n.id === nodeId)
+            if (node) {
+                node.parentId = parentId
+                node.position = position
+                node.extent = 'parent'
+            }
+        },
     },
 })
 
@@ -874,6 +892,7 @@ export const {
     redo,
     updateNodeTitle,
     addNodeWithConfig,
+    updateNodeParentAndCoordinates,
 } = flowSlice.actions
 
 export default flowSlice.reducer
