@@ -6,7 +6,6 @@ import addFormats from 'ajv-formats'
 class JSPydanticModel {
     constructor(schema) {
         this._schema = schema
-        console.log('JSPydanticModel constructor - Initial schema:', schema)
         this.ajv = new Ajv({
             useDefaults: true,
             coerceTypes: true,
@@ -32,7 +31,7 @@ class JSPydanticModel {
             const cleanedObj = this.excludeSchemaKeywords(obj)
             return cleanedObj
         } catch (error) {
-            console.error('Error compiling schema:', error)
+
             return null
         }
     }
@@ -103,7 +102,7 @@ class JSPydanticModel {
                                     // Exclude JSON Schema keywords from the resulting object
                                     processedNode[key] = this.excludeSchemaKeywords(processedNode[key])
                                 } catch (error) {
-                                    console.error(`Error processing ${key} schema for node:`, error)
+
                                     processedNode[key] = node[key] || {} // Fallback to original or empty object
                                 }
                             }
@@ -121,13 +120,13 @@ class JSPydanticModel {
         // Initialize metadata with existing categories from schema
         this._metadata = {}
         const categories = Object.keys(this._schema).filter((key) => Array.isArray(this._schema[key]))
-        console.log('extractMetadata - Categories found:', categories)
+
         categories.forEach((category) => {
             this._metadata[category] = []
         })
 
         this._extractMetadata(this._schema)
-        console.log('extractMetadata - Final metadata:', this._metadata)
+
     }
 
     _extractMetadata(schema, path = []) {
@@ -328,10 +327,8 @@ class JSPydanticModel {
 
     getAllMetadata() {
         if (!this._metadata) {
-            console.log('getAllMetadata - Metadata not yet extracted, calling extractMetadata')
             this.extractMetadata()
         }
-        console.log('getAllMetadata - Returning metadata:', this._metadata)
         return this._metadata
     }
 

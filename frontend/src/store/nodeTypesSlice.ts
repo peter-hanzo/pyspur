@@ -118,7 +118,6 @@ const initialState: NodeTypesState = {
 
 export const fetchNodeTypes = createAsyncThunk<NodeTypesResponse>('nodeTypes/fetchNodeTypes', async () => {
     const response = await getNodeTypes()
-    console.log('Node types fetched:', response)
     return response
 })
 
@@ -132,11 +131,9 @@ const nodeTypesSlice = createSlice({
                 state.status = 'loading'
             })
             .addCase(fetchNodeTypes.fulfilled, (state, action: PayloadAction<NodeTypesResponse>) => {
-                console.log('nodeTypesSlice - Received payload:', action.payload)
                 state.status = 'succeeded'
                 state.data = action.payload.schema
                 state.metadata = action.payload.metadata
-                console.log('nodeTypesSlice - Updated state:', state)
             })
             .addCase(fetchNodeTypes.rejected, (state, action) => {
                 state.status = 'failed'
@@ -151,17 +148,12 @@ const findMetadataInCategory = (
     nodeType: string,
     path: string
 ): any | null => {
-    console.log('findMetadataInCategory - Inputs:', { metadata, nodeType, path })
-
     if (!metadata) {
-        console.log('findMetadataInCategory - No metadata provided')
         return null
     }
 
     // Get categories dynamically from metadata object
     const categories = Object.keys(metadata)
-    console.log('findMetadataInCategory - Categories found:', categories)
-
     for (const category of categories) {
         const nodes = metadata[category]
         if (!nodes) continue
@@ -169,8 +161,6 @@ const findMetadataInCategory = (
         // Find the node in the category
         const node = nodes.find((node: NodeMetadata) => node.name === nodeType)
         if (!node) continue
-
-        console.log('findMetadataInCategory - Found node:', node)
 
         // Navigate the remaining path
         const remainingPath = path.split('.')
@@ -180,16 +170,13 @@ const findMetadataInCategory = (
             if (current && typeof current === 'object' && part in current) {
                 current = current[part]
             } else {
-                console.log('findMetadataInCategory - Path not found:', part)
                 return null // Path not found
             }
         }
 
-        console.log('findMetadataInCategory - Returning result:', current)
         return current // Return the found metadata
     }
 
-    console.log('findMetadataInCategory - Node type not found in any category')
     return null // Node type not found in any category
 }
 
