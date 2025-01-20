@@ -82,6 +82,7 @@ export const useSaveWorkflow = () => {
                                 },
                                 title,
                                 new_id: title || node.type || 'Untitled',
+                                parent_id: node.parentId || null,
                             }
                         }
 
@@ -90,6 +91,7 @@ export const useSaveWorkflow = () => {
                             config,
                             title,
                             new_id: title || node.type || 'Untitled',
+                            parent_id: node.parentId || null,
                         }
                     })
 
@@ -104,6 +106,7 @@ export const useSaveWorkflow = () => {
                                     node_type: node.type,
                                     config: node.config,
                                     coordinates: node.position,
+                                    parent_id: node.parent_id || null,
                                 }) as WorkflowNode
                         ),
                         links: edges.map((edge: Edge) => {
