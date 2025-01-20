@@ -556,22 +556,25 @@ async def generate_text(
                     for _, url in url_variables.items():
                         if url:  # Only add if URL is provided
                             # Check if the URL is a base64 data URL
-                            if is_external_url(url) or url.startswith('data:'):
-                                content.append({
-                                    "type": "image_url",
-                                    "image_url": {"url": url}
-                                })
+                            if is_external_url(url) or url.startswith("data:"):
+                                content.append(
+                                    {"type": "image_url", "image_url": {"url": url}}
+                                )
                             else:
                                 # For file paths, encode the file with appropriate MIME type
                                 try:
                                     # Use the new path resolution utility
                                     file_path = resolve_file_path(url)
                                     logging.info(f"Reading file from: {file_path}")
-                                    data_url = encode_file_to_base64_data_url(str(file_path))
-                                    content.append({
-                                        "type": "image_url",
-                                        "image_url": {"url": data_url}
-                                    })
+                                    data_url = encode_file_to_base64_data_url(
+                                        str(file_path)
+                                    )
+                                    content.append(
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {"url": data_url},
+                                        }
+                                    )
                                 except Exception as e:
                                     logging.error(f"Error reading file {url}: {str(e)}")
                                     raise
