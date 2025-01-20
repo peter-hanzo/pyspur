@@ -6,6 +6,7 @@ import addFormats from 'ajv-formats'
 class JSPydanticModel {
     constructor(schema) {
         this._schema = schema
+        console.log('JSPydanticModel constructor - Initial schema:', schema)
         this.ajv = new Ajv({
             useDefaults: true,
             coerceTypes: true,
@@ -120,11 +121,13 @@ class JSPydanticModel {
         // Initialize metadata with existing categories from schema
         this._metadata = {}
         const categories = Object.keys(this._schema).filter((key) => Array.isArray(this._schema[key]))
+        console.log('extractMetadata - Categories found:', categories)
         categories.forEach((category) => {
             this._metadata[category] = []
         })
 
         this._extractMetadata(this._schema)
+        console.log('extractMetadata - Final metadata:', this._metadata)
     }
 
     _extractMetadata(schema, path = []) {
@@ -325,8 +328,10 @@ class JSPydanticModel {
 
     getAllMetadata() {
         if (!this._metadata) {
+            console.log('getAllMetadata - Metadata not yet extracted, calling extractMetadata')
             this.extractMetadata()
         }
+        console.log('getAllMetadata - Returning metadata:', this._metadata)
         return this._metadata
     }
 
