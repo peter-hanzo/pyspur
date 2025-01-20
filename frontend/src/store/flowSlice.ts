@@ -1,5 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { applyNodeChanges, applyEdgeChanges, addEdge, NodeChange, EdgeChange, Connection } from '@xyflow/react'
+import {
+    applyNodeChanges,
+    applyEdgeChanges,
+    addEdge,
+    NodeChange,
+    EdgeChange,
+    Connection,
+    CoordinateExtent,
+} from '@xyflow/react'
 import { v4 as uuidv4 } from 'uuid'
 import { createNode } from '../utils/nodeFactory'
 import { TestInput } from '@/types/api_types/workflowSchemas'
@@ -70,6 +78,7 @@ export interface FlowWorkflowNode {
     type: string
     position: WorkflowNodeCoordinates
     parentId?: string
+    extent?: 'parent' | CoordinateExtent
     data: {
         title: string
         acronym: string
@@ -845,7 +854,6 @@ const flowSlice = createSlice({
                 nodeId: string
                 parentId: string
                 position: Position
-                extent?: 'parent' | 'viewport'
             }>
         ) => {
             const { nodeId, parentId, position } = action.payload

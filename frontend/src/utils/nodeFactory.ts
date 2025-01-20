@@ -27,12 +27,14 @@ export const createNode = (
         ...config,
         title: id,
     }
+    const extent = parentId ? 'parent' : undefined
 
     const node: FlowWorkflowNode = {
         id,
         type: nodeType.name,
         position,
         parentId,
+        extent,
         data: {
             title: id,
             acronym: nodeType.visual_tag.acronym,
