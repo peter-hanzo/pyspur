@@ -239,13 +239,22 @@ class WorkflowExecutor:
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
-            (node for node in self.workflow.nodes if node.node_type == "InputNode")
+            (
+                node
+                for node in self.workflow.nodes
+                if node.node_type == "InputNode" and not node.parent_id
+            ),
         )
         self._initial_inputs[input_node.id] = input
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
             nodes_to_run = set(node_ids)
+
+        # skip nodes that have parent nodes, as they will be executed as part of their parent node
+        for node in self.workflow.nodes:
+            if node.parent_id:
+                nodes_to_run.discard(node.id)
 
         # Start tasks for all nodes
         for node_id in nodes_to_run:
@@ -301,7 +310,7 @@ if __name__ == "__main__":
                     "id": "input_node",
                     "title": "",
                     "node_type": "InputNode",
-                    "config": {"output_schema": {"question": "str"}},
+                    "config": {"output_schema": {"question": "string"}},
                     "coordinates": {"x": 281.25, "y": 128.75},
                 },
                 {
@@ -311,8 +320,8 @@ if __name__ == "__main__":
                     "config": {
                         "samples": 1,
                         "output_schema": {
-                            "response": "str",
-                            "next_potential_question": "str",
+                            "response": "string",
+                            "next_potential_question": "string",
                         },
                         "llm_info": {
                             "model": "gpt-4o",
@@ -332,7 +341,7 @@ if __name__ == "__main__":
                     "config": {
                         "title": "OutputNodeConfig",
                         "type": "object",
-                        "output_schema": {"question": "str", "response": "str"},
+                        "output_schema": {"question": "string", "response": "string"},
                         "output_map": {
                             "question": "bon_node.next_potential_question",
                             "response": "bon_node.response",

@@ -491,7 +491,7 @@ async def generate_text(
         }
     elif output_json_schema is None and output_schema is not None:
         output_json_schema = convert_output_schema_to_json_schema(output_schema)
-    elif output_json_schema is not None:
+    elif output_json_schema is not None and output_json_schema.strip() != "":
         output_json_schema = json.loads(output_json_schema)
     output_json_schema["additionalProperties"] = False
 
