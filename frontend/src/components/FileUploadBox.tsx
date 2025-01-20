@@ -4,11 +4,31 @@ import { Card, CardBody, Button, Chip } from '@nextui-org/react'
 import { Upload, X, AlertCircle } from 'lucide-react'
 
 interface FileUploadBoxProps {
-    onFilesChange: (files: File[]) => void
+    onFilesChange: (files: File[]) => void | Promise<void>
     multiple?: boolean
+    // New props for file type configuration
+    acceptedFileTypes?: {
+        [key: string]: string[]
+    }
+    supportedFormatsMessage?: string
 }
 
-const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple = true }) => {
+const DEFAULT_ACCEPTED_FILE_TYPES = {
+    'application/pdf': ['.pdf'],
+    'text/plain': ['.txt'],
+    'text/markdown': ['.md'],
+    'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+}
+
+const DEFAULT_FORMATS_MESSAGE = 'Supported formats: PDF, TXT, MD, DOC, DOCX'
+
+const FileUploadBox: React.FC<FileUploadBoxProps> = ({
+    onFilesChange,
+    multiple = true,
+    acceptedFileTypes = DEFAULT_ACCEPTED_FILE_TYPES,
+    supportedFormatsMessage = DEFAULT_FORMATS_MESSAGE
+}) => {
     const [files, setFiles] = useState<File[]>([])
 
     const onDrop = useCallback(
@@ -32,13 +52,7 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple =
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: {
-            'application/pdf': ['.pdf'],
-            'text/plain': ['.txt'],
-            'text/markdown': ['.md'],
-            'application/msword': ['.doc'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-        },
+        accept: acceptedFileTypes,
         multiple, // Allow multiple files only when multiple prop is true
     })
 
@@ -60,7 +74,7 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange, multiple =
                                         : `Drag and drop ${multiple ? 'files' : 'a file'} here or click to browse`}
                                 </p>
                                 <p className="text-xs text-default-400 mt-1">
-                                    Supported formats: PDF, TXT, MD, DOC, DOCX
+                                    {supportedFormatsMessage}
                                 </p>
                                 {!multiple && files.length > 0 && (
                                     <p className="text-xs text-warning mt-1">

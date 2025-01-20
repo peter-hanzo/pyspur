@@ -23,7 +23,7 @@ import { RootState } from '../../store/store'
 import { AppDispatch } from '../../store/store'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
-import FileUploadBox from '../rag/FileUploadBox'
+import FileUploadBox from '../FileUploadBox'
 import { uploadTestFiles, deleteTestFile } from '@/utils/api'
 
 interface RunModalProps {
@@ -234,103 +234,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         onOpenChange(false)
     }
 
-    const renderStepContent = (step: number) => {
-        switch (step) {
-            case 0:
-                return (
-                    <div className="flex flex-col gap-6">
-                        <div className="overflow-x-auto">
-                            <Table
-                                aria-label="Test cases table"
-                                selectionMode="single"
-                                disabledKeys={editingCell ? new Set([editingCell.rowId.toString()]) : new Set()}
-                                selectedKeys={selectedRow ? [selectedRow] : new Set()}
-                                onSelectionChange={(selection) => {
-                                    const selectedKey = Array.from(selection)[0]?.toString() || null
-                                    setSelectedRow(selectedKey)
-                                }}
-                                classNames={{
-                                    base: 'min-w-[800px]',
-                                    table: 'min-w-full',
-                                }}
-                            >
-                                <TableHeader>
-                                    {[
-                                        <TableColumn key="id">ID</TableColumn>,
-                                        ...workflowInputVariableNames.map((field) => (
-                                            <TableColumn key={field}>{field}</TableColumn>
-                                        )),
-                                        <TableColumn key="actions">Actions</TableColumn>,
-                                    ]}
-                                </TableHeader>
-                                <TableBody>
-                                    {testData.map((row) => (
-                                        <TableRow key={row.id}>
-                                            {[
-                                                <TableCell key="id">{row.id}</TableCell>,
-                                                ...workflowInputVariableNames.map((field) => (
-                                                    <TableCell key={field}>{renderCell(row, field)}</TableCell>
-                                                )),
-                                                <TableCell key="actions">
-                                                    <Button
-                                                        isIconOnly
-                                                        size="sm"
-                                                        variant="light"
-                                                        onPress={() => handleDeleteRow(row.id)}
-                                                    >
-                                                        <Icon icon="solar:trash-bin-trash-linear" />
-                                                    </Button>
-                                                </TableCell>,
-                                            ]}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <div className="flex gap-2 overflow-x-auto">
-                            {workflowInputVariableNames.map((field) => (
-                                <div key={field} className="w-[300px] min-w-[300px]">
-                                    <div className="mb-2 font-medium text-foreground">
-                                        {field}
-                                    </div>
-                                    {field.toLowerCase().includes('file') ? (
-                                        <FileUploadBox
-                                            multiple={false}
-                                            onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
-                                        />
-                                    ) : (
-                                        <TextEditor
-                                            nodeID={`newRow-${field}`}
-                                            fieldName={field}
-                                            fieldTitle={field}
-                                            inputSchema={[]}
-                                            content={editorContents[field] || ''}
-                                            setContent={(value: string) => {
-                                                setEditorContents((prev) => ({
-                                                    ...prev,
-                                                    [field]: value,
-                                                }))
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                            ))}
-                            <div className="flex-none">
-                                <Button
-                                    color="primary"
-                                    onPress={handleAddRow}
-                                    isDisabled={Object.values(editorContents).every((v) => !v?.trim())}
-                                >
-                                    Add Row
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            // ... rest of the cases ...
-        }
-    }
 
     return (
         <Modal
@@ -404,6 +307,21 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                             <FileUploadBox
                                                 multiple={false}
                                                 onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
+                                                acceptedFileTypes={{
+                                                    // Documents
+                                                    'application/pdf': ['.pdf'],
+                                                    'text/plain': ['.txt'],
+                                                    'text/markdown': ['.md'],
+                                                    'application/msword': ['.doc'],
+                                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                                                    // Images
+                                                    'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+                                                    // Audio
+                                                    'audio/*': ['.mp3', '.wav', '.ogg', '.m4a'],
+                                                    // Video
+                                                    'video/*': ['.mp4', '.webm', '.avi', '.mov'],
+                                                }}
+                                                supportedFormatsMessage="Supported formats: Documents (PDF, TXT, MD, DOC, DOCX), Images (PNG, JPG, JPEG, GIF, WEBP), Audio (MP3, WAV, OGG, M4A), and Video files (MP4, WEBM, AVI, MOV)"
                                             />
                                         ) : (
                                             <TextEditor

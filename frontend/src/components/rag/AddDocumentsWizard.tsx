@@ -3,7 +3,7 @@ import { Card, CardBody, Button, Divider, Progress, Alert, Spinner, Chip, Toolti
 import { useRouter } from 'next/router'
 import { Info, ArrowLeft, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
-import FileUploadBox from './FileUploadBox'
+import FileUploadBox from '../FileUploadBox'
 import {
     addDocumentsToKnowledgeBase,
     getKnowledgeBase,

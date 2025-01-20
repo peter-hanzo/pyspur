@@ -23,7 +23,7 @@ import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import { createDocumentCollection } from '@/utils/api'
 import type { DocumentCollectionCreateRequest } from '@/utils/api'
 import { motion, AnimatePresence } from 'framer-motion'
-import FileUploadBox from './FileUploadBox'
+import FileUploadBox from '../FileUploadBox'
 
 interface TextProcessingConfig {
     name: string
