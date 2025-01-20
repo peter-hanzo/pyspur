@@ -15,6 +15,15 @@ class WorkflowNodeCoordinatesSchema(BaseModel):
     y: float
 
 
+class WorkflowNodeDimensionsSchema(BaseModel):
+    """
+    Dimensions for a node in a workflow.
+    """
+
+    width: float
+    height: float
+
+
 class WorkflowNodeSchema(BaseModel):
     """
     A node represents a single step in a workflow.
@@ -32,6 +41,9 @@ class WorkflowNodeSchema(BaseModel):
     )  # Configuration parameters including dynamic output schema if needed
     coordinates: Optional[WorkflowNodeCoordinatesSchema] = (
         None  # Position of the node in the workflow
+    )
+    dimensions: Optional[WorkflowNodeDimensionsSchema] = (
+        None  # Dimensions of the node in the workflow
     )
     subworkflow: Optional["WorkflowDefinitionSchema"] = None  # Sub-workflow definition
 
