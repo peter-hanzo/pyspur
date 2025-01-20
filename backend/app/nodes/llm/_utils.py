@@ -12,12 +12,11 @@ import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
 from ollama import AsyncClient
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
-from ...utils.pydantic_utils import json_schema_to_model
 from ...utils.file_utils import encode_file_to_base64_data_url
-from ...utils.path_utils import resolve_file_path
+from ...utils.path_utils import resolve_file_path, is_external_url
 
 from ._providers import OllamaOptions, setup_azure_configuration
 
@@ -544,10 +543,10 @@ async def generate_text(
                 if msg["role"] == "user":
                     content = [{"type": "text", "text": msg["content"]}]
                     # Add any URL variables as image_url or other supported types
-                    for var_type, url in url_variables.items():
+                    for _, url in url_variables.items():
                         if url:  # Only add if URL is provided
                             # Check if the URL is a base64 data URL
-                            if url.startswith('data:'):
+                            if is_external_url(url) or url.startswith('data:'):
                                 content.append({
                                     "type": "image_url",
                                     "image_url": {"url": url}

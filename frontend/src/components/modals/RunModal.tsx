@@ -15,6 +15,7 @@ import {
     TableCell,
     Input,
     Tooltip,
+    Switch,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
@@ -24,7 +25,7 @@ import { AppDispatch } from '../../store/store'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import FileUploadBox from '../FileUploadBox'
-import { uploadTestFiles, deleteTestFile } from '@/utils/api'
+import { uploadTestFiles } from '@/utils/api'
 
 interface RunModalProps {
     isOpen: boolean
@@ -52,6 +53,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     const [editorContents, setEditorContents] = useState<Record<string, string>>({})
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
     const [filePaths, setFilePaths] = useState<Record<string, string[]>>({})
+    const [fileInputModes, setFileInputModes] = useState<Record<string, 'file' | 'url'>>({})
 
     const dispatch = useDispatch<AppDispatch>()
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
@@ -119,11 +121,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                 )
                 if (fileFields.length > 0) {
                     const field = fileFields[0]
-                    const currentPath = editorContents[field]
-                    // If there was a file path, delete it from the backend
-                    if (currentPath) {
-                        await deleteTestFile(workflowID, nodeId, currentPath)
-                    }
                     setEditorContents(prev => ({
                         ...prev,
                         [field]: ''
@@ -141,11 +138,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             )
             if (fileFields.length > 0) {
                 const field = fileFields[0]
-                const currentPath = editorContents[field]
-                // If there was a previous file, delete it from the backend
-                if (currentPath) {
-                    await deleteTestFile(workflowID, nodeId, currentPath)
-                }
                 setEditorContents(prev => ({
                     ...prev,
                     [field]: paths[nodeId][0] // Set the first file field to the first uploaded file path
@@ -153,6 +145,17 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             }
         } catch (error) {
             console.error('Error handling files:', error)
+        }
+    }
+
+    const handleUrlInput = (field: string, value: string) => {
+        // Basic URL validation
+        const isValidUrl = value === '' || /^(https?:\/\/|gs:\/\/)/.test(value)
+        if (isValidUrl) {
+            setEditorContents(prev => ({
+                ...prev,
+                [field]: value
+            }))
         }
     }
 
@@ -304,25 +307,59 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                             {field}
                                         </div>
                                         {field.toLowerCase().includes('file') ? (
-                                            <FileUploadBox
-                                                multiple={false}
-                                                onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
-                                                acceptedFileTypes={{
-                                                    // Documents
-                                                    'application/pdf': ['.pdf'],
-                                                    'text/plain': ['.txt'],
-                                                    'text/markdown': ['.md'],
-                                                    'application/msword': ['.doc'],
-                                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-                                                    // Images
-                                                    'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-                                                    // Audio
-                                                    'audio/*': ['.mp3', '.wav', '.ogg', '.m4a'],
-                                                    // Video
-                                                    'video/*': ['.mp4', '.webm', '.avi', '.mov'],
-                                                }}
-                                                supportedFormatsMessage="Supported formats: Documents (PDF, TXT, MD, DOC, DOCX), Images (PNG, JPG, JPEG, GIF, WEBP), Audio (MP3, WAV, OGG, M4A), and Video files (MP4, WEBM, AVI, MOV)"
-                                            />
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Switch
+                                                        size="sm"
+                                                        isSelected={fileInputModes[field] === 'url'}
+                                                        onChange={() => {
+                                                            setFileInputModes(prev => ({
+                                                                ...prev,
+                                                                [field]: prev[field] === 'file' ? 'url' : 'file'
+                                                            }))
+                                                            // Clear the input when switching modes
+                                                            setEditorContents(prev => ({
+                                                                ...prev,
+                                                                [field]: ''
+                                                            }))
+                                                            if (fileInputModes[field] === 'file') {
+                                                                handleFilesChange(inputNode.id, [])
+                                                            }
+                                                        }}
+                                                    >
+                                                        URL Input
+                                                    </Switch>
+                                                </div>
+                                                {(fileInputModes[field] || 'file') === 'url' ? (
+                                                    <Input
+                                                        type="url"
+                                                        placeholder="Enter URL (https:// or gs://)"
+                                                        value={editorContents[field] || ''}
+                                                        onChange={(e) => handleUrlInput(field, e.target.value)}
+                                                        description="Supports HTTP(S) and Google Storage URLs"
+                                                    />
+                                                ) : (
+                                                    <FileUploadBox
+                                                        multiple={false}
+                                                        onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
+                                                        acceptedFileTypes={{
+                                                            // Documents
+                                                            'application/pdf': ['.pdf'],
+                                                            'text/plain': ['.txt'],
+                                                            'text/markdown': ['.md'],
+                                                            'application/msword': ['.doc'],
+                                                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                                                            // Images
+                                                            'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
+                                                            // Audio
+                                                            'audio/*': ['.mp3', '.wav', '.ogg', '.m4a'],
+                                                            // Video
+                                                            'video/*': ['.mp4', '.webm', '.avi', '.mov'],
+                                                        }}
+                                                        supportedFormatsMessage="Supported formats: Documents (PDF, TXT, MD, DOC, DOCX), Images (PNG, JPG, JPEG, GIF, WEBP), Audio (MP3, WAV, OGG, M4A), and Video files (MP4, WEBM, AVI, MOV)"
+                                                    />
+                                                )}
+                                            </div>
                                         ) : (
                                             <TextEditor
                                                 nodeID={`newRow-${field}`}
