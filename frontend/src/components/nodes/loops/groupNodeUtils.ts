@@ -149,7 +149,6 @@ export const onNodeDragStopOverGroupNode = (
                 nodeId: node.id,
                 parentId: groupNode.id,
                 position,
-                extent: 'parent',
             })
         )
         updateNode(node.id, {
