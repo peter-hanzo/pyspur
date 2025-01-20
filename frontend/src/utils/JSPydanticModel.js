@@ -75,38 +75,38 @@ class JSPydanticModel {
                     // Copy all fields from the original node
                     const processedNode = { ...node }
 
-                    // Process schemas for input, output, and config
-                    ;['input', 'output', 'config'].forEach((key) => {
-                        if (node[key]) {
-                            try {
-                                const validator = this.ajv.compile(node[key])
-                                const obj = {}
-                                validator(obj)
+                        // Process schemas for input, output, and config
+                        ;['input', 'output', 'config'].forEach((key) => {
+                            if (node[key]) {
+                                try {
+                                    const validator = this.ajv.compile(node[key])
+                                    const obj = {}
+                                    validator(obj)
 
-                                // Merge the validated object with any existing fields for non-conditional nodes
-                                processedNode[key] = {
-                                    ...node[key], // Keep original fields like title, description etc
-                                    ...obj, // Add validated default values
-                                }
-
-                                // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
-                                if (node.name === 'LLMNode' && key === 'config') {
-                                    // Make sure there's a properties object
-                                    processedNode[key].properties = processedNode[key].properties || {}
-                                    processedNode[key].properties.api_base = {
-                                        type: 'string',
-                                        title: 'API Base',
+                                    // Merge the validated object with any existing fields for non-conditional nodes
+                                    processedNode[key] = {
+                                        ...node[key], // Keep original fields like title, description etc
+                                        ...obj, // Add validated default values
                                     }
-                                }
 
-                                // Exclude JSON Schema keywords from the resulting object
-                                processedNode[key] = this.excludeSchemaKeywords(processedNode[key])
-                            } catch (error) {
-                                console.error(`Error processing ${key} schema for node:`, error)
-                                processedNode[key] = node[key] || {} // Fallback to original or empty object
+                                    // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
+                                    if (node.name === 'LLMNode' && key === 'config') {
+                                        // Make sure there's a properties object
+                                        processedNode[key].properties = processedNode[key].properties || {}
+                                        processedNode[key].properties.api_base = {
+                                            type: 'string',
+                                            title: 'API Base',
+                                        }
+                                    }
+
+                                    // Exclude JSON Schema keywords from the resulting object
+                                    processedNode[key] = this.excludeSchemaKeywords(processedNode[key])
+                                } catch (error) {
+                                    console.error(`Error processing ${key} schema for node:`, error)
+                                    processedNode[key] = node[key] || {} // Fallback to original or empty object
+                                }
                             }
-                        }
-                    })
+                        })
 
                     return processedNode
                 })
