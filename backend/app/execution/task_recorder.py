@@ -34,6 +34,7 @@ class TaskRecorder:
         status: TaskStatus,
         inputs: Optional[Dict[str, Any]] = None,
         outputs: Optional[Dict[str, Any]] = None,
+        error: Optional[str] = None,
         subworkflow: Optional[WorkflowDefinitionSchema] = None,
         subworkflow_output: Optional[Dict[str, BaseModel]] = None,
         end_time: Optional[datetime] = None,
@@ -47,6 +48,8 @@ class TaskRecorder:
             task.inputs = inputs
         if outputs:
             task.outputs = outputs
+        if error:
+            task.error = error
         if end_time:
             task.end_time = end_time
         if subworkflow:

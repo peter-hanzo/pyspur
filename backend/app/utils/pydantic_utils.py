@@ -154,7 +154,7 @@ def json_schema_to_simple_schema(json_schema: Dict[str, Any]) -> Dict[str, str]:
         elif prop_type == "boolean":
             simple_schema[prop] = "bool"
         elif prop_type == "string":
-            simple_schema[prop] = "str"
+            simple_schema[prop] = "string"
         else:
             simple_schema[prop] = "Any"
     return simple_schema

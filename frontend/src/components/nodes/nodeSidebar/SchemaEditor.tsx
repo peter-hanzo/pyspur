@@ -21,10 +21,10 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     disabled = false,
     schemaType = 'input_schema',
     nodeId,
-    availableFields = ['str', 'bool', 'int', 'float'],
+    availableFields = ['string', 'boolean', 'integer', 'number'],
 }) => {
     const [newKey, setNewKey] = useState<string>('')
-    const [newType, setNewType] = useState<string>('str')
+    const [newType, setNewType] = useState<string>('string')
     const [editingField, setEditingField] = useState<string | null>(null)
     const dispatch = useDispatch()
 
@@ -40,7 +40,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             }
             onChange(updatedJson)
             setNewKey('')
-            setNewType('str')
+            setNewType('string')
         }
     }
 
@@ -52,7 +52,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     const getType = (value: any): string => {
         if (typeof value === 'object' && value !== null) {
-            return value.type || 'str'
+            return value.type || 'string'
         }
         return value
     }

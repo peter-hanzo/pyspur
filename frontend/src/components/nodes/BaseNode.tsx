@@ -259,7 +259,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         case 'FAILED':
             borderColor = 'red'
             break
-        case 'CANCELLED':
+        case 'CANCELED':
             borderColor = 'gray'
             break
         default:

@@ -12,11 +12,11 @@ class InputNodeConfig(VariableOutputBaseNodeConfig):
     """
     Configuration for the InputNode.
     enforce_schema: bool = False. If True, the output_schema will be enforced. Otherwise the output will be the same as the input.
-    output_schema: Dict[str, str] = {"input_1": "str"}. The schema of the output.
+    output_schema: Dict[str, str] = {"input_1": "string"}. The schema of the output.
     """
 
     enforce_schema: bool = False
-    output_schema: Dict[str, str] = {"input_1": "str"}
+    output_schema: Dict[str, str] = {"input_1": "string"}
     pass
 
 

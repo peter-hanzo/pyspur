@@ -125,12 +125,20 @@ const CollapsibleNodePanel: React.FC = () => {
                                                 onClick={() => handleAddNode(node.name)}
                                             >
                                                 <div className="w-16 flex-shrink-0">
-                                                    <div
-                                                        className={`node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block`}
-                                                        style={{ backgroundColor: node.visual_tag.color }}
-                                                    >
-                                                        {node.visual_tag.acronym}
-                                                    </div>
+                                                    {node.logo ? (
+                                                        <img
+                                                            src={node.logo}
+                                                            alt="Node Logo"
+                                                            className="max-h-7 max-w-7"
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className={`node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block`}
+                                                            style={{ backgroundColor: node.visual_tag.color }}
+                                                        >
+                                                            {node.visual_tag.acronym}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <span
                                                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"

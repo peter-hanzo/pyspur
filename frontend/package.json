@@ -3,9 +3,9 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
+        "@codemirror/lang-json": "^6.0.1",
         "@codemirror/lang-python": "^6.1.6",
         "@codemirror/theme-one-dark": "^6.1.2",
-        "@codemirror/lang-json": "^6.0.1",
         "@dagrejs/dagre": "1.1.4",
         "@emotion/react": "^11.13.3",
         "@emotion/styled": "^11.13.0",
@@ -79,9 +79,12 @@
     },
     "eslintConfig": {
         "extends": [
-            "react-app",
-            "react-app/jest"
-        ]
+            "next"
+        ],
+        "rules": {
+            "react-hooks/exhaustive-deps": "off",
+            "@next/next/no-img-element": "off"
+        }
     },
     "browserslist": {
         "production": [
@@ -97,6 +100,8 @@
     },
     "devDependencies": {
         "autoprefixer": "^10.x",
+        "eslint": "^8.57.1",
+        "eslint-config-next": "^15.1.5",
         "postcss": "^8.x",
         "tailwindcss": "^3.x",
         "typescript": "^5.7.2"

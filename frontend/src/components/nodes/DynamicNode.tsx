@@ -18,6 +18,7 @@ import { RootState } from '../../store/store'
 import NodeOutputDisplay from './NodeOutputDisplay'
 import NodeOutputModal from './NodeOutputModal'
 import isEqual from 'lodash/isEqual'
+import NodeErrorDisplay from './NodeErrorDisplay'
 
 const baseNodeStyle = {
     width: 'auto',
@@ -342,6 +343,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         )}
                         {renderHandles()}
                     </div>
+                    {nodeData.error && <NodeErrorDisplay error={nodeData.error} />}
                     {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
                 </BaseNode>
             </div>

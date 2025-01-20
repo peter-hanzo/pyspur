@@ -389,6 +389,34 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         ) as FieldMetadata
     }
 
+    const initializeOutputJsonSchema = () => {
+        const jsonSchema = generateJsonSchemaFromSchema(nodeConfig.output_schema)
+        if (jsonSchema) {
+            const updates = {
+                output_json_schema: jsonSchema,
+            }
+            setCurrentNodeConfig((prev) => ({
+                ...prev,
+                ...updates,
+            }))
+            dispatch(
+                updateNodeConfigOnly({
+                    id: nodeID,
+                    data: {
+                        ...currentNodeConfig,
+                        ...updates,
+                    },
+                })
+            )
+        }
+    }
+
+    useEffect(() => {
+        if (nodeConfig.output_schema && !currentNodeConfig.output_json_schema) {
+            initializeOutputJsonSchema()
+        }
+    }, [])
+
     // Update the `renderField` function to include missing cases
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
@@ -952,8 +980,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     }
 
     return (
-        <Card className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
-            style={{ width: `${width}px` }}>
+        <Card
+            className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
+            style={{ width: `${width}px` }}
+        >
             {showTitleError && (
                 <Alert
                     key={`alert-${nodeID}`}
@@ -979,7 +1009,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : undefined,
                         opacity: isResizing ? 1 : 0,
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                     onMouseLeave={(e) => !isResizing && (e.currentTarget.style.opacity = '0')}
                 />
 
