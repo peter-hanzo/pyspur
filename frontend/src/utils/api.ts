@@ -932,3 +932,28 @@ export const getIndexProgress = async (indexId: string): Promise<ProcessingProgr
         throw error
     }
 }
+
+export const uploadTestFiles = async (
+    workflowId: string,
+    nodeId: string,
+    files: File[]
+): Promise<Record<string, string[]>> => {
+    try {
+        const formData = new FormData()
+        formData.append('workflow_id', workflowId)
+        formData.append('node_id', nodeId)
+        files.forEach((file) => {
+            formData.append('files', file)
+        })
+
+        const response = await axios.post(`${API_BASE_URL}/wf/upload_test_files/`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error uploading test files:', error)
+        throw error
+    }
+}

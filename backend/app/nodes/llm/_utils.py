@@ -6,15 +6,17 @@ import os
 import re
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, cast
+from pathlib import Path
 
 import litellm
 from dotenv import load_dotenv
 from litellm import acompletion
 from ollama import AsyncClient
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
-from ...utils.pydantic_utils import json_schema_to_model
+from ...utils.file_utils import encode_file_to_base64_data_url
+from ...utils.path_utils import resolve_file_path, is_external_url
 
 from ._providers import OllamaOptions, setup_azure_configuration
 
@@ -511,8 +513,6 @@ async def generate_text(
                     "strict": True,
                     "name": "output",
                 }
-            # response_model = json_schema_to_model(output_json_schema)
-            # kwargs["response_format"] = response_model
             kwargs["response_format"] = {
                 "type": "json_schema",
                 "json_schema": output_json_schema,
@@ -553,14 +553,28 @@ async def generate_text(
                 if msg["role"] == "user":
                     content = [{"type": "text", "text": msg["content"]}]
                     # Add any URL variables as image_url or other supported types
-                    for var_type, url in url_variables.items():
+                    for _, url in url_variables.items():
                         if url:  # Only add if URL is provided
-                            content.append(
-                                {
-                                    "type": f"{var_type}_url",
-                                    f"{var_type}_url": {"url": url},
-                                }
-                            )
+                            # Check if the URL is a base64 data URL
+                            if is_external_url(url) or url.startswith('data:'):
+                                content.append({
+                                    "type": "image_url",
+                                    "image_url": {"url": url}
+                                })
+                            else:
+                                # For file paths, encode the file with appropriate MIME type
+                                try:
+                                    # Use the new path resolution utility
+                                    file_path = resolve_file_path(url)
+                                    logging.info(f"Reading file from: {file_path}")
+                                    data_url = encode_file_to_base64_data_url(str(file_path))
+                                    content.append({
+                                        "type": "image_url",
+                                        "image_url": {"url": data_url}
+                                    })
+                                except Exception as e:
+                                    logging.error(f"Error reading file {url}: {str(e)}")
+                                    raise
                     msg["content"] = content
                 transformed_messages.append(msg)
             kwargs["messages"] = transformed_messages
