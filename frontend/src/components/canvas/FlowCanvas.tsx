@@ -33,7 +33,7 @@ import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
 import { RootState } from '../../store/store'
 import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils'
 import isEqual from 'lodash/isEqual'
-import { onNodeDragOverGroupNode, onNodeDragStopOverGroupNode } from '../nodes/loops/utils'
+import { onNodeDragOverGroupNode, onNodeDragStopOverGroupNode } from '../nodes/loops/groupNodeUtils'
 import { MouseEvent as ReactMouseEvent } from 'react'
 
 // Type definitions

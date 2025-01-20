@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import { NodeProps, NodeToolbar, useReactFlow, useStore, useStoreApi, NodeResizer } from '@xyflow/react'
 
 import useDetachNodes from './useDetachNodes'
-import { getRelativeNodesBounds } from './utils'
+import { getRelativeNodesBounds } from './groupNodeUtils'
 import { RootState } from '@/store/store'
 
 const lineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
