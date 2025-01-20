@@ -62,22 +62,16 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                         const output_values = task.outputs || {}
                         const nodeTaskStatus = task.status
                         if (node) {
-                            // Check if the task output or status is different from current node data
-                            const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run)
-                            const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus
-
-                            if (isOutputDifferent || isStatusDifferent) {
-                                dispatch(
-                                    updateNodeDataOnly({
-                                        id: node.id,
-                                        data: {
-                                            run: { ...node.data.run, ...output_values },
-                                            error: task.error || null,
-                                            taskStatus: nodeTaskStatus,
-                                        },
-                                    })
-                                )
-                            }
+                            dispatch(
+                                updateNodeDataOnly({
+                                    id: node.id,
+                                    data: {
+                                        run: { ...output_values },
+                                        error: task.error || null,
+                                        taskStatus: nodeTaskStatus,
+                                    },
+                                })
+                            )
                         }
                     })
                 }
