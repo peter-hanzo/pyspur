@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import TextEditor from './TextEditor'
 import { updateNodeConfigOnly } from '../../store/flowSlice'
-import { Button, Tabs, Tab } from '@nextui-org/react'
+import { Button, Tabs, Tab } from "@heroui/react"
 import _ from 'lodash'
 import { RootState } from '../../store/store'
 

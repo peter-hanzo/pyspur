@@ -13,7 +13,7 @@ import {
     useConnection,
     useUpdateNodeInternals,
 } from '@xyflow/react'
-import { Card, CardHeader, CardBody, Button, Input, Alert, Divider } from '@nextui-org/react'
+import { Card, CardHeader, CardBody, Button, Input, Alert, Divider } from "@heroui/react"
 import isEqual from 'lodash/isEqual'
 import { Icon } from '@iconify/react'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'

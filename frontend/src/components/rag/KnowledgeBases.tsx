@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { Button, Card, CardBody, Spinner } from '@nextui-org/react'
+import { Button, Card, CardBody, Spinner } from "@heroui/react"
 import { Icon } from '@iconify/react'
 import { listDocumentCollections, listVectorIndices } from '@/utils/api'
 import type { DocumentCollectionResponse, VectorIndexResponse } from '@/utils/api'

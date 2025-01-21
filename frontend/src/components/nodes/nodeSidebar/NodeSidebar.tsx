@@ -30,7 +30,7 @@ import {
     Card,
     Alert,
     Tooltip,
-} from '@nextui-org/react'
+} from "@heroui/react"
 import { Icon } from '@iconify/react'
 import NodeOutput from '../NodeOutputDisplay'
 import SchemaEditor from './SchemaEditor'
@@ -1058,7 +1058,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     className="absolute left-0 top-0 h-full w-1 cursor-ew-resize transition-colors duration-200"
                     onMouseDown={handleMouseDown}
                     style={{
-                        backgroundColor: isResizing ? 'var(--nextui-colors-primary)' : undefined,
+                        backgroundColor: isResizing ? 'var(--heroui-colors-primary)' : undefined,
                         opacity: isResizing ? 1 : 0,
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}

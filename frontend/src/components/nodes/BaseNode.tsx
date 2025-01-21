@@ -2,7 +2,7 @@ import React, { useCallback, useState, memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '../../store/flowSlice'
 import { Handle, Position } from '@xyflow/react'
-import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } from '@nextui-org/react'
+import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } from "@heroui/react"
 import { Icon } from '@iconify/react'
 import usePartialRun from '@/hooks/usePartialRun'
 import { TaskStatus } from '@/types/api_types/taskSchemas'

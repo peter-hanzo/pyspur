@@ -18,7 +18,7 @@ import {
     RadioGroup,
     Radio,
     Slider,
-} from '@nextui-org/react'
+} from "@heroui/react"
 import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import { createDocumentCollection } from '@/utils/api'
 import type { DocumentCollectionCreateRequest } from '@/utils/api'

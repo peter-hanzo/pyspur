@@ -16,7 +16,7 @@ import {
     Input,
     Tooltip,
     Switch,
-} from '@nextui-org/react'
+} from "@heroui/react"
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
 import { addTestInput, deleteTestInput } from '../../store/flowSlice'

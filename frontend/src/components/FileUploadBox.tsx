@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Card, CardBody, Button, Chip } from '@nextui-org/react'
+import { Card, CardBody, Button, Chip } from "@heroui/react"
 import { Upload, X, AlertCircle } from 'lucide-react'
 
 interface FileUploadBoxProps {

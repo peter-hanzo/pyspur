@@ -7,7 +7,7 @@ import Underline from '@tiptap/extension-underline'
 import { Color } from '@tiptap/extension-color'
 import TextStyle from '@tiptap/extension-text-style'
 import ListItem from '@tiptap/extension-list-item'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from '@nextui-org/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from "@heroui/react"
 import { Icon } from '@iconify/react'
 import { List, ListOrdered } from 'lucide-react'
 import styles from './TextEditor.module.css'

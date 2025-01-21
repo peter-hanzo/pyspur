@@ -16,7 +16,7 @@ import {
     AccordionItem,
     Chip,
     Divider,
-} from '@nextui-org/react'
+} from "@heroui/react"
 import { Icon } from '@iconify/react'
 import {
     getDocumentCollection,
