@@ -9,8 +9,8 @@ import { RootState } from '@/store/store'
 import { getNodeTitle } from '@/utils/flowUtils'
 import { updateNodeTitle } from '@/store/flowSlice'
 
-const lineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
-const handleStyle = {
+const resizerLineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
+const resizerHandleStyle = {
     backgroundColor: 'white',
     width: 8,
     height: 8,
@@ -105,10 +105,10 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             <NodeResizer
                 nodeId={id}
                 isVisible={true}
-                lineStyle={lineStyle}
+                lineStyle={resizerLineStyle}
                 minHeight={Math.max(100, minHeight)}
                 minWidth={Math.max(200, minWidth)}
-                handleStyle={handleStyle}
+                handleStyle={resizerHandleStyle}
             />
             <Card
                 className={`w-full h-full transition-colors duration-200 ${
