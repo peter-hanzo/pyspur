@@ -351,7 +351,12 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     setIsDebugModalOpen(false)
                 }}
             />
-            <DeployModal isOpen={isDeployModalOpen} onOpenChange={setIsDeployModalOpen} workflowId={workflowId} />
+            <DeployModal
+                isOpen={isDeployModalOpen}
+                onOpenChange={setIsDeployModalOpen}
+                workflowId={workflowId}
+                testInput={testInputs.find((row) => row.id === selectedRow) ?? testInputs[0]}
+            />
         </>
     )
 }

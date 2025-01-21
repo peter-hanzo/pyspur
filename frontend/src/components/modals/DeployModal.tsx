@@ -16,11 +16,13 @@ import { Icon } from '@iconify/react'
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { FlowState } from '@/store/flowSlice'
+import { TestInput } from '@/types/api_types/workflowSchemas'
 
 interface DeployModalProps {
     isOpen: boolean
     onOpenChange: Dispatch<SetStateAction<boolean>>
     workflowId: string
+    testInput: TestInput
 }
 
 interface RootState {
@@ -29,9 +31,9 @@ interface RootState {
 
 type SupportedLanguages = 'shell' | 'python' | 'javascript' | 'typescript' | 'rust' | 'java' | 'cpp'
 
-const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, workflowId }) => {
+const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, workflowId, testInput }) => {
     const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguages>('python')
-    const [isBlocking, setIsBlocking] = useState(false)
+    const [apiCallType, setApiCallType] = useState<'blocking' | 'non-blocking'>('non-blocking')
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
     const inputNode = nodes.find((node) => node.type === 'InputNode')
@@ -42,7 +44,7 @@ const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, workflo
             return ''
         }
         const baseUrl = window.location.origin
-        if (!isBlocking) {
+        if (apiCallType === 'non-blocking') {
             return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`
         } else {
             return `${baseUrl}/api/wf/${workflowId}/run/?run_type=blocking`
@@ -52,13 +54,14 @@ const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, workflo
     // Create example request body with the actual input variables
     const exampleRequestBody = {
         initial_inputs: {
-            [inputNode.data.title]: Object.keys(workflowInputVariables).reduce<Record<string, any>>((acc, key) => {
-                acc[key] =
-                    workflowInputVariables[key].type === 'number'
-                        ? 0
-                        : workflowInputVariables[key].type === 'boolean'
-                          ? false
-                          : 'example_value'
+            [inputNode?.data.title]: Object.keys(workflowInputVariables).reduce<Record<string, any>>((acc, key) => {
+                acc[key] = testInput?.hasOwnProperty(key)
+                    ? testInput[key]
+                    : workflowInputVariables[key].type === 'number'
+                      ? 0
+                      : workflowInputVariables[key].type === 'boolean'
+                        ? false
+                        : 'example_value'
                 return acc
             }, {}),
         },
@@ -177,13 +180,23 @@ int main() {
                 <ModalBody className="max-h-[60vh] overflow-y-auto">
                     <div className="flex flex-col space-y-4">
                         <div className="flex items-center gap-2">
-                            <span>Make the call blocking:</span>
-                            <Switch
-                                isSelected={isBlocking}
-                                onValueChange={setIsBlocking}
+                            <span>API call type:</span>
+                            <Select
+                                label=""
+                                className="max-w-[150px]"
                                 size="sm"
-                                aria-label="api-call-type"
-                            />
+                                variant="bordered"
+                                value={apiCallType}
+                                onChange={(e) => setApiCallType(e.target.value as 'blocking' | 'non-blocking')}
+                                defaultSelectedKeys={['non-blocking']}
+                            >
+                                <SelectItem key="blocking" value="blocking">
+                                    Blocking
+                                </SelectItem>
+                                <SelectItem key="non-blocking" value="non-blocking">
+                                    Non-blocking
+                                </SelectItem>
+                            </Select>
                         </div>
                         <div className="flex items-center gap-2">
                             <span>Language:</span>
