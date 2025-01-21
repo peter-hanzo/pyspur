@@ -4,15 +4,16 @@ import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '
 import { Handle, Position } from '@xyflow/react'
 import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
-import usePartialRun from '../../hooks/usePartialRun'
+import usePartialRun from '@/hooks/usePartialRun'
 import { TaskStatus } from '@/types/api_types/taskSchemas'
-import { AlertState } from '../../types/alert'
+import { AlertState } from '@/types/alert'
 import isEqual from 'lodash/isEqual'
 import { FlowWorkflowNode } from '@/store/flowSlice'
-import { getNodeTitle, duplicateNode, deleteNode } from '../../utils/flowUtils'
-import { RootState } from '../../store/store'
-import store from '../../store/store'
+import { getNodeTitle, duplicateNode, deleteNode } from '@/utils/flowUtils'
+import { RootState } from '@/store/store'
+import store from '@/store/store'
 import { createSelector } from '@reduxjs/toolkit'
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 
 const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
 
@@ -81,23 +82,6 @@ const staticStyles = {
         alignItems: 'center',
     },
 } as const
-
-const convertToPythonVariableName = (str: string): string => {
-    if (!str) return ''
-
-    // Replace spaces and hyphens with underscores
-    str = str.replace(/[\s-]/g, '_')
-
-    // Remove any non-alphanumeric characters except underscores
-    str = str.replace(/[^a-zA-Z0-9_]/g, '')
-
-    // Add underscore prefix only if first char is a number
-    if (/^[0-9]/.test(str)) {
-        str = '_' + str
-    }
-
-    return str
-}
 
 const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
     // Compare only the props that would trigger a meaningful visual change
