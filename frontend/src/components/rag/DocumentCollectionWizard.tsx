@@ -75,7 +75,7 @@ export const DocumentCollectionWizard = () => {
     const [activeStep, setActiveStep] = useState(0)
     const [files, setFiles] = useState<File[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+    const [alert, setAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null)
     const [nameAlert, setNameAlert] = useState<string | null>(null)
     const [config, setConfig] = useState<TextProcessingConfig>({
         name: '',
@@ -156,7 +156,7 @@ export const DocumentCollectionWizard = () => {
             router.push(`/rag/collections/${response.id}`)
         } catch (error) {
             console.error('Error creating collection:', error)
-            setAlert({ type: 'error', message: 'Error creating document collection' })
+            setAlert({ type: 'danger', message: 'Error creating document collection' })
         } finally {
             setIsSubmitting(false)
         }
@@ -304,7 +304,7 @@ export const DocumentCollectionWizard = () => {
                                             } catch (error) {
                                                 console.error('Error creating collection:', error)
                                                 setAlert({
-                                                    type: 'error',
+                                                    type: 'danger',
                                                     message: 'Error creating document collection',
                                                 })
                                             } finally {
