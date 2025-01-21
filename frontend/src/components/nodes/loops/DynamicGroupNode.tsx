@@ -315,15 +315,15 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             </Card>
             <Card
                 className={`w-full h-full transition-colors duration-200 ${
-                    node?.data?.className === 'active' ? 'border-blue-500 bg-blue-50/50' : ''
+                    node?.data?.className === 'active' ? 'border-blue-500' : ''
                 }`}
                 classNames={{
-                    base: `bg-slate-50/50 backdrop-blur-sm outline-offset-0 outline-solid-200
+                    base: `bg-slate-50/50 outline-offset-0 outline-solid-200
                         ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
                         outline-default-200 group-hover:outline-[3px]`,
                 }}
             >
-                <CardHeader className="relative pt-2 pb-4">
+                <CardHeader className="relative pt-2 pb-4 bg-background">
                     <div className="flex items-center">
                         {nodeConfig?.logo && (
                             <img src={nodeConfig.logo} alt="Node Logo" className="mr-2 max-h-8 max-w-8 mb-3" />
@@ -366,15 +366,15 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                         )}
                     </div>
                 </CardHeader>
-                {!isCollapsed && <Divider key={`divider-${id}`} />}
-                <CardBody className="px-1">
-                    <div className={styles.handlesWrapper} ref={nodeRef}>
+                {!isCollapsed && <Divider key={`divider-${id}`} className="bg-background" />}
+                <CardBody className="px-1 bg-none">
+                    <div className={`${styles.handlesWrapper} bg-background`} ref={nodeRef}>
                         {renderHandles()}
                     </div>
                     <div
                         style={{ flexGrow: 1, minHeight: minHeight }}
                         id="child-node-container"
-                        className="bg-slate-200 rounded-md mt-2"
+                        className="bg-none rounded-md mt-2"
                     >
                         {/* This div will expand to fill remaining space */}
                     </div>
