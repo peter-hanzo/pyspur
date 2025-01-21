@@ -1,8 +1,11 @@
 import uuid
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, BinaryIO
 from jinja2 import Template
-
 import tiktoken
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+import os
+
 from .embedder import EmbeddingModels, get_multiple_text_embeddings, EmbeddingArray
 from .schemas.document_schemas import (
     Document,
@@ -10,6 +13,7 @@ from .schemas.document_schemas import (
     DocumentChunkMetadata,
     ChunkingConfig,
 )
+from .parser import extract_text_from_file
 
 # Global variables
 tokenizer = tiktoken.get_encoding(
@@ -193,3 +197,78 @@ async def get_document_chunks(
         chunk.embedding = embeddings[i].tolist()
 
     return chunks
+
+
+async def preview_document_chunk(
+    file: BinaryIO,
+    filename: str,
+    mime_type: str,
+    config: ChunkingConfig,
+) -> Tuple[List[Dict[str, str]], int]:
+    """
+    Preview how a document will be chunked and formatted.
+
+    Args:
+        file: The file object to process
+        filename: Name of the file
+        mime_type: MIME type of the file
+        config: Chunking configuration
+
+    Returns:
+        Tuple containing:
+        - List of preview chunks, each containing original_text, processed_text, and metadata
+        - Total number of chunks
+    """
+    try:
+        # Create temporary file
+        with NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as temp_file:
+            temp_file.write(file.read())
+            temp_file.flush()
+
+            # Extract text using document processing logic
+            with open(temp_file.name, "rb") as f:
+                extracted_text = extract_text_from_file(f, mime_type or "text/plain", None)
+
+            # Clean up temp file
+            os.unlink(temp_file.name)
+
+        # Get chunks using the provided configuration
+        chunks = get_text_chunks(extracted_text, config)
+        if not chunks:
+            raise ValueError("No chunks could be generated with the provided configuration")
+
+        # Take up to 3 chunks for preview: beginning, middle, and end
+        preview_indices = []
+        if len(chunks) == 1:
+            preview_indices = [0]
+        elif len(chunks) == 2:
+            preview_indices = [0, 1]
+        else:
+            preview_indices = [0, len(chunks) // 2, len(chunks) - 1]
+
+        preview_chunks = []
+        for idx in preview_indices:
+            chunk_text = chunks[idx]
+
+            # Apply template if enabled
+            if config.template.enabled:
+                processed_text, processed_metadata = apply_template(
+                    chunk_text,
+                    config.template.template,
+                    config.template.metadata_template or {}
+                )
+            else:
+                processed_text = chunk_text
+                processed_metadata = {"type": "text_chunk"}
+
+            preview_chunks.append({
+                "original_text": chunk_text,
+                "processed_text": processed_text,
+                "metadata": processed_metadata,
+                "chunk_index": idx + 1  # 1-based index for display
+            })
+
+        return preview_chunks, len(chunks)
+
+    except Exception as e:
+        raise ValueError(f"Error previewing chunk: {str(e)}")

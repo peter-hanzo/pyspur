@@ -121,13 +121,6 @@ export const DocumentCollectionWizard = () => {
         setFiles(newFiles)
     }
 
-    const handleConfigChange =
-        (field: keyof TextProcessingConfig) =>
-        (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-            const value =
-                event.target.type === 'checkbox' ? (event.target as HTMLInputElement).checked : event.target.value
-            setConfig((prev) => ({ ...prev, [field]: value }))
-        }
 
     const handleSubmit = async () => {
         try {
@@ -500,6 +493,7 @@ export const DocumentCollectionWizard = () => {
                                                 min_chunk_size_chars: config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars,
                                                 min_chunk_length_to_embed: 10
                                             }}
+                                            files={files}
                                         />
                                     )}
                                 </div>

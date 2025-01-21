@@ -6,7 +6,6 @@ from fastapi import (
     File,
     Form,
     Depends,
-    Body,
 )
 from typing import List, Dict, Optional, Any, cast
 import json
@@ -27,7 +26,6 @@ from ..rag.vector_index import VectorIndex
 from ..rag.schemas.document_schemas import (
     DocumentWithChunks,
     ChunkingConfig,
-    ChunkTemplate,
 )
 from ..schemas.rag_schemas import (
     DocumentCollectionCreateSchema,
@@ -36,7 +34,7 @@ from ..schemas.rag_schemas import (
     VectorIndexResponseSchema,
     ProcessingProgressSchema,
 )
-from ..rag.chunker import get_text_chunks, apply_template
+from ..rag.chunker import preview_document_chunk
 
 # In-memory progress tracking (replace with database in production)
 collection_progress: Dict[str, ProcessingProgressSchema] = {}
@@ -750,42 +748,32 @@ async def get_collection_documents(collection_id: str) -> List[DocumentWithChunk
 
 @router.post("/collections/preview_chunk/")
 async def preview_chunk(
-    text: str = Body(...),
-    chunking_config: ChunkingConfig = Body(...),
+    file: UploadFile = File(...),
+    chunking_config: str = Form(...),
 ) -> Dict[str, Any]:
-    """Preview how a text will be chunked and formatted with templates."""
+    """Preview how a file will be chunked and formatted with templates."""
     try:
-        # Get chunks using the provided configuration
-        chunks = get_text_chunks(text, chunking_config)
+        # Parse chunking config
+        config = ChunkingConfig(**json.loads(chunking_config))
 
-        # If no chunks were generated, return error
-        if not chunks:
-            raise HTTPException(
-                status_code=400,
-                detail="No chunks could be generated with the provided configuration"
-            )
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
 
-        # Take the first chunk for preview
-        preview_chunk = chunks[0]
-
-        # Apply template if enabled
-        if chunking_config.template.enabled:
-            processed_text, processed_metadata = apply_template(
-                preview_chunk,
-                chunking_config.template.template,
-                chunking_config.template.metadata_template or {}
-            )
-        else:
-            processed_text = preview_chunk
-            processed_metadata = {"type": "text_chunk"}
+        # Get preview using chunker module
+        preview_chunks, total_chunks = await preview_document_chunk(
+            file.file,
+            file.filename,
+            file.content_type or "text/plain",
+            config
+        )
 
         return {
-            "original_text": preview_chunk,
-            "processed_text": processed_text,
-            "metadata": processed_metadata,
-            "total_chunks": len(chunks)
+            "chunks": preview_chunks,
+            "total_chunks": total_chunks
         }
 
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error previewing chunk: {e}")
         raise HTTPException(status_code=500, detail=str(e))

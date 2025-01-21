@@ -12,16 +12,18 @@ import {
     Tab,
     Textarea,
     Spinner,
+    Select,
+    SelectItem,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
 import { previewChunk } from '@/utils/api'
-import type { ChunkPreviewResponse } from '@/utils/api'
+import type { ChunkPreviewResponse, ChunkPreview } from '@/utils/api'
 
 interface ChunkTemplate {
     enabled: boolean
     template: string
-    metadata_template: Record<string, string>
+    metadata_template: { type: string } | Record<string, string>
 }
 
 interface ChunkEditorProps {
@@ -32,15 +34,26 @@ interface ChunkEditorProps {
         min_chunk_size_chars: number
         min_chunk_length_to_embed: number
     }
+    files?: File[]
 }
 
-export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateChange, chunkingConfig }) => {
+export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateChange, chunkingConfig, files }) => {
     const [selectedTab, setSelectedTab] = useState('template')
     const [isPreviewLoading, setIsPreviewLoading] = useState(false)
     const [previewResult, setPreviewResult] = useState<ChunkPreviewResponse | null>(null)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [metadataFields, setMetadataFields] = useState<Array<{ key: string; value: string }>>(() =>
         Object.entries(template.metadata_template || {}).map(([key, value]) => ({ key, value }))
     )
+
+    // Reset selected file when files prop changes
+    useEffect(() => {
+        if (files?.length) {
+            setSelectedFile(files[0])
+        } else {
+            setSelectedFile(null)
+        }
+    }, [files])
 
     // Update parent when template changes
     useEffect(() => {
@@ -63,17 +76,12 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
     const handlePreview = async () => {
         try {
             setIsPreviewLoading(true)
-            // Use a sample text that demonstrates the chunking behavior
-            const sampleText = `This is a sample text that will be used to demonstrate the chunking behavior.
-            It contains multiple sentences and paragraphs to show how the text will be split into chunks.
 
-            The chunking algorithm will try to split the text at natural boundaries like periods and line breaks.
-            This helps maintain the context and readability of each chunk.
+            if (!selectedFile) {
+                throw new Error('No file selected for preview')
+            }
 
-            You can customize how the chunks are formatted using templates and add metadata to each chunk.
-            This makes it easier to organize and retrieve the information later.`
-
-            const result = await previewChunk(sampleText, {
+            const result = await previewChunk(selectedFile, {
                 ...chunkingConfig,
                 template
             })
@@ -125,61 +133,90 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                             <Icon icon="solar:info-circle-linear" className="text-default-400" />
                         </Tooltip>
                     </div>
-                    <Button
-                        size="sm"
-                        color="primary"
-                        variant="flat"
-                        startContent={<Icon icon="solar:play-circle-linear" />}
-                        onPress={handlePreview}
-                        isLoading={isPreviewLoading}
-                        isDisabled={isPreviewLoading}
-                    >
-                        Generate Preview
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {files && files.length > 0 && (
+                            <Select
+                                size="sm"
+                                value={selectedFile?.name}
+                                onChange={(e) => {
+                                    const file = files.find(f => f.name === e.target.value)
+                                    if (file) setSelectedFile(file)
+                                }}
+                            >
+                                {files.map((file) => (
+                                    <SelectItem key={file.name} value={file.name}>
+                                        {file.name}
+                                    </SelectItem>
+                                ))}
+                            </Select>
+                        )}
+                        <Button
+                            size="sm"
+                            color="primary"
+                            variant="flat"
+                            startContent={<Icon icon="solar:play-circle-linear" />}
+                            onPress={handlePreview}
+                            isLoading={isPreviewLoading}
+                            isDisabled={isPreviewLoading || !selectedFile}
+                        >
+                            Generate Preview
+                        </Button>
+                    </div>
                 </div>
 
                 {previewResult && (
                     <div className="space-y-4">
-                        <Card className="bg-content2">
-                            <CardBody className="gap-4">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="text-small font-semibold">Original Chunk</h4>
-                                        <Chip size="sm" variant="flat">
-                                            {previewResult.total_chunks} chunks total
-                                        </Chip>
+                        <div className="flex items-center gap-2 mb-2">
+                            <h4 className="text-small font-semibold">Preview Chunks</h4>
+                            <Chip size="sm" variant="flat">
+                                {previewResult.total_chunks} chunks total
+                            </Chip>
+                        </div>
+
+                        {previewResult.chunks.map((chunk, index) => (
+                            <Card key={index} className="bg-content2">
+                                <CardBody className="gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-small font-semibold">
+                                                Chunk {chunk.chunk_index}
+                                                {chunk.chunk_index === 1 && " (Start)"}
+                                                {chunk.chunk_index === previewResult.total_chunks && " (End)"}
+                                                {chunk.chunk_index !== 1 && chunk.chunk_index !== previewResult.total_chunks && " (Middle)"}
+                                            </h4>
+                                        </div>
+                                        <p className="text-small text-default-500 mt-2">
+                                            {chunk.original_text}
+                                        </p>
                                     </div>
-                                    <p className="text-small text-default-500 mt-2">
-                                        {previewResult.original_text}
-                                    </p>
-                                </div>
 
-                                <Divider />
+                                    <Divider />
 
-                                <div>
-                                    <h4 className="text-small font-semibold">Processed Result</h4>
-                                    <div
-                                        className="prose dark:prose-invert max-w-none mt-2"
-                                        dangerouslySetInnerHTML={{
-                                            __html: previewResult.processed_text,
-                                        }}
-                                    />
-                                </div>
-
-                                <Divider />
-
-                                <div>
-                                    <h4 className="text-small font-semibold">Metadata</h4>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {Object.entries(previewResult.metadata).map(([key, value]) => (
-                                            <Chip key={key} size="sm" variant="flat">
-                                                {key}: {value}
-                                            </Chip>
-                                        ))}
+                                    <div>
+                                        <h4 className="text-small font-semibold">Processed Result</h4>
+                                        <div
+                                            className="prose dark:prose-invert max-w-none mt-2"
+                                            dangerouslySetInnerHTML={{
+                                                __html: chunk.processed_text,
+                                            }}
+                                        />
                                     </div>
-                                </div>
-                            </CardBody>
-                        </Card>
+
+                                    <Divider />
+
+                                    <div>
+                                        <h4 className="text-small font-semibold">Metadata</h4>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {Object.entries(chunk.metadata).map(([key, value]) => (
+                                                <Chip key={key} size="sm" variant="flat">
+                                                    {key}: {value}
+                                                </Chip>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        ))}
                     </div>
                 )}
 
