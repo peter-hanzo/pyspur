@@ -13,7 +13,7 @@ import {
     useConnection,
     useUpdateNodeInternals,
 } from '@xyflow/react'
-import { Card, CardHeader, CardBody, Button, Input, Alert } from '@nextui-org/react'
+import { Card, CardHeader, CardBody, Button, Input, Alert, Divider } from '@nextui-org/react'
 import isEqual from 'lodash/isEqual'
 
 import useDetachNodes from './useDetachNodes'
@@ -62,6 +62,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     const [editingTitle, setEditingTitle] = useState(false)
     const [titleInputValue, setTitleInputValue] = useState('')
     const [showTitleError, setShowTitleError] = useState(false)
+    const [isCollapsed, setIsCollapsed] = useState(false)
 
     const store = useStoreApi()
     const { deleteElements } = useReactFlow()
@@ -346,8 +347,9 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                         )}
                     </div>
                 </CardHeader>
+                {!isCollapsed && <Divider key={`divider-${id}`} />}
                 <CardBody className="px-1">
-                    <div className={styles.nodeWrapper} ref={nodeRef}>
+                    <div className={styles.handlesWrapper} ref={nodeRef}>
                         {renderHandles()}
                     </div>
                 </CardBody>
