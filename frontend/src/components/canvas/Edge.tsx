@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, EdgeProps, Edge } from '@xyflow/react'
-import { Button } from "@heroui/react"
+import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdge } from '../../store/flowSlice'
@@ -26,10 +26,10 @@ const staticStyles = {
 
 // Add this near the other static styles
 const getEdgeStyle = (isDark: boolean) =>
-    (({
+    ({
         strokeWidth: 2,
-        stroke: isDark ? '#888' : '#555'
-    }) as const)
+        stroke: isDark ? '#888' : '#555',
+    }) as const
 
 interface CustomEdgeData extends Edge<any> {
     onPopoverOpen: (params: {

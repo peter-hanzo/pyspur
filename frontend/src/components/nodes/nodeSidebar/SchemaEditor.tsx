@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Chip, Input, listboxItem, Select, SelectItem } from "@heroui/react"
+import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
@@ -87,7 +87,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const label = schemaType === 'input_map' ? 'Field' : 'Type'
 
     return (
-        (<div className="json-editor">
+        <div className="json-editor">
             <div className="mb-4 flex items-center space-x-4">
                 <Input
                     type="text"
@@ -184,8 +184,8 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         </Button>
                     </div>
                 ))}
-        </div>)
-    );
+        </div>
+    )
 }
 
 export default SchemaEditor

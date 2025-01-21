@@ -15,7 +15,7 @@ import {
     Chip,
     Divider,
     Progress,
-} from "@heroui/react"
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import {
     getVectorIndex,

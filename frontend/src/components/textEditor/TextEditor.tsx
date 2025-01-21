@@ -7,7 +7,7 @@ import Underline from '@tiptap/extension-underline'
 import { Color } from '@tiptap/extension-color'
 import TextStyle from '@tiptap/extension-text-style'
 import ListItem from '@tiptap/extension-list-item'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from "@heroui/react"
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { List, ListOrdered } from 'lucide-react'
 import styles from './TextEditor.module.css'
@@ -244,12 +244,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         return (
             <div className="relative">
                 {!fullScreen && (
-                    <Button
-                        onPress={onOpen}
-                        isIconOnly
-                        className="absolute top-0 right-0 z-10"
-                        size="sm"
-                    >
+                    <Button onPress={onOpen} isIconOnly className="absolute top-0 right-0 z-10" size="sm">
                         <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
                     </Button>
                 )}

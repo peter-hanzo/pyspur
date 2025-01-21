@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { memo } from 'react'
-import { Button } from "@heroui/react"
+import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useHotkeys } from 'react-hotkeys-hook'

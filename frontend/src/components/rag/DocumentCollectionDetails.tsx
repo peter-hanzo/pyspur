@@ -16,7 +16,7 @@ import {
     AccordionItem,
     Chip,
     Divider,
-} from "@heroui/react"
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import {
     getDocumentCollection,

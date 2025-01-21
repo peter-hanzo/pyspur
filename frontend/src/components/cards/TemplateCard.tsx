@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, CardBody, CardFooter, Button } from "@heroui/react"
+import { Card, CardBody, CardFooter, Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
 
 interface TemplateCardProps {

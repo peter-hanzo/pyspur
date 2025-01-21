@@ -16,7 +16,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import Operator from './footer/Operator'
 import { setSelectedNode, deleteNode, setNodes, FlowWorkflowNode, FlowWorkflowEdge } from '../../store/flowSlice'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
-import { Dropdown, DropdownMenu, DropdownSection, DropdownItem, DropdownTrigger } from "@heroui/react"
+import { Dropdown, DropdownMenu, DropdownSection, DropdownItem, DropdownTrigger } from '@heroui/react'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import CustomEdge from './Edge'
 import HelperLinesRenderer from '../HelperLines'

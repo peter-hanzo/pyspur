@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Card, CardBody, Button, Chip } from "@heroui/react"
+import { Card, CardBody, Button, Chip } from '@heroui/react'
 import { Upload, X, AlertCircle } from 'lucide-react'
 
 interface FileUploadBoxProps {
@@ -27,7 +27,7 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({
     onFilesChange,
     multiple = true,
     acceptedFileTypes = DEFAULT_ACCEPTED_FILE_TYPES,
-    supportedFormatsMessage = DEFAULT_FORMATS_MESSAGE
+    supportedFormatsMessage = DEFAULT_FORMATS_MESSAGE,
 }) => {
     const [files, setFiles] = useState<File[]>([])
 
@@ -73,9 +73,7 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({
                                         ? 'Drop the file here'
                                         : `Drag and drop ${multiple ? 'files' : 'a file'} here or click to browse`}
                                 </p>
-                                <p className="text-xs text-default-400 mt-1">
-                                    {supportedFormatsMessage}
-                                </p>
+                                <p className="text-xs text-default-400 mt-1">{supportedFormatsMessage}</p>
                                 {!multiple && files.length > 0 && (
                                     <p className="text-xs text-warning mt-1">
                                         New file upload will replace the existing file
@@ -91,7 +89,11 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({
                 <div className="space-y-2">
                     <div className="flex items-center gap-2">
                         <p className="text-sm font-medium">Selected {multiple ? `Files (${files.length})` : 'File'}</p>
-                        {!multiple && <Chip size="sm" variant="flat" color="warning">Single file mode</Chip>}
+                        {!multiple && (
+                            <Chip size="sm" variant="flat" color="warning">
+                                Single file mode
+                            </Chip>
+                        )}
                     </div>
                     <div className="space-y-2">
                         {files.map((file, index) => (

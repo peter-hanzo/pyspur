@@ -2,7 +2,7 @@ import React, { memo } from 'react'
 import ZoomInOut from './ZoomInOut'
 import { MiniMap } from '@xyflow/react'
 import UndoRedo from './UndoRedo'
-import { Button, ButtonGroup } from "@heroui/react"
+import { Button, ButtonGroup } from '@heroui/react'
 import { useModeStore } from '../../../store/modeStore'
 import { Icon } from '@iconify/react'
 import TipPopup from './TipPopUp'

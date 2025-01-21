@@ -7,7 +7,7 @@ import {
     deleteWorkflowInputVariable,
     updateWorkflowInputVariableKey,
 } from '../../store/flowSlice'
-import { Input, Button, Alert } from "@heroui/react"
+import { Input, Button, Alert } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import styles from './InputNode.module.css'
 import { RootState } from '../../store/store'

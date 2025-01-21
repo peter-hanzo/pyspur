@@ -10,7 +10,12 @@ import {
     FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
-import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory, FieldMetadata, ModelConstraints } from '../../../store/nodeTypesSlice'
+import {
+    FlowWorkflowNodeType,
+    FlowWorkflowNodeTypesByCategory,
+    FieldMetadata,
+    ModelConstraints,
+} from '../../../store/nodeTypesSlice'
 import NumberInput from '../../NumberInput'
 import CodeEditor from '../../CodeEditor'
 import { jsonOptions } from '../../../constants/jsonOptions'
@@ -30,7 +35,7 @@ import {
     Card,
     Alert,
     Tooltip,
-} from "@heroui/react"
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import NodeOutput from '../NodeOutputDisplay'
 import SchemaEditor from './SchemaEditor'

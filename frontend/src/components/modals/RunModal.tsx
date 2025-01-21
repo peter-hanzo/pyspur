@@ -16,7 +16,7 @@ import {
     Input,
     Tooltip,
     Switch,
-} from "@heroui/react"
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
 import { addTestInput, deleteTestInput } from '../../store/flowSlice'
@@ -77,7 +77,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     const handleAddRow = () => {
         // Check if we have any content to add
-        const hasContent = Object.values(editorContents).some(v => v?.trim())
+        const hasContent = Object.values(editorContents).some((v) => v?.trim())
         if (!hasContent) return
 
         const newTestInput: TestInput = {
@@ -111,36 +111,32 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     const handleFilesChange = async (nodeId: string, files: File[]) => {
         if (!workflowID) return
 
-        setUploadedFiles(prev => ({ ...prev, [nodeId]: files }))
+        setUploadedFiles((prev) => ({ ...prev, [nodeId]: files }))
 
         try {
             if (files.length === 0) {
                 // If no files, clear the file path from editor contents
-                const fileFields = workflowInputVariableNames.filter(field =>
-                    field.toLowerCase().includes('file')
-                )
+                const fileFields = workflowInputVariableNames.filter((field) => field.toLowerCase().includes('file'))
                 if (fileFields.length > 0) {
                     const field = fileFields[0]
-                    setEditorContents(prev => ({
+                    setEditorContents((prev) => ({
                         ...prev,
-                        [field]: ''
+                        [field]: '',
                     }))
                 }
                 return
             }
 
             const paths = await uploadTestFiles(workflowID, nodeId, files)
-            setFilePaths(prev => ({ ...prev, ...paths }))
+            setFilePaths((prev) => ({ ...prev, ...paths }))
 
             // Update the editor contents with the file path
-            const fileFields = workflowInputVariableNames.filter(field =>
-                field.toLowerCase().includes('file')
-            )
+            const fileFields = workflowInputVariableNames.filter((field) => field.toLowerCase().includes('file'))
             if (fileFields.length > 0) {
                 const field = fileFields[0]
-                setEditorContents(prev => ({
+                setEditorContents((prev) => ({
                     ...prev,
-                    [field]: paths[nodeId][0] // Set the first file field to the first uploaded file path
+                    [field]: paths[nodeId][0], // Set the first file field to the first uploaded file path
                 }))
             }
         } catch (error) {
@@ -152,9 +148,9 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         // Basic URL validation
         const isValidUrl = value === '' || /^(https?:\/\/|gs:\/\/)/.test(value)
         if (isValidUrl) {
-            setEditorContents(prev => ({
+            setEditorContents((prev) => ({
                 ...prev,
-                [field]: value
+                [field]: value,
             }))
         }
     }
@@ -237,7 +233,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         onOpenChange(false)
     }
 
-
     return (
         <Modal
             isOpen={isOpen}
@@ -303,9 +298,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                             <div className="flex gap-2 overflow-x-auto">
                                 {workflowInputVariableNames.map((field) => (
                                     <div key={field} className="w-[300px] min-w-[300px]">
-                                        <div className="mb-2 font-medium text-foreground">
-                                            {field}
-                                        </div>
+                                        <div className="mb-2 font-medium text-foreground">{field}</div>
                                         {field.toLowerCase().includes('file') ? (
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
@@ -313,14 +306,14 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                         size="sm"
                                                         isSelected={fileInputModes[field] === 'url'}
                                                         onChange={() => {
-                                                            setFileInputModes(prev => ({
+                                                            setFileInputModes((prev) => ({
                                                                 ...prev,
-                                                                [field]: prev[field] === 'file' ? 'url' : 'file'
+                                                                [field]: prev[field] === 'file' ? 'url' : 'file',
                                                             }))
                                                             // Clear the input when switching modes
-                                                            setEditorContents(prev => ({
+                                                            setEditorContents((prev) => ({
                                                                 ...prev,
-                                                                [field]: ''
+                                                                [field]: '',
                                                             }))
                                                             if (fileInputModes[field] === 'file') {
                                                                 handleFilesChange(inputNode.id, [])
@@ -341,14 +334,17 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                 ) : (
                                                     <FileUploadBox
                                                         multiple={false}
-                                                        onFilesChange={(files) => handleFilesChange(inputNode.id, files)}
+                                                        onFilesChange={(files) =>
+                                                            handleFilesChange(inputNode.id, files)
+                                                        }
                                                         acceptedFileTypes={{
                                                             // Documents
                                                             'application/pdf': ['.pdf'],
                                                             'text/plain': ['.txt'],
                                                             'text/markdown': ['.md'],
                                                             'application/msword': ['.doc'],
-                                                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                                                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                                                                ['.docx'],
                                                             // Images
                                                             'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
                                                             // Audio

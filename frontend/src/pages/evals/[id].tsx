@@ -18,7 +18,7 @@ import {
     Button,
     useDisclosure,
     Alert,
-} from "@heroui/react"
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 
 interface PerExampleResult {

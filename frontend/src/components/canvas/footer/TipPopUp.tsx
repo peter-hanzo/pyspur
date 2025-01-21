@@ -1,5 +1,5 @@
 import { memo, forwardRef } from 'react'
-import { Tooltip } from "@heroui/react"
+import { Tooltip } from '@heroui/react'
 
 type TipPopupProps = {
     title: string

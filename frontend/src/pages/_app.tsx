@@ -1,6 +1,6 @@
 import React from 'react'
 import { Provider } from 'react-redux'
-import { HeroUIProvider } from "@heroui/react"
+import { HeroUIProvider } from '@heroui/react'
 import { AppProps } from 'next/app'
 import store from '../store/store'
 import '../styles/globals.css'

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, CardBody, Chip } from "@heroui/react"
+import { Card, CardBody, Chip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import type { DocumentCollectionResponse } from '@/utils/api'
 
