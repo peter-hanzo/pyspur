@@ -1,13 +1,27 @@
-import { memo, useState } from 'react'
+import { memo, useState, useRef, useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { NodeProps, NodeToolbar, useReactFlow, useStore, useStoreApi, NodeResizer } from '@xyflow/react'
+import {
+    NodeProps,
+    NodeToolbar,
+    useReactFlow,
+    useStore,
+    useStoreApi,
+    NodeResizer,
+    Handle,
+    Position,
+    useHandleConnections,
+    useConnection,
+    useUpdateNodeInternals,
+} from '@xyflow/react'
 import { Card, CardHeader, CardBody, Button, Input, Alert } from '@nextui-org/react'
+import isEqual from 'lodash/isEqual'
 
 import useDetachNodes from './useDetachNodes'
 import { getRelativeNodesBounds } from './groupNodeUtils'
 import { RootState } from '@/store/store'
 import { getNodeTitle } from '@/utils/flowUtils'
 import { updateNodeTitle } from '@/store/flowSlice'
+import styles from '../DynamicNode.module.css'
 
 const resizerLineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
 const resizerHandleStyle = {
@@ -55,11 +69,160 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             minHeight: rect.y + rect.height,
             hasChildNodes: childNodes.length > 0,
         }
-    }, isEqual)
+    }, customIsEqual)
 
     // Add selected node selector
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode)
     const isSelected = String(id) === String(selectedNodeId)
+
+    const nodeRef = useRef<HTMLDivElement | null>(null)
+    const updateNodeInternals = useUpdateNodeInternals()
+
+    const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
+
+    // Handle predecessor nodes logic
+    const [predecessorNodes, setPredecessorNodes] = useState(() => {
+        return edges
+            .filter((edge) => edge.target === id)
+            .map((edge) => {
+                const sourceNode = nodes.find((node) => node.id === edge.source)
+                if (!sourceNode) return null
+                return sourceNode
+            })
+            .filter(Boolean)
+    })
+
+    const connection = useConnection()
+
+    // Compute finalPredecessors using useMemo
+    const finalPredecessors = useMemo(() => {
+        const updatedPredecessorNodes = edges
+            .filter((edge) => edge.target === id)
+            .map((edge) => {
+                const sourceNode = nodes.find((node) => node.id === edge.source)
+                if (!sourceNode) return null
+                return sourceNode
+            })
+            .filter(Boolean)
+
+        let result = updatedPredecessorNodes
+
+        if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+            if (
+                connection.fromNode &&
+                !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
+            ) {
+                result = [
+                    ...updatedPredecessorNodes,
+                    {
+                        id: connection.fromNode.id,
+                        type: connection.fromNode.type,
+                        data: {
+                            title: (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
+                        },
+                    },
+                ]
+            }
+        }
+        return result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index)
+    }, [edges, nodes, connection, id])
+
+    useEffect(() => {
+        const hasChanged =
+            finalPredecessors.length !== predecessorNodes.length ||
+            finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
+
+        if (hasChanged) {
+            setPredecessorNodes(finalPredecessors)
+            updateNodeInternals(id)
+        }
+    }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
+
+    // Handle components
+    interface HandleRowProps {
+        id: string
+        keyName: string
+    }
+
+    const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
+        const connections = useHandleConnections({ type: 'target', id: keyName })
+        const isConnectable = connections.length === 0
+
+        return (
+            <div className={`${styles.handleRow} w-full justify-end`} key={keyName}>
+                <div className={`${styles.handleCell} ${styles.inputHandleCell}`}>
+                    <Handle
+                        type="target"
+                        position={Position.Left}
+                        id={String(keyName)}
+                        className={`${styles.handle} ${styles.handleLeft}`}
+                        isConnectable={isConnectable}
+                    />
+                </div>
+                <div className="border-r border-gray-300 h-full mx-0" />
+                <div className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden">
+                    <span
+                        className={`${styles.handleLabel} text-sm font-medium ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                    >
+                        {String(keyName)}
+                    </span>
+                </div>
+            </div>
+        )
+    }
+
+    const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
+        return (
+            <div className={`${styles.handleRow} w-full justify-end`} key={`output-${keyName}`}>
+                <div className="align-center flex flex-grow flex-shrink mr-[0.5rem] max-w-full overflow-hidden">
+                    <span
+                        className={`${styles.handleLabel} text-sm font-medium ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                    >
+                        {keyName}
+                    </span>
+                </div>
+                <div className="border-l border-gray-300 h-full mx-0" />
+                <div className={`${styles.handleCell} ${styles.outputHandleCell}`}>
+                    <Handle
+                        type="source"
+                        position={Position.Right}
+                        id={keyName}
+                        className={`${styles.handle} ${styles.handleRight}`}
+                        isConnectable={true}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    const renderHandles = () => {
+        const dedupedPredecessors = finalPredecessors.filter(
+            (node, index, self) => self.findIndex((n) => n.id === node.id) === index
+        )
+
+        return (
+            <div className={`${styles.handlesWrapper}`}>
+                {/* Input Handles */}
+                <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`}>
+                    {dedupedPredecessors.map((node) => {
+                        const handleId = String(node.data?.title || node.id || '')
+                        return (
+                            <InputHandleRow
+                                key={`input-handle-row-${node.id}-${handleId}`}
+                                id={node?.id}
+                                keyName={handleId}
+                            />
+                        )
+                    })}
+                </div>
+
+                {/* Output Handle */}
+                <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`}>
+                    {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig.title)} />}
+                </div>
+            </div>
+        )
+    }
 
     const onDelete = () => {
         deleteElements({ nodes: [{ id }] })
@@ -163,7 +326,11 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                         )}
                     </div>
                 </CardHeader>
-                <CardBody className="px-1">{/* Additional content can go here */}</CardBody>
+                <CardBody className="px-1">
+                    <div className={styles.nodeWrapper} ref={nodeRef}>
+                        {renderHandles()}
+                    </div>
+                </CardBody>
             </Card>
         </>
     )
@@ -175,7 +342,7 @@ type IsEqualCompareObj = {
     hasChildNodes: boolean
 }
 
-function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+function customIsEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
     return (
         prev.minWidth === next.minWidth &&
         prev.minHeight === next.minHeight &&
