@@ -170,6 +170,87 @@ int main() {
         return examples[language]
     }
 
+    const getStatusEndpoint = (): string => {
+        if (typeof window === 'undefined') {
+            return ''
+        }
+        const baseUrl = window.location.origin
+        return `${baseUrl}/api/runs/{run_id}/status/`
+    }
+
+    const getStatusCheckExample = (language: SupportedLanguages): string => {
+        const endpoint = getStatusEndpoint()
+
+        const examples: Record<SupportedLanguages, string> = {
+            shell: `curl ${endpoint.replace('{run_id}', 'YOUR_RUN_ID')}`,
+
+            python: `import requests
+
+url = '${endpoint.replace('{run_id}', 'YOUR_RUN_ID')}'
+
+response = requests.get(url)
+print(response.json())`,
+
+            javascript: `fetch('${endpoint.replace('{run_id}', 'YOUR_RUN_ID')}')
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));`,
+
+            typescript: `async function checkRunStatus(runId: string) {
+  const response = await fetch('${endpoint.replace('{run_id}', '')}' + runId);
+  const data = await response.json();
+  console.log(data);
+}`,
+
+            rust: `use reqwest;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let response = client
+        .get("${endpoint.replace('{run_id}', 'YOUR_RUN_ID')}")
+        .send()
+        .await?;
+
+    println!("Response: {}", response.text().await?);
+    Ok(())
+}`,
+
+            java: `import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+
+public class StatusCheck {
+    public static void main(String[] args) throws Exception {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("${endpoint.replace('{run_id}', 'YOUR_RUN_ID')}"))
+            .GET()
+            .build();
+
+        HttpResponse<String> response = client.send(request,
+            HttpResponse.BodyHandlers.ofString());
+
+        System.out.println(response.body());
+    }
+}`,
+
+            cpp: `#include <cpr/cpr.h>
+#include <iostream>
+
+int main() {
+    cpr::Response r = cpr::Get(
+        cpr::Url{"${endpoint.replace('{run_id}', 'YOUR_RUN_ID')}"});
+
+    std::cout << "Response: " << r.text << std::endl;
+    return 0;
+}`,
+        }
+
+        return examples[language]
+    }
+
     return (
         <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
             <ModalContent>
@@ -247,6 +328,38 @@ int main() {
                             </Tooltip>
                         </div>
                     </div>
+
+                    {apiCallType === 'non-blocking' && (
+                        <div className="mt-4">
+                            <p className="mb-2">Check run status:</p>
+                            <div className="flex items-center gap-2 w-full">
+                                <SyntaxHighlighter
+                                    language={selectedLanguage}
+                                    style={oneDark}
+                                    customStyle={{
+                                        margin: 0,
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        flex: 1,
+                                    }}
+                                >
+                                    {getStatusCheckExample(selectedLanguage)}
+                                </SyntaxHighlighter>
+                                <Tooltip content="Copy to clipboard">
+                                    <Button
+                                        isIconOnly
+                                        variant="light"
+                                        size="sm"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(getStatusCheckExample(selectedLanguage))
+                                        }}
+                                    >
+                                        <Icon icon="solar:copy-linear" width={20} />
+                                    </Button>
+                                </Tooltip>
+                            </div>
+                        </div>
+                    )}
                 </ModalBody>
                 <ModalFooter>
                     <Button color="primary" onPress={() => onOpenChange(false)}>
