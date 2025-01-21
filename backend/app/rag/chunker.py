@@ -1,12 +1,11 @@
 import uuid
-from typing import Dict, List, Optional, Tuple, Union, BinaryIO
+from typing import Dict, List, Tuple, BinaryIO
 from jinja2 import Template
 import tiktoken
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 import os
 
-from .embedder import EmbeddingModels, get_multiple_text_embeddings, EmbeddingArray
 from .schemas.document_schemas import (
     Document,
     DocumentChunk,
@@ -153,52 +152,6 @@ def create_document_chunks(
     return doc_chunks, doc_id
 
 
-async def get_document_chunks(
-    documents: List[Document],
-    chunk_token_size: Optional[Union[int, ChunkingConfig]] = None,
-    model: str = EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value,
-) -> Dict[str, List[DocumentChunk]]:
-    """
-    Convert documents into chunks with embeddings.
-
-    Args:
-        documents: The list of documents to convert.
-        chunk_token_size: Either a ChunkingConfig object or a legacy integer chunk size.
-        model: The embedding model to use.
-
-    Returns:
-        A dictionary mapping document ids to their chunks.
-    """
-    # Handle legacy integer chunk_token_size
-    if isinstance(chunk_token_size, int):
-        config = ChunkingConfig(chunk_token_size=chunk_token_size)
-    elif isinstance(chunk_token_size, ChunkingConfig):
-        config = chunk_token_size
-    else:
-        config = ChunkingConfig()  # Use defaults
-
-    chunks: Dict[str, List[DocumentChunk]] = {}
-    all_chunks: List[DocumentChunk] = []
-
-    for doc in documents:
-        doc_chunks, doc_id = create_document_chunks(doc, config)
-        all_chunks.extend(doc_chunks)
-        chunks[doc_id] = doc_chunks
-
-    if not all_chunks:
-        return {}
-
-    chunk_texts = [chunk.text for chunk in all_chunks]
-    embeddings: EmbeddingArray = await get_multiple_text_embeddings(
-        docs=chunk_texts, model=model, batch_size=config.embeddings_batch_size
-    )
-
-    for i, chunk in enumerate(all_chunks):
-        chunk.embedding = embeddings[i].tolist()
-
-    return chunks
-
-
 async def preview_document_chunk(
     file: BinaryIO,
     filename: str,
@@ -232,43 +185,33 @@ async def preview_document_chunk(
             # Clean up temp file
             os.unlink(temp_file.name)
 
-        # Get chunks using the provided configuration
-        chunks = get_text_chunks(extracted_text, config)
-        if not chunks:
+        # Create a temporary Document object to use create_document_chunks
+        temp_doc = Document(text=extracted_text)
+        doc_chunks, _ = create_document_chunks(temp_doc, config)
+
+        if not doc_chunks:
             raise ValueError("No chunks could be generated with the provided configuration")
 
         # Take up to 3 chunks for preview: beginning, middle, and end
         preview_indices = []
-        if len(chunks) == 1:
+        if len(doc_chunks) == 1:
             preview_indices = [0]
-        elif len(chunks) == 2:
+        elif len(doc_chunks) == 2:
             preview_indices = [0, 1]
         else:
-            preview_indices = [0, len(chunks) // 2, len(chunks) - 1]
+            preview_indices = [0, len(doc_chunks) // 2, len(doc_chunks) - 1]
 
         preview_chunks = []
         for idx in preview_indices:
-            chunk_text = chunks[idx]
-
-            # Apply template if enabled
-            if config.template.enabled:
-                processed_text, processed_metadata = apply_template(
-                    chunk_text,
-                    config.template.template,
-                    config.template.metadata_template or {}
-                )
-            else:
-                processed_text = chunk_text
-                processed_metadata = {"type": "text_chunk"}
-
+            chunk = doc_chunks[idx]
             preview_chunks.append({
-                "original_text": chunk_text,
-                "processed_text": processed_text,
-                "metadata": processed_metadata,
+                "original_text": chunk.text,  # This will already be processed if template is enabled
+                "processed_text": chunk.text,
+                "metadata": chunk.metadata.custom_metadata if chunk.metadata else {"type": "text_chunk"},
                 "chunk_index": idx + 1  # 1-based index for display
             })
 
-        return preview_chunks, len(chunks)
+        return preview_chunks, len(doc_chunks)
 
     except Exception as e:
         raise ValueError(f"Error previewing chunk: {str(e)}")
