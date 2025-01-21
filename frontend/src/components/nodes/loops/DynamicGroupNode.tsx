@@ -371,6 +371,13 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                     <div className={styles.handlesWrapper} ref={nodeRef}>
                         {renderHandles()}
                     </div>
+                    <div
+                        style={{ flexGrow: 1, minHeight: minHeight }}
+                        id="child-node-container"
+                        className="bg-slate-200 rounded-md mt-2"
+                    >
+                        {/* This div will expand to fill remaining space */}
+                    </div>
                 </CardBody>
             </Card>
         </>
