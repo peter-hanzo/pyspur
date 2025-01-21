@@ -119,14 +119,6 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
         setIsDeployModalOpen(true)
     }
 
-    const getApiEndpoint = (): string => {
-        if (typeof window === 'undefined') {
-            return ''
-        }
-        const baseUrl = window.location.origin
-        return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`
-    }
-
     useEffect(() => {
         if (isHistoryOpen) {
             updateRunStatuses()
@@ -359,11 +351,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     setIsDebugModalOpen(false)
                 }}
             />
-            <DeployModal
-                isOpen={isDeployModalOpen}
-                onOpenChange={setIsDeployModalOpen}
-                getApiEndpoint={getApiEndpoint}
-            />
+            <DeployModal isOpen={isDeployModalOpen} onOpenChange={setIsDeployModalOpen} workflowId={workflowId} />
         </>
     )
 }
