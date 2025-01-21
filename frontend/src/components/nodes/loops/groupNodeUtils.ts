@@ -5,6 +5,10 @@ import { Dispatch } from '@reduxjs/toolkit'
 import { updateNodeParentAndCoordinates } from '../../../store/flowSlice'
 // Add MouseEvent from React
 import { MouseEvent as ReactMouseEvent } from 'react'
+import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
+import { createNode } from '@/utils/nodeFactory'
+import { AppDispatch } from '@/store/store'
+import { addNodeWithConfig } from '@/store/flowSlice'
 
 export const GROUP_NODE_TYPES = ['ForLoopNode']
 
@@ -168,4 +172,49 @@ export const onNodeDragStopOverGroupNode = (
         //     })
         // )
     }
+}
+
+export const createDynamicGroupNodeWithChildren = (
+    nodeTypes: FlowWorkflowNodeTypesByCategory,
+    nodeType: string,
+    id: string,
+    position: { x: number; y: number },
+    dispatch: AppDispatch
+) => {
+    const loopNodeAndConfig = createNode(nodeTypes, nodeType, id, position, null, { width: 1200, height: 600 })
+
+    if (loopNodeAndConfig) {
+        // Set initial dimensions for the loop node
+
+        // Create input node
+        const inputNodeAndConfig = createNode(
+            nodeTypes,
+            'InputNode',
+            `${id}-input`,
+            {
+                x: position.x + 50,
+                y: position.y + 300, // position.y + (height/2)
+            },
+            loopNodeAndConfig.node.id
+        )
+
+        // Create output node
+        const outputNodeAndConfig = createNode(
+            nodeTypes,
+            'OutputNode',
+            `${id}-output`,
+            {
+                x: position.x + 950, // position.x + width - 250
+                y: position.y + 300, // position.y + (height/2)
+            },
+            loopNodeAndConfig.node.id
+        )
+
+        // Dispatch all nodes
+        dispatch(addNodeWithConfig(loopNodeAndConfig))
+        dispatch(addNodeWithConfig(inputNodeAndConfig))
+        dispatch(addNodeWithConfig(outputNodeAndConfig))
+        return true
+    }
+    return false
 }
