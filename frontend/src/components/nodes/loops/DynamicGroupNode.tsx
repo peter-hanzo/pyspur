@@ -16,7 +16,7 @@ import {
 import { Card, CardHeader, CardBody, Button, Input, Alert, Divider } from '@nextui-org/react'
 import isEqual from 'lodash/isEqual'
 import { Icon } from '@iconify/react'
-
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 import useDetachNodes from './useDetachNodes'
 import { getRelativeNodesBounds } from './groupNodeUtils'
 import { RootState } from '@/store/store'
@@ -54,16 +54,6 @@ const resizerHandleStyle = {
 
 export interface DynamicGroupNodeProps {
     id: string
-}
-
-const convertToPythonVariableName = (str: string): string => {
-    if (!str) return ''
-    str = str.replace(/[\s-]/g, '_')
-    str = str.replace(/[^a-zA-Z0-9_]/g, '')
-    if (/^[0-9]/.test(str)) {
-        str = '_' + str
-    }
-    return str
 }
 
 const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
