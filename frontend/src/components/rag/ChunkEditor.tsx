@@ -143,9 +143,10 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                         {files && files.length > 0 && (
                             <Select
                                 size="sm"
-                                value={selectedFile?.name}
-                                onChange={(e) => {
-                                    const file = files.find(f => f.name === e.target.value)
+                                selectedKeys={selectedFile ? [selectedFile.name] : []}
+                                onSelectionChange={(keys) => {
+                                    const selectedKey = Array.from(keys)[0]?.toString()
+                                    const file = files.find(f => f.name === selectedKey)
                                     if (file) setSelectedFile(file)
                                 }}
                             >

@@ -178,14 +178,25 @@ export const DocumentCollectionWizard = () => {
                 setConfig((prev) => ({ ...prev, name: randomName }))
                 setNameAlert(`Using generated name: ${randomName}`)
             }
-            setActiveStep((prevStep) => prevStep + 1)
+
+            // Skip chunking step if no files are uploaded
+            if (activeStep === 0 && files.length === 0) {
+                setActiveStep(2) // Skip to template step
+            } else {
+                setActiveStep((prevStep) => prevStep + 1)
+            }
         } else {
             handleSubmit()
         }
     }
 
     const handleBack = () => {
-        setActiveStep((prevStep) => prevStep - 1)
+        // Handle going back when chunking step was skipped
+        if (activeStep === 2 && files.length === 0) {
+            setActiveStep(0)
+        } else {
+            setActiveStep((prevStep) => prevStep - 1)
+        }
     }
 
     const handleInputChange = (field: keyof TextProcessingConfig, value: string | boolean | number) => {
@@ -731,9 +742,10 @@ export const DocumentCollectionWizard = () => {
                             : index < activeStep
                               ? 'border-success/50 bg-success/5'
                               : 'border-default-200 dark:border-default-100'
-                    }`}
-                                    disabled={index > activeStep}
-                                    whileHover={{ scale: index <= activeStep ? 1.02 : 1 }}
+                    }
+                    ${index === 1 && files.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={index > activeStep || (index === 1 && files.length === 0)}
+                                    whileHover={{ scale: (index <= activeStep && !(index === 1 && files.length === 0)) ? 1.02 : 1 }}
                                     whileTap={{ scale: 0.98 }}
                                 >
                                     <div className="flex items-center gap-3">
