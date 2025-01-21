@@ -283,7 +283,7 @@ const Dashboard: React.FC = () => {
                         (apiKeys.length === 0 || apiKeys.every((key) => !key.value || key.value === '')) && (
                             <div className="w-full">
                                 <Alert
-                                    variant="warning"
+                                    variant="bordered"
                                     className="mb-2"
                                     startContent={<Icon icon="lucide:alert-triangle" width={16} />}
                                 >
