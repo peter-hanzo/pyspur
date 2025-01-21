@@ -10,7 +10,7 @@ import {
     FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
-import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory, FieldMetadata } from '../../../store/nodeTypesSlice'
+import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory, FieldMetadata, ModelConstraints } from '../../../store/nodeTypesSlice'
 import NumberInput from '../../NumberInput'
 import CodeEditor from '../../CodeEditor'
 import { jsonOptions } from '../../../constants/jsonOptions'
@@ -148,6 +148,14 @@ const generateJsonSchemaFromSchema = (schema: Record<string, string>): string | 
     }
 }
 
+// Add this function after the existing helper functions and before the NodeSidebar component
+const getModelConstraints = (nodeSchema: FlowWorkflowNodeType | null, modelId: string): ModelConstraints | null => {
+    if (!nodeSchema || !nodeSchema.model_constraints || !nodeSchema.model_constraints[modelId]) {
+        return null
+    }
+    return nodeSchema.model_constraints[modelId]
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -269,7 +277,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }))
     }
 
-    // Update the renderEnumSelect function to handle LLM model selection
+    // Update the renderEnumSelect function's model selection handler
     const renderEnumSelect = (
         key: string,
         label: string,
@@ -319,7 +327,32 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         label={label}
                         selectedKeys={[currentValue]}
                         onChange={(e) => {
-                            const updatedModel = updateNestedModel(currentNodeConfig, 'llm_info.model', e.target.value)
+                            const selectedModelId = e.target.value
+                            // Get constraints for the selected model
+                            const modelConstraints = getModelConstraints(nodeSchema, selectedModelId)
+
+                            // Create updated model config with new constraints
+                            const updatedModel = {
+                                ...currentNodeConfig,
+                                llm_info: {
+                                    ...currentNodeConfig.llm_info,
+                                    model: selectedModelId,
+                                    // Apply model constraints
+                                    ...(modelConstraints && {
+                                        max_tokens: Math.min(
+                                            currentNodeConfig.llm_info?.max_tokens || modelConstraints.max_tokens,
+                                            modelConstraints.max_tokens
+                                        ),
+                                        temperature: Math.min(
+                                            Math.max(
+                                                currentNodeConfig.llm_info?.temperature || 0.7,
+                                                modelConstraints.min_temperature
+                                            ),
+                                            modelConstraints.max_temperature
+                                        ),
+                                    }),
+                                },
+                            }
                             setCurrentNodeConfig(updatedModel)
                             dispatch(updateNodeConfigOnly({ id: nodeID, data: updatedModel }))
                         }}
@@ -704,10 +737,29 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     </div>
                 )
             case 'number':
-                if (fieldMetadata && (fieldMetadata.minimum !== undefined || fieldMetadata.maximum !== undefined)) {
-                    const min = fieldMetadata.minimum ?? 0
-                    const max = fieldMetadata.maximum ?? 100
+                // Get current model constraints if this is a temperature or max_tokens field
+                const currentModel = currentNodeConfig?.llm_info?.model
+                const modelConstraints = currentModel ? getModelConstraints(nodeSchema, currentModel) : null
 
+                let min = fieldMetadata?.minimum ?? 0
+                let max = fieldMetadata?.maximum ?? 100
+
+                // Override constraints based on model if available
+                if (modelConstraints) {
+                    if (key === 'temperature' || fullPath.endsWith('.temperature')) {
+                        min = modelConstraints.min_temperature
+                        max = modelConstraints.max_temperature
+                        // Ensure value is within constraints
+                        if (value < min) value = min
+                        if (value > max) value = max
+                    } else if (key === 'max_tokens' || fullPath.endsWith('.max_tokens')) {
+                        max = modelConstraints.max_tokens
+                        // Ensure value is within constraints
+                        if (value > max) value = max
+                    }
+                }
+
+                if (fieldMetadata && (min !== undefined || max !== undefined)) {
                     return (
                         <div key={key} className="my-4">
                             <div className="flex justify-between items-center mb-2">

@@ -23,13 +23,12 @@ export const getNodeTypes = async (): Promise<{
 }> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/node/supported_types/`)
-        const model = new JSPydanticModel(response.data)
 
-        // Get both the processed schema and metadata
+        const model = new JSPydanticModel(response.data)
         const schema = model.createObjectFromSchema()
         const metadata = model.getAllMetadata()
 
-        // Return both schema and metadata
+
         return {
             schema,
             metadata,

@@ -31,7 +31,7 @@ class JSPydanticModel {
             const cleanedObj = this.excludeSchemaKeywords(obj)
             return cleanedObj
         } catch (error) {
-            console.error('Error compiling schema:', error)
+
             return null
         }
     }
@@ -102,7 +102,7 @@ class JSPydanticModel {
                                     // Exclude JSON Schema keywords from the resulting object
                                     processedNode[key] = this.excludeSchemaKeywords(processedNode[key])
                                 } catch (error) {
-                                    console.error(`Error processing ${key} schema for node:`, error)
+
                                     processedNode[key] = node[key] || {} // Fallback to original or empty object
                                 }
                             }
@@ -120,11 +120,13 @@ class JSPydanticModel {
         // Initialize metadata with existing categories from schema
         this._metadata = {}
         const categories = Object.keys(this._schema).filter((key) => Array.isArray(this._schema[key]))
+
         categories.forEach((category) => {
             this._metadata[category] = []
         })
 
         this._extractMetadata(this._schema)
+
     }
 
     _extractMetadata(schema, path = []) {

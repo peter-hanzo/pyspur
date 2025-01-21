@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 from fastapi import APIRouter
 from ..nodes.factory import NodeFactory
+from ..nodes.llm._utils import LLMModels
 
 
 router = APIRouter()
@@ -41,6 +42,15 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 "config": config_schema,
                 "visual_tag": node_class.get_default_visual_tag().model_dump(),
             }
+
+            # Add model constraints if this is an LLM node
+            if node_type.node_type_name in ["LLMNode", "SingleLLMCallNode"]:
+                model_constraints = {}
+                for model_enum in LLMModels:
+                    model_info = LLMModels.get_model_info(model_enum.value)
+                    if model_info:
+                        model_constraints[model_enum.value] = model_info.constraints.model_dump()
+                node_schema["model_constraints"] = model_constraints
 
             # Add the logo if available
             logo = node_type.logo
