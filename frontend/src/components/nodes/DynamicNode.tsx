@@ -241,7 +241,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
         let result = updatedPredecessorNodes
 
         if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+            // Check if nodes have the same parent or both have no parent
+            const fromNodeParentId = connection.fromNode?.parentId
+            const toNodeParentId = connection.toNode?.parentId
+            const canConnect = fromNodeParentId === toNodeParentId
+
             if (
+                canConnect &&
                 connection.fromNode &&
                 !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
             ) {
