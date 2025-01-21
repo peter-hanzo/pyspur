@@ -147,7 +147,7 @@ int main() {
                     <div>API Endpoint Information</div>
                 </ModalHeader>
 
-                <ModalBody>
+                <ModalBody className="max-h-[60vh] overflow-y-auto">
                     <p>Use this endpoint to run your workflow in a non-blocking way:</p>
                     <div className="flex items-center gap-2 w-full">
                         <SyntaxHighlighter
