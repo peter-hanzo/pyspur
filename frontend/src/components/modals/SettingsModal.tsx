@@ -1,6 +1,6 @@
 'use client'
 
-import type { CardProps, SwitchProps } from '@nextui-org/react'
+import type { CardProps, SwitchProps } from '@heroui/react'
 import React, { useState, useEffect } from 'react'
 import {
     Card,
@@ -20,7 +20,7 @@ import {
     cn,
     Divider,
     ScrollShadow,
-} from '@nextui-org/react'
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from '@/utils/api'
 import { useTheme } from 'next-themes'

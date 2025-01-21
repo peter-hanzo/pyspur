@@ -15,7 +15,7 @@ import {
     Spinner,
     Alert,
     Tooltip,
-} from '@nextui-org/react'
+} from '@heroui/react'
 import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import {
     createVectorIndex,

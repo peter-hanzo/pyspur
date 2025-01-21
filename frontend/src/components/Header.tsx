@@ -15,7 +15,7 @@ import {
     DropdownItem,
     Alert,
     CircularProgress,
-} from '@nextui-org/react'
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import SettingsCard from './modals/SettingsModal'
 import { setProjectName } from '../store/flowSlice'

@@ -11,7 +11,7 @@ import {
 import { useSelector } from 'react-redux'
 import BaseNode from './BaseNode'
 import styles from './DynamicNode.module.css'
-import { CardBody, Input } from '@nextui-org/react'
+import { CardBody, Input } from '@heroui/react'
 import { FlowWorkflowNode } from '../../store/flowSlice'
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice'
 import { RootState } from '../../store/store'

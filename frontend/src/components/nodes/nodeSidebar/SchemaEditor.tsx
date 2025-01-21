@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@nextui-org/react'
+import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
@@ -137,7 +137,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     <Icon icon="solar:add-circle-linear" width={22} />
                 </Button>
             </div>
-
             {jsonValue &&
                 typeof jsonValue === 'object' &&
                 !Array.isArray(jsonValue) &&
