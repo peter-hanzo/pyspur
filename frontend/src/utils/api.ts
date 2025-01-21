@@ -28,7 +28,6 @@ export const getNodeTypes = async (): Promise<{
         const schema = model.createObjectFromSchema()
         const metadata = model.getAllMetadata()
 
-
         return {
             schema,
             metadata,
@@ -456,7 +455,7 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
 }
 
 export interface StoreGoogleAccessTokenResponse {
-    message: string;
+    message: string
 }
 
 export const storeGoogleAccessToken = async (accessToken: string, expiresIn: string): Promise<any> => {
@@ -464,25 +463,25 @@ export const storeGoogleAccessToken = async (accessToken: string, expiresIn: str
         const response = await axios.post(`${API_BASE_URL}/google/store_token/`, {
             access_token: accessToken,
             expires_in: expiresIn,
-        });
-        return response.data;
+        })
+        return response.data
     } catch (error) {
-        console.error('Error storing token:', error);
-        throw error;
+        console.error('Error storing token:', error)
+        throw error
     }
 }
 
 export interface GoogleAccessTokenValidationResponse {
-    is_valid: boolean;
+    is_valid: boolean
 }
 
 export const validateGoogleAccessToken = async (): Promise<GoogleAccessTokenValidationResponse> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/google/validate_token/`);
-        return response.data;
+        const response = await axios.get(`${API_BASE_URL}/google/validate_token/`)
+        return response.data
     } catch (error) {
-        console.error('Error checking token:', error);
-        throw error;
+        console.error('Error checking token:', error)
+        throw error
     }
 }
 

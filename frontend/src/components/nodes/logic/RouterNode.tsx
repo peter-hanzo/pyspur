@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Handle, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react'
 import BaseNode from '../BaseNode'
-import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@nextui-org/react'
+import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
 import { FlowWorkflowNode, FlowWorkflowNodeConfig, updateNodeConfigOnly } from '../../../store/flowSlice'
 import styles from '../DynamicNode.module.css'

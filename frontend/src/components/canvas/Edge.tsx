@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, EdgeProps, Edge } from '@xyflow/react'
-import { Button } from '@nextui-org/react'
+import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdge } from '../../store/flowSlice'

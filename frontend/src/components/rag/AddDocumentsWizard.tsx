@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardBody, Button, Divider, Progress, Alert, Spinner, Chip, Tooltip } from '@nextui-org/react'
+import { Card, CardBody, Button, Divider, Progress, Alert, Spinner, Chip, Tooltip } from '@heroui/react'
 import { useRouter } from 'next/router'
 import { Info, ArrowLeft, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
