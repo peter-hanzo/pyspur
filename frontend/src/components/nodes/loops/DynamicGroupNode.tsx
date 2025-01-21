@@ -23,6 +23,17 @@ import { getNodeTitle } from '@/utils/flowUtils'
 import { updateNodeTitle } from '@/store/flowSlice'
 import styles from '../DynamicNode.module.css'
 
+const staticStyles = {
+    targetHandle: {
+        top: '50%',
+        left: 0,
+        width: '30%',
+        height: '100%',
+        zIndex: 10,
+        opacity: 0,
+        pointerEvents: 'auto' as const,
+    },
+}
 const resizerLineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
 const resizerHandleStyle = {
     backgroundColor: 'white',
@@ -162,7 +173,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 <div className="border-r border-gray-300 h-full mx-0" />
                 <div className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden">
                     <span
-                        className={`${styles.handleLabel} text-sm font-medium ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                        className={`${styles.handleLabel} text-sm font-medium mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
                     >
                         {String(keyName)}
                     </span>
@@ -255,6 +266,23 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                     Title cannot contain whitespace. Use underscores instead.
                 </Alert>
             )}
+            <NodeResizer
+                nodeId={id}
+                isVisible={true}
+                lineStyle={resizerLineStyle}
+                minHeight={Math.max(100, minHeight)}
+                minWidth={Math.max(200, minWidth)}
+                handleStyle={resizerHandleStyle}
+            />
+            {/* Hidden target handle covering the entire node */}
+            <Handle
+                type="target"
+                position={Position.Left}
+                id={`node-body-${id}`}
+                style={staticStyles.targetHandle}
+                isConnectable={true}
+                isConnectableStart={false}
+            />
             <NodeToolbar className="absolute top-2 right-2 z-10">
                 {hasChildNodes && (
                     <button className="p-1 text-xs text-slate-600 hover:text-slate-900" onClick={onDetach}>
@@ -265,22 +293,14 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                     Delete
                 </button>
             </NodeToolbar>
-            <NodeResizer
-                nodeId={id}
-                isVisible={true}
-                lineStyle={resizerLineStyle}
-                minHeight={Math.max(100, minHeight)}
-                minWidth={Math.max(200, minWidth)}
-                handleStyle={resizerHandleStyle}
-            />
             <Card
                 className={`w-full h-full transition-colors duration-200 ${
                     node?.data?.className === 'active' ? 'border-blue-500 bg-blue-50/50' : ''
                 }`}
                 classNames={{
                     base: `bg-slate-50/50 backdrop-blur-sm outline-offset-0 outline-solid-200
-                        ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
-                        outline-default-200 group-hover:outline-[3px]`,
+                                    ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
+                                    outline-default-200 group-hover:outline-[3px]`,
                 }}
             >
                 <CardHeader className="relative pt-2 pb-4">
