@@ -1,7 +1,9 @@
 from typing import Dict, List
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+from pathlib import Path
+import shutil
 
 from ..schemas.workflow_schemas import (
     WorkflowCreateRequestSchema,
@@ -180,6 +182,11 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
             WorkflowVersionModel.workflow_id == workflow_id
         ).delete()
 
+        # Delete associated test files
+        test_files_dir = Path("data/test_files") / workflow_id
+        if test_files_dir.exists():
+            shutil.rmtree(test_files_dir)
+
         # Delete the workflow
         db.delete(workflow)
         db.commit()
@@ -275,3 +282,42 @@ def get_workflow_output_variables(
                 continue
 
     return output_variables
+
+
+@router.post("/upload_test_files/")
+async def upload_test_files(
+    workflow_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    node_id: str = Form(...),
+    db: Session = Depends(get_db),
+) -> Dict[str, List[str]]:
+    """Upload files for test inputs and return their paths"""
+    try:
+        # Get the workflow
+        workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Create workflow-specific directory for test files
+        test_files_dir = Path("data/test_files") / workflow_id
+        test_files_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save files and collect paths
+        saved_paths: List[str] = []
+        for file in files:
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_filename = f"{timestamp}_{file.filename}"
+            file_path = test_files_dir / safe_filename
+
+            # Save file
+            content = await file.read()
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            # Store relative path
+            saved_paths.append(f"{workflow_id}/{safe_filename}")
+
+        return {node_id: saved_paths}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

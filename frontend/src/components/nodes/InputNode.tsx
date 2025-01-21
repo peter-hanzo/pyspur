@@ -13,6 +13,7 @@ import styles from './InputNode.module.css'
 import { RootState } from '../../store/store'
 import { isEqual } from 'lodash'
 import { FlowWorkflowNode } from '../../store/flowSlice'
+import NodeOutputDisplay from './NodeOutputDisplay'
 
 interface InputNodeProps {
     id: string
@@ -28,6 +29,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
     const [newFieldValue, setNewFieldValue] = useState<string>('')
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [showKeyError, setShowKeyError] = useState<boolean>(false)
+    const [showOutput, setShowOutput] = useState(false)
     const incomingEdges = useSelector(
         (state: RootState) => state.flow.edges.filter((edge) => edge.target === id),
         isEqual
@@ -341,6 +343,12 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                     {renderWorkflowInputs()}
                     {renderAddField()}
                 </div>
+
+                {data.run && (
+                    <div className="mt-2">
+                        <NodeOutputDisplay output={data.run} />
+                    </div>
+                )}
             </BaseNode>
         </div>
     )

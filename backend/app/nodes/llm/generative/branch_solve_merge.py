@@ -44,8 +44,8 @@ class BranchSolveMergeNodeConfig(BaseSubworkflowNodeConfig):
         ),
         description="The default LLM model to use",
     )
-    input_schema: Dict[str, str] = Field(default={"task": "str"})
-    output_schema: Dict[str, str] = Field(default={"response": "str"})
+    input_schema: Dict[str, str] = Field(default={"task": "string"})
+    output_schema: Dict[str, str] = Field(default={"response": "string"})
 
 
 class BranchSolveMergeNodeInput(BaseNodeInput):
@@ -110,7 +110,7 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
             id=input_node_id,
             node_type="InputNode",
             config={
-                "output_schema": {"task": "str"},
+                "output_schema": {"task": "string"},
                 "enforce_schema": False,
             },
         )
@@ -216,7 +216,7 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
                     "llm_info": self.config.llm_info.model_dump(),
                     "system_message": self.config.solve_system_message,
                     "user_message": f"{{{{branch_node.subtasks[{idx}]}}}}",
-                    "output_schema": {f"solution_{idx}": "str"},
+                    "output_schema": {f"solution_{idx}": "string"},
                 },
             )
             nodes.append(solve_node)

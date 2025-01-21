@@ -25,7 +25,7 @@ import {
     getCollectionDocuments,
 } from '@/utils/api'
 import type { DocumentCollectionResponse, DocumentWithChunks } from '@/utils/api'
-import FileUploadBox from './FileUploadBox'
+import FileUploadBox from '../FileUploadBox'
 import ChunkCard from '../cards/ChunkCard'
 
 export const DocumentCollectionDetails: React.FC = () => {
@@ -377,7 +377,7 @@ export const DocumentCollectionDetails: React.FC = () => {
                                     <h6 className="text-medium font-semibold">Upload Documents</h6>
                                     <p className="text-small text-default-500">
                                         Select documents to add to your collection. The documents will be processed
-                                        using the collection's existing configuration.
+                                        using the collection&apos;s existing configuration.
                                     </p>
                                 </div>
 

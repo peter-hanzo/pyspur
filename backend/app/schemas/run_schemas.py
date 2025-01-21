@@ -6,11 +6,10 @@ from .workflow_schemas import WorkflowVersionResponseSchema
 from ..models.run_model import RunStatus
 from .task_schemas import TaskResponseSchema, TaskStatus
 
-
 class StartRunRequestSchema(BaseModel):
     initial_inputs: Optional[Dict[str, Dict[str, Any]]] = None
     parent_run_id: Optional[str] = None
-
+    files: Optional[Dict[str, List[str]]] = None  # Maps node_id to list of file paths
 
 class RunResponseSchema(BaseModel):
     id: str
@@ -39,13 +38,11 @@ class RunResponseSchema(BaseModel):
     class Config:
         from_attributes = True
 
-
 class PartialRunRequestSchema(BaseModel):
     node_id: str
     rerun_predecessors: bool = False
     initial_inputs: Optional[Dict[str, Dict[str, Any]]] = None
     partial_outputs: Optional[Dict[str, Dict[str, Any]]] = None
-
 
 class BatchRunRequestSchema(BaseModel):
     dataset_id: str

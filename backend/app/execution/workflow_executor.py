@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import traceback
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import ValidationError
@@ -86,95 +87,117 @@ class WorkflowExecutor:
         return task
 
     async def _execute_node(self, node_id: str) -> Optional[BaseNodeOutput]:
-        if node_id in self._outputs:
-            return self._outputs[node_id]
         node = self._node_dict[node_id]
-
-        # Wait for dependencies
-        dependency_ids = self._dependencies.get(node_id, set())
-        predecessor_outputs: List[Optional[BaseNodeOutput]] = []
-        if dependency_ids:
-            predecessor_outputs = await asyncio.gather(
-                *(
-                    self._get_async_task_for_node_execution(dep_id)
-                    for dep_id in dependency_ids
-                )
-            )
-
-        if node.node_type != "CoalesceNode" and any(
-            [output is None for output in predecessor_outputs]
-        ):
-            self._outputs[node_id] = None
-            return None
-
-        # Get source handles mapping
-        source_handles = self._get_source_handles()
-
-        # Build node input, handling router outputs specially
         node_input = {}
-        for dep_id, output in zip(dependency_ids, predecessor_outputs):
-            predecessor_node = self._node_dict[dep_id]
-            if predecessor_node.node_type == "RouterNode":
-                # For router nodes, we must have a source handle
-                source_handle = source_handles.get((dep_id, node_id))
-                if not source_handle:
-                    raise ValueError(
-                        f"Missing source_handle in link from router node {dep_id} to {node_id}"
-                    )
-                # Get the specific route's output from the router
-                route_output = getattr(output, source_handle, None)
-                if route_output is not None:
-                    node_input[dep_id] = route_output
-                else:
-                    self._outputs[node_id] = None
-                    if self.task_recorder:
-                        self.task_recorder.update_task(
-                            node_id=node_id,
-                            status=TaskStatus.PENDING,
-                            end_time=datetime.now(),
-                        )
-                    return None
-            else:
-                node_input[dep_id] = output
-
-        # Special handling for InputNode - use initial inputs
-        if node.node_type == "InputNode":
-            node_input = self._initial_inputs.get(node_id, {})
-
-        # Only fail early for None inputs if it is NOT a CoalesceNode
-        if node.node_type != "CoalesceNode" and any(
-            [v is None for v in node_input.values()]
-        ):
-            self._outputs[node_id] = None
-            return None
-
-        # Remove None values from input
-        node_input = {k: v for k, v in node_input.items() if v is not None}
-
-        # If node_input is empty, return None
-        if not node_input:
-            self._outputs[node_id] = None
-            return None
-
-        node_instance = NodeFactory.create_node(
-            node_name=node.title, node_type_name=node.node_type, config=node.config
-        )
-        # Update task recorder
-        if self.task_recorder:
-            self.task_recorder.update_task(
-                node_id=node_id,
-                status=TaskStatus.RUNNING,
-                inputs={
-                    dep_id: output.model_dump()
-                    for dep_id, output in node_input.items()
-                    if node.node_type != "InputNode"
-                },
-                subworkflow=node_instance.subworkflow,
-            )
-
-        # Execute node
         try:
+            if node_id in self._outputs:
+                return self._outputs[node_id]
+
+            # Wait for dependencies
+            dependency_ids = self._dependencies.get(node_id, set())
+            predecessor_outputs: List[Optional[BaseNodeOutput]] = []
+            if dependency_ids:
+                predecessor_outputs = await asyncio.gather(
+                    *(
+                        self._get_async_task_for_node_execution(dep_id)
+                        for dep_id in dependency_ids
+                    )
+                )
+
+            if node.node_type != "CoalesceNode" and any(
+                [output is None for output in predecessor_outputs]
+            ):
+                self._outputs[node_id] = None
+                return None
+
+            # Get source handles mapping
+            source_handles = self._get_source_handles()
+
+            # Build node input, handling router outputs specially
+            for dep_id, output in zip(dependency_ids, predecessor_outputs):
+                predecessor_node = self._node_dict[dep_id]
+                if predecessor_node.node_type == "RouterNode":
+                    # For router nodes, we must have a source handle
+                    source_handle = source_handles.get((dep_id, node_id))
+                    if not source_handle:
+                        raise ValueError(
+                            f"Missing source_handle in link from router node {dep_id} to {node_id}"
+                        )
+                    # Get the specific route's output from the router
+                    route_output = getattr(output, source_handle, None)
+                    if route_output is not None:
+                        node_input[dep_id] = route_output
+                    else:
+                        self._outputs[node_id] = None
+                        if self.task_recorder:
+                            self.task_recorder.update_task(
+                                node_id=node_id,
+                                status=TaskStatus.PENDING,
+                                end_time=datetime.now(),
+                            )
+                        return None
+                else:
+                    node_input[dep_id] = output
+
+            # Special handling for InputNode - use initial inputs
+            if node.node_type == "InputNode":
+                node_input = self._initial_inputs.get(node_id, {})
+
+            # Only fail early for None inputs if it is NOT a CoalesceNode
+            if node.node_type != "CoalesceNode" and any(
+                [v is None for v in node_input.values()]
+            ):
+                self._outputs[node_id] = None
+                return None
+
+            # Remove None values from input
+            node_input = {k: v for k, v in node_input.items() if v is not None}
+
+            # update task recorder with inputs
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.RUNNING,
+                    inputs={
+                        dep_id: output.model_dump()
+                        for dep_id, output in node_input.items()
+                        if node.node_type != "InputNode"
+                    },
+                )
+
+            # If node_input is empty, return None
+            if not node_input:
+                self._outputs[node_id] = None
+                return None
+
+            node_instance = NodeFactory.create_node(
+                node_name=node.title, node_type_name=node.node_type, config=node.config
+            )
+            # Update task recorder
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.RUNNING,
+                    subworkflow=node_instance.subworkflow,
+                )
+
+            # Execute node
             output = await node_instance(node_input)
+
+            # Update task recorder
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.COMPLETED,
+                    outputs=output.model_dump(),
+                    end_time=datetime.now(),
+                    subworkflow=node_instance.subworkflow,
+                    subworkflow_output=node_instance.subworkflow_output,
+                )
+
+            # Store output
+            self._outputs[node_id] = output
+            return output
         except Exception as e:
             error_msg = (
                 f"Node execution failed:\n"
@@ -184,29 +207,15 @@ class WorkflowExecutor:
                 f"Inputs: {node_input}\n"
                 f"Error: {str(e)}"
             )
-            print(error_msg)  # Basic logging, consider using proper logger
+            print(error_msg)
             if self.task_recorder:
                 self.task_recorder.update_task(
                     node_id=node_id,
                     status=TaskStatus.FAILED,
                     end_time=datetime.now(),
+                    error=traceback.format_exc(limit=5),
                 )
-            raise RuntimeError(error_msg) from e
-
-        # Update task recorder
-        if self.task_recorder:
-            self.task_recorder.update_task(
-                node_id=node_id,
-                status=TaskStatus.COMPLETED,
-                outputs=output.model_dump(),
-                end_time=datetime.now(),
-                subworkflow=node_instance.subworkflow,
-                subworkflow_output=node_instance.subworkflow_output,
-            )
-
-        # Store output
-        self._outputs[node_id] = output
-        return output
+            raise e
 
     async def run(
         self,
@@ -230,13 +239,22 @@ class WorkflowExecutor:
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
-            (node for node in self.workflow.nodes if node.node_type == "InputNode")
+            (
+                node
+                for node in self.workflow.nodes
+                if node.node_type == "InputNode" and not node.parent_id
+            ),
         )
         self._initial_inputs[input_node.id] = input
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
             nodes_to_run = set(node_ids)
+
+        # skip nodes that have parent nodes, as they will be executed as part of their parent node
+        for node in self.workflow.nodes:
+            if node.parent_id:
+                nodes_to_run.discard(node.id)
 
         # Start tasks for all nodes
         for node_id in nodes_to_run:
@@ -292,7 +310,7 @@ if __name__ == "__main__":
                     "id": "input_node",
                     "title": "",
                     "node_type": "InputNode",
-                    "config": {"output_schema": {"question": "str"}},
+                    "config": {"output_schema": {"question": "string"}},
                     "coordinates": {"x": 281.25, "y": 128.75},
                 },
                 {
@@ -302,8 +320,8 @@ if __name__ == "__main__":
                     "config": {
                         "samples": 1,
                         "output_schema": {
-                            "response": "str",
-                            "next_potential_question": "str",
+                            "response": "string",
+                            "next_potential_question": "string",
                         },
                         "llm_info": {
                             "model": "gpt-4o",
@@ -323,7 +341,7 @@ if __name__ == "__main__":
                     "config": {
                         "title": "OutputNodeConfig",
                         "type": "object",
-                        "output_schema": {"question": "str", "response": "str"},
+                        "output_schema": {"question": "string", "response": "string"},
                         "output_map": {
                             "question": "bon_node.next_potential_question",
                             "response": "bon_node.response",

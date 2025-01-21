@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeDataOnly, resetRun } from '../store/flowSlice'
 import { getRunStatus, startRun, getWorkflowRuns, validateGoogleAccessToken } from '../utils/api'
@@ -26,27 +26,20 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const [workflowRuns, setWorkflowRuns] = useState<WorkflowRun[]>([])
     const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false)
 
-    let currentStatusInterval: NodeJS.Timeout | null = null
+    // Create array to track all intervals for this run
+    const statusIntervals = useRef<NodeJS.Timeout[]>([])
 
     const updateWorkflowStatus = async (runID: string): Promise<void> => {
-        if (currentStatusInterval) {
-            clearInterval(currentStatusInterval)
-        }
-        currentStatusInterval = setInterval(async () => {
+        // Clear any existing intervals
+        statusIntervals.current.forEach((interval) => clearInterval(interval))
+
+        let currentStatusInterval = setInterval(async () => {
             try {
                 const statusResponse = await getRunStatus(runID)
                 const tasks = statusResponse.tasks
 
                 if (statusResponse.percentage_complete !== undefined) {
                     setCompletionPercentage(statusResponse.percentage_complete)
-                }
-
-                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
-                    setIsRunning(false)
-                    setCompletionPercentage(0)
-                    clearInterval(currentStatusInterval)
-                    onAlert('Workflow run failed.', 'danger')
-                    return
                 }
 
                 if (tasks.length > 0) {
@@ -69,21 +62,16 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                         const output_values = task.outputs || {}
                         const nodeTaskStatus = task.status
                         if (node) {
-                            // Check if the task output or status is different from current node data
-                            const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run)
-                            const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus
-
-                            if (isOutputDifferent || isStatusDifferent) {
-                                dispatch(
-                                    updateNodeDataOnly({
-                                        id: node.id,
-                                        data: {
-                                            run: { ...node.data.run, ...output_values },
-                                            taskStatus: nodeTaskStatus,
-                                        },
-                                    })
-                                )
-                            }
+                            dispatch(
+                                updateNodeDataOnly({
+                                    id: node.id,
+                                    data: {
+                                        run: { ...output_values },
+                                        error: task.error || null,
+                                        taskStatus: nodeTaskStatus,
+                                    },
+                                })
+                            )
                         }
                     })
                 }
@@ -91,30 +79,46 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                 if (statusResponse.status !== 'RUNNING') {
                     setIsRunning(false)
                     setCompletionPercentage(0)
+                    // Clear all intervals
+                    statusIntervals.current.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
                 }
+                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
+                    setIsRunning(false)
+                    setCompletionPercentage(0)
+                    // Clear all intervals
+                    statusIntervals.current.forEach((interval) => clearInterval(interval))
+                    clearInterval(currentStatusInterval)
+                    onAlert('Workflow run failed.', 'danger')
+                    return
+                }
             } catch (error) {
                 console.error('Error fetching workflow status:', error)
+                // Clear all intervals
+                statusIntervals.current.forEach((interval) => clearInterval(interval))
                 clearInterval(currentStatusInterval)
             }
         }, 1000)
+
+        // Track the new interval
+        statusIntervals.current.push(currentStatusInterval)
     }
 
     const executeWorkflow = async (inputValues: Record<string, any>): Promise<void> => {
         if (!workflowId) return
 
-    const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
+        const hasGoogleSheetsReadNode = nodes.some((node) => node.type === 'GoogleSheetsReadNode')
 
-    if (hasGoogleSheetsReadNode) {
-        const response = await validateGoogleAccessToken()
-        console.log('Token check response:', response)
-        if (!response.is_valid) {
-            const baseUrl = window.location.origin
-            window.open(`${baseUrl}/google/auth`, '_blank');
-            return;
+        if (hasGoogleSheetsReadNode) {
+            const response = await validateGoogleAccessToken()
+            console.log('Token check response:', response)
+            if (!response.is_valid) {
+                const baseUrl = window.location.origin
+                window.open(`${baseUrl}/google/auth`, '_blank')
+                return
+            }
         }
-    }
 
         try {
             dispatch(resetRun())
@@ -132,8 +136,8 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
     const stopWorkflow = (): void => {
         setIsRunning(false)
         setCompletionPercentage(0)
-        if (currentStatusInterval) {
-            clearInterval(currentStatusInterval)
+        if (statusIntervals.current.length > 0) {
+            statusIntervals.current.forEach((interval) => clearInterval(interval))
         }
         onAlert('Workflow run stopped.', 'warning')
     }

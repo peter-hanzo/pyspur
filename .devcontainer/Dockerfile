@@ -5,6 +5,8 @@ WORKDIR /pyspur
 # Install bash completion
 RUN apt-get update && apt-get install -y \
     bash-completion \
+    nano \
+    vim \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./backend/

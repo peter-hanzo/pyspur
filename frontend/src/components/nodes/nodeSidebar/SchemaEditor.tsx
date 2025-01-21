@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Input, Select, SelectItem } from '@nextui-org/react'
+import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
@@ -9,8 +9,9 @@ interface SchemaEditorProps {
     onChange: (value: Record<string, string>) => void
     options?: string[]
     disabled?: boolean
-    schemaType?: 'input_schema' | 'output_schema'
+    schemaType?: 'input_schema' | 'output_schema' | 'input_map'
     nodeId: string
+    availableFields?: string[]
 }
 
 const SchemaEditor: React.FC<SchemaEditorProps> = ({
@@ -20,9 +21,10 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     disabled = false,
     schemaType = 'input_schema',
     nodeId,
+    availableFields = ['string', 'boolean', 'integer', 'number'],
 }) => {
     const [newKey, setNewKey] = useState<string>('')
-    const [newType, setNewType] = useState<string>('str')
+    const [newType, setNewType] = useState<string>('string')
     const [editingField, setEditingField] = useState<string | null>(null)
     const dispatch = useDispatch()
 
@@ -38,7 +40,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             }
             onChange(updatedJson)
             setNewKey('')
-            setNewType('str')
+            setNewType('string')
         }
     }
 
@@ -50,7 +52,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     const getType = (value: any): string => {
         if (typeof value === 'object' && value !== null) {
-            return value.type || 'str'
+            return value.type || 'string'
         }
         return value
     }
@@ -69,7 +71,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         delete updatedJson[oldKey]
 
         onChange(updatedJson)
-        if (newKey && oldKey) {
+        if (newKey && oldKey && schemaType !== 'input_map') {
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
@@ -81,6 +83,8 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         }
         setEditingField(null)
     }
+
+    const label = schemaType === 'input_map' ? 'Field' : 'Type'
 
     return (
         <div className="json-editor">
@@ -102,22 +106,25 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 <Select
                     onChange={(e) => setNewType(e.target.value)}
                     disabled={disabled}
-                    label="Type"
-                    defaultSelectedKeys={['str']}
+                    label={label}
+                    defaultSelectedKeys={[availableFields[0]]}
                     className="max-w-xs p-2 w-1/3"
+                    isMultiline={true}
+                    renderValue={(items) => (
+                        <div>
+                            {items.map((item) => (
+                                <Chip key={item.key} size="sm">
+                                    {item.textValue}
+                                </Chip>
+                            ))}
+                        </div>
+                    )}
                 >
-                    <SelectItem key="str" value="string">
-                        string
-                    </SelectItem>
-                    <SelectItem key="bool" value="boolean">
-                        boolean
-                    </SelectItem>
-                    <SelectItem key="int" value="integer">
-                        integer
-                    </SelectItem>
-                    <SelectItem key="float" value="number">
-                        number
-                    </SelectItem>
+                    {availableFields.map((field) => (
+                        <SelectItem key={field} value={field}>
+                            {field}
+                        </SelectItem>
+                    ))}
                 </Select>
                 <Button
                     isIconOnly

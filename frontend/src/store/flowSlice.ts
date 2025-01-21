@@ -1,5 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { applyNodeChanges, applyEdgeChanges, addEdge, NodeChange, EdgeChange, Connection } from '@xyflow/react'
+import {
+    applyNodeChanges,
+    applyEdgeChanges,
+    addEdge,
+    NodeChange,
+    EdgeChange,
+    Connection,
+    CoordinateExtent,
+} from '@xyflow/react'
 import { v4 as uuidv4 } from 'uuid'
 import { createNode } from '../utils/nodeFactory'
 import { TestInput } from '@/types/api_types/workflowSchemas'
@@ -69,11 +77,14 @@ export interface FlowWorkflowNode {
     id: string
     type: string
     position: WorkflowNodeCoordinates
+    parentId?: string
+    extent?: 'parent' | CoordinateExtent
     data: {
         title: string
         acronym: string
         color: string
         run?: Record<string, any>
+        error?: string
         taskStatus?: string
         [key: string]: any
     }
@@ -221,10 +232,17 @@ const flowSlice = createSlice({
             state.nodeTypes = action.payload.nodeTypes
             const { nodes, links } = definition
             state.nodes = nodes.map((node) => {
-                const { node: nodeObj } = createNode(state.nodeTypes, node.node_type, node.id, {
-                    x: node.coordinates.x,
-                    y: node.coordinates.y,
-                })
+                const { node: nodeObj } = createNode(
+                    state.nodeTypes,
+                    node.node_type,
+                    node.id,
+                    {
+                        x: node.coordinates.x,
+                        y: node.coordinates.y,
+                    },
+                    node.parent_id,
+                    node.dimensions
+                )
                 // Load the config directly from the definition instead of creating fresh
                 state.nodeConfigs[node.id] = node.config
                 return nodeObj
@@ -658,7 +676,7 @@ const flowSlice = createSlice({
         resetRun: (state) => {
             state.nodes = state.nodes.map((node) => ({
                 ...node,
-                data: { ...node.data, run: undefined, taskStatus: undefined },
+                data: { ...node.data, run: undefined, taskStatus: undefined, error: undefined },
             }))
         },
 
@@ -836,6 +854,23 @@ const flowSlice = createSlice({
             // Store the config
             state.nodeConfigs[node.id] = config
         },
+
+        updateNodeParentAndCoordinates: (
+            state,
+            action: PayloadAction<{
+                nodeId: string
+                parentId: string
+                position: Position
+            }>
+        ) => {
+            const { nodeId, parentId, position } = action.payload
+            const node = state.nodes.find((n) => n.id === nodeId)
+            if (node) {
+                node.parentId = parentId
+                node.position = position
+                node.extent = 'parent'
+            }
+        },
     },
 })
 
@@ -872,6 +907,7 @@ export const {
     redo,
     updateNodeTitle,
     addNodeWithConfig,
+    updateNodeParentAndCoordinates,
 } = flowSlice.actions
 
 export default flowSlice.reducer
