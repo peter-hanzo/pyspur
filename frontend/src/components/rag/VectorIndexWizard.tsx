@@ -102,7 +102,7 @@ export const VectorIndexWizard: React.FC = () => {
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
     const [isLoadingModels, setIsLoadingModels] = useState(true)
     const [isLoadingStores, setIsLoadingStores] = useState(true)
-    const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+    const [alert, setAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null)
     const [config, setConfig] = useState<EmbeddingConfig>({
         name: '',
         description: '',
@@ -160,7 +160,7 @@ export const VectorIndexWizard: React.FC = () => {
                 setVectorStores(storesData)
             } catch (error) {
                 console.error('Error fetching data:', error)
-                setAlert({ type: 'error', message: 'Error loading configuration options' })
+                setAlert({ type: 'danger', message: 'Error loading configuration options' })
             }
         }
         fetchData()
@@ -225,7 +225,7 @@ export const VectorIndexWizard: React.FC = () => {
             router.push(`/rag/indices/${index.id}`)
         } catch (error) {
             console.error('Error creating index:', error)
-            setAlert({ type: 'error', message: 'Error creating vector index' })
+            setAlert({ type: 'danger', message: 'Error creating vector index' })
         } finally {
             setIsSubmitting(false)
         }
