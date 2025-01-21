@@ -15,6 +15,7 @@ import {
 } from '@xyflow/react'
 import { Card, CardHeader, CardBody, Button, Input, Alert, Divider } from '@nextui-org/react'
 import isEqual from 'lodash/isEqual'
+import { Icon } from '@iconify/react'
 
 import useDetachNodes from './useDetachNodes'
 import { getRelativeNodesBounds } from './groupNodeUtils'
@@ -31,6 +32,14 @@ const staticStyles = {
         height: '100%',
         zIndex: 10,
         opacity: 0,
+        pointerEvents: 'auto' as const,
+    },
+    controlsCard: {
+        position: 'absolute' as const,
+        top: '-50px',
+        right: '0px',
+        padding: '4px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         pointerEvents: 'auto' as const,
     },
 }
@@ -284,24 +293,34 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 isConnectable={true}
                 isConnectableStart={false}
             />
-            <NodeToolbar className="absolute top-2 right-2 z-10">
-                {hasChildNodes && (
-                    <button className="p-1 text-xs text-slate-600 hover:text-slate-900" onClick={onDetach}>
-                        Detach
-                    </button>
-                )}
-                <button className="p-1 text-xs text-red-600 hover:text-red-900" onClick={onDelete}>
-                    Delete
-                </button>
-            </NodeToolbar>
+            {/* Controls Card */}
+            <Card
+                key={`controls-card-${id}`}
+                style={staticStyles.controlsCard}
+                className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
+                classNames={{
+                    base: 'bg-background border-default-200 transition-opacity duration-200',
+                }}
+            >
+                <div className="flex flex-row gap-1">
+                    <Button key={`delete-btn-${id}`} isIconOnly radius="full" variant="light" onPress={onDelete}>
+                        <Icon
+                            key={`delete-icon-${id}`}
+                            className="text-default-500"
+                            icon="solar:trash-bin-trash-linear"
+                            width={22}
+                        />
+                    </Button>
+                </div>
+            </Card>
             <Card
                 className={`w-full h-full transition-colors duration-200 ${
                     node?.data?.className === 'active' ? 'border-blue-500 bg-blue-50/50' : ''
                 }`}
                 classNames={{
                     base: `bg-slate-50/50 backdrop-blur-sm outline-offset-0 outline-solid-200
-                                    ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
-                                    outline-default-200 group-hover:outline-[3px]`,
+                        ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
+                        outline-default-200 group-hover:outline-[3px]`,
                 }}
             >
                 <CardHeader className="relative pt-2 pb-4">
