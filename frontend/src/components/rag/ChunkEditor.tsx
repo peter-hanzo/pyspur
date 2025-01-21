@@ -14,6 +14,11 @@ import {
     Spinner,
     Select,
     SelectItem,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
 } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
@@ -42,6 +47,7 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
     const [isPreviewLoading, setIsPreviewLoading] = useState(false)
     const [previewResult, setPreviewResult] = useState<ChunkPreviewResponse | null>(null)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [selectedChunk, setSelectedChunk] = useState<ChunkPreview | null>(null)
     const [metadataFields, setMetadataFields] = useState<Array<{ key: string; value: string }>>(() =>
         Object.entries(template.metadata_template || {}).map(([key, value]) => ({ key, value }))
     )
@@ -177,25 +183,27 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                             <Card key={index} className="bg-content2">
                                 <CardBody className="gap-4">
                                     <div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-between">
                                             <h4 className="text-small font-semibold">
                                                 Chunk {chunk.chunk_index}
                                                 {chunk.chunk_index === 1 && " (Start)"}
                                                 {chunk.chunk_index === previewResult.total_chunks && " (End)"}
                                                 {chunk.chunk_index !== 1 && chunk.chunk_index !== previewResult.total_chunks && " (Middle)"}
                                             </h4>
+                                            <Button
+                                                size="sm"
+                                                variant="flat"
+                                                onPress={() => setSelectedChunk(chunk)}
+                                            >
+                                                View Full Text
+                                            </Button>
                                         </div>
-                                        <p className="text-small text-default-500 mt-2">
-                                            {chunk.original_text}
-                                        </p>
                                     </div>
-
-                                    <Divider />
 
                                     <div>
                                         <h4 className="text-small font-semibold">Processed Result</h4>
                                         <div
-                                            className="prose dark:prose-invert max-w-none mt-2"
+                                            className="prose dark:prose-invert max-w-none mt-2 max-h-[200px] overflow-hidden"
                                             dangerouslySetInnerHTML={{
                                                 __html: chunk.processed_text,
                                             }}
@@ -217,6 +225,33 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                                 </CardBody>
                             </Card>
                         ))}
+
+                        <Modal
+                            isOpen={!!selectedChunk}
+                            onClose={() => setSelectedChunk(null)}
+                            size="full"
+                        >
+                            <ModalContent>
+                                {(onClose) => (
+                                    <>
+                                        <ModalHeader>
+                                            <h3>Chunk {selectedChunk?.chunk_index} Full Text</h3>
+                                        </ModalHeader>
+                                        <ModalBody>
+                                            <div
+                                                className="prose dark:prose-invert max-w-none"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: selectedChunk?.processed_text || '',
+                                                }}
+                                            />
+                                        </ModalBody>
+                                        <ModalFooter>
+                                            <Button onPress={onClose}>Close</Button>
+                                        </ModalFooter>
+                                    </>
+                                )}
+                            </ModalContent>
+                        </Modal>
                     </div>
                 )}
 
