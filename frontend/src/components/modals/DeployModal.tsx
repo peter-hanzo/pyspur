@@ -51,15 +51,17 @@ const DeployModal: React.FC<DeployModalProps> = ({ isOpen, onOpenChange, workflo
 
     // Create example request body with the actual input variables
     const exampleRequestBody = {
-        initial_inputs: Object.keys(workflowInputVariables).reduce<Record<string, any>>((acc, key) => {
-            acc[key] =
-                workflowInputVariables[key].type === 'number'
-                    ? 0
-                    : workflowInputVariables[key].type === 'boolean'
-                      ? false
-                      : 'example_value'
-            return acc
-        }, {}),
+        initial_inputs: {
+            [inputNode.data.title]: Object.keys(workflowInputVariables).reduce<Record<string, any>>((acc, key) => {
+                acc[key] =
+                    workflowInputVariables[key].type === 'number'
+                        ? 0
+                        : workflowInputVariables[key].type === 'boolean'
+                          ? false
+                          : 'example_value'
+                return acc
+            }, {}),
+        },
     }
 
     const getCodeExample = (language: SupportedLanguages): string => {
