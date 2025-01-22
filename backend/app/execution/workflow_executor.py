@@ -27,7 +27,8 @@ class WorkflowExecutor:
         task_recorder: Optional[TaskRecorder] = None,
         context: Optional[WorkflowExecutionContext] = None,
     ):
-        self.workflow = workflow
+        # Process subworkflows before initializing other attributes
+        self.workflow = self._process_subworkflows(workflow)
         if task_recorder:
             self.task_recorder = task_recorder
         elif context and context.run_id and context.db_session:
@@ -39,14 +40,70 @@ class WorkflowExecutor:
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
-        self._initial_inputs: Dict[str, Dict[str, Any]] = (
-            {}
-        )  # <node_id, <input for the node>>
-        self._outputs: Dict[str, Optional[BaseNodeOutput]] = (
-            {}
-        )  # <node_id, < node output>>
+        self._initial_inputs: Dict[str, Dict[str, Any]] = {}
+        self._outputs: Dict[str, Optional[BaseNodeOutput]] = {}
         self._build_node_dict()
         self._build_dependencies()
+
+    def _process_subworkflows(
+        self, workflow: WorkflowDefinitionSchema
+    ) -> WorkflowDefinitionSchema:
+        # Group nodes by parent_id
+        nodes_by_parent: Dict[Optional[str], List[WorkflowNodeSchema]] = {}
+        for node in workflow.nodes:
+            parent_id = node.parent_id
+            if parent_id not in nodes_by_parent:
+                nodes_by_parent[parent_id] = []
+            node_copy = node.model_copy(update={"parent_id": None})
+            nodes_by_parent[parent_id].append(node_copy)
+
+        # Get root level nodes (no parent)
+        root_nodes = nodes_by_parent.get(None, [])
+
+        # Process each parent node's children into subworkflows
+        for parent_id, child_nodes in nodes_by_parent.items():
+            if parent_id is None:
+                continue
+
+            # Find the parent node in root nodes
+            parent_node = next(
+                (node for node in root_nodes if node.id == parent_id), None
+            )
+            if not parent_node:
+                continue
+
+            # Get links between child nodes
+            child_node_ids = {node.id for node in child_nodes}
+            subworkflow_links = [
+                link
+                for link in workflow.links
+                if link.source_id in child_node_ids and link.target_id in child_node_ids
+            ]
+
+            # Create subworkflow
+            subworkflow = WorkflowDefinitionSchema(
+                nodes=child_nodes, links=subworkflow_links
+            )
+
+            # Update parent node's config with subworkflow
+            parent_node.config = {
+                **parent_node.config,
+                "subworkflow": subworkflow.model_dump(),
+            }
+
+        # Return new workflow with only root nodes
+        return WorkflowDefinitionSchema(
+            nodes=root_nodes,
+            links=[
+                link
+                for link in workflow.links
+                if not any(
+                    node.parent_id
+                    for node in workflow.nodes
+                    if node.id in (link.source_id, link.target_id)
+                )
+            ],
+        )
 
     def _build_node_dict(self):
         self._node_dict = {node.id: node for node in self.workflow.nodes}

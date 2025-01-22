@@ -61,6 +61,27 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                         }
                         const output_values = task.outputs || {}
                         const nodeTaskStatus = task.status
+
+                        // Handle subworkflow outputs if they exist
+                        if (task.subworkflow_output) {
+                            Object.entries(task.subworkflow_output).forEach(([subNodeId, outputs]) => {
+                                const subNode = nodes.find(
+                                    (node) => node.id === subNodeId || node.data.title === subNodeId
+                                )
+                                if (subNode) {
+                                    dispatch(
+                                        updateNodeDataOnly({
+                                            id: subNode.id,
+                                            data: {
+                                                run: outputs,
+                                                taskStatus: 'COMPLETED', // Assuming subworkflow outputs are from completed tasks
+                                            },
+                                        })
+                                    )
+                                }
+                            })
+                        }
+
                         if (node) {
                             dispatch(
                                 updateNodeDataOnly({

@@ -190,7 +190,7 @@ export const createDynamicGroupNodeWithChildren = (
         const inputNodeAndConfig = createNode(
             nodeTypes,
             'InputNode',
-            `${id}-input`,
+            `${id}_input`,
             {
                 x: position.x + 50,
                 y: position.y + 300, // position.y + (height/2)
@@ -202,7 +202,7 @@ export const createDynamicGroupNodeWithChildren = (
         const outputNodeAndConfig = createNode(
             nodeTypes,
             'OutputNode',
-            `${id}-output`,
+            `${id}_output`,
             {
                 x: position.x + 950, // position.x + width - 250
                 y: position.y + 300, // position.y + (height/2)

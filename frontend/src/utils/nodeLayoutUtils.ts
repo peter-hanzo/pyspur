@@ -13,7 +13,7 @@ export const getLayoutedNodes = (nodes: FlowWorkflowNode[], edges: FlowWorkflowE
     dagreGraph.setDefaultEdgeLabel(() => ({}))
 
     nodes.forEach((node) => {
-        if (node.measured) {
+        if (node.measured && node.parentId === null) {
             dagreGraph.setNode(node.id, {
                 width: node.measured.width,
                 height: node.measured.height,
