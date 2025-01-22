@@ -1,4 +1,4 @@
-import { type Node, type NodeOrigin, type Rect, Box } from '@xyflow/react'
+import { type Node, type NodeOrigin, type Rect, Box, Edge } from '@xyflow/react'
 // @todo import from @xyflow/react when fixed
 import { boxToRect, getNodePositionWithOrigin, rectToBox } from '@xyflow/system'
 import { Dispatch } from '@reduxjs/toolkit'
@@ -125,6 +125,7 @@ export const onNodeDragStopOverGroupNode = (
     event: ReactMouseEvent,
     node: Node,
     nodes: Node[],
+    edges: Edge[],
     dispatch: Dispatch,
     getIntersectingNodes: (node: Node) => Node[],
     getNodes: () => Node[],
@@ -139,8 +140,44 @@ export const onNodeDragStopOverGroupNode = (
     const intersections = getIntersectingNodes(node).filter((n) => GROUP_NODE_TYPES.includes(n.type))
     const groupNode = intersections[0]
 
+    if (!intersections.length || !groupNode) {
+        return
+    }
+
+    // Check if node is connected to group node through any path and skip if true
+    const isConnectedToGroupNode = (() => {
+        // Check predecessors (sources)
+        const checkPredecessors = (currentId: string, visited = new Set<string>()): boolean => {
+            if (visited.has(currentId)) return false
+            visited.add(currentId)
+
+            const incomingEdges = edges.filter((e) => e.target === currentId)
+            return incomingEdges.some((e) => {
+                if (e.source === groupNode.id) return true
+                return checkPredecessors(e.source, visited)
+            })
+        }
+
+        // Check successors (targets)
+        const checkSuccessors = (currentId: string, visited = new Set<string>()): boolean => {
+            if (visited.has(currentId)) return false
+            visited.add(currentId)
+
+            const outgoingEdges = edges.filter((e) => e.source === currentId)
+            return outgoingEdges.some((e) => {
+                if (e.target === groupNode.id) return true
+                return checkSuccessors(e.target, visited)
+            })
+        }
+
+        return checkPredecessors(node.id) || checkSuccessors(node.id)
+    })()
+    if (isConnectedToGroupNode) {
+        return
+    }
+
     // If there's an intersection and node isn't already in this group
-    if (intersections.length && node.parentId !== groupNode?.id) {
+    if (node.parentId !== groupNode?.id) {
         // Calculate new position relative to parent
         const position = getNodePositionInsideParent(node, groupNode) ?? {
             x: 0,

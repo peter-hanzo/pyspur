@@ -272,7 +272,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
     const onNodeDragStop = useCallback(
         (event: ReactMouseEvent, node: Node) => {
-            onNodeDragStopOverGroupNode(event, node, nodes, dispatch, getIntersectingNodes, getNodes, updateNode)
+            onNodeDragStopOverGroupNode(event, node, nodes, edges, dispatch, getIntersectingNodes, getNodes, updateNode)
         },
         [nodes, dispatch, getIntersectingNodes]
     )
