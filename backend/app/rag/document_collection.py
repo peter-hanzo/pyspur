@@ -108,6 +108,7 @@ class DocumentStore:
                 min_chunk_length_to_embed=config.get("min_chunk_length_to_embed", 5),
                 embeddings_batch_size=config.get("embeddings_batch_size", 128),
                 max_num_chunks=config.get("max_num_chunks", 10000),
+                template=config.get("template", {}),
             )
 
             docs_with_chunks: List[DocumentWithChunks] = []

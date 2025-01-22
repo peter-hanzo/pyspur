@@ -148,6 +148,7 @@ export const DocumentCollectionWizard = () => {
                     max_num_chunks: 1000,
                     use_vision_model: files.length === 0 ? false : config.use_vision_model,
                     template: config.template.enabled ? {
+                        enabled: config.template.enabled,
                         template: config.template.template,
                         metadata_template: config.template.metadata_template
                     } : undefined,

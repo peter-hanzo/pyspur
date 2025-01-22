@@ -717,6 +717,7 @@ export interface DocumentCollectionCreateRequest {
         vision_model?: string
         vision_provider?: string
         template?: {
+            enabled: boolean
             template: string
             metadata_template: Record<string, string>
         }
