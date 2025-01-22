@@ -878,6 +878,7 @@ const flowSlice = createSlice({
                 node.parentId = parentId
                 node.position = position
                 node.extent = 'parent'
+                node.expandParent = true
             }
         },
     },
