@@ -42,6 +42,9 @@ import SchemaEditor from './SchemaEditor'
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
 import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
+import { VectorIndexResponseSchema } from '../../../types/api_types/ragSchemas'
+import { listVectorIndices } from '../../../utils/api'
+
 // Define types for props and state
 interface NodeSidebarProps {
     nodeID: string
@@ -161,6 +164,14 @@ const getModelConstraints = (nodeSchema: FlowWorkflowNodeType | null, modelId: s
     return nodeSchema.model_constraints[modelId]
 }
 
+// Add this after other interfaces
+interface VectorIndexOption {
+    id: string
+    name: string
+    description?: string
+    status: string
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -185,6 +196,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [fewShotIndex, setFewShotIndex] = useState<number | null>(null)
     const [showTitleError, setShowTitleError] = useState(false)
     const [titleInputValue, setTitleInputValue] = useState<string>('')
+
+    // Add state for vector indices
+    const [vectorIndices, setVectorIndices] = useState<VectorIndexOption[]>([])
+    const [isLoadingIndices, setIsLoadingIndices] = useState(false)
 
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
@@ -455,10 +470,75 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
     }, [])
 
-    // Update the `renderField` function to include missing cases
+    // Update function to fetch vector indices
+    const fetchVectorIndices = async () => {
+        try {
+            setIsLoadingIndices(true)
+            const indices = await listVectorIndices()
+            setVectorIndices(indices)
+        } catch (error) {
+            console.error('Error fetching vector indices:', error)
+        } finally {
+            setIsLoadingIndices(false)
+        }
+    }
+
+    // Add effect to fetch indices when node type is RetrieverNode
+    useEffect(() => {
+        if (node?.type === 'retriever_node') {
+            fetchVectorIndices()
+        }
+    }, [node?.type])
+
+    // Update renderField to handle vector index selection
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
+
+        // Add special handling for index_id field in RetrieverNode
+        if (key === 'index_id' && node?.type === 'retriever_node') {
+            return (
+                <div key={key} className="my-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Vector Index</h3>
+                        <Tooltip
+                            content="Select a vector index to retrieve documents from. Only indices with 'ready' status are available."
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                    </div>
+                    <Select
+                        key={`select-${nodeID}-${key}`}
+                        label="Select Vector Index"
+                        selectedKeys={[value || '']}
+                        onChange={(e) => handleInputChange(key, e.target.value)}
+                        isLoading={isLoadingIndices}
+                        fullWidth
+                    >
+                        {vectorIndices
+                            .filter((index) => index.status === 'ready')
+                            .map((index) => (
+                                <SelectItem key={index.id} value={index.id}>
+                                    {index.name} ({index.id})
+                                </SelectItem>
+                            ))}
+                    </Select>
+                    {vectorIndices.length === 0 && !isLoadingIndices && (
+                        <p className="text-sm text-default-500 mt-2">
+                            No vector indices available. Please create one first.
+                        </p>
+                    )}
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            )
+        }
 
         // Skip api_base field if the selected model is not an Ollama model
         if (key === 'api_base') {
