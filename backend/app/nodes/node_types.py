@@ -46,6 +46,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.llm.generative.branch_solve_merge",
             "class_name": "BranchSolveMergeNode",
         },
+        {
+            "node_type_name": "RetrieverNode",
+            "module": ".nodes.llm.retriever",
+            "class_name": "RetrieverNode",
+        },
     ],
     "Code Execution": [
         {
