@@ -9,7 +9,7 @@ import {
     NodeResizer,
     Handle,
     Position,
-    useHandleConnections,
+    useNodeConnections,
     useConnection,
     useUpdateNodeInternals,
 } from '@xyflow/react'
@@ -162,7 +162,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     }
 
     const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
-        const connections = useHandleConnections({ type: 'target', id: keyName })
+        const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
         const isConnectable = connections.length === 0
 
         return (

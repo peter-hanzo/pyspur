@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react'
 import {
     Handle,
-    useHandleConnections,
+    useNodeConnections,
     NodeProps,
     useConnection,
     Position,
@@ -122,7 +122,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     }
 
     const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
-        const connections = useHandleConnections({ type: 'target', id: keyName })
+        const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
         const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
 
         return (
