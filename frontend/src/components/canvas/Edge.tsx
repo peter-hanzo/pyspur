@@ -31,23 +31,6 @@ const getEdgeStyle = (isDark: boolean) =>
         stroke: isDark ? '#888' : '#555',
     }) as const
 
-interface CustomEdgeData extends Edge<any> {
-    onPopoverOpen: (params: {
-        sourceNode: {
-            id: string
-            position: { x: number; y: number }
-            data: any
-        }
-        targetNode: {
-            id: string
-            position: { x: number; y: number }
-            data: any
-        }
-        edgeId: string
-    }) => void
-    showPlusButton: boolean
-}
-
 interface CustomEdgeProps extends EdgeProps {
     data: {
         onPopoverOpen?: (data: any) => void
