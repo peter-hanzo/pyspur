@@ -56,7 +56,7 @@ class ModelConstraints(BaseModel):
     max_tokens: int
     min_temperature: float = 0.0
     max_temperature: float = 1.0
-
+    supports_JSON_output: bool = True
 
 class LLMModel(BaseModel):
     id: str
@@ -100,8 +100,9 @@ class LLMModels(str, Enum):
 
     # Ollama Models
     OLLAMA_PHI4 = "ollama/phi4"
-    OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
-    OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
+    OLLAMA_LLAMA3_3_70B = "ollama/llama3.3:70b"
+    OLLAMA_LLAMA3_3_8B = "ollama/llama3.3:8b"
+    OLLAMA_LLAMA3_2_8B = "ollama/llama3.2:8b"
     OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
     OLLAMA_LLAMA3_8B = "ollama/llama3"
     OLLAMA_GEMMA_2 = "ollama/gemma2"
@@ -242,19 +243,25 @@ class LLMModels(str, Enum):
                 id=cls.DEEPSEEK_CHAT.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0, supports_JSON_output=False),
             ),
             cls.DEEPSEEK_REASONER.value: LLMModel(
                 id=cls.DEEPSEEK_REASONER.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Reasoner",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0, supports_JSON_output=False),
             ),
             # Ollama Models
             cls.OLLAMA_PHI4.value: LLMModel(
                 id=cls.OLLAMA_PHI4.value,
                 provider=LLMProvider.OLLAMA,
                 name="Phi 4",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.OLLAMA_LLAMA3_3_70B.value: LLMModel(
+                id=cls.OLLAMA_LLAMA3_3_70B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Llama 3.3 (70B)",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(
@@ -491,51 +498,56 @@ async def generate_text(
         kwargs.pop("temperature")
 
     response = ""
-    if output_json_schema is None and output_schema is None:
-        output_schema = {"output": "string"}
-        output_json_schema = {
-            "type": "object",
-            "properties": {"output": {"type": "string"}},
-            "required": ["output"],
-        }
-    elif output_json_schema is None and output_schema is not None:
-        output_json_schema = convert_output_schema_to_json_schema(output_schema)
-    elif output_json_schema is not None and output_json_schema.strip() != "":
-        output_json_schema = json.loads(output_json_schema)
-    output_json_schema["additionalProperties"] = False
 
-    # check if the model supports response format
-    if "response_format" in litellm.get_supported_openai_params(model=model_name):
-        if litellm.supports_response_schema(model=model_name, custom_llm_provider=None):
-            if "name" not in output_json_schema and "schema" not in output_json_schema:
-                output_json_schema = {
-                    "schema": output_json_schema,
-                    "strict": True,
-                    "name": "output",
-                }
-            kwargs["response_format"] = {
-                "type": "json_schema",
-                "json_schema": output_json_schema,
+    # Get model info to check if it supports JSON output
+    model_info = LLMModels.get_model_info(model_name)
+    supports_json = model_info and model_info.constraints.supports_JSON_output
+
+    # Only process JSON schema if the model supports it
+    if supports_json:
+        if output_json_schema is None and output_schema is None:
+            output_schema = {"output": "string"}
+            output_json_schema = {
+                "type": "object",
+                "properties": {"output": {"type": "string"}},
+                "required": ["output"],
             }
-        else:
-            kwargs["response_format"] = {"type": "json_object"}
-            if output_schema:
-                schema_for_prompt = json.dumps(output_schema)
-            elif output_json_schema:
-                schema_for_prompt = json.dumps(output_json_schema)
-            else:
-                schema_for_prompt = json.dumps({"output": "string"})
-            system_message = next(
-                message for message in messages if message["role"] == "system"
-            )
-            system_message["content"] += (
-                "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
-                + schema_for_prompt
-            )
-    else:
-        raise ValueError(f"Model {model_name} does not support response format")
+        elif output_json_schema is None and output_schema is not None:
+            output_json_schema = convert_output_schema_to_json_schema(output_schema)
+        elif output_json_schema is not None and output_json_schema.strip() != "":
+            output_json_schema = json.loads(output_json_schema)
+        output_json_schema["additionalProperties"] = False
 
-    if json_mode:
+        # check if the model supports response format
+        if "response_format" in litellm.get_supported_openai_params(model=model_name):
+            if litellm.supports_response_schema(model=model_name, custom_llm_provider=None):
+                if "name" not in output_json_schema and "schema" not in output_json_schema:
+                    output_json_schema = {
+                        "schema": output_json_schema,
+                        "strict": True,
+                        "name": "output",
+                    }
+                kwargs["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": output_json_schema,
+                }
+            else:
+                kwargs["response_format"] = {"type": "json_object"}
+                if output_schema:
+                    schema_for_prompt = json.dumps(output_schema)
+                elif output_json_schema:
+                    schema_for_prompt = json.dumps(output_json_schema)
+                else:
+                    schema_for_prompt = json.dumps({"output": "string"})
+                system_message = next(
+                    message for message in messages if message["role"] == "system"
+                )
+                system_message["content"] += (
+                    "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
+                    + schema_for_prompt
+                )
+
+    if json_mode and supports_json:
         if model_name.startswith("ollama"):
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
             response = await ollama_with_backoff(
@@ -597,27 +609,35 @@ async def generate_text(
     else:
         response = await completion_with_backoff(**kwargs)
 
-    # Ensure response is valid JSON
-    try:
-        json.loads(response)
-        return response
-    except json.JSONDecodeError:
-        logging.error(f"Response is not valid JSON: {response}")
-        # Try to fix common json issues
-        if not response.startswith("{"):
-            # Extract JSON if there is extra text
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                response = json_match.group(0)
-                try:
-                    json.loads(response)
-                    return response
-                except json.JSONDecodeError:
-                    pass
-
-        # If all attempts to parse JSON fail, wrap the response in a JSON structure
+    # For models that don't support JSON output, wrap the response in a JSON structure
+    if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
         return f'{{"output": "{sanitized_response}"}}'
+
+    # Ensure response is valid JSON for models that support it
+    if supports_json:
+        try:
+            json.loads(response)
+            return response
+        except json.JSONDecodeError:
+            logging.error(f"Response is not valid JSON: {response}")
+            # Try to fix common json issues
+            if not response.startswith("{"):
+                # Extract JSON if there is extra text
+                json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                if json_match:
+                    response = json_match.group(0)
+                    try:
+                        json.loads(response)
+                        return response
+                    except json.JSONDecodeError:
+                        pass
+
+            # If all attempts to parse JSON fail, wrap the response in a JSON structure
+            sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+            return f'{{"output": "{sanitized_response}"}}'
+
+    return response
 
 
 def convert_output_schema_to_json_schema(

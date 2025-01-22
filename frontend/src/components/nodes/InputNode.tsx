@@ -29,7 +29,6 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
     const [newFieldValue, setNewFieldValue] = useState<string>('')
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [showKeyError, setShowKeyError] = useState<boolean>(false)
-    const [showOutput, setShowOutput] = useState(false)
     const incomingEdges = useSelector(
         (state: RootState) => state.flow.edges.filter((edge) => edge.target === id),
         isEqual
@@ -80,7 +79,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         dispatch(
             setWorkflowInputVariable({
                 key: newKey,
-                value: 'str',
+                value: 'string',
             })
         )
         setNewFieldValue('')
