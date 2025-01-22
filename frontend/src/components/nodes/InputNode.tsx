@@ -314,6 +314,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
     const baseNodeStyles = useMemo(
         () => ({
             width: nodeWidth,
+            maxHeight: '800px',
+            overflow: 'auto',
         }),
         [nodeWidth]
     )
