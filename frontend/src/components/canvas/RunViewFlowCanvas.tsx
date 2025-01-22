@@ -65,7 +65,9 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     useEffect(() => {
         if (workflowData) {
             if (workflowData.definition.nodes) {
-                const inputNode = workflowData.definition.nodes.filter((node) => node.node_type === 'InputNode')
+                const inputNode = workflowData.definition.nodes.filter(
+                    (node) => node.node_type === 'InputNode' && node.parent_id === null
+                )
                 if (inputNode.length > 0) {
                     const inputSchema = inputNode[0].config.input_schema
                     if (inputSchema) {
