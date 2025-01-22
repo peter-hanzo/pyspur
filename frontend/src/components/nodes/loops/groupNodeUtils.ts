@@ -159,6 +159,7 @@ export const onNodeDragStopOverGroupNode = (
             parentId: groupNode.id,
             position,
             extent: 'parent',
+            expandParent: true,
         })
 
         // // Clear group node highlighting
