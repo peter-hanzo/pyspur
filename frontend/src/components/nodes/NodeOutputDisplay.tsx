@@ -66,27 +66,31 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         return value.includes('\n') && codeIndicators.some((indicator) => value.includes(indicator))
     }
 
+    // JSON rendering logic with indentation
+    const renderJsonObject = (obj: Record<string, any>) => {
+        return (
+            <div style={{ width: '100%' }}>
+                {Object.entries(obj).map(([key, val]) => (
+                    <div
+                        key={key}
+                        style={{
+                            marginBottom: '8px',
+                            marginLeft: '0.5rem',
+                            borderLeft: '2px solid #ccc',
+                            paddingLeft: '0.5rem',
+                        }}
+                    >
+                        <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>{key}:</div>
+                        <div style={{ marginLeft: '10px' }}>{renderValue(val)}</div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
     const renderValue = (value: any) => {
         // Handle JSON objects recursively
         if (typeof value === 'object' && value !== null) {
-            return (
-                <div style={{ width: '100%' }}>
-                    {Object.entries(value).map(([key, val], index) => (
-                        <div
-                            key={key}
-                            style={{
-                                marginBottom: '8px',
-                                marginLeft: '20px',
-                                borderLeft: '2px solid #ccc',
-                                paddingLeft: '10px',
-                            }}
-                        >
-                            <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>{key}</div>
-                            <div style={{ marginLeft: '10px' }}>{renderValue(val)}</div>
-                        </div>
-                    ))}
-                </div>
-            )
+            return renderJsonObject(value)
         }
 
         // Try parsing string as JSON
@@ -94,26 +98,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             try {
                 const jsonValue = JSON.parse(value)
                 if (typeof jsonValue === 'object' && jsonValue !== null) {
-                    return (
-                        <div style={{ width: '100%' }}>
-                            {Object.entries(jsonValue).map(([key, val], index) => (
-                                <div
-                                    key={key}
-                                    style={{
-                                        marginBottom: '8px',
-                                        marginLeft: '20px',
-                                        borderLeft: '2px solid #ccc',
-                                        paddingLeft: '10px',
-                                    }}
-                                >
-                                    <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>
-                                        {key}
-                                    </div>
-                                    <div style={{ marginLeft: '10px' }}>{renderValue(val)}</div>
-                                </div>
-                            ))}
-                        </div>
-                    )
+                    return renderJsonObject(jsonValue)
                 }
             } catch (e) {
                 // Not valid JSON, continue with other checks
