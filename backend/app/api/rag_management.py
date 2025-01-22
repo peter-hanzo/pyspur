@@ -33,6 +33,10 @@ from ..schemas.rag_schemas import (
     DocumentCollectionResponseSchema,
     VectorIndexResponseSchema,
     ProcessingProgressSchema,
+    RetrievalRequestSchema,
+    RetrievalResponseSchema,
+    ChunkMetadataSchema,
+    RetrievalResultSchema,
 )
 from ..rag.chunker import preview_document_chunk
 
@@ -776,4 +780,67 @@ async def preview_chunk(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error previewing chunk: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/indices/{index_id}/retrieve/", response_model=RetrievalResponseSchema)
+async def retrieve_from_index(
+    index_id: str,
+    request: RetrievalRequestSchema,
+    db: Session = Depends(get_db),
+) -> RetrievalResponseSchema:
+    """Retrieve relevant documents from a vector index"""
+    try:
+        # Get the vector index from the database
+        index = db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
+        if not index:
+            raise HTTPException(status_code=404, detail="Vector index not found")
+
+        # Check if index is ready
+        if index.status != "ready":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Vector index is not ready (current status: {index.status})"
+            )
+
+        # Initialize vector index
+        vector_index = VectorIndex(index.id)
+
+        # Retrieve from vector index
+        results = await vector_index.retrieve(
+            query=request.query,
+            top_k=request.top_k,
+            score_threshold=request.score_threshold,
+            semantic_weight=request.semantic_weight,
+            keyword_weight=request.keyword_weight,
+        )
+
+        # Format results
+        formatted_results = []
+        for result in results:
+            chunk = result["chunk"]
+            metadata = result["metadata"]
+            formatted_results.append(
+                RetrievalResultSchema(
+                    text=chunk.text,
+                    score=result["score"],
+                    metadata=ChunkMetadataSchema(
+                        document_id=metadata.get("document_id", ""),
+                        chunk_id=metadata.get("chunk_id", ""),
+                        document_title=metadata.get("document_title"),
+                        page_number=metadata.get("page_number"),
+                        chunk_number=metadata.get("chunk_number"),
+                    )
+                )
+            )
+
+        return RetrievalResponseSchema(
+            results=formatted_results,
+            total_results=len(formatted_results)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving from vector index: {e}")
         raise HTTPException(status_code=500, detail=str(e))

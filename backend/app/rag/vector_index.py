@@ -4,12 +4,19 @@ from typing import List, Dict, Any, Optional, Callable, Coroutine, cast, Union, 
 import numpy as np
 from loguru import logger
 
-from .embedder import get_multiple_text_embeddings, EmbeddingModels
+from .embedder import (
+    get_multiple_text_embeddings,
+    get_single_text_embedding,
+    EmbeddingModels
+)
 from .schemas.document_schemas import (
     Document,
     DocumentWithChunks,
     DocumentChunk,
-    DocumentMetadataFilter
+    DocumentMetadataFilter,
+    QueryWithEmbedding,
+    QueryResult,
+    DocumentChunkWithScore
 )
 from .datastore.factory import get_datastore
 
@@ -244,3 +251,70 @@ class VectorIndex:
         except Exception as e:
             logger.error(f"Error deleting vector index: {e}")
             return False
+
+    async def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        score_threshold: Optional[float] = None,
+        semantic_weight: Optional[float] = 1.0,
+        keyword_weight: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve relevant documents from the vector index.
+
+        Args:
+            query: The search query
+            top_k: Number of results to return
+            score_threshold: Minimum similarity score threshold
+            semantic_weight: Weight for semantic search (0 to 1)
+            keyword_weight: Weight for keyword search (0 to 1)
+
+        Returns:
+            List of documents with their similarity scores
+        """
+        try:
+            # Initialize datastore
+            datastore = await get_datastore(
+                self.config["vector_db"],
+                embedding_model=self.config.get("embedding_model")
+            )
+
+            # Get embedding for query
+            query_embedding = await get_single_text_embedding(
+                text=query,
+                model=self.config.get("embedding_model"),
+                dimensions=self.config.get("dimensions"),
+                api_key=self.config.get("openai_api_key")
+            )
+
+            # Create query with embedding
+            query_with_embedding = QueryWithEmbedding(
+                query=query,
+                embedding=query_embedding,
+                top_k=top_k,
+                score_threshold=score_threshold,
+                semantic_weight=semantic_weight,
+                keyword_weight=keyword_weight
+            )
+
+            # Query the datastore
+            results = await datastore.query([query_with_embedding])
+
+            if not results:
+                return []
+
+            # Format results
+            formatted_results = []
+            for match in results[0].matches:
+                formatted_results.append({
+                    "chunk": match.chunk,
+                    "score": match.score,
+                    "metadata": match.chunk.metadata.model_dump() if match.chunk.metadata else {}
+                })
+
+            return formatted_results
+
+        except Exception as e:
+            logger.error(f"Error retrieving from vector index: {e}")
+            raise
