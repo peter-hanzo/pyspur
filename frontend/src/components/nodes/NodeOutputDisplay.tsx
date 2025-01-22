@@ -49,19 +49,19 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             'class ',
             // Variable declarations
             'const ',
-            'let ',
+            // 'let ',
             'var ',
             'int ',
             'float ',
             // Imports
-            'import ',
-            'from ',
+            // 'import ',
+            // 'from ',
             '#include',
             // Control structures
-            'if ',
-            'for ',
-            'while ',
-            'return ',
+            // 'if ',
+            // 'for ',
+            // 'while ',
+            // 'return ',
         ]
         return value.includes('\n') && codeIndicators.some((indicator) => value.includes(indicator))
     }
