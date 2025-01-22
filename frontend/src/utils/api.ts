@@ -716,6 +716,11 @@ export interface DocumentCollectionCreateRequest {
         use_vision_model: boolean
         vision_model?: string
         vision_provider?: string
+        template?: {
+            enabled: boolean
+            template: string
+            metadata_template: Record<string, string>
+        }
     }
 }
 
@@ -927,6 +932,55 @@ export const getIndexProgress = async (indexId: string): Promise<ProcessingProgr
             return null
         }
         // For other errors, throw
+        throw error
+    }
+}
+
+export interface ChunkPreview {
+    original_text: string
+    processed_text: string
+    metadata: Record<string, string>
+    chunk_index: number
+}
+
+export interface ChunkPreviewResponse {
+    chunks: ChunkPreview[]
+    total_chunks: number
+}
+
+export interface ChunkTemplate {
+    enabled: boolean
+    template: string
+    metadata_template: { type: string } | Record<string, string>
+}
+
+export const previewChunk = async (
+    file: File,
+    config: {
+        chunk_token_size: number
+        min_chunk_size_chars: number
+        min_chunk_length_to_embed: number
+        template: ChunkTemplate
+    }
+): Promise<ChunkPreviewResponse> => {
+    try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('chunking_config', JSON.stringify({
+            chunk_token_size: config.chunk_token_size,
+            min_chunk_size_chars: config.min_chunk_size_chars,
+            min_chunk_length_to_embed: config.min_chunk_length_to_embed,
+            template: config.template
+        }))
+
+        const response = await axios.post(`${API_BASE_URL}/rag/collections/preview_chunk/`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error previewing chunk:', error)
         throw error
     }
 }

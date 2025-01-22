@@ -1,14 +1,18 @@
 import uuid
-from typing import Dict, List, Optional, Tuple, Union
-
+from typing import Dict, List, Tuple, BinaryIO
+from jinja2 import Template
 import tiktoken
-from .embedder import EmbeddingModels, get_multiple_text_embeddings
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+import os
+
 from .schemas.document_schemas import (
     Document,
     DocumentChunk,
     DocumentChunkMetadata,
+    ChunkingConfig,
 )
-from pydantic import BaseModel
+from .parser import extract_text_from_file
 
 # Global variables
 tokenizer = tiktoken.get_encoding(
@@ -16,13 +20,30 @@ tokenizer = tiktoken.get_encoding(
 )  # The encoding scheme to use for tokenization
 
 
-# Constants
-class ChunkingConfig(BaseModel):
-    chunk_token_size: int = 200
-    min_chunk_size_chars: int = 350
-    min_chunk_length_to_embed: int = 5
-    embeddings_batch_size: int = 128
-    max_num_chunks: int = 10000
+def apply_template(text: str, template: str, metadata_template: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
+    """Apply Jinja template to chunk text and metadata."""
+    try:
+        # Create template context
+        context = {
+            "text": text,
+            # Add more context variables as needed
+        }
+
+        # Process text template
+        text_template = Template(template)
+        processed_text = text_template.render(**context)
+
+        # Process metadata templates
+        processed_metadata: Dict[str, str] = {}
+        for key, template_str in metadata_template.items():
+            metadata_template_obj = Template(template_str)
+            processed_metadata[key] = metadata_template_obj.render(**context)
+
+        return processed_text, processed_metadata
+    except Exception as e:
+        # Log error and return original text with basic metadata
+        print(f"Error applying template: {e}")
+        return text, {"type": "text_chunk", "error": str(e)}
 
 
 def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
@@ -40,7 +61,7 @@ def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
         return []
 
     tokens = tokenizer.encode(text, disallowed_special=())
-    chunks = []
+    chunks: List[str] = []
     num_chunks = 0
 
     while tokens and num_chunks < config.max_num_chunks:
@@ -97,66 +118,100 @@ def create_document_chunks(
     text_chunks = get_text_chunks(doc.text, config)
 
     metadata = (
-        DocumentChunkMetadata(**doc.metadata.dict())
+        DocumentChunkMetadata(**doc.metadata.model_dump())
         if doc.metadata is not None
         else DocumentChunkMetadata()
     )
     metadata.document_id = doc_id
 
-    doc_chunks = []
+    doc_chunks: List[DocumentChunk] = []
     for i, text_chunk in enumerate(text_chunks):
         chunk_id = f"{doc_id}_{i}"
+
+        # Apply template if enabled
+        if config.template.enabled:
+            processed_text, processed_metadata = apply_template(
+                text_chunk,
+                config.template.template,
+                config.template.metadata_template or {}
+            )
+            # Update metadata with processed metadata
+            chunk_metadata = metadata.model_copy()
+            chunk_metadata.custom_metadata = processed_metadata
+        else:
+            processed_text = text_chunk
+            chunk_metadata = metadata
+
         doc_chunk = DocumentChunk(
             id=chunk_id,
-            text=text_chunk,
-            metadata=metadata,
+            text=processed_text,
+            metadata=chunk_metadata,
         )
         doc_chunks.append(doc_chunk)
 
     return doc_chunks, doc_id
 
 
-async def get_document_chunks(
-    documents: List[Document],
-    chunk_token_size: Optional[Union[int, ChunkingConfig]] = None,
-    model: str = EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value,
-) -> Dict[str, List[DocumentChunk]]:
+async def preview_document_chunk(
+    file: BinaryIO,
+    filename: str,
+    mime_type: str,
+    config: ChunkingConfig,
+) -> Tuple[List[Dict[str, str]], int]:
     """
-    Convert documents into chunks with embeddings.
+    Preview how a document will be chunked and formatted.
 
     Args:
-        documents: The list of documents to convert.
-        chunk_token_size: Either a ChunkingConfig object or a legacy integer chunk size.
-        model: The embedding model to use.
+        file: The file object to process
+        filename: Name of the file
+        mime_type: MIME type of the file
+        config: Chunking configuration
 
     Returns:
-        A dictionary mapping document ids to their chunks.
+        Tuple containing:
+        - List of preview chunks, each containing original_text, processed_text, and metadata
+        - Total number of chunks
     """
-    # Handle legacy integer chunk_token_size
-    if isinstance(chunk_token_size, int):
-        config = ChunkingConfig(chunk_token_size=chunk_token_size)
-    elif isinstance(chunk_token_size, ChunkingConfig):
-        config = chunk_token_size
-    else:
-        config = ChunkingConfig()  # Use defaults
+    try:
+        # Create temporary file
+        with NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as temp_file:
+            temp_file.write(file.read())
+            temp_file.flush()
 
-    chunks: Dict[str, List[DocumentChunk]] = {}
-    all_chunks: List[DocumentChunk] = []
+            # Extract text using document processing logic
+            with open(temp_file.name, "rb") as f:
+                extracted_text = extract_text_from_file(f, mime_type or "text/plain", None)
 
-    for doc in documents:
-        doc_chunks, doc_id = create_document_chunks(doc, config)
-        all_chunks.extend(doc_chunks)
-        chunks[doc_id] = doc_chunks
+            # Clean up temp file
+            os.unlink(temp_file.name)
 
-    if not all_chunks:
-        return {}
+        # Create a temporary Document object to use create_document_chunks
+        temp_doc = Document(text=extracted_text)
+        doc_chunks, _ = create_document_chunks(temp_doc, config)
 
-    chunk_texts = [chunk.text for chunk in all_chunks]
-    embeddings = await get_multiple_text_embeddings(
-        docs=chunk_texts, model=model, batch_size=config.embeddings_batch_size
-    )
+        if not doc_chunks:
+            raise ValueError("No chunks could be generated with the provided configuration")
 
-    for i, chunk in enumerate(all_chunks):
-        chunk.embedding = embeddings[i].tolist()
+        # Take up to 3 chunks for preview: beginning, middle, and end
+        preview_indices = []
+        if len(doc_chunks) == 1:
+            preview_indices = [0]
+        elif len(doc_chunks) == 2:
+            preview_indices = [0, 1]
+        else:
+            preview_indices = [0, len(doc_chunks) // 2, len(doc_chunks) - 1]
 
-    return chunks
+        preview_chunks = []
+        for idx in preview_indices:
+            chunk = doc_chunks[idx]
+            preview_chunks.append({
+                "original_text": chunk.text,  # This will already be processed if template is enabled
+                "processed_text": chunk.text,
+                "metadata": chunk.metadata.custom_metadata if chunk.metadata else {"type": "text_chunk"},
+                "chunk_index": idx + 1  # 1-based index for display
+            })
+
+        return preview_chunks, len(doc_chunks)
+
+    except Exception as e:
+        raise ValueError(f"Error previewing chunk: {str(e)}")

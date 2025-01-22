@@ -24,6 +24,7 @@ import { createDocumentCollection } from '@/utils/api'
 import type { DocumentCollectionCreateRequest } from '@/utils/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import FileUploadBox from '../FileUploadBox'
+import ChunkEditor from './ChunkEditor'
 
 interface TextProcessingConfig {
     name: string
@@ -34,9 +35,14 @@ interface TextProcessingConfig {
     vision_model?: string
     vision_provider?: string
     chunkingMode: 'automatic' | 'manual'
+    template: {
+        enabled: boolean
+        template: string
+        metadata_template: { type: string }
+    }
 }
 
-const steps = ['Upload Documents', 'Configure Processing', 'Create Collection']
+const steps = ['Upload Documents', 'Configure Processing', 'Configure Templates', 'Create Collection']
 
 const generateRandomName = () => {
     const adjectives = [
@@ -84,6 +90,11 @@ export const DocumentCollectionWizard = () => {
         min_chunk_size_chars: 100,
         use_vision_model: false,
         chunkingMode: 'automatic',
+        template: {
+            enabled: false,
+            template: '{{ text }}',
+            metadata_template: { type: 'text_chunk' }
+        }
     })
 
     // Clear alert after 3 seconds
@@ -110,13 +121,6 @@ export const DocumentCollectionWizard = () => {
         setFiles(newFiles)
     }
 
-    const handleConfigChange =
-        (field: keyof TextProcessingConfig) =>
-        (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-            const value =
-                event.target.type === 'checkbox' ? (event.target as HTMLInputElement).checked : event.target.value
-            setConfig((prev) => ({ ...prev, [field]: value }))
-        }
 
     const handleSubmit = async () => {
         try {
@@ -143,6 +147,11 @@ export const DocumentCollectionWizard = () => {
                     embeddings_batch_size: 32,
                     max_num_chunks: 1000,
                     use_vision_model: files.length === 0 ? false : config.use_vision_model,
+                    template: config.template.enabled ? {
+                        enabled: config.template.enabled,
+                        template: config.template.template,
+                        metadata_template: config.template.metadata_template
+                    } : undefined,
                     ...(config.use_vision_model &&
                         config.vision_model && {
                             vision_model: config.vision_model,
@@ -170,14 +179,25 @@ export const DocumentCollectionWizard = () => {
                 setConfig((prev) => ({ ...prev, name: randomName }))
                 setNameAlert(`Using generated name: ${randomName}`)
             }
-            setActiveStep((prevStep) => prevStep + 1)
+
+            // Skip chunking step if no files are uploaded
+            if (activeStep === 0 && files.length === 0) {
+                setActiveStep(2) // Skip to template step
+            } else {
+                setActiveStep((prevStep) => prevStep + 1)
+            }
         } else {
             handleSubmit()
         }
     }
 
     const handleBack = () => {
-        setActiveStep((prevStep) => prevStep - 1)
+        // Handle going back when chunking step was skipped
+        if (activeStep === 2 && files.length === 0) {
+            setActiveStep(0)
+        } else {
+            setActiveStep((prevStep) => prevStep - 1)
+        }
     }
 
     const handleInputChange = (field: keyof TextProcessingConfig, value: string | boolean | number) => {
@@ -439,6 +459,63 @@ export const DocumentCollectionWizard = () => {
 
             case 2:
                 return (
+                    <div className="flex flex-col gap-8">
+                        <Card className="p-6">
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold">Chunk Templates</h3>
+                                    <Tooltip content="Configure how your chunks will be formatted and what metadata to extract">
+                                        <Info className="w-4 h-4 text-default-400" />
+                                    </Tooltip>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                            isSelected={config.template.enabled}
+                                            onValueChange={(checked) =>
+                                                setConfig((prev) => ({
+                                                    ...prev,
+                                                    template: {
+                                                        ...prev.template,
+                                                        enabled: checked
+                                                    }
+                                                }))
+                                            }
+                                            size="sm"
+                                        >
+                                            Enable Custom Templates
+                                        </Switch>
+                                        <Tooltip content="Use templates to customize how chunks are formatted and add metadata">
+                                            <Info className="w-4 h-4 text-default-400" />
+                                        </Tooltip>
+                                    </div>
+
+                                    {config.template.enabled && (
+                                        <ChunkEditor
+                                            template={config.template}
+                                            onTemplateChange={(template) =>
+                                                setConfig((prev) => ({
+                                                    ...prev,
+                                                    template
+                                                }))
+                                            }
+                                            chunkingConfig={{
+                                                chunk_token_size: config.chunkingMode === 'automatic' ? 1000 : config.chunk_token_size,
+                                                min_chunk_size_chars: config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars,
+                                                min_chunk_length_to_embed: 10
+                                            }}
+                                            files={files}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                )
+
+            case 3:
+                return (
                     <Card>
                         <CardBody className="gap-4">
                             <div className="text-lg font-semibold">Review Configuration</div>
@@ -491,6 +568,24 @@ export const DocumentCollectionWizard = () => {
                                         )}
                                     </div>
                                 </div>
+                                {config.template.enabled && (
+                                    <div>
+                                        <div className="font-medium">Chunk Template:</div>
+                                        <div className="text-default-500">
+                                            <pre className="bg-default-100 p-2 rounded-lg mt-2 text-xs">
+                                                {config.template.template}
+                                            </pre>
+                                            <div className="mt-2">
+                                                <span className="font-medium">Metadata Fields: </span>
+                                                {Object.keys(config.template.metadata_template).map((key) => (
+                                                    <Chip key={key} size="sm" variant="flat" className="ml-2">
+                                                        {key}
+                                                    </Chip>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardBody>
                     </Card>
@@ -648,9 +743,10 @@ export const DocumentCollectionWizard = () => {
                             : index < activeStep
                               ? 'border-success/50 bg-success/5'
                               : 'border-default-200 dark:border-default-100'
-                    }`}
-                                    disabled={index > activeStep}
-                                    whileHover={{ scale: index <= activeStep ? 1.02 : 1 }}
+                    }
+                    ${index === 1 && files.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={index > activeStep || (index === 1 && files.length === 0)}
+                                    whileHover={{ scale: (index <= activeStep && !(index === 1 && files.length === 0)) ? 1.02 : 1 }}
                                     whileTap={{ scale: 0.98 }}
                                 >
                                     <div className="flex items-center gap-3">
@@ -679,6 +775,11 @@ export const DocumentCollectionWizard = () => {
                                                 </span>
                                             )}
                                             {index === 2 && (
+                                                <span className="text-xs text-default-400">
+                                                    Configure templates
+                                                </span>
+                                            )}
+                                            {index === 3 && (
                                                 <span className="text-xs text-default-400">
                                                     Review and create your collection
                                                 </span>

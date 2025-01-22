@@ -3,6 +3,12 @@ from typing import Optional, Dict, Any
 import os
 from fastapi import HTTPException
 
+
+class TemplateSchema(BaseModel):
+    enabled: bool = False
+    template: str = "{{ text }}"
+    metadata_template: Dict[str, str] = {}
+
 # Models
 class TextProcessingConfigSchema(BaseModel):
     chunk_token_size: int = 200  # Default value from original chunker
@@ -13,6 +19,7 @@ class TextProcessingConfigSchema(BaseModel):
     use_vision_model: bool = False  # Whether to use vision model for PDF parsing
     vision_model: Optional[str] = None  # Model to use for vision-based parsing
     vision_provider: Optional[str] = None  # Provider for vision model
+    template: Optional[TemplateSchema] = TemplateSchema()
 
     def get_vision_config(self) -> Optional[Dict[str, Any]]:
         """Get vision configuration with API key if vision model is enabled."""

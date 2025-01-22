@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import chromadb
-from ...chunker import get_document_chunks
+from ...chunker import create_document_chunks
 from ...schemas.document_schemas import (
     Document,
     DocumentChunk,
@@ -22,6 +22,7 @@ from ...schemas.document_schemas import (
     QueryResult,
     QueryWithEmbedding,
     Source,
+    ChunkingConfig,
 )
 
 from ..datastore import DataStore
@@ -79,8 +80,11 @@ class ChromaDataStore(DataStore):
         Takes in a list of documents and inserts them into the database. If an id already exists, the document is updated.
         Return a list of document ids.
         """
-
-        chunks = get_document_chunks(documents, chunk_token_size)
+        chunks = {}
+        for doc in documents:
+            config = ChunkingConfig(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfig()
+            doc_chunks, doc_id = create_document_chunks(doc, config)
+            chunks[doc_id] = doc_chunks
 
         # Chroma has a true upsert, so we don't need to delete first
         return await self._upsert(chunks)

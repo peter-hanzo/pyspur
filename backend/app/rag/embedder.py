@@ -1,10 +1,11 @@
 import logging
 from enum import Enum
-from typing import List, Optional, Callable, Any, TypeAlias, Dict
+from typing import Dict, List, Optional, Callable, Any, TypeAlias, Union
 import numpy as np
 import numpy.typing as npt
-
 from litellm import aembedding
+from litellm.types.utils import EmbeddingResponse
+
 from pydantic import BaseModel, Field
 from tenacity import stop_after_attempt, wait_random_exponential
 
@@ -12,6 +13,7 @@ from ..nodes.llm._utils import async_retry
 
 
 EmbeddingArray: TypeAlias = npt.NDArray[np.float32]
+EmbeddingData = Dict[str, List[float]]
 
 
 class EmbeddingProvider(str, Enum):
@@ -71,7 +73,7 @@ class EmbeddingModels(str, Enum):
     GEMINI_TEXT_EMBEDDING = "gemini/text-embedding-004"
 
     @classmethod
-    def get_model_info(cls, model_id: str) -> EmbeddingModelConfig:
+    def get_model_info(cls, model_id: str) -> Optional[EmbeddingModelConfig]:
         model_registry = {
             # OpenAI Models
             cls.TEXT_EMBEDDING_3_SMALL.value: EmbeddingModelConfig(
@@ -285,7 +287,7 @@ async def get_multiple_text_embeddings(
     api_key: Optional[str] = None,
     batch_size: int = 100,
     encoding_format: Optional[CohereEncodingFormat] = None,
-) -> np.ndarray:
+) -> EmbeddingArray:
     """Compute embeddings for a list of documents."""
     if text_extractor:
         texts = [text_extractor(doc) for doc in docs]
@@ -296,15 +298,15 @@ async def get_multiple_text_embeddings(
             logging.error(
                 "Documents must be strings or you must provide a text_extractor function."
             )
-            return np.array([])
+            return np.array([], dtype=np.float32)
 
     # Process in batches
-    all_embeddings = []
+    all_embeddings: List[List[float]] = []
     for i in range(0, len(texts), batch_size):
         batch = texts[i : i + batch_size]
         try:
             # Prepare kwargs for litellm
-            kwargs = {
+            kwargs: Dict[str, Union[str, List[str], int]] = {
                 "model": model,
                 "input": batch,
             }
@@ -315,7 +317,7 @@ async def get_multiple_text_embeddings(
                 kwargs["api_key"] = api_key
             if encoding_format:
                 model_info = EmbeddingModels.get_model_info(model)
-                if model_info.provider == EmbeddingProvider.COHERE:
+                if model_info and model_info.provider == EmbeddingProvider.COHERE:
                     if (
                         not model_info.supported_encoding_formats
                         or encoding_format not in model_info.supported_encoding_formats
@@ -323,15 +325,15 @@ async def get_multiple_text_embeddings(
                         raise ValueError(
                             f"Encoding format {encoding_format} not supported for model {model}"
                         )
-                    kwargs["encoding_format"] = encoding_format
+                    kwargs["encoding_format"] = encoding_format.value
 
             # Log the request details
             logging.debug(f"Requesting embeddings for batch of size {len(batch)}")
             logging.debug(f"First text in batch (truncated): {batch[0][:100]}...")
             logging.debug(f"Using model: {model} with kwargs: {kwargs}")
 
-            response = await aembedding(**kwargs)
-            batch_embeddings = [item["embedding"] for item in response.data]
+            response: EmbeddingResponse = await aembedding(**kwargs)
+            batch_embeddings: List[List[float]] = [item["embedding"] for item in response.data]
             all_embeddings.extend(batch_embeddings)
 
             # Validate embeddings
@@ -352,10 +354,10 @@ async def get_multiple_text_embeddings(
             logging.error(f"- First text (truncated): {batch[0][:100]}...")
             raise  # Re-raise the exception to be handled by the retry decorator
 
-    return np.array(all_embeddings)
+    return np.array(all_embeddings, dtype=np.float32)
 
 
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+def cosine_similarity(a: EmbeddingArray, b: EmbeddingArray) -> EmbeddingArray:
     """Compute cosine similarity between two sets of vectors."""
     norm_a = np.linalg.norm(a, axis=1)
     norm_b = np.linalg.norm(b, axis=1)
@@ -374,7 +376,7 @@ async def find_top_k_similar_documents(
     encoding_format: Optional[CohereEncodingFormat] = None,
 ) -> Dict[Any, List[Dict[str, Any]]]:
     """Find top k similar documents from candidate_docs for each query doc."""
-    query_embeddings = await get_multiple_text_embeddings(
+    query_embeddings: EmbeddingArray = await get_multiple_text_embeddings(
         query_docs,
         model=model,
         dimensions=dimensions,
@@ -382,7 +384,7 @@ async def find_top_k_similar_documents(
         api_key=api_key,
         encoding_format=encoding_format,
     )
-    candidate_embeddings = await get_multiple_text_embeddings(
+    candidate_embeddings: EmbeddingArray = await get_multiple_text_embeddings(
         candidate_docs,
         model=model,
         dimensions=dimensions,
@@ -394,12 +396,12 @@ async def find_top_k_similar_documents(
     similarity_matrix = cosine_similarity(query_embeddings, candidate_embeddings)
     top_k_indices = np.argsort(-similarity_matrix, axis=1)[:, :k]
 
-    top_k_similar_docs = {}
+    top_k_similar_docs: Dict[Any, List[Dict[str, Any]]] = {}
     for i, query_doc in enumerate(query_docs):
         similar_docs = [
             {
                 "document": candidate_docs[idx],
-                "similarity_score": similarity_matrix[i][idx],
+                "similarity_score": float(similarity_matrix[i][idx]),
             }
             for idx in top_k_indices[i]
         ]

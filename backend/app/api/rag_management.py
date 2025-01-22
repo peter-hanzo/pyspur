@@ -23,7 +23,10 @@ from ..models.dc_and_vi_model import (
 from ..database import get_db
 from ..rag.document_collection import DocumentStore
 from ..rag.vector_index import VectorIndex
-from ..rag.schemas.document_schemas import DocumentWithChunks
+from ..rag.schemas.document_schemas import (
+    DocumentWithChunks,
+    ChunkingConfig,
+)
 from ..schemas.rag_schemas import (
     DocumentCollectionCreateSchema,
     VectorIndexCreateSchema,
@@ -31,6 +34,7 @@ from ..schemas.rag_schemas import (
     VectorIndexResponseSchema,
     ProcessingProgressSchema,
 )
+from ..rag.chunker import preview_document_chunk
 
 # In-memory progress tracking (replace with database in production)
 collection_progress: Dict[str, ProcessingProgressSchema] = {}
@@ -739,4 +743,37 @@ async def get_collection_documents(collection_id: str) -> List[DocumentWithChunk
                 documents.append(doc)
         return documents
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/collections/preview_chunk/")
+async def preview_chunk(
+    file: UploadFile = File(...),
+    chunking_config: str = Form(...),
+) -> Dict[str, Any]:
+    """Preview how a file will be chunked and formatted with templates."""
+    try:
+        # Parse chunking config
+        config = ChunkingConfig(**json.loads(chunking_config))
+
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+
+        # Get preview using chunker module
+        preview_chunks, total_chunks = await preview_document_chunk(
+            file.file,
+            file.filename,
+            file.content_type or "text/plain",
+            config
+        )
+
+        return {
+            "chunks": preview_chunks,
+            "total_chunks": total_chunks
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error previewing chunk: {e}")
         raise HTTPException(status_code=500, detail=str(e))
