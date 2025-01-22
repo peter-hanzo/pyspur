@@ -101,7 +101,7 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
             current_input.update(iteration_output)
             self.iteration += 1
 
-        self.subworkflow_outputs = self.loop_outputs
+        self.subworkflow_output = self.loop_outputs
 
         # Return final state as BaseModel
         return self.output_model.model_validate(current_input)  # type: ignore
