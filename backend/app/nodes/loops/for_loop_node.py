@@ -113,6 +113,6 @@ return {
         input_data = TestInput()
         output = await node(input_data)
         pprint(output)
-        pprint(node.subworkflow_outputs)
+        pprint(node.subworkflow_output)
 
     asyncio.run(main())
