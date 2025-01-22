@@ -724,6 +724,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         if (key === 'input_map') {
             return renderInputMapField(key, value, incomingSchema, handleInputChange)
         }
+        if (key === 'output_map') {
+            return renderOutputMapField(key, value, incomingSchema, handleInputChange)
+        }
 
         // Handle other types (string, number, boolean, object)
         switch (typeof field) {
@@ -1029,6 +1032,38 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     onChange={(newValue) => handleInputChange(key, newValue)}
                     options={jsonOptions}
                     schemaType="input_map"
+                    nodeId={nodeID}
+                    availableFields={incomingSchema}
+                />
+            </div>
+        )
+    }
+
+    const renderOutputMapField = (
+        key: string,
+        value: any,
+        incomingSchema: string[],
+        handleInputChange: (key: string, value: any) => void
+    ) => {
+        return (
+            <div key={key} className="my-2">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">Output Mapping</h3>
+                    <Tooltip
+                        content="Map fields from this node's output schema to the incoming variables of this node"
+                        placement="left-start"
+                        showArrow={true}
+                        className="max-w-xs"
+                    >
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
+                    </Tooltip>
+                </div>
+                <SchemaEditor
+                    key={`output-map-editor-${nodeID}`}
+                    jsonValue={value || {}}
+                    onChange={(newValue) => handleInputChange(key, newValue)}
+                    options={jsonOptions}
+                    schemaType="output_map"
                     nodeId={nodeID}
                     availableFields={incomingSchema}
                 />
