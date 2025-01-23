@@ -113,6 +113,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.github_create_issue",
             "class_name": "GitHubCreateIssueNode",
         },
+        {
+            "node_type_name": "FirecrawlNode",
+            "module": ".nodes.integrations.firecrawl",
+            "class_name": "FirecrawlNode",
+        },
     ],
 }
 
