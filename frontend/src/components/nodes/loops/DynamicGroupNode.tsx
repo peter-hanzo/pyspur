@@ -280,102 +280,105 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 minWidth={Math.max(200, minWidth)}
                 handleStyle={resizerHandleStyle}
             />
-            {/* Hidden target handle covering the entire node */}
-            <Handle
-                type="target"
-                position={Position.Left}
-                id={`node-body-${id}`}
-                style={staticStyles.targetHandle}
-                isConnectable={true}
-                isConnectableStart={false}
-            />
-            {/* Controls Card */}
-            <Card
-                key={`controls-card-${id}`}
-                style={staticStyles.controlsCard}
-                className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
-                classNames={{
-                    base: 'bg-background border-default-200 transition-opacity duration-200',
-                }}
-            >
-                <div className="flex flex-row gap-1">
-                    <Button key={`delete-btn-${id}`} isIconOnly radius="full" variant="light" onPress={onDelete}>
-                        <Icon
-                            key={`delete-icon-${id}`}
-                            className="text-default-500"
-                            icon="solar:trash-bin-trash-linear"
-                            width={22}
-                        />
-                    </Button>
-                </div>
-            </Card>
-            <Card
-                className={`w-full h-full transition-colors duration-200 ${
-                    node?.data?.className === 'active' ? 'border-blue-500' : ''
-                }`}
-                classNames={{
-                    base: `bg-slate-50/50 outline-offset-0 outline-solid-200
+            <div id="node-${id}" className="group relative w-full h-full">
+                {/* Hidden target handle covering the entire node */}
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={`node-body-${id}`}
+                    style={staticStyles.targetHandle}
+                    isConnectable={true}
+                    isConnectableStart={false}
+                />
+                {/* Controls Card */}
+                <Card
+                    key={`controls-card-${id}`}
+                    style={staticStyles.controlsCard}
+                    className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
+                    classNames={{
+                        base: 'bg-background border-default-200 transition-opacity duration-200',
+                    }}
+                >
+                    <div className="flex flex-row gap-1">
+                        <Button key={`delete-btn-${id}`} isIconOnly radius="full" variant="light" onPress={onDelete}>
+                            <Icon
+                                key={`delete-icon-${id}`}
+                                className="text-default-500"
+                                icon="solar:trash-bin-trash-linear"
+                                width={22}
+                            />
+                        </Button>
+                    </div>
+                </Card>
+                <Card
+                    id={`node-${id}-card`}
+                    className={`absolute inset-0 transition-colors duration-200 ${
+                        node?.data?.className === 'active' ? 'border-blue-500' : ''
+                    }`}
+                    classNames={{
+                        base: `bg-slate-50/50 outline-offset-0 outline-solid-200
                         ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
                         outline-default-200 group-hover:outline-[3px]`,
-                }}
-            >
-                <CardHeader className="relative pt-2 pb-4 bg-background">
-                    <div className="flex items-center">
-                        {nodeConfig?.logo && (
-                            <img src={nodeConfig.logo} alt="Node Logo" className="mr-2 max-h-8 max-w-8 mb-3" />
-                        )}
-                        {editingTitle ? (
-                            <Input
-                                autoFocus
-                                value={titleInputValue}
-                                size="sm"
-                                variant="bordered"
-                                radius="lg"
-                                onChange={(e) => {
-                                    const validValue = convertToPythonVariableName(e.target.value)
-                                    setTitleInputValue(validValue)
-                                    handleTitleChange(validValue)
-                                }}
-                                onBlur={() => setEditingTitle(false)}
-                                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                    if (e.key === 'Enter' || e.key === 'Escape') {
-                                        e.stopPropagation()
-                                        e.preventDefault()
-                                        setEditingTitle(false)
-                                    }
-                                }}
-                                classNames={{
-                                    input: 'text-foreground dark:text-white',
-                                    inputWrapper: 'dark:bg-default-100/50 bg-default-100',
-                                }}
-                            />
-                        ) : (
-                            <h3
-                                className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
-                                onClick={() => {
-                                    setTitleInputValue(getNodeTitle(node['data']))
-                                    setEditingTitle(true)
-                                }}
-                            >
-                                {nodeConfig?.title || 'Group'}
-                            </h3>
-                        )}
-                    </div>
-                </CardHeader>
-                {!isCollapsed && <Divider key={`divider-${id}`} className="bg-background" />}
-                <CardBody className="px-1 bg-none">
-                    <div className={`${styles.handlesWrapper} bg-background`} ref={nodeRef}>
-                        {renderHandles()}
-                    </div>
-                    <div
-                        style={{ flexGrow: 1, minHeight: minHeight }}
-                        id="child-node-container"
-                        className="bg-none rounded-md mt-2"
-                    >
-                        {/* This div will expand to fill remaining space */}
-                    </div>
-                </CardBody>
-            </Card>
+                    }}
+                >
+                    <CardHeader className="relative pt-2 pb-4 bg-background">
+                        <div className="flex items-center">
+                            {nodeConfig?.logo && (
+                                <img src={nodeConfig.logo} alt="Node Logo" className="mr-2 max-h-8 max-w-8 mb-3" />
+                            )}
+                            {editingTitle ? (
+                                <Input
+                                    autoFocus
+                                    value={titleInputValue}
+                                    size="sm"
+                                    variant="bordered"
+                                    radius="lg"
+                                    onChange={(e) => {
+                                        const validValue = convertToPythonVariableName(e.target.value)
+                                        setTitleInputValue(validValue)
+                                        handleTitleChange(validValue)
+                                    }}
+                                    onBlur={() => setEditingTitle(false)}
+                                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                        if (e.key === 'Enter' || e.key === 'Escape') {
+                                            e.stopPropagation()
+                                            e.preventDefault()
+                                            setEditingTitle(false)
+                                        }
+                                    }}
+                                    classNames={{
+                                        input: 'text-foreground dark:text-white',
+                                        inputWrapper: 'dark:bg-default-100/50 bg-default-100',
+                                    }}
+                                />
+                            ) : (
+                                <h3
+                                    className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                        setTitleInputValue(getNodeTitle(node['data']))
+                                        setEditingTitle(true)
+                                    }}
+                                >
+                                    {nodeConfig?.title || 'Group'}
+                                </h3>
+                            )}
+                        </div>
+                    </CardHeader>
+                    {!isCollapsed && <Divider key={`divider-${id}`} className="bg-background" />}
+                    <CardBody className="px-1 bg-none">
+                        <div className={`${styles.handlesWrapper} bg-background`} ref={nodeRef}>
+                            {renderHandles()}
+                        </div>
+                        <div
+                            style={{ flexGrow: 1, minHeight: minHeight }}
+                            id="child-node-container"
+                            className="bg-none rounded-md mt-2"
+                        >
+                            {/* This div will expand to fill remaining space */}
+                        </div>
+                    </CardBody>
+                </Card>
+            </div>
         </>
     )
 }
