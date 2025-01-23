@@ -1,4 +1,4 @@
-import React, { memo, useState, useRef, useEffect, useMemo } from 'react'
+import { memo, useState, useRef, useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     NodeProps,
@@ -23,6 +23,7 @@ import { RootState } from '@/store/store'
 import { getNodeTitle } from '@/utils/flowUtils'
 import { updateNodeTitle } from '@/store/flowSlice'
 import styles from '../DynamicNode.module.css'
+import { TaskStatus } from '@/types/api_types/taskSchemas'
 
 const staticStyles = {
     targetHandle: {
@@ -259,6 +260,33 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
         }
     }
 
+    const nodeRunStatus: TaskStatus = node?.data?.taskStatus as TaskStatus
+    const status = node?.data?.run ? 'completed' : ''
+
+    let outlineColor = 'gray'
+
+    switch (nodeRunStatus) {
+        case 'PENDING':
+            outlineColor = 'yellow'
+            break
+        case 'RUNNING':
+            outlineColor = 'blue'
+            break
+        case 'COMPLETED':
+            outlineColor = '#4CAF50'
+            break
+        case 'FAILED':
+            outlineColor = 'red'
+            break
+        case 'CANCELED':
+            outlineColor = 'gray'
+            break
+        default:
+            if (status === 'completed') {
+                outlineColor = '#4CAF50'
+            }
+    }
+
     return (
         <>
             {showTitleError && (
@@ -314,9 +342,10 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                     className={`absolute inset-0 transition-colors duration-200 ${
                         node?.data?.className === 'active' ? 'border-blue-500' : ''
                     }`}
+                    style={{ outlineColor }}
                     classNames={{
                         base: `bg-slate-50/50 outline-offset-0 outline-solid-200
-                        ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
+                        ${isSelected ? 'outline-[3px]' : status === 'completed' ? 'outline-[2px]' : 'outline-[1px]'} 
                         outline-default-200 group-hover:outline-[3px]`,
                     }}
                 >
