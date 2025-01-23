@@ -27,7 +27,7 @@ import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import LoadingSpinner from '../LoadingSpinner'
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel'
 import { setNodePanelExpanded } from '../../store/panelSlice'
-import { insertNodeBetweenNodes } from '../../utils/flowUtils'
+import { insertNodeBetweenNodes, useAdjustGroupNodesZIndex } from '../../utils/flowUtils'
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
 import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
 import { RootState } from '../../store/store'
@@ -163,6 +163,8 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         nodes,
         mode: mode as 'pointer' | 'hand',
     })
+
+    const nodesWithAdjustedZIndex = useAdjustGroupNodesZIndex({ nodes: nodesWithMode })
 
     const onEdgeMouseEnter = useCallback(
         (_: React.MouseEvent, edge: Edge) => {
@@ -341,7 +343,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                     }}
                 >
                     <ReactFlow
-                        nodes={nodesWithMode}
+                        nodes={nodesWithAdjustedZIndex}
                         edges={styledEdges}
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
