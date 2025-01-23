@@ -35,6 +35,7 @@ import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } 
 import isEqual from 'lodash/isEqual'
 import { onNodeDragOverGroupNode, onNodeDragStopOverGroupNode } from '../nodes/loops/groupNodeUtils'
 import { MouseEvent as ReactMouseEvent } from 'react'
+import { throttle } from 'lodash'
 
 // Type definitions
 
@@ -263,15 +264,15 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     )
 
     const onNodeDrag = useCallback(
-        (event: ReactMouseEvent, node: Node) => {
+        throttle((event: ReactMouseEvent, node: Node) => {
             onNodeDragOverGroupNode(event, node, nodes, dispatch, getIntersectingNodes, getNodes, updateNode)
-        },
+        }, 16),
         [nodes, dispatch, getIntersectingNodes]
     )
 
     const onNodeDragStop = useCallback(
         (event: ReactMouseEvent, node: Node) => {
-            onNodeDragStopOverGroupNode(event, node, nodes, dispatch, getIntersectingNodes, getNodes, updateNode)
+            onNodeDragStopOverGroupNode(event, node, nodes, edges, dispatch, getIntersectingNodes, getNodes, updateNode)
         },
         [nodes, dispatch, getIntersectingNodes]
     )

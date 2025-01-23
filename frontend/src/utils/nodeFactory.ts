@@ -29,6 +29,7 @@ export const createNode = (
         title: id,
     }
     const extent = parentId ? 'parent' : undefined
+    const expandParent = parentId ? true : undefined
 
     const node: FlowWorkflowNode = {
         id,
@@ -36,6 +37,7 @@ export const createNode = (
         position,
         measured: dimensions,
         parentId,
+        expandParent,
         extent,
         data: {
             title: id,
