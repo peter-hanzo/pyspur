@@ -288,7 +288,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     }
 
     return (
-        <>
+        <div className="w-full h-full group relative">
             {showTitleError && (
                 <Alert
                     key={`alert-${id}`}
@@ -307,7 +307,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 minWidth={Math.max(200, minWidth)}
                 handleStyle={resizerHandleStyle}
             />
-            <div id="node-${id}" className="group relative w-full h-full">
+            <div id="node-${id}" className="relative w-full h-full">
                 {/* Hidden target handle covering the entire node */}
                 <Handle
                     type="target"
@@ -339,12 +339,10 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 </Card>
                 <Card
                     id={`node-${id}-card`}
-                    className={`absolute inset-0 transition-colors duration-200 ${
-                        node?.data?.className === 'active' ? 'border-blue-500' : ''
-                    }`}
+                    className={`absolute inset-0 transition-colors duration-200`}
                     style={{ outlineColor }}
                     classNames={{
-                        base: `bg-slate-50/50 outline-offset-0 outline-solid-200
+                        base: `bg-background outline-offset-0 outline-solid-200
                         ${isSelected ? 'outline-[3px]' : status === 'completed' ? 'outline-[2px]' : 'outline-[1px]'} 
                         outline-default-200 group-hover:outline-[3px]`,
                     }}
@@ -392,11 +390,12 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                             )}
                         </div>
                     </CardHeader>
-                    {!isCollapsed && <Divider key={`divider-${id}`} className="bg-background" />}
-                    <CardBody className="px-1 bg-none">
+                    {!isCollapsed && <Divider key={`divider-${id}`} />}
+                    <CardBody className="px-1">
                         <div className={`${styles.handlesWrapper} bg-background`} ref={nodeRef}>
                             {renderHandles()}
                         </div>
+                        {!isCollapsed && <Divider key={`divider-2-${id}`} className="mt-2" />}
                         <div
                             style={{ flexGrow: 1, minHeight: minHeight }}
                             id="child-node-container"
@@ -407,7 +406,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                     </CardBody>
                 </Card>
             </div>
-        </>
+        </div>
     )
 }
 
