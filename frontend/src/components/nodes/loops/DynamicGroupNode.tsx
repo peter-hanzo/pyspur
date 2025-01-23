@@ -43,6 +43,30 @@ const staticStyles = {
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         pointerEvents: 'auto' as const,
     },
+    baseTag: {
+        padding: '2px 8px',
+        borderRadius: '12px',
+        fontSize: '0.75rem',
+        display: 'inline-block',
+        color: '#fff',
+    },
+    collapseButton: {
+        minWidth: 'auto',
+        height: '24px',
+        padding: '0 8px',
+        fontSize: '0.8rem',
+        marginRight: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    controlsContainer: {
+        position: 'absolute' as const,
+        top: '8px',
+        right: '8px',
+        display: 'flex',
+        alignItems: 'center',
+    },
 }
 const resizerLineStyle: React.CSSProperties = { borderColor: 'rgb(148 163 184)', display: 'none' } // Tailwind slate-400
 const resizerHandleStyle: React.CSSProperties = {
@@ -90,6 +114,16 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     const updateNodeInternals = useUpdateNodeInternals()
 
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
+
+    const acronym = node?.data?.acronym || 'N/A'
+    const color = node?.data?.color || '#ccc'
+    const tagStyle = useMemo(
+        () => ({
+            ...staticStyles.baseTag,
+            backgroundColor: color,
+        }),
+        [color]
+    )
 
     // Handle predecessor nodes logic
     const [predecessorNodes, setPredecessorNodes] = useState(() => {
@@ -388,6 +422,11 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                                     {nodeConfig?.title || 'Group'}
                                 </h3>
                             )}
+                        </div>
+                        <div style={staticStyles.controlsContainer}>
+                            <div style={tagStyle} className="node-acronym-tag">
+                                {acronym}
+                            </div>
                         </div>
                     </CardHeader>
                     {!isCollapsed && <Divider key={`divider-${id}`} />}
