@@ -2,7 +2,6 @@ import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
-from typing import Optional
 
 
 class GitHubGetPullRequestNodeConfig(BaseNodeConfig):
