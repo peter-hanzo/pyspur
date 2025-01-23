@@ -189,21 +189,66 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             return <div>Unsupported data URI format</div>
         }
 
-        // Handle regular code blocks
-        if (isCodeBlock(value)) {
-            const language = detectLanguage(value)
+        // Handle file URLs
+        if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
+            // We'll do some basic checks for file type based on extension:
+            const extension = (value.split('.').pop() || '').toLowerCase()
+
+            // For PDFs
+            if (extension === 'pdf') {
+                return (
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: '500px', border: 'none' }}
+                        title="PDF Preview"
+                    />
+                )
+            }
+
+            // For images (png, jpg, jpeg, gif, etc.)
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) {
+                return <img src={value} alt="Image Preview" style={{ maxWidth: '100%', maxHeight: '500px' }} />
+            }
+
+            // For videos (mp4, webm, ogv, etc.)
+            if (['mp4', 'webm', 'ogg', 'ogv'].includes(extension)) {
+                return (
+                    <video controls style={{ maxWidth: '100%', maxHeight: '500px' }}>
+                        <source src={value} />
+                        Your browser does not support the video tag.
+                    </video>
+                )
+            }
+
+            // For audio (mp3, wav, etc.)
+            if (['mp3', 'wav', 'ogg'].includes(extension)) {
+                return (
+                    <audio controls style={{ width: '100%' }}>
+                        <source src={value} />
+                        Your browser does not support the audio tag.
+                    </audio>
+                )
+            }
+
+            // Default fallback – just show a link
             return (
-                <SyntaxHighlighter
-                    language={language}
-                    style={oneDark}
-                    customStyle={{
-                        margin: 0,
-                        borderRadius: '8px',
-                        padding: '12px',
-                    }}
-                >
-                    {value}
-                </SyntaxHighlighter>
+                <div>
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: 'auto', border: 'none', display: 'none' }}
+                        sandbox="allow-scripts allow-same-origin allow-popups"
+                        onLoad={(e) => {
+                            e.currentTarget.style.display = 'block'
+                        }}
+                        onError={(e) => {
+                            // Keep iframe hidden on error
+                            e.currentTarget.style.display = 'none'
+                        }}
+                    />
+                    <a href={value} target="_blank" rel="noopener noreferrer">
+                        {value}
+                    </a>
+                </div>
             )
         }
 
