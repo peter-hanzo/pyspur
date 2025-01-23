@@ -101,7 +101,11 @@ class WorkflowDefinitionSchema(BaseModel):
 
     @field_validator("nodes")
     def must_have_at_most_one_output_node(cls, v: List[WorkflowNodeSchema]):
-        output_nodes = [node for node in v if node.node_type == "OutputNode"]
+        output_nodes = [
+            node
+            for node in v
+            if node.node_type == "OutputNode" and node.parent_id is None
+        ]
         if len(output_nodes) > 1:
             raise ValueError("Workflow must have at most one output node.")
         return v
