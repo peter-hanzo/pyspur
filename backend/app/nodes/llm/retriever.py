@@ -21,7 +21,7 @@ from ..base import (
 
 class RetrieverNodeConfig(VariableOutputBaseNodeConfig):
     """Configuration for the retriever node"""
-    index_id: str = Field(..., description="ID of the vector index to query")
+    vector_index_id: str = Field("", description="ID of the vector index to query")
     top_k: int = Field(5, description="Number of results to return")
     score_threshold: Optional[float] = Field(None, description="Minimum similarity score threshold")
     semantic_weight: float = Field(1.0, description="Weight for semantic search (0 to 1)")
@@ -50,11 +50,11 @@ class RetrieverNode(VariableOutputBaseNode):
 
     async def validate_index(self, db: Session) -> None:
         """Validate that the vector index exists and is ready"""
-        index = db.query(VectorIndexModel).filter(VectorIndexModel.id == self.config.index_id).first()
+        index = db.query(VectorIndexModel).filter(VectorIndexModel.id == self.config.vector_index_id).first()
         if not index:
-            raise ValueError(f"Vector index {self.config.index_id} not found")
+            raise ValueError(f"Vector index {self.config.vector_index_id} not found")
         if index.status != "ready":
-            raise ValueError(f"Vector index {self.config.index_id} is not ready (status: {index.status})")
+            raise ValueError(f"Vector index {self.config.vector_index_id} is not ready (status: {index.status})")
 
     async def run(self, input: RetrieverNodeInput) -> RetrieverNodeOutput:
         # Get database session
@@ -65,7 +65,7 @@ class RetrieverNode(VariableOutputBaseNode):
             await self.validate_index(db)
 
             # Initialize vector index
-            vector_index = VectorIndex(self.config.index_id)
+            vector_index = VectorIndex(self.config.vector_index_id)
 
             # Create retrieval request
             results = await vector_index.retrieve(
@@ -107,14 +107,13 @@ class RetrieverNode(VariableOutputBaseNode):
 
 if __name__ == "__main__":
     import asyncio
-    from pydantic import create_model
 
     async def test_retriever_node():
         # Create a test instance
         retriever = RetrieverNode(
             name="test_retriever",
             config=RetrieverNodeConfig(
-                index_id="VI1",  # Using proper vector index ID format
+                vector_index_id="VI1",  # Using proper vector index ID format
                 top_k=3,
                 score_threshold=0.7,
                 semantic_weight=1.0,

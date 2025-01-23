@@ -55,3 +55,65 @@ export interface RetrievalResponseSchema {
     results: RetrievalResultSchema[]
     total_results: number
 }
+
+export interface DocumentChunkSchema {
+    id: string
+    text: string
+    metadata?: Record<string, any>
+}
+
+export interface DocumentWithChunksSchema {
+    id: string
+    text: string
+    metadata?: Record<string, any>
+    chunks: DocumentChunkSchema[]
+}
+
+export interface ChunkPreviewSchema {
+    original_text: string
+    processed_text: string
+    metadata: Record<string, string>
+    chunk_index: number
+}
+
+export interface ChunkPreviewResponseSchema {
+    chunks: ChunkPreviewSchema[]
+    total_chunks: number
+}
+
+export interface ChunkTemplateSchema {
+    enabled: boolean
+    template: string
+    metadata_template: { type: string } | Record<string, string>
+}
+
+export interface DocumentCollectionCreateRequestSchema {
+    name: string
+    description?: string
+    text_processing: {
+        chunk_token_size: number
+        min_chunk_size_chars: number
+        min_chunk_length_to_embed: number
+        embeddings_batch_size: number
+        max_num_chunks: number
+        use_vision_model: boolean
+        vision_model?: string
+        vision_provider?: string
+        template?: ChunkTemplateSchema
+    }
+}
+
+export interface VectorIndexCreateRequestSchema {
+    name: string
+    description?: string
+    collection_id: string
+    embedding: {
+        model: string
+        vector_db: string
+        search_strategy: string
+        semantic_weight?: number
+        keyword_weight?: number
+        top_k?: number
+        score_threshold?: number
+    }
+}

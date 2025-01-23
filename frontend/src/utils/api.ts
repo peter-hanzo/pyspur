@@ -6,6 +6,18 @@ import { EvalRunRequest, EvalRunResponse } from '@/types/api_types/evalSchemas'
 import { NodeTypeSchema, MinimumNodeConfigSchema } from '@/types/api_types/nodeTypeSchemas'
 import { OutputFileResponse } from '@/types/api_types/outputFileSchemas'
 import { RunResponse } from '@/types/api_types/runSchemas'
+import {
+    DocumentChunkSchema,
+    DocumentWithChunksSchema,
+    ChunkPreviewSchema,
+    ChunkPreviewResponseSchema,
+    ChunkTemplateSchema,
+    DocumentCollectionCreateRequestSchema,
+    DocumentCollectionResponseSchema,
+    VectorIndexCreateRequestSchema,
+    VectorIndexResponseSchema,
+    ProcessingProgressSchema
+} from '@/types/api_types/ragSchemas'
 
 const API_BASE_URL =
     typeof window !== 'undefined'
@@ -769,9 +781,9 @@ export interface VectorIndexResponse {
 
 // Document Collection Functions
 export const createDocumentCollection = async (
-    data: DocumentCollectionCreateRequest,
+    data: DocumentCollectionCreateRequestSchema,
     files?: File[]
-): Promise<DocumentCollectionResponse> => {
+): Promise<DocumentCollectionResponseSchema> => {
     try {
         const formData = new FormData()
 
@@ -797,7 +809,7 @@ export const createDocumentCollection = async (
     }
 }
 
-export const listDocumentCollections = async (): Promise<DocumentCollectionResponse[]> => {
+export const listDocumentCollections = async (): Promise<DocumentCollectionResponseSchema[]> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/rag/collections/`)
         return response.data
@@ -807,7 +819,7 @@ export const listDocumentCollections = async (): Promise<DocumentCollectionRespo
     }
 }
 
-export const getDocumentCollection = async (id: string): Promise<DocumentCollectionResponse> => {
+export const getDocumentCollection = async (id: string): Promise<DocumentCollectionResponseSchema> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/rag/collections/${id}/`)
         return response.data
@@ -846,7 +858,7 @@ export const addDocumentsToCollection = async (id: string, files: File[]): Promi
 }
 
 // Vector Index Functions
-export const createVectorIndex = async (data: VectorIndexCreateRequest): Promise<VectorIndexResponse> => {
+export const createVectorIndex = async (data: VectorIndexCreateRequestSchema): Promise<VectorIndexResponseSchema> => {
     try {
         const response = await axios.post(`${API_BASE_URL}/rag/indices/`, data)
         return response.data
@@ -856,7 +868,7 @@ export const createVectorIndex = async (data: VectorIndexCreateRequest): Promise
     }
 }
 
-export const listVectorIndices = async (): Promise<VectorIndexResponse[]> => {
+export const listVectorIndices = async (): Promise<VectorIndexResponseSchema[]> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/rag/indices/`)
         return response.data
@@ -866,7 +878,7 @@ export const listVectorIndices = async (): Promise<VectorIndexResponse[]> => {
     }
 }
 
-export const getVectorIndex = async (id: string): Promise<VectorIndexResponse> => {
+export const getVectorIndex = async (id: string): Promise<VectorIndexResponseSchema> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/rag/indices/${id}/`)
         return response.data
@@ -885,20 +897,7 @@ export const deleteVectorIndex = async (id: string): Promise<void> => {
     }
 }
 
-export interface DocumentChunk {
-    id: string
-    text: string
-    metadata?: Record<string, any>
-}
-
-export interface DocumentWithChunks {
-    id: string
-    text: string
-    metadata?: Record<string, any>
-    chunks: DocumentChunk[]
-}
-
-export const getCollectionDocuments = async (id: string): Promise<DocumentWithChunks[]> => {
+export const getCollectionDocuments = async (id: string): Promise<DocumentWithChunksSchema[]> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/rag/collections/${id}/documents/`)
         return response.data
@@ -908,23 +907,9 @@ export const getCollectionDocuments = async (id: string): Promise<DocumentWithCh
     }
 }
 
-export interface ProcessingProgress {
-    id: string
-    status: string
-    progress: number
-    current_step: string
-    total_files: number
-    processed_files: number
-    total_chunks: number
-    processed_chunks: number
-    error_message: string | null
-    created_at: string
-    updated_at: string
-}
-
-export const getIndexProgress = async (indexId: string): Promise<ProcessingProgress | null> => {
+export const getIndexProgress = async (indexId: string): Promise<ProcessingProgressSchema | null> => {
     try {
-        const response = await axios.get<ProcessingProgress>(`${API_BASE_URL}/rag/indices/${indexId}/progress/`)
+        const response = await axios.get<ProcessingProgressSchema>(`${API_BASE_URL}/rag/indices/${indexId}/progress/`)
         return response.data
     } catch (error: any) {
         // For 404, return null instead of throwing
@@ -936,33 +921,15 @@ export const getIndexProgress = async (indexId: string): Promise<ProcessingProgr
     }
 }
 
-export interface ChunkPreview {
-    original_text: string
-    processed_text: string
-    metadata: Record<string, string>
-    chunk_index: number
-}
-
-export interface ChunkPreviewResponse {
-    chunks: ChunkPreview[]
-    total_chunks: number
-}
-
-export interface ChunkTemplate {
-    enabled: boolean
-    template: string
-    metadata_template: { type: string } | Record<string, string>
-}
-
 export const previewChunk = async (
     file: File,
     config: {
         chunk_token_size: number
         min_chunk_size_chars: number
         min_chunk_length_to_embed: number
-        template: ChunkTemplate
+        template: ChunkTemplateSchema
     }
-): Promise<ChunkPreviewResponse> => {
+): Promise<ChunkPreviewResponseSchema> => {
     try {
         const formData = new FormData()
         formData.append('file', file)

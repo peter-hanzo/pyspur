@@ -475,6 +475,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         try {
             setIsLoadingIndices(true)
             const indices = await listVectorIndices()
+            console.log('Fetched vector indices:', indices)
             setVectorIndices(indices)
         } catch (error) {
             console.error('Error fetching vector indices:', error)
@@ -485,7 +486,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Add effect to fetch indices when node type is RetrieverNode
     useEffect(() => {
-        if (node?.type === 'retriever_node') {
+        if (node?.type === 'RetrieverNode') {
             fetchVectorIndices()
         }
     }, [node?.type])
@@ -496,7 +497,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
 
         // Add special handling for index_id field in RetrieverNode
-        if (key === 'index_id' && node?.type === 'retriever_node') {
+        if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
+            console.log('Rendering vector index field')
             return (
                 <div key={key} className="my-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -920,6 +922,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const renderConfigFields = (): React.ReactNode => {
         if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null
         const properties = nodeSchema.config
+
         const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type')
 
         // Prioritize system_message and user_message to appear first

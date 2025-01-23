@@ -293,9 +293,6 @@ class VectorIndex:
                 query=query,
                 embedding=query_embedding,
                 top_k=top_k,
-                score_threshold=score_threshold,
-                semantic_weight=semantic_weight,
-                keyword_weight=keyword_weight
             )
 
             # Query the datastore
