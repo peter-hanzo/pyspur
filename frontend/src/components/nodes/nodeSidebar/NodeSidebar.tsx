@@ -42,7 +42,6 @@ import SchemaEditor from './SchemaEditor'
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
 import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
-import { VectorIndexResponseSchema } from '../../../types/api_types/ragSchemas'
 import { listVectorIndices } from '../../../utils/api'
 
 // Define types for props and state
@@ -498,7 +497,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         // Add special handling for index_id field in RetrieverNode
         if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
-            console.log('Rendering vector index field')
             return (
                 <div key={key} className="my-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -524,13 +522,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         isLoading={isLoadingIndices}
                         fullWidth
                     >
-                        {vectorIndices
-                            .filter((index) => index.status === 'ready')
-                            .map((index) => (
-                                <SelectItem key={index.id} value={index.id}>
-                                    {index.name} ({index.id})
-                                </SelectItem>
-                            ))}
+                        {vectorIndices.map((index) => (
+                            <SelectItem
+                                key={index.id}
+                                value={index.id}
+                                description={`Status: ${index.status}`}
+                                isDisabled={index.status !== 'ready'}
+                            >
+                                {index.name} ({index.id})
+                            </SelectItem>
+                        ))}
                     </Select>
                     {vectorIndices.length === 0 && !isLoadingIndices && (
                         <p className="text-sm text-default-500 mt-2">
