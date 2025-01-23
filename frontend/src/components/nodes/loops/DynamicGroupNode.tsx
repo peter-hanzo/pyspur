@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect, useMemo } from 'react'
+import React, { memo, useState, useRef, useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
     NodeProps,
@@ -43,13 +43,12 @@ const staticStyles = {
         pointerEvents: 'auto' as const,
     },
 }
-const resizerLineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
-const resizerHandleStyle = {
-    backgroundColor: 'white',
-    width: 8,
-    height: 8,
+const resizerLineStyle: React.CSSProperties = { borderColor: 'rgb(148 163 184)', display: 'none' } // Tailwind slate-400
+const resizerHandleStyle: React.CSSProperties = {
+    backgroundColor: 'rgb(148 163 184)',
+    width: '1rem',
+    height: '1rem',
     borderRadius: 2,
-    border: '1.5px solid rgb(148 163 184)', // Tailwind slate-400
 }
 
 export interface DynamicGroupNodeProps {
