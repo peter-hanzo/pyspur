@@ -134,7 +134,7 @@ class VectorIndex:
                     api_key=config.get("openai_api_key")
                 )
 
-                logger.debug(f"Embeddings generated for {len(all_chunks)} chunks.")
+                logger.debug(f"[DEBUG] Embeddings generated: {embeddings}.")
             except Exception as e:
                 logger.error(f"Error generating embeddings: {str(e)}")
                 raise ProcessingError(f"Failed to generate embeddings: {str(e)}")

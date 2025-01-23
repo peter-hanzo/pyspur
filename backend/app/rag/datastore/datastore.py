@@ -40,10 +40,15 @@ class DataStore(ABC):
         )
 
         chunks = {}
-        config = ChunkingConfig(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfig()
         for doc in documents:
-            doc_chunks, doc_id = create_document_chunks(doc, config)
-            chunks[doc_id] = doc_chunks
+            # If the document already has chunks with embeddings, use those
+            if hasattr(doc, 'chunks') and doc.chunks:
+                chunks[doc.id] = doc.chunks
+            else:
+                # Only create new chunks if the document doesn't have them
+                config = ChunkingConfig(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfig()
+                doc_chunks, doc_id = create_document_chunks(doc, config)
+                chunks[doc_id] = doc_chunks
 
         return await self._upsert(chunks)
 
