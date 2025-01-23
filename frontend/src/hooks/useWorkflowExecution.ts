@@ -61,23 +61,38 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                         }
                         const output_values = task.outputs || {}
                         const nodeTaskStatus = task.status
-                        if (node) {
-                            // Check if the task output or status is different from current node data
-                            const isOutputDifferent = JSON.stringify(output_values) !== JSON.stringify(node.data?.run)
-                            const isStatusDifferent = nodeTaskStatus !== node.data?.taskStatus
 
-                            if (isOutputDifferent || isStatusDifferent) {
-                                dispatch(
-                                    updateNodeDataOnly({
-                                        id: node.id,
-                                        data: {
-                                            run: { ...node.data.run, ...output_values },
-                                            error: task.error || null,
-                                            taskStatus: nodeTaskStatus,
-                                        },
-                                    })
+                        // Handle subworkflow outputs if they exist
+                        if (task.subworkflow_output) {
+                            Object.entries(task.subworkflow_output).forEach(([subNodeId, outputs]) => {
+                                const subNode = nodes.find(
+                                    (node) => node.id === subNodeId || node.data.title === subNodeId
                                 )
-                            }
+                                if (subNode) {
+                                    dispatch(
+                                        updateNodeDataOnly({
+                                            id: subNode.id,
+                                            data: {
+                                                run: outputs,
+                                                taskStatus: 'COMPLETED', // Assuming subworkflow outputs are from completed tasks
+                                            },
+                                        })
+                                    )
+                                }
+                            })
+                        }
+
+                        if (node) {
+                            dispatch(
+                                updateNodeDataOnly({
+                                    id: node.id,
+                                    data: {
+                                        run: { ...output_values },
+                                        error: task.error || null,
+                                        taskStatus: nodeTaskStatus,
+                                    },
+                                })
+                            )
                         }
                     })
                 }

@@ -286,6 +286,15 @@ const flowSlice = createSlice({
             const targetNode = state.nodes.find((node) => node.id === connection.target)
             if (!targetNode) return
 
+            // allow only if source and target node have the same parentId
+            const sourceNode = state.nodes.find((node) => node.id === connection.source)
+            if (sourceNode && sourceNode.parentId !== targetNode.parentId) {
+                state.edges = state.edges.filter(
+                    (edge) => !(edge.source === connection.source && edge.target === connection.target)
+                )
+                return
+            }
+
             // If it's a RouterNode, rebuild schema
             if (targetNode.type === 'RouterNode') {
                 rebuildRouterNodeSchema(state, targetNode)
@@ -869,6 +878,7 @@ const flowSlice = createSlice({
                 node.parentId = parentId
                 node.position = position
                 node.extent = 'parent'
+                node.expandParent = true
             }
         },
     },

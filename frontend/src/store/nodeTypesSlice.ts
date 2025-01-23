@@ -69,6 +69,17 @@ export interface FieldMetadata {
     type?: string
 }
 
+export interface ModelConstraints {
+    max_tokens: number
+    min_temperature: number
+    max_temperature: number
+    supports_JSON_output: boolean
+}
+
+export interface ModelConstraintsMap {
+    [modelId: string]: ModelConstraints
+}
+
 export interface FlowWorkflowNodeType {
     name: string
     config: {
@@ -92,6 +103,7 @@ export interface FlowWorkflowNodeType {
     metadata?: Record<string, any>
     data?: Record<string, any>
     logo?: string
+    model_constraints?: ModelConstraintsMap
 }
 
 export interface FlowWorkflowNodeTypesByCategory {
@@ -107,7 +119,6 @@ const initialState: NodeTypesState = {
 
 export const fetchNodeTypes = createAsyncThunk<NodeTypesResponse>('nodeTypes/fetchNodeTypes', async () => {
     const response = await getNodeTypes()
-    console.log('Node types fetched:', response)
     return response
 })
 
@@ -138,7 +149,9 @@ const findMetadataInCategory = (
     nodeType: string,
     path: string
 ): any | null => {
-    if (!metadata) return null
+    if (!metadata) {
+        return null
+    }
 
     // Get categories dynamically from metadata object
     const categories = Object.keys(metadata)

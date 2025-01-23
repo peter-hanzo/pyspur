@@ -2,13 +2,14 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from ..chunker import get_document_chunks
+from ..chunker import create_document_chunks
 from ..schemas.document_schemas import (
     Document,
     DocumentChunk,
     DocumentMetadataFilter,
     QueryResult,
     QueryWithEmbedding,
+    ChunkingConfig,
 )
 
 
@@ -38,7 +39,11 @@ class DataStore(ABC):
             ]
         )
 
-        chunks = await get_document_chunks(documents, chunk_token_size)
+        chunks = {}
+        config = ChunkingConfig(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfig()
+        for doc in documents:
+            doc_chunks, doc_id = create_document_chunks(doc, config)
+            chunks[doc_id] = doc_chunks
 
         return await self._upsert(chunks)
 

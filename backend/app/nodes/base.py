@@ -97,9 +97,19 @@ class BaseNode(ABC):
         """
         Dynamically creates an output model based on the node's output schema.
         """
+        field_type_to_python_type = {
+            "string": str,
+            "integer": int,
+            "number": float,
+            "boolean": bool,
+            "list": list,
+            "dict": dict,
+            "array": list,
+            "object": dict,
+        }
         return create_model(
             f"{self.name}",
-            **{field_name: (field_type, ...) for field_name, field_type in output_schema.items()},  # type: ignore
+            **{field_name: (field_type_to_python_type[field_type], ...) for field_name, field_type in output_schema.items()},  # type: ignore
             __base__=BaseNodeOutput,
         )
 

@@ -1,10 +1,14 @@
-import { type Node, type NodeOrigin, type Rect, Box } from '@xyflow/react'
+import { type Node, type NodeOrigin, type Rect, Box, Edge } from '@xyflow/react'
 // @todo import from @xyflow/react when fixed
 import { boxToRect, getNodePositionWithOrigin, rectToBox } from '@xyflow/system'
 import { Dispatch } from '@reduxjs/toolkit'
 import { updateNodeParentAndCoordinates } from '../../../store/flowSlice'
 // Add MouseEvent from React
 import { MouseEvent as ReactMouseEvent } from 'react'
+import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
+import { createNode } from '@/utils/nodeFactory'
+import { AppDispatch } from '@/store/store'
+import { addNodeWithConfig } from '@/store/flowSlice'
 
 export const GROUP_NODE_TYPES = ['ForLoopNode']
 
@@ -121,6 +125,7 @@ export const onNodeDragStopOverGroupNode = (
     event: ReactMouseEvent,
     node: Node,
     nodes: Node[],
+    edges: Edge[],
     dispatch: Dispatch,
     getIntersectingNodes: (node: Node) => Node[],
     getNodes: () => Node[],
@@ -135,8 +140,44 @@ export const onNodeDragStopOverGroupNode = (
     const intersections = getIntersectingNodes(node).filter((n) => GROUP_NODE_TYPES.includes(n.type))
     const groupNode = intersections[0]
 
+    if (!intersections.length || !groupNode) {
+        return
+    }
+
+    // Check if node is connected to group node through any path and skip if true
+    const isConnectedToGroupNode = (() => {
+        // Check predecessors (sources)
+        const checkPredecessors = (currentId: string, visited = new Set<string>()): boolean => {
+            if (visited.has(currentId)) return false
+            visited.add(currentId)
+
+            const incomingEdges = edges.filter((e) => e.target === currentId)
+            return incomingEdges.some((e) => {
+                if (e.source === groupNode.id) return true
+                return checkPredecessors(e.source, visited)
+            })
+        }
+
+        // Check successors (targets)
+        const checkSuccessors = (currentId: string, visited = new Set<string>()): boolean => {
+            if (visited.has(currentId)) return false
+            visited.add(currentId)
+
+            const outgoingEdges = edges.filter((e) => e.source === currentId)
+            return outgoingEdges.some((e) => {
+                if (e.target === groupNode.id) return true
+                return checkSuccessors(e.target, visited)
+            })
+        }
+
+        return checkPredecessors(node.id) || checkSuccessors(node.id)
+    })()
+    if (isConnectedToGroupNode) {
+        return
+    }
+
     // If there's an intersection and node isn't already in this group
-    if (intersections.length && node.parentId !== groupNode?.id) {
+    if (node.parentId !== groupNode?.id) {
         // Calculate new position relative to parent
         const position = getNodePositionInsideParent(node, groupNode) ?? {
             x: 0,
@@ -155,6 +196,7 @@ export const onNodeDragStopOverGroupNode = (
             parentId: groupNode.id,
             position,
             extent: 'parent',
+            expandParent: true,
         })
 
         // // Clear group node highlighting
@@ -168,4 +210,49 @@ export const onNodeDragStopOverGroupNode = (
         //     })
         // )
     }
+}
+
+export const createDynamicGroupNodeWithChildren = (
+    nodeTypes: FlowWorkflowNodeTypesByCategory,
+    nodeType: string,
+    id: string,
+    position: { x: number; y: number },
+    dispatch: AppDispatch
+) => {
+    const loopNodeAndConfig = createNode(nodeTypes, nodeType, id, position, null, { width: 1200, height: 600 })
+
+    if (loopNodeAndConfig) {
+        // Set initial dimensions for the loop node
+
+        // Create input node
+        const inputNodeAndConfig = createNode(
+            nodeTypes,
+            'InputNode',
+            `${id}_input`,
+            {
+                x: position.x + 50,
+                y: position.y + 300, // position.y + (height/2)
+            },
+            loopNodeAndConfig.node.id
+        )
+
+        // Create output node
+        const outputNodeAndConfig = createNode(
+            nodeTypes,
+            'OutputNode',
+            `${id}_output`,
+            {
+                x: position.x + 950, // position.x + width - 250
+                y: position.y + 300, // position.y + (height/2)
+            },
+            loopNodeAndConfig.node.id
+        )
+
+        // Dispatch all nodes
+        dispatch(addNodeWithConfig(loopNodeAndConfig))
+        dispatch(addNodeWithConfig(inputNodeAndConfig))
+        dispatch(addNodeWithConfig(outputNodeAndConfig))
+        return true
+    }
+    return false
 }

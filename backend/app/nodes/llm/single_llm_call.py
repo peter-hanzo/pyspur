@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from jinja2 import Template
 from pydantic import BaseModel, Field
 
-from ...utils.pydantic_utils import json_schema_to_model
+from ...utils.pydantic_utils import get_nested_field, json_schema_to_model
 
 from ..base import (
     BaseNodeInput,
@@ -111,15 +111,10 @@ class SingleLLMCallNode(VariableOutputBaseNode):
             url_vars = {}
             if "file" in self.config.url_variables:
                 # Split the input variable reference (e.g. "input_node.video_url")
-                parts = self.config.url_variables["file"].split(".")
-                if len(parts) == 2:
-                    node_id, var_name = parts
-                else:
-                    node_id, var_name = parts[0], parts[-1]
-                # Get the value from the input using the node_id
-                if node_id in raw_input_dict and var_name in raw_input_dict[node_id]:
-                    # Always use image_url format regardless of file type
-                    url_vars["image"] = raw_input_dict[node_id][var_name]
+                # Get the nested field value using the helper function
+                file_value = get_nested_field(self.config.url_variables["file"], input)
+                # Always use image_url format regardless of file type
+                url_vars["image"] = file_value
 
         assistant_message_str = await generate_text(
             messages=messages,

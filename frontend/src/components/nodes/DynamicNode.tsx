@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react'
 import {
     Handle,
-    useHandleConnections,
+    useNodeConnections,
     NodeProps,
     useConnection,
     Position,
@@ -11,7 +11,7 @@ import {
 import { useSelector } from 'react-redux'
 import BaseNode from './BaseNode'
 import styles from './DynamicNode.module.css'
-import { CardBody, Input } from '@nextui-org/react'
+import { CardBody, Input } from '@heroui/react'
 import { FlowWorkflowNode } from '../../store/flowSlice'
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice'
 import { RootState } from '../../store/store'
@@ -122,7 +122,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     }
 
     const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
-        const connections = useHandleConnections({ type: 'target', id: keyName })
+        const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
         const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
 
         return (
@@ -241,7 +241,13 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
         let result = updatedPredecessorNodes
 
         if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+            // Check if nodes have the same parent or both have no parent
+            const fromNodeParentId = connection.fromNode?.parentId
+            const toNodeParentId = connection.toNode?.parentId
+            const canConnect = fromNodeParentId === toNodeParentId
+
             if (
+                canConnect &&
                 connection.fromNode &&
                 !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
             ) {

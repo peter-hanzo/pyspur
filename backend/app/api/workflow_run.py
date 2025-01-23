@@ -73,6 +73,13 @@ async def run_workflow_blocking(
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
 
     initial_inputs = request.initial_inputs or {}
+
+    # Handle file paths if present
+    if request.files:
+        for node_id, file_paths in request.files.items():
+            if node_id in initial_inputs:
+                initial_inputs[node_id]["files"] = file_paths
+
     new_run = await create_run_model(
         workflow_id,
         workflow_version.id,

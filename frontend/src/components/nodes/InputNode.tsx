@@ -7,7 +7,7 @@ import {
     deleteWorkflowInputVariable,
     updateWorkflowInputVariableKey,
 } from '../../store/flowSlice'
-import { Input, Button, Alert } from '@nextui-org/react'
+import { Input, Button, Alert } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import styles from './InputNode.module.css'
 import { RootState } from '../../store/store'
@@ -29,7 +29,6 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
     const [newFieldValue, setNewFieldValue] = useState<string>('')
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [showKeyError, setShowKeyError] = useState<boolean>(false)
-    const [showOutput, setShowOutput] = useState(false)
     const incomingEdges = useSelector(
         (state: RootState) => state.flow.edges.filter((edge) => edge.target === id),
         isEqual
@@ -80,7 +79,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         dispatch(
             setWorkflowInputVariable({
                 key: newKey,
-                value: 'str',
+                value: 'string',
             })
         )
         setNewFieldValue('')
@@ -314,6 +313,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
     const baseNodeStyles = useMemo(
         () => ({
             width: nodeWidth,
+            maxHeight: '800px',
+            overflow: 'auto',
         }),
         [nodeWidth]
     )
@@ -339,16 +340,15 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                 className="hover:!bg-background"
                 {...props}
             >
-                <div className={styles.nodeWrapper} ref={nodeRef}>
-                    {renderWorkflowInputs()}
-                    {renderAddField()}
-                </div>
-
-                {data.run && (
-                    <div className="mt-2">
-                        <NodeOutputDisplay output={data.run} />
+                <div className="flex flex-col gap-2">
+                    {' '}
+                    {/* Add flex container with gap */}
+                    <div className={styles.nodeWrapper} ref={nodeRef}>
+                        {renderWorkflowInputs()}
+                        {renderAddField()}
                     </div>
-                )}
+                    {data.run && <NodeOutputDisplay output={data.run} />}
+                </div>
             </BaseNode>
         </div>
     )

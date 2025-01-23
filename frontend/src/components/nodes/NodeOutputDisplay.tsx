@@ -49,40 +49,209 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             'class ',
             // Variable declarations
             'const ',
-            'let ',
+            // 'let ',
             'var ',
             'int ',
             'float ',
             // Imports
-            'import ',
-            'from ',
+            // 'import ',
+            // 'from ',
             '#include',
             // Control structures
-            'if ',
-            'for ',
-            'while ',
-            'return ',
+            // 'if ',
+            // 'for ',
+            // 'while ',
+            // 'return ',
         ]
         return value.includes('\n') && codeIndicators.some((indicator) => value.includes(indicator))
     }
 
+    // JSON rendering logic with indentation
+    const renderJsonObject = (obj: Record<string, any>) => {
+        return (
+            <div style={{ width: '100%' }}>
+                {Object.entries(obj).map(([key, val]) => (
+                    <div
+                        key={key}
+                        style={{
+                            marginBottom: '8px',
+                            marginLeft: '0.5rem',
+                            borderLeft: '2px solid #ccc',
+                            paddingLeft: '0.5rem',
+                        }}
+                    >
+                        <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>{key}:</div>
+                        <div style={{ marginLeft: '10px' }}>{renderValue(val)}</div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
     const renderValue = (value: any) => {
+        // Handle JSON objects recursively
+        if (typeof value === 'object' && value !== null) {
+            return renderJsonObject(value)
+        }
+
+        // Try parsing string as JSON
+        if (typeof value === 'string') {
+            try {
+                const jsonValue = JSON.parse(value)
+                if (typeof jsonValue === 'object' && jsonValue !== null) {
+                    return renderJsonObject(jsonValue)
+                }
+            } catch (e) {
+                // Not valid JSON, continue with other checks
+            }
+        }
+
+        // Handle code blocks
         if (isCodeBlock(value)) {
             const language = detectLanguage(value)
             return (
                 <SyntaxHighlighter
                     language={language}
                     style={oneDark}
-                    customStyle={{
-                        margin: 0,
-                        borderRadius: '8px',
-                        padding: '12px',
-                    }}
+                    customStyle={{ borderRadius: '8px', padding: '12px' }}
                 >
                     {value}
                 </SyntaxHighlighter>
             )
         }
+        // Handle data URIs
+        if (typeof value === 'string' && value.startsWith('data:')) {
+            const [header, data] = value.split(',')
+            const mimeType = header.split(';')[0].split(':')[1]
+
+            // Handle PDF files
+            if (mimeType === 'application/pdf') {
+                return (
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: '500px', border: 'none' }}
+                        title="PDF Preview"
+                    />
+                )
+            }
+
+            // Handle images
+            if (mimeType.startsWith('image/')) {
+                return <img src={value} alt="Image Preview" style={{ maxWidth: '100%', maxHeight: '500px' }} />
+            }
+
+            // Handle video
+            if (mimeType.startsWith('video/')) {
+                return (
+                    <video controls style={{ maxWidth: '100%', maxHeight: '500px' }}>
+                        <source src={value} type={mimeType} />
+                        Your browser does not support the video tag.
+                    </video>
+                )
+            }
+
+            // Handle audio
+            if (mimeType.startsWith('audio/')) {
+                return (
+                    <audio controls style={{ width: '100%' }}>
+                        <source src={value} type={mimeType} />
+                        Your browser does not support the audio tag.
+                    </audio>
+                )
+            }
+
+            // Handle text files
+            if (mimeType.startsWith('text/')) {
+                try {
+                    const decodedText = atob(data)
+                    if (isCodeBlock(decodedText)) {
+                        const language = detectLanguage(decodedText)
+                        return (
+                            <SyntaxHighlighter
+                                language={language}
+                                style={oneDark}
+                                customStyle={{
+                                    margin: 0,
+                                    borderRadius: '8px',
+                                    padding: '12px',
+                                }}
+                            >
+                                {decodedText}
+                            </SyntaxHighlighter>
+                        )
+                    }
+                    return <Markdown>{decodedText}</Markdown>
+                } catch (e) {
+                    console.error('Error decoding base64:', e)
+                    return <div>Error decoding content</div>
+                }
+            }
+
+            return <div>Unsupported data URI format</div>
+        }
+
+        // Handle file URLs
+        if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
+            // We'll do some basic checks for file type based on extension:
+            const extension = (value.split('.').pop() || '').toLowerCase()
+
+            // For PDFs
+            if (extension === 'pdf') {
+                return (
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: '500px', border: 'none' }}
+                        title="PDF Preview"
+                    />
+                )
+            }
+
+            // For images (png, jpg, jpeg, gif, etc.)
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) {
+                return <img src={value} alt="Image Preview" style={{ maxWidth: '100%', maxHeight: '500px' }} />
+            }
+
+            // For videos (mp4, webm, ogv, etc.)
+            if (['mp4', 'webm', 'ogg', 'ogv'].includes(extension)) {
+                return (
+                    <video controls style={{ maxWidth: '100%', maxHeight: '500px' }}>
+                        <source src={value} />
+                        Your browser does not support the video tag.
+                    </video>
+                )
+            }
+
+            // For audio (mp3, wav, etc.)
+            if (['mp3', 'wav', 'ogg'].includes(extension)) {
+                return (
+                    <audio controls style={{ width: '100%' }}>
+                        <source src={value} />
+                        Your browser does not support the audio tag.
+                    </audio>
+                )
+            }
+
+            // Default fallback – just show a link
+            return (
+                <div>
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: 'auto', border: 'none', display: 'none' }}
+                        sandbox="allow-scripts allow-same-origin allow-popups"
+                        onLoad={(e) => {
+                            e.currentTarget.style.display = 'block'
+                        }}
+                        onError={(e) => {
+                            // Keep iframe hidden on error
+                            e.currentTarget.style.display = 'none'
+                        }}
+                    />
+                    <a href={value} target="_blank" rel="noopener noreferrer">
+                        {value}
+                    </a>
+                </div>
+            )
+        }
+
         return <Markdown>{JSON.stringify(value, null, 1)}</Markdown>
     }
 

@@ -16,7 +16,7 @@ import {
     AccordionItem,
     Chip,
     Divider,
-} from '@nextui-org/react'
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import {
     getDocumentCollection,
@@ -25,7 +25,7 @@ import {
     getCollectionDocuments,
 } from '@/utils/api'
 import type { DocumentCollectionResponse, DocumentWithChunks } from '@/utils/api'
-import FileUploadBox from './FileUploadBox'
+import FileUploadBox from '../FileUploadBox'
 import ChunkCard from '../cards/ChunkCard'
 
 export const DocumentCollectionDetails: React.FC = () => {

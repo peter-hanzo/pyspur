@@ -35,6 +35,7 @@ import { RootState } from '../store/store'
 import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
 import { useTheme } from 'next-themes'
 import DynamicGroupNode from '@/components/nodes/loops/DynamicGroupNode'
+import { createDynamicGroupNodeWithChildren } from '../components/nodes/loops/groupNodeUtils'
 
 interface UseNodeTypesOptions {
     nodeTypesConfig: FlowWorkflowNodeTypesByCategory | undefined
@@ -117,6 +118,13 @@ export const createNodeAtCenter = (
         y: center.y,
     }
 
+    // If this is a dynamic group node, handle it specially
+    if (nodeType === 'ForLoopNode') {
+        const created = createDynamicGroupNodeWithChildren(nodeTypes, nodeType, id, position, dispatch)
+        if (created) return
+    }
+
+    // Otherwise create a normal node
     const result = createNode(nodeTypes, nodeType, id, position)
     if (result) {
         dispatch(addNodeWithConfig(result))

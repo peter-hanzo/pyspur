@@ -56,7 +56,12 @@ class TaskRecorder:
             task.subworkflow = subworkflow.model_dump()
         if subworkflow_output:
             task.subworkflow_output = {
-                k: v.model_dump() for k, v in subworkflow_output.items()
+                k: (
+                    [x.model_dump() if isinstance(x, BaseModel) else x for x in v]
+                    if isinstance(v, list)
+                    else v.model_dump()
+                )
+                for k, v in subworkflow_output.items()
             }
         self.db.add(task)
         self.db.commit()

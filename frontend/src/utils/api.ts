@@ -23,13 +23,11 @@ export const getNodeTypes = async (): Promise<{
 }> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/node/supported_types/`)
-        const model = new JSPydanticModel(response.data)
 
-        // Get both the processed schema and metadata
+        const model = new JSPydanticModel(response.data)
         const schema = model.createObjectFromSchema()
         const metadata = model.getAllMetadata()
 
-        // Return both schema and metadata
         return {
             schema,
             metadata,
@@ -457,7 +455,7 @@ export const getWorkflowOutputVariables = async (workflowId: string): Promise<an
 }
 
 export interface StoreGoogleAccessTokenResponse {
-    message: string;
+    message: string
 }
 
 export const storeGoogleAccessToken = async (accessToken: string, expiresIn: string): Promise<any> => {
@@ -465,25 +463,25 @@ export const storeGoogleAccessToken = async (accessToken: string, expiresIn: str
         const response = await axios.post(`${API_BASE_URL}/google/store_token/`, {
             access_token: accessToken,
             expires_in: expiresIn,
-        });
-        return response.data;
+        })
+        return response.data
     } catch (error) {
-        console.error('Error storing token:', error);
-        throw error;
+        console.error('Error storing token:', error)
+        throw error
     }
 }
 
 export interface GoogleAccessTokenValidationResponse {
-    is_valid: boolean;
+    is_valid: boolean
 }
 
 export const validateGoogleAccessToken = async (): Promise<GoogleAccessTokenValidationResponse> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/google/validate_token/`);
-        return response.data;
+        const response = await axios.get(`${API_BASE_URL}/google/validate_token/`)
+        return response.data
     } catch (error) {
-        console.error('Error checking token:', error);
-        throw error;
+        console.error('Error checking token:', error)
+        throw error
     }
 }
 
@@ -718,6 +716,11 @@ export interface DocumentCollectionCreateRequest {
         use_vision_model: boolean
         vision_model?: string
         vision_provider?: string
+        template?: {
+            enabled: boolean
+            template: string
+            metadata_template: Record<string, string>
+        }
     }
 }
 
@@ -929,6 +932,80 @@ export const getIndexProgress = async (indexId: string): Promise<ProcessingProgr
             return null
         }
         // For other errors, throw
+        throw error
+    }
+}
+
+export interface ChunkPreview {
+    original_text: string
+    processed_text: string
+    metadata: Record<string, string>
+    chunk_index: number
+}
+
+export interface ChunkPreviewResponse {
+    chunks: ChunkPreview[]
+    total_chunks: number
+}
+
+export interface ChunkTemplate {
+    enabled: boolean
+    template: string
+    metadata_template: { type: string } | Record<string, string>
+}
+
+export const previewChunk = async (
+    file: File,
+    config: {
+        chunk_token_size: number
+        min_chunk_size_chars: number
+        min_chunk_length_to_embed: number
+        template: ChunkTemplate
+    }
+): Promise<ChunkPreviewResponse> => {
+    try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('chunking_config', JSON.stringify({
+            chunk_token_size: config.chunk_token_size,
+            min_chunk_size_chars: config.min_chunk_size_chars,
+            min_chunk_length_to_embed: config.min_chunk_length_to_embed,
+            template: config.template
+        }))
+
+        const response = await axios.post(`${API_BASE_URL}/rag/collections/preview_chunk/`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error previewing chunk:', error)
+        throw error
+    }
+}
+
+export const uploadTestFiles = async (
+    workflowId: string,
+    nodeId: string,
+    files: File[]
+): Promise<Record<string, string[]>> => {
+    try {
+        const formData = new FormData()
+        formData.append('workflow_id', workflowId)
+        formData.append('node_id', nodeId)
+        files.forEach((file) => {
+            formData.append('files', file)
+        })
+
+        const response = await axios.post(`${API_BASE_URL}/wf/upload_test_files/`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error uploading test files:', error)
         throw error
     }
 }

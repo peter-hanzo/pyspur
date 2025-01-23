@@ -15,7 +15,7 @@ import {
     DropdownItem,
     Alert,
     CircularProgress,
-} from '@nextui-org/react'
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
 import SettingsCard from './modals/SettingsModal'
 import { setProjectName } from '../store/flowSlice'
@@ -117,14 +117,6 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
 
     const handleDeploy = (): void => {
         setIsDeployModalOpen(true)
-    }
-
-    const getApiEndpoint = (): string => {
-        if (typeof window === 'undefined') {
-            return ''
-        }
-        const baseUrl = window.location.origin
-        return `${baseUrl}/api/wf/${workflowId}/start_run/?run_type=non_blocking`
     }
 
     useEffect(() => {
@@ -261,7 +253,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                                             />
                                         </NavbarItem>
                                         <NavbarItem className="hidden sm:flex">
-                                            <Button isIconOnly radius="full" variant="light" onClick={stopWorkflow}>
+                                            <Button isIconOnly radius="full" variant="light" onPress={stopWorkflow}>
                                                 <Icon
                                                     className="text-foreground/60"
                                                     icon="solar:stop-linear"
@@ -272,7 +264,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                                     </>
                                 ) : (
                                     <NavbarItem className="hidden sm:flex">
-                                        <Button isIconOnly radius="full" variant="light" onClick={handleRunWorkflow}>
+                                        <Button isIconOnly radius="full" variant="light" onPress={handleRunWorkflow}>
                                             <Icon className="text-foreground/60" icon="solar:play-linear" width={22} />
                                         </Button>
                                     </NavbarItem>
@@ -319,12 +311,12 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                             </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onClick={handleDownloadWorkflow}>
+                            <Button isIconOnly radius="full" variant="light" onPress={handleDownloadWorkflow}>
                                 <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
                             </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onClick={handleDeploy}>
+                            <Button isIconOnly radius="full" variant="light" onPress={handleDeploy}>
                                 <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
                             </Button>
                         </NavbarItem>
@@ -362,7 +354,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
             <DeployModal
                 isOpen={isDeployModalOpen}
                 onOpenChange={setIsDeployModalOpen}
-                getApiEndpoint={getApiEndpoint}
+                workflowId={workflowId}
+                testInput={testInputs.find((row) => row.id === selectedRow) ?? testInputs[0]}
             />
         </>
     )

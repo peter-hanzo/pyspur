@@ -1,38 +1,59 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Card, CardBody, Button } from '@nextui-org/react'
-import { Upload, X } from 'lucide-react'
+import { Card, CardBody, Button, Chip } from '@heroui/react'
+import { Upload, X, AlertCircle } from 'lucide-react'
 
 interface FileUploadBoxProps {
-    onFilesChange: (files: File[]) => void
+    onFilesChange: (files: File[]) => void | Promise<void>
+    multiple?: boolean
+    // New props for file type configuration
+    acceptedFileTypes?: {
+        [key: string]: string[]
+    }
+    supportedFormatsMessage?: string
 }
 
-const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
+const DEFAULT_ACCEPTED_FILE_TYPES = {
+    'application/pdf': ['.pdf'],
+    'text/plain': ['.txt'],
+    'text/markdown': ['.md'],
+    'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+}
+
+const DEFAULT_FORMATS_MESSAGE = 'Supported formats: PDF, TXT, MD, DOC, DOCX'
+
+const FileUploadBox: React.FC<FileUploadBoxProps> = ({
+    onFilesChange,
+    multiple = true,
+    acceptedFileTypes = DEFAULT_ACCEPTED_FILE_TYPES,
+    supportedFormatsMessage = DEFAULT_FORMATS_MESSAGE,
+}) => {
     const [files, setFiles] = useState<File[]>([])
 
     const onDrop = useCallback(
         (acceptedFiles: File[]) => {
-            setFiles((prev) => [...prev, ...acceptedFiles])
-            onFilesChange([...files, ...acceptedFiles])
+            // In single file mode, only keep the latest file
+            const newFiles = multiple ? [...files, ...acceptedFiles] : [acceptedFiles[0]]
+            setFiles(newFiles)
+            onFilesChange(newFiles)
         },
-        [files, onFilesChange]
+        [files, onFilesChange, multiple]
     )
 
     const removeFile = (index: number) => {
         const newFiles = files.filter((_, i) => i !== index)
         setFiles(newFiles)
-        onFilesChange(newFiles)
+        // Only trigger onFilesChange if we have files to upload
+        if (newFiles.length > 0) {
+            onFilesChange(newFiles)
+        }
     }
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: {
-            'application/pdf': ['.pdf'],
-            'text/plain': ['.txt'],
-            'text/markdown': ['.md'],
-            'application/msword': ['.doc'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-        },
+        accept: acceptedFileTypes,
+        multiple, // Allow multiple files only when multiple prop is true
     })
 
     return (
@@ -49,12 +70,15 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
                             <div className="text-center">
                                 <p className="text-default-500">
                                     {isDragActive
-                                        ? 'Drop the files here'
-                                        : 'Drag and drop files here or click to browse'}
+                                        ? 'Drop the file here'
+                                        : `Drag and drop ${multiple ? 'files' : 'a file'} here or click to browse`}
                                 </p>
-                                <p className="text-xs text-default-400 mt-1">
-                                    Supported formats: PDF, TXT, MD, DOC, DOCX
-                                </p>
+                                <p className="text-xs text-default-400 mt-1">{supportedFormatsMessage}</p>
+                                {!multiple && files.length > 0 && (
+                                    <p className="text-xs text-warning mt-1">
+                                        New file upload will replace the existing file
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </CardBody>
@@ -63,7 +87,14 @@ const FileUploadBox: React.FC<FileUploadBoxProps> = ({ onFilesChange }) => {
 
             {files.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-sm font-medium">Selected Files ({files.length})</p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">Selected {multiple ? `Files (${files.length})` : 'File'}</p>
+                        {!multiple && (
+                            <Chip size="sm" variant="flat" color="warning">
+                                Single file mode
+                            </Chip>
+                        )}
+                    </div>
                     <div className="space-y-2">
                         {files.map((file, index) => (
                             <Card key={index} className="bg-default-50">

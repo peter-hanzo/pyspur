@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@nextui-org/react'
+import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
@@ -9,7 +9,7 @@ interface SchemaEditorProps {
     onChange: (value: Record<string, string>) => void
     options?: string[]
     disabled?: boolean
-    schemaType?: 'input_schema' | 'output_schema' | 'input_map'
+    schemaType?: 'input_schema' | 'output_schema' | 'input_map' | 'output_map'
     nodeId: string
     availableFields?: string[]
 }
@@ -71,7 +71,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         delete updatedJson[oldKey]
 
         onChange(updatedJson)
-        if (newKey && oldKey && schemaType !== 'input_map') {
+        if (newKey && oldKey && schemaType !== 'input_map' && schemaType !== 'output_map') {
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
@@ -84,7 +84,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         setEditingField(null)
     }
 
-    const label = schemaType === 'input_map' ? 'Field' : 'Type'
+    const label = schemaType === 'input_map' || schemaType === 'output_map' ? 'Field' : 'Type'
 
     return (
         <div className="json-editor">
@@ -137,7 +137,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     <Icon icon="solar:add-circle-linear" width={22} />
                 </Button>
             </div>
-
             {jsonValue &&
                 typeof jsonValue === 'object' &&
                 !Array.isArray(jsonValue) &&

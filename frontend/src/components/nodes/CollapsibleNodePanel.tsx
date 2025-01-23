@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Icon } from '@iconify/react'
-import { Button, Accordion, AccordionItem, Input } from '@nextui-org/react'
+import { Button, Accordion, AccordionItem, Input } from '@heroui/react'
 import { useSelector, useDispatch } from 'react-redux'
 import { ReactFlowInstance, useReactFlow } from '@xyflow/react'
 import { useHotkeys } from 'react-hotkeys-hook'
