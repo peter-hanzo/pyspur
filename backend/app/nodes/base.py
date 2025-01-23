@@ -104,6 +104,8 @@ class BaseNode(ABC):
             "boolean": bool,
             "list": list,
             "dict": dict,
+            "array": list,
+            "object": dict,
         }
         return create_model(
             f"{self.name}",
