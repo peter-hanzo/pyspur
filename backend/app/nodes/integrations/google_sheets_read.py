@@ -23,7 +23,7 @@ class GoogleSheetsReadNode(BaseNode):
     """
     name = "google_sheets_read_node"
     display_name = "GoogleSheetsRead"
-    logo="/images/google_sheets.png"
+    logo="/images/google.png"
 
     config_model = GoogleSheetsReadNodeConfig
     input_model = GoogleSheetsReadNodeInput

@@ -10,6 +10,15 @@ import type { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../.
 import { setNodePanelExpanded } from '../../store/panelSlice'
 import { createNodeAtCenter } from '../../utils/flowUtils'
 
+interface IntegrationGroup {
+    [integration: string]: {
+        nodes: FlowWorkflowNodeType[]
+        logo?: string
+        color?: string
+        acronym?: string
+    }
+}
+
 const CollapsibleNodePanel: React.FC = () => {
     const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded)
     const dispatch = useDispatch()
@@ -83,6 +92,25 @@ const CollapsibleNodePanel: React.FC = () => {
         dispatch(setNodePanelExpanded(!isExpanded))
     }
 
+    const groupIntegrationNodes = (nodes: FlowWorkflowNodeType[]): IntegrationGroup => {
+        return nodes.reduce((acc: IntegrationGroup, node) => {
+            // Extract integration name from CamelCase (e.g., SlackNotifyNode -> Slack)
+            const match = node.name.match(/^([A-Z][a-z]+)/)
+            const integrationName = match ? match[1] : 'Other'
+
+            if (!acc[integrationName]) {
+                acc[integrationName] = {
+                    nodes: [],
+                    logo: node.logo,
+                    color: node.visual_tag?.color,
+                    acronym: node.visual_tag?.acronym,
+                }
+            }
+            acc[integrationName].nodes.push(node)
+            return acc
+        }, {})
+    };
+
     return (
         <div
             ref={panelRef}
@@ -118,36 +146,84 @@ const CollapsibleNodePanel: React.FC = () => {
                                 .filter((category) => category !== 'Input/Output')
                                 .map((category) => (
                                     <AccordionItem key={category} title={category}>
-                                        {filteredNodeTypes[category].map((node: FlowWorkflowNodeType) => (
-                                            <div
-                                                key={node.name}
-                                                className="flex items-center cursor-pointer p-2 hover:bg-default-100"
-                                                onClick={() => handleAddNode(node.name)}
-                                            >
-                                                <div className="w-16 flex-shrink-0">
-                                                    {node.logo ? (
-                                                        <img
-                                                            src={node.logo}
-                                                            alt="Node Logo"
-                                                            className="max-h-7 max-w-7"
-                                                        />
-                                                    ) : (
-                                                        <div
-                                                            className={`node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block`}
-                                                            style={{ backgroundColor: node.visual_tag.color }}
+                                        {category === 'Integrations' ? (
+                                            <Accordion selectionMode="multiple">
+                                                {Object.entries(groupIntegrationNodes(filteredNodeTypes[category])).map(
+                                                    ([integration, { nodes, logo, color, acronym }]) => (
+                                                        <AccordionItem
+                                                            key={integration}
+                                                            title={
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-8 flex-shrink-0">
+                                                                        {logo ? (
+                                                                            <img
+                                                                                src={logo}
+                                                                                alt={`${integration} Logo`}
+                                                                                className="max-h-5 max-w-5"
+                                                                            />
+                                                                        ) : (
+                                                                            <div
+                                                                                className="node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block"
+                                                                                style={{ backgroundColor: color }}
+                                                                            >
+                                                                                {acronym}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <span>{integration}</span>
+                                                                </div>
+                                                            }
                                                         >
-                                                            {node.visual_tag.acronym}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <span
-                                                    className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
-                                                    title={node.config.title}
+                                                            {nodes.map((node: FlowWorkflowNodeType) => (
+                                                                <div
+                                                                    key={node.name}
+                                                                    className="flex items-center cursor-pointer p-2 hover:bg-default-100 ml-4"
+                                                                    onClick={() => handleAddNode(node.name)}
+                                                                >
+                                                                    <span
+                                                                        className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
+                                                                        title={node.config.title}
+                                                                    >
+                                                                        {node.config.title}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </AccordionItem>
+                                                    )
+                                                )}
+                                            </Accordion>
+                                        ) : (
+                                            filteredNodeTypes[category].map((node: FlowWorkflowNodeType) => (
+                                                <div
+                                                    key={node.name}
+                                                    className="flex items-center cursor-pointer p-2 hover:bg-default-100"
+                                                    onClick={() => handleAddNode(node.name)}
                                                 >
-                                                    {node.config.title}
-                                                </span>
-                                            </div>
-                                        ))}
+                                                    <div className="w-16 flex-shrink-0">
+                                                        {node.logo ? (
+                                                            <img
+                                                                src={node.logo}
+                                                                alt="Node Logo"
+                                                                className="max-h-7 max-w-7"
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                className={'node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block'}
+                                                                style={{ backgroundColor: node.visual_tag.color }}
+                                                            >
+                                                                {node.visual_tag.acronym}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span
+                                                        className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
+                                                        title={node.config.title}
+                                                    >
+                                                        {node.config.title}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
                                     </AccordionItem>
                                 ))}
                         </Accordion>
