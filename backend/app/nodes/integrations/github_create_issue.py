@@ -9,7 +9,7 @@ class GitHubCreateIssueNodeConfig(BaseNodeConfig):
     repo_name: str = Field(
         "", description="The full name of the repository (e.g. 'owner/repo')."
     )
-    title_: str = Field("", description="The title of the issue.")
+    issue_title: str = Field("", description="The title of the issue.")
     body: Optional[str] = Field(None, description="The body content of the issue.")
 
 
@@ -35,7 +35,7 @@ class GitHubCreateIssueNode(BaseNode):
             gh = GithubTools()
             issue_info = gh.create_issue(
                 repo_name=self.config.repo_name,
-                title=self.config.title_,
+                title=self.config.issue_title,
                 body=self.config.body,
             )
             return GitHubCreateIssueNodeOutput(issue=issue_info)
