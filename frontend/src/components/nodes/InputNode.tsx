@@ -340,16 +340,15 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                 className="hover:!bg-background"
                 {...props}
             >
-                <div className={styles.nodeWrapper} ref={nodeRef}>
-                    {renderWorkflowInputs()}
-                    {renderAddField()}
-                </div>
-
-                {data.run && (
-                    <div className="mt-2">
-                        <NodeOutputDisplay output={data.run} />
+                <div className="flex flex-col gap-2">
+                    {' '}
+                    {/* Add flex container with gap */}
+                    <div className={styles.nodeWrapper} ref={nodeRef}>
+                        {renderWorkflowInputs()}
+                        {renderAddField()}
                     </div>
-                )}
+                    {data.run && <NodeOutputDisplay output={data.run} />}
+                </div>
             </BaseNode>
         </div>
     )
