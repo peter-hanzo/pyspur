@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
@@ -14,12 +14,13 @@ from ...database import get_db
 from ..base import (
     BaseNodeInput,
     BaseNodeOutput,
-    VariableOutputBaseNode,
-    VariableOutputBaseNodeConfig,
+    FixedOutputBaseNode,
+    FixedOutputBaseNodeConfig,
 )
 
+# Todo: Use Fixed Node Output; where the outputs will always be chunks
 
-class RetrieverNodeConfig(VariableOutputBaseNodeConfig):
+class RetrieverNodeConfig(FixedOutputBaseNodeConfig):
     """Configuration for the retriever node"""
     vector_index_id: str = Field("", description="ID of the vector index to query")
     top_k: int = Field(5, description="Number of results to return")
@@ -39,7 +40,7 @@ class RetrieverNodeOutput(BaseNodeOutput):
     total_results: int = Field(..., description="Total number of results found")
 
 
-class RetrieverNode(VariableOutputBaseNode):
+class RetrieverNode(FixedOutputBaseNode):
     """Node for retrieving relevant documents from a vector index"""
 
     name = "retriever_node"
@@ -47,6 +48,13 @@ class RetrieverNode(VariableOutputBaseNode):
     config_model = RetrieverNodeConfig
     input_model = RetrieverNodeInput
     output_model = RetrieverNodeOutput
+
+    @property
+    def output_schema(self) -> Dict[str, str]:
+        return {
+            "results": f"array[{RetrievalResultSchema.__name__}]",
+            "total_results": "integer"
+        }
 
     async def validate_index(self, db: Session) -> None:
         """Validate that the vector index exists and is ready"""
@@ -56,7 +64,8 @@ class RetrieverNode(VariableOutputBaseNode):
         if index.status != "ready":
             raise ValueError(f"Vector index {self.config.vector_index_id} is not ready (status: {index.status})")
 
-    async def run(self, input: RetrieverNodeInput) -> RetrieverNodeOutput:
+    async def run(self, input: BaseModel) -> BaseModel:
+        input_data = cast(RetrieverNodeInput, input)
         # Get database session
         db = next(get_db())
 
@@ -69,7 +78,7 @@ class RetrieverNode(VariableOutputBaseNode):
 
             # Create retrieval request
             results = await vector_index.retrieve(
-                query=input.query,
+                query=input_data.query,
                 top_k=self.config.top_k,
                 score_threshold=self.config.score_threshold,
                 semantic_weight=self.config.semantic_weight,
@@ -77,7 +86,7 @@ class RetrieverNode(VariableOutputBaseNode):
             )
 
             # Format results
-            formatted_results = []
+            formatted_results: List[RetrievalResultSchema] = []
             for result in results:
                 chunk = result["chunk"]
                 metadata = result["metadata"]
