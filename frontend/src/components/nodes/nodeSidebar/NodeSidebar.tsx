@@ -13,9 +13,8 @@ import {
 import {
     FlowWorkflowNodeType,
     FlowWorkflowNodeTypesByCategory,
-    FieldMetadata,
-    ModelConstraints,
 } from '../../../store/nodeTypesSlice'
+import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import NumberInput from '../../NumberInput'
 import CodeEditor from '../../CodeEditor'
 import { jsonOptions } from '../../../constants/jsonOptions'
