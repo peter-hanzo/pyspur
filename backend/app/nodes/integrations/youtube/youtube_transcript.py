@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.youtube_tools import YouTubeTools
 
 import logging
@@ -17,6 +17,7 @@ class YouTubeTranscriptNode(BaseNode):
     name = "youtube_transcript_node"
     display_name = "YouTubeTranscript"
     logo="/images/youtube.png"
+    category = "YouTube"
 
     config_model = YouTubeTranscriptNodeConfig
     input_model = YouTubeTranscriptNodeInput

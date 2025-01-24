@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from app.integrations.google.client import GoogleSheetsClient
 
 
@@ -24,6 +24,7 @@ class GoogleSheetsReadNode(BaseNode):
     name = "google_sheets_read_node"
     display_name = "GoogleSheetsRead"
     logo="/images/google.png"
+    category = "Google"
 
     config_model = GoogleSheetsReadNodeConfig
     input_model = GoogleSheetsReadNodeInput

@@ -1,6 +1,6 @@
 import logging
 from pydantic import BaseModel, Field  # type: ignore
-from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
 
 
@@ -32,6 +32,8 @@ class GitHubSearchRepositoriesNode(BaseNode):
     name = "github_search_repositories_node"
     display_name = "GitHubSearchRepositories"
     logo = "/images/github.png"
+    category = "GitHub"
+
 
     config_model = GitHubSearchRepositoriesNodeConfig
     input_model = GitHubSearchRepositoriesNodeInput

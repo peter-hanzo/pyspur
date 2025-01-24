@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from pydantic import BaseModel, Field  # type: ignore
-from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
 
 
@@ -25,6 +25,7 @@ class GitHubCreateIssueNode(BaseNode):
     name = "github_create_issue_node"
     display_name = "GitHubCreateIssue"
     logo = "/images/github.png"
+    category = "GitHub"
 
     config_model = GitHubCreateIssueNodeConfig
     input_model = GitHubCreateIssueNodeInput
