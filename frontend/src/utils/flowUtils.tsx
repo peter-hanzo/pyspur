@@ -359,6 +359,29 @@ export const useNodesWithMode = ({ nodes, mode }: NodesWithModeOptions) => {
     }, [nodes, mode])
 }
 
+interface useAdjustGroupNodesZIndexOptions {
+    nodes: Node[]
+}
+
+export const useAdjustGroupNodesZIndex = ({ nodes }: useAdjustGroupNodesZIndexOptions) => {
+    return useMemo(() => {
+        let groupNodeZIndex = -1
+        const updatedNodes = nodes.map((node) => {
+            if (node.type === 'ForLoopNode') {
+                return {
+                    ...node,
+                    style: {
+                        ...node.style,
+                        zIndex: groupNodeZIndex,
+                    },
+                }
+            }
+            return node
+        })
+        return updatedNodes
+    }, [nodes])
+}
+
 interface FlowEventHandlersOptions {
     dispatch: AppDispatch
     nodes: Node[]
