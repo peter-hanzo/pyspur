@@ -40,6 +40,12 @@ https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
 
 https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
+## RAG
+
+### Create Document Collection (Chunking + Parsing)
+
+https://github.com/user-attachments/assets/c77723b1-c076-4a64-a01d-6d6677e9c60e
+
 ## Evaluate Final Performance
 
 https://github.com/user-attachments/assets/4dc2abc3-c6e6-4d6d-a5c3-787d518de7ae
