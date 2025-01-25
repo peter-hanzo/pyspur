@@ -31,7 +31,13 @@ import LoadingSpinner from '../LoadingSpinner'
 import { WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
 import { RootState } from '../../store/store'
-import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils'
+import {
+    useNodeTypes,
+    useStyledEdges,
+    useNodesWithMode,
+    useFlowEventHandlers,
+    useAdjustGroupNodesZIndex,
+} from '../../utils/flowUtils'
 
 interface RunViewFlowCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
@@ -125,6 +131,8 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         nodes,
         mode: mode as 'pointer' | 'hand',
     })
+
+    const nodesWithAdjustedZIndex = useAdjustGroupNodesZIndex({ nodes: nodesWithMode })
 
     const onEdgeMouseEnter = useCallback((_: React.MouseEvent, edge: Edge) => {
         setHoveredEdge(edge.id)
@@ -220,7 +228,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
                 >
                     <ReactFlow
                         key={`flow-${workflowID}`}
-                        nodes={nodesWithMode}
+                        nodes={nodesWithAdjustedZIndex}
                         edges={styledEdges}
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}

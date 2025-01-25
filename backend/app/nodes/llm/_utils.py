@@ -58,6 +58,7 @@ class ModelConstraints(BaseModel):
     max_temperature: float = 1.0
     supports_JSON_output: bool = True
 
+
 class LLMModel(BaseModel):
     id: str
     provider: LLMProvider
@@ -243,13 +244,17 @@ class LLMModels(str, Enum):
                 id=cls.DEEPSEEK_CHAT.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0, supports_JSON_output=False),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
+                ),
             ),
             cls.DEEPSEEK_REASONER.value: LLMModel(
                 id=cls.DEEPSEEK_REASONER.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Reasoner",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0, supports_JSON_output=False),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
+                ),
             ),
             # Ollama Models
             cls.OLLAMA_PHI4.value: LLMModel(
@@ -426,7 +431,12 @@ def async_retry(*dargs, **dkwargs):
     wait=wait_random_exponential(min=30, max=120),
     stop=stop_after_attempt(3),
     retry=lambda e: not isinstance(
-        e, (litellm.exceptions.AuthenticationError, ValueError)
+        e,
+        (
+            litellm.exceptions.AuthenticationError,
+            ValueError,
+            litellm.exceptions.RateLimitError,
+        ),
     ),
 )
 async def completion_with_backoff(**kwargs) -> str:
@@ -520,8 +530,13 @@ async def generate_text(
 
         # check if the model supports response format
         if "response_format" in litellm.get_supported_openai_params(model=model_name):
-            if litellm.supports_response_schema(model=model_name, custom_llm_provider=None):
-                if "name" not in output_json_schema and "schema" not in output_json_schema:
+            if litellm.supports_response_schema(
+                model=model_name, custom_llm_provider=None
+            ):
+                if (
+                    "name" not in output_json_schema
+                    and "schema" not in output_json_schema
+                ):
                     output_json_schema = {
                         "schema": output_json_schema,
                         "strict": True,

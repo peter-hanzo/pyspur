@@ -36,9 +36,11 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
 
-## Modular Building Blocks
+## Multimodal (Upload files or paste URLs)
 
-https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
+PDFs, Videos, Audio, Images, ...
+
+https://github.com/user-attachments/assets/83ed9a22-1ec1-4d86-9dd6-5d945588fd0b
 
 ## RAG
 
@@ -49,6 +51,10 @@ https://github.com/user-attachments/assets/c77723b1-c076-4a64-a01d-6d6677e9c60e
 ### Step 2) Create Vector Index (Embedding + Vector DB Upsert)
 
 https://github.com/user-attachments/assets/50e5c711-dd01-4d92-bb23-181a1c5bba25
+
+## Modular Building Blocks
+
+https://github.com/user-attachments/assets/6442f0ad-86d8-43d9-aa70-e5c01e55e876
 
 ## Evaluate Final Performance
 
