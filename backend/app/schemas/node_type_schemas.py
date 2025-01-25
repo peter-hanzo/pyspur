@@ -28,6 +28,12 @@ class NodeTypeSchema(BaseModel):
         """Get the logo for the node type, falling back to None if not set."""
         node_class = self.node_class
         return node_class.logo or ""
+    
+    @property
+    def category(self) -> str:
+        """Get the category for the node type, falling back to None if not set."""
+        node_class = self.node_class
+        return node_class.category or ""
 
     @property
     def config_title(self) -> str:

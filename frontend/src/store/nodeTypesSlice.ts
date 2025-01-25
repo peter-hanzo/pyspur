@@ -86,6 +86,7 @@ export interface FlowWorkflowNodeType {
     data?: Record<string, any>
     logo?: string
     model_constraints?: ModelConstraintsMap
+    category?: string
 }
 
 export interface FlowWorkflowNodeTypesByCategory {

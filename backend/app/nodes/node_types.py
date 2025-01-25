@@ -65,23 +65,63 @@ SUPPORTED_NODE_TYPES = {
     "Integrations": [
         {
             "node_type_name": "SlackNotifyNode",
-            "module": ".nodes.integrations.slack_notify",
+            "module": ".nodes.integrations.slack.slack_notify",
             "class_name": "SlackNotifyNode",
         },
         {
             "node_type_name": "GoogleSheetsReadNode",
-            "module": ".nodes.integrations.google_sheets_read",
+            "module": ".nodes.integrations.google.google_sheets_read",
             "class_name": "GoogleSheetsReadNode",
         },
         {
             "node_type_name": "YouTubeTranscriptNode",
-            "module": ".nodes.integrations.youtube_transcript",
+            "module": ".nodes.integrations.youtube.youtube_transcript",
             "class_name": "YouTubeTranscriptNode",
         },
         {
             "node_type_name": "GitHubListPullRequestsNode",
-            "module": ".nodes.integrations.github_list_pull_requests",
+            "module": ".nodes.integrations.github.github_list_pull_requests",
             "class_name": "GitHubListPullRequestsNode",
+        },
+        {
+            "node_type_name": "GitHubListRepositoriesNode",
+            "module": ".nodes.integrations.github.github_list_repositories",
+            "class_name": "GitHubListRepositoriesNode",
+        },
+        {
+            "node_type_name": "GitHubGetRepositoryNode",
+            "module": ".nodes.integrations.github.github_get_repository",
+            "class_name": "GitHubGetRepositoryNode",
+        },
+        {
+            "node_type_name": "GitHubSearchRepositoriesNode",
+            "module": ".nodes.integrations.github.github_search_repositories",
+            "class_name": "GitHubSearchRepositoriesNode",
+        },
+        {
+            "node_type_name": "GitHubGetPullRequestNode",
+            "module": ".nodes.integrations.github.github_get_pull_request",
+            "class_name": "GitHubGetPullRequestNode",
+        },
+        {
+            "node_type_name": "GitHubGetPullRequestChangesNode",
+            "module": ".nodes.integrations.github.github_get_pull_request_changes",
+            "class_name": "GitHubGetPullRequestChangesNode",
+        },
+        {
+            "node_type_name": "GitHubCreateIssueNode",
+            "module": ".nodes.integrations.github.github_create_issue",
+            "class_name": "GitHubCreateIssueNode",
+        },
+        {
+            "node_type_name": "FirecrawlCrawlNode",
+            "module": ".nodes.integrations.firecrawl.firecrawl_crawl",
+            "class_name": "FirecrawlCrawlNode",
+        },
+        {
+            "node_type_name": "FirecrawlScrapeNode",
+            "module": ".nodes.integrations.firecrawl.firecrawl_scrape",
+            "class_name": "FirecrawlScrapeNode",
         },
     ],
 }
