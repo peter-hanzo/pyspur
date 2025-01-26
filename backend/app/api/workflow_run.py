@@ -1,6 +1,9 @@
 import asyncio
 import os
 import json
+import base64
+import hashlib
+import re
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -55,6 +58,31 @@ async def create_run_model(
     return new_run
 
 
+def process_embedded_files(
+    workflow_id: str,
+    initial_inputs: Dict[str, Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Process any embedded files in the initial inputs and save them to disk.
+    Returns updated inputs with file paths instead of data URIs.
+    """
+    processed_inputs = initial_inputs.copy()
+
+    # Iterate through the values to find data URIs recursively
+    def find_and_replace_data_uris(data: Any) -> Any:
+        if isinstance(data, dict):
+            return {str(k): find_and_replace_data_uris(v) for k, v in data.items()}  # type: ignore
+        elif isinstance(data, list):
+            return [find_and_replace_data_uris(item) for item in data]  # type: ignore
+        elif isinstance(data, str) and data.startswith("data:"):
+            return save_embedded_file(data, workflow_id)
+        else:
+            return data
+
+    processed_inputs = find_and_replace_data_uris(processed_inputs)
+    return processed_inputs
+
+
 @router.post(
     "/{workflow_id}/run/",
     response_model=Dict[str, Any],
@@ -71,8 +99,14 @@ async def run_workflow_blocking(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
+    workflow_definition = WorkflowDefinitionSchema.model_validate(
+        workflow_version.definition
+    )
 
     initial_inputs = request.initial_inputs or {}
+
+    # Process any embedded files in the inputs
+    initial_inputs = process_embedded_files(workflow_id, initial_inputs)
 
     # Handle file paths if present
     if request.files:
@@ -89,9 +123,6 @@ async def run_workflow_blocking(
         db,
     )
     task_recorder = TaskRecorder(db, new_run.id)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(
-        workflow_version.definition
-    )
     context = WorkflowExecutionContext(
         workflow_id=workflow.id,
         run_id=new_run.id,
@@ -132,11 +163,15 @@ async def run_workflow_non_blocking(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
-
     workflow_definition = WorkflowDefinitionSchema.model_validate(
         workflow_version.definition
     )
+
     initial_inputs = start_run_request.initial_inputs or {}
+
+    # Process any embedded files in the inputs
+    initial_inputs = process_embedded_files(workflow_id, initial_inputs)
+
     new_run = await create_run_model(
         workflow_id,
         workflow_version.id,
@@ -183,6 +218,7 @@ async def run_workflow_non_blocking(
             except Exception as e:
                 run.status = RunStatus.FAILED
                 run.end_time = datetime.now(timezone.utc)
+                session.commit()
                 raise e
             session.commit()
 
@@ -383,3 +419,43 @@ def list_runs(workflow_id: str, db: Session = Depends(get_db)):
                 db.refresh(run)
 
     return runs
+
+
+def save_embedded_file(data_uri: str, workflow_id: str) -> str:
+    """
+    Save a file from a data URI and return its relative path.
+    Uses file content hash for the filename to avoid duplicates.
+    """
+    # Extract the base64 data from the data URI
+    match = re.match(r"data:([^;]+);base64,(.+)", data_uri)
+    if not match:
+        raise ValueError("Invalid data URI format")
+
+    mime_type, base64_data = match.groups()
+    file_data = base64.b64decode(base64_data)
+
+    # Generate hash from file content
+    file_hash = hashlib.sha256(file_data).hexdigest()[:16]  # Use first 16 chars of hash
+
+    # Determine file extension from mime type
+    ext_map = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/gif": ".gif",
+        "application/pdf": ".pdf",
+        "video/mp4": ".mp4",
+        # Add more mime types as needed
+    }
+    extension = ext_map.get(mime_type, "")
+
+    # Create filename and ensure directory exists
+    filename = f"{file_hash}{extension}"
+    upload_dir = Path("data/test_files") / workflow_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save the file
+    file_path = upload_dir / filename
+    with open(file_path, "wb") as f:
+        f.write(file_data)
+
+    return f"{workflow_id}/{filename}"
