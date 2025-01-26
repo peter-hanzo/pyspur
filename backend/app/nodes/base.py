@@ -100,9 +100,13 @@ class BaseNode(ABC):
         """
         field_type_to_python_type = {
             "string": str,
+            "str": str,
             "integer": int,
+            "int": int,
             "number": float,
+            "float": float,
             "boolean": bool,
+            "bool": bool,
             "list": list,
             "dict": dict,
             "array": list,
@@ -110,7 +114,14 @@ class BaseNode(ABC):
         }
         return create_model(
             f"{self.name}",
-            **{field_name: (field_type_to_python_type[field_type], ...) for field_name, field_type in output_schema.items()},  # type: ignore
+            **{
+                field_name: (
+                    (field_type_to_python_type[field_type], ...)
+                    if field_type in field_type_to_python_type
+                    else (field_type, ...)  # try as is
+                )
+                for field_name, field_type in output_schema.items()
+            },  # type: ignore
             __base__=BaseNodeOutput,
         )
 
