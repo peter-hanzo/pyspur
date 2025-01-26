@@ -127,8 +127,19 @@ async def delete_workflow_files(workflow_id: str):
 async def get_file(file_path: str):
     """
     Get a specific file from the data directory.
+    Validates file path to prevent path traversal attacks.
     """
-    full_path = DATA_DIR / file_path
+    # Validate that file_path doesn't contain path traversal patterns
+    if ".." in file_path or "~" in file_path:
+        raise HTTPException(status_code=400, detail="Invalid file path")
+
+    # Resolve the full path and ensure it's within DATA_DIR
+    try:
+        full_path = (DATA_DIR / file_path).resolve()
+        if not str(full_path).startswith(str(DATA_DIR.resolve())):
+            raise HTTPException(status_code=403, detail="Access denied")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file path")
 
     if not full_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
