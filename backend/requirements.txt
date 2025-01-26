@@ -18,7 +18,7 @@ pandas==2.2.3
 pinecone==5.4.2
 psycopg2==2.9.10
 pydantic==2.10.5
-PyPDF2==3.0.1
+pypdf==5.1.0
 python-dotenv==1.0.1
 python-multipart==0.0.20
 python-pptx==1.0.2
@@ -43,3 +43,4 @@ itsdangerous==2.2.0
 phidata==2.7.8
 youtube_transcript_api==0.6.3
 PyGithub==2.5.0
+firecrawl-py==1.10.2

@@ -10,7 +10,7 @@ import pptx
 from .schemas.document_schemas import Document, DocumentMetadata
 from fastapi import UploadFile
 from loguru import logger
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from pyzerox import zerox
 
 

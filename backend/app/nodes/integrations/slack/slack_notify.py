@@ -1,7 +1,7 @@
 import json
 from pydantic import BaseModel, Field
-from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from ...integrations.slack.client import SlackClient
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ....integrations.slack.client import SlackClient
 from enum import Enum
 
 class ModeEnum(str, Enum):
@@ -22,6 +22,7 @@ class SlackNotifyNode(BaseNode):
     name = "slack_notify_node"
     display_name = "SlackNotify"
     logo="/images/slack.png"
+    category = "Slack"
 
     config_model = SlackNotifyNodeConfig
     input_model = SlackNotifyNodeInput

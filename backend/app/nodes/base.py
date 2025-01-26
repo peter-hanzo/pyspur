@@ -59,6 +59,7 @@ class BaseNode(ABC):
         ""  # Will be used for config title, defaults to class name if not set
     )
     logo: Optional[str] = None
+    category: Optional[str] = None
     config_model: Type[BaseModel]
     output_model: Type[BaseNodeOutput]
     input_model: Type[BaseNodeInput]

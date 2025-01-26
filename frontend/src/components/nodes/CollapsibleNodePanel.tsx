@@ -10,6 +10,18 @@ import type { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../.
 import { setNodePanelExpanded } from '../../store/panelSlice'
 import { createNodeAtCenter } from '../../utils/flowUtils'
 
+
+interface CategoryGroup {
+    nodes: FlowWorkflowNodeType[]
+    logo?: string
+    color?: string
+    acronym?: string
+}
+
+interface GroupedNodes {
+    [subcategory: string]: CategoryGroup
+}
+
 const CollapsibleNodePanel: React.FC = () => {
     const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded)
     const dispatch = useDispatch()
@@ -83,6 +95,24 @@ const CollapsibleNodePanel: React.FC = () => {
         dispatch(setNodePanelExpanded(!isExpanded))
     }
 
+    const groupNodesBySubcategory = (nodes: FlowWorkflowNodeType[]): GroupedNodes => {
+        return nodes.reduce((acc: GroupedNodes, node) => {
+            // Use node.category as subcategory if available, otherwise put in 'Other'
+            const subcategory = node.category || 'Other'
+
+            if (!acc[subcategory]) {
+                acc[subcategory] = {
+                    nodes: [],
+                    logo: node.logo,
+                    color: node.visual_tag?.color,
+                    acronym: node.visual_tag?.acronym,
+                }
+            }
+            acc[subcategory].nodes.push(node)
+            return acc
+        }, {})
+    }
+
     return (
         <div
             ref={panelRef}
@@ -116,40 +146,98 @@ const CollapsibleNodePanel: React.FC = () => {
                         >
                             {Object.keys(filteredNodeTypes)
                                 .filter((category) => category !== 'Input/Output')
-                                .map((category) => (
-                                    <AccordionItem key={category} title={category}>
-                                        {filteredNodeTypes[category].map((node: FlowWorkflowNodeType) => (
-                                            <div
-                                                key={node.name}
-                                                className="flex items-center cursor-pointer p-2 hover:bg-default-100"
-                                                onClick={() => handleAddNode(node.name)}
-                                            >
-                                                <div className="w-16 flex-shrink-0">
-                                                    {node.logo ? (
-                                                        <img
-                                                            src={node.logo}
-                                                            alt="Node Logo"
-                                                            className="max-h-7 max-w-7"
-                                                        />
-                                                    ) : (
-                                                        <div
-                                                            className={`node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block`}
-                                                            style={{ backgroundColor: node.visual_tag.color }}
-                                                        >
-                                                            {node.visual_tag.acronym}
-                                                        </div>
+                                .map((category) => {
+                                    const nodes = filteredNodeTypes[category]
+                                    const hasSubcategories = nodes.some((node) => node.category)
+
+                                    return (
+                                        <AccordionItem key={category} title={category}>
+                                            {hasSubcategories ? (
+                                                <Accordion selectionMode="multiple">
+                                                    {Object.entries(groupNodesBySubcategory(nodes)).map(
+                                                        ([
+                                                            subcategory,
+                                                            { nodes: subcategoryNodes, logo, color, acronym },
+                                                        ]) => (
+                                                            <AccordionItem
+                                                                key={subcategory}
+                                                                title={
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-8 flex-shrink-0">
+                                                                            {logo ? (
+                                                                                <img
+                                                                                    src={logo}
+                                                                                    alt={`${subcategory} Logo`}
+                                                                                    className="max-h-5 max-w-5"
+                                                                                />
+                                                                            ) : (
+                                                                                <div
+                                                                                    className="node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block"
+                                                                                    style={{ backgroundColor: color }}
+                                                                                >
+                                                                                    {acronym}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <span>{subcategory}</span>
+                                                                    </div>
+                                                                }
+                                                            >
+                                                                {subcategoryNodes.map((node: FlowWorkflowNodeType) => (
+                                                                    <div
+                                                                        key={node.name}
+                                                                        className="flex items-center cursor-pointer p-2 hover:bg-default-100 ml-4"
+                                                                        onClick={() => handleAddNode(node.name)}
+                                                                    >
+                                                                        <span
+                                                                            className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
+                                                                            title={node.config.title}
+                                                                        >
+                                                                            {node.config.title}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </AccordionItem>
+                                                        )
                                                     )}
-                                                </div>
-                                                <span
-                                                    className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
-                                                    title={node.config.title}
-                                                >
-                                                    {node.config.title}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </AccordionItem>
-                                ))}
+                                                </Accordion>
+                                            ) : (
+                                                filteredNodeTypes[category].map((node: FlowWorkflowNodeType) => (
+                                                    <div
+                                                        key={node.name}
+                                                        className="flex items-center cursor-pointer p-2 hover:bg-default-100"
+                                                        onClick={() => handleAddNode(node.name)}
+                                                    >
+                                                        <div className="w-16 flex-shrink-0">
+                                                            {node.logo ? (
+                                                                <img
+                                                                    src={node.logo}
+                                                                    alt="Node Logo"
+                                                                    className="max-h-7 max-w-7"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className={
+                                                                        'node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block'
+                                                                    }
+                                                                    style={{ backgroundColor: node.visual_tag.color }}
+                                                                >
+                                                                    {node.visual_tag.acronym}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <span
+                                                            className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
+                                                            title={node.config.title}
+                                                        >
+                                                            {node.config.title}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </AccordionItem>
+                                    )
+                                })}
                         </Accordion>
                     </div>
                 </>
