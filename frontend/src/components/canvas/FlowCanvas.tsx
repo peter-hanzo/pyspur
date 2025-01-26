@@ -389,7 +389,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                         className="absolute top-0 right-0 h-full bg-white border-l border-gray-200"
                         style={{ zIndex: 2 }}
                     >
-                        <NodeSidebar nodeID={selectedNodeID} />
+                        <NodeSidebar nodeID={selectedNodeID} key={selectedNodeID} />
                     </div>
                 )}
                 <div className="border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
