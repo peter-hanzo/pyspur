@@ -450,7 +450,7 @@ def save_embedded_file(data_uri: str, workflow_id: str) -> str:
 
     # Create filename and ensure directory exists
     filename = f"{file_hash}{extension}"
-    upload_dir = Path("data/test_files") / workflow_id
+    upload_dir = Path("data/run_files") / workflow_id
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     # Save the file
@@ -458,4 +458,4 @@ def save_embedded_file(data_uri: str, workflow_id: str) -> str:
     with open(file_path, "wb") as f:
         f.write(file_data)
 
-    return f"{workflow_id}/{filename}"
+    return f"run_files/{workflow_id}/{filename}"
