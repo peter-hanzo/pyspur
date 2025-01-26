@@ -189,8 +189,18 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             return <div>Unsupported data URI format</div>
         }
 
-        // Handle file URLs
-        if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
+        // Handle file URLs and local paths
+        if (
+            typeof value === 'string' &&
+            (value.startsWith('http://') ||
+                value.startsWith('https://') ||
+                value.startsWith('test_files/') ||
+                value.startsWith('run_files/'))
+        ) {
+            if (value.startsWith('test_files/') || value.startsWith('run_files/')) {
+                // files stored on the server can be accessed via the /api/files/ endpoint
+                value = window.location.origin + '/' + 'api/files/' + value
+            }
             // We'll do some basic checks for file type based on extension:
             const extension = (value.split('.').pop() || '').toLowerCase()
 

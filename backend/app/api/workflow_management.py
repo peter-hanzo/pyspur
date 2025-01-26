@@ -294,7 +294,9 @@ async def upload_test_files(
     """Upload files for test inputs and return their paths"""
     try:
         # Get the workflow
-        workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+        workflow = (
+            db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+        )
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -316,7 +318,7 @@ async def upload_test_files(
                 f.write(content)
 
             # Store relative path
-            saved_paths.append(f"{workflow_id}/{safe_filename}")
+            saved_paths.append(f"test_files/{workflow_id}/{safe_filename}")
 
         return {node_id: saved_paths}
     except Exception as e:
