@@ -386,9 +386,9 @@ const Dashboard: React.FC = () => {
                                         {(workflow) => (
                                             <TableRow
                                                 key={workflow.id}
-                                                className={`transition-colors duration-500 ${
+                                                className={`transition-colors duration-200 hover:bg-primary-50 dark:hover:bg-primary-800/10 ${
                                                     highlightedWorkflowId === workflow.id
-                                                        ? 'bg-primary-50 dark:bg-primary-900/20'
+                                                        ? 'bg-primary-50 dark:bg-primary-800/10'
                                                         : ''
                                                 }`}
                                             >
