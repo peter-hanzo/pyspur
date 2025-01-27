@@ -373,6 +373,10 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                             'text/markdown': ['.md'],
                                                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
                                                                 ['.docx'],
+                                                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                                                                ['.xlsx'],
+                                                            'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                                                                ['.pptx'],
                                                             // Images
                                                             'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
                                                             // Audio
@@ -380,7 +384,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                             // Video
                                                             'video/*': ['.mp4', '.webm', '.avi', '.mov'],
                                                         }}
-                                                        supportedFormatsMessage="Supported formats: Documents (PDF, TXT, MD, DOC, DOCX), Images (PNG, JPG, JPEG, GIF, WEBP), Audio (MP3, WAV, OGG, M4A), and Video files (MP4, WEBM, AVI, MOV)"
+                                                        supportedFormatsMessage="Supported formats: Documents (PDF, TXT, MD, DOCX, XLSX, PPTX), Images (PNG, JPG, JPEG, GIF, WEBP), Audio (MP3, WAV, OGG, M4A), and Video files (MP4, WEBM, AVI, MOV)"
                                                     />
                                                 )}
                                             </div>
