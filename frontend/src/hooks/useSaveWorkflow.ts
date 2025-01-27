@@ -93,7 +93,7 @@ export const useSaveWorkflow = () => {
                             title,
                             new_id: title || node.type || 'Untitled',
                             parent_id: node.parentId || null,
-                            dimensions: node.measured,
+                            dimensions: node.type === 'ForLoopNode' ? node.measured : undefined,
                         }
                     })
 
