@@ -7,7 +7,7 @@ import re
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, cast
 from pathlib import Path
-from docling.document_converter import DocumentConverter
+from docx2python import docx2python
 
 import litellm
 from dotenv import load_dotenv
@@ -597,13 +597,12 @@ async def generate_text(
                                     file_path = resolve_file_path(url)
                                     logging.info(f"Reading file from: {file_path}")
 
-                                    # Check if file is a document type we can convert
-                                    file_ext = str(file_path).lower()
-                                    if file_ext.endswith(('.docx', '.pptx', '.xlsx', '.pdf')):
-                                        # Convert document to markdown
-                                        markdown_content = convert_document_to_markdown(str(file_path))
-                                        # Encode the markdown content directly
-                                        data_url = f"data:text/markdown;base64,{base64.b64encode(markdown_content.encode()).decode()}"
+                                    # Check if file is a DOCX file
+                                    if str(file_path).lower().endswith('.docx'):
+                                        # Convert DOCX to XML
+                                        xml_content = convert_docx_to_xml(str(file_path))
+                                        # Encode the XML content directly
+                                        data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
                                     else:
                                         data_url = encode_file_to_base64_data_url(str(file_path))
 
@@ -746,18 +745,35 @@ async def ollama_with_backoff(
     return response.message.content
 
 
-def convert_document_to_markdown(file_path: str) -> str:
+def convert_docx_to_xml(file_path: str) -> str:
     """
-    Convert various document types (DOCX, PPTX, XLSX, PDF) to markdown format.
+    Convert a DOCX file to XML format.
     Args:
-        file_path: Path to the document file
+        file_path: Path to the DOCX file
     Returns:
-        Markdown string representation of the document
+        XML string representation of the DOCX file
     """
     try:
-        converter = DocumentConverter()
-        result = converter.convert(str(file_path))
-        return result.document.export_to_markdown()
+        with docx2python(file_path) as docx_content:
+            # Convert the document content to XML format
+            xml_content = f"<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
+
+            # Add metadata
+            xml_content += "<metadata>\n"
+            for key, value in docx_content.properties.items():
+                if value:  # Only add non-empty properties
+                    xml_content += f"<{key}>{value}</{key}>\n"
+            xml_content += "</metadata>\n"
+
+            # Add document content
+            xml_content += "<content>\n"
+            for paragraph in docx_content.text:
+                if paragraph:  # Skip empty paragraphs
+                    xml_content += f"<paragraph>{paragraph}</paragraph>\n"
+            xml_content += "</content>\n"
+            xml_content += "</document>"
+
+            return xml_content
     except Exception as e:
-        logging.error(f"Error converting document to markdown: {str(e)}")
+        logging.error(f"Error converting DOCX to XML: {str(e)}")
         raise
