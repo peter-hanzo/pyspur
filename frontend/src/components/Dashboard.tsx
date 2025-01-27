@@ -319,9 +319,9 @@ const Dashboard: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
-            <div className="max-w-7xl w-full mx-auto p-5">
+            <div>
                 {/* Dashboard Header */}
                 <header className="mb-6 flex w-full items-center flex-col gap-2">
                     {!isLoadingApiKeys &&
@@ -339,7 +339,7 @@ const Dashboard: React.FC = () => {
                         )}
                     <div className="flex w-full items-center">
                         <div className="flex flex-col max-w-fit" id="dashboard-title">
-                            <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
+                            <h1 className="text-lg font-bold text-default-900 lg:text-2xl">Dashboard</h1>
                             <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
                         </div>
                         <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">

@@ -165,8 +165,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
             )}
             <Navbar
                 classNames={{
-                    base: 'lg:bg-background lg:backdrop-filter-none h-12 mt-1 shadow-sm',
-                    wrapper: 'px-4 sm:px-6',
+                    base: 'lg:bg-background lg:backdrop-filter-none h-12 shadow-sm',
+                    wrapper: 'max-w-7xl w-full mx-auto',
                     item: [
                         'flex',
                         'relative',
@@ -184,9 +184,9 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     ],
                 }}
             >
-                <NavbarBrand className="h-12 max-w-fit">
+                <NavbarBrand className="h-full max-w-fit">
                     {activePage === 'dashboard' ? (
-                        <p className="font-bold text-default-900 cursor-pointer">PySpur</p>
+                        <p className="font-bold text-lg text-default-900 cursor-pointer">PySpur</p>
                     ) : (
                         <Link href="/" className="cursor-pointer">
                             <p className="font-bold text-default-900">PySpur</p>
@@ -335,7 +335,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     </NavbarContent>
                 )}
                 <NavbarContent
-                    className="ml-2 flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+                    className="flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
                     justify="end"
                 >
                     <NavbarItem className="hidden sm:flex">
