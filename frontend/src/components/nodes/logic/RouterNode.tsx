@@ -58,7 +58,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     const edges = useSelector((state: RootState) => state.flow.edges)
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
-    
+
     const nodeData = data
     const updateNodeInternals = useUpdateNodeInternals()
     const [predecessorNodes, setPredecessorNodes] = useState(() => {
@@ -66,7 +66,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             .filter((edge) => edge.target === id)
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
-                if (!sourceNode) { return null }
+                if (!sourceNode) {
+                    return null
+                }
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
                         id: sourceNode.id,
@@ -125,7 +127,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             .filter((edge) => edge.target === id)
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
-                if (!sourceNode) { return null }
+                if (!sourceNode) {
+                    return null
+                }
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
                         id: sourceNode.id,
@@ -200,7 +204,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
 
     const renderHandles = () => {
-        if (!nodeData) { return null }
+        if (!nodeData) {
+            return null
+        }
         const dedupedPredecessors = finalPredecessors.filter(
             (node, index, self) => self.findIndex((n) => n.id === node.id) === index
         )
@@ -226,9 +232,13 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
     // Get available input variables from the connected node's output schema
     const inputVariables = useMemo(() => {
-        if (!predecessorNodes.length) { return [] }
+        if (!predecessorNodes.length) {
+            return []
+        }
         return predecessorNodes.flatMap((node) => {
-            if (!node) { return [] }
+            if (!node) {
+                return []
+            }
 
             const predNodeConfig = nodeConfigs[node.id]
             const nodeTitle = predNodeConfig?.title || node.id
@@ -242,10 +252,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }, [predecessorNodes, nodeConfigs])
 
     useEffect(() => {
-        if (!nodeRef.current) { return }
+        if (!nodeRef.current) {
+            return
+        }
 
         // We have multiple input handle labels
-        const inputLabels = predecessorNodes.map((pred) => pred?.data?.config?.title || pred?.id || '')
+        const inputLabels = predecessorNodes.map((pred) => pred?.data?.title || pred?.id || '')
 
         // Output label is the node's title or fallback
         const outputLabels = [nodeConfig?.title || 'Coalesce']
@@ -301,7 +313,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }
 
     const removeRoute = (routeKey: string) => {
-        if (!nodeConfig?.route_map) { return }
+        if (!nodeConfig?.route_map) {
+            return
+        }
 
         // Remove the specified route
         const { [routeKey]: _, ...remainingRoutes } = nodeConfig.route_map
@@ -318,7 +332,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }
 
     const addCondition = (routeKey: string) => {
-        if (!nodeConfig?.route_map) { return }
+        if (!nodeConfig?.route_map) {
+            return
+        }
         const newRouteMap = {
             ...nodeConfig.route_map,
             [routeKey]: {
@@ -332,7 +348,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }
 
     const removeCondition = (routeKey: string, conditionIndex: number) => {
-        if (!nodeConfig?.route_map) { return }
+        if (!nodeConfig?.route_map) {
+            return
+        }
         const newRouteMap = {
             ...nodeConfig.route_map,
             [routeKey]: {
@@ -348,7 +366,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
         field: keyof RouteConditionRule,
         value: string
     ) => {
-        if (!nodeConfig?.route_map) { return }
+        if (!nodeConfig?.route_map) {
+            return
+        }
         const newRouteMap = {
             ...nodeConfig.route_map,
             [routeKey]: {

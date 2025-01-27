@@ -346,14 +346,16 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             />
             <div id="node-${id}" className="relative w-full h-full">
                 {/* Hidden target handle covering the entire node */}
-                <Handle
-                    type="target"
-                    position={Position.Left}
-                    id={`node-body-${id}`}
-                    style={staticStyles.targetHandle}
-                    isConnectable={true}
-                    isConnectableStart={false}
-                />
+                {connection.inProgress && (
+                    <Handle
+                        type="target"
+                        position={Position.Left}
+                        id={`node-body-${id}`}
+                        style={staticStyles.targetHandle}
+                        isConnectable={true}
+                        isConnectableStart={false}
+                    />
+                )}
                 {/* Controls Card */}
                 <Card
                     key={`controls-card-${id}`}
