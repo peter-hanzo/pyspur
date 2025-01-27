@@ -69,19 +69,24 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         }
     }, [isOpen, testData, selectedRow])
 
+    const getNextId = () => {
+        const maxId = testData.reduce((max, row) => Math.max(max, row.id), 0)
+        return maxId + 1
+    }
+
     const handleAddRow = () => {
         // Check if we have any content to add
         const hasContent = Object.values(editorContents).some((v) => v?.trim())
         if (!hasContent) return
 
-        const newId = Date.now()
+        const newId = getNextId()
         const newTestInput: TestInput = {
             id: newId,
             ...editorContents,
         }
         setTestData([...testData, newTestInput])
         setEditorContents({}) // Clear editor contents
-        setSelectedRow(newId.toString()) // Select the newly added row
+        setSelectedRow(newId.toString()) // Convert to string for selection
         dispatch(addTestInput(newTestInput))
         saveWorkflow()
     }
@@ -215,13 +220,14 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         // If there are unsaved changes, save them first
         const hasUnsavedChanges = Object.values(editorContents).some((v) => v?.trim())
         if (hasUnsavedChanges) {
+            const newId = getNextId()
             const newTestInput: TestInput = {
-                id: Date.now(),
+                id: newId,
                 ...editorContents,
             }
             setTestData([...testData, newTestInput])
             dispatch(addTestInput(newTestInput))
-            setSelectedRow(newTestInput.id.toString())
+            setSelectedRow(newId.toString())
             setEditorContents({})
             testCaseToRun = newTestInput
         } else {
@@ -243,13 +249,14 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         const hasContent = Object.values(editorContents).some((v) => v?.trim())
         if (!hasContent) return
 
+        const newId = getNextId()
         const newTestInput: TestInput = {
-            id: Date.now(),
+            id: newId,
             ...editorContents,
         }
         setTestData([...testData, newTestInput])
         dispatch(addTestInput(newTestInput))
-        setSelectedRow(newTestInput.id.toString())
+        setSelectedRow(newId.toString())
         setEditorContents({}) // Clear editor contents
         saveWorkflow()
     }
