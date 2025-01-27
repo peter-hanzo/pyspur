@@ -212,18 +212,50 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     }
 
     const handleRun = () => {
-        if (!selectedRow || !inputNode) return
+        if (!inputNode) return
 
-        const selectedTestCase = testData.find((row) => row.id.toString() === selectedRow)
-        if (!selectedTestCase) return
+        let testCaseToRun: TestInput | undefined
 
-        const { id, ...inputValues } = selectedTestCase
+        // If there are unsaved changes, save them first
+        const hasUnsavedChanges = Object.values(editorContents).some((v) => v?.trim())
+        if (hasUnsavedChanges) {
+            const newTestInput: TestInput = {
+                id: Date.now(),
+                ...editorContents,
+            }
+            setTestData([...testData, newTestInput])
+            dispatch(addTestInput(newTestInput))
+            setSelectedRow(newTestInput.id.toString())
+            setEditorContents({})
+            testCaseToRun = newTestInput
+        } else {
+            testCaseToRun = testData.find((row) => row.id.toString() === selectedRow)
+        }
+
+        if (!testCaseToRun) return
+
+        const { id, ...inputValues } = testCaseToRun
 
         const initialInputs = {
             [inputNode.id]: inputValues,
         }
 
         onRun(initialInputs, filePaths)
+    }
+
+    const handleSaveTestCase = () => {
+        const hasContent = Object.values(editorContents).some((v) => v?.trim())
+        if (!hasContent) return
+
+        const newTestInput: TestInput = {
+            id: Date.now(),
+            ...editorContents,
+        }
+        setTestData([...testData, newTestInput])
+        dispatch(addTestInput(newTestInput))
+        setSelectedRow(newTestInput.id.toString())
+        setEditorContents({}) // Clear editor contents
+        saveWorkflow()
     }
 
     const handleSave = () => {
@@ -373,23 +405,25 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                         )}
                                     </div>
                                 ))}
-                                <div className="flex-none">
-                                    <Button
-                                        color="primary"
-                                        onPress={handleAddRow}
-                                        isDisabled={Object.values(editorContents).every((v) => !v?.trim())}
-                                    >
-                                        Add Row
-                                    </Button>
-                                </div>
+                            </div>
+                            <div className="flex-none mt-4">
+                                <Button
+                                    color="primary"
+                                    variant="bordered"
+                                    onPress={handleSaveTestCase}
+                                    isDisabled={Object.values(editorContents).every((v) => !v?.trim())}
+                                    startContent={<Icon icon="material-symbols:save-outline" />}
+                                >
+                                    Save Test Case
+                                </Button>
                             </div>
                         </ModalBody>
                         <ModalFooter>
                             <Button color="danger" variant="light" onPress={onClose}>
                                 Cancel
                             </Button>
-                            <Button color="primary" onPress={handleSave}>
-                                Save
+                            <Button color="primary" variant="bordered" onPress={handleSave}>
+                                Save & Close
                             </Button>
                             <Button
                                 color="primary"
@@ -397,7 +431,8 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                     handleRun()
                                     onClose()
                                 }}
-                                isDisabled={!selectedRow}
+                                isDisabled={!selectedRow && !Object.values(editorContents).some((v) => v?.trim())}
+                                startContent={<Icon icon="material-symbols:play-arrow" />}
                             >
                                 Run
                             </Button>
