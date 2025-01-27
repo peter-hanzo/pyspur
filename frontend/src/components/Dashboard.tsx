@@ -20,6 +20,7 @@ import {
     AccordionItem,
     Alert,
     Chip,
+    Spinner,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import {
@@ -59,16 +60,18 @@ const Dashboard: React.FC = () => {
     const [showWelcome, setShowWelcome] = useState(false)
     const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome)
     const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({})
+    const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true)
 
     useEffect(() => {
         const fetchWorkflows = async () => {
+            setIsLoadingWorkflows(true)
             try {
                 const workflows = await getWorkflows()
                 const runsMap = await Promise.all(workflows.map((workflow) => fetchWorkflowRuns(workflow.id))).then(
                     (runs) => {
                         const map: Record<string, RunResponse[]> = {}
                         workflows.forEach((workflow, i) => {
-                            map[workflow.id] = runs[i]
+                            map[workflow.id] = runs[i] || []
                         })
                         return map
                     }
@@ -78,6 +81,8 @@ const Dashboard: React.FC = () => {
                 setWorkflowRuns(runsMap)
             } catch (error) {
                 console.error('Error fetching workflows:', error)
+            } finally {
+                setIsLoadingWorkflows(false)
             }
         }
 
@@ -346,8 +351,11 @@ const Dashboard: React.FC = () => {
                         aria-label="Recent Spurs"
                         title={<h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>}
                     >
-                        {/* Recent Spurs Section */}
-                        {workflows.length > 0 ? (
+                        {isLoadingWorkflows ? (
+                            <div className="flex justify-center p-4">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : workflows.length > 0 ? (
                             <Table aria-label="Saved Workflows" isHeaderSticky>
                                 <TableHeader columns={columns}>
                                     {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
