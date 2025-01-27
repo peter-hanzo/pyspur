@@ -1,18 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Handle, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react'
+import { Handle, useNodeConnections, useConnection, Position, useUpdateNodeInternals } from '@xyflow/react'
 import BaseNode from '../BaseNode'
 import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
-import { FlowWorkflowNode, FlowWorkflowNodeConfig, updateNodeConfigOnly } from '../../../store/flowSlice'
+import { updateNodeConfigOnly } from '../../../store/flowSlice'
 import styles from '../DynamicNode.module.css'
 import { Icon } from '@iconify/react'
 import { RootState } from '../../../store/store'
-import {
-    ComparisonOperator,
-    LogicalOperator,
-    RouteConditionRule,
-    RouteConditionGroup,
-} from '../../../types/api_types/routerSchemas'
+import { ComparisonOperator, RouteConditionRule, RouteConditionGroup } from '../../../types/api_types/routerSchemas'
 import NodeOutputDisplay from '../NodeOutputDisplay'
 import { isEqual } from 'lodash'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
@@ -54,13 +49,6 @@ const DEFAULT_ROUTE: RouteConditionGroup = {
     conditions: [{ ...DEFAULT_CONDITION }],
 }
 
-const estimateTextWidth = (text: string): number => {
-    // Approximate character widths (in pixels)
-    const averageCharWidth = 8 // for normal text
-    const spaceWidth = 4 // for spaces
-    return text.length * averageCharWidth + text.split(' ').length * spaceWidth
-}
-
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
@@ -70,66 +58,177 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     const edges = useSelector((state: RootState) => state.flow.edges)
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
-    const [predecessorNodes, setPredecessorNodes] = useState(
-        edges
+    
+    const nodeData = data
+    const updateNodeInternals = useUpdateNodeInternals()
+    const [predecessorNodes, setPredecessorNodes] = useState(() => {
+        return edges
             .filter((edge) => edge.target === id)
-            .map((edge) => nodes.find((node) => node.id === edge.source))
+            .map((edge) => {
+                const sourceNode = nodes.find((node) => node.id === edge.source)
+                if (!sourceNode) { return null }
+                if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+                    return {
+                        id: sourceNode.id,
+                        type: sourceNode.type,
+                        data: {
+                            title: edge.targetHandle,
+                        },
+                    }
+                }
+                return sourceNode
+            })
             .filter(Boolean)
-    )
+    })
 
     const connection = useConnection()
 
-    // Add a type guard to check if the node is a FlowWorkflowNode
-    const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
-        return 'type' in node
+    interface HandleRowProps {
+        id: string
+        keyName: string
     }
 
-    // Recompute predecessor nodes whenever edges/connections change
-    useEffect(() => {
-        const updatedPredecessors = edges
+    const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
+        const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
+        const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
+
+        return (
+            <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
+                <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
+                    <Handle
+                        type="target"
+                        position={Position.Left}
+                        id={String(keyName)}
+                        className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
+                        isConnectable={isConnectable}
+                    />
+                </div>
+                <div className="border-r border-gray-300 h-full mx-0" />
+                {!isCollapsed && (
+                    <div
+                        className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden"
+                        id={`input-${keyName}-label`}
+                    >
+                        <span
+                            className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                        >
+                            {String(keyName)}
+                        </span>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    const finalPredecessors = useMemo(() => {
+        const updatedPredecessorNodes = edges
             .filter((edge) => edge.target === id)
-            .map((edge) => nodes.find((node) => node.id === edge.source))
+            .map((edge) => {
+                const sourceNode = nodes.find((node) => node.id === edge.source)
+                if (!sourceNode) { return null }
+                if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+                    return {
+                        id: sourceNode.id,
+                        type: sourceNode.type,
+                        data: {
+                            title: edge.targetHandle,
+                        },
+                    }
+                }
+                return sourceNode
+            })
             .filter(Boolean)
 
-        let finalPredecessors = updatedPredecessors
+        let result = updatedPredecessorNodes
 
-        // If a new connection is in progress to this node, show that source node as well
-        if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
+        if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
+            // Check if nodes have the same parent or both have no parent
             const fromNodeParentId = connection.fromNode?.parentId
             const toNodeParentId = connection.toNode?.parentId
             const canConnect =
                 fromNodeParentId === toNodeParentId &&
                 !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
 
-            if (!canConnect) {
-                // not a valid connection
-                return
-            }
-            const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
-            if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-                finalPredecessors = [...finalPredecessors, connection.fromNode]
+            if (
+                canConnect &&
+                connection.fromNode &&
+                !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
+            ) {
+                if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
+                    result = [
+                        ...updatedPredecessorNodes,
+                        {
+                            id: connection.fromNode.id,
+                            type: connection.fromNode.type,
+                            data: {
+                                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
+                            },
+                        },
+                    ]
+                } else {
+                    result = [
+                        ...updatedPredecessorNodes,
+                        {
+                            id: connection.fromNode.id,
+                            type: connection.fromNode.type,
+                            data: {
+                                title:
+                                    (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
+                            },
+                        },
+                    ]
+                }
             }
         }
+        // deduplicate
+        result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index)
+        return result
+    }, [edges, nodes, connection, id])
 
-        // Deduplicate
-        finalPredecessors = finalPredecessors.filter((node, index, self) => {
-            return self.findIndex((n) => n?.id === node?.id) === index
-        })
-
-        // Compare to existing predecessorNodes; only set if changed
+    // Recompute predecessor nodes whenever edges/connections change
+    useEffect(() => {
+        // Check if finalPredecessors differ from predecessorNodes
+        // (We do a deeper comparison to detect config/title changes, not just ID changes)
         const hasChanged =
             finalPredecessors.length !== predecessorNodes.length ||
-            finalPredecessors.some((node, i) => !isEqual(node, predecessorNodes[i]))
+            finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
+
         if (hasChanged) {
             setPredecessorNodes(finalPredecessors)
+            updateNodeInternals(id)
         }
-    }, [connection, edges, id, nodes, predecessorNodes])
+    }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
+
+    const renderHandles = () => {
+        if (!nodeData) { return null }
+        const dedupedPredecessors = finalPredecessors.filter(
+            (node, index, self) => self.findIndex((n) => n.id === node.id) === index
+        )
+
+        return (
+            <div className={`${styles.handlesWrapper}`} id="handles">
+                {/* Input Handles */}
+                <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
+                    {dedupedPredecessors.map((node) => {
+                        const handleId = String(node.data?.title || node.id || '')
+                        return (
+                            <InputHandleRow
+                                key={`input-handle-row-${node.id}-${handleId}`}
+                                id={node?.id}
+                                keyName={handleId}
+                            />
+                        )
+                    })}
+                </div>
+            </div>
+        )
+    }
 
     // Get available input variables from the connected node's output schema
     const inputVariables = useMemo(() => {
-        if (!predecessorNodes.length) return []
+        if (!predecessorNodes.length) { return [] }
         return predecessorNodes.flatMap((node) => {
-            if (!node) return []
+            if (!node) { return [] }
 
             const predNodeConfig = nodeConfigs[node.id]
             const nodeTitle = predNodeConfig?.title || node.id
@@ -143,7 +242,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }, [predecessorNodes, nodeConfigs])
 
     useEffect(() => {
-        if (!nodeRef.current) return
+        if (!nodeRef.current) { return }
 
         // We have multiple input handle labels
         const inputLabels = predecessorNodes.map((pred) => pred?.data?.config?.title || pred?.id || '')
@@ -202,13 +301,24 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }
 
     const removeRoute = (routeKey: string) => {
-        if (!nodeConfig?.route_map) return
-        const { [routeKey]: _, ...newRouteMap } = nodeConfig.route_map
+        if (!nodeConfig?.route_map) { return }
+
+        // Remove the specified route
+        const { [routeKey]: _, ...remainingRoutes } = nodeConfig.route_map
+
+        // Create new route map with reordered keys
+        const newRouteMap = Object.entries(remainingRoutes).reduce((acc, [_, route], index) => {
+            return {
+                ...acc,
+                [`route${index + 1}`]: route,
+            }
+        }, {})
+
         handleUpdateRouteMap(newRouteMap)
     }
 
     const addCondition = (routeKey: string) => {
-        if (!nodeConfig?.route_map) return
+        if (!nodeConfig?.route_map) { return }
         const newRouteMap = {
             ...nodeConfig.route_map,
             [routeKey]: {
@@ -222,7 +332,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }
 
     const removeCondition = (routeKey: string, conditionIndex: number) => {
-        if (!nodeConfig?.route_map) return
+        if (!nodeConfig?.route_map) { return }
         const newRouteMap = {
             ...nodeConfig.route_map,
             [routeKey]: {
@@ -238,7 +348,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
         field: keyof RouteConditionRule,
         value: string
     ) => {
-        if (!nodeConfig?.route_map) return
+        if (!nodeConfig?.route_map) { return }
         const newRouteMap = {
             ...nodeConfig.route_map,
             [routeKey]: {
@@ -277,26 +387,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
         >
             <div className="p-3" ref={nodeRef}>
                 {/* Input handles */}
-                {predecessorNodes.map((node) => {
-                    if (!node) return null
-                    const predNodeConfig = nodeConfigs[node.id]
-                    const handleId = predNodeConfig?.title || node.id
-                    return (
-                        <div key={node.id} className={`${styles.handleRow} w-full justify-start mb-4`}>
-                            <Handle
-                                type="target"
-                                position={Position.Left}
-                                id={handleId}
-                                className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-                            />
-                            {!isCollapsed && (
-                                <span className="text-sm font-medium ml-2 text-foreground">
-                                    {predNodeConfig?.title || node.id}
-                                </span>
-                            )}
-                        </div>
-                    )
-                })}
+                {renderHandles()}
 
                 {!isCollapsed && nodeConfig?.route_map && (
                     <>
@@ -318,6 +409,23 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                     }}
                                 >
                                     <div className="flex flex-col gap-3">
+                                        {/* Add Route Header with Delete Button */}
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-sm font-medium text-foreground">{routeKey}</span>
+                                            {!readOnly && Object.keys(nodeConfig.route_map).length > 1 && (
+                                                <Button
+                                                    size="sm"
+                                                    color="danger"
+                                                    variant="light"
+                                                    isIconOnly
+                                                    onClick={() => removeRoute(routeKey)}
+                                                    className="flex-none"
+                                                >
+                                                    <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                                                </Button>
+                                            )}
+                                        </div>
+
                                         {/* Conditions */}
                                         {route.conditions.map((condition, conditionIndex) => (
                                             <div key={conditionIndex} className="flex flex-col gap-2">
@@ -342,7 +450,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                         </RadioGroup>
                                                     </div>
                                                 )}
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2 items-start">
                                                     <Select
                                                         aria-label="Select variable"
                                                         size="sm"
@@ -356,7 +464,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             )
                                                         }
                                                         placeholder="Select variable"
-                                                        className="flex-[2] min-w-[200px]"
+                                                        className="flex-[2] min-w-[160px]"
                                                         variant="flat"
                                                         classNames={{
                                                             trigger: 'dark:bg-default-50/10',
@@ -388,95 +496,101 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             </SelectItem>
                                                         ))}
                                                     </Select>
-                                                    <Select
-                                                        aria-label="Select operator"
-                                                        size="sm"
-                                                        selectedKeys={condition.operator ? [condition.operator] : []}
-                                                        onChange={(e) =>
-                                                            updateCondition(
-                                                                routeKey,
-                                                                conditionIndex,
-                                                                'operator',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        className="w-[140px] flex-none"
-                                                        variant="flat"
-                                                        classNames={{
-                                                            trigger: 'dark:bg-default-50/10',
-                                                            base: 'dark:bg-default-50/10',
-                                                            popoverContent: 'dark:bg-default-50/10',
-                                                        }}
-                                                        renderValue={(items) => {
-                                                            return items.map((item) => (
-                                                                <div key={item.key} className="flex items-center">
-                                                                    <span className="text-default-700 dark:text-default-300">
-                                                                        {item.textValue}
-                                                                    </span>
-                                                                </div>
-                                                            ))
-                                                        }}
-                                                        isDisabled={readOnly}
-                                                    >
-                                                        {OPERATORS.map((op) => (
-                                                            <SelectItem
-                                                                key={op.value}
-                                                                value={op.value}
-                                                                textValue={op.label}
-                                                                className="text-default-700 dark:text-default-300"
-                                                            >
-                                                                {op.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </Select>
-                                                    {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
-                                                        <Input
+                                                    <div className="flex gap-2 flex-[2] min-w-[200px]">
+                                                        <Select
+                                                            aria-label="Select operator"
                                                             size="sm"
-                                                            isRequired
-                                                            value={condition.value}
+                                                            selectedKeys={
+                                                                condition.operator ? [condition.operator] : []
+                                                            }
                                                             onChange={(e) =>
                                                                 updateCondition(
                                                                     routeKey,
                                                                     conditionIndex,
-                                                                    'value',
+                                                                    'operator',
                                                                     e.target.value
                                                                 )
                                                             }
-                                                            placeholder="Value"
-                                                            className="flex-[2] min-w-[100px]"
+                                                            className="w-[120px] flex-none"
+                                                            variant="flat"
                                                             classNames={{
-                                                                label: 'text-default-700 dark:text-default-300',
-                                                                input: [
-                                                                    'text-default-700 !text-default-700',
-                                                                    'dark:!text-default-300',
-                                                                    'placeholder:text-default-700',
-                                                                    'dark:placeholder:text-default-300',
-                                                                    '[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-700',
-                                                                    'dark:[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-300',
-                                                                ],
-                                                                innerWrapper: 'bg-transparent',
-                                                                inputWrapper: [
-                                                                    'bg-default-100 dark:bg-default-50/10',
-                                                                    'hover:bg-default-200 dark:hover:bg-default-50/20',
-                                                                    'group-data-[focus=true]:bg-default-100 dark:group-data-[focus=true]:bg-default-50/30',
-                                                                    '!border-0',
-                                                                ],
+                                                                trigger: 'dark:bg-default-50/10',
+                                                                base: 'dark:bg-default-50/10',
+                                                                popoverContent: 'dark:bg-default-50/10',
+                                                            }}
+                                                            renderValue={(items) => {
+                                                                return items.map((item) => (
+                                                                    <div key={item.key} className="flex items-center">
+                                                                        <span className="text-default-700 dark:text-default-300">
+                                                                            {item.textValue}
+                                                                        </span>
+                                                                    </div>
+                                                                ))
                                                             }}
                                                             isDisabled={readOnly}
-                                                        />
-                                                    )}
-                                                    {!readOnly && (
-                                                        <Button
-                                                            size="sm"
-                                                            color="danger"
-                                                            isIconOnly
-                                                            onClick={() => removeCondition(routeKey, conditionIndex)}
-                                                            disabled={route.conditions.length === 1}
-                                                            className="flex-none"
                                                         >
-                                                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                                                        </Button>
-                                                    )}
+                                                            {OPERATORS.map((op) => (
+                                                                <SelectItem
+                                                                    key={op.value}
+                                                                    value={op.value}
+                                                                    textValue={op.label}
+                                                                    className="text-default-700 dark:text-default-300"
+                                                                >
+                                                                    {op.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </Select>
+                                                        {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
+                                                            <Input
+                                                                size="sm"
+                                                                isRequired
+                                                                value={condition.value}
+                                                                onChange={(e) =>
+                                                                    updateCondition(
+                                                                        routeKey,
+                                                                        conditionIndex,
+                                                                        'value',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                placeholder="Value"
+                                                                className="flex-1 min-w-[80px]"
+                                                                classNames={{
+                                                                    label: 'text-default-700 dark:text-default-300',
+                                                                    input: [
+                                                                        'text-default-700 !text-default-700',
+                                                                        'dark:!text-default-300',
+                                                                        'placeholder:text-default-700',
+                                                                        'dark:placeholder:text-default-300',
+                                                                        '[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-700',
+                                                                        'dark:[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-300',
+                                                                    ],
+                                                                    innerWrapper: 'bg-transparent',
+                                                                    inputWrapper: [
+                                                                        'bg-default-100 dark:bg-default-50/10',
+                                                                        'hover:bg-default-200 dark:hover:bg-default-50/20',
+                                                                        'group-data-[focus=true]:bg-default-100 dark:group-data-[focus=true]:bg-default-50/30',
+                                                                        '!border-0',
+                                                                    ],
+                                                                }}
+                                                                isDisabled={readOnly}
+                                                            />
+                                                        )}
+                                                        {!readOnly && route.conditions.length > 1 && (
+                                                            <Button
+                                                                size="sm"
+                                                                color="danger"
+                                                                variant="light"
+                                                                isIconOnly
+                                                                onClick={() =>
+                                                                    removeCondition(routeKey, conditionIndex)
+                                                                }
+                                                                className="flex-none"
+                                                            >
+                                                                <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}

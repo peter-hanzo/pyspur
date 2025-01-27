@@ -12,7 +12,15 @@ from ...schemas.router_schemas import (
 class RouterNodeConfig(BaseNodeConfig):
     """Configuration for the router node."""
 
-    route_map: Dict[str, RouteConditionGroupSchema] = {"route1": RouteConditionGroupSchema(conditions=[])}  # type: ignore
+    route_map: Dict[str, RouteConditionGroupSchema] = {
+        "route1": RouteConditionGroupSchema(
+            conditions=[
+                RouteConditionRuleSchema(
+                    variable="", operator=ComparisonOperator.CONTAINS, value=""
+                )
+            ]
+        )
+    }
 
 
 class RouterNodeInput(BaseNodeInput):
