@@ -45,7 +45,7 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                 if (tasks.length > 0) {
                     tasks.forEach((task) => {
                         const nodeId = task.node_id
-                        let node = nodes.find((node) => node.id === nodeId)
+                        let node = nodes.find((node) => node.id === nodeId || node.data.title === nodeId)
                         if (!node) {
                             // find the node by title in nodeConfigs
                             const state = store.getState()
