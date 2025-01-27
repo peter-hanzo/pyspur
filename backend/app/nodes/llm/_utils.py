@@ -7,6 +7,7 @@ import re
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, cast
 from pathlib import Path
+from docx2python import docx2python
 
 import litellm
 from dotenv import load_dotenv
@@ -593,9 +594,16 @@ async def generate_text(
                                     # Use the new path resolution utility
                                     file_path = resolve_file_path(url)
                                     logging.info(f"Reading file from: {file_path}")
-                                    data_url = encode_file_to_base64_data_url(
-                                        str(file_path)
-                                    )
+
+                                    # Check if file is a DOCX file
+                                    if str(file_path).lower().endswith('.docx'):
+                                        # Convert DOCX to XML
+                                        xml_content = convert_docx_to_xml(str(file_path))
+                                        # Encode the XML content directly
+                                        data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
+                                    else:
+                                        data_url = encode_file_to_base64_data_url(str(file_path))
+
                                     content.append(
                                         {
                                             "type": "image_url",
@@ -717,3 +725,37 @@ async def ollama_with_backoff(
         options=(options or OllamaOptions()).to_dict(),
     )
     return response.message.content
+
+
+def convert_docx_to_xml(file_path: str) -> str:
+    """
+    Convert a DOCX file to XML format.
+    Args:
+        file_path: Path to the DOCX file
+    Returns:
+        XML string representation of the DOCX file
+    """
+    try:
+        with docx2python(file_path) as docx_content:
+            # Convert the document content to XML format
+            xml_content = f"<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
+
+            # Add metadata
+            xml_content += "<metadata>\n"
+            for key, value in docx_content.properties.items():
+                if value:  # Only add non-empty properties
+                    xml_content += f"<{key}>{value}</{key}>\n"
+            xml_content += "</metadata>\n"
+
+            # Add document content
+            xml_content += "<content>\n"
+            for paragraph in docx_content.text:
+                if paragraph:  # Skip empty paragraphs
+                    xml_content += f"<paragraph>{paragraph}</paragraph>\n"
+            xml_content += "</content>\n"
+            xml_content += "</document>"
+
+            return xml_content
+    except Exception as e:
+        logging.error(f"Error converting DOCX to XML: {str(e)}")
+        raise

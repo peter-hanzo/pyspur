@@ -371,7 +371,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                             'application/pdf': ['.pdf'],
                                                             'text/plain': ['.txt'],
                                                             'text/markdown': ['.md'],
-                                                            'application/msword': ['.doc'],
                                                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
                                                                 ['.docx'],
                                                             // Images
