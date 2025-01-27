@@ -366,11 +366,11 @@ const Dashboard: React.FC = () => {
                 </header>
 
                 {/* Wrap sections in Accordion */}
-                <Accordion defaultExpandedKeys={['1', '2', '3']} selectionMode="multiple">
+                <Accordion defaultExpandedKeys={['workflows', 'jobs']} selectionMode="multiple">
                     <AccordionItem
-                        key="2"
+                        key="workflows"
                         aria-label="Recent Spurs"
-                        title={<h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>}
+                        title={<h3 className="text-xl font-semibold">Recent Spurs</h3>}
                     >
                         {isLoadingWorkflows ? (
                             <div className="flex justify-center p-4">
@@ -472,21 +472,27 @@ const Dashboard: React.FC = () => {
                             </div>
                         ) : (
                             <div className="flex-col justify-center text-default-500">
-                                <p className="text-sm text-left">You don&apos;t have any spurs yet</p>
+                                <p className="text-sm text-left">
+                                    Looks like you haven&apos;t created any spurs yet - let&apos;s fix that! 🚀
+                                </p>
                                 <ul className="list-disc text-sm pl-6">
                                     <li>
-                                        Click the &quot;New Spur&quot; button above to create a new spur from scratch
+                                        Start fresh with your own creation - hit that &quot;New Spur&quot; button up
+                                        there ✨
                                     </li>
                                     <li>
-                                        Click the &quot;Import Spur&quot; button above to import a spur from a JSON file
+                                        Got a spur saved as JSON? Bring it in with the &quot;Import Spur&quot; button 📥
                                     </li>
-                                    <li>Click the &quot;Spur Templates&quot; tab to use a pre-built spur template</li>
+                                    <li>
+                                        Or jump right in with one of our ready-to-go templates in the &quot;Spur
+                                        Templates&quot; tab 👇
+                                    </li>
                                 </ul>
                             </div>
                         )}
                     </AccordionItem>
                     <AccordionItem
-                        key="1"
+                        key="templates"
                         aria-label="Spur Templates"
                         title={<h3 className="text-xl font-semibold mb-4">Spur Templates</h3>}
                     >
