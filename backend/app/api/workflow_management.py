@@ -22,8 +22,6 @@ from ..schemas.workflow_schemas import (
 )
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
-from ..models.workflow_version_model import WorkflowVersionModel
-from ..models.run_model import RunModel
 from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
@@ -181,35 +179,24 @@ def reset_workflow(
     description="Delete a workflow by ID",
 )
 def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
-    # Fetch the workflow by ID
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
-
-    # If workflow not found, raise 404 error
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     try:
-        # Delete associated runs
-        db.query(RunModel).filter(RunModel.workflow_id == workflow_id).delete()
-
-        # Delete associated workflow versions
-        db.query(WorkflowVersionModel).filter(
-            WorkflowVersionModel.workflow_id == workflow_id
-        ).delete()
-
         # Delete associated test files
         test_files_dir = Path("data/test_files") / workflow_id
         if test_files_dir.exists():
             shutil.rmtree(test_files_dir)
 
-        # Delete the workflow
+        # Delete the workflow (cascading will handle related records)
         db.delete(workflow)
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Error deleting workflow and its versions: {str(e)}",
+            detail=f"Error deleting workflow: {str(e)}",
         )
 
     return None
