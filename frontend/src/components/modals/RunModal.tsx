@@ -64,28 +64,24 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     }, [testInputs])
 
     useEffect(() => {
-        if (testData.length > 0 && !selectedRow) {
+        if (isOpen && testData.length > 0 && !selectedRow) {
             setSelectedRow(testData[0].id.toString())
         }
-    }, [testData])
-
-    useEffect(() => {
-        if (isOpen && testData.length > 0) {
-            setSelectedRow(testData[0].id.toString())
-        }
-    }, [isOpen, testData])
+    }, [isOpen, testData, selectedRow])
 
     const handleAddRow = () => {
         // Check if we have any content to add
         const hasContent = Object.values(editorContents).some((v) => v?.trim())
         if (!hasContent) return
 
+        const newId = Date.now()
         const newTestInput: TestInput = {
-            id: Date.now(),
+            id: newId,
             ...editorContents,
         }
         setTestData([...testData, newTestInput])
         setEditorContents({}) // Clear editor contents
+        setSelectedRow(newId.toString()) // Select the newly added row
         dispatch(addTestInput(newTestInput))
         saveWorkflow()
     }
