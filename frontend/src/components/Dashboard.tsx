@@ -61,6 +61,7 @@ const Dashboard: React.FC = () => {
     const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome)
     const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({})
     const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true)
+    const [highlightedWorkflowId, setHighlightedWorkflowId] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchWorkflows = async () => {
@@ -267,7 +268,11 @@ const Dashboard: React.FC = () => {
     const handleDuplicateClick = async (workflow: WorkflowResponse) => {
         try {
             const duplicatedWorkflow = await duplicateWorkflow(workflow.id)
-            setWorkflows((prevWorkflows) => [...prevWorkflows, duplicatedWorkflow])
+            setWorkflows((prevWorkflows) => [duplicatedWorkflow, ...prevWorkflows])
+            setHighlightedWorkflowId(duplicatedWorkflow.id)
+            setTimeout(() => {
+                setHighlightedWorkflowId(null)
+            }, 2000)
         } catch (error) {
             console.error('Error duplicating workflow:', error)
             alert('Failed to duplicate workflow. Please try again.')
@@ -362,7 +367,14 @@ const Dashboard: React.FC = () => {
                                 </TableHeader>
                                 <TableBody items={workflows}>
                                     {(workflow) => (
-                                        <TableRow key={workflow.id}>
+                                        <TableRow
+                                            key={workflow.id}
+                                            className={`transition-colors duration-500 ${
+                                                highlightedWorkflowId === workflow.id
+                                                    ? 'bg-primary-50 dark:bg-primary-900/20'
+                                                    : ''
+                                            }`}
+                                        >
                                             {(columnKey) => (
                                                 <TableCell>
                                                     {columnKey === 'action' ? (
