@@ -66,6 +66,9 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                         .join(' '),
                 },
             },
+            parseOptions: {
+      preserveWhitespace: 'full',
+    },
             onUpdate: ({ editor }) => {
                 const newContent = editor.storage.markdown?.getMarkdown() ?? ''
                 setLocalContent(newContent)
@@ -116,13 +119,20 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         })
 
         useEffect(() => {
-            if (editor && editor.getHTML() !== localContent) {
+            if (editor && editor.storage.markdown?.getMarkdown() !== localContent) {
                 editor.commands.setContent(localContent)
             }
-            if (modalEditor && modalEditor.getHTML() !== localContent) {
+            if (modalEditor && modalEditor.storage.markdown?.getMarkdown() !== localContent) {
                 modalEditor.commands.setContent(localContent)
             }
         }, [localContent, editor, modalEditor])
+
+        // Add effect to sync modal editor content when modal opens
+        useEffect(() => {
+            if (isOpen && modalEditor && localContent) {
+                modalEditor.commands.setContent(localContent)
+            }
+        }, [isOpen, modalEditor, localContent])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
             if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
