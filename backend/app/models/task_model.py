@@ -47,8 +47,10 @@ class TaskModel(BaseModel):
     subworkflow: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     subworkflow_output: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
 
-    parent_task: Mapped[Optional["TaskModel"]] = relationship(
-        "TaskModel", remote_side=[id], backref="subtasks"
+    # Relationships
+    parent_task = relationship("TaskModel", remote_side=[id], back_populates="subtasks")
+    subtasks = relationship(
+        "TaskModel", back_populates="parent_task", cascade="all, delete-orphan"
     )
 
     @property

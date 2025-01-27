@@ -32,4 +32,6 @@ class WorkflowModel(BaseModel):
         onupdate=datetime.now(timezone.utc),
     )
 
-    versions = relationship("WorkflowVersionModel", back_populates="workflow")
+    versions = relationship(
+        "WorkflowVersionModel", back_populates="workflow", cascade="all, delete-orphan"
+    )
