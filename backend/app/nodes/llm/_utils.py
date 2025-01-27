@@ -638,30 +638,19 @@ async def generate_text(
     # For models that don't support JSON output, wrap the response in a JSON structure
     if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+        # Check for provider-specific fields
+        if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
+            if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
+                provider_fields = raw_response.choices[0].message.provider_specific_fields
+                return json.dumps({
+                    "output": sanitized_response,
+                    "provider_specific_fields": provider_fields
+                })
         return f'{{"output": "{sanitized_response}"}}'
 
     # Ensure response is valid JSON for models that support it
     if supports_json:
         try:
-            # Check if the response has provider-specific fields
-            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                    provider_fields = raw_response.choices[0].message.provider_specific_fields
-                    try:
-                        # Parse the existing response
-                        response_json = json.loads(response)
-                        # Add provider-specific fields
-                        response_json['provider_specific_fields'] = provider_fields
-                        return json.dumps(response_json)
-                    except json.JSONDecodeError:
-                        # If response is not valid JSON, create a new JSON object
-                        sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
-                        return json.dumps({
-                            "output": sanitized_response,
-                            "provider_specific_fields": provider_fields
-                        })
-
-            # If no provider-specific fields, proceed with normal JSON validation
             json.loads(response)
             return response
         except json.JSONDecodeError:
@@ -680,6 +669,14 @@ async def generate_text(
 
             # If all attempts to parse JSON fail, wrap the response in a JSON structure
             sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+            # Check for provider-specific fields
+            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
+                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
+                    provider_fields = raw_response.choices[0].message.provider_specific_fields
+                    return json.dumps({
+                        "output": sanitized_response,
+                        "provider_specific_fields": provider_fields
+                    })
             return f'{{"output": "{sanitized_response}"}}'
 
     return response
