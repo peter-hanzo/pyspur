@@ -27,6 +27,7 @@ import { formatDistanceStrict } from 'date-fns'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { AlertState } from '../types/alert'
+import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -70,6 +71,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
         updateRunStatuses,
     } = useWorkflowExecution({ onAlert: showAlert })
 
+    const saveWorkflow = useSaveWorkflow()
+
     useEffect(() => {
         if (testInputs.length > 0 && !selectedRow) {
             setSelectedRow(testInputs[0].id)
@@ -82,6 +85,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
 
     const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         dispatch(setProjectName(e.target.value))
+        saveWorkflow()
     }
 
     const handleDownloadWorkflow = async (): Promise<void> => {
