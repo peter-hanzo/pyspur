@@ -13,8 +13,8 @@
         "node_type": "InputNode",
         "config": {
           "output_schema": {
-            "topic": "str",
-            "audience": "str"
+            "topic": "string",
+            "audience": "string"
           }
         },
         "coordinates": {
@@ -29,7 +29,7 @@
         "config": {
           "title": "JokeDrafter",
           "output_schema": {
-            "initial_joke": "str"
+            "initial_joke": "string"
           },
           "llm_info": {
             "model": "gpt-4o",
@@ -57,7 +57,7 @@
         "config": {
           "title": "JokeRefiner",
           "output_schema": {
-            "final_joke": "str"
+            "final_joke": "string"
           },
           "llm_info": {
             "model": "gpt-4o",
@@ -85,7 +85,7 @@
         "config": {
           "title": "SingleShotJoke",
           "output_schema": {
-            "final_joke": "str"
+            "final_joke": "string"
           },
           "llm_info": {
             "model": "gpt-4o",
