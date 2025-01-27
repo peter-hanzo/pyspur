@@ -62,12 +62,15 @@ const Dashboard: React.FC = () => {
     const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({})
     const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true)
     const [highlightedWorkflowId, setHighlightedWorkflowId] = useState<string | null>(null)
+    const [workflowPage, setWorkflowPage] = useState(1)
+    const [hasMoreWorkflows, setHasMoreWorkflows] = useState(true)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
 
     useEffect(() => {
         const fetchWorkflows = async () => {
             setIsLoadingWorkflows(true)
             try {
-                const workflows = await getWorkflows()
+                const workflows = await getWorkflows(1)
                 const runsMap = await Promise.all(workflows.map((workflow) => fetchWorkflowRuns(workflow.id))).then(
                     (runs) => {
                         const map: Record<string, RunResponse[]> = {}
@@ -80,6 +83,7 @@ const Dashboard: React.FC = () => {
                 setWorkflows(workflows as WorkflowResponse[])
                 setShowWelcome(!hasSeenWelcome && workflows.length === 0)
                 setWorkflowRuns(runsMap)
+                setHasMoreWorkflows(workflows.length === 10)
             } catch (error) {
                 console.error('Error fetching workflows:', error)
             } finally {
@@ -283,6 +287,37 @@ const Dashboard: React.FC = () => {
         window.open(`/trace/${runId}`, '_blank')
     }
 
+    const handleLoadMore = async () => {
+        setIsLoadingMore(true)
+        try {
+            const nextPage = workflowPage + 1
+            const moreWorkflows = await getWorkflows(nextPage)
+
+            if (moreWorkflows.length > 0) {
+                const runsMap = await Promise.all(moreWorkflows.map((workflow) => fetchWorkflowRuns(workflow.id))).then(
+                    (runs) => {
+                        const map: Record<string, RunResponse[]> = {}
+                        moreWorkflows.forEach((workflow, i) => {
+                            map[workflow.id] = runs[i] || []
+                        })
+                        return map
+                    }
+                )
+
+                setWorkflows((prev) => [...prev, ...moreWorkflows])
+                setWorkflowRuns((prev) => ({ ...prev, ...runsMap }))
+                setWorkflowPage(nextPage)
+                setHasMoreWorkflows(moreWorkflows.length === 10)
+            } else {
+                setHasMoreWorkflows(false)
+            }
+        } catch (error) {
+            console.error('Error loading more workflows:', error)
+        } finally {
+            setIsLoadingMore(false)
+        }
+    }
+
     return (
         <div className="flex flex-col gap-2">
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
@@ -361,85 +396,99 @@ const Dashboard: React.FC = () => {
                                 <Spinner size="lg" />
                             </div>
                         ) : workflows.length > 0 ? (
-                            <Table aria-label="Saved Workflows" isHeaderSticky>
-                                <TableHeader columns={columns}>
-                                    {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-                                </TableHeader>
-                                <TableBody items={workflows}>
-                                    {(workflow) => (
-                                        <TableRow
-                                            key={workflow.id}
-                                            className={`transition-colors duration-500 ${
-                                                highlightedWorkflowId === workflow.id
-                                                    ? 'bg-primary-50 dark:bg-primary-900/20'
-                                                    : ''
-                                            }`}
-                                        >
-                                            {(columnKey) => (
-                                                <TableCell>
-                                                    {columnKey === 'action' ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon
-                                                                icon="solar:play-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleRunWorkflowClick(workflow)}
-                                                            />
-                                                            <Icon
-                                                                icon="solar:pen-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
+                            <div className="flex flex-col gap-2">
+                                <Table aria-label="Saved Workflows" isHeaderSticky>
+                                    <TableHeader columns={columns}>
+                                        {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+                                    </TableHeader>
+                                    <TableBody items={workflows}>
+                                        {(workflow) => (
+                                            <TableRow
+                                                key={workflow.id}
+                                                className={`transition-colors duration-500 ${
+                                                    highlightedWorkflowId === workflow.id
+                                                        ? 'bg-primary-50 dark:bg-primary-900/20'
+                                                        : ''
+                                                }`}
+                                            >
+                                                {(columnKey) => (
+                                                    <TableCell>
+                                                        {columnKey === 'action' ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Icon
+                                                                    icon="solar:play-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleRunWorkflowClick(workflow)}
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:pen-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleEditClick(workflow)}
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:copy-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleDuplicateClick(workflow)}
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:trash-bin-trash-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleDeleteClick(workflow)}
+                                                                />
+                                                            </div>
+                                                        ) : columnKey === 'recentRuns' ? (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {workflowRuns[workflow.id]?.map((run) => (
+                                                                    <Chip
+                                                                        key={run.id}
+                                                                        size="sm"
+                                                                        variant="flat"
+                                                                        className="cursor-pointer"
+                                                                        onClick={() => handlePreviousRunClick(run.id)}
+                                                                    >
+                                                                        {run.id}
+                                                                    </Chip>
+                                                                ))}
+                                                            </div>
+                                                        ) : columnKey === 'name' ? (
+                                                            <Chip
+                                                                size="sm"
+                                                                variant="flat"
+                                                                className="cursor-pointer"
                                                                 onClick={() => handleEditClick(workflow)}
-                                                            />
-                                                            <Icon
-                                                                icon="solar:copy-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleDuplicateClick(workflow)}
-                                                            />
-                                                            <Icon
-                                                                icon="solar:trash-bin-trash-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleDeleteClick(workflow)}
-                                                            />
-                                                        </div>
-                                                    ) : columnKey === 'recentRuns' ? (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {workflowRuns[workflow.id]?.map((run) => (
-                                                                <Chip
-                                                                    key={run.id}
-                                                                    size="sm"
-                                                                    variant="flat"
-                                                                    className="cursor-pointer"
-                                                                    onClick={() => handlePreviousRunClick(run.id)}
-                                                                >
-                                                                    {run.id}
-                                                                </Chip>
-                                                            ))}
-                                                        </div>
-                                                    ) : columnKey === 'name' ? (
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            className="cursor-pointer"
-                                                            onClick={() => handleEditClick(workflow)}
-                                                        >
-                                                            {workflow.name}
-                                                        </Chip>
-                                                    ) : (
-                                                        getKeyValue(workflow, columnKey)
-                                                    )}
-                                                </TableCell>
-                                            )}
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                                            >
+                                                                {workflow.name}
+                                                            </Chip>
+                                                        ) : (
+                                                            getKeyValue(workflow, columnKey)
+                                                        )}
+                                                    </TableCell>
+                                                )}
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                                {hasMoreWorkflows && (
+                                    <div className="flex justify-center mt-4">
+                                        <Button
+                                            variant="flat"
+                                            onPress={handleLoadMore}
+                                            isLoading={isLoadingMore}
+                                            startContent={!isLoadingMore && <Icon icon="lucide:plus" width={16} />}
+                                        >
+                                            {isLoadingMore ? 'Loading...' : 'Load More'}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
                             <p>No spur runs available.</p>
                         )}
