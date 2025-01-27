@@ -203,7 +203,18 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
     const removeRoute = (routeKey: string) => {
         if (!nodeConfig?.route_map) return
-        const { [routeKey]: _, ...newRouteMap } = nodeConfig.route_map
+
+        // Remove the specified route
+        const { [routeKey]: _, ...remainingRoutes } = nodeConfig.route_map
+
+        // Create new route map with reordered keys
+        const newRouteMap = Object.entries(remainingRoutes).reduce((acc, [_, route], index) => {
+            return {
+                ...acc,
+                [`route${index + 1}`]: route,
+            }
+        }, {})
+
         handleUpdateRouteMap(newRouteMap)
     }
 
@@ -318,6 +329,23 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                     }}
                                 >
                                     <div className="flex flex-col gap-3">
+                                        {/* Add Route Header with Delete Button */}
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-sm font-medium text-foreground">{routeKey}</span>
+                                            {!readOnly && Object.keys(nodeConfig.route_map).length > 1 && (
+                                                <Button
+                                                    size="sm"
+                                                    color="danger"
+                                                    variant="light"
+                                                    isIconOnly
+                                                    onClick={() => removeRoute(routeKey)}
+                                                    className="flex-none"
+                                                >
+                                                    <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                                                </Button>
+                                            )}
+                                        </div>
+
                                         {/* Conditions */}
                                         {route.conditions.map((condition, conditionIndex) => (
                                             <div key={conditionIndex} className="flex flex-col gap-2">
@@ -342,7 +370,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                         </RadioGroup>
                                                     </div>
                                                 )}
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2 items-start">
                                                     <Select
                                                         aria-label="Select variable"
                                                         size="sm"
@@ -356,7 +384,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             )
                                                         }
                                                         placeholder="Select variable"
-                                                        className="flex-[2] min-w-[200px]"
+                                                        className="flex-[2] min-w-[160px]"
                                                         variant="flat"
                                                         classNames={{
                                                             trigger: 'dark:bg-default-50/10',
@@ -388,95 +416,101 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             </SelectItem>
                                                         ))}
                                                     </Select>
-                                                    <Select
-                                                        aria-label="Select operator"
-                                                        size="sm"
-                                                        selectedKeys={condition.operator ? [condition.operator] : []}
-                                                        onChange={(e) =>
-                                                            updateCondition(
-                                                                routeKey,
-                                                                conditionIndex,
-                                                                'operator',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        className="w-[140px] flex-none"
-                                                        variant="flat"
-                                                        classNames={{
-                                                            trigger: 'dark:bg-default-50/10',
-                                                            base: 'dark:bg-default-50/10',
-                                                            popoverContent: 'dark:bg-default-50/10',
-                                                        }}
-                                                        renderValue={(items) => {
-                                                            return items.map((item) => (
-                                                                <div key={item.key} className="flex items-center">
-                                                                    <span className="text-default-700 dark:text-default-300">
-                                                                        {item.textValue}
-                                                                    </span>
-                                                                </div>
-                                                            ))
-                                                        }}
-                                                        isDisabled={readOnly}
-                                                    >
-                                                        {OPERATORS.map((op) => (
-                                                            <SelectItem
-                                                                key={op.value}
-                                                                value={op.value}
-                                                                textValue={op.label}
-                                                                className="text-default-700 dark:text-default-300"
-                                                            >
-                                                                {op.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </Select>
-                                                    {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
-                                                        <Input
+                                                    <div className="flex gap-2 flex-[2] min-w-[200px]">
+                                                        <Select
+                                                            aria-label="Select operator"
                                                             size="sm"
-                                                            isRequired
-                                                            value={condition.value}
+                                                            selectedKeys={
+                                                                condition.operator ? [condition.operator] : []
+                                                            }
                                                             onChange={(e) =>
                                                                 updateCondition(
                                                                     routeKey,
                                                                     conditionIndex,
-                                                                    'value',
+                                                                    'operator',
                                                                     e.target.value
                                                                 )
                                                             }
-                                                            placeholder="Value"
-                                                            className="flex-[2] min-w-[100px]"
+                                                            className="w-[120px] flex-none"
+                                                            variant="flat"
                                                             classNames={{
-                                                                label: 'text-default-700 dark:text-default-300',
-                                                                input: [
-                                                                    'text-default-700 !text-default-700',
-                                                                    'dark:!text-default-300',
-                                                                    'placeholder:text-default-700',
-                                                                    'dark:placeholder:text-default-300',
-                                                                    '[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-700',
-                                                                    'dark:[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-300',
-                                                                ],
-                                                                innerWrapper: 'bg-transparent',
-                                                                inputWrapper: [
-                                                                    'bg-default-100 dark:bg-default-50/10',
-                                                                    'hover:bg-default-200 dark:hover:bg-default-50/20',
-                                                                    'group-data-[focus=true]:bg-default-100 dark:group-data-[focus=true]:bg-default-50/30',
-                                                                    '!border-0',
-                                                                ],
+                                                                trigger: 'dark:bg-default-50/10',
+                                                                base: 'dark:bg-default-50/10',
+                                                                popoverContent: 'dark:bg-default-50/10',
+                                                            }}
+                                                            renderValue={(items) => {
+                                                                return items.map((item) => (
+                                                                    <div key={item.key} className="flex items-center">
+                                                                        <span className="text-default-700 dark:text-default-300">
+                                                                            {item.textValue}
+                                                                        </span>
+                                                                    </div>
+                                                                ))
                                                             }}
                                                             isDisabled={readOnly}
-                                                        />
-                                                    )}
-                                                    {!readOnly && (
-                                                        <Button
-                                                            size="sm"
-                                                            color="danger"
-                                                            isIconOnly
-                                                            onClick={() => removeCondition(routeKey, conditionIndex)}
-                                                            disabled={route.conditions.length === 1}
-                                                            className="flex-none"
                                                         >
-                                                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                                                        </Button>
-                                                    )}
+                                                            {OPERATORS.map((op) => (
+                                                                <SelectItem
+                                                                    key={op.value}
+                                                                    value={op.value}
+                                                                    textValue={op.label}
+                                                                    className="text-default-700 dark:text-default-300"
+                                                                >
+                                                                    {op.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </Select>
+                                                        {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
+                                                            <Input
+                                                                size="sm"
+                                                                isRequired
+                                                                value={condition.value}
+                                                                onChange={(e) =>
+                                                                    updateCondition(
+                                                                        routeKey,
+                                                                        conditionIndex,
+                                                                        'value',
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                placeholder="Value"
+                                                                className="flex-1 min-w-[80px]"
+                                                                classNames={{
+                                                                    label: 'text-default-700 dark:text-default-300',
+                                                                    input: [
+                                                                        'text-default-700 !text-default-700',
+                                                                        'dark:!text-default-300',
+                                                                        'placeholder:text-default-700',
+                                                                        'dark:placeholder:text-default-300',
+                                                                        '[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-700',
+                                                                        'dark:[&.group-data-\[has-value\=true\]\:text-default-foreground]:text-default-300',
+                                                                    ],
+                                                                    innerWrapper: 'bg-transparent',
+                                                                    inputWrapper: [
+                                                                        'bg-default-100 dark:bg-default-50/10',
+                                                                        'hover:bg-default-200 dark:hover:bg-default-50/20',
+                                                                        'group-data-[focus=true]:bg-default-100 dark:group-data-[focus=true]:bg-default-50/30',
+                                                                        '!border-0',
+                                                                    ],
+                                                                }}
+                                                                isDisabled={readOnly}
+                                                            />
+                                                        )}
+                                                        {!readOnly && route.conditions.length > 1 && (
+                                                            <Button
+                                                                size="sm"
+                                                                color="danger"
+                                                                variant="light"
+                                                                isIconOnly
+                                                                onClick={() =>
+                                                                    removeCondition(routeKey, conditionIndex)
+                                                                }
+                                                                className="flex-none"
+                                                            >
+                                                                <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
