@@ -20,6 +20,7 @@ import {
     AccordionItem,
     Alert,
     Chip,
+    Spinner,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import {
@@ -59,16 +60,22 @@ const Dashboard: React.FC = () => {
     const [showWelcome, setShowWelcome] = useState(false)
     const hasSeenWelcome = useSelector((state: RootState) => state.userPreferences.hasSeenWelcome)
     const [workflowRuns, setWorkflowRuns] = useState<Record<string, RunResponse[]>>({})
+    const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true)
+    const [highlightedWorkflowId, setHighlightedWorkflowId] = useState<string | null>(null)
+    const [workflowPage, setWorkflowPage] = useState(1)
+    const [hasMoreWorkflows, setHasMoreWorkflows] = useState(true)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
 
     useEffect(() => {
         const fetchWorkflows = async () => {
+            setIsLoadingWorkflows(true)
             try {
-                const workflows = await getWorkflows()
+                const workflows = await getWorkflows(1)
                 const runsMap = await Promise.all(workflows.map((workflow) => fetchWorkflowRuns(workflow.id))).then(
                     (runs) => {
                         const map: Record<string, RunResponse[]> = {}
                         workflows.forEach((workflow, i) => {
-                            map[workflow.id] = runs[i]
+                            map[workflow.id] = runs[i] || []
                         })
                         return map
                     }
@@ -76,8 +83,11 @@ const Dashboard: React.FC = () => {
                 setWorkflows(workflows as WorkflowResponse[])
                 setShowWelcome(!hasSeenWelcome && workflows.length === 0)
                 setWorkflowRuns(runsMap)
+                setHasMoreWorkflows(workflows.length === 10)
             } catch (error) {
                 console.error('Error fetching workflows:', error)
+            } finally {
+                setIsLoadingWorkflows(false)
             }
         }
 
@@ -262,7 +272,11 @@ const Dashboard: React.FC = () => {
     const handleDuplicateClick = async (workflow: WorkflowResponse) => {
         try {
             const duplicatedWorkflow = await duplicateWorkflow(workflow.id)
-            setWorkflows((prevWorkflows) => [...prevWorkflows, duplicatedWorkflow])
+            setWorkflows((prevWorkflows) => [duplicatedWorkflow, ...prevWorkflows])
+            setHighlightedWorkflowId(duplicatedWorkflow.id)
+            setTimeout(() => {
+                setHighlightedWorkflowId(null)
+            }, 2000)
         } catch (error) {
             console.error('Error duplicating workflow:', error)
             alert('Failed to duplicate workflow. Please try again.')
@@ -273,10 +287,41 @@ const Dashboard: React.FC = () => {
         window.open(`/trace/${runId}`, '_blank')
     }
 
+    const handleLoadMore = async () => {
+        setIsLoadingMore(true)
+        try {
+            const nextPage = workflowPage + 1
+            const moreWorkflows = await getWorkflows(nextPage)
+
+            if (moreWorkflows.length > 0) {
+                const runsMap = await Promise.all(moreWorkflows.map((workflow) => fetchWorkflowRuns(workflow.id))).then(
+                    (runs) => {
+                        const map: Record<string, RunResponse[]> = {}
+                        moreWorkflows.forEach((workflow, i) => {
+                            map[workflow.id] = runs[i] || []
+                        })
+                        return map
+                    }
+                )
+
+                setWorkflows((prev) => [...prev, ...moreWorkflows])
+                setWorkflowRuns((prev) => ({ ...prev, ...runsMap }))
+                setWorkflowPage(nextPage)
+                setHasMoreWorkflows(moreWorkflows.length === 10)
+            } else {
+                setHasMoreWorkflows(false)
+            }
+        } catch (error) {
+            console.error('Error loading more workflows:', error)
+        } finally {
+            setIsLoadingMore(false)
+        }
+    }
+
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
-            <div className="w-3/4 mx-auto p-5">
+            <div>
                 {/* Dashboard Header */}
                 <header className="mb-6 flex w-full items-center flex-col gap-2">
                     {!isLoadingApiKeys &&
@@ -294,12 +339,12 @@ const Dashboard: React.FC = () => {
                         )}
                     <div className="flex w-full items-center">
                         <div className="flex flex-col max-w-fit" id="dashboard-title">
-                            <h1 className="text-xl font-bold text-default-900 lg:text-3xl">Dashboard</h1>
+                            <h1 className="text-lg font-bold text-default-900 lg:text-2xl">Dashboard</h1>
                             <p className="text-small text-default-400 lg:text-medium">Manage your spurs</p>
                         </div>
                         <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
                             <Button
-                                className="bg-foreground text-background"
+                                className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
                                 startContent={
                                     <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
                                 }
@@ -308,7 +353,7 @@ const Dashboard: React.FC = () => {
                                 New Spur
                             </Button>
                             <Button
-                                className="bg-foreground text-background"
+                                className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
                                 startContent={
                                     <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
                                 }
@@ -321,9 +366,137 @@ const Dashboard: React.FC = () => {
                 </header>
 
                 {/* Wrap sections in Accordion */}
-                <Accordion defaultExpandedKeys={['1', '2', '3']} selectionMode="multiple">
+                <Accordion defaultExpandedKeys={['workflows', 'templates']} selectionMode="multiple">
                     <AccordionItem
-                        key="1"
+                        key="workflows"
+                        aria-label="Recent Spurs"
+                        title={<h3 className="text-xl font-semibold">Recent Spurs</h3>}
+                    >
+                        {isLoadingWorkflows ? (
+                            <div className="flex justify-center p-4">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : workflows.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                                <Table aria-label="Saved Workflows" isHeaderSticky>
+                                    <TableHeader columns={columns}>
+                                        {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+                                    </TableHeader>
+                                    <TableBody items={workflows}>
+                                        {(workflow) => (
+                                            <TableRow
+                                                key={workflow.id}
+                                                className={`transition-colors duration-200 hover:bg-primary-50 dark:hover:bg-primary-800/10 ${
+                                                    highlightedWorkflowId === workflow.id
+                                                        ? 'bg-primary-50 dark:bg-primary-800/10'
+                                                        : ''
+                                                }`}
+                                            >
+                                                {(columnKey) => (
+                                                    <TableCell>
+                                                        {columnKey === 'action' ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Icon
+                                                                    icon="solar:pen-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleEditClick(workflow)}
+                                                                    aria-label="Edit"
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:playlist-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleRunWorkflowClick(workflow)}
+                                                                    aria-label="Run on a dataset"
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:copy-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleDuplicateClick(workflow)}
+                                                                    aria-label="Duplicate"
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:trash-bin-trash-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleDeleteClick(workflow)}
+                                                                    aria-label="Delete"
+                                                                />
+                                                            </div>
+                                                        ) : columnKey === 'recentRuns' ? (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {workflowRuns[workflow.id]?.map((run) => (
+                                                                    <Chip
+                                                                        key={run.id}
+                                                                        size="sm"
+                                                                        variant="flat"
+                                                                        className="cursor-pointer"
+                                                                        onClick={() => handlePreviousRunClick(run.id)}
+                                                                    >
+                                                                        {run.id}
+                                                                    </Chip>
+                                                                ))}
+                                                            </div>
+                                                        ) : columnKey === 'name' ? (
+                                                            <Chip
+                                                                size="sm"
+                                                                variant="flat"
+                                                                className="cursor-pointer"
+                                                                onClick={() => handleEditClick(workflow)}
+                                                            >
+                                                                {workflow.name}
+                                                            </Chip>
+                                                        ) : (
+                                                            getKeyValue(workflow, columnKey)
+                                                        )}
+                                                    </TableCell>
+                                                )}
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                                {hasMoreWorkflows && (
+                                    <div className="flex justify-center mt-4">
+                                        <Button
+                                            variant="flat"
+                                            onPress={handleLoadMore}
+                                            isLoading={isLoadingMore}
+                                            startContent={!isLoadingMore && <Icon icon="lucide:plus" width={16} />}
+                                        >
+                                            {isLoadingMore ? 'Loading...' : 'Load More'}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex-col justify-center text-default-500">
+                                <p className="text-sm text-left">
+                                    Looks like you haven&apos;t created any spurs yet - let&apos;s fix that! 🚀
+                                </p>
+                                <ul className="list-disc text-sm pl-6">
+                                    <li>
+                                        Start fresh with your own creation - hit that &quot;New Spur&quot; button up
+                                        there ✨
+                                    </li>
+                                    <li>
+                                        Got a spur saved as JSON? Bring it in with the &quot;Import Spur&quot; button 📥
+                                    </li>
+                                    <li>
+                                        Or jump right in with one of our ready-to-go templates in the &quot;Spur
+                                        Templates&quot; tab 👇
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </AccordionItem>
+                    <AccordionItem
+                        key="templates"
                         aria-label="Spur Templates"
                         title={<h3 className="text-xl font-semibold mb-4">Spur Templates</h3>}
                     >
@@ -339,99 +512,6 @@ const Dashboard: React.FC = () => {
                                 />
                             ))}
                         </div>
-                    </AccordionItem>
-
-                    <AccordionItem
-                        key="2"
-                        aria-label="Recent Spurs"
-                        title={<h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>}
-                    >
-                        {/* Recent Spurs Section */}
-                        {workflows.length > 0 ? (
-                            <Table aria-label="Saved Workflows" isHeaderSticky>
-                                <TableHeader columns={columns}>
-                                    {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-                                </TableHeader>
-                                <TableBody items={workflows}>
-                                    {(workflow) => (
-                                        <TableRow key={workflow.id}>
-                                            {(columnKey) => (
-                                                <TableCell>
-                                                    {columnKey === 'action' ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon
-                                                                icon="solar:play-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleRunWorkflowClick(workflow)}
-                                                            />
-                                                            <Icon
-                                                                icon="solar:pen-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleEditClick(workflow)}
-                                                            />
-                                                            <Icon
-                                                                icon="solar:copy-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleDuplicateClick(workflow)}
-                                                            />
-                                                            <Icon
-                                                                icon="solar:trash-bin-trash-bold"
-                                                                className="cursor-pointer text-default-400"
-                                                                height={18}
-                                                                width={18}
-                                                                onClick={() => handleDeleteClick(workflow)}
-                                                            />
-                                                        </div>
-                                                    ) : columnKey === 'recentRuns' ? (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {workflowRuns[workflow.id]?.map((run) => (
-                                                                <Chip
-                                                                    key={run.id}
-                                                                    size="sm"
-                                                                    variant="flat"
-                                                                    className="cursor-pointer"
-                                                                    onClick={() => handlePreviousRunClick(run.id)}
-                                                                >
-                                                                    {run.id}
-                                                                </Chip>
-                                                            ))}
-                                                        </div>
-                                                    ) : columnKey === 'name' ? (
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            className="cursor-pointer"
-                                                            onClick={() => handleEditClick(workflow)}
-                                                        >
-                                                            {workflow.name}
-                                                        </Chip>
-                                                    ) : (
-                                                        getKeyValue(workflow, columnKey)
-                                                    )}
-                                                </TableCell>
-                                            )}
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        ) : (
-                            <p>No spur runs available.</p>
-                        )}
-                    </AccordionItem>
-
-                    <AccordionItem
-                        key="3"
-                        aria-label="Spur Jobs"
-                        title={<h3 className="text-xl font-semibold mb-4">Spur Jobs</h3>}
-                    >
-                        {/* Spur Jobs Section */}
-                        <WorkflowBatchRunsTable />
                     </AccordionItem>
                 </Accordion>
             </div>

@@ -4,7 +4,7 @@ import json
 import base64
 import hashlib
 import re
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from pathlib import Path  # Import Path for directory handling
@@ -397,19 +397,25 @@ async def batch_run_workflow_non_blocking(
     response_model=List[RunResponseSchema],
     description="List all runs of a workflow",
 )
-def list_runs(workflow_id: str, db: Session = Depends(get_db)):
+def list_runs(
+    workflow_id: str,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    offset = (page - 1) * page_size
     runs = (
         db.query(RunModel)
         .filter(RunModel.workflow_id == workflow_id)
         .order_by(RunModel.start_time.desc())
+        .offset(offset)
+        .limit(page_size)
         .all()
     )
 
     # Update run status based on task status
     for run in runs:
-        if (
-            run.status != RunStatus.FAILED
-        ):  # Only check if run isn't already marked as failed
+        if run.status != RunStatus.FAILED:
             failed_tasks = [
                 task for task in run.tasks if task.status == TaskStatus.FAILED
             ]

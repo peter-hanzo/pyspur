@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..schemas.run_schemas import RunResponseSchema
@@ -15,18 +15,23 @@ router = APIRouter()
     description="List all runs",
 )
 def list_runs(
-    last_k: int = 10,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
     parent_only: bool = True,
     run_type: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
+    offset = (page - 1) * page_size
     query = db.query(RunModel)
 
     if parent_only:
         query = query.filter(RunModel.parent_run_id.is_(None))
     if run_type:
         query = query.filter(RunModel.run_type == run_type)
-    runs = query.order_by(RunModel.start_time.desc()).limit(last_k).all()
+
+    runs = (
+        query.order_by(RunModel.start_time.desc()).offset(offset).limit(page_size).all()
+    )
     return runs
 
 
