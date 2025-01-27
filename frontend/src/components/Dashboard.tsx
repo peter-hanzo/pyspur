@@ -368,25 +368,6 @@ const Dashboard: React.FC = () => {
                 {/* Wrap sections in Accordion */}
                 <Accordion defaultExpandedKeys={['1', '2', '3']} selectionMode="multiple">
                     <AccordionItem
-                        key="1"
-                        aria-label="Spur Templates"
-                        title={<h3 className="text-xl font-semibold mb-4">Spur Templates</h3>}
-                    >
-                        {/* Spur Templates Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
-                            {templates.map((template) => (
-                                <TemplateCard
-                                    key={template.file_name}
-                                    title={template.name}
-                                    description={template.description}
-                                    features={template.features}
-                                    onUse={() => handleUseTemplate(template)}
-                                />
-                            ))}
-                        </div>
-                    </AccordionItem>
-
-                    <AccordionItem
                         key="2"
                         aria-label="Recent Spurs"
                         title={<h3 className="text-xl font-semibold mb-4">Recent Spurs</h3>}
@@ -490,8 +471,37 @@ const Dashboard: React.FC = () => {
                                 )}
                             </div>
                         ) : (
-                            <p>No spur runs available.</p>
+                            <div className="flex-col justify-center text-default-500">
+                                <p className="text-sm text-left">You don&apos;t have any spurs yet</p>
+                                <ul className="list-disc text-sm pl-6">
+                                    <li>
+                                        Click the &quot;New Spur&quot; button above to create a new spur from scratch
+                                    </li>
+                                    <li>
+                                        Click the &quot;Import Spur&quot; button above to import a spur from a JSON file
+                                    </li>
+                                    <li>Click the &quot;Spur Templates&quot; tab to use a pre-built spur template</li>
+                                </ul>
+                            </div>
                         )}
+                    </AccordionItem>
+                    <AccordionItem
+                        key="1"
+                        aria-label="Spur Templates"
+                        title={<h3 className="text-xl font-semibold mb-4">Spur Templates</h3>}
+                    >
+                        {/* Spur Templates Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
+                            {templates.map((template) => (
+                                <TemplateCard
+                                    key={template.file_name}
+                                    title={template.name}
+                                    description={template.description}
+                                    features={template.features}
+                                    onUse={() => handleUseTemplate(template)}
+                                />
+                            ))}
+                        </div>
                     </AccordionItem>
 
                     <AccordionItem
