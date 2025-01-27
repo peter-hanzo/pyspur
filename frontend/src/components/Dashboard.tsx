@@ -478,10 +478,14 @@ const Dashboard: React.FC = () => {
                             <div className="flex flex-col items-center justify-center p-12 my-8 bg-background rounded-xl border-border border shadow-sm">
                                 <div className="max-w-2xl text-center mb-12">
                                     <h3 className="text-2xl font-semibold mb-4 text-foreground flex items-center justify-center gap-2">
-                                        Welcome to Your Spur Dashboard! <span role="img" aria-label="rocket">🚀</span>
+                                        Welcome to Your Spur Dashboard!{' '}
+                                        <span role="img" aria-label="rocket">
+                                            🚀
+                                        </span>
                                     </h3>
                                     <p className="text-lg text-muted-foreground">
-                                        Looks like you haven&apos;t created any spurs yet - let&apos;s get you started on your journey!
+                                        Looks like you haven&apos;t created any spurs yet - let&apos;s get you started
+                                        on your journey!
                                     </p>
                                 </div>
 
@@ -489,36 +493,40 @@ const Dashboard: React.FC = () => {
                                     <div
                                         className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md cursor-pointer"
                                         onClick={handleNewWorkflowClick}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleNewWorkflowClick()}
                                     >
                                         <div className="rounded-full bg-background p-4 mb-4 border border-border">
                                             <Icon icon="lucide:plus" className="w-8 h-8 text-foreground" />
                                         </div>
                                         <h4 className="text-lg font-medium mb-3 text-foreground">Create New</h4>
                                         <p className="text-medium text-center text-muted-foreground">
-                                            Start fresh with your own creation using the &quot;New Spur&quot; button above
+                                            Start fresh with your own creation using the &quot;New Spur&quot; button
+                                            above
                                         </p>
                                     </div>
 
                                     <div
                                         className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md cursor-pointer"
                                         onClick={handleImportWorkflowClick}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleImportWorkflowClick()}
                                     >
                                         <div className="rounded-full bg-background p-4 mb-4 border border-border">
                                             <Icon icon="lucide:upload" className="w-8 h-8 text-foreground" />
                                         </div>
                                         <h4 className="text-lg font-medium mb-3 text-foreground">Import Existing</h4>
                                         <p className="text-medium text-center text-muted-foreground">
-                                            Have a spur saved as JSON? Use the &quot;Import Spur&quot; button to bring it in
+                                            Have a spur saved as JSON? Use the &quot;Import Spur&quot; button to bring
+                                            it in
                                         </p>
                                     </div>
 
-                                    <div className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md">
+                                    <div
+                                        className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md cursor-pointer"
+                                        onClick={() => {
+                                            const templateSection = document.querySelector(
+                                                '[aria-label="Spur Templates"]'
+                                            )
+                                            templateSection?.scrollIntoView({ behavior: 'smooth' })
+                                        }}
+                                    >
                                         <div className="rounded-full bg-background p-4 mb-4 border border-border">
                                             <Icon icon="lucide:layout-grid" className="w-8 h-8 text-foreground" />
                                         </div>
