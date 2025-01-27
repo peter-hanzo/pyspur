@@ -91,6 +91,7 @@ class LLMModels(str, Enum):
     CLAUDE_3_OPUS_LATEST = "claude-3-opus-latest"
 
     # Google Models
+    GEMINI_2_0_FLASH_EXP = "gemini/gemini-2.0-flash-exp"
     GEMINI_1_5_PRO = "gemini/gemini-1.5-pro"
     GEMINI_1_5_FLASH = "gemini/gemini-1.5-flash"
     GEMINI_1_5_PRO_LATEST = "gemini/gemini-1.5-pro-latest"
@@ -566,13 +567,14 @@ async def generate_text(
     if json_mode and supports_json:
         if model_name.startswith("ollama"):
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
-            response = await ollama_with_backoff(
+            raw_response = await ollama_with_backoff(
                 model=model_name,
                 options=options,
                 messages=messages,
                 format="json",
                 api_base=api_base,
             )
+            response = raw_response
         # Handle Gemini models with URL variables
         elif model_name.startswith("gemini") and url_variables:
             # Transform messages to include URL content
@@ -617,11 +619,9 @@ async def generate_text(
                     msg["content"] = content
                 transformed_messages.append(msg)
             kwargs["messages"] = transformed_messages
-            response = await completion_with_backoff(**kwargs)
+            raw_response = await completion_with_backoff(**kwargs)
+            response = raw_response
         else:
-            # For both Azure and OpenAI, we need to set the response_format to json_object
-            # kwargs["response_format"] = {"type": "json_object"}
-            # Add system message to enforce JSON mode
             messages.insert(
                 0,
                 {
@@ -629,9 +629,11 @@ async def generate_text(
                     "content": "You must respond with valid JSON only. No other text before or after the JSON Object.",
                 },
             )
-            response = await completion_with_backoff(**kwargs)
+            raw_response = await completion_with_backoff(**kwargs)
+            response = raw_response
     else:
-        response = await completion_with_backoff(**kwargs)
+        raw_response = await completion_with_backoff(**kwargs)
+        response = raw_response
 
     # For models that don't support JSON output, wrap the response in a JSON structure
     if not supports_json:
@@ -641,6 +643,25 @@ async def generate_text(
     # Ensure response is valid JSON for models that support it
     if supports_json:
         try:
+            # Check if the response has provider-specific fields
+            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
+                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
+                    provider_fields = raw_response.choices[0].message.provider_specific_fields
+                    try:
+                        # Parse the existing response
+                        response_json = json.loads(response)
+                        # Add provider-specific fields
+                        response_json['provider_specific_fields'] = provider_fields
+                        return json.dumps(response_json)
+                    except json.JSONDecodeError:
+                        # If response is not valid JSON, create a new JSON object
+                        sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+                        return json.dumps({
+                            "output": sanitized_response,
+                            "provider_specific_fields": provider_fields
+                        })
+
+            # If no provider-specific fields, proceed with normal JSON validation
             json.loads(response)
             return response
         except json.JSONDecodeError:
