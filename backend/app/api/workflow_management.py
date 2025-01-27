@@ -1,5 +1,14 @@
 from typing import Dict, List
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Depends,
+    status,
+    UploadFile,
+    File,
+    Form,
+    Query,
+)
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from pathlib import Path
@@ -100,11 +109,17 @@ def update_workflow(
 @router.get(
     "/", response_model=List[WorkflowResponseSchema], description="List all workflows"
 )
-def list_workflows(db: Session = Depends(get_db)):
+def list_workflows(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    offset = (page - 1) * page_size
     workflows = (
         db.query(WorkflowModel)
         .order_by(WorkflowModel.created_at.desc())
-        .slice(0, 10)
+        .offset(offset)
+        .limit(page_size)
         .all()
     )
     valid_workflows: List[WorkflowModel] = []
