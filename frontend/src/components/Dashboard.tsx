@@ -366,7 +366,7 @@ const Dashboard: React.FC = () => {
                 </header>
 
                 {/* Wrap sections in Accordion */}
-                <Accordion defaultExpandedKeys={['workflows', 'jobs']} selectionMode="multiple">
+                <Accordion defaultExpandedKeys={['workflows', 'templates']} selectionMode="multiple">
                     <AccordionItem
                         key="workflows"
                         aria-label="Recent Spurs"
@@ -508,15 +508,6 @@ const Dashboard: React.FC = () => {
                                 />
                             ))}
                         </div>
-                    </AccordionItem>
-
-                    <AccordionItem
-                        key="3"
-                        aria-label="Spur Jobs"
-                        title={<h3 className="text-xl font-semibold mb-4">Spur Jobs</h3>}
-                    >
-                        {/* Spur Jobs Section */}
-                        <WorkflowBatchRunsTable />
                     </AccordionItem>
                 </Accordion>
             </div>
