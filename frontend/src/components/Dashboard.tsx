@@ -475,23 +475,47 @@ const Dashboard: React.FC = () => {
                                 )}
                             </div>
                         ) : (
-                            <div className="flex-col justify-center text-default-500">
-                                <p className="text-sm text-left">
-                                    Looks like you haven&apos;t created any spurs yet - let&apos;s fix that! 🚀
-                                </p>
-                                <ul className="list-disc text-sm pl-6">
-                                    <li>
-                                        Start fresh with your own creation - hit that &quot;New Spur&quot; button up
-                                        there ✨
-                                    </li>
-                                    <li>
-                                        Got a spur saved as JSON? Bring it in with the &quot;Import Spur&quot; button 📥
-                                    </li>
-                                    <li>
-                                        Or jump right in with one of our ready-to-go templates in the &quot;Spur
-                                        Templates&quot; tab 👇
-                                    </li>
-                                </ul>
+                            <div className="flex flex-col items-center justify-center p-12 my-8 bg-background rounded-xl border-border border shadow-sm">
+                                <div className="max-w-2xl text-center mb-12">
+                                    <h3 className="text-2xl font-semibold mb-4 text-foreground flex items-center justify-center gap-2">
+                                        Welcome to Your Spur Dashboard! <span role="img" aria-label="rocket">🚀</span>
+                                    </h3>
+                                    <p className="text-lg text-muted-foreground">
+                                        Looks like you haven&apos;t created any spurs yet - let&apos;s get you started on your journey!
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+                                    <div className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md">
+                                        <div className="rounded-full bg-background p-4 mb-4 border border-border">
+                                            <Icon icon="lucide:plus" className="w-8 h-8 text-foreground" />
+                                        </div>
+                                        <h4 className="text-lg font-medium mb-3 text-foreground">Create New</h4>
+                                        <p className="text-medium text-center text-muted-foreground">
+                                            Start fresh with your own creation using the &quot;New Spur&quot; button above
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md">
+                                        <div className="rounded-full bg-background p-4 mb-4 border border-border">
+                                            <Icon icon="lucide:upload" className="w-8 h-8 text-foreground" />
+                                        </div>
+                                        <h4 className="text-lg font-medium mb-3 text-foreground">Import Existing</h4>
+                                        <p className="text-medium text-center text-muted-foreground">
+                                            Have a spur saved as JSON? Use the &quot;Import Spur&quot; button to bring it in
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md">
+                                        <div className="rounded-full bg-background p-4 mb-4 border border-border">
+                                            <Icon icon="lucide:layout-grid" className="w-8 h-8 text-foreground" />
+                                        </div>
+                                        <h4 className="text-lg font-medium mb-3 text-foreground">Use Template</h4>
+                                        <p className="text-medium text-center text-muted-foreground">
+                                            Get started quickly with our ready-to-go templates in the section below
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </AccordionItem>
