@@ -344,7 +344,7 @@ const Dashboard: React.FC = () => {
                         </div>
                         <div className="ml-auto flex items-center gap-2" id="new-workflow-entries">
                             <Button
-                                className="bg-foreground text-background"
+                                className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
                                 startContent={
                                     <Icon className="flex-none text-background/60" icon="lucide:plus" width={16} />
                                 }
@@ -353,7 +353,7 @@ const Dashboard: React.FC = () => {
                                 New Spur
                             </Button>
                             <Button
-                                className="bg-foreground text-background"
+                                className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
                                 startContent={
                                     <Icon className="flex-none text-background/60" icon="lucide:upload" width={16} />
                                 }
