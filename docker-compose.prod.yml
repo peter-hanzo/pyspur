@@ -18,7 +18,7 @@ services:
       - ./.env
     volumes:
       - ./.env:/pyspur/backend/.env
-      - pyspur_data:/pyspur/data
+      - pyspur_data:/pyspur/backend/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
