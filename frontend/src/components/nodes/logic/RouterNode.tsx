@@ -15,6 +15,7 @@ import {
 } from '../../../types/api_types/routerSchemas'
 import NodeOutputDisplay from '../NodeOutputDisplay'
 import { isEqual } from 'lodash'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 
 interface RouterNodeData {
     title?: string
@@ -94,6 +95,16 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
         // If a new connection is in progress to this node, show that source node as well
         if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
+            const fromNodeParentId = connection.fromNode?.parentId
+            const toNodeParentId = connection.toNode?.parentId
+            const canConnect =
+                fromNodeParentId === toNodeParentId &&
+                !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
+
+            if (!canConnect) {
+                // not a valid connection
+                return
+            }
             const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
             if (!existing && isFlowWorkflowNode(connection.fromNode)) {
                 finalPredecessors = [...finalPredecessors, connection.fromNode]

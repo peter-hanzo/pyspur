@@ -21,6 +21,7 @@ import useDetachNodes from './useDetachNodes'
 import { getRelativeNodesBounds } from './groupNodeUtils'
 import { RootState } from '@/store/store'
 import { getNodeTitle } from '@/utils/flowUtils'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { updateNodeTitle } from '@/store/flowSlice'
 import styles from '../DynamicNode.module.css'
 import { TaskStatus } from '@/types/api_types/taskSchemas'
@@ -156,7 +157,9 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             // Check if nodes have the same parent or both have no parent
             const fromNodeParentId = connection.fromNode?.parentId
             const toNodeParentId = connection.toNode?.parentId
-            const canConnect = fromNodeParentId === toNodeParentId
+            const canConnect =
+                fromNodeParentId === toNodeParentId &&
+                !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
 
             if (
                 canConnect &&

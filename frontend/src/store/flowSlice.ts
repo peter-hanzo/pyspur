@@ -14,6 +14,7 @@ import { TestInput } from '@/types/api_types/workflowSchemas'
 import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas'
 import { isEqual } from 'lodash'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 
 export interface NodeTypes {
     [key: string]: any
@@ -275,6 +276,16 @@ const flowSlice = createSlice({
         },
 
         connect: (state, action: PayloadAction<{ connection: Connection }>) => {
+            if (
+                isTargetAncestorOfSource(
+                    action.payload.connection.source,
+                    action.payload.connection.target,
+                    state.nodes,
+                    state.edges
+                )
+            ) {
+                return
+            }
             saveToHistory(state)
             const { connection } = action.payload
 
