@@ -397,18 +397,20 @@ const Dashboard: React.FC = () => {
                                                         {columnKey === 'action' ? (
                                                             <div className="flex items-center gap-2">
                                                                 <Icon
-                                                                    icon="solar:play-bold"
-                                                                    className="cursor-pointer text-default-400"
-                                                                    height={18}
-                                                                    width={18}
-                                                                    onClick={() => handleRunWorkflowClick(workflow)}
-                                                                />
-                                                                <Icon
                                                                     icon="solar:pen-bold"
                                                                     className="cursor-pointer text-default-400"
                                                                     height={18}
                                                                     width={18}
                                                                     onClick={() => handleEditClick(workflow)}
+                                                                    aria-label="Edit"
+                                                                />
+                                                                <Icon
+                                                                    icon="solar:playlist-bold"
+                                                                    className="cursor-pointer text-default-400"
+                                                                    height={18}
+                                                                    width={18}
+                                                                    onClick={() => handleRunWorkflowClick(workflow)}
+                                                                    aria-label="Run on a dataset"
                                                                 />
                                                                 <Icon
                                                                     icon="solar:copy-bold"
@@ -416,6 +418,7 @@ const Dashboard: React.FC = () => {
                                                                     height={18}
                                                                     width={18}
                                                                     onClick={() => handleDuplicateClick(workflow)}
+                                                                    aria-label="Duplicate"
                                                                 />
                                                                 <Icon
                                                                     icon="solar:trash-bin-trash-bold"
@@ -423,6 +426,7 @@ const Dashboard: React.FC = () => {
                                                                     height={18}
                                                                     width={18}
                                                                     onClick={() => handleDeleteClick(workflow)}
+                                                                    aria-label="Delete"
                                                                 />
                                                             </div>
                                                         ) : columnKey === 'recentRuns' ? (
