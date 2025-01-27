@@ -265,6 +265,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         <Modal
             isOpen={isOpen}
             onOpenChange={onOpenChange}
+            scrollBehavior="inside"
             classNames={{
                 base: 'max-w-[95vw] w-[1400px]',
             }}
