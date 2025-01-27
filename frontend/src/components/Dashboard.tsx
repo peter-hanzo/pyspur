@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
     return (
         <div className="flex flex-col gap-2">
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
-            <div className="w-3/4 mx-auto p-5">
+            <div className="max-w-7xl w-full mx-auto p-5">
                 {/* Dashboard Header */}
                 <header className="mb-6 flex w-full items-center flex-col gap-2">
                     {!isLoadingApiKeys &&
