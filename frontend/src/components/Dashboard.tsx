@@ -486,7 +486,13 @@ const Dashboard: React.FC = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
-                                    <div className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md">
+                                    <div
+                                        className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md cursor-pointer"
+                                        onClick={handleNewWorkflowClick}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleNewWorkflowClick()}
+                                    >
                                         <div className="rounded-full bg-background p-4 mb-4 border border-border">
                                             <Icon icon="lucide:plus" className="w-8 h-8 text-foreground" />
                                         </div>
@@ -496,7 +502,13 @@ const Dashboard: React.FC = () => {
                                         </p>
                                     </div>
 
-                                    <div className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md">
+                                    <div
+                                        className="flex flex-col items-center p-6 bg-background hover:bg-accent/5 rounded-xl border-border border transition-all hover:shadow-md cursor-pointer"
+                                        onClick={handleImportWorkflowClick}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleImportWorkflowClick()}
+                                    >
                                         <div className="rounded-full bg-background p-4 mb-4 border border-border">
                                             <Icon icon="lucide:upload" className="w-8 h-8 text-foreground" />
                                         </div>
