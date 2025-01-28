@@ -14,6 +14,7 @@ import { RootState } from '../../store/store'
 import { isEqual } from 'lodash'
 import { FlowWorkflowNode } from '../../store/flowSlice'
 import NodeOutputDisplay from './NodeOutputDisplay'
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 
 interface InputNodeProps {
     id: string
@@ -55,23 +56,11 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
         }
     }, [nodeConfig, outputSchemaKeys])
 
-    const convertToPythonVariableName = (str: string): string => {
-        // Replace spaces and hyphens with underscores
-        str = str.replace(/[\s-]/g, '_')
-        // Remove any non-alphanumeric characters except underscores
-        str = str.replace(/[^a-zA-Z0-9_]/g, '')
-        // Ensure the first character is a letter or underscore
-        if (!/^[a-zA-Z_]/.test(str)) {
-            str = '_' + str
-        }
-        return str
-    }
-
     const handleAddWorkflowInputVariable = useCallback(() => {
         if (!newFieldValue.trim()) return
-        const newKey = convertToPythonVariableName(newFieldValue.trim())
+        const newKey = convertToPythonVariableName(newFieldValue)
 
-        if (newKey !== newFieldValue.trim()) {
+        if (newKey !== newFieldValue) {
             setShowKeyError(true)
             setTimeout(() => setShowKeyError(false), 3000)
         }
@@ -324,7 +313,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
             {showKeyError && (
                 <Alert
                     className="absolute -top-16 left-0 right-0 z-50"
-                    color="danger"
+                    color="warning"
                     onClose={() => setShowKeyError(false)}
                 >
                     Variable names cannot contain whitespace. Using underscores instead.
