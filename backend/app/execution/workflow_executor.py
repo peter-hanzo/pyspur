@@ -356,6 +356,10 @@ class WorkflowExecutor:
             if node.parent_id:
                 nodes_to_run.discard(node.id)
 
+        # drop outputs for nodes that need to be run
+        for node_id in nodes_to_run:
+            self._outputs.pop(node_id, None)
+
         # Start tasks for all nodes
         for node_id in nodes_to_run:
             self._get_async_task_for_node_execution(node_id)
