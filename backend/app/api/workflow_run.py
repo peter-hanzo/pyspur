@@ -212,7 +212,6 @@ async def run_workflow_non_blocking(
                     if node.node_type == "InputNode"
                 )
                 outputs = await executor(run.initial_inputs[input_node.id])
-                print("Outputs:", outputs)
                 run.outputs = {k: v.model_dump() for k, v in outputs.items()}
                 run.status = RunStatus.COMPLETED
                 run.end_time = datetime.now(timezone.utc)
