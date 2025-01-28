@@ -572,6 +572,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <CodeEditor
                             key={`text-editor-output-json-schema-${nodeID}`}
                             code={currentNodeConfig[key] || ''}
+                            mode="json"
                             onChange={(value: string) => {
                                 if (!value.trim()) {
                                     // If JSON schema is empty, just update output_json_schema
@@ -711,6 +712,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 <CodeEditor
                     key={`code-editor-${nodeID}-${key}`}
                     code={value}
+                    mode="python"
                     onChange={(newValue: string) => handleInputChange(key, newValue)}
                 />
             )
