@@ -713,7 +713,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
-        if (key.endsWith('_prompt') || key.endsWith('_message')) {
+        if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
             return (
                 <div key={key}>
                     <TextEditor
