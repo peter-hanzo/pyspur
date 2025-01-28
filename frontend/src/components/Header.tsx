@@ -200,7 +200,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
 
                 {(activePage === 'workflow' || activePage === 'trace') && (
                     <NavbarContent
-                        className="h-12 rounded-full bg-content2 dark:bg-content1 sm:flex"
+                        className="h-12 rounded-full bg-transparent sm:flex"
                         id="workflow-title"
                         justify="start"
                     >
@@ -211,6 +211,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                             value={projectName}
                             onChange={handleProjectNameChange}
                             disabled={activePage !== 'workflow'}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.currentTarget.blur()
+                                }
+                            }}
                         />
                     </NavbarContent>
                 )}

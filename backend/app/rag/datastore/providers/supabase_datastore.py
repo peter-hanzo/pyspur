@@ -1,7 +1,7 @@
 import os
 from typing import Any, List
 
-from ...schemas.document_schemas import DocumentMetadataFilter
+from ...schemas.document_schemas import DocumentMetadataFilterSchema
 from supabase import Client
 
 from ..providers.pgvector_datastore import PGClient, PgVectorDataStore
@@ -63,7 +63,7 @@ class SupabaseClient(PGClient):
         """
         self.client.table(table).delete().in_(column, ids).execute()
 
-    async def delete_by_filters(self, table: str, filter: DocumentMetadataFilter):
+    async def delete_by_filters(self, table: str, filter: DocumentMetadataFilterSchema):
         """
         Deletes rows in the table that match the filter.
         """

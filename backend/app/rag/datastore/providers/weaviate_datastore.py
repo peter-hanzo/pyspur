@@ -6,12 +6,12 @@ from typing import Dict, List, Optional
 
 import weaviate
 from ...schemas.document_schemas import (
-    DocumentChunk,
-    DocumentChunkMetadata,
-    DocumentChunkWithScore,
-    DocumentMetadataFilter,
-    QueryResult,
-    QueryWithEmbedding,
+    DocumentChunkSchema,
+    DocumentChunkMetadataSchema,
+    DocumentChunkWithScoreSchema,
+    DocumentMetadataFilterSchema,
+    QueryResultSchema,
+    QueryWithEmbeddingSchema,
     Source,
 )
 from loguru import logger
@@ -145,7 +145,7 @@ class WeaviateDataStore(DataStore):
         else:
             return None
 
-    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
+    async def _upsert(self, chunks: Dict[str, List[DocumentChunkSchema]]) -> List[str]:
         """
         Takes in a list of list of document chunks and inserts them into the database.
         Return a list of document ids.
@@ -186,13 +186,13 @@ class WeaviateDataStore(DataStore):
 
     async def _query(
         self,
-        queries: List[QueryWithEmbedding],
-    ) -> List[QueryResult]:
+        queries: List[QueryWithEmbeddingSchema],
+    ) -> List[QueryResultSchema]:
         """
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
 
-        async def _single_query(query: QueryWithEmbedding) -> QueryResult:
+        async def _single_query(query: QueryWithEmbeddingSchema) -> QueryResultSchema:
             logger.debug(f"Query: {query.query}")
             if not hasattr(query, "filter") or not query.filter:
                 result = (
@@ -237,16 +237,16 @@ class WeaviateDataStore(DataStore):
                     .do()
                 )
 
-            query_results: List[DocumentChunkWithScore] = []
+            query_results: List[DocumentChunkWithScoreSchema] = []
             response = result["data"]["Get"][WEAVIATE_CLASS]
 
             for resp in response:
-                result = DocumentChunkWithScore(
+                result = DocumentChunkWithScoreSchema(
                     id=resp["chunk_id"],
                     text=resp["text"],
                     # embedding=resp["_additional"]["vector"],
                     score=resp["_additional"]["score"],
-                    metadata=DocumentChunkMetadata(
+                    metadata=DocumentChunkMetadataSchema(
                         document_id=resp["document_id"] if resp["document_id"] else "",
                         source=Source(resp["source"]) if resp["source"] else None,
                         source_id=resp["source_id"],
@@ -256,14 +256,14 @@ class WeaviateDataStore(DataStore):
                     ),
                 )
                 query_results.append(result)
-            return QueryResult(query=query.query, results=query_results)
+            return QueryResultSchema(query=query.query, results=query_results)
 
         return await asyncio.gather(*[_single_query(query) for query in queries])
 
     async def delete(
         self,
         ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
+        filter: Optional[DocumentMetadataFilterSchema] = None,
         delete_all: Optional[bool] = None,
     ) -> bool:
         # TODO
