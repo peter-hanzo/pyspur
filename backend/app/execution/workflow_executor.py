@@ -179,6 +179,12 @@ class WorkflowExecutor:
                 [output is None for output in predecessor_outputs]
             ):
                 self._outputs[node_id] = None
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.CANCELED,
+                        end_time=datetime.now(),
+                    )
                 return None
 
             # Get source handles mapping
@@ -203,7 +209,7 @@ class WorkflowExecutor:
                         if self.task_recorder:
                             self.task_recorder.update_task(
                                 node_id=node_id,
-                                status=TaskStatus.PENDING,
+                                status=TaskStatus.CANCELED,
                                 end_time=datetime.now(),
                             )
                         return None
