@@ -42,6 +42,7 @@ class WorkflowExecutor:
         self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
         self._outputs: Dict[str, Optional[BaseNodeOutput]] = {}
+        self._failed_nodes: Set[str] = set()
         self._build_node_dict()
         self._build_dependencies()
 
@@ -150,8 +151,21 @@ class WorkflowExecutor:
             if node_id in self._outputs:
                 return self._outputs[node_id]
 
-            # Wait for dependencies
+            # Check if any predecessor nodes failed
             dependency_ids = self._dependencies.get(node_id, set())
+            if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
+                print(f"Node {node_id} skipped due to upstream failure")
+                self._failed_nodes.add(node_id)
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.FAILED,
+                        end_time=datetime.now(),
+                        error="Upstream node failure",
+                    )
+                raise Exception("Upstream node failure")
+
+            # Wait for dependencies
             predecessor_outputs: List[Optional[BaseNodeOutput]] = []
             if dependency_ids:
                 predecessor_outputs = await asyncio.gather(
@@ -265,6 +279,7 @@ class WorkflowExecutor:
                 f"Error: {str(e)}"
             )
             print(error_msg)
+            self._failed_nodes.add(node_id)
             if self.task_recorder:
                 self.task_recorder.update_task(
                     node_id=node_id,
@@ -321,8 +336,17 @@ class WorkflowExecutor:
         for node_id in nodes_to_run:
             self._get_async_task_for_node_execution(node_id)
 
-        # Wait for all tasks to complete
-        await asyncio.gather(*self._node_tasks.values())
+        # Wait for all tasks to complete, but don't propagate exceptions
+        results = await asyncio.gather(
+            *self._node_tasks.values(), return_exceptions=True
+        )
+
+        # Process results to handle any exceptions
+        for node_id, result in zip(self._node_tasks.keys(), results):
+            if isinstance(result, Exception):
+                print(f"Node {node_id} failed with error: {str(result)}")
+                self._failed_nodes.add(node_id)
+                self._outputs[node_id] = None
 
         # return the non-None outputs
         return {
