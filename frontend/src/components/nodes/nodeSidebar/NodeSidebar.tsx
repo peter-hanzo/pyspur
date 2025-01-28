@@ -831,7 +831,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             <label className="font-semibold">{fieldMetadata?.title || key}</label>
                             <Switch
                                 key={`switch-${nodeID}-${key}`}
-                                defaultSelected={value}
                                 isSelected={value}
                                 onChange={(e) => handleInputChange(key, e.target.checked)}
                             />
