@@ -38,6 +38,7 @@ import SchemaEditor from './SchemaEditor'
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
 import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 // Define types for props and state
 interface NodeSidebarProps {
     nodeID: string
@@ -68,22 +69,6 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
     if (!prevNodes || !nextNodes) return false
     if (prevNodes.length !== nextNodes.length) return false
     return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]))
-}
-
-// Add the utility function near the top of the file
-const convertToPythonVariableName = (str: string): string => {
-    // Replace spaces and hyphens with underscores
-    str = str.replace(/[\s-]/g, '_')
-
-    // Remove any non-alphanumeric characters except underscores
-    str = str.replace(/[^a-zA-Z0-9_]/g, '')
-
-    // Ensure the first character is a letter or underscore
-    if (!/^[a-zA-Z_]/.test(str)) {
-        str = '_' + str
-    }
-
-    return str
 }
 
 // Add this helper function near the top of the file, after other utility functions
@@ -180,7 +165,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {})
     const [fewShotIndex, setFewShotIndex] = useState<number | null>(null)
     const [showTitleError, setShowTitleError] = useState(false)
-    const [titleInputValue, setTitleInputValue] = useState<string>('')
 
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
@@ -210,13 +194,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }, 300),
         [dispatch]
     )
-
-    // Add this useEffect to handle title initialization and updates
-    useEffect(() => {
-        if (nodeConfig) {
-            setTitleInputValue(nodeConfig.title || node?.id || '')
-        }
-    }, [nodeConfig, node]) // Only depend on nodeConfig and node changes
 
     // Update the existing useEffect to initialize LLM nodes with a default model
     useEffect(() => {
@@ -271,10 +248,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
     }
 
-    // Update the handleNodeTitleChange function
-    const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const validTitle = convertToPythonVariableName(e.target.value)
-        setTitleInputValue(validTitle)
+    // Simplify the title change handlers into a single function
+    const handleTitleChangeComplete = (value: string) => {
+        const validTitle = convertToPythonVariableName(value)
         dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }))
     }
 
@@ -1157,8 +1133,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
                             <Input
                                 key={`title-input-${nodeID}`}
-                                value={titleInputValue}
-                                onChange={handleNodeTitleChange}
+                                defaultValue={nodeConfig?.title || node?.id || ''}
+                                onBlur={(e) => handleTitleChangeComplete(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.currentTarget.blur()
+                                    }
+                                }}
                                 placeholder="Enter node title"
                                 label="Node Title"
                                 fullWidth
