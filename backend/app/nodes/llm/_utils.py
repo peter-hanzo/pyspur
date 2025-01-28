@@ -113,6 +113,7 @@ class LLMModels(str, Enum):
     OLLAMA_MISTRAL = "ollama/mistral"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
+    OLLAMA_DEEPSEEK_R1 = "ollama/deepseek-r1"
 
     @classmethod
     def get_model_info(cls, model_id: str) -> LLMModel:
@@ -323,6 +324,12 @@ class LLMModels(str, Enum):
                 id=cls.OLLAMA_MIXTRAL.value,
                 provider=LLMProvider.OLLAMA,
                 name="Mixtral 8x7B Instruct",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.OLLAMA_DEEPSEEK_R1.value: LLMModel(
+                id=cls.OLLAMA_DEEPSEEK_R1.value,
+                provider=LLMProvider.OLLAMA,
+                name="Deepseek R1",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
         }
