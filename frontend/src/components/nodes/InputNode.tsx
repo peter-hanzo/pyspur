@@ -336,7 +336,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         {renderWorkflowInputs()}
                         {renderAddField()}
                     </div>
-                    {data.run && <NodeOutputDisplay output={data.run} />}
+                    {data.run && <NodeOutputDisplay output={data.run} key={`output-${id}`} />}
                 </div>
             </BaseNode>
         </div>
