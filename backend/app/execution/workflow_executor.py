@@ -161,20 +161,26 @@ class WorkflowExecutor:
 
             # Check if any predecessor nodes failed
             dependency_ids = self._dependencies.get(node_id, set())
-            if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
-                print(f"Node {node_id} skipped due to upstream failure")
-                self._failed_nodes.add(node_id)
-                raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
             # Wait for dependencies
             predecessor_outputs: List[Optional[BaseNodeOutput]] = []
             if dependency_ids:
-                predecessor_outputs = await asyncio.gather(
-                    *(
-                        self._get_async_task_for_node_execution(dep_id)
-                        for dep_id in dependency_ids
+                try:
+                    predecessor_outputs = await asyncio.gather(
+                        *(
+                            self._get_async_task_for_node_execution(dep_id)
+                            for dep_id in dependency_ids
+                        ),
                     )
-                )
+                except Exception as e:
+                    raise UpstreamFailure(
+                        f"Node {node_id} skipped due to upstream failure"
+                    )
+
+            if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
+                print(f"Node {node_id} skipped due to upstream failure")
+                self._failed_nodes.add(node_id)
+                raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
             if node.node_type != "CoalesceNode" and any(
                 [output is None for output in predecessor_outputs]
