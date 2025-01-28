@@ -16,6 +16,14 @@ from .task_recorder import TaskRecorder, TaskStatus
 from .workflow_execution_context import WorkflowExecutionContext
 
 
+class UpstreamFailure(Exception):
+    pass
+
+
+class UnconnectedNode(Exception):
+    pass
+
+
 class WorkflowExecutor:
     """
     Handles the execution of a workflow.
