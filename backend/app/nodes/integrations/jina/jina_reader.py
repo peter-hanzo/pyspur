@@ -1,6 +1,4 @@
-import json
 import logging as logger
-import sys
 
 from pydantic import BaseModel, Field  # type: ignore
 import requests
