@@ -3,6 +3,7 @@ import { Button, Chip, Input, listboxItem, Select, SelectItem } from '@heroui/re
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
+import { convertToPythonVariableName } from '../../../utils/variableNameUtils'
 
 interface SchemaEditorProps {
     jsonValue?: Record<string, string>
@@ -26,6 +27,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const [newKey, setNewKey] = useState<string>('')
     const [newType, setNewType] = useState<string>(availableFields[0])
     const [editingField, setEditingField] = useState<string | null>(null)
+    const [editingValues, setEditingValues] = useState<Record<string, string>>({})
     const dispatch = useDispatch()
 
     const getPlaceholderExample = (): string => {
@@ -33,10 +35,11 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     }
 
     const handleAddKey = (): void => {
-        if (newKey && !jsonValue?.hasOwnProperty(newKey)) {
+        const validKey = convertToPythonVariableName(newKey)
+        if (validKey && !jsonValue?.hasOwnProperty(validKey)) {
             const updatedJson = {
                 ...jsonValue,
-                [newKey]: newType,
+                [validKey]: newType,
             }
             onChange(updatedJson)
             setNewKey('')
@@ -58,30 +61,41 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     }
 
     const handleKeyEdit = (oldKey: string, newKey: string): void => {
-        newKey = newKey.replace(/\s+/g, '_')
-        if (oldKey === newKey || !newKey.trim()) {
+        const validKey = convertToPythonVariableName(newKey)
+        if (oldKey === validKey || !validKey.trim()) {
             setEditingField(null)
+            setEditingValues((prev) => {
+                const { [oldKey]: _, ...rest } = prev
+                return rest
+            })
             return
         }
 
-        const updatedJson = {
-            ...jsonValue,
-            [newKey]: getType(jsonValue[oldKey]),
-        }
-        delete updatedJson[oldKey]
+        const updatedJson: Record<string, string> = {}
+        Object.entries(jsonValue).forEach(([key, value]) => {
+            if (key === oldKey) {
+                updatedJson[validKey] = getType(value)
+            } else {
+                updatedJson[key] = getType(value)
+            }
+        })
 
         onChange(updatedJson)
-        if (newKey && oldKey && schemaType !== 'input_map' && schemaType !== 'output_map') {
+        if (validKey && oldKey && schemaType !== 'input_map' && schemaType !== 'output_map') {
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
                     oldHandleId: oldKey,
-                    newHandleId: newKey,
+                    newHandleId: validKey,
                     schemaType,
                 })
             )
         }
         setEditingField(null)
+        setEditingValues((prev) => {
+            const { [oldKey]: _, ...rest } = prev
+            return rest
+        })
     }
 
     const label = schemaType === 'input_map' || schemaType === 'output_map' ? 'Field' : 'Type'
@@ -92,12 +106,14 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 <Input
                     type="text"
                     value={newKey}
-                    onChange={(e) => setNewKey(e.target.value.replace(/\s+/g, '_'))}
+                    onChange={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
+                    onBlur={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
                     placeholder={getPlaceholderExample()}
                     label="Name"
                     disabled={disabled}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !disabled && newKey) {
+                            e.currentTarget.blur()
                             handleAddKey()
                         }
                     }}
@@ -146,15 +162,25 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                             <Input
                                 autoFocus
                                 defaultValue={key}
+                                value={editingValues[key] || key}
                                 size="sm"
                                 variant="faded"
                                 radius="lg"
-                                onBlur={(e) => handleKeyEdit(key, e.target.value)}
+                                onFocus={(e) => setEditingValues((prev) => ({ ...prev, [key]: e.target.value }))}
+                                onBlur={(e) => handleKeyEdit(key, editingValues[key])}
+                                onChange={(e) => {
+                                    const pythonVarName = convertToPythonVariableName(e.target.value)
+                                    setEditingValues((prev) => ({ ...prev, [key]: pythonVarName }))
+                                }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                        handleKeyEdit(key, e.target.value)
+                                        e.currentTarget.blur()
                                     } else if (e.key === 'Escape') {
                                         setEditingField(null)
+                                        setEditingValues((prev) => {
+                                            const { [key]: _, ...rest } = prev
+                                            return rest
+                                        })
                                     }
                                 }}
                                 classNames={{
