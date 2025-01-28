@@ -10,10 +10,7 @@ import {
     FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
-import {
-    FlowWorkflowNodeType,
-    FlowWorkflowNodeTypesByCategory,
-} from '../../../store/nodeTypesSlice'
+import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../../store/nodeTypesSlice'
 import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import NumberInput from '../../NumberInput'
 import CodeEditor from '../../CodeEditor'
@@ -487,7 +484,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum, fullPath, defaultSelected)
         }
 
-
         if (key === 'output_schema') {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
@@ -498,9 +494,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">Output Schema</h3>
                         <Tooltip
-                            content={supportsJsonOutput
-                                ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
-                                : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                            content={
+                                supportsJsonOutput
+                                    ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
+                                    : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
                             placement="left-start"
                             showArrow={true}
@@ -558,7 +555,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <Alert className="mb-2" color="warning">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:info-circle-linear" width={20} />
-                                <span>This model uses a fixed output schema: <code>{"{ output: string }"}</code></span>
+                                <span>
+                                    This model uses a fixed output schema: <code>{'{ output: string }'}</code>
+                                </span>
                             </div>
                         </Alert>
                     )}
@@ -577,9 +576,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">Output JSON Schema</h3>
                         <Tooltip
-                            content={supportsJsonOutput
-                                ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
-                                : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                            content={
+                                supportsJsonOutput
+                                    ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                                    : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
                             placement="left-start"
                             showArrow={true}
@@ -634,7 +634,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <Alert className="mb-2" color="warning">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:info-circle-linear" width={20} />
-                                <span>This model uses a fixed output schema: <code>{"{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"}</code></span>
+                                <span>
+                                    This model uses a fixed output schema:{' '}
+                                    <code>
+                                        {
+                                            "{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"
+                                        }
+                                    </code>
+                                </span>
                             </div>
                         </Alert>
                     )}
@@ -824,7 +831,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             <label className="font-semibold">{fieldMetadata?.title || key}</label>
                             <Switch
                                 key={`switch-${nodeID}-${key}`}
-                                checked={value}
+                                isSelected={value}
                                 onChange={(e) => handleInputChange(key, e.target.checked)}
                             />
                         </div>
