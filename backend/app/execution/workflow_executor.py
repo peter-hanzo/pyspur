@@ -239,6 +239,13 @@ class WorkflowExecutor:
             # If node_input is empty, return None
             if not node_input:
                 self._outputs[node_id] = None
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.COMPLETED,
+                        end_time=datetime.now(),
+                        outputs={},
+                    )
                 return None
 
             node_instance = NodeFactory.create_node(
