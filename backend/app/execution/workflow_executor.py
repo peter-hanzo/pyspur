@@ -276,6 +276,17 @@ class WorkflowExecutor:
             # Store output
             self._outputs[node_id] = output
             return output
+        except UpstreamFailure as e:
+            self._failed_nodes.add(node_id)
+            self._outputs[node_id] = None
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.CANCELED,
+                    end_time=datetime.now(),
+                    error="Upstream failure",
+                )
+            raise e
         except Exception as e:
             error_msg = (
                 f"Node execution failed:\n"
