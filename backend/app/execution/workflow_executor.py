@@ -293,6 +293,10 @@ class WorkflowExecutor:
                     print(
                         f"[WARNING]: Precomputed output validation failed for node {node_id}: {e}\n skipping precomputed output"
                     )
+                except AttributeError as e:
+                    print(
+                        f"[WARNING]: Node {node_id} does not have an output_model defined: {e}\n skipping precomputed output"
+                    )
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
