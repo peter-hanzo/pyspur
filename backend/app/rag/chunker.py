@@ -7,10 +7,10 @@ from tempfile import NamedTemporaryFile
 import os
 
 from .schemas.document_schemas import (
-    Document,
-    DocumentChunk,
-    DocumentChunkMetadata,
-    ChunkingConfig,
+    DocumentSchema,
+    DocumentChunkSchema,
+    DocumentChunkMetadataSchema,
+    ChunkingConfigSchema,
 )
 from .parser import extract_text_from_file
 
@@ -46,7 +46,7 @@ def apply_template(text: str, template: str, metadata_template: Dict[str, str]) 
         return text, {"type": "text_chunk", "error": str(e)}
 
 
-def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
+def get_text_chunks(text: str, config: ChunkingConfigSchema) -> List[str]:
     """
     Split a text into chunks based on the provided configuration.
 
@@ -99,8 +99,8 @@ def get_text_chunks(text: str, config: ChunkingConfig) -> List[str]:
 
 
 def create_document_chunks(
-    doc: Document, config: ChunkingConfig
-) -> Tuple[List[DocumentChunk], str]:
+    doc: DocumentSchema, config: ChunkingConfigSchema
+) -> Tuple[List[DocumentChunkSchema], str]:
     """
     Create a list of document chunks from a document object.
 
@@ -118,13 +118,13 @@ def create_document_chunks(
     text_chunks = get_text_chunks(doc.text, config)
 
     metadata = (
-        DocumentChunkMetadata(**doc.metadata.model_dump())
+        DocumentChunkMetadataSchema(**doc.metadata.model_dump())
         if doc.metadata is not None
-        else DocumentChunkMetadata()
+        else DocumentChunkMetadataSchema()
     )
     metadata.document_id = doc_id
 
-    doc_chunks: List[DocumentChunk] = []
+    doc_chunks: List[DocumentChunkSchema] = []
     for i, text_chunk in enumerate(text_chunks):
         chunk_id = f"{doc_id}_{i}"
 
@@ -142,7 +142,7 @@ def create_document_chunks(
             processed_text = text_chunk
             chunk_metadata = metadata
 
-        doc_chunk = DocumentChunk(
+        doc_chunk = DocumentChunkSchema(
             id=chunk_id,
             text=processed_text,
             metadata=chunk_metadata,
@@ -156,7 +156,7 @@ async def preview_document_chunk(
     file: BinaryIO,
     filename: str,
     mime_type: str,
-    config: ChunkingConfig,
+    config: ChunkingConfigSchema,
 ) -> Tuple[List[Dict[str, str]], int]:
     """
     Preview how a document will be chunked and formatted.
@@ -186,7 +186,7 @@ async def preview_document_chunk(
             os.unlink(temp_file.name)
 
         # Create a temporary Document object to use create_document_chunks
-        temp_doc = Document(text=extracted_text)
+        temp_doc = DocumentSchema(text=extracted_text)
         doc_chunks, _ = create_document_chunks(temp_doc, config)
 
         if not doc_chunks:

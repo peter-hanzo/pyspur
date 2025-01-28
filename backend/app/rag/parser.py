@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 
 import docx2txt
 import pptx
-from .schemas.document_schemas import Document, DocumentMetadata
+from .schemas.document_schemas import DocumentSchema, DocumentMetadataSchema
 from fastapi import UploadFile
 from loguru import logger
 from pypdf import PdfReader
@@ -15,11 +15,11 @@ from pyzerox import zerox
 
 
 async def get_document_from_file(
-    file: UploadFile, metadata: DocumentMetadata
-) -> Document:
+    file: UploadFile, metadata: DocumentMetadataSchema
+) -> DocumentSchema:
     extracted_text = await extract_text_from_form_file(file)
 
-    doc = Document(text=extracted_text, metadata=metadata)
+    doc = DocumentSchema(text=extracted_text, metadata=metadata)
 
     return doc
 

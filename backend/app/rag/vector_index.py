@@ -6,10 +6,10 @@ from loguru import logger
 
 from .embedder import get_multiple_text_embeddings, EmbeddingModels
 from .schemas.document_schemas import (
-    Document,
-    DocumentWithChunks,
-    DocumentChunk,
-    DocumentMetadataFilter
+    DocumentSchema,
+    DocumentWithChunksSchema,
+    DocumentChunkSchema,
+    DocumentMetadataFilterSchema
 )
 from .datastore.factory import get_datastore
 
@@ -67,7 +67,7 @@ class VectorIndex:
 
     async def create_from_document_collection(
         self,
-        docs_with_chunks: List[DocumentWithChunks],
+        docs_with_chunks: List[DocumentWithChunksSchema],
         config: Dict[str, Any],
         on_progress: Optional[Callable[[float, str, int, int], Coroutine[Any, Any, None]]] = None,
     ) -> str:
@@ -87,7 +87,7 @@ class VectorIndex:
             self.update_config(config)
 
             # Get all chunks
-            all_chunks: List[DocumentChunk] = []
+            all_chunks: List[DocumentChunkSchema] = []
             for doc in docs_with_chunks:
                 all_chunks.extend(doc.chunks)
 
@@ -186,7 +186,7 @@ class VectorIndex:
 
             # Insert chunks into datastore
             await datastore.upsert(
-                cast(List[Document], docs_with_chunks),
+                cast(List[DocumentSchema], docs_with_chunks),
                 chunk_token_size=config.get("chunk_token_size", 200)
             )
             logger.debug("All chunks successfully upserted into datastore.")
@@ -229,7 +229,7 @@ class VectorIndex:
 
             # Delete vectors from vector database
             await datastore.delete(
-                filter=DocumentMetadataFilter(
+                filter=DocumentMetadataFilterSchema(
                     document_id=self.index_id,
                 ),
                 delete_all=False,
