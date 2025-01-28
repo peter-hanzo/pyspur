@@ -212,6 +212,7 @@ async def run_workflow_non_blocking(
                     if node.node_type == "InputNode"
                 )
                 outputs = await executor(run.initial_inputs[input_node.id])
+                print("Outputs:", outputs)
                 run.outputs = {k: v.model_dump() for k, v in outputs.items()}
                 run.status = RunStatus.COMPLETED
                 run.end_time = datetime.now(timezone.utc)
@@ -419,7 +420,12 @@ def list_runs(
             failed_tasks = [
                 task for task in run.tasks if task.status == TaskStatus.FAILED
             ]
-            if failed_tasks:
+            running_and_pending_tasks = [
+                task
+                for task in run.tasks
+                if task.status in [TaskStatus.PENDING, TaskStatus.RUNNING]
+            ]
+            if failed_tasks and len(running_and_pending_tasks) == 0:
                 run.status = RunStatus.FAILED
                 db.commit()
                 db.refresh(run)
