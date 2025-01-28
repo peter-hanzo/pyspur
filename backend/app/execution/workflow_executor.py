@@ -164,14 +164,7 @@ class WorkflowExecutor:
             if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
                 print(f"Node {node_id} skipped due to upstream failure")
                 self._failed_nodes.add(node_id)
-                if self.task_recorder:
-                    self.task_recorder.update_task(
-                        node_id=node_id,
-                        status=TaskStatus.FAILED,
-                        end_time=datetime.now(),
-                        error="Upstream node failure",
-                    )
-                raise Exception("Upstream node failure")
+                raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
             # Wait for dependencies
             predecessor_outputs: List[Optional[BaseNodeOutput]] = []
@@ -253,7 +246,7 @@ class WorkflowExecutor:
             # If node_input is empty, return None
             if not node_input:
                 self._outputs[node_id] = None
-                raise Exception("Node not connected to any predecessor nodes")
+                raise UnconnectedNode(f"Node {node_id} has no input")
 
             node_instance = NodeFactory.create_node(
                 node_name=node.title, node_type_name=node.node_type, config=node.config
