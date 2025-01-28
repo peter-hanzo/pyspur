@@ -700,7 +700,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         </div>
                     ))}
             </div>
-            <NodeOutputDisplay output={data.run} />
+            <NodeOutputDisplay output={data.run} key={`output-${id}`} />
         </BaseNode>
     )
 }

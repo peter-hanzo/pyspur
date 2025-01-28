@@ -353,7 +353,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         {renderHandles()}
                     </div>
                     {nodeData.error && <NodeErrorDisplay error={nodeData.error} />}
-                    {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
+                    {displayOutput && <NodeOutputDisplay key={`output-display-${id}`} output={nodeData.run} />}
                 </BaseNode>
             </div>
             <NodeOutputModal
