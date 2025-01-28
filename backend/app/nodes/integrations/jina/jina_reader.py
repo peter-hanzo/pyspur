@@ -1,7 +1,7 @@
-import logging as logger
+import logging
 
 from pydantic import BaseModel, Field  # type: ignore
-import requests
+import httpx
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 class JinaReaderNodeConfig(BaseNodeConfig):
@@ -19,8 +19,11 @@ class JinaReaderNodeInput(BaseNodeInput):
 
 
 class JinaReaderNodeOutput(BaseNodeOutput):
+    title: str = Field(
+        "", description="The title of scraped page"
+    )
     content: str = Field(
-        ..., description="The scraped data in markdown or structured format."
+        "", description="The content of the scraped page in markdown format"
     )
 
 
@@ -43,10 +46,14 @@ class JinaReaderNode(BaseNode):
                 headers['X-Respond-With'] = 'readerlm-v2'
 
             reader_url = 'https://r.jina.ai/{url}'.format(url=input.input_node.url)
-            logger.debug(f'Fetching {reader_url}')
-            response = requests.get(reader_url, headers=headers)
-            logger.debug('Fetched from Jina: {text}'.format(text=response.text))
-            return JinaReaderNodeOutput(content=response.text)
+            async with httpx.AsyncClient() as client:
+                response = await client.get(reader_url, headers=headers)
+                logging.debug('Fetched from Jina: {text}'.format(text=response.text))
+                output = self.output_model.validate(response.json()['data'])
+            if output.content.startswith("```markdown"):
+                # remove the backticks/code format indicators in the output
+                output.content = output.content[12:-4]
+            return output
         except Exception as e:
-            logger.error(f"Failed to convert URL: {e}")
-            return JinaReaderNodeOutput(content="")
+            logging.error(f"Failed to convert URL: {e}")
+            return JinaReaderNodeOutput(title="", content="")
