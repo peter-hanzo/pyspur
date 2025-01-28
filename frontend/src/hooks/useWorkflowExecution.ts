@@ -105,7 +105,11 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
                 }
-                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
+                if (
+                    statusResponse.status === 'FAILED' ||
+                    (tasks.some((task) => task.status === 'FAILED') &&
+                        !tasks.some((task) => task.status === 'RUNNING' || task.status === 'PENDING'))
+                ) {
                     setIsRunning(false)
                     setCompletionPercentage(0)
                     // Clear all intervals
