@@ -3,7 +3,7 @@ import { Handle, useNodeConnections, useConnection, Position, useUpdateNodeInter
 import BaseNode from '../BaseNode'
 import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeConfigOnly } from '../../../store/flowSlice'
+import { updateNodeConfigOnly, deleteEdgeByHandle } from '../../../store/flowSlice'
 import styles from '../DynamicNode.module.css'
 import { Icon } from '@iconify/react'
 import { RootState } from '../../../store/store'
@@ -286,10 +286,27 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
         const finalWidth = Math.min(estimatedWidth, maxNodeWidth)
 
         // If collapsed, show auto; otherwise the computed width
-        if (nodeWidth !== `${finalWidth}px`) {
-            setNodeWidth(isCollapsed ? 'auto' : `${finalWidth}px`)
+        const newWidth = isCollapsed ? 'auto' : `${finalWidth}px`
+        if (nodeWidth !== newWidth) {
+            setNodeWidth(newWidth)
+            // Update node internals whenever width changes
+            setTimeout(() => {
+                updateNodeInternals(id)
+            }, 0)
         }
-    }, [predecessorNodes, nodeConfig?.title, isCollapsed])
+    }, [predecessorNodes, nodeConfig?.title, isCollapsed, nodeWidth, id, updateNodeInternals])
+
+    // Also add an effect to update node internals when the node config changes
+    useEffect(() => {
+        updateNodeInternals(id)
+    }, [nodeConfig, id, updateNodeInternals])
+
+    // Add this useEffect to update node internals when route_map changes
+    useEffect(() => {
+        if (nodeConfig?.route_map) {
+            updateNodeInternals(id)
+        }
+    }, [nodeConfig?.route_map, id, updateNodeInternals])
 
     const handleUpdateRouteMap = (newRouteMap: Record<string, RouteConditionGroup>) => {
         dispatch(
@@ -304,10 +321,15 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     }
 
     const addRoute = () => {
-        const newRouteKey = `route${Object.keys(nodeConfig?.route_map || {}).length + 1}`
+        // Find the highest route number and increment by 1
+        const routeNumbers = Object.keys(nodeConfig?.route_map || {})
+            .map((key) => parseInt(key.replace('route', '')))
+            .filter((num) => !isNaN(num))
+        const nextRouteNumber = routeNumbers.length > 0 ? Math.max(...routeNumbers) + 1 : 1
+
         const newRouteMap = {
             ...(nodeConfig?.route_map || {}),
-            [newRouteKey]: { ...DEFAULT_ROUTE },
+            [`route${nextRouteNumber}`]: { ...DEFAULT_ROUTE },
         }
         handleUpdateRouteMap(newRouteMap)
     }
@@ -317,18 +339,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             return
         }
 
-        // Remove the specified route
+        // Delete the edge associated with this route
+        dispatch(deleteEdgeByHandle({ nodeId: id, handleKey: routeKey }))
+
+        // Simply remove the specified route without reordering
         const { [routeKey]: _, ...remainingRoutes } = nodeConfig.route_map
-
-        // Create new route map with reordered keys
-        const newRouteMap = Object.entries(remainingRoutes).reduce((acc, [_, route], index) => {
-            return {
-                ...acc,
-                [`route${index + 1}`]: route,
-            }
-        }, {})
-
-        handleUpdateRouteMap(newRouteMap)
+        handleUpdateRouteMap(remainingRoutes)
     }
 
     const addCondition = (routeKey: string) => {
@@ -438,7 +454,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                     color="danger"
                                                     variant="light"
                                                     isIconOnly
-                                                    onClick={() => removeRoute(routeKey)}
+                                                    onPress={() => removeRoute(routeKey)}
                                                     className="flex-none"
                                                 >
                                                     <Icon icon="solar:trash-bin-trash-linear" width={18} />
@@ -470,7 +486,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                         </RadioGroup>
                                                     </div>
                                                 )}
-                                                <div className="flex flex-wrap gap-2 items-start">
+                                                <div className="grid grid-cols-[1fr,auto] gap-2">
                                                     <Select
                                                         aria-label="Select variable"
                                                         size="sm"
@@ -484,7 +500,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             )
                                                         }
                                                         placeholder="Select variable"
-                                                        className="flex-[2] min-w-[160px]"
+                                                        className="w-full"
                                                         variant="flat"
                                                         classNames={{
                                                             trigger: 'dark:bg-default-50/10',
@@ -516,7 +532,19 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             </SelectItem>
                                                         ))}
                                                     </Select>
-                                                    <div className="flex gap-2 flex-[2] min-w-[200px]">
+                                                    {!readOnly && route.conditions.length > 1 && (
+                                                        <Button
+                                                            size="sm"
+                                                            color="danger"
+                                                            variant="light"
+                                                            isIconOnly
+                                                            onPress={() => removeCondition(routeKey, conditionIndex)}
+                                                            className="flex-none"
+                                                        >
+                                                            <Icon icon="solar:trash-bin-trash-linear" width={18} />
+                                                        </Button>
+                                                    )}
+                                                    <div className="flex gap-2 col-span-2">
                                                         <Select
                                                             aria-label="Select operator"
                                                             size="sm"
@@ -574,7 +602,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                                     )
                                                                 }
                                                                 placeholder="Value"
-                                                                className="flex-1 min-w-[80px]"
+                                                                className="flex-1"
                                                                 classNames={{
                                                                     label: 'text-default-700 dark:text-default-300',
                                                                     input: [
@@ -596,20 +624,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                                 isDisabled={readOnly}
                                                             />
                                                         )}
-                                                        {!readOnly && route.conditions.length > 1 && (
-                                                            <Button
-                                                                size="sm"
-                                                                color="danger"
-                                                                variant="light"
-                                                                isIconOnly
-                                                                onClick={() =>
-                                                                    removeCondition(routeKey, conditionIndex)
-                                                                }
-                                                                className="flex-none"
-                                                            >
-                                                                <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                                                            </Button>
-                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -621,7 +635,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                 size="sm"
                                                 color="primary"
                                                 variant="light"
-                                                onClick={() => addCondition(routeKey)}
+                                                onPress={() => addCondition(routeKey)}
                                                 startContent={
                                                     <Icon
                                                         icon="solar:add-circle-linear"
@@ -659,7 +673,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                     size="sm"
                                     color="primary"
                                     variant="light"
-                                    onClick={addRoute}
+                                    onPress={addRoute}
                                     startContent={
                                         <Icon icon="solar:add-circle-linear" width={18} className="text-foreground" />
                                     }
