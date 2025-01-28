@@ -115,7 +115,16 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     // Clear all intervals
                     statusIntervals.current.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
-                    onAlert('Workflow run failed.', 'danger')
+
+                    // Check if some tasks succeeded while others failed
+                    if (
+                        tasks.some((task) => task.status === 'COMPLETED') &&
+                        tasks.some((task) => task.status === 'FAILED')
+                    ) {
+                        onAlert('Workflow ran with some failed tasks.', 'warning')
+                    } else {
+                        onAlert('Workflow run failed.', 'danger')
+                    }
                     return
                 }
             } catch (error) {
