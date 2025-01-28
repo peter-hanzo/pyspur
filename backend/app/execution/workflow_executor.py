@@ -239,14 +239,7 @@ class WorkflowExecutor:
             # If node_input is empty, return None
             if not node_input:
                 self._outputs[node_id] = None
-                if self.task_recorder:
-                    self.task_recorder.update_task(
-                        node_id=node_id,
-                        status=TaskStatus.COMPLETED,
-                        end_time=datetime.now(),
-                        outputs={},
-                    )
-                return None
+                raise Exception("Node not connected to any predecessor nodes")
 
             node_instance = NodeFactory.create_node(
                 node_name=node.title, node_type_name=node.node_type, config=node.config
