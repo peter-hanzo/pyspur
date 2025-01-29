@@ -5,8 +5,7 @@ import logging
 import os
 import re
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, cast
-from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 from docx2python import docx2python
 
 import litellm
@@ -481,7 +480,7 @@ async def completion_with_backoff(**kwargs) -> str:
             return response.choices[0].message.content
 
     except Exception as e:
-        logging.error(f"=== LLM Request Error ===")
+        logging.error("=== LLM Request Error ===")
         # Create a save copy of kwargs without sensitive information
         save_config = kwargs.copy()
         save_config["api_key"] = "********" if "api_key" in save_config else None
@@ -535,6 +534,8 @@ async def generate_text(
             output_json_schema = convert_output_schema_to_json_schema(output_schema)
         elif output_json_schema is not None and output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
+        else:
+            raise ValueError("Invalid output schema", output_schema, output_json_schema)
         output_json_schema["additionalProperties"] = False
 
         # check if the model supports response format
@@ -605,13 +606,17 @@ async def generate_text(
                                     logging.info(f"Reading file from: {file_path}")
 
                                     # Check if file is a DOCX file
-                                    if str(file_path).lower().endswith('.docx'):
+                                    if str(file_path).lower().endswith(".docx"):
                                         # Convert DOCX to XML
-                                        xml_content = convert_docx_to_xml(str(file_path))
+                                        xml_content = convert_docx_to_xml(
+                                            str(file_path)
+                                        )
                                         # Encode the XML content directly
                                         data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
                                     else:
-                                        data_url = encode_file_to_base64_data_url(str(file_path))
+                                        data_url = encode_file_to_base64_data_url(
+                                            str(file_path)
+                                        )
 
                                     content.append(
                                         {
@@ -645,13 +650,17 @@ async def generate_text(
     if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
         # Check for provider-specific fields
-        if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-            if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                provider_fields = raw_response.choices[0].message.provider_specific_fields
-                return json.dumps({
-                    "output": sanitized_response,
-                    "provider_specific_fields": provider_fields
-                })
+        if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
+            if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
+                provider_fields = raw_response.choices[
+                    0
+                ].message.provider_specific_fields
+                return json.dumps(
+                    {
+                        "output": sanitized_response,
+                        "provider_specific_fields": provider_fields,
+                    }
+                )
         return f'{{"output": "{sanitized_response}"}}'
 
     # Ensure response is valid JSON for models that support it
@@ -676,13 +685,17 @@ async def generate_text(
             # If all attempts to parse JSON fail, wrap the response in a JSON structure
             sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
             # Check for provider-specific fields
-            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                    provider_fields = raw_response.choices[0].message.provider_specific_fields
-                    return json.dumps({
-                        "output": sanitized_response,
-                        "provider_specific_fields": provider_fields
-                    })
+            if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
+                if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
+                    provider_fields = raw_response.choices[
+                        0
+                    ].message.provider_specific_fields
+                    return json.dumps(
+                        {
+                            "output": sanitized_response,
+                            "provider_specific_fields": provider_fields,
+                        }
+                    )
             return f'{{"output": "{sanitized_response}"}}'
 
     return response
@@ -763,7 +776,7 @@ def convert_docx_to_xml(file_path: str) -> str:
     try:
         with docx2python(file_path) as docx_content:
             # Convert the document content to XML format
-            xml_content = f"<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
+            xml_content = "<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
 
             # Add metadata
             xml_content += "<metadata>\n"
