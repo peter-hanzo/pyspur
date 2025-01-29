@@ -29,7 +29,6 @@ import { CreateNodeResult } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import DynamicNode from '../components/nodes/DynamicNode'
 import InputNode from '../components/nodes/InputNode'
-import RetrieverNode from '../components/nodes/RetrieverNode'
 import { RouterNode } from '../components/nodes/logic/RouterNode'
 import { CoalesceNode } from '../components/nodes/logic/CoalesceNode'
 import { v4 as uuidv4 } from 'uuid'
@@ -64,8 +63,6 @@ export const useNodeTypes = ({
                     types[node.name] = CoalesceNode
                 } else if (node.name === 'ForLoopNode') {
                     types[node.name] = (props: any) => <DynamicGroupNode key={props.id} {...props} />
-                } else if (node.name === 'retriever_node') {
-                    types[node.name] = (props: any) => <RetrieverNode key={props.id} {...props} readOnly={readOnly} />
                 } else {
                     types[node.name] = (props: any) => (
                         <DynamicNode

@@ -456,7 +456,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Add effect to fetch indices when node type is RetrieverNode
     useEffect(() => {
-        if (node?.type === 'RetrieverNode') {
+        if (node?.type === 'retriever_node') {
             fetchVectorIndices()
         }
     }, [node?.type])
@@ -467,7 +467,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
 
         // Add special handling for index_id field in RetrieverNode
-        if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
+        if (key === 'vector_index_id' && node?.type === 'retriever_node') {
             return (
                 <div key={key} className="my-4">
                     <div className="flex items-center gap-2 mb-2">
