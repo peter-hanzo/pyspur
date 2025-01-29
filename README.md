@@ -42,6 +42,10 @@ PDFs, Videos, Audio, Images, ...
 
 https://github.com/user-attachments/assets/83ed9a22-1ec1-4d86-9dd6-5d945588fd0b
 
+## Loops
+
+<img width="1919" alt="Loops" src="https://github.com/user-attachments/assets/3aea63dc-f46f-46e9-bddd-e2af9c2a56bf" />
+
 ## RAG
 
 ### Step 1) Create Document Collection (Chunking + Parsing)
