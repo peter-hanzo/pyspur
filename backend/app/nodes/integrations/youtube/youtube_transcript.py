@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.youtube_tools import YouTubeTools
-from jinja2 import Template
 import logging
+from ...utils.template_utils import render_template_or_get_first_string
 
 
 class YouTubeTranscriptNodeConfig(BaseNodeConfig):
@@ -38,31 +38,12 @@ class YouTubeTranscriptNode(BaseNode):
             raw_input_dict = input.model_dump()
 
             # Render video_url_template
-            video_url_template = Template(self.config.video_url_template).render(
-                **raw_input_dict
+            video_url = render_template_or_get_first_string(
+                self.config.video_url_template, raw_input_dict, self.name
             )
 
-            try:
-                # If url is empty, dump the first string type in the input dictionary
-                if not self.config.video_url_template.strip():
-                    for _, value in raw_input_dict.items():
-                        if isinstance(value, str):
-                            video_url_template = value
-                            break
-                        else:
-                            raise ValueError(
-                                f"No string type found in the input dictionary: {raw_input_dict}"
-                            )
-
-            except Exception as e:
-                logging.error(f"Failed to render video_url_template {self.name}")
-                logging.error(
-                    f"video_url_template: {self.config.video_url_template} with input: {raw_input_dict}"
-                )
-                raise e
-
             yt = YouTubeTools()
-            transcript: str = yt.get_youtube_video_captions(url=video_url_template)
+            transcript: str = yt.get_youtube_video_captions(url=video_url)
             return YouTubeTranscriptNodeOutput(transcript=transcript)
         except Exception as e:
             logging.error(f"Failed to get transcript: {e}")
