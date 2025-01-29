@@ -446,7 +446,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         try {
             setIsLoadingIndices(true)
             const indices = await listVectorIndices()
-            console.log('Fetched vector indices:', indices)
             setVectorIndices(indices)
         } catch (error) {
             console.error('Error fetching vector indices:', error)

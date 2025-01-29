@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 from ...rag.vector_index import VectorIndex
 from ...schemas.rag_schemas import (
-    RetrievalRequestSchema,
+
     RetrievalResultSchema,
     ChunkMetadataSchema,
 )
@@ -23,10 +23,10 @@ from ..base import (
 class RetrieverNodeConfig(FixedOutputBaseNodeConfig):
     """Configuration for the retriever node"""
     vector_index_id: str = Field("", description="ID of the vector index to query")
-    top_k: int = Field(5, description="Number of results to return")
-    score_threshold: Optional[float] = Field(None, description="Minimum similarity score threshold")
-    semantic_weight: float = Field(1.0, description="Weight for semantic search (0 to 1)")
-    keyword_weight: Optional[float] = Field(None, description="Weight for keyword search (0 to 1)")
+    top_k: int = Field(5, description="Number of results to return", ge=1, le=10)
+    # score_threshold: Optional[float] = Field(None, description="Minimum similarity score threshold")
+    # semantic_weight: float = Field(1.0, description="Weight for semantic search (0 to 1)")
+    # keyword_weight: Optional[float] = Field(None, description="Weight for keyword search (0 to 1)")
 
 
 class RetrieverNodeInput(BaseNodeInput):
@@ -125,8 +125,7 @@ if __name__ == "__main__":
                 vector_index_id="VI1",  # Using proper vector index ID format
                 top_k=3,
                 score_threshold=0.7,
-                semantic_weight=1.0,
-                keyword_weight=None,
+
             ),
         )
 
