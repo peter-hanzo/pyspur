@@ -105,13 +105,26 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     clearInterval(currentStatusInterval)
                     onAlert('Workflow run completed.', 'success')
                 }
-                if (statusResponse.status === 'FAILED' || tasks.some((task) => task.status === 'FAILED')) {
+                if (
+                    statusResponse.status === 'FAILED' ||
+                    (tasks.some((task) => task.status === 'FAILED') &&
+                        !tasks.some((task) => task.status === 'RUNNING' || task.status === 'PENDING'))
+                ) {
                     setIsRunning(false)
                     setCompletionPercentage(0)
                     // Clear all intervals
                     statusIntervals.current.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
-                    onAlert('Workflow run failed.', 'danger')
+
+                    // Check if some tasks succeeded while others failed
+                    if (
+                        tasks.some((task) => task.status === 'COMPLETED') &&
+                        tasks.some((task) => task.status === 'FAILED')
+                    ) {
+                        onAlert('Workflow ran with some failed tasks.', 'warning')
+                    } else {
+                        onAlert('Workflow run failed.', 'danger')
+                    }
                     return
                 }
             } catch (error) {

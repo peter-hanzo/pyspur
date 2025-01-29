@@ -3,12 +3,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ...schemas.document_schemas import (
-    DocumentChunk,
-    DocumentChunkMetadata,
-    DocumentChunkWithScore,
-    DocumentMetadataFilter,
-    QueryResult,
-    QueryWithEmbedding,
+    DocumentChunkSchema,
+    DocumentChunkMetadataSchema,
+    DocumentChunkWithScoreSchema,
+    DocumentMetadataFilterSchema,
+    QueryResultSchema,
+    QueryWithEmbeddingSchema,
 )
 from loguru import logger
 from ..services.date import to_unix_timestamp
@@ -48,7 +48,7 @@ class PGClient(ABC):
 
     @abstractmethod
     async def delete_by_filters(
-        self, table: str, filter: DocumentMetadataFilter
+        self, table: str, filter: DocumentMetadataFilterSchema
     ) -> None:
         """
         Deletes rows in the table that match the filter.
@@ -72,7 +72,7 @@ class PgVectorDataStore(DataStore):
 
         raise NotImplementedError
 
-    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
+    async def _upsert(self, chunks: Dict[str, List[DocumentChunkSchema]]) -> List[str]:
         """
         Takes in a dict of document_ids to list of document chunks and inserts them into the database.
         Return a list of document ids.
@@ -99,11 +99,11 @@ class PgVectorDataStore(DataStore):
 
         return list(chunks.keys())
 
-    async def _query(self, queries: List[QueryWithEmbedding]) -> List[QueryResult]:
+    async def _query(self, queries: List[QueryWithEmbeddingSchema]) -> List[QueryResultSchema]:
         """
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
-        query_results: List[QueryResult] = []
+        query_results: List[QueryResultSchema] = []
         for query in queries:
             # get the top 3 documents with the highest cosine similarity using rpc function in the database called "match_page_sections"
             params = {
@@ -130,15 +130,15 @@ class PgVectorDataStore(DataStore):
                     )
             try:
                 data = await self.client.rpc("match_page_sections", params=params)
-                results: List[DocumentChunkWithScore] = []
+                results: List[DocumentChunkWithScoreSchema] = []
                 for row in data:
-                    document_chunk = DocumentChunkWithScore(
+                    document_chunk = DocumentChunkWithScoreSchema(
                         id=row["id"],
                         text=row["content"],
                         # TODO: add embedding to the response ?
                         # embedding=row["embedding"],
                         score=float(row["similarity"]),
-                        metadata=DocumentChunkMetadata(
+                        metadata=DocumentChunkMetadataSchema(
                             source=row["source"],
                             source_id=row["source_id"],
                             document_id=row["document_id"],
@@ -148,16 +148,16 @@ class PgVectorDataStore(DataStore):
                         ),
                     )
                     results.append(document_chunk)
-                query_results.append(QueryResult(query=query.query, results=results))
+                query_results.append(QueryResultSchema(query=query.query, results=results))
             except Exception as e:
                 logger.error(e)
-                query_results.append(QueryResult(query=query.query, results=[]))
+                query_results.append(QueryResultSchema(query=query.query, results=[]))
         return query_results
 
     async def delete(
         self,
         ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
+        filter: Optional[DocumentMetadataFilterSchema] = None,
         delete_all: Optional[bool] = None,
     ) -> bool:
         """

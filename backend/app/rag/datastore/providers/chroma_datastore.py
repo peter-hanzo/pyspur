@@ -14,15 +14,15 @@ from typing import Dict, List, Optional
 import chromadb
 from ...chunker import create_document_chunks
 from ...schemas.document_schemas import (
-    Document,
-    DocumentChunk,
-    DocumentChunkMetadata,
-    DocumentChunkWithScore,
-    DocumentMetadataFilter,
-    QueryResult,
-    QueryWithEmbedding,
+    DocumentSchema,
+    DocumentChunkSchema,
+    DocumentChunkMetadataSchema,
+    DocumentChunkWithScoreSchema,
+    DocumentMetadataFilterSchema,
+    QueryResultSchema,
+    QueryWithEmbeddingSchema,
     Source,
-    ChunkingConfig,
+    ChunkingConfigSchema,
 )
 
 from ..datastore import DataStore
@@ -74,7 +74,7 @@ class ChromaDataStore(DataStore):
         )
 
     async def upsert(
-        self, documents: List[Document], chunk_token_size: Optional[int] = None
+        self, documents: List[DocumentSchema], chunk_token_size: Optional[int] = None
     ) -> List[str]:
         """
         Takes in a list of documents and inserts them into the database. If an id already exists, the document is updated.
@@ -82,14 +82,14 @@ class ChromaDataStore(DataStore):
         """
         chunks = {}
         for doc in documents:
-            config = ChunkingConfig(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfig()
+            config = ChunkingConfigSchema(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfigSchema()
             doc_chunks, doc_id = create_document_chunks(doc, config)
             chunks[doc_id] = doc_chunks
 
         # Chroma has a true upsert, so we don't need to delete first
         return await self._upsert(chunks)
 
-    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
+    async def _upsert(self, chunks: Dict[str, List[DocumentChunkSchema]]) -> List[str]:
         """
         Takes in a list of list of document chunks and inserts them into the database.
         Return a list of document ids.
@@ -113,7 +113,7 @@ class ChromaDataStore(DataStore):
         )
         return list(chunks.keys())
 
-    def _where_from_query_filter(self, query_filter: DocumentMetadataFilter) -> Dict:
+    def _where_from_query_filter(self, query_filter: DocumentMetadataFilterSchema) -> Dict:
         output = {
             k: v
             for (k, v) in query_filter.dict().items()
@@ -149,7 +149,7 @@ class ChromaDataStore(DataStore):
 
         return output
 
-    def _process_metadata_for_storage(self, metadata: DocumentChunkMetadata) -> Dict:
+    def _process_metadata_for_storage(self, metadata: DocumentChunkMetadataSchema) -> Dict:
         stored_metadata = {}
         if metadata.source:
             stored_metadata["source"] = metadata.source.value
@@ -168,8 +168,8 @@ class ChromaDataStore(DataStore):
 
         return stored_metadata
 
-    def _process_metadata_from_storage(self, metadata: Dict) -> DocumentChunkMetadata:
-        return DocumentChunkMetadata(
+    def _process_metadata_from_storage(self, metadata: Dict) -> DocumentChunkMetadataSchema:
+        return DocumentChunkMetadataSchema(
             source=Source(metadata["source"]) if "source" in metadata else None,
             source_id=metadata.get("source_id", None),
             url=metadata.get("url", None),
@@ -182,7 +182,7 @@ class ChromaDataStore(DataStore):
             document_id=metadata.get("document_id", None),
         )
 
-    async def _query(self, queries: List[QueryWithEmbedding]) -> List[QueryResult]:
+    async def _query(self, queries: List[QueryWithEmbeddingSchema]) -> List[QueryResultSchema]:
         """
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
@@ -213,7 +213,7 @@ class ChromaDataStore(DataStore):
                 distances,  # embeddings (https://github.com/openai/chatgpt-retrieval-plugin/pull/59#discussion_r1154985153)
             ):
                 inner_results.append(
-                    DocumentChunkWithScore(
+                    DocumentChunkWithScoreSchema(
                         id=id_,
                         text=text,
                         metadata=self._process_metadata_from_storage(metadata),
@@ -221,14 +221,14 @@ class ChromaDataStore(DataStore):
                         score=distance,
                     )
                 )
-            output.append(QueryResult(query=query.query, results=inner_results))
+            output.append(QueryResultSchema(query=query.query, results=inner_results))
 
         return output
 
     async def delete(
         self,
         ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
+        filter: Optional[DocumentMetadataFilterSchema] = None,
         delete_all: Optional[bool] = None,
     ) -> bool:
         """

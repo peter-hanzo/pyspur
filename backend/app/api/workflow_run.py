@@ -419,7 +419,12 @@ def list_runs(
             failed_tasks = [
                 task for task in run.tasks if task.status == TaskStatus.FAILED
             ]
-            if failed_tasks:
+            running_and_pending_tasks = [
+                task
+                for task in run.tasks
+                if task.status in [TaskStatus.PENDING, TaskStatus.RUNNING]
+            ]
+            if failed_tasks and len(running_and_pending_tasks) == 0:
                 run.status = RunStatus.FAILED
                 db.commit()
                 db.refresh(run)

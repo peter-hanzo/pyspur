@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 
 from ..schemas.run_schemas import RunResponseSchema
 from ..database import get_db
-from ..models.run_model import RunModel
+from ..models.run_model import RunModel, RunStatus
+from ..models.task_model import TaskStatus
 
 router = APIRouter()
 
@@ -46,6 +47,19 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
 @router.get("/{run_id}/status/", response_model=RunResponseSchema)
 def get_run_status(run_id: str, db: Session = Depends(get_db)):
     run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if run.status != RunStatus.FAILED:
+        failed_tasks = [task for task in run.tasks if task.status == TaskStatus.FAILED]
+        running_and_pending_tasks = [
+            task
+            for task in run.tasks
+            if task.status in [TaskStatus.PENDING, TaskStatus.RUNNING]
+        ]
+        if failed_tasks and len(running_and_pending_tasks) == 0:
+            run.status = RunStatus.FAILED
+            db.commit()
+            db.refresh(run)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     return run

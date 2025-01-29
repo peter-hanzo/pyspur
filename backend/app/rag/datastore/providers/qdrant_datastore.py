@@ -4,11 +4,11 @@ from typing import Dict, List, Optional
 
 import qdrant_client
 from ...schemas.document_schemas import (
-    DocumentChunk,
-    DocumentChunkWithScore,
-    DocumentMetadataFilter,
-    QueryResult,
-    QueryWithEmbedding,
+    DocumentChunkSchema,
+    DocumentChunkWithScoreSchema,
+    DocumentMetadataFilterSchema,
+    QueryResultSchema,
+    QueryWithEmbeddingSchema,
 )
 from grpc._channel import _InactiveRpcError
 from qdrant_client.http import models as rest
@@ -53,7 +53,7 @@ class QdrantDataStore(DataStore):
             recreate_collection=recreate_collection,
         )
 
-    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
+    async def _upsert(self, chunks: Dict[str, List[DocumentChunkSchema]]) -> List[str]:
         """
         Takes in a list of document chunks and inserts them into the database.
         Return a list of document ids.
@@ -72,8 +72,8 @@ class QdrantDataStore(DataStore):
 
     async def _query(
         self,
-        queries: List[QueryWithEmbedding],
-    ) -> List[QueryResult]:
+        queries: List[QueryWithEmbeddingSchema],
+    ) -> List[QueryResultSchema]:
         """
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
@@ -85,7 +85,7 @@ class QdrantDataStore(DataStore):
             requests=search_requests,
         )
         return [
-            QueryResult(
+            QueryResultSchema(
                 query=query.query,
                 results=[
                     self._convert_scored_point_to_document_chunk_with_score(point)
@@ -98,7 +98,7 @@ class QdrantDataStore(DataStore):
     async def delete(
         self,
         ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
+        filter: Optional[DocumentMetadataFilterSchema] = None,
         delete_all: Optional[bool] = None,
     ) -> bool:
         """
@@ -124,7 +124,7 @@ class QdrantDataStore(DataStore):
         return "COMPLETED" == response.status
 
     def _convert_document_chunk_to_point(
-        self, document_chunk: DocumentChunk
+        self, document_chunk: DocumentChunkSchema
     ) -> rest.PointStruct:
         created_at = (
             to_unix_timestamp(document_chunk.metadata.created_at)
@@ -148,7 +148,7 @@ class QdrantDataStore(DataStore):
         return uuid.uuid5(self.UUID_NAMESPACE, external_id).hex
 
     def _convert_query_to_search_request(
-        self, query: QueryWithEmbedding
+        self, query: QueryWithEmbeddingSchema
     ) -> rest.SearchRequest:
         return rest.SearchRequest(
             vector=query.embedding,
@@ -160,7 +160,7 @@ class QdrantDataStore(DataStore):
 
     def _convert_metadata_filter_to_qdrant_filter(
         self,
-        metadata_filter: Optional[DocumentMetadataFilter] = None,
+        metadata_filter: Optional[DocumentMetadataFilterSchema] = None,
         ids: Optional[List[str]] = None,
     ) -> Optional[rest.Filter]:
         if metadata_filter is None and ids is None:
@@ -225,9 +225,9 @@ class QdrantDataStore(DataStore):
 
     def _convert_scored_point_to_document_chunk_with_score(
         self, scored_point: rest.ScoredPoint
-    ) -> DocumentChunkWithScore:
+    ) -> DocumentChunkWithScoreSchema:
         payload = scored_point.payload or {}
-        return DocumentChunkWithScore(
+        return DocumentChunkWithScoreSchema(
             id=payload.get("id"),
             text=scored_point.payload.get("text"),  # type: ignore
             metadata=scored_point.payload.get("metadata"),  # type: ignore
