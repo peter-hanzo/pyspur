@@ -310,13 +310,30 @@ class PineconeDataStore(DataStore):
 
         pinecone_metadata = {}
 
+        # Convert the metadata to a dict
+        metadata_dict = metadata.model_dump()
+
         # For each field in the Metadata, check if it has a value and add it to the pinecone metadata dict
-        # For fields that are dates, convert them to unix timestamps
-        for field, value in metadata.model_dump().items():
+        # Flatten nested structures and ensure values are primitive types
+        for field, value in metadata_dict.items():
             if value is not None:
                 if field in ["created_at"]:
                     pinecone_metadata[field] = to_unix_timestamp(value)
-                else:
+                elif isinstance(value, (str, int, float, bool)):
                     pinecone_metadata[field] = value
+                elif isinstance(value, list) and all(isinstance(x, str) for x in value):
+                    pinecone_metadata[field] = value
+                elif isinstance(value, dict):
+                    # Flatten nested dict by prefixing keys with the field name
+                    for k, v in value.items():
+                        if isinstance(v, (str, int, float, bool)):
+                            pinecone_metadata[f"{field}_{k}"] = v
+                else:
+                    # Convert other types to strings if possible
+                    try:
+                        pinecone_metadata[field] = str(value)
+                    except:
+                        # Skip values that can't be converted to string
+                        continue
 
         return pinecone_metadata
