@@ -216,6 +216,66 @@ async def process_vector_index_creation(
         )
 
 
+async def update_collection_status(collection_id: str, status: str, db: Session) -> None:
+    """Update document collection status in database"""
+    try:
+        collection = (
+            db.query(DocumentCollectionModel)
+            .filter(DocumentCollectionModel.id == collection_id)
+            .first()
+        )
+        if collection:
+            # Convert string status to DocumentStatus enum
+            new_status = cast(DocumentStatus, "ready" if status == "ready" else "failed" if status == "failed" else "processing")
+            collection.status = new_status
+            collection.updated_at = datetime.now(timezone.utc)
+            db.commit()
+    except Exception as e:
+        logger.error(f"Error updating collection status: {e}")
+
+
+async def process_document_collection(
+    collection_id: str,
+    file_infos: List[Dict[str, Any]],
+    config: Dict[str, Any],
+    db: Session,
+) -> None:
+    """Process document collection in background"""
+    try:
+        doc_store = DocumentStore(collection_id)
+
+        # Create progress callback
+        async def progress_callback(
+            progress: float, step: str, processed: int, total: int
+        ) -> None:
+            await update_collection_progress(
+                collection_id,
+                progress=progress,
+                current_step=step,
+                processed_files=processed if step == "parsing" else None,
+                processed_chunks=processed if step == "chunking" else None,
+                total_chunks=total if step == "chunking" else None,
+                db=db,
+            )
+
+        await doc_store.process_documents(
+            file_infos,
+            config,
+            progress_callback,
+        )
+        # Update collection status to ready on successful completion
+        await update_collection_status(collection_id, "ready", db)
+    except Exception as e:
+        logger.error(f"Error processing document collection: {e}")
+        await update_collection_status(collection_id, "failed", db)
+        await update_collection_progress(
+            collection_id,
+            status="failed",
+            error_message=str(e),
+            db=db
+        )
+
+
 router = APIRouter()
 
 
@@ -279,30 +339,14 @@ async def create_document_collection(
                         }
                     )
 
-            # Start background processing
-            if file_infos:
-                doc_store = DocumentStore(collection.id)
-
-                # Create progress callback
-                async def progress_callback(
-                    progress: float, step: str, processed: int, total: int
-                ) -> None:
-                    await update_collection_progress(
-                        collection.id,
-                        progress=progress,
-                        current_step=step,
-                        processed_files=processed if step == "parsing" else None,
-                        processed_chunks=processed if step == "chunking" else None,
-                        total_chunks=total if step == "chunking" else None,
-                        db=db,
-                    )
-
-                background_tasks.add_task(
-                    doc_store.process_documents,
-                    file_infos,
-                    collection_config.text_processing.model_dump(),
-                    progress_callback,
-                )
+            # Start background processing with new function
+            background_tasks.add_task(
+                process_document_collection,
+                collection.id,
+                file_infos,
+                collection_config.text_processing.model_dump(),
+                db,
+            )
 
         # Create response
         return DocumentCollectionResponseSchema(
