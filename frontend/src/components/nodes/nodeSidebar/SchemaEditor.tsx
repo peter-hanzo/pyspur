@@ -5,29 +5,24 @@ import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
 import { convertToPythonVariableName } from '../../../utils/variableNameUtils'
 
-interface SchemaEditorProps {
-    jsonValue?: Record<string, string>
-    onChange: (value: Record<string, string>) => void
-    options?: string[]
-    disabled?: boolean
-    schemaType?: 'input_schema' | 'output_schema' | 'input_map' | 'output_map'
+export interface SchemaEditorProps {
+    jsonValue: Record<string, any>
+    onChange: (value: Record<string, any>) => void
+    options: string[]
+    schemaType: 'output_schema' | 'input_schema'
     nodeId: string
-    availableFields?: string[]
+    readOnly?: boolean
 }
 
 const SchemaEditor: React.FC<SchemaEditorProps> = ({
-    jsonValue = {},
+    jsonValue,
     onChange,
-    options = [],
-    disabled = false,
-    schemaType = 'input_schema',
+    options,
+    schemaType,
     nodeId,
-    availableFields = ['string', 'boolean', 'integer', 'number'],
+    readOnly = false,
 }) => {
-    const [newKey, setNewKey] = useState<string>('')
-    const [newType, setNewType] = useState<string>(availableFields[0])
-    const [editingField, setEditingField] = useState<string | null>(null)
-    const [editingValues, setEditingValues] = useState<Record<string, string>>({})
+    const [fields, setFields] = useState<SchemaField[]>([])
     const dispatch = useDispatch()
 
     const getPlaceholderExample = (): string => {
@@ -101,7 +96,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const label = schemaType === 'input_map' || schemaType === 'output_map' ? 'Field' : 'Type'
 
     return (
-        <div className="json-editor">
+        <div className={`schema-editor ${readOnly ? 'opacity-75 cursor-not-allowed' : ''}`}>
             <div className="mb-4 flex items-center space-x-4">
                 <Input
                     type="text"
@@ -110,9 +105,9 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     onBlur={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
                     placeholder={getPlaceholderExample()}
                     label="Name"
-                    disabled={disabled}
+                    disabled={readOnly}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !disabled && newKey) {
+                        if (e.key === 'Enter' && !readOnly && newKey) {
                             e.currentTarget.blur()
                             handleAddKey()
                         }
@@ -121,7 +116,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 />
                 <Select
                     onChange={(e) => setNewType(e.target.value)}
-                    disabled={disabled}
+                    disabled={readOnly}
                     label={label}
                     defaultSelectedKeys={[availableFields[0]]}
                     className="max-w-xs p-2 w-1/3"
@@ -148,7 +143,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     variant="light"
                     onClick={handleAddKey}
                     color="primary"
-                    disabled={disabled || !newKey}
+                    disabled={readOnly || !newKey}
                 >
                     <Icon icon="solar:add-circle-linear" width={22} />
                 </Button>
@@ -204,7 +199,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                             variant="light"
                             onClick={() => handleRemoveKey(key)}
                             color="primary"
-                            disabled={disabled}
+                            disabled={readOnly}
                         >
                             <Icon icon="solar:trash-bin-trash-linear" width={22} />
                         </Button>

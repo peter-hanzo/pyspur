@@ -1,4 +1,4 @@
-import { FlowWorkflowEdge, FlowWorkflowNode } from '@/store/flowSlice'
+import { FlowWorkflowNode, FlowWorkflowEdge } from '@/types/api_types/nodeTypeSchemas'
 import dagre from '@dagrejs/dagre'
 
 export const getLayoutedNodes = (nodes: FlowWorkflowNode[], edges: FlowWorkflowEdge[], direction = 'LR') => {

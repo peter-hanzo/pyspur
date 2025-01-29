@@ -5,7 +5,7 @@ import { RootState } from '../store/store'
 import { debounce } from 'lodash'
 import { WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas'
 import { WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
-import { FlowWorkflowNodeConfig } from '../store/flowSlice'
+import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
 
 // Use existing types from flowSlice.ts
 type Position = WorkflowNodeCoordinates
@@ -14,7 +14,8 @@ interface NodeData {
     config: FlowWorkflowNodeConfig
     title?: string
 }
-import { FlowWorkflowNode as Node, FlowWorkflowEdge as Edge } from '../store/flowSlice'
+import { FlowWorkflowNode as Node } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowEdge as Edge } from '@/types/api_types/nodeTypeSchemas'
 
 export const useSaveWorkflow = () => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)

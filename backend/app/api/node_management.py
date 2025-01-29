@@ -2,6 +2,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter
 from ..nodes.factory import NodeFactory
 from ..nodes.llm._utils import LLMModels
+from ..nodes.base import FixedOutputBaseNode
 
 
 router = APIRouter()
@@ -41,6 +42,7 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 "output": output_schema,
                 "config": config_schema,
                 "visual_tag": node_class.get_default_visual_tag().model_dump(),
+                "has_fixed_output": issubclass(node_class, FixedOutputBaseNode),
             }
 
             # Add model constraints if this is an LLM node

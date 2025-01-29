@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { addNode, FlowWorkflowNode } from '../store/flowSlice'
+import { addNode } from '../store/flowSlice'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { createNode } from '../utils/nodeFactory'
 import { AppDispatch } from '../store/store' // Import AppDispatch type
 import { NodeTypes } from '@xyflow/react'

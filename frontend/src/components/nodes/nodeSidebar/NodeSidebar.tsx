@@ -6,10 +6,10 @@ import {
     selectNodeById,
     setSidebarWidth,
     setSelectedNode,
-    FlowWorkflowNode,
-    FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
+import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../../store/nodeTypesSlice'
 import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import NumberInput from '../../NumberInput'
@@ -563,6 +563,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+            const hasFixedOutput = nodeSchema?.has_fixed_output ?? false
 
             return (
                 <div key={key} className="my-2">
@@ -570,7 +571,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <h3 className="font-semibold">Output Schema</h3>
                         <Tooltip
                             content={
-                                supportsJsonOutput
+                                hasFixedOutput
+                                    ? "This node has a fixed output schema that cannot be modified. The schema defines the structure of the node's output."
+                                    : supportsJsonOutput
                                     ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
@@ -585,7 +588,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    {supportsJsonOutput ? (
+                    {hasFixedOutput ? (
+                        <div className="bg-default-100 rounded-lg p-4">
+                            <SchemaEditor
+                                key={`schema-editor-output-${nodeID}`}
+                                jsonValue={currentNodeConfig.output_schema || {}}
+                                onChange={() => {}} // No-op for fixed output nodes
+                                options={jsonOptions}
+                                schemaType="output_schema"
+                                nodeId={nodeID}
+                                readOnly={true}
+                            />
+                            <p className="text-sm text-default-500 mt-2">
+                                This node has a fixed output schema that cannot be modified.
+                            </p>
+                        </div>
+                    ) : supportsJsonOutput ? (
                         <SchemaEditor
                             key={`schema-editor-output-${nodeID}`}
                             jsonValue={currentNodeConfig.output_schema || {}}
@@ -645,6 +663,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+            const hasFixedOutput = nodeSchema?.has_fixed_output ?? false
 
             return (
                 <div key={key}>
@@ -652,7 +671,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <h3 className="font-semibold">Output JSON Schema</h3>
                         <Tooltip
                             content={
-                                supportsJsonOutput
+                                hasFixedOutput
+                                    ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
+                                    : supportsJsonOutput
                                     ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
@@ -667,9 +688,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    {supportsJsonOutput ? (
+                    {hasFixedOutput ? (
+                        <div className="bg-default-100 rounded-lg p-4">
+                            <CodeEditor
+                                key={`code-editor-output-json-schema-${nodeID}`}
+                                code={currentNodeConfig[key] || ''}
+                                mode="json"
+                                onChange={() => {}} // No-op for fixed output nodes
+                                readOnly={true}
+                            />
+                            <p className="text-sm text-default-500 mt-2">
+                                This node has a fixed output schema that cannot be modified.
+                            </p>
+                        </div>
+                    ) : supportsJsonOutput ? (
                         <CodeEditor
-                            key={`text-editor-output-json-schema-${nodeID}`}
+                            key={`code-editor-output-json-schema-${nodeID}`}
                             code={currentNodeConfig[key] || ''}
                             mode="json"
                             onChange={(value: string) => {

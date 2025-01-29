@@ -6,125 +6,15 @@ import {
     NodeChange,
     EdgeChange,
     Connection,
-    CoordinateExtent,
 } from '@xyflow/react'
 import { v4 as uuidv4 } from 'uuid'
 import { createNode } from '../utils/nodeFactory'
 import { TestInput } from '@/types/api_types/workflowSchemas'
-import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
-import { RouteConditionGroup } from '@/types/api_types/routerSchemas'
+import { WorkflowDefinition } from '@/types/api_types/workflowSchemas'
+import { CreateNodeResult, FlowWorkflowEdge, FlowWorkflowNode, NodeTypesConfig, Position } from '@/types/api_types/nodeTypeSchemas'
 import { isEqual } from 'lodash'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
-
-export interface NodeTypes {
-    [key: string]: any
-}
-
-export interface NodeTypesConfig {
-    [category: string]: Array<{
-        name: string
-        [key: string]: any
-    }>
-}
-
-export interface CreateNodeResult {
-    node: FlowWorkflowNode
-    config: FlowWorkflowNodeConfig
-}
-
-export interface Position {
-    x: number
-    y: number
-}
-
-export interface NodeData {
-    title?: string
-    acronym?: string
-    color?: string
-    logo?: string
-    category?: string
-}
-
-export interface BaseNode {
-    id: string
-    position: Position
-    type: string
-    data?: NodeData
-}
-
-export interface FlowWorkflowNodeConfig {
-    title?: string
-    type?: string
-    input_schema?: Record<string, any>
-    output_schema?: Record<string, any>
-    system_message?: string
-    user_message?: string
-    few_shot_examples?:
-        | Array<{
-              input: string
-              output: string
-          }>
-        | Record<string, any>[]
-    llm_info?: {
-        model?: string
-        api_base?: string
-        [key: string]: any
-    }
-    route_map?: Record<string, RouteConditionGroup>
-    preferences?: string[]
-    [key: string]: any
-}
-
-export interface FlowWorkflowNode {
-    id: string
-    type: string
-    position: WorkflowNodeCoordinates
-    parentId?: string
-    extent?: 'parent' | CoordinateExtent
-    data: {
-        title: string
-        acronym: string
-        color: string
-        run?: Record<string, any>
-        error?: string
-        taskStatus?: string
-        [key: string]: any
-    }
-    measured?: {
-        width: number
-        height: number
-    }
-    [key: string]: any
-}
-
-export interface FlowWorkflowEdge {
-    id: string
-    key: string
-    source: string
-    target: string
-    selected?: boolean
-    sourceHandle: string
-    targetHandle: string
-    [key: string]: any
-}
-
-export interface FlowState {
-    nodeTypes: NodeTypes
-    nodes: FlowWorkflowNode[]
-    edges: FlowWorkflowEdge[]
-    nodeConfigs: Record<string, FlowWorkflowNodeConfig>
-    workflowID: string | null
-    selectedNode: string | null
-    sidebarWidth: number
-    projectName: string
-    workflowInputVariables: Record<string, any>
-    testInputs: TestInput[]
-    inputNodeValues: Record<string, any>
-    history: {
-        past: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
-        future: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
-    }
-}
+import { FlowState } from '@/types/api_types/flowStateSchema'
 
 const initialState: FlowState = {
     nodeTypes: {},

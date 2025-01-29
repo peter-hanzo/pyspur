@@ -19,12 +19,12 @@ const jsonErrorTheme = EditorView.baseTheme({
 
 interface CodeEditorProps {
     code: string
+    mode?: string
     onChange: (value: string) => void
-    disabled?: boolean
-    mode?: 'json' | 'python'  // Add mode prop to determine which language to use
+    readOnly?: boolean
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled, mode = 'python' }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ code, mode = 'javascript', onChange, readOnly = false }) => {
     const [value, setValue] = useState<string>('')
     const { isOpen, onOpen, onOpenChange } = useDisclosure()
     const [modalValue, setModalValue] = useState<string>('')
@@ -127,7 +127,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled, mode 
                 size="sm"
                 className="absolute top-0 right-0 z-10"
                 onPress={onOpen}
-                disabled={disabled}
+                disabled={readOnly}
             >
                 <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
             </Button>
@@ -137,8 +137,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled, mode 
                 theme={oneDark}
                 extensions={getExtensions()}
                 onChange={handleEditorChange}
-                className="border"
-                editable={!disabled}
+                className={`border ${readOnly ? 'cursor-not-allowed opacity-75' : ''}`}
+                editable={!readOnly}
             />
             <Modal
                 isOpen={isOpen}
@@ -159,7 +159,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, disabled, mode 
                                     extensions={getExtensions()}
                                     onChange={handleModalEditorChange}
                                     className="border"
-                                    editable={!disabled}
+                                    editable={!readOnly}
                                 />
                             </ModalBody>
                             <ModalFooter>

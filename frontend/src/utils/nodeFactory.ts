@@ -1,6 +1,6 @@
-import { FlowWorkflowNode, FlowWorkflowNodeConfig, Position } from '@/store/flowSlice'
+import { Position, FlowWorkflowNodeConfig, FlowWorkflowNode, FlowWorkflowNodeType } from '@/types/api_types/nodeTypeSchemas';
+import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
 import cloneDeep from 'lodash/cloneDeep'
-import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
 
 // Function to create a node based on its type
 export const createNode = (

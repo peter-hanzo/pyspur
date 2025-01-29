@@ -1,7 +1,7 @@
 import React from 'react'
 import { NodeProps } from '@xyflow/react'
 import DynamicNode from './DynamicNode'
-import { FlowWorkflowNode } from '../../store/flowSlice'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 
 interface RetrieverNodeData {
     title?: string
