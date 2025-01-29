@@ -175,6 +175,47 @@ async def update_index_progress(
     db.commit()
 
 
+async def update_index_status(index_id: str, status: str, db: Session) -> None:
+    """Update vector index status in database"""
+    try:
+        index = db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
+        if index:
+            # Convert string status to DocumentStatus enum
+            new_status = cast(DocumentStatus, "ready" if status == "ready" else "failed" if status == "failed" else "processing")
+            index.status = new_status
+            index.updated_at = datetime.now(timezone.utc)
+            db.commit()
+    except Exception as e:
+        logger.error(f"Error updating index status: {e}")
+
+
+async def process_vector_index_creation(
+    index_id: str,
+    docs_with_chunks: List[DocumentWithChunksSchema],
+    config: Dict[str, Any],
+    db: Session,
+) -> None:
+    """Process vector index creation in background"""
+    try:
+        vector_index = VectorIndex(index_id)
+        await vector_index.create_from_document_collection(
+            docs_with_chunks,
+            config,
+            lambda p, s, pc, tc: update_index_progress(index_id, progress=p, current_step=s, processed_chunks=pc, total_chunks=tc, db=db)
+        )
+        # Update index status to ready on successful completion
+        await update_index_status(index_id, "ready", db)
+    except Exception as e:
+        logger.error(f"Error processing vector index: {e}")
+        await update_index_status(index_id, "failed", db)
+        await update_index_progress(
+            index_id,
+            status="failed",
+            error_message=str(e),
+            db=db
+        )
+
+
 router = APIRouter()
 
 
@@ -330,36 +371,21 @@ async def create_vector_index(
         db.commit()
         logger.debug(f"Initialized progress tracking for index {index.id}")
 
-        # Start background processing
-        doc_store = DocumentStore(collection.id)
-        vector_index = VectorIndex(index.id)
-
         # Get documents with chunks
+        doc_store = DocumentStore(collection.id)
         docs_with_chunks: List[DocumentWithChunksSchema] = []
         for doc_id in doc_store.list_documents():
             doc = doc_store.get_document(doc_id)
             if doc:
                 docs_with_chunks.append(doc)
 
-        # Create progress callback
-        async def progress_callback(
-            progress: float, step: str, processed_chunks: int, total_chunks: int
-        ) -> None:
-            await update_index_progress(
-                index.id,
-                progress=progress,
-                current_step=step,
-                processed_chunks=processed_chunks,
-                total_chunks=total_chunks,
-                db=db,
-            )
-
-        # Start vector index creation
+        # Start background processing with new function
         background_tasks.add_task(
-            vector_index.create_from_document_collection,
+            process_vector_index_creation,
+            index.id,
             docs_with_chunks,
             index_config.embedding.model_dump(),
-            progress_callback,
+            db,
         )
 
         # Create response
@@ -806,17 +832,17 @@ async def retrieve_from_index(
         # Initialize vector index
         vector_index = VectorIndex(index.id)
 
-        # Retrieve from vector index
+        # Retrieve from vector index with default top_k if not specified
         results = await vector_index.retrieve(
             query=request.query,
-            top_k=request.top_k,
+            top_k=request.top_k if request.top_k is not None else 5,
             score_threshold=request.score_threshold,
             semantic_weight=request.semantic_weight,
             keyword_weight=request.keyword_weight,
         )
 
         # Format results
-        formatted_results = []
+        formatted_results: List[RetrievalResultSchema] = []
         for result in results:
             chunk = result["chunk"]
             metadata = result["metadata"]
