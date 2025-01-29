@@ -29,7 +29,16 @@ interface TextEditorRef {
 }
 
 const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
-    ({ content, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle }, ref) => {
+    (
+        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle },
+        ref
+    ) => {
+        const [localContent, setLocalContent] = React.useState(initialContent)
+
+        useEffect(() => {
+            setLocalContent(initialContent)
+        }, [initialContent])
+
         const editor = useEditor({
             extensions: [
                 Color.configure({ types: [TextStyle.name, ListItem.name] }),
@@ -45,7 +54,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     transformCopiedText: true,
                 }),
             ],
-            content: content ? content : '',
+            content: localContent ? localContent : '',
             editorProps: {
                 attributes: {
                     class: [
@@ -57,8 +66,13 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                         .join(' '),
                 },
             },
+            parseOptions: {
+      preserveWhitespace: 'full',
+    },
             onUpdate: ({ editor }) => {
-                setContent(editor.storage.markdown?.getMarkdown() ?? '')
+                const newContent = editor.storage.markdown?.getMarkdown() ?? ''
+                setLocalContent(newContent)
+                setContent(newContent)
             },
             editable: isEditable,
             autofocus: 'end',
@@ -89,7 +103,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     transformCopiedText: true,
                 }),
             ],
-            content: content ? content : '',
+            content: localContent ? localContent : '',
             editorProps: {
                 attributes: {
                     class: 'w-full bg-content2 hover:bg-content3 transition-colors min-h-[40vh] resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500',
@@ -97,13 +111,28 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             },
             onUpdate: ({ editor }) => {
                 const newContent = editor.storage.markdown?.getMarkdown() ?? ''
-                if (newContent !== content) {
-                    setContent(newContent)
-                }
+                setLocalContent(newContent)
+                setContent(newContent)
             },
             editable: true,
             autofocus: false,
         })
+
+        useEffect(() => {
+            if (editor && editor.storage.markdown?.getMarkdown() !== localContent) {
+                editor.commands.setContent(localContent)
+            }
+            if (modalEditor && modalEditor.storage.markdown?.getMarkdown() !== localContent) {
+                modalEditor.commands.setContent(localContent)
+            }
+        }, [localContent, editor, modalEditor])
+
+        // Add effect to sync modal editor content when modal opens
+        useEffect(() => {
+            if (isOpen && modalEditor && localContent) {
+                modalEditor.commands.setContent(localContent)
+            }
+        }, [isOpen, modalEditor, localContent])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
             if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
@@ -224,21 +253,12 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         }
 
         const handleCancel = (onClose: () => void) => {
-            if (modalEditor) {
-                modalEditor.commands.setContent(content || '')
-            }
+            setLocalContent(initialContent)
             onClose()
         }
 
         const handleSave = (onClose: () => void) => {
-            if (modalEditor) {
-                const newContent = modalEditor.storage.markdown?.getMarkdown() ?? ''
-                if (editor) {
-                    editor.commands.setContent(newContent)
-                }
-                setContent(newContent)
-                onClose()
-            }
+            onClose()
         }
 
         return (

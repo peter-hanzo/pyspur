@@ -49,13 +49,19 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 for model_enum in LLMModels:
                     model_info = LLMModels.get_model_info(model_enum.value)
                     if model_info:
-                        model_constraints[model_enum.value] = model_info.constraints.model_dump()
+                        model_constraints[model_enum.value] = (
+                            model_info.constraints.model_dump()
+                        )
                 node_schema["model_constraints"] = model_constraints
 
             # Add the logo if available
             logo = node_type.logo
             if logo:
                 node_schema["logo"] = logo
+
+            category = node_type.category
+            if category:
+                node_schema["category"] = category
 
             node_schemas.append(node_schema)
         response[group_name] = node_schemas

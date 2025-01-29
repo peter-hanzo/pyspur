@@ -24,8 +24,8 @@ from ..database import get_db
 from ..rag.document_collection import DocumentStore
 from ..rag.vector_index import VectorIndex
 from ..rag.schemas.document_schemas import (
-    DocumentWithChunks,
-    ChunkingConfig,
+    DocumentWithChunksSchema,
+    ChunkingConfigSchema,
 )
 from ..schemas.rag_schemas import (
     DocumentCollectionCreateSchema,
@@ -335,7 +335,7 @@ async def create_vector_index(
         vector_index = VectorIndex(index.id)
 
         # Get documents with chunks
-        docs_with_chunks: List[DocumentWithChunks] = []
+        docs_with_chunks: List[DocumentWithChunksSchema] = []
         for doc_id in doc_store.list_documents():
             doc = doc_store.get_document(doc_id)
             if doc:
@@ -734,13 +734,13 @@ async def delete_document_from_collection(
 
 
 @router.get(
-    "/collections/{collection_id}/documents/", response_model=List[DocumentWithChunks]
+    "/collections/{collection_id}/documents/", response_model=List[DocumentWithChunksSchema]
 )
-async def get_collection_documents(collection_id: str) -> List[DocumentWithChunks]:
+async def get_collection_documents(collection_id: str) -> List[DocumentWithChunksSchema]:
     """Get all documents and their chunks for a collection"""
     try:
         doc_store = DocumentStore(collection_id)
-        documents: List[DocumentWithChunks] = []
+        documents: List[DocumentWithChunksSchema] = []
         for doc_id in doc_store.list_documents():
             doc = doc_store.get_document(doc_id)
             if doc:
@@ -758,7 +758,7 @@ async def preview_chunk(
     """Preview how a file will be chunked and formatted with templates."""
     try:
         # Parse chunking config
-        config = ChunkingConfig(**json.loads(chunking_config))
+        config = ChunkingConfigSchema(**json.loads(chunking_config))
 
         if not file.filename:
             raise HTTPException(status_code=400, detail="Filename is required")

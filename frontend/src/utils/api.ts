@@ -93,9 +93,14 @@ export const getRun = async (runID) => {
     }
 }
 
-export const getWorkflows = async (): Promise<WorkflowResponse[]> => {
+export const getWorkflows = async (page: number = 1, pageSize: number = 10): Promise<WorkflowResponse[]> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/wf/`)
+        const response = await axios.get(`${API_BASE_URL}/wf/`, {
+            params: {
+                page,
+                page_size: pageSize,
+            },
+        })
         return response.data
     } catch (error) {
         console.error('Error getting workflows:', error)
@@ -186,9 +191,18 @@ export const getWorkflow = async (workflowID: string): Promise<WorkflowResponse>
     }
 }
 
-export const getWorkflowRuns = async (workflowID: string): Promise<RunResponse[]> => {
+export const getWorkflowRuns = async (
+    workflowID: string,
+    page: number = 1,
+    pageSize: number = 10
+): Promise<RunResponse[]> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/runs/`)
+        const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/runs/`, {
+            params: {
+                page,
+                page_size: pageSize,
+            },
+        })
         return response.data
     } catch (error) {
         console.error('Error fetching workflow runs:', error)
@@ -221,13 +235,15 @@ export const downloadOutputFile = async (outputFileID: string): Promise<void> =>
 }
 
 export const getAllRuns = async (
-    lastK: number = 10,
+    page: number = 1,
+    pageSize: number = 10,
     parentOnly: boolean = true,
     runType: string = 'batch'
 ): Promise<any> => {
     try {
         const params = {
-            last_k: lastK,
+            page,
+            page_size: pageSize,
             parent_only: parentOnly,
             run_type: runType,
         }
@@ -933,12 +949,15 @@ export const previewChunk = async (
     try {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('chunking_config', JSON.stringify({
-            chunk_token_size: config.chunk_token_size,
-            min_chunk_size_chars: config.min_chunk_size_chars,
-            min_chunk_length_to_embed: config.min_chunk_length_to_embed,
-            template: config.template
-        }))
+        formData.append(
+            'chunking_config',
+            JSON.stringify({
+                chunk_token_size: config.chunk_token_size,
+                min_chunk_size_chars: config.min_chunk_size_chars,
+                min_chunk_length_to_embed: config.min_chunk_length_to_embed,
+                template: config.template,
+            })
+        )
 
         const response = await axios.post(`${API_BASE_URL}/rag/collections/preview_chunk/`, formData, {
             headers: {

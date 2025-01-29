@@ -1,5 +1,14 @@
 from typing import Dict, List
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Depends,
+    status,
+    UploadFile,
+    File,
+    Form,
+    Query,
+)
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,8 +22,6 @@ from ..schemas.workflow_schemas import (
 )
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
-from ..models.workflow_version_model import WorkflowVersionModel
-from ..models.run_model import RunModel
 from ..nodes.primitives.input import InputNodeConfig
 
 router = APIRouter()
@@ -100,11 +107,17 @@ def update_workflow(
 @router.get(
     "/", response_model=List[WorkflowResponseSchema], description="List all workflows"
 )
-def list_workflows(db: Session = Depends(get_db)):
+def list_workflows(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    offset = (page - 1) * page_size
     workflows = (
         db.query(WorkflowModel)
         .order_by(WorkflowModel.created_at.desc())
-        .slice(0, 10)
+        .offset(offset)
+        .limit(page_size)
         .all()
     )
     valid_workflows: List[WorkflowModel] = []
@@ -166,35 +179,24 @@ def reset_workflow(
     description="Delete a workflow by ID",
 )
 def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
-    # Fetch the workflow by ID
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
-
-    # If workflow not found, raise 404 error
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     try:
-        # Delete associated runs
-        db.query(RunModel).filter(RunModel.workflow_id == workflow_id).delete()
-
-        # Delete associated workflow versions
-        db.query(WorkflowVersionModel).filter(
-            WorkflowVersionModel.workflow_id == workflow_id
-        ).delete()
-
         # Delete associated test files
         test_files_dir = Path("data/test_files") / workflow_id
         if test_files_dir.exists():
             shutil.rmtree(test_files_dir)
 
-        # Delete the workflow
+        # Delete the workflow (cascading will handle related records)
         db.delete(workflow)
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Error deleting workflow and its versions: {str(e)}",
+            detail=f"Error deleting workflow: {str(e)}",
         )
 
     return None
@@ -294,7 +296,9 @@ async def upload_test_files(
     """Upload files for test inputs and return their paths"""
     try:
         # Get the workflow
-        workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+        workflow = (
+            db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+        )
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -316,7 +320,7 @@ async def upload_test_files(
                 f.write(content)
 
             # Store relative path
-            saved_paths.append(f"{workflow_id}/{safe_filename}")
+            saved_paths.append(f"test_files/{workflow_id}/{safe_filename}")
 
         return {node_id: saved_paths}
     except Exception as e:

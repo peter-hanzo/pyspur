@@ -44,6 +44,7 @@ export const createNode = (
             acronym: nodeType.visual_tag.acronym,
             color: nodeType.visual_tag.color,
             logo: nodeType.logo,
+            category: nodeType.category,
         },
         width: dimensions?.width,
         height: dimensions?.height,

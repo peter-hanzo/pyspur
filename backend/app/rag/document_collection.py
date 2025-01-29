@@ -7,12 +7,12 @@ import arrow
 from loguru import logger
 
 from .parser import extract_text_from_file
-from .chunker import ChunkingConfig, create_document_chunks
+from .chunker import ChunkingConfigSchema, create_document_chunks
 from .schemas.document_schemas import (
-    Document,
-    DocumentWithChunks,
-    DocumentMetadata,
-    DocumentChunk,
+    DocumentSchema,
+    DocumentWithChunksSchema,
+    DocumentMetadataSchema,
+    DocumentChunkSchema,
     Source
 )
 
@@ -36,7 +36,7 @@ class DocumentStore:
         files: List[Dict[str, Any]],
         config: Dict[str, Any],
         on_progress: Optional[Callable[[float, str, int, int], Coroutine[Any, Any, None]]] = None,
-    ) -> List[DocumentWithChunks]:
+    ) -> List[DocumentWithChunksSchema]:
         """
         Process documents through parsing and chunking.
 
@@ -63,13 +63,13 @@ class DocumentStore:
                 }
 
             # 1. Parse documents
-            documents: List[Document] = []
+            documents: List[DocumentSchema] = []
             for i, file_info in enumerate(files):
                 logger.debug(f"Parsing file {i+1}/{len(files)}: {file_info.get('path')}")
                 file_path = Path(file_info["path"])
 
                 # Create document metadata
-                metadata = DocumentMetadata(
+                metadata = DocumentMetadataSchema(
                     source=Source.file,
                     source_id=file_path.name,
                     created_at=arrow.utcnow().isoformat(),
@@ -90,7 +90,7 @@ class DocumentStore:
                 raw_path.write_text(text)
 
                 # Create document
-                doc = Document(id=doc_id, text=text, metadata=metadata)
+                doc = DocumentSchema(id=doc_id, text=text, metadata=metadata)
                 documents.append(doc)
 
                 if on_progress:
@@ -102,7 +102,7 @@ class DocumentStore:
                     )
 
             # 2. Create chunks
-            chunking_config = ChunkingConfig(
+            chunking_config = ChunkingConfigSchema(
                 chunk_token_size=config.get("chunk_token_size", 200),
                 min_chunk_size_chars=config.get("min_chunk_size_chars", 350),
                 min_chunk_length_to_embed=config.get("min_chunk_length_to_embed", 5),
@@ -111,7 +111,7 @@ class DocumentStore:
                 template=config.get("template", {}),
             )
 
-            docs_with_chunks: List[DocumentWithChunks] = []
+            docs_with_chunks: List[DocumentWithChunksSchema] = []
 
             for i, doc in enumerate(documents):
                 # Create chunks
@@ -127,7 +127,7 @@ class DocumentStore:
                     )
 
                 # Create DocumentWithChunks
-                doc_with_chunks = DocumentWithChunks(
+                doc_with_chunks = DocumentWithChunksSchema(
                     id=doc_id,
                     text=doc.text,
                     metadata=doc.metadata,
@@ -149,7 +149,7 @@ class DocumentStore:
             logger.error(f"Error processing documents: {e}")
             raise
 
-    def get_document(self, doc_id: str) -> Optional[DocumentWithChunks]:
+    def get_document(self, doc_id: str) -> Optional[DocumentWithChunksSchema]:
         """Retrieve a document and its chunks from storage."""
         try:
             # Read raw text
@@ -166,10 +166,10 @@ class DocumentStore:
 
             with open(chunks_path) as f:
                 chunks_data = json.load(f)
-                chunks = [DocumentChunk(**chunk_data) for chunk_data in chunks_data]
+                chunks = [DocumentChunkSchema(**chunk_data) for chunk_data in chunks_data]
 
             # Create DocumentWithChunks
-            return DocumentWithChunks(
+            return DocumentWithChunksSchema(
                 id=doc_id,
                 text=text,
                 chunks=chunks

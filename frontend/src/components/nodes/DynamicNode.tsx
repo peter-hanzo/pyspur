@@ -19,6 +19,7 @@ import NodeOutputDisplay from './NodeOutputDisplay'
 import NodeOutputModal from './NodeOutputModal'
 import isEqual from 'lodash/isEqual'
 import NodeErrorDisplay from './NodeErrorDisplay'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 
 const baseNodeStyle = {
     width: 'auto',
@@ -244,7 +245,9 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
             // Check if nodes have the same parent or both have no parent
             const fromNodeParentId = connection.fromNode?.parentId
             const toNodeParentId = connection.toNode?.parentId
-            const canConnect = fromNodeParentId === toNodeParentId
+            const canConnect =
+                fromNodeParentId === toNodeParentId &&
+                !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
 
             if (
                 canConnect &&
@@ -350,7 +353,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         {renderHandles()}
                     </div>
                     {nodeData.error && <NodeErrorDisplay error={nodeData.error} />}
-                    {displayOutput && <NodeOutputDisplay key="output-display" output={nodeData.run} />}
+                    {displayOutput && <NodeOutputDisplay key={`output-display-${id}`} output={nodeData.run} />}
                 </BaseNode>
             </div>
             <NodeOutputModal

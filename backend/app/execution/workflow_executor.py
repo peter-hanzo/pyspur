@@ -16,6 +16,14 @@ from .task_recorder import TaskRecorder, TaskStatus
 from .workflow_execution_context import WorkflowExecutionContext
 
 
+class UpstreamFailure(Exception):
+    pass
+
+
+class UnconnectedNode(Exception):
+    pass
+
+
 class WorkflowExecutor:
     """
     Handles the execution of a workflow.
@@ -42,6 +50,7 @@ class WorkflowExecutor:
         self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
         self._outputs: Dict[str, Optional[BaseNodeOutput]] = {}
+        self._failed_nodes: Set[str] = set()
         self._build_node_dict()
         self._build_dependencies()
 
@@ -150,21 +159,39 @@ class WorkflowExecutor:
             if node_id in self._outputs:
                 return self._outputs[node_id]
 
-            # Wait for dependencies
+            # Check if any predecessor nodes failed
             dependency_ids = self._dependencies.get(node_id, set())
+
+            # Wait for dependencies
             predecessor_outputs: List[Optional[BaseNodeOutput]] = []
             if dependency_ids:
-                predecessor_outputs = await asyncio.gather(
-                    *(
-                        self._get_async_task_for_node_execution(dep_id)
-                        for dep_id in dependency_ids
+                try:
+                    predecessor_outputs = await asyncio.gather(
+                        *(
+                            self._get_async_task_for_node_execution(dep_id)
+                            for dep_id in dependency_ids
+                        ),
                     )
-                )
+                except Exception as e:
+                    raise UpstreamFailure(
+                        f"Node {node_id} skipped due to upstream failure"
+                    )
+
+            if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
+                print(f"Node {node_id} skipped due to upstream failure")
+                self._failed_nodes.add(node_id)
+                raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
             if node.node_type != "CoalesceNode" and any(
                 [output is None for output in predecessor_outputs]
             ):
                 self._outputs[node_id] = None
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.CANCELED,
+                        end_time=datetime.now(),
+                    )
                 return None
 
             # Get source handles mapping
@@ -189,7 +216,7 @@ class WorkflowExecutor:
                         if self.task_recorder:
                             self.task_recorder.update_task(
                                 node_id=node_id,
-                                status=TaskStatus.PENDING,
+                                status=TaskStatus.CANCELED,
                                 end_time=datetime.now(),
                             )
                         return None
@@ -225,7 +252,7 @@ class WorkflowExecutor:
             # If node_input is empty, return None
             if not node_input:
                 self._outputs[node_id] = None
-                return None
+                raise UnconnectedNode(f"Node {node_id} has no input")
 
             node_instance = NodeFactory.create_node(
                 node_name=node.title, node_type_name=node.node_type, config=node.config
@@ -255,6 +282,17 @@ class WorkflowExecutor:
             # Store output
             self._outputs[node_id] = output
             return output
+        except UpstreamFailure as e:
+            self._failed_nodes.add(node_id)
+            self._outputs[node_id] = None
+            if self.task_recorder:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.CANCELED,
+                    end_time=datetime.now(),
+                    error="Upstream failure",
+                )
+            raise e
         except Exception as e:
             error_msg = (
                 f"Node execution failed:\n"
@@ -265,6 +303,7 @@ class WorkflowExecutor:
                 f"Error: {str(e)}"
             )
             print(error_msg)
+            self._failed_nodes.add(node_id)
             if self.task_recorder:
                 self.task_recorder.update_task(
                     node_id=node_id,
@@ -293,6 +332,10 @@ class WorkflowExecutor:
                     print(
                         f"[WARNING]: Precomputed output validation failed for node {node_id}: {e}\n skipping precomputed output"
                     )
+                except AttributeError as e:
+                    print(
+                        f"[WARNING]: Node {node_id} does not have an output_model defined: {e}\n skipping precomputed output"
+                    )
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
@@ -313,12 +356,25 @@ class WorkflowExecutor:
             if node.parent_id:
                 nodes_to_run.discard(node.id)
 
+        # drop outputs for nodes that need to be run
+        for node_id in nodes_to_run:
+            self._outputs.pop(node_id, None)
+
         # Start tasks for all nodes
         for node_id in nodes_to_run:
             self._get_async_task_for_node_execution(node_id)
 
-        # Wait for all tasks to complete
-        await asyncio.gather(*self._node_tasks.values())
+        # Wait for all tasks to complete, but don't propagate exceptions
+        results = await asyncio.gather(
+            *self._node_tasks.values(), return_exceptions=True
+        )
+
+        # Process results to handle any exceptions
+        for node_id, result in zip(self._node_tasks.keys(), results):
+            if isinstance(result, Exception):
+                print(f"Node {node_id} failed with error: {str(result)}")
+                self._failed_nodes.add(node_id)
+                self._outputs[node_id] = None
 
         # return the non-None outputs
         return {

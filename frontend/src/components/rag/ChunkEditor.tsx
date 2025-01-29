@@ -67,7 +67,7 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
 
             const result = await previewChunk(selectedFile, {
                 ...chunkingConfig,
-                template
+                template,
             })
             setPreviewResult(result)
         } catch (error) {
@@ -121,7 +121,7 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                                         selectedKeys={selectedFile ? [selectedFile.name] : []}
                                         onSelectionChange={(keys) => {
                                             const selectedKey = Array.from(keys)[0]?.toString()
-                                            const file = files.find(f => f.name === selectedKey)
+                                            const file = files.find((f) => f.name === selectedKey)
                                             if (file) setSelectedFile(file)
                                         }}
                                     >
@@ -162,9 +162,11 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                                                 <div className="flex items-center justify-between">
                                                     <h4 className="text-small font-semibold">
                                                         Chunk {chunk.chunk_index}
-                                                        {chunk.chunk_index === 1 && " (Start)"}
-                                                        {chunk.chunk_index === previewResult.total_chunks && " (End)"}
-                                                        {chunk.chunk_index !== 1 && chunk.chunk_index !== previewResult.total_chunks && " (Middle)"}
+                                                        {chunk.chunk_index === 1 && ' (Start)'}
+                                                        {chunk.chunk_index === previewResult.total_chunks && ' (End)'}
+                                                        {chunk.chunk_index !== 1 &&
+                                                            chunk.chunk_index !== previewResult.total_chunks &&
+                                                            ' (Middle)'}
                                                     </h4>
                                                     <Button
                                                         size="sm"
@@ -202,11 +204,7 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                                     </Card>
                                 ))}
 
-                                <Modal
-                                    isOpen={!!selectedChunk}
-                                    onClose={() => setSelectedChunk(null)}
-                                    size="full"
-                                >
+                                <Modal isOpen={!!selectedChunk} onClose={() => setSelectedChunk(null)} size="full">
                                     <ModalContent>
                                         {(onClose) => (
                                             <>
@@ -238,7 +236,8 @@ export const ChunkEditor: React.FC<ChunkEditorProps> = ({ template, onTemplateCh
                                         <Icon icon="solar:document-text-linear" width={32} />
                                         <p>No preview generated yet</p>
                                         <p className="text-small text-center">
-                                            Click "Generate Preview" to see how your template will be applied to chunks
+                                            Click &ldquo;Generate Preview&rdquo; to see how your template will be
+                                            applied to chunks
                                         </p>
                                     </div>
                                 </CardBody>

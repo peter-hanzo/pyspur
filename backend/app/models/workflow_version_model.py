@@ -34,5 +34,5 @@ class WorkflowVersionModel(BaseModel):
     workflow = relationship("WorkflowModel", back_populates="versions")
 
     runs: Mapped[Optional[List["RunModel"]]] = relationship(
-        "RunModel", backref="workflow_version"
+        "RunModel", backref="workflow_version", cascade="all, delete-orphan"
     )

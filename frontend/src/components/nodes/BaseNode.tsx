@@ -1,7 +1,7 @@
 import React, { useCallback, useState, memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '../../store/flowSlice'
-import { Handle, Position } from '@xyflow/react'
+import { Handle, Position, useConnection } from '@xyflow/react'
 import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import usePartialRun from '@/hooks/usePartialRun'
@@ -143,6 +143,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         isVisible: false,
     })
     const dispatch = useDispatch()
+
+    const connection = useConnection()
 
     // Only keep the selectors we need for this component's functionality
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode)
@@ -321,15 +323,17 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 {/* Container to hold the Handle and the content */}
                 <div>
                     {/* Hidden target handle covering the entire node */}
-                    <Handle
-                        key={`handle-${id}`}
-                        type="target"
-                        position={Position.Left}
-                        id={`node-body-${id}`}
-                        style={staticStyles.targetHandle}
-                        isConnectable={true}
-                        isConnectableStart={false}
-                    />
+                    {connection.inProgress && (
+                        <Handle
+                            key={`handle-${id}`}
+                            type="target"
+                            position={Position.Left}
+                            id={`node-body-${id}`}
+                            style={staticStyles.targetHandle}
+                            isConnectable={true}
+                            isConnectableStart={false}
+                        />
+                    )}
 
                     <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
                         <Card

@@ -9,61 +9,110 @@ interface NodeOutputDisplayProps {
 
 const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
     const detectLanguage = (code: string): string => {
-        // Python indicators
-        if (code.includes('def ') || code.includes('import ') || /:\s*\n\s+/.test(code)) {
-            return 'python'
+        // Count occurrences of language-specific patterns
+        let pythonScore = 0;
+        let cppScore = 0;
+        let tsScore = 0;
+        let jsScore = 0;
+
+        // Python indicators with stronger patterns
+        if (code.match(/^(from|import)\s+[\w.]+(\s+import\s+[\w.]+)?$/m)) pythonScore += 3;
+        if (code.match(/def\s+\w+\s*\([^)]*\)\s*:/)) pythonScore += 3;
+        if (code.match(/class\s+\w+(\s*\([^)]*\))?\s*:/)) pythonScore += 3;
+        if (code.match(/^\s*@\w+/m)) pythonScore += 2;  // Decorators
+        if (code.match(/^\s*if\s+__name__\s*==\s*['"]__main__['"]/m)) pythonScore += 3;
+
+        // C++ indicators with stronger patterns
+        if (code.match(/#include\s*<[^>]+>/)) cppScore += 3;
+        if (code.match(/\b(std::|\bvector<|template\s*<)/)) cppScore += 3;
+        if (code.match(/\b(public|private|protected):/)) cppScore += 2;
+        if (code.match(/\b(int|void|bool|char|double|float|long)\s+\w+\s*\([^)]*\)\s*{/)) cppScore += 3;
+
+        // TypeScript indicators with stronger patterns
+        if (code.match(/interface\s+\w+\s*{/)) tsScore += 3;
+        if (code.match(/type\s+\w+\s*=\s*{/)) tsScore += 3;
+        if (code.match(/([\w\s,]+):\s*(string|number|boolean|any)\b/)) tsScore += 2;
+        if (code.match(/import\s*{\s*[\w\s,]+\s*}\s*from/)) tsScore += 2;
+
+        // JavaScript indicators with stronger patterns
+        if (code.match(/const\s+\w+\s*=\s*require\(/)) jsScore += 3;
+        if (code.match(/module\.exports\s*=/)) jsScore += 3;
+        if (code.match(/function\s*\w+\s*\([^)]*\)\s*{/)) jsScore += 2;
+        if (code.match(/new\s+Promise\s*\(/)) jsScore += 2;
+
+        // Get the highest scoring language
+        const scores = [
+            { lang: 'python', score: pythonScore },
+            { lang: 'cpp', score: cppScore },
+            { lang: 'typescript', score: tsScore },
+            { lang: 'javascript', score: jsScore }
+        ];
+
+        const highestScore = Math.max(...scores.map(s => s.score));
+
+        // Only return a language if we have a reasonable confidence
+        if (highestScore >= 3) {
+            return scores.find(s => s.score === highestScore)!.lang;
         }
-        // C++ indicators
-        if (
-            code.includes('#include') ||
-            /\b(cout|cin|endl)\b/.test(code) ||
-            /\b(int|void|class)\s+\w+\s*\(/.test(code)
-        ) {
-            return 'cpp'
-        }
-        // TypeScript/JavaScript indicators
-        if (code.includes('interface ') || code.includes('type ') || code.includes('const ') || /=>\s*{/.test(code)) {
-            return 'typescript'
-        }
-        if (code.includes('function ') || code.includes('let ') || code.includes('var ')) {
-            return 'javascript'
-        }
-        // Default to typescript if we can't determine
-        return 'typescript'
+
+        // If no strong indicators, don't assume it's code
+        return '';
     }
 
     const isCodeBlock = (value: any): boolean => {
-        // Check if the value is a string and looks like code
-        if (typeof value !== 'string') return false
-        // More comprehensive heuristic for code detection
-        const codeIndicators = [
-            // General syntax
-            '{',
-            '}',
-            '()',
-            '=>',
-            ';',
-            // Function definitions
-            'function',
-            'def ',
-            'class ',
-            // Variable declarations
-            'const ',
-            // 'let ',
-            'var ',
-            'int ',
-            'float ',
-            // Imports
-            // 'import ',
-            // 'from ',
-            '#include',
-            // Control structures
-            // 'if ',
-            // 'for ',
-            // 'while ',
-            // 'return ',
-        ]
-        return value.includes('\n') && codeIndicators.some((indicator) => value.includes(indicator))
+        if (typeof value !== 'string') return false;
+        if (!value.includes('\n')) return false;  // Must be multiline
+
+        // Detect if it's a data structure or configuration format
+        if (value.trim().startsWith('{') && value.trim().endsWith('}')) {
+            try {
+                JSON.parse(value);
+                return true;  // Valid JSON
+            } catch (e) {
+                // Not JSON, continue checking
+            }
+        }
+
+        // Count strong code indicators
+        let codeScore = 0;
+
+        // Strong indicators (weighted more heavily)
+        if (value.match(/^(import|from)\s+[\w.]+(\s+import\s+[\w.]+)?$/m)) codeScore += 3;
+        if (value.match(/^(class|def|function)\s+\w+\s*[\({]/m)) codeScore += 3;
+        if (value.match(/#include\s*<[^>]+>/)) codeScore += 3;
+        if (value.match(/\b(public|private|protected):/)) codeScore += 3;
+        if (value.match(/^interface\s+\w+\s*{/m)) codeScore += 3;
+        if (value.match(/^type\s+\w+\s*=/m)) codeScore += 3;
+
+        // Medium indicators
+        if (value.match(/^(const|let|var)\s+\w+\s*=/m)) codeScore += 2;
+        if (value.match(/=>\s*{/)) codeScore += 2;
+        if (value.match(/^export\s+(default\s+)?/m)) codeScore += 2;
+        if (value.match(/^@\w+/m)) codeScore += 2;  // Decorators
+
+        // Weak indicators (only count if we already have some score)
+        if (codeScore > 0) {
+            if (value.includes(';')) codeScore += 1;
+            if (value.match(/[{}\[\]()]/g)) codeScore += 1;
+            if (value.match(/^\s*\/\//m)) codeScore += 1;  // Comments
+            if (value.match(/^\s*return\s+/m)) codeScore += 1;
+        }
+
+        // Check for common non-code patterns
+        const nonCodeIndicators = [
+            /^[\s-]*Dear\s+\w+/i,  // Letters/emails
+            /^(Hi|Hello|Hey)\s+\w+/i,  // Conversational text
+            /^[\s-]*Chapter\s+\d+/i,  // Book chapters
+            /^\d+\.\s+[\w\s]+$/m,  // Numbered lists
+            /^[A-Z][^.!?]+[.!?]\s*$/m  // Regular sentences
+        ];
+
+        if (nonCodeIndicators.some(pattern => pattern.test(value))) {
+            return false;
+        }
+
+        // Require a minimum score to consider it code
+        return codeScore >= 3;
     }
 
     // JSON rendering logic with indentation
@@ -189,21 +238,76 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             return <div>Unsupported data URI format</div>
         }
 
-        // Handle regular code blocks
-        if (isCodeBlock(value)) {
-            const language = detectLanguage(value)
+        // Handle file URLs and local paths
+        if (
+            typeof value === 'string' &&
+            (value.startsWith('http://') ||
+                value.startsWith('https://') ||
+                value.startsWith('test_files/') ||
+                value.startsWith('run_files/'))
+        ) {
+            if (value.startsWith('test_files/') || value.startsWith('run_files/')) {
+                // files stored on the server can be accessed via the /api/files/ endpoint
+                value = window.location.origin + '/' + 'api/files/' + value
+            }
+            // We'll do some basic checks for file type based on extension:
+            const extension = (value.split('.').pop() || '').toLowerCase()
+
+            // For PDFs
+            if (extension === 'pdf') {
+                return (
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: '500px', border: 'none' }}
+                        title="PDF Preview"
+                    />
+                )
+            }
+
+            // For images (png, jpg, jpeg, gif, etc.)
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) {
+                return <img src={value} alt="Image Preview" style={{ maxWidth: '100%', maxHeight: '500px' }} />
+            }
+
+            // For videos (mp4, webm, ogv, etc.)
+            if (['mp4', 'webm', 'ogg', 'ogv'].includes(extension)) {
+                return (
+                    <video controls style={{ maxWidth: '100%', maxHeight: '500px' }}>
+                        <source src={value} />
+                        Your browser does not support the video tag.
+                    </video>
+                )
+            }
+
+            // For audio (mp3, wav, etc.)
+            if (['mp3', 'wav', 'ogg'].includes(extension)) {
+                return (
+                    <audio controls style={{ width: '100%' }}>
+                        <source src={value} />
+                        Your browser does not support the audio tag.
+                    </audio>
+                )
+            }
+
+            // Default fallback – just show a link
             return (
-                <SyntaxHighlighter
-                    language={language}
-                    style={oneDark}
-                    customStyle={{
-                        margin: 0,
-                        borderRadius: '8px',
-                        padding: '12px',
-                    }}
-                >
-                    {value}
-                </SyntaxHighlighter>
+                <div>
+                    <iframe
+                        src={value}
+                        style={{ width: '100%', height: 'auto', border: 'none', display: 'none' }}
+                        sandbox="allow-scripts allow-same-origin allow-popups"
+                        onLoad={(e) => {
+                            e.currentTarget.style.display = 'block'
+                        }}
+                        onError={(e) => {
+                            // Keep iframe hidden on error
+                            e.currentTarget.style.display = 'none'
+                        }}
+                    />
+                    <a href={value} target="_blank" rel="noopener noreferrer">
+                        {value}
+                    </a>
+                </div>
             )
         }
 

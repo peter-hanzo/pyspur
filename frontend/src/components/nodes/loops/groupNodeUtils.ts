@@ -144,35 +144,24 @@ export const onNodeDragStopOverGroupNode = (
         return
     }
 
-    // Check if node is connected to group node through any path and skip if true
-    const isConnectedToGroupNode = (() => {
-        // Check predecessors (sources)
-        const checkPredecessors = (currentId: string, visited = new Set<string>()): boolean => {
-            if (visited.has(currentId)) return false
-            visited.add(currentId)
+    // Check if node has any connections to nodes with different parents
+    const hasConnectionsToOtherParents = (() => {
+        const nodeConnections = edges.filter((e) => e.source === node.id || e.target === node.id)
 
-            const incomingEdges = edges.filter((e) => e.target === currentId)
-            return incomingEdges.some((e) => {
-                if (e.source === groupNode.id) return true
-                return checkPredecessors(e.source, visited)
-            })
+        // If no connections, allow the node to be grouped
+        if (nodeConnections.length === 0) {
+            return false
         }
 
-        // Check successors (targets)
-        const checkSuccessors = (currentId: string, visited = new Set<string>()): boolean => {
-            if (visited.has(currentId)) return false
-            visited.add(currentId)
-
-            const outgoingEdges = edges.filter((e) => e.source === currentId)
-            return outgoingEdges.some((e) => {
-                if (e.target === groupNode.id) return true
-                return checkSuccessors(e.target, visited)
-            })
-        }
-
-        return checkPredecessors(node.id) || checkSuccessors(node.id)
+        // Check if any connected node has a different parent
+        return nodeConnections.some((edge) => {
+            const connectedNodeId = edge.source === node.id ? edge.target : edge.source
+            const connectedNode = nodes.find((n) => n.id === connectedNodeId)
+            return connectedNode?.parentId !== groupNode.id
+        })
     })()
-    if (isConnectedToGroupNode) {
+
+    if (hasConnectionsToOtherParents) {
         return
     }
 

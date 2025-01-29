@@ -27,6 +27,7 @@ import { formatDistanceStrict } from 'date-fns'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { AlertState } from '../types/alert'
+import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -70,6 +71,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
         updateRunStatuses,
     } = useWorkflowExecution({ onAlert: showAlert })
 
+    const saveWorkflow = useSaveWorkflow()
+
     useEffect(() => {
         if (testInputs.length > 0 && !selectedRow) {
             setSelectedRow(testInputs[0].id)
@@ -82,6 +85,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
 
     const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         dispatch(setProjectName(e.target.value))
+        saveWorkflow()
     }
 
     const handleDownloadWorkflow = async (): Promise<void> => {
@@ -165,8 +169,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
             )}
             <Navbar
                 classNames={{
-                    base: 'lg:bg-background lg:backdrop-filter-none h-12 mt-1 shadow-sm',
-                    wrapper: 'px-4 sm:px-6',
+                    base: 'lg:bg-background lg:backdrop-filter-none h-12 shadow-sm',
+                    wrapper: 'max-w-7xl w-full mx-auto',
                     item: [
                         'flex',
                         'relative',
@@ -184,9 +188,9 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     ],
                 }}
             >
-                <NavbarBrand className="h-12 max-w-fit">
+                <NavbarBrand className="h-full max-w-fit">
                     {activePage === 'dashboard' ? (
-                        <p className="font-bold text-default-900 cursor-pointer">PySpur</p>
+                        <p className="font-bold text-lg text-default-900 cursor-pointer">PySpur</p>
                     ) : (
                         <Link href="/" className="cursor-pointer">
                             <p className="font-bold text-default-900">PySpur</p>
@@ -196,7 +200,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
 
                 {(activePage === 'workflow' || activePage === 'trace') && (
                     <NavbarContent
-                        className="h-12 rounded-full bg-content2 dark:bg-content1 sm:flex"
+                        className="h-12 rounded-full bg-transparent sm:flex"
                         id="workflow-title"
                         justify="start"
                     >
@@ -207,6 +211,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                             value={projectName}
                             onChange={handleProjectNameChange}
                             disabled={activePage !== 'workflow'}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.currentTarget.blur()
+                                }
+                            }}
                         />
                     </NavbarContent>
                 )}
@@ -335,7 +344,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     </NavbarContent>
                 )}
                 <NavbarContent
-                    className="ml-2 flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+                    className="flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
                     justify="end"
                 >
                     <NavbarItem className="hidden sm:flex">

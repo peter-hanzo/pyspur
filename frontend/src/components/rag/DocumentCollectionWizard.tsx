@@ -93,8 +93,8 @@ export const DocumentCollectionWizard = () => {
         template: {
             enabled: false,
             template: '{{ text }}',
-            metadata_template: { type: 'text_chunk' }
-        }
+            metadata_template: { type: 'text_chunk' },
+        },
     })
 
     // Clear alert after 3 seconds
@@ -121,7 +121,6 @@ export const DocumentCollectionWizard = () => {
         setFiles(newFiles)
     }
 
-
     const handleSubmit = async () => {
         try {
             setIsSubmitting(true)
@@ -147,11 +146,13 @@ export const DocumentCollectionWizard = () => {
                     embeddings_batch_size: 32,
                     max_num_chunks: 1000,
                     use_vision_model: files.length === 0 ? false : config.use_vision_model,
-                    template: config.template.enabled ? {
-                        enabled: config.template.enabled,
-                        template: config.template.template,
-                        metadata_template: config.template.metadata_template
-                    } : undefined,
+                    template: config.template.enabled
+                        ? {
+                              enabled: config.template.enabled,
+                              template: config.template.template,
+                              metadata_template: config.template.metadata_template,
+                          }
+                        : undefined,
                     ...(config.use_vision_model &&
                         config.vision_model && {
                             vision_model: config.vision_model,
@@ -478,8 +479,8 @@ export const DocumentCollectionWizard = () => {
                                                     ...prev,
                                                     template: {
                                                         ...prev.template,
-                                                        enabled: checked
-                                                    }
+                                                        enabled: checked,
+                                                    },
                                                 }))
                                             }
                                             size="sm"
@@ -497,13 +498,25 @@ export const DocumentCollectionWizard = () => {
                                             onTemplateChange={(template) =>
                                                 setConfig((prev) => ({
                                                     ...prev,
-                                                    template
+                                                    template: {
+                                                        ...template,
+                                                        metadata_template: {
+                                                            type: 'text_chunk',
+                                                            ...template.metadata_template,
+                                                        },
+                                                    },
                                                 }))
                                             }
                                             chunkingConfig={{
-                                                chunk_token_size: config.chunkingMode === 'automatic' ? 1000 : config.chunk_token_size,
-                                                min_chunk_size_chars: config.chunkingMode === 'automatic' ? 100 : config.min_chunk_size_chars,
-                                                min_chunk_length_to_embed: 10
+                                                chunk_token_size:
+                                                    config.chunkingMode === 'automatic'
+                                                        ? 1000
+                                                        : config.chunk_token_size,
+                                                min_chunk_size_chars:
+                                                    config.chunkingMode === 'automatic'
+                                                        ? 100
+                                                        : config.min_chunk_size_chars,
+                                                min_chunk_length_to_embed: 10,
                                             }}
                                             files={files}
                                         />
@@ -746,7 +759,9 @@ export const DocumentCollectionWizard = () => {
                     }
                     ${index === 1 && files.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     disabled={index > activeStep || (index === 1 && files.length === 0)}
-                                    whileHover={{ scale: (index <= activeStep && !(index === 1 && files.length === 0)) ? 1.02 : 1 }}
+                                    whileHover={{
+                                        scale: index <= activeStep && !(index === 1 && files.length === 0) ? 1.02 : 1,
+                                    }}
                                     whileTap={{ scale: 0.98 }}
                                 >
                                     <div className="flex items-center gap-3">
@@ -775,9 +790,7 @@ export const DocumentCollectionWizard = () => {
                                                 </span>
                                             )}
                                             {index === 2 && (
-                                                <span className="text-xs text-default-400">
-                                                    Configure templates
-                                                </span>
+                                                <span className="text-xs text-default-400">Configure templates</span>
                                             )}
                                             {index === 3 && (
                                                 <span className="text-xs text-default-400">

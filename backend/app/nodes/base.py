@@ -59,6 +59,7 @@ class BaseNode(ABC):
         ""  # Will be used for config title, defaults to class name if not set
     )
     logo: Optional[str] = None
+    category: Optional[str] = None
     config_model: Type[BaseModel]
     output_model: Type[BaseNodeOutput]
     input_model: Type[BaseNodeInput]
@@ -99,15 +100,28 @@ class BaseNode(ABC):
         """
         field_type_to_python_type = {
             "string": str,
+            "str": str,
             "integer": int,
+            "int": int,
             "number": float,
+            "float": float,
             "boolean": bool,
+            "bool": bool,
             "list": list,
             "dict": dict,
+            "array": list,
+            "object": dict,
         }
         return create_model(
             f"{self.name}",
-            **{field_name: (field_type_to_python_type[field_type], ...) for field_name, field_type in output_schema.items()},  # type: ignore
+            **{
+                field_name: (
+                    (field_type_to_python_type[field_type], ...)
+                    if field_type in field_type_to_python_type
+                    else (field_type, ...)  # try as is
+                )
+                for field_name, field_type in output_schema.items()
+            },  # type: ignore
             __base__=BaseNodeOutput,
         )
 

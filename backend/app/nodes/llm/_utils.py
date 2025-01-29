@@ -7,6 +7,7 @@ import re
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, cast
 from pathlib import Path
+from docx2python import docx2python
 
 import litellm
 from dotenv import load_dotenv
@@ -56,6 +57,7 @@ class ModelConstraints(BaseModel):
     max_tokens: int
     min_temperature: float = 0.0
     max_temperature: float = 1.0
+    supports_JSON_output: bool = True
 
 
 class LLMModel(BaseModel):
@@ -89,6 +91,7 @@ class LLMModels(str, Enum):
     CLAUDE_3_OPUS_LATEST = "claude-3-opus-latest"
 
     # Google Models
+    GEMINI_2_0_FLASH_EXP = "gemini/gemini-2.0-flash-exp"
     GEMINI_1_5_PRO = "gemini/gemini-1.5-pro"
     GEMINI_1_5_FLASH = "gemini/gemini-1.5-flash"
     GEMINI_1_5_PRO_LATEST = "gemini/gemini-1.5-pro-latest"
@@ -100,8 +103,9 @@ class LLMModels(str, Enum):
 
     # Ollama Models
     OLLAMA_PHI4 = "ollama/phi4"
-    OLLAMA_LLAMA3_3_8B = "ollama/llama3.3"
-    OLLAMA_LLAMA3_2_8B = "ollama/llama3.2"
+    OLLAMA_LLAMA3_3_70B = "ollama/llama3.3:70b"
+    OLLAMA_LLAMA3_3_8B = "ollama/llama3.3:8b"
+    OLLAMA_LLAMA3_2_8B = "ollama/llama3.2:8b"
     OLLAMA_LLAMA3_2_1B = "ollama/llama3.2:1b"
     OLLAMA_LLAMA3_8B = "ollama/llama3"
     OLLAMA_GEMMA_2 = "ollama/gemma2"
@@ -109,6 +113,7 @@ class LLMModels(str, Enum):
     OLLAMA_MISTRAL = "ollama/mistral"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
+    OLLAMA_DEEPSEEK_R1 = "ollama/deepseek-r1"
 
     @classmethod
     def get_model_info(cls, model_id: str) -> LLMModel:
@@ -242,19 +247,29 @@ class LLMModels(str, Enum):
                 id=cls.DEEPSEEK_CHAT.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
+                ),
             ),
             cls.DEEPSEEK_REASONER.value: LLMModel(
                 id=cls.DEEPSEEK_REASONER.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Reasoner",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
+                ),
             ),
             # Ollama Models
             cls.OLLAMA_PHI4.value: LLMModel(
                 id=cls.OLLAMA_PHI4.value,
                 provider=LLMProvider.OLLAMA,
                 name="Phi 4",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.OLLAMA_LLAMA3_3_70B.value: LLMModel(
+                id=cls.OLLAMA_LLAMA3_3_70B.value,
+                provider=LLMProvider.OLLAMA,
+                name="Llama 3.3 (70B)",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.OLLAMA_LLAMA3_3_8B.value: LLMModel(
@@ -309,6 +324,12 @@ class LLMModels(str, Enum):
                 id=cls.OLLAMA_MIXTRAL.value,
                 provider=LLMProvider.OLLAMA,
                 name="Mixtral 8x7B Instruct",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.OLLAMA_DEEPSEEK_R1.value: LLMModel(
+                id=cls.OLLAMA_DEEPSEEK_R1.value,
+                provider=LLMProvider.OLLAMA,
+                name="Deepseek R1",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
         }
@@ -419,7 +440,12 @@ def async_retry(*dargs, **dkwargs):
     wait=wait_random_exponential(min=30, max=120),
     stop=stop_after_attempt(3),
     retry=lambda e: not isinstance(
-        e, (litellm.exceptions.AuthenticationError, ValueError)
+        e,
+        (
+            litellm.exceptions.AuthenticationError,
+            ValueError,
+            litellm.exceptions.RateLimitError,
+        ),
     ),
 )
 async def completion_with_backoff(**kwargs) -> str:
@@ -491,60 +517,71 @@ async def generate_text(
         kwargs.pop("temperature")
 
     response = ""
-    if output_json_schema is None and output_schema is None:
-        output_schema = {"output": "string"}
-        output_json_schema = {
-            "type": "object",
-            "properties": {"output": {"type": "string"}},
-            "required": ["output"],
-        }
-    elif output_json_schema is None and output_schema is not None:
-        output_json_schema = convert_output_schema_to_json_schema(output_schema)
-    elif output_json_schema is not None and output_json_schema.strip() != "":
-        output_json_schema = json.loads(output_json_schema)
-    output_json_schema["additionalProperties"] = False
 
-    # check if the model supports response format
-    if "response_format" in litellm.get_supported_openai_params(model=model_name):
-        if litellm.supports_response_schema(model=model_name, custom_llm_provider=None):
-            if "name" not in output_json_schema and "schema" not in output_json_schema:
-                output_json_schema = {
-                    "schema": output_json_schema,
-                    "strict": True,
-                    "name": "output",
-                }
-            kwargs["response_format"] = {
-                "type": "json_schema",
-                "json_schema": output_json_schema,
+    # Get model info to check if it supports JSON output
+    model_info = LLMModels.get_model_info(model_name)
+    supports_json = model_info and model_info.constraints.supports_JSON_output
+
+    # Only process JSON schema if the model supports it
+    if supports_json:
+        if output_json_schema is None and output_schema is None:
+            output_schema = {"output": "string"}
+            output_json_schema = {
+                "type": "object",
+                "properties": {"output": {"type": "string"}},
+                "required": ["output"],
             }
-        else:
-            kwargs["response_format"] = {"type": "json_object"}
-            if output_schema:
-                schema_for_prompt = json.dumps(output_schema)
-            elif output_json_schema:
-                schema_for_prompt = json.dumps(output_json_schema)
-            else:
-                schema_for_prompt = json.dumps({"output": "string"})
-            system_message = next(
-                message for message in messages if message["role"] == "system"
-            )
-            system_message["content"] += (
-                "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
-                + schema_for_prompt
-            )
-    else:
-        raise ValueError(f"Model {model_name} does not support response format")
+        elif output_json_schema is None and output_schema is not None:
+            output_json_schema = convert_output_schema_to_json_schema(output_schema)
+        elif output_json_schema is not None and output_json_schema.strip() != "":
+            output_json_schema = json.loads(output_json_schema)
+        output_json_schema["additionalProperties"] = False
 
-    if json_mode:
+        # check if the model supports response format
+        if "response_format" in litellm.get_supported_openai_params(model=model_name):
+            if litellm.supports_response_schema(
+                model=model_name, custom_llm_provider=None
+            ):
+                if (
+                    "name" not in output_json_schema
+                    and "schema" not in output_json_schema
+                ):
+                    output_json_schema = {
+                        "schema": output_json_schema,
+                        "strict": True,
+                        "name": "output",
+                    }
+                kwargs["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": output_json_schema,
+                }
+            else:
+                kwargs["response_format"] = {"type": "json_object"}
+                if output_schema:
+                    schema_for_prompt = json.dumps(output_schema)
+                elif output_json_schema:
+                    schema_for_prompt = json.dumps(output_json_schema)
+                else:
+                    schema_for_prompt = json.dumps({"output": "string"})
+                system_message = next(
+                    message for message in messages if message["role"] == "system"
+                )
+                system_message["content"] += (
+                    "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
+                    + schema_for_prompt
+                )
+
+    if json_mode and supports_json:
         if model_name.startswith("ollama"):
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
-            response = await ollama_with_backoff(
+            raw_response = await ollama_with_backoff(
                 model=model_name,
                 options=options,
                 messages=messages,
                 format="json",
                 api_base=api_base,
             )
+            response = raw_response
         # Handle Gemini models with URL variables
         elif model_name.startswith("gemini") and url_variables:
             # Transform messages to include URL content
@@ -566,9 +603,16 @@ async def generate_text(
                                     # Use the new path resolution utility
                                     file_path = resolve_file_path(url)
                                     logging.info(f"Reading file from: {file_path}")
-                                    data_url = encode_file_to_base64_data_url(
-                                        str(file_path)
-                                    )
+
+                                    # Check if file is a DOCX file
+                                    if str(file_path).lower().endswith('.docx'):
+                                        # Convert DOCX to XML
+                                        xml_content = convert_docx_to_xml(str(file_path))
+                                        # Encode the XML content directly
+                                        data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
+                                    else:
+                                        data_url = encode_file_to_base64_data_url(str(file_path))
+
                                     content.append(
                                         {
                                             "type": "image_url",
@@ -581,11 +625,9 @@ async def generate_text(
                     msg["content"] = content
                 transformed_messages.append(msg)
             kwargs["messages"] = transformed_messages
-            response = await completion_with_backoff(**kwargs)
+            raw_response = await completion_with_backoff(**kwargs)
+            response = raw_response
         else:
-            # For both Azure and OpenAI, we need to set the response_format to json_object
-            # kwargs["response_format"] = {"type": "json_object"}
-            # Add system message to enforce JSON mode
             messages.insert(
                 0,
                 {
@@ -593,31 +635,57 @@ async def generate_text(
                     "content": "You must respond with valid JSON only. No other text before or after the JSON Object.",
                 },
             )
-            response = await completion_with_backoff(**kwargs)
+            raw_response = await completion_with_backoff(**kwargs)
+            response = raw_response
     else:
-        response = await completion_with_backoff(**kwargs)
+        raw_response = await completion_with_backoff(**kwargs)
+        response = raw_response
 
-    # Ensure response is valid JSON
-    try:
-        json.loads(response)
-        return response
-    except json.JSONDecodeError:
-        logging.error(f"Response is not valid JSON: {response}")
-        # Try to fix common json issues
-        if not response.startswith("{"):
-            # Extract JSON if there is extra text
-            json_match = re.search(r"\{.*\}", response, re.DOTALL)
-            if json_match:
-                response = json_match.group(0)
-                try:
-                    json.loads(response)
-                    return response
-                except json.JSONDecodeError:
-                    pass
-
-        # If all attempts to parse JSON fail, wrap the response in a JSON structure
+    # For models that don't support JSON output, wrap the response in a JSON structure
+    if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+        # Check for provider-specific fields
+        if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
+            if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
+                provider_fields = raw_response.choices[0].message.provider_specific_fields
+                return json.dumps({
+                    "output": sanitized_response,
+                    "provider_specific_fields": provider_fields
+                })
         return f'{{"output": "{sanitized_response}"}}'
+
+    # Ensure response is valid JSON for models that support it
+    if supports_json:
+        try:
+            json.loads(response)
+            return response
+        except json.JSONDecodeError:
+            logging.error(f"Response is not valid JSON: {response}")
+            # Try to fix common json issues
+            if not response.startswith("{"):
+                # Extract JSON if there is extra text
+                json_match = re.search(r"\{.*\}", response, re.DOTALL)
+                if json_match:
+                    response = json_match.group(0)
+                    try:
+                        json.loads(response)
+                        return response
+                    except json.JSONDecodeError:
+                        pass
+
+            # If all attempts to parse JSON fail, wrap the response in a JSON structure
+            sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+            # Check for provider-specific fields
+            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
+                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
+                    provider_fields = raw_response.choices[0].message.provider_specific_fields
+                    return json.dumps({
+                        "output": sanitized_response,
+                        "provider_specific_fields": provider_fields
+                    })
+            return f'{{"output": "{sanitized_response}"}}'
+
+    return response
 
 
 def convert_output_schema_to_json_schema(
@@ -682,3 +750,37 @@ async def ollama_with_backoff(
         options=(options or OllamaOptions()).to_dict(),
     )
     return response.message.content
+
+
+def convert_docx_to_xml(file_path: str) -> str:
+    """
+    Convert a DOCX file to XML format.
+    Args:
+        file_path: Path to the DOCX file
+    Returns:
+        XML string representation of the DOCX file
+    """
+    try:
+        with docx2python(file_path) as docx_content:
+            # Convert the document content to XML format
+            xml_content = f"<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
+
+            # Add metadata
+            xml_content += "<metadata>\n"
+            for key, value in docx_content.properties.items():
+                if value:  # Only add non-empty properties
+                    xml_content += f"<{key}>{value}</{key}>\n"
+            xml_content += "</metadata>\n"
+
+            # Add document content
+            xml_content += "<content>\n"
+            for paragraph in docx_content.text:
+                if paragraph:  # Skip empty paragraphs
+                    xml_content += f"<paragraph>{paragraph}</paragraph>\n"
+            xml_content += "</content>\n"
+            xml_content += "</document>"
+
+            return xml_content
+    except Exception as e:
+        logging.error(f"Error converting DOCX to XML: {str(e)}")
+        raise

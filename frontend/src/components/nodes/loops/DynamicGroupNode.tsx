@@ -21,8 +21,10 @@ import useDetachNodes from './useDetachNodes'
 import { getRelativeNodesBounds } from './groupNodeUtils'
 import { RootState } from '@/store/store'
 import { getNodeTitle } from '@/utils/flowUtils'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { updateNodeTitle } from '@/store/flowSlice'
 import styles from '../DynamicNode.module.css'
+import { TaskStatus } from '@/types/api_types/taskSchemas'
 
 const staticStyles = {
     targetHandle: {
@@ -42,14 +44,37 @@ const staticStyles = {
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         pointerEvents: 'auto' as const,
     },
+    baseTag: {
+        padding: '2px 8px',
+        borderRadius: '12px',
+        fontSize: '0.75rem',
+        display: 'inline-block',
+        color: '#fff',
+    },
+    collapseButton: {
+        minWidth: 'auto',
+        height: '24px',
+        padding: '0 8px',
+        fontSize: '0.8rem',
+        marginRight: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    controlsContainer: {
+        position: 'absolute' as const,
+        top: '8px',
+        right: '8px',
+        display: 'flex',
+        alignItems: 'center',
+    },
 }
-const resizerLineStyle = { borderColor: 'rgb(148 163 184)' } // Tailwind slate-400
-const resizerHandleStyle = {
-    backgroundColor: 'white',
-    width: 8,
-    height: 8,
+const resizerLineStyle: React.CSSProperties = { borderColor: 'rgb(148 163 184)', display: 'none' } // Tailwind slate-400
+const resizerHandleStyle: React.CSSProperties = {
+    backgroundColor: 'rgb(148 163 184)',
+    width: '1rem',
+    height: '1rem',
     borderRadius: 2,
-    border: '1.5px solid rgb(148 163 184)', // Tailwind slate-400
 }
 
 export interface DynamicGroupNodeProps {
@@ -91,6 +116,16 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
 
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
 
+    const acronym = node?.data?.acronym || 'N/A'
+    const color = node?.data?.color || '#ccc'
+    const tagStyle = useMemo(
+        () => ({
+            ...staticStyles.baseTag,
+            backgroundColor: color,
+        }),
+        [color]
+    )
+
     // Handle predecessor nodes logic
     const [predecessorNodes, setPredecessorNodes] = useState(() => {
         return edges
@@ -122,7 +157,9 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             // Check if nodes have the same parent or both have no parent
             const fromNodeParentId = connection.fromNode?.parentId
             const toNodeParentId = connection.toNode?.parentId
-            const canConnect = fromNodeParentId === toNodeParentId
+            const canConnect =
+                fromNodeParentId === toNodeParentId &&
+                !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
 
             if (
                 canConnect &&
@@ -260,8 +297,35 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
         }
     }
 
+    const nodeRunStatus: TaskStatus = node?.data?.taskStatus as TaskStatus
+    const status = node?.data?.run ? 'completed' : ''
+
+    let outlineColor = 'gray'
+
+    switch (nodeRunStatus) {
+        case 'PENDING':
+            outlineColor = 'yellow'
+            break
+        case 'RUNNING':
+            outlineColor = 'blue'
+            break
+        case 'COMPLETED':
+            outlineColor = '#4CAF50'
+            break
+        case 'FAILED':
+            outlineColor = 'red'
+            break
+        case 'CANCELED':
+            outlineColor = 'gray'
+            break
+        default:
+            if (status === 'completed') {
+                outlineColor = '#4CAF50'
+            }
+    }
+
     return (
-        <>
+        <div className="w-full h-full group relative">
             {showTitleError && (
                 <Alert
                     key={`alert-${id}`}
@@ -280,103 +344,113 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 minWidth={Math.max(200, minWidth)}
                 handleStyle={resizerHandleStyle}
             />
-            {/* Hidden target handle covering the entire node */}
-            <Handle
-                type="target"
-                position={Position.Left}
-                id={`node-body-${id}`}
-                style={staticStyles.targetHandle}
-                isConnectable={true}
-                isConnectableStart={false}
-            />
-            {/* Controls Card */}
-            <Card
-                key={`controls-card-${id}`}
-                style={staticStyles.controlsCard}
-                className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
-                classNames={{
-                    base: 'bg-background border-default-200 transition-opacity duration-200',
-                }}
-            >
-                <div className="flex flex-row gap-1">
-                    <Button key={`delete-btn-${id}`} isIconOnly radius="full" variant="light" onPress={onDelete}>
-                        <Icon
-                            key={`delete-icon-${id}`}
-                            className="text-default-500"
-                            icon="solar:trash-bin-trash-linear"
-                            width={22}
-                        />
-                    </Button>
-                </div>
-            </Card>
-            <Card
-                className={`w-full h-full transition-colors duration-200 ${
-                    node?.data?.className === 'active' ? 'border-blue-500' : ''
-                }`}
-                classNames={{
-                    base: `bg-slate-50/50 outline-offset-0 outline-solid-200
-                        ${isSelected ? 'outline-[3px]' : 'outline-[1px]'} 
-                        outline-default-200 group-hover:outline-[3px]`,
-                }}
-            >
-                <CardHeader className="relative pt-2 pb-4 bg-background">
-                    <div className="flex items-center">
-                        {nodeConfig?.logo && (
-                            <img src={nodeConfig.logo} alt="Node Logo" className="mr-2 max-h-8 max-w-8 mb-3" />
-                        )}
-                        {editingTitle ? (
-                            <Input
-                                autoFocus
-                                value={titleInputValue}
-                                size="sm"
-                                variant="bordered"
-                                radius="lg"
-                                onChange={(e) => {
-                                    const validValue = convertToPythonVariableName(e.target.value)
-                                    setTitleInputValue(validValue)
-                                    handleTitleChange(validValue)
-                                }}
-                                onBlur={() => setEditingTitle(false)}
-                                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                    if (e.key === 'Enter' || e.key === 'Escape') {
-                                        e.stopPropagation()
-                                        e.preventDefault()
-                                        setEditingTitle(false)
-                                    }
-                                }}
-                                classNames={{
-                                    input: 'text-foreground dark:text-white',
-                                    inputWrapper: 'dark:bg-default-100/50 bg-default-100',
-                                }}
+            <div id="node-${id}" className="relative w-full h-full">
+                {/* Hidden target handle covering the entire node */}
+                {connection.inProgress && (
+                    <Handle
+                        type="target"
+                        position={Position.Left}
+                        id={`node-body-${id}`}
+                        style={staticStyles.targetHandle}
+                        isConnectable={true}
+                        isConnectableStart={false}
+                    />
+                )}
+                {/* Controls Card */}
+                <Card
+                    key={`controls-card-${id}`}
+                    style={staticStyles.controlsCard}
+                    className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
+                    classNames={{
+                        base: 'bg-background border-default-200 transition-opacity duration-200',
+                    }}
+                >
+                    <div className="flex flex-row gap-1">
+                        <Button key={`delete-btn-${id}`} isIconOnly radius="full" variant="light" onPress={onDelete}>
+                            <Icon
+                                key={`delete-icon-${id}`}
+                                className="text-default-500"
+                                icon="solar:trash-bin-trash-linear"
+                                width={22}
                             />
-                        ) : (
-                            <h3
-                                className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
-                                onClick={() => {
-                                    setTitleInputValue(getNodeTitle(node['data']))
-                                    setEditingTitle(true)
-                                }}
-                            >
-                                {nodeConfig?.title || 'Group'}
-                            </h3>
-                        )}
+                        </Button>
                     </div>
-                </CardHeader>
-                {!isCollapsed && <Divider key={`divider-${id}`} className="bg-background" />}
-                <CardBody className="px-1 bg-none">
-                    <div className={`${styles.handlesWrapper} bg-background`} ref={nodeRef}>
-                        {renderHandles()}
-                    </div>
-                    <div
-                        style={{ flexGrow: 1, minHeight: minHeight }}
-                        id="child-node-container"
-                        className="bg-none rounded-md mt-2"
-                    >
-                        {/* This div will expand to fill remaining space */}
-                    </div>
-                </CardBody>
-            </Card>
-        </>
+                </Card>
+                <Card
+                    id={`node-${id}-card`}
+                    className={`absolute inset-0 transition-colors duration-200`}
+                    style={{ outlineColor }}
+                    classNames={{
+                        base: `bg-background outline-offset-0 outline-solid-200
+                        ${isSelected ? 'outline-[3px]' : status === 'completed' ? 'outline-[2px]' : 'outline-[1px]'} 
+                        outline-default-200 group-hover:outline-[3px]`,
+                    }}
+                >
+                    <CardHeader className="relative pt-2 pb-4 bg-background">
+                        <div className="flex items-center">
+                            {nodeConfig?.logo && (
+                                <img src={nodeConfig.logo} alt="Node Logo" className="mr-2 max-h-8 max-w-8 mb-3" />
+                            )}
+                            {editingTitle ? (
+                                <Input
+                                    autoFocus
+                                    value={titleInputValue}
+                                    size="sm"
+                                    variant="bordered"
+                                    radius="lg"
+                                    onChange={(e) => {
+                                        const validValue = convertToPythonVariableName(e.target.value)
+                                        setTitleInputValue(validValue)
+                                        handleTitleChange(validValue)
+                                    }}
+                                    onBlur={() => setEditingTitle(false)}
+                                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                        if (e.key === 'Enter' || e.key === 'Escape') {
+                                            e.stopPropagation()
+                                            e.preventDefault()
+                                            setEditingTitle(false)
+                                        }
+                                    }}
+                                    classNames={{
+                                        input: 'text-foreground dark:text-white',
+                                        inputWrapper: 'dark:bg-default-100/50 bg-default-100',
+                                    }}
+                                />
+                            ) : (
+                                <h3
+                                    className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                        setTitleInputValue(getNodeTitle(node['data']))
+                                        setEditingTitle(true)
+                                    }}
+                                >
+                                    {nodeConfig?.title || 'Group'}
+                                </h3>
+                            )}
+                        </div>
+                        <div style={staticStyles.controlsContainer}>
+                            <div style={tagStyle} className="node-acronym-tag">
+                                {acronym}
+                            </div>
+                        </div>
+                    </CardHeader>
+                    {!isCollapsed && <Divider key={`divider-${id}`} />}
+                    <CardBody className="px-1">
+                        <div className={`${styles.handlesWrapper} bg-background`} ref={nodeRef}>
+                            {renderHandles()}
+                        </div>
+                        {!isCollapsed && <Divider key={`divider-2-${id}`} className="mt-2" />}
+                        <div
+                            style={{ flexGrow: 1, minHeight: minHeight }}
+                            id="child-node-container"
+                            className="bg-none rounded-md mt-2"
+                        >
+                            {/* This div will expand to fill remaining space */}
+                        </div>
+                    </CardBody>
+                </Card>
+            </div>
+        </div>
     )
 }
 

@@ -1,5 +1,5 @@
 from sqlalchemy import Computed, Integer, String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from .base_model import BaseModel
 
@@ -20,4 +20,11 @@ class OutputFileModel(BaseModel):
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
+    )
+
+    run = relationship(
+        "RunModel",
+        back_populates="output_file",
+        single_parent=True,
+        cascade="all, delete-orphan",
     )

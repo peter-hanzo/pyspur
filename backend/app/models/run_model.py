@@ -57,15 +57,19 @@ class RunModel(BaseModel):
     output_file_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("output_files.id"), nullable=True
     )
-    tasks: Mapped[List["TaskModel"]] = relationship("TaskModel")
+    tasks: Mapped[List["TaskModel"]] = relationship(
+        "TaskModel", cascade="all, delete-orphan"
+    )
     parent_run: Mapped[Optional["RunModel"]] = relationship(
-        "RunModel", remote_side=[id], back_populates="subruns"
+        "RunModel",
+        remote_side=[id],
+        back_populates="subruns",
     )
     subruns: Mapped[List["RunModel"]] = relationship(
-        "RunModel", back_populates="parent_run"
+        "RunModel", back_populates="parent_run", cascade="all, delete-orphan"
     )
     output_file: Mapped[Optional["OutputFileModel"]] = relationship(
-        "OutputFileModel", backref="run"
+        "OutputFileModel", back_populates="run"
     )
 
     @property

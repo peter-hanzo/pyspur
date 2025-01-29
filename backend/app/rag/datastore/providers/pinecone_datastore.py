@@ -4,12 +4,12 @@ from typing import Any, Dict, List, Optional
 
 from pinecone import Pinecone, ServerlessSpec
 from ...schemas.document_schemas import (
-    DocumentChunk,
-    DocumentChunkMetadata,
-    DocumentChunkWithScore,
-    DocumentMetadataFilter,
-    QueryResult,
-    QueryWithEmbedding,
+    DocumentChunkSchema,
+    DocumentChunkMetadataSchema,
+    DocumentChunkWithScoreSchema,
+    DocumentMetadataFilterSchema,
+    QueryResultSchema,
+    QueryWithEmbeddingSchema,
     Source,
 )
 from loguru import logger
@@ -49,7 +49,7 @@ class PineconeDataStore(DataStore):
         # Check if the index name is specified and exists in Pinecone
         if PINECONE_INDEX and PINECONE_INDEX not in pc.list_indexes().names():
             # Get all fields in the metadata object in a list
-            fields_to_index = list(DocumentChunkMetadata.model_fields.keys())
+            fields_to_index = list(DocumentChunkMetadataSchema.model_fields.keys())
 
             # Create a new index with the specified name, dimension, and metadata configuration
             try:
@@ -81,7 +81,7 @@ class PineconeDataStore(DataStore):
                 raise e
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
-    async def _upsert(self, chunks: Dict[str, List[DocumentChunk]]) -> List[str]:
+    async def _upsert(self, chunks: Dict[str, List[DocumentChunkSchema]]) -> List[str]:
         """
         Takes in a dict from document id to list of document chunks and inserts them into the index.
         Return a list of document ids.
@@ -133,14 +133,14 @@ class PineconeDataStore(DataStore):
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
     async def _query(
         self,
-        queries: List[QueryWithEmbedding],
-    ) -> List[QueryResult]:
+        queries: List[QueryWithEmbeddingSchema],
+    ) -> List[QueryResultSchema]:
         """
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
 
         # Define a helper coroutine that performs a single query and returns a QueryResult
-        async def _single_query(query: QueryWithEmbedding) -> QueryResult:
+        async def _single_query(query: QueryWithEmbeddingSchema) -> QueryResultSchema:
             logger.debug(f"Query: {query.query}")
 
             # Convert the metadata filter object to a dict with pinecone filter expressions
@@ -159,7 +159,7 @@ class PineconeDataStore(DataStore):
                 logger.error(f"Error querying index: {e}")
                 raise e
 
-            query_results: List[DocumentChunkWithScore] = []
+            query_results: List[DocumentChunkWithScoreSchema] = []
             for result in query_response.matches:
                 score = result.score
                 metadata = result.metadata
@@ -179,19 +179,19 @@ class PineconeDataStore(DataStore):
                     metadata_without_text["source"] = None
 
                 # Create a document chunk with score object with the result data
-                result = DocumentChunkWithScore(
+                result = DocumentChunkWithScoreSchema(
                     id=result.id,
                     score=score,
                     text=(
                         str(metadata["text"]) if metadata and "text" in metadata else ""
                     ),
-                    metadata=DocumentChunkMetadata(**metadata_without_text) if metadata_without_text else None,
+                    metadata=DocumentChunkMetadataSchema(**metadata_without_text) if metadata_without_text else None,
                 )
                 query_results.append(result)
-            return QueryResult(query=query.query, results=query_results)
+            return QueryResultSchema(query=query.query, results=query_results)
 
         # Use asyncio.gather to run multiple _single_query coroutines concurrently and collect their results
-        results: List[QueryResult] = await asyncio.gather(
+        results: List[QueryResultSchema] = await asyncio.gather(
             *[_single_query(query) for query in queries]
         )
 
@@ -201,7 +201,7 @@ class PineconeDataStore(DataStore):
     async def delete(
         self,
         ids: Optional[List[str]] = None,
-        filter: Optional[DocumentMetadataFilter] = None,
+        filter: Optional[DocumentMetadataFilterSchema] = None,
         delete_all: Optional[bool] = None,
     ) -> bool:
         """
@@ -275,7 +275,7 @@ class PineconeDataStore(DataStore):
         return False
 
     def _get_pinecone_filter(
-        self, filter: Optional[DocumentMetadataFilter] = None
+        self, filter: Optional[DocumentMetadataFilterSchema] = None
     ) -> Dict[str, Any]:
         if filter is None:
             return {}
@@ -303,7 +303,7 @@ class PineconeDataStore(DataStore):
         return pinecone_filter
 
     def _get_pinecone_metadata(
-        self, metadata: Optional[DocumentChunkMetadata] = None
+        self, metadata: Optional[DocumentChunkMetadataSchema] = None
     ) -> Dict[str, Any]:
         if metadata is None:
             return {}

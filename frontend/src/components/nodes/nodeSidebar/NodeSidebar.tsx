@@ -10,12 +10,8 @@ import {
     FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
-import {
-    FlowWorkflowNodeType,
-    FlowWorkflowNodeTypesByCategory,
-    FieldMetadata,
-    ModelConstraints,
-} from '../../../store/nodeTypesSlice'
+import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../../store/nodeTypesSlice'
+import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import NumberInput from '../../NumberInput'
 import CodeEditor from '../../CodeEditor'
 import { jsonOptions } from '../../../constants/jsonOptions'
@@ -44,6 +40,7 @@ import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
 import { listVectorIndices } from '../../../utils/api'
 
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 // Define types for props and state
 interface NodeSidebarProps {
     nodeID: string
@@ -74,22 +71,6 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
     if (!prevNodes || !nextNodes) return false
     if (prevNodes.length !== nextNodes.length) return false
     return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]))
-}
-
-// Add the utility function near the top of the file
-const convertToPythonVariableName = (str: string): string => {
-    // Replace spaces and hyphens with underscores
-    str = str.replace(/[\s-]/g, '_')
-
-    // Remove any non-alphanumeric characters except underscores
-    str = str.replace(/[^a-zA-Z0-9_]/g, '')
-
-    // Ensure the first character is a letter or underscore
-    if (!/^[a-zA-Z_]/.test(str)) {
-        str = '_' + str
-    }
-
-    return str
 }
 
 // Add this helper function near the top of the file, after other utility functions
@@ -194,7 +175,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {})
     const [fewShotIndex, setFewShotIndex] = useState<number | null>(null)
     const [showTitleError, setShowTitleError] = useState(false)
-    const [titleInputValue, setTitleInputValue] = useState<string>('')
 
     // Add state for vector indices
     const [vectorIndices, setVectorIndices] = useState<VectorIndexOption[]>([])
@@ -228,13 +208,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }, 300),
         [dispatch]
     )
-
-    // Add this useEffect to handle title initialization and updates
-    useEffect(() => {
-        if (nodeConfig) {
-            setTitleInputValue(nodeConfig.title || node?.id || '')
-        }
-    }, [nodeConfig, node]) // Only depend on nodeConfig and node changes
 
     // Update the existing useEffect to initialize LLM nodes with a default model
     useEffect(() => {
@@ -289,10 +262,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
     }
 
-    // Update the handleNodeTitleChange function
-    const handleNodeTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const validTitle = convertToPythonVariableName(e.target.value)
-        setTitleInputValue(validTitle)
+    // Simplify the title change handlers into a single function
+    const handleTitleChangeComplete = (value: string) => {
+        const validTitle = convertToPythonVariableName(value)
         dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }))
     }
 
@@ -571,33 +543,21 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             return renderEnumSelect(key, fieldMetadata.title || key, fieldMetadata.enum, fullPath, defaultSelected)
         }
 
-        // Handle specific cases for input_schema, output_schema, and system_prompt
-        if (key === 'input_schema') {
-            return (
-                <div key={`schema-editor-input-${nodeID}`} className="my-2">
-                    <label className="font-semibold mb-1 block">Input Schema</label>
-                    <SchemaEditor
-                        key={`schema-editor-input-${nodeID}`}
-                        jsonValue={currentNodeConfig.input_schema || {}}
-                        onChange={(newValue) => {
-                            handleInputChange('input_schema', newValue)
-                        }}
-                        options={jsonOptions}
-                        schemaType="input_schema"
-                        nodeId={nodeID}
-                    />
-                    {!isLast && <hr className="my-2" />}
-                </div>
-            )
-        }
-
         if (key === 'output_schema') {
+            // Get model constraints to check if JSON output is supported
+            const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
+            const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+
             return (
                 <div key={key} className="my-2">
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">Output Schema</h3>
                         <Tooltip
-                            content="The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
+                            content={
+                                supportsJsonOutput
+                                    ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
+                                    : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                            }
                             placement="left-start"
                             showArrow={true}
                             className="max-w-xs"
@@ -609,58 +569,77 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    <SchemaEditor
-                        key={`schema-editor-output-${nodeID}`}
-                        jsonValue={currentNodeConfig.output_schema || {}}
-                        onChange={(newValue) => {
-                            if (Object.keys(newValue).length === 0) {
-                                // If schema is empty, just update output_schema
-                                handleInputChange('output_schema', newValue)
-                                return
-                            }
-
-                            // Try to generate JSON schema
-                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
-                            if (jsonSchema) {
-                                // Update both if valid
-                                const updates = {
-                                    output_schema: newValue,
-                                    output_json_schema: jsonSchema,
+                    {supportsJsonOutput ? (
+                        <SchemaEditor
+                            key={`schema-editor-output-${nodeID}`}
+                            jsonValue={currentNodeConfig.output_schema || {}}
+                            onChange={(newValue) => {
+                                if (Object.keys(newValue).length === 0) {
+                                    // If schema is empty, just update output_schema
+                                    handleInputChange('output_schema', newValue)
+                                    return
                                 }
-                                setCurrentNodeConfig((prev) => ({
-                                    ...prev,
-                                    ...updates,
-                                }))
-                                dispatch(
-                                    updateNodeConfigOnly({
-                                        id: nodeID,
-                                        data: {
-                                            ...currentNodeConfig,
-                                            ...updates,
-                                        },
-                                    })
-                                )
-                            } else {
-                                // Update only output_schema if JSON schema generation fails
-                                handleInputChange('output_schema', newValue)
-                            }
-                        }}
-                        options={jsonOptions}
-                        schemaType="output_schema"
-                        nodeId={nodeID}
-                    />
+
+                                // Try to generate JSON schema
+                                const jsonSchema = generateJsonSchemaFromSchema(newValue)
+                                if (jsonSchema) {
+                                    // Update both if valid
+                                    const updates = {
+                                        output_schema: newValue,
+                                        output_json_schema: jsonSchema,
+                                    }
+                                    setCurrentNodeConfig((prev) => ({
+                                        ...prev,
+                                        ...updates,
+                                    }))
+                                    dispatch(
+                                        updateNodeConfigOnly({
+                                            id: nodeID,
+                                            data: {
+                                                ...currentNodeConfig,
+                                                ...updates,
+                                            },
+                                        })
+                                    )
+                                } else {
+                                    // Update only output_schema if JSON schema generation fails
+                                    handleInputChange('output_schema', newValue)
+                                }
+                            }}
+                            options={jsonOptions}
+                            schemaType="output_schema"
+                            nodeId={nodeID}
+                        />
+                    ) : (
+                        <Alert className="mb-2" color="warning">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:info-circle-linear" width={20} />
+                                <span>
+                                    This model uses a fixed output schema: <code>{'{ output: string }'}</code>
+                                </span>
+                            </div>
+                        </Alert>
+                    )}
                     {!isLast && <hr className="my-2" />}
                 </div>
             )
         }
 
         if (key === 'output_json_schema') {
+            // Get model constraints to check if JSON output is supported
+            const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
+            const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">Output JSON Schema</h3>
                         <Tooltip
-                            content="The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                            content={
+                                supportsJsonOutput
+                                    ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                                    : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                            }
                             placement="left-start"
                             showArrow={true}
                             className="max-w-xs"
@@ -672,43 +651,60 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    <CodeEditor
-                        key={`text-editor-output-json-schema-${nodeID}`}
-                        code={currentNodeConfig[key] || ''}
-                        onChange={(value: string) => {
-                            if (!value.trim()) {
-                                // If JSON schema is empty, just update output_json_schema
-                                handleInputChange('output_json_schema', value)
-                                return
-                            }
-
-                            // Try to extract simple schema
-                            const simpleSchema = extractSchemaFromJsonSchema(value)
-                            if (simpleSchema) {
-                                // Update both if valid
-                                const updates = {
-                                    output_json_schema: value,
-                                    output_schema: simpleSchema,
+                    {supportsJsonOutput ? (
+                        <CodeEditor
+                            key={`text-editor-output-json-schema-${nodeID}`}
+                            code={currentNodeConfig[key] || ''}
+                            mode="json"
+                            onChange={(value: string) => {
+                                if (!value.trim()) {
+                                    // If JSON schema is empty, just update output_json_schema
+                                    handleInputChange('output_json_schema', value)
+                                    return
                                 }
-                                setCurrentNodeConfig((prev) => ({
-                                    ...prev,
-                                    ...updates,
-                                }))
-                                dispatch(
-                                    updateNodeConfigOnly({
-                                        id: nodeID,
-                                        data: {
-                                            ...currentNodeConfig,
-                                            ...updates,
-                                        },
-                                    })
-                                )
-                            } else {
-                                // Update only output_json_schema if schema extraction fails
-                                handleInputChange('output_json_schema', value)
-                            }
-                        }}
-                    />
+
+                                // Try to extract simple schema
+                                const simpleSchema = extractSchemaFromJsonSchema(value)
+                                if (simpleSchema) {
+                                    // Update both if valid
+                                    const updates = {
+                                        output_json_schema: value,
+                                        output_schema: simpleSchema,
+                                    }
+                                    setCurrentNodeConfig((prev) => ({
+                                        ...prev,
+                                        ...updates,
+                                    }))
+                                    dispatch(
+                                        updateNodeConfigOnly({
+                                            id: nodeID,
+                                            data: {
+                                                ...currentNodeConfig,
+                                                ...updates,
+                                            },
+                                        })
+                                    )
+                                } else {
+                                    // Update only output_json_schema if schema extraction fails
+                                    handleInputChange('output_json_schema', value)
+                                }
+                            }}
+                        />
+                    ) : (
+                        <Alert className="mb-2" color="warning">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:info-circle-linear" width={20} />
+                                <span>
+                                    This model uses a fixed output schema:{' '}
+                                    <code>
+                                        {
+                                            "{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"
+                                        }
+                                    </code>
+                                </span>
+                            </div>
+                        </Alert>
+                    )}
                     {!isLast && <hr className="my-2" />}
                 </div>
             )
@@ -777,7 +773,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
-        if (key.endsWith('_prompt') || key.endsWith('_message')) {
+        if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
             return (
                 <div key={key}>
                     <TextEditor
@@ -799,6 +795,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 <CodeEditor
                     key={`code-editor-${nodeID}-${key}`}
                     code={value}
+                    mode="python"
                     onChange={(newValue: string) => handleInputChange(key, newValue)}
                 />
             )
@@ -895,7 +892,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             <label className="font-semibold">{fieldMetadata?.title || key}</label>
                             <Switch
                                 key={`switch-${nodeID}-${key}`}
-                                checked={value}
+                                isSelected={value}
                                 onChange={(e) => handleInputChange(key, e.target.checked)}
                             />
                         </div>
@@ -1222,8 +1219,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <AccordionItem key="config" aria-label="Node Configuration" title="Node Configuration">
                             <Input
                                 key={`title-input-${nodeID}`}
-                                value={titleInputValue}
-                                onChange={handleNodeTitleChange}
+                                defaultValue={nodeConfig?.title || node?.id || ''}
+                                onBlur={(e) => handleTitleChangeComplete(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.currentTarget.blur()
+                                    }
+                                }}
                                 placeholder="Enter node title"
                                 label="Node Title"
                                 fullWidth
