@@ -46,7 +46,7 @@ class DataStore(ABC):
                 chunks[doc.id] = doc.chunks
             else:
                 # Only create new chunks if the document doesn't have them
-                config = ChunkingConfig(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfig()
+                config = ChunkingConfigSchema(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfigSchema()
                 doc_chunks, doc_id = create_document_chunks(doc, config)
                 chunks[doc_id] = doc_chunks
 

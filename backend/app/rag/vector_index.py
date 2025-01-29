@@ -13,7 +13,9 @@ from .schemas.document_schemas import (
     DocumentSchema,
     DocumentWithChunksSchema,
     DocumentChunkSchema,
-    DocumentMetadataFilterSchema
+    DocumentMetadataFilterSchema,
+    QueryWithEmbeddingSchema,
+
 )
 from .datastore.factory import get_datastore
 
@@ -286,7 +288,7 @@ class VectorIndex:
             )
 
             # Create query with embedding
-            query_with_embedding = QueryWithEmbedding(
+            query_with_embedding = QueryWithEmbeddingSchema(
                 query=query,
                 embedding=query_embedding,
                 top_k=top_k,
