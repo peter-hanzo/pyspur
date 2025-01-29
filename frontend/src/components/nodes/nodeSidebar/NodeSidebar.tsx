@@ -693,6 +693,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
             return (
                 <div key={key}>
+                    <span className="font-semibold">{fieldMetadata?.title || key}</span>
                     <TextEditor
                         key={`text-editor-${nodeID}-${key}`}
                         nodeID={nodeID}
