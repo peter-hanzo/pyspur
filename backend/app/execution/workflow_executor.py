@@ -172,7 +172,7 @@ class WorkflowExecutor:
                             for dep_id in dependency_ids
                         ),
                     )
-                except Exception as e:
+                except Exception:
                     raise UpstreamFailure(
                         f"Node {node_id} skipped due to upstream failure"
                     )
@@ -317,17 +317,23 @@ class WorkflowExecutor:
         self,
         input: Dict[str, Any] = {},
         node_ids: List[str] = [],
-        precomputed_outputs: Dict[str, Dict[str, Any]] = {},
+        precomputed_outputs: Dict[str, Dict[str, Any] | List[Dict[str, Any]]] = {},
     ) -> Dict[str, BaseNodeOutput]:
         # Handle precomputed outputs first
         if precomputed_outputs:
             for node_id, output in precomputed_outputs.items():
                 try:
-                    self._outputs[node_id] = NodeFactory.create_node(
-                        node_name=self._node_dict[node_id].title,
-                        node_type_name=self._node_dict[node_id].node_type,
-                        config=self._node_dict[node_id].config,
-                    ).output_model.model_validate(output)
+                    if isinstance(output, dict):
+                        self._outputs[node_id] = NodeFactory.create_node(
+                            node_name=self._node_dict[node_id].title,
+                            node_type_name=self._node_dict[node_id].node_type,
+                            config=self._node_dict[node_id].config,
+                        ).output_model.model_validate(output)
+                    else:
+                        # If output is a list of dicts, do not validate the output
+                        # these are outputs of loop nodes, their precomputed outputs are not supported yet
+                        continue
+
                 except ValidationError as e:
                     print(
                         f"[WARNING]: Precomputed output validation failed for node {node_id}: {e}\n skipping precomputed output"
@@ -387,7 +393,7 @@ class WorkflowExecutor:
         self,
         input: Dict[str, Any] = {},
         node_ids: List[str] = [],
-        precomputed_outputs: Dict[str, Dict[str, Any]] = {},
+        precomputed_outputs: Dict[str, Dict[str, Any] | List[Dict[str, Any]]] = {},
     ) -> Dict[str, BaseNodeOutput]:
         """
         Execute the workflow with the given input data.
