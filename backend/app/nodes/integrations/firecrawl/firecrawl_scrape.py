@@ -3,10 +3,11 @@ import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from firecrawl import FirecrawlApp  # type: ignore
+from ...utils.template_utils import render_template_or_get_first_string
 
 
 class FirecrawlScrapeNodeConfig(BaseNodeConfig):
-    url: str = Field(
+    url_template: str = Field(
         "",
         description="The URL to scrape and convert into clean markdown or structured data.",
     )
@@ -34,9 +35,17 @@ class FirecrawlScrapeNode(BaseNode):
 
     async def run(self, input: BaseModel) -> BaseModel:
         try:
+            # Grab the entire dictionary from the input
+            raw_input_dict = input.model_dump()
+
+            # Render url_template
+            url_template = render_template_or_get_first_string(
+                self.config.url_template, raw_input_dict, self.name
+            )
+
             app = FirecrawlApp()
             scrape_result = app.scrape_url(
-                self.config.url,
+                url_template,
                 params={
                     "formats": ["markdown", "html"],
                 },
