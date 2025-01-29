@@ -489,21 +489,38 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     <Select
                         key={`select-${nodeID}-${key}`}
                         label="Select Vector Index"
-                        selectedKeys={[value || '']}
+                        items={vectorIndices}
+                        selectedKeys={value ? [value] : []}
+                        placeholder="Select a vector index"
+                        classNames={{
+                            value: "text-small",
+                        }}
+                        renderValue={(items) => {
+                            const selectedIndex = items[0];
+                            return (
+                                <div className="flex flex-col">
+                                    <span>{selectedIndex?.data?.name}</span>
+                                </div>
+                            );
+                        }}
                         onChange={(e) => handleInputChange(key, e.target.value)}
                         isLoading={isLoadingIndices}
                         fullWidth
                     >
-                        {vectorIndices.map((index) => (
+                        {(index) => (
                             <SelectItem
                                 key={index.id}
                                 value={index.id}
+                                textValue={index.name}
                                 description={`Status: ${index.status}`}
                                 isDisabled={index.status !== 'ready'}
                             >
-                                {index.name} ({index.id})
+                                <div className="flex flex-col">
+                                    <span className="text-small">{index.name}</span>
+                                    <span className="text-tiny text-default-400">ID: {index.id}</span>
+                                </div>
                             </SelectItem>
-                        ))}
+                        )}
                     </Select>
                     {vectorIndices.length === 0 && !isLoadingIndices && (
                         <p className="text-sm text-default-500 mt-2">

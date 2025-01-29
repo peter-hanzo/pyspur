@@ -49,7 +49,7 @@ const RetrieverNode: React.FC<RetrieverNodeProps> = ({ id, data, ...props }) => 
         <DynamicNode
             id={id}
             data={nodeData}
-            type="retriever_node"
+            type="RetrieverNode"
             displayOutput={true}
             {...props}
         />
