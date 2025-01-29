@@ -171,7 +171,6 @@ class BestOfNNode(BaseSubworkflowNode):
             id=output_node_id,
             node_type="OutputNode",
             config={
-                "output_schema": output_schema,
                 "output_map": {
                     f"{k}": f"pick_one_node.{k}" for k in output_schema.keys()
                 },
