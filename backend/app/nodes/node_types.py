@@ -118,6 +118,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.firecrawl.firecrawl_scrape",
             "class_name": "FirecrawlScrapeNode",
         },
+        {
+            "node_type_name": "JinaReaderNode",
+            "module": ".nodes.integrations.jina.jina_reader",
+            "class_name": "JinaReaderNode",
+        },
     ],
 }
 

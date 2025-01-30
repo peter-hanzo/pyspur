@@ -691,9 +691,17 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
+            const title = key.endsWith('_template')
+                ? key
+                      .slice(0, -9)
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (char) => char.toUpperCase())
+                : key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>
-                    <span className="font-semibold">{fieldMetadata?.title || key}</span>
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">{title}</h3>
+                    </div>
                     <TextEditor
                         key={`text-editor-${nodeID}-${key}`}
                         nodeID={nodeID}
