@@ -636,13 +636,6 @@ async def generate_text(
             raw_response = await completion_with_backoff(**kwargs)
             response = raw_response
         else:
-            messages.insert(
-                0,
-                {
-                    "role": "system",
-                    "content": "You must respond with valid JSON only. No other text before or after the JSON Object.",
-                },
-            )
             raw_response = await completion_with_backoff(**kwargs)
             response = raw_response
     else:
