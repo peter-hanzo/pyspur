@@ -9,6 +9,7 @@ export interface FlowState {
     nodeConfigs: Record<string, FlowWorkflowNodeConfig>
     workflowID: string | null
     selectedNode: string | null
+    selectedEdgeId: string | null
     sidebarWidth: number
     projectName: string
     workflowInputVariables: Record<string, any>
