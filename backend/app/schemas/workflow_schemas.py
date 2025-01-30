@@ -60,8 +60,8 @@ class WorkflowNodeSchema(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def prefix_openai_models(self):
-        # We need to handle spurs created earlier than the prefixing change
+    def prefix_model_name_with_provider(self):
+        # We need this to handle spurs created earlier than the prefixing change
         if self.node_type in ("SingleLLMCallNode", "BestOfNNode"):
             llm_info = self.config.get("llm_info")
             assert llm_info is not None
@@ -71,6 +71,8 @@ class WorkflowNodeSchema(BaseModel):
                 or llm_info["model"].startswith("o1")
             ):
                 llm_info["model"] = f"openai/{llm_info['model']}"
+            if llm_info["model"].startswith("claude"):
+                llm_info["model"] = f"anthropic/{llm_info['model']}"
         return self
 
 
