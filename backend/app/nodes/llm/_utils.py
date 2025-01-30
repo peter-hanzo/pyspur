@@ -203,19 +203,25 @@ class LLMModels(str, Enum):
                 id=cls.CLAUDE_3_5_SONNET_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Sonnet Latest",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0, supports_JSON_output=False
+                ),
             ),
             cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_5_HAIKU_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Haiku Latest",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0, supports_JSON_output=False
+                ),
             ),
             cls.CLAUDE_3_OPUS_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_OPUS_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3 Opus Latest",
-                constraints=ModelConstraints(max_tokens=4096, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=4096, max_temperature=1.0, supports_JSON_output=False
+                ),
             ),
             # Google Models
             cls.GEMINI_1_5_PRO.value: LLMModel(
