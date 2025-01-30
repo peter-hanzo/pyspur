@@ -456,7 +456,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Add effect to fetch indices when node type is RetrieverNode
     useEffect(() => {
-        console.log('node?.type', node?.type)
         if (node?.type === 'RetrieverNode') {
             fetchVectorIndices()
         }

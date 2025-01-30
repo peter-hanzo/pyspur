@@ -9,7 +9,7 @@ export interface SchemaEditorProps {
     jsonValue: Record<string, any>
     onChange: (value: Record<string, any>) => void
     options: string[]
-    schemaType: 'output_schema' | 'input_schema'
+    schemaType: 'output_schema' | 'input_schema' | 'input_map' | 'output_map'
     nodeId: string
     availableFields?: string[]
     readOnly?: boolean
@@ -102,63 +102,65 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     return (
         <div className={`schema-editor ${readOnly ? 'opacity-75 cursor-not-allowed' : ''}`}>
-            <div className="mb-4 flex items-center space-x-4">
-                <Input
-                    type="text"
-                    value={newKey}
-                    onChange={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
-                    onBlur={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
-                    placeholder={getPlaceholderExample()}
-                    label="Name"
-                    disabled={readOnly}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !readOnly && newKey) {
-                            e.currentTarget.blur()
-                            handleAddKey()
-                        }
-                    }}
-                    className="p-2 flex-grow w-2/3"
-                />
-                <Select
-                    onChange={(e) => setNewType(e.target.value)}
-                    disabled={readOnly}
-                    label={label}
-                    defaultSelectedKeys={[availableFields[0]]}
-                    className="max-w-xs p-2 w-1/3"
-                    isMultiline={true}
-                    renderValue={(items) => (
-                        <div>
-                            {items.map((item) => (
-                                <Chip key={item.key} size="sm">
-                                    {item.textValue}
-                                </Chip>
-                            ))}
-                        </div>
-                    )}
-                >
-                    {availableFields.map((field) => (
-                        <SelectItem key={field} value={field}>
-                            {field}
-                        </SelectItem>
-                    ))}
-                </Select>
-                <Button
-                    isIconOnly
-                    radius="full"
-                    variant="light"
-                    onClick={handleAddKey}
-                    color="primary"
-                    disabled={readOnly || !newKey}
-                >
-                    <Icon icon="solar:add-circle-linear" width={22} />
-                </Button>
-            </div>
+            {!readOnly && (
+                <div className="mb-4 flex items-center space-x-4">
+                    <Input
+                        type="text"
+                        value={newKey}
+                        onChange={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
+                        onBlur={(e) => setNewKey(convertToPythonVariableName(e.target.value))}
+                        placeholder={getPlaceholderExample()}
+                        label="Name"
+                        disabled={readOnly}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !readOnly && newKey) {
+                                e.currentTarget.blur()
+                                handleAddKey()
+                            }
+                        }}
+                        className="p-2 flex-grow w-2/3"
+                    />
+                    <Select
+                        onChange={(e) => setNewType(e.target.value)}
+                        disabled={readOnly}
+                        label={label}
+                        defaultSelectedKeys={[availableFields[0]]}
+                        className="max-w-xs p-2 w-1/3"
+                        isMultiline={true}
+                        renderValue={(items) => (
+                            <div>
+                                {items.map((item) => (
+                                    <Chip key={item.key} size="sm">
+                                        {item.textValue}
+                                    </Chip>
+                                ))}
+                            </div>
+                        )}
+                    >
+                        {availableFields.map((field) => (
+                            <SelectItem key={field} value={field}>
+                                {field}
+                            </SelectItem>
+                        ))}
+                    </Select>
+                    <Button
+                        isIconOnly
+                        radius="full"
+                        variant="light"
+                        onClick={handleAddKey}
+                        color="primary"
+                        disabled={readOnly || !newKey}
+                    >
+                        <Icon icon="solar:add-circle-linear" width={22} />
+                    </Button>
+                </div>
+            )}
             {jsonValue &&
                 typeof jsonValue === 'object' &&
                 !Array.isArray(jsonValue) &&
                 Object.entries(jsonValue).map(([key, value]) => (
                     <div key={key} className="mb-2 flex items-center">
-                        {editingField === key ? (
+                        {editingField === key && !readOnly ? (
                             <Input
                                 autoFocus
                                 defaultValue={key}
@@ -191,23 +193,24 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                             />
                         ) : (
                             <span
-                                className="mr-2 p-1 border rounded-full bg-default-100 hover:bg-default-200 cursor-pointer"
-                                onClick={() => setEditingField(key)}
+                                className={`mr-2 p-1 border rounded-full bg-default-100 ${!readOnly ? 'hover:bg-default-200 cursor-pointer' : ''}`}
+                                onClick={() => !readOnly && setEditingField(key)}
                             >
                                 {key}
                             </span>
                         )}
                         <span className="mr-2">{getType(value)}</span>
-                        <Button
-                            isIconOnly
-                            radius="full"
-                            variant="light"
-                            onClick={() => handleRemoveKey(key)}
-                            color="primary"
-                            disabled={readOnly}
-                        >
-                            <Icon icon="solar:trash-bin-trash-linear" width={22} />
-                        </Button>
+                        {!readOnly && (
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onClick={() => handleRemoveKey(key)}
+                                color="primary"
+                            >
+                                <Icon icon="solar:trash-bin-trash-linear" width={22} />
+                            </Button>
+                        )}
                     </div>
                 ))}
         </div>
