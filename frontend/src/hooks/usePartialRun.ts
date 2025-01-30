@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { runPartialWorkflow } from '../utils/api'
 import { AppDispatch } from '@/store/store'
-import { updateNodesFromPartialRun } from '@/store/flowSlice'
+import { updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
 
 interface PartialRunResult {
     // Add specific result type properties based on your API response
@@ -49,9 +49,7 @@ const usePartialRun = (dispatch: AppDispatch) => {
             return data
         } catch (err) {
             console.error('Error during partial run:', err)
-            const error = err as PartialRunError
-            setError(error)
-            throw error
+            dispatch(updateNodeDataOnly({ id: nodeId, data: { taskStatus: 'FAILED', error: err.message } }))
         } finally {
             setLoading(false)
         }
