@@ -45,12 +45,12 @@ if os.getenv("AZURE_OPENAI_API_KEY"):
 
 
 class LLMProvider(str, Enum):
-    OPENAI = "OpenAI"
-    ANTHROPIC = "Anthropic"
-    GOOGLE = "Google"
-    OLLAMA = "Ollama"
-    AZURE_OPENAI = "AzureOpenAI"
-    DEEPSEEK = "Deepseek"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
+    OLLAMA = "ollama"
+    AZURE_OPENAI = "azure"
+    DEEPSEEK = "deepseek"
 
 
 class ModelConstraints(BaseModel):
