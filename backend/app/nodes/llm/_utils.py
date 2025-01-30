@@ -102,6 +102,8 @@ class LLMModels(str, Enum):
     DEEPSEEK_REASONER = "deepseek/deepseek-reasoner"
 
     # Ollama Models
+    OLLAMA_MISTRAL_SMALL = "ollama/mistral-small:24b"
+    OLLAMA_DEEPSEEK_R1 = "ollama/deepseek-r1"
     OLLAMA_PHI4 = "ollama/phi4"
     OLLAMA_LLAMA3_3_70B = "ollama/llama3.3:70b"
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3:8b"
@@ -113,7 +115,6 @@ class LLMModels(str, Enum):
     OLLAMA_MISTRAL = "ollama/mistral"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
-    OLLAMA_DEEPSEEK_R1 = "ollama/deepseek-r1"
 
     @classmethod
     def get_model_info(cls, model_id: str) -> LLMModel:
@@ -330,6 +331,12 @@ class LLMModels(str, Enum):
                 id=cls.OLLAMA_DEEPSEEK_R1.value,
                 provider=LLMProvider.OLLAMA,
                 name="Deepseek R1",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.OLLAMA_MISTRAL_SMALL.value: LLMModel(
+                id=cls.OLLAMA_MISTRAL_SMALL.value,
+                provider=LLMProvider.OLLAMA,
+                name="Mistral Small 24B",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
         }
