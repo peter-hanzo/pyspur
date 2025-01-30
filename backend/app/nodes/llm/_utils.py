@@ -613,13 +613,17 @@ async def generate_text(
                                     logging.info(f"Reading file from: {file_path}")
 
                                     # Check if file is a DOCX file
-                                    if str(file_path).lower().endswith('.docx'):
+                                    if str(file_path).lower().endswith(".docx"):
                                         # Convert DOCX to XML
-                                        xml_content = convert_docx_to_xml(str(file_path))
+                                        xml_content = convert_docx_to_xml(
+                                            str(file_path)
+                                        )
                                         # Encode the XML content directly
                                         data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
                                     else:
-                                        data_url = encode_file_to_base64_data_url(str(file_path))
+                                        data_url = encode_file_to_base64_data_url(
+                                            str(file_path)
+                                        )
 
                                     content.append(
                                         {
@@ -646,13 +650,17 @@ async def generate_text(
     if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
         # Check for provider-specific fields
-        if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-            if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                provider_fields = raw_response.choices[0].message.provider_specific_fields
-                return json.dumps({
-                    "output": sanitized_response,
-                    "provider_specific_fields": provider_fields
-                })
+        if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
+            if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
+                provider_fields = raw_response.choices[
+                    0
+                ].message.provider_specific_fields
+                return json.dumps(
+                    {
+                        "output": sanitized_response,
+                        "provider_specific_fields": provider_fields,
+                    }
+                )
         return f'{{"output": "{sanitized_response}"}}'
 
     # Ensure response is valid JSON for models that support it
@@ -677,13 +685,17 @@ async def generate_text(
             # If all attempts to parse JSON fail, wrap the response in a JSON structure
             sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
             # Check for provider-specific fields
-            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                    provider_fields = raw_response.choices[0].message.provider_specific_fields
-                    return json.dumps({
-                        "output": sanitized_response,
-                        "provider_specific_fields": provider_fields
-                    })
+            if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
+                if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
+                    provider_fields = raw_response.choices[
+                        0
+                    ].message.provider_specific_fields
+                    return json.dumps(
+                        {
+                            "output": sanitized_response,
+                            "provider_specific_fields": provider_fields,
+                        }
+                    )
             return f'{{"output": "{sanitized_response}"}}'
 
     return response
