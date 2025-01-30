@@ -115,6 +115,7 @@ export interface FlowState {
     nodeConfigs: Record<string, FlowWorkflowNodeConfig>
     workflowID: string | null
     selectedNode: string | null
+    selectedEdgeId: string | null
     sidebarWidth: number
     projectName: string
     workflowInputVariables: Record<string, any>
@@ -392,6 +393,10 @@ const flowSlice = createSlice({
 
         setSelectedNode: (state, action: PayloadAction<{ nodeId: string | null }>) => {
             state.selectedNode = action.payload.nodeId
+        },
+
+        setSelectedEdgeId: (state, action: PayloadAction<{ edgeId: string | null }>) => {
+            state.selectedEdgeId = action.payload.edgeId
         },
 
         deleteNode: (state, action: PayloadAction<{ nodeId: string }>) => {
@@ -907,6 +912,7 @@ export const {
     updateNodeDataOnly,
     updateNodeConfigOnly,
     setSelectedNode,
+    setSelectedEdgeId,
     deleteNode,
     deleteEdge,
     deleteEdgeByHandle,
