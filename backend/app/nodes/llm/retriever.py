@@ -1,11 +1,11 @@
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+from jinja2 import Template
 
 from ...rag.vector_index import VectorIndex
 from ...schemas.rag_schemas import (
-
     RetrievalResultSchema,
     ChunkMetadataSchema,
 )
@@ -24,6 +24,7 @@ class RetrieverNodeConfig(FixedOutputBaseNodeConfig):
     """Configuration for the retriever node"""
     vector_index_id: str = Field("", description="ID of the vector index to query")
     top_k: int = Field(5, description="Number of results to return", ge=1, le=10)
+    query_template: str = Field("{{input_1}}", description="Template for the query string. Use {{variable}} syntax to reference input variables.")
     # score_threshold: Optional[float] = Field(None, description="Minimum similarity score threshold")
     # semantic_weight: float = Field(1.0, description="Weight for semantic search (0 to 1)")
     # keyword_weight: Optional[float] = Field(None, description="Weight for keyword search (0 to 1)")
@@ -31,7 +32,8 @@ class RetrieverNodeConfig(FixedOutputBaseNodeConfig):
 
 class RetrieverNodeInput(BaseNodeInput):
     """Input for the retriever node"""
-    query: str = Field(..., description="The search query")
+    class Config:
+        extra = "allow"
 
 
 class RetrieverNodeOutput(BaseNodeOutput):
@@ -65,7 +67,6 @@ class RetrieverNode(FixedOutputBaseNode):
             raise ValueError(f"Vector index {self.config.vector_index_id} is not ready (status: {index.status})")
 
     async def run(self, input: BaseModel) -> BaseModel:
-        input_data = cast(RetrieverNodeInput, input)
         # Get database session
         db = next(get_db())
 
@@ -76,13 +77,14 @@ class RetrieverNode(FixedOutputBaseNode):
             # Initialize vector index
             vector_index = VectorIndex(self.config.vector_index_id)
 
+            # Render query template with input variables
+            raw_input_dict = input.model_dump()
+            query = Template(self.config.query_template).render(**raw_input_dict)
+
             # Create retrieval request
             results = await vector_index.retrieve(
-                query=input_data.query,
+                query=query,
                 top_k=self.config.top_k,
-                score_threshold=self.config.score_threshold,
-                semantic_weight=self.config.semantic_weight,
-                keyword_weight=self.config.keyword_weight,
             )
 
             # Format results
@@ -124,14 +126,13 @@ if __name__ == "__main__":
             config=RetrieverNodeConfig(
                 vector_index_id="VI1",  # Using proper vector index ID format
                 top_k=3,
-                score_threshold=0.7,
-
+                query_template="{{input_1}}"
             ),
         )
 
         # Create test input
         test_input = RetrieverNodeInput(
-            query="What is machine learning?"
+            input_1="What is machine learning?"
         )
 
         print("[DEBUG] Testing retriever_node...")
