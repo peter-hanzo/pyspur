@@ -123,6 +123,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         edges,
         hoveredNode,
         hoveredEdge,
+        selectedEdgeId: null,
         readOnly: true,
     })
 

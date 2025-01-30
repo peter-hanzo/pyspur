@@ -563,7 +563,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
-            const hasFixedOutput = nodeSchema?.has_fixed_output ?? false
+            const hasFixedOutput = Boolean(nodeSchema && 'has_fixed_output' in nodeSchema ? nodeSchema.has_fixed_output : false)
 
             return (
                 <div key={key} className="my-2">
@@ -663,7 +663,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
-            const hasFixedOutput = nodeSchema?.has_fixed_output ?? false
+            const hasFixedOutput = Boolean(nodeSchema && 'has_fixed_output' in nodeSchema ? nodeSchema.has_fixed_output : false)
 
             return (
                 <div key={key}>
