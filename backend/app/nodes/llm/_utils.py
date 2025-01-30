@@ -62,7 +62,7 @@ class ModelConstraints(BaseModel):
 
 class LLMModel(BaseModel):
     id: str
-    provider: LLMProvider
+    provider: Optional[LLMProvider]
     name: str
     constraints: ModelConstraints
 
@@ -220,25 +220,25 @@ class LLMModels(str, Enum):
             # Google Models
             cls.GEMINI_1_5_PRO.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO.value,
-                provider=LLMProvider.GOOGLE,
+                provider=None,
                 name="Gemini 1.5 Pro",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_FLASH.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH.value,
-                provider=LLMProvider.GOOGLE,
+                provider=None,
                 name="Gemini 1.5 Flash",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_PRO_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO_LATEST.value,
-                provider=LLMProvider.GOOGLE,
+                provider=None,
                 name="Gemini 1.5 Pro Latest",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_FLASH_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH_LATEST.value,
-                provider=LLMProvider.GOOGLE,
+                provider=None,
                 name="Gemini 1.5 Flash Latest",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
