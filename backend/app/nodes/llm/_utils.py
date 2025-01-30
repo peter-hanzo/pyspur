@@ -47,7 +47,7 @@ if os.getenv("AZURE_OPENAI_API_KEY"):
 class LLMProvider(str, Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
-    GOOGLE = "google"
+    GEMINI = "gemini"
     OLLAMA = "ollama"
     AZURE_OPENAI = "azure"
     DEEPSEEK = "deepseek"
