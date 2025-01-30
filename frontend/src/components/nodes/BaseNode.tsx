@@ -101,7 +101,8 @@ const selectInitialInputs = createSelector(
     (state: RootState) => state.flow.nodes,
     (state: RootState) => state.flow.testInputs,
     (nodes, testInputs) => {
-        const inputNodeId = nodes.find((node) => node.type === 'InputNode')?.id
+        const inputNode = nodes.find((node) => node.type === 'InputNode')
+        const inputNodeId = inputNode?.data?.title || inputNode?.id
         if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
             const { id, ...rest } = testInputs[0]
             return { [inputNodeId as string]: rest }
@@ -114,7 +115,7 @@ const selectAvailableOutputs = createSelector([(state: RootState) => state.flow.
     const outputs: Record<string, any> = {}
     nodes.forEach((node) => {
         if (node.data?.run) {
-            outputs[node.id] = node.data.run
+            outputs[node.data?.title || node.id] = node.data.run
         }
     })
     return outputs
