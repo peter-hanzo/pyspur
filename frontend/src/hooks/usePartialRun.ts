@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { runPartialWorkflow } from '../utils/api'
+import { AppDispatch } from '@/store/store'
+import { updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
 
 interface PartialRunResult {
     // Add specific result type properties based on your API response
@@ -20,7 +22,7 @@ export interface PartialRunParams {
     rerunPredecessors: boolean
 }
 
-const usePartialRun = () => {
+const usePartialRun = (dispatch: AppDispatch) => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<PartialRunError | null>(null)
     const [result, setResult] = useState<PartialRunResult | null>(null)
@@ -38,11 +40,16 @@ const usePartialRun = () => {
         try {
             const data = await runPartialWorkflow(workflowId, nodeId, initialInputs, partialOutputs, rerunPredecessors)
             setResult(data)
+
+            // Update nodes with their outputs using the action creator
+            if (data) {
+                dispatch(updateNodesFromPartialRun(data))
+            }
+
             return data
         } catch (err) {
             console.error('Error during partial run:', err)
-            const error = err as PartialRunError
-            setError(error)
+            dispatch(updateNodeDataOnly({ id: nodeId, data: { taskStatus: 'FAILED', error: err.message } }))
         } finally {
             setLoading(false)
         }
