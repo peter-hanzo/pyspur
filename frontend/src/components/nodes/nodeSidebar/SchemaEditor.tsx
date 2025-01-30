@@ -11,6 +11,7 @@ export interface SchemaEditorProps {
     options: string[]
     schemaType: 'output_schema' | 'input_schema'
     nodeId: string
+    availableFields?: string[]
     readOnly?: boolean
 }
 
@@ -20,9 +21,13 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     options,
     schemaType,
     nodeId,
+    availableFields = ['string', 'boolean', 'integer', 'number', 'array', 'object', 'null'],
     readOnly = false,
 }) => {
-    const [fields, setFields] = useState<SchemaField[]>([])
+    const [newKey, setNewKey] = useState<string>('')
+    const [newType, setNewType] = useState<string>(availableFields[0])
+    const [editingField, setEditingField] = useState<string | null>(null)
+    const [editingValues, setEditingValues] = useState<Record<string, string>>({})
     const dispatch = useDispatch()
 
     const getPlaceholderExample = (): string => {

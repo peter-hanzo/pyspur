@@ -18,7 +18,7 @@ export interface FlowWorkflowNodeType {
         acronym: string
         color: string
     }
-    has_fixed_output: boolean
+    has_fixed_output?: boolean
     logo?: string
     category?: string
     model_constraints?: Record<string, ModelConstraints>
