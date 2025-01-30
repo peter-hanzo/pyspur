@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from jinja2 import Template
-
+from loguru import logger
 from ...rag.vector_index import VectorIndex
+from ...rag.embedder import EmbeddingModels
 from ...schemas.rag_schemas import (
     RetrievalResultSchema,
     ChunkMetadataSchema,
@@ -52,10 +53,10 @@ class RetrieverNode(FixedOutputBaseNode):
     output_model = RetrieverNodeOutput
 
     @property
-    def output_schema(self) -> Dict[str, str]:
+    def output_schema(self) -> Dict[str, Any]:
         return {
-            "results": f"array[{RetrievalResultSchema.__name__}]",
-            "total_results": "integer"
+            "results": List[RetrievalResultSchema],
+            "total_results": int
         }
 
     async def validate_index(self, db: Session) -> None:
@@ -74,8 +75,29 @@ class RetrieverNode(FixedOutputBaseNode):
             # Validate index exists and is ready
             await self.validate_index(db)
 
-            # Initialize vector index
+            # Get vector index configuration from database
+            vector_index_model = db.query(VectorIndexModel).filter(VectorIndexModel.id == self.config.vector_index_id).first()
+            if not vector_index_model:
+                raise ValueError(f"Vector index {self.config.vector_index_id} not found")
+
+            logger.info(f"[DEBUG] Vector index configuration: {vector_index_model.embedding_config}")
+
+            # Get embedding model from vector index configuration
+            embedding_model = vector_index_model.embedding_config.get("model")
+            if not embedding_model:
+                raise ValueError("No embedding model specified in vector index configuration")
+
+            logger.info(f"[DEBUG] Using embedding model: {embedding_model}")
+
+            # Initialize vector index and set its configuration
             vector_index = VectorIndex(self.config.vector_index_id)
+            vector_index.update_config({
+                "embedding_config": {
+                    "model": embedding_model,
+                    "dimensions": EmbeddingModels.get_model_info(embedding_model).dimensions if EmbeddingModels.get_model_info(embedding_model) else None
+                },
+                "vector_db": vector_index_model.embedding_config.get("vector_db", "pinecone")
+            })
 
             # Render query template with input variables
             raw_input_dict = input.model_dump()

@@ -268,7 +268,7 @@ async def get_single_text_embedding(
             kwargs["encoding_format"] = encoding_format
 
         response = await aembedding(**kwargs)
-        return response.data[0].embedding
+        return response.data[0]["embedding"]
 
     except Exception as e:
         logging.error(f"Error getting embedding: {str(e)}")

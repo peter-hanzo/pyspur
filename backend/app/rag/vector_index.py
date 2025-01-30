@@ -273,17 +273,21 @@ class VectorIndex:
             List of documents with their similarity scores
         """
         try:
+            # Get embedding model from config
+            embedding_model = self.config.get("embedding_config", {}).get("model")
+            if not embedding_model:
+                raise ValueError("No embedding model specified in vector index configuration")
+
             # Initialize datastore
             datastore = await get_datastore(
                 self.config["vector_db"],
-                embedding_model=self.config.get("embedding_model")
+                embedding_model=embedding_model
             )
 
             # Get embedding for query
             query_embedding = await get_single_text_embedding(
                 text=query,
-                model=self.config.get("embedding_model"),
-                dimensions=self.config.get("dimensions"),
+                model=embedding_model,
                 api_key=self.config.get("openai_api_key")
             )
 
@@ -297,16 +301,16 @@ class VectorIndex:
             # Query the datastore
             results = await datastore.query([query_with_embedding])
 
-            if not results:
+            if not results or not results[0].results:
                 return []
 
             # Format results
             formatted_results = []
-            for match in results[0].matches:
+            for result in results[0].results:
                 formatted_results.append({
-                    "chunk": match.chunk,
-                    "score": match.score,
-                    "metadata": match.chunk.metadata.model_dump() if match.chunk.metadata else {}
+                    "chunk": result,
+                    "score": result.score,
+                    "metadata": result.metadata.model_dump() if result.metadata else {}
                 })
 
             return formatted_results
