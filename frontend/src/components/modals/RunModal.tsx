@@ -19,7 +19,7 @@ import {
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
-import { addTestInput, deleteTestInput } from '../../store/flowSlice'
+import { addTestInput, deleteTestInput, updateTestInput } from '../../store/flowSlice'
 import { RootState } from '../../store/store'
 import { AppDispatch } from '../../store/store'
 import { TestInput } from '@/types/api_types/workflowSchemas'
@@ -103,6 +103,11 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     const handleCellEdit = (rowId: number, field: string, value: string) => {
         setTestData(testData.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)))
+        const rowToUpdate = testData.find((row) => row.id === rowId)
+        if (rowToUpdate) {
+            dispatch(updateTestInput({ ...rowToUpdate, [field]: value }))
+        }
+        saveWorkflow()
     }
 
     const handleBlur = () => {
