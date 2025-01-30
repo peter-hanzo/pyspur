@@ -544,9 +544,11 @@ async def generate_text(
         output_json_schema["additionalProperties"] = False
 
         # check if the model supports response format
-        if "response_format" in litellm.get_supported_openai_params(model=model_name):
+        if "response_format" in litellm.get_supported_openai_params(
+            model=model_name, custom_llm_provider=model_info.provider
+        ):
             if litellm.supports_response_schema(
-                model=model_name, custom_llm_provider=None
+                model=model_name, custom_llm_provider=model_info.provider
             ):
                 if (
                     "name" not in output_json_schema
