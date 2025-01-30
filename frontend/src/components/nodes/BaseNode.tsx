@@ -153,7 +153,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     const availableOutputs = useSelector(selectAvailableOutputs, isEqual)
 
-    const { executePartialRun, loading } = usePartialRun()
+    const { executePartialRun, loading } = usePartialRun(dispatch)
 
     const showAlert = (message: string, color: AlertState['color']) => {
         setAlert({ message, color, isVisible: true })
@@ -178,8 +178,19 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             return
         }
         setIsRunning(true)
-        const rerunPredecessors = false
+        // Clear the current node's run data before starting new run
+        dispatch(
+            updateNodeDataOnly({
+                id,
+                data: {
+                    run: undefined,
+                    taskStatus: 'RUNNING',
+                    error: undefined,
+                },
+            })
+        )
 
+        const rerunPredecessors = false
         const workflowId = window.location.pathname.split('/').pop()
         if (!workflowId) return
 
@@ -193,32 +204,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             })
 
             if (result) {
-                Object.entries(result).forEach(([nodeId, output_values]) => {
-                    if (output_values) {
-                        dispatch(
-                            updateNodeDataOnly({
-                                id: nodeId,
-                                data: {
-                                    run: {
-                                        ...(data?.run || {}),
-                                        ...(output_values || {}),
-                                    },
-                                },
-                            })
-                        )
-                        dispatch(setSelectedNode({ nodeId }))
-                    }
-                })
                 showAlert('Node execution completed successfully', 'success')
             }
         } catch (error: any) {
             console.error('Error running node:', error)
-            // Extract error message from the response if available
             const errorMessage =
                 error.response?.data?.detail || 'Node execution failed. Please check the inputs and try again.'
             showAlert(errorMessage, 'danger')
-            // Prevent the error from propagating to the global error handler
-            return
         } finally {
             setIsRunning(false)
         }

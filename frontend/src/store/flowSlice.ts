@@ -134,6 +134,7 @@ const initialState: FlowState = {
     nodeConfigs: {},
     workflowID: null,
     selectedNode: null,
+    selectedEdgeId: null,
     sidebarWidth: 400,
     projectName: 'Untitled Project',
     workflowInputVariables: {},
@@ -898,6 +899,33 @@ const flowSlice = createSlice({
                 node.expandParent = true
             }
         },
+
+        updateNodesFromPartialRun: (state, action: PayloadAction<Record<string, any>>) => {
+            const outputs = action.payload
+
+            state.nodes = state.nodes.map((node) => {
+                // Try to find output by node ID first
+                let nodeOutput = outputs[node.id]
+
+                // If not found, try to find by node title
+                if (!nodeOutput && node.data?.title) {
+                    nodeOutput = outputs[node.data.title]
+                }
+
+                if (nodeOutput) {
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            run: nodeOutput,
+                            taskStatus: 'COMPLETED', // Always set to COMPLETED if we have output
+                            error: undefined,
+                        },
+                    }
+                }
+                return node // Return unchanged node if no output found
+            })
+        },
     },
 })
 
@@ -936,6 +964,7 @@ export const {
     updateNodeTitle,
     addNodeWithConfig,
     updateNodeParentAndCoordinates,
+    updateNodesFromPartialRun,
 } = flowSlice.actions
 
 export default flowSlice.reducer
