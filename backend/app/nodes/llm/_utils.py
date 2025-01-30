@@ -69,16 +69,16 @@ class LLMModel(BaseModel):
 
 class LLMModels(str, Enum):
     # OpenAI Models
-    GPT_4O_MINI = "gpt-4o-mini"
-    GPT_4O = "gpt-4o"
-    O1_PREVIEW = "o1-preview"
-    O1_MINI = "o1-mini"
-    O1 = "o1"
-    O1_2024_12_17 = "o1-2024-12-17"
-    O1_MINI_2024_09_12 = "o1-mini-2024-09-12"
-    O1_PREVIEW_2024_09_12 = "o1-preview-2024-09-12"
-    GPT_4_TURBO = "gpt-4-turbo"
-    CHATGPT_4O_LATEST = "chatgpt-4o-latest"
+    GPT_4O_MINI = "openai/gpt-4o-mini"
+    GPT_4O = "openai/gpt-4o"
+    O1_PREVIEW = "openai/o1-preview"
+    O1_MINI = "openai/o1-mini"
+    O1 = "openai/o1"
+    O1_2024_12_17 = "openai/o1-2024-12-17"
+    O1_MINI_2024_09_12 = "openai/o1-mini-2024-09-12"
+    O1_PREVIEW_2024_09_12 = "openai/o1-preview-2024-09-12"
+    GPT_4_TURBO = "openai/gpt-4-turbo"
+    CHATGPT_4O_LATEST = "openai/chatgpt-4o-latest"
 
     # Azure OpenAI Models
     AZURE_GPT_4 = "azure/gpt-4"
@@ -86,9 +86,9 @@ class LLMModels(str, Enum):
     AZURE_GPT_35_TURBO = "azure/gpt-35-turbo"
 
     # Anthropic Models
-    CLAUDE_3_5_SONNET_LATEST = "claude-3-5-sonnet-latest"
-    CLAUDE_3_5_HAIKU_LATEST = "claude-3-5-haiku-latest"
-    CLAUDE_3_OPUS_LATEST = "claude-3-opus-latest"
+    CLAUDE_3_5_SONNET_LATEST = "anthropic/claude-3-5-sonnet-latest"
+    CLAUDE_3_5_HAIKU_LATEST = "anthropic/claude-3-5-haiku-latest"
+    CLAUDE_3_OPUS_LATEST = "anthropic/claude-3-opus-latest"
 
     # Google Models
     GEMINI_2_0_FLASH_EXP = "gemini/gemini-2.0-flash-exp"
