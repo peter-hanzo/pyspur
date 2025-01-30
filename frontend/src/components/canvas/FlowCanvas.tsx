@@ -15,7 +15,7 @@ import '@xyflow/react/dist/style.css'
 import { useSelector, useDispatch } from 'react-redux'
 import Operator from './footer/Operator'
 import { setSelectedNode, deleteNode, setNodes } from '../../store/flowSlice'
-import { FlowWorkflowNode, FlowWorkflowEdge } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowNode, FlowWorkflowEdge, setSelectedEdgeId } from '@/types/api_types/nodeTypeSchemas'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
 import { Dropdown, DropdownMenu, DropdownSection, DropdownItem, DropdownTrigger } from '@heroui/react'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
@@ -84,6 +84,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs, isEqual)
     const selectedNodeID = useSelector((state: RootState) => state.flow.selectedNode)
+    const selectedEdgeId = useSelector((state: RootState) => state.flow.selectedEdgeId)
 
     const saveWorkflow = useSaveWorkflow()
 
@@ -157,6 +158,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         edges,
         hoveredNode,
         hoveredEdge,
+        selectedEdgeId,
         handlePopoverOpen,
     })
 
@@ -190,12 +192,19 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         [dispatch]
     )
 
+    const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+        dispatch(setSelectedEdgeId({ edgeId: edge.id }))
+    }, [dispatch])
+
     const onPaneClick = useCallback(() => {
         if (selectedNodeID) {
             dispatch(setSelectedNode({ nodeId: null }))
         }
+        if (selectedEdgeId) {
+            dispatch(setSelectedEdgeId({ edgeId: null }))
+        }
         dispatch(setNodePanelExpanded(false))
-    }, [dispatch, selectedNodeID])
+    }, [dispatch, selectedNodeID, selectedEdgeId])
 
     const onNodesDelete = useCallback(
         (deletedNodes: FlowWorkflowNode[]) => {
@@ -354,6 +363,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                         fitView
                         onInit={onInit}
                         onNodeClick={onNodeClick}
+                        onEdgeClick={onEdgeClick}
                         onPaneClick={onPaneClick}
                         onNodesDelete={onNodesDelete}
                         proOptions={proOptions}

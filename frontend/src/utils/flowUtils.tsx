@@ -284,6 +284,7 @@ interface StyledEdgesOptions {
     edges: Edge[]
     hoveredNode: string | null
     hoveredEdge: string | null
+    selectedEdgeId: string | null
     handlePopoverOpen?: (params: { sourceNode: Node; targetNode: Node; edgeId: string }) => void
     readOnly?: boolean
 }
@@ -292,6 +293,7 @@ export const useStyledEdges = ({
     edges,
     hoveredNode,
     hoveredEdge,
+    selectedEdgeId,
     handlePopoverOpen,
     readOnly = false,
 }: StyledEdgesOptions) => {
@@ -304,7 +306,7 @@ export const useStyledEdges = ({
             type: 'custom',
             style: {
                 stroke: readOnly
-                    ? edge.id === hoveredEdge
+                    ? edge.id === hoveredEdge || edge.id === selectedEdgeId
                         ? isDark
                             ? '#fff'
                             : '#000'
@@ -315,7 +317,7 @@ export const useStyledEdges = ({
                           : isDark
                             ? '#888'
                             : '#555'
-                    : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
+                    : hoveredEdge === edge.id || edge.id === selectedEdgeId || hoveredNode === edge.source || hoveredNode === edge.target
                       ? isDark
                           ? '#fff'
                           : '#555'
@@ -323,23 +325,23 @@ export const useStyledEdges = ({
                         ? '#666'
                         : '#999',
                 strokeWidth: readOnly
-                    ? edge.id === hoveredEdge
+                    ? edge.id === hoveredEdge || edge.id === selectedEdgeId
                         ? 4
                         : edge.source === hoveredNode || edge.target === hoveredNode
                           ? 4
                           : 2
-                    : hoveredEdge === edge.id || hoveredNode === edge.source || hoveredNode === edge.target
+                    : hoveredEdge === edge.id || edge.id === selectedEdgeId || hoveredNode === edge.source || hoveredNode === edge.target
                       ? 3
                       : 1.5,
             },
             data: {
                 ...edge.data,
-                showPlusButton: edge.id === hoveredEdge,
+                showPlusButton: edge.id === hoveredEdge || edge.id === selectedEdgeId,
                 onPopoverOpen: handlePopoverOpen,
             },
             key: edge.id,
         }))
-    }, [edges, hoveredNode, hoveredEdge, handlePopoverOpen, readOnly, isDark])
+    }, [edges, hoveredNode, hoveredEdge, selectedEdgeId, handlePopoverOpen, readOnly, isDark])
 }
 
 interface NodesWithModeOptions {
