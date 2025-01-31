@@ -50,31 +50,39 @@ class CoalesceNode(BaseNode):
         for key in self.config.preferences:  # {{ edit_1 }}
             if key in data and data[key] is not None:
                 # Return the first non-None value according to preferences
-                output_model = create_model(  # type: ignore
+                output_model = create_model(
                     f"{self.name}",
                     **{
                         k: (type(v), ...) for k, v in data[key].items()
-                    },  # Only include the first non-null key # type: ignore
+                    },  # Only include the first non-null key
                     __base__=CoalesceNodeOutput,
+                    __config__=None,
+                    __module__=self.__module__,
+                    __doc__=f"Output model for {self.name} node",
+                    __validators__=None,
+                    __cls_kwargs__=None,
                 )
                 self.output_model = output_model
                 first_non_null_output = data[key]
-                return self.output_model(**first_non_null_output)  # type: ignore
+                return self.output_model(**first_non_null_output)
 
         # If all preferred values are None, check the rest of the data
         for key, value in data.items():
             if value is not None:
                 # Return the first non-None value immediately
-                output_model = create_model(  # type: ignore
+                output_model = create_model(
                     f"{self.name}",
-                    **{
-                        key: (type(value), ...)
-                    },  # Only include the first non-null key # type: ignore
+                    **{key: (type(value), ...)},  # Only include the first non-null key
                     __base__=CoalesceNodeOutput,
+                    __config__=None,
+                    __module__=self.__module__,
+                    __doc__=f"Output model for {self.name} node",
+                    __validators__=None,
+                    __cls_kwargs__=None,
                 )
                 self.output_model = output_model
                 first_non_null_output[key] = value
-                return self.output_model(**first_non_null_output)  # type: ignore
+                return self.output_model(**first_non_null_output)
 
         # If all values are None, return an empty output
         return None  # type: ignore

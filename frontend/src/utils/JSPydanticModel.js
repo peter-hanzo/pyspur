@@ -1,5 +1,3 @@
-// frontend/src/utils/JSPydanticModel.js
-
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 
@@ -81,6 +79,15 @@ class JSPydanticModel {
                                 const validator = this.ajv.compile(node[key])
                                 const obj = {}
                                 validator(obj)
+                                
+                                // For config, include all properties defined in the schema, even without defaults
+                                if (key === 'config' && node[key].properties) {
+                                    Object.keys(node[key].properties).forEach(propKey => {
+                                        if (!(propKey in obj)) {
+                                            obj[propKey] = null;
+                                        }
+                                    });
+                                }
 
                                 // Merge the validated object with any existing fields for non-conditional nodes
                                 processedNode[key] = {

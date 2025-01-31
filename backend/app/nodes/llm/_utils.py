@@ -5,8 +5,7 @@ import logging
 import os
 import re
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, cast
-from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 from docx2python import docx2python
 
 import litellm
@@ -494,7 +493,7 @@ async def completion_with_backoff(**kwargs) -> str:
             return response.choices[0].message.content
 
     except Exception as e:
-        logging.error(f"=== LLM Request Error ===")
+        logging.error("=== LLM Request Error ===")
         # Create a save copy of kwargs without sensitive information
         save_config = kwargs.copy()
         save_config["api_key"] = "********" if "api_key" in save_config else None
@@ -548,6 +547,8 @@ async def generate_text(
             output_json_schema = convert_output_schema_to_json_schema(output_schema)
         elif output_json_schema is not None and output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
+        else:
+            raise ValueError("Invalid output schema", output_schema, output_json_schema)
         output_json_schema["additionalProperties"] = False
 
         # check if the model supports response format
@@ -783,7 +784,7 @@ def convert_docx_to_xml(file_path: str) -> str:
     try:
         with docx2python(file_path) as docx_content:
             # Convert the document content to XML format
-            xml_content = f"<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
+            xml_content = "<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
 
             # Add metadata
             xml_content += "<metadata>\n"

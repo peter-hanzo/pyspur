@@ -41,11 +41,6 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.llm.generative.best_of_n",
             "class_name": "BestOfNNode",
         },
-        {
-            "node_type_name": "BranchSolveMergeNode",
-            "module": ".nodes.llm.generative.branch_solve_merge",
-            "class_name": "BranchSolveMergeNode",
-        },
     ],
     "Code Execution": [
         {
@@ -181,6 +176,11 @@ DEPRECATED_NODE_TYPES = [
         "node_type_name": "SubworkflowNode",
         "module": ".nodes.subworkflow.subworkflow_node",
         "class_name": "SubworkflowNode",
+    },
+    {
+        "node_type_name": "BranchSolveMergeNode",
+        "module": ".nodes.llm.generative.branch_solve_merge",
+        "class_name": "BranchSolveMergeNode",
     },
 ]
 
