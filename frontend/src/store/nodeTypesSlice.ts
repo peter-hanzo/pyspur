@@ -179,18 +179,26 @@ export const getNodeMissingRequiredFields = (
     nodeConfig: Record<string, any>,
     metadata: Record<string, NodeMetadata[]>
 ): string[] => {
-    // We'll find the node metadata that matches nodeType
-    // Then see what fields are "required" in config
     const categories = Object.keys(metadata)
     for (const category of categories) {
         const nodeMetadata = metadata[category]?.find(md => md.name === nodeType)
         if (nodeMetadata) {
             const missingFields: string[] = []
 
-            // Check config fields
             if (nodeMetadata.config) {
                 Object.entries(nodeMetadata.config).forEach(([field, fieldMetadata]) => {
-                    // Check if field is required and empty
+                    // Special handling for llm_info/ModelInfo
+                    if (field === 'llm_info' || field === 'ModelInfo') {
+                        // If the field exists at all, consider it valid since it has defaults
+                        if (nodeConfig.llm_info !== undefined) {
+                            return;
+                        }
+                        // Only add ModelInfo as missing if it's completely undefined
+                        missingFields.push('ModelInfo');
+                        return;
+                    }
+
+                    // Regular field handling
                     if (fieldMetadata.required) {
                         const value = nodeConfig[field]
                         if (value === undefined || value === null || value === '' ||
@@ -200,8 +208,8 @@ export const getNodeMissingRequiredFields = (
                         }
                     }
 
-                    // Check nested fields
-                    if (fieldMetadata.properties) {
+                    // Check other nested fields
+                    if (fieldMetadata.properties && field !== 'llm_info') {
                         Object.entries(fieldMetadata.properties).forEach(([nestedField, nestedMetadata]) => {
                             if (nestedMetadata.required) {
                                 const nestedValue = nodeConfig[field]?.[nestedField]
