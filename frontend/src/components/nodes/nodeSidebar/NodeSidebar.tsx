@@ -450,6 +450,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         // Add special handling for index_id field in RetrieverNode
         if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
+            const isMissingVectorIndexRequired = Boolean(fieldMetadata?.required) && !value;
             return (
                 <div key={key} className="my-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -467,6 +468,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
+                    {isMissingVectorIndexRequired && (
+                        <Alert color="warning" className="mb-2">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:danger-triangle-linear" width={20} />
+                                <span>A vector index is required but not selected.</span>
+                            </div>
+                        </Alert>
+                    )}
                     <Select
                         key={`select-${nodeID}-${key}`}
                         label="Select Vector Index"
@@ -475,6 +484,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         placeholder="Select a vector index"
                         classNames={{
                             value: "text-small",
+                            base: isMissingVectorIndexRequired ? "border-warning" : "",
                         }}
                         renderValue={(items) => {
                             const selectedIndex = items[0];
