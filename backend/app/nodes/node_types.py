@@ -61,11 +61,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.loops.for_loop_node",
             "class_name": "ForLoopNode",
         },
-        {
-            "node_type_name": "RetrieverNode",
-            "module": ".nodes.llm.retriever",
-            "class_name": "RetrieverNode",
-        },
+        # {
+        #     "node_type_name": "RetrieverNode",
+        #     "module": ".nodes.llm.retriever",
+        #     "class_name": "RetrieverNode",
+        # },
     ],
     "Integrations": [
         {
