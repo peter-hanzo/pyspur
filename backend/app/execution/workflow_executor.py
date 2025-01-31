@@ -302,7 +302,7 @@ class WorkflowExecutor:
                 f"Node Type: {node.node_type}\n"
                 f"Node Title: {node.title}\n"
                 f"Inputs: {node_input}\n"
-                f"Error: {str(e)}"
+                f"Error: {traceback.format_exc()}"
             )
             print(error_msg)
             self._failed_nodes.add(node_id)
