@@ -51,28 +51,41 @@ const staticStyles = {
     },
     controlsCard: {
         position: 'absolute' as const,
-        top: '-50px',
+        top: '-45px',
         right: '0px',
-        padding: '4px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        padding: '8px',
+        backdropFilter: 'blur(8px)',
+        backgroundColor: 'var(--background)',
+        border: '1px solid var(--default-200)',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         pointerEvents: 'auto' as const,
     },
     baseTag: {
-        padding: '2px 8px',
+        padding: '4px 10px',
         borderRadius: '12px',
         fontSize: '0.75rem',
-        display: 'inline-block',
+        display: 'inline-flex',
+        alignItems: 'center',
         color: '#fff',
+        fontWeight: '500',
+        letterSpacing: '0.025em',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
     },
     collapseButton: {
         minWidth: 'auto',
-        height: '24px',
-        padding: '0 8px',
+        height: '28px',
+        width: '28px',
+        padding: '0',
         fontSize: '0.8rem',
-        marginRight: '4px',
+        marginRight: '8px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: '8px',
+        transition: 'all 0.2s ease',
+        backgroundColor: 'var(--background)',
+        border: '1px solid var(--default-200)',
     },
     controlsContainer: {
         position: 'absolute' as const,
@@ -80,6 +93,7 @@ const staticStyles = {
         right: '8px',
         display: 'flex',
         alignItems: 'center',
+        gap: '4px',
     },
 } as const
 
@@ -313,9 +327,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         Title cannot contain whitespace. Use underscores instead.
                     </Alert>
                 )}
-                {/* Container to hold the Handle and the content */}
                 <div>
-                    {/* Hidden target handle covering the entire node */}
                     {connection.inProgress && (
                         <Handle
                             key={`handle-${id}`}
@@ -367,7 +379,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             }}
                                             classNames={{
                                                 input: 'text-foreground dark:text-white',
-                                                inputWrapper: 'dark:bg-default-100/50 bg-default-100',
+                                                inputWrapper: 'dark:bg-default-100/50 bg-default-100/50 backdrop-blur-sm',
                                             }}
                                         />
                                     ) : (
@@ -380,7 +392,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                                 />
                                             )}
                                             <h3
-                                                className="text-lg font-semibold text-center cursor-pointer hover:text-primary"
+                                                className="text-lg font-semibold text-center cursor-pointer hover:text-primary transition-colors dark:text-white"
                                                 style={titleStyle}
                                                 onClick={() => {
                                                     setTitleInputValue(getNodeTitle(data))
@@ -397,13 +409,18 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             key={`collapse-btn-${id}`}
                                             size="sm"
                                             variant="flat"
+                                            className="dark:bg-default-100/20 dark:border-default-700"
                                             style={staticStyles.collapseButton}
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 setIsCollapsed(!isCollapsed)
                                             }}
                                         >
-                                            {isCollapsed ? '▼' : '▲'}
+                                            <Icon
+                                                icon={isCollapsed ? 'solar:alt-arrow-down-linear' : 'solar:alt-arrow-up-linear'}
+                                                width={16}
+                                                className="text-default-600 dark:text-default-400"
+                                            />
                                         </Button>
 
                                         <div style={tagStyle} className="node-acronym-tag">
@@ -412,39 +429,40 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                     </div>
                                 </CardHeader>
                             )}
-                            {!isCollapsed && <Divider key={`divider-${id}`} />}
+                            {!isCollapsed && <Divider key={`divider-${id}`} className="dark:bg-default-700" />}
 
-                            <CardBody key={`body-${id}`} className="px-1">
+                            <CardBody key={`body-${id}`} className="px-3 py-2">
                                 {children}
                             </CardBody>
                         </Card>
                     </div>
                 </div>
 
-                {/* Controls - Update to use CSS-based hover */}
+                {/* Controls */}
                 <Card
                     key={`controls-card-${id}`}
                     style={staticStyles.controlsCard}
-                    className={`opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}`}
+                    className={`opacity-0 group-hover:opacity-100 dark:bg-default-100/20 dark:border-default-700 shadow-lg dark:shadow-lg-dark`}
                     classNames={{
-                        base: 'bg-background border-default-200 transition-opacity duration-200',
+                        base: 'bg-background/80 border-default-200 transition-all duration-200',
                     }}
                 >
-                    <div className="flex flex-row gap-1">
+                    <div className="flex flex-row gap-2">
                         <Button
                             key={`run-btn-${id}`}
                             isIconOnly
-                            radius="full"
+                            radius="lg"
                             variant="light"
                             onPress={handlePartialRun}
                             disabled={loading || isRunning}
+                            className="hover:bg-primary/20"
                         >
                             {isRunning ? (
                                 <Spinner key={`spinner-${id}`} size="sm" color="current" />
                             ) : (
                                 <Icon
                                     key={`play-icon-${id}`}
-                                    className="text-default-500"
+                                    className="text-default-600 dark:text-default-400"
                                     icon="solar:play-linear"
                                     width={22}
                                 />
@@ -454,13 +472,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                             <Button
                                 key={`delete-btn-${id}`}
                                 isIconOnly
-                                radius="full"
+                                radius="lg"
                                 variant="light"
                                 onPress={handleDelete}
                             >
                                 <Icon
                                     key={`delete-icon-${id}`}
-                                    className="text-default-500"
+                                    className="text-default-600 dark:text-default-400"
                                     icon="solar:trash-bin-trash-linear"
                                     width={22}
                                 />
@@ -469,13 +487,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         <Button
                             key={`duplicate-btn-${id}`}
                             isIconOnly
-                            radius="full"
+                            radius="lg"
                             variant="light"
                             onPress={handleDuplicate}
                         >
                             <Icon
                                 key={`duplicate-icon-${id}`}
-                                className="text-default-500"
+                                className="text-default-600 dark:text-default-400"
                                 icon="solar:copy-linear"
                                 width={22}
                             />
@@ -484,13 +502,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                             <Button
                                 key={`modal-btn-${id}`}
                                 isIconOnly
-                                radius="full"
+                                radius="lg"
                                 variant="light"
                                 onPress={() => handleOpenModal(true)}
                             >
                                 <Icon
                                     key={`view-icon-${id}`}
-                                    className="text-default-500"
+                                    className="text-default-600 dark:text-default-400"
                                     icon="solar:eye-linear"
                                     width={22}
                                 />
