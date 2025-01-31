@@ -1,5 +1,4 @@
 import { RootState } from '@/store/store'
-import { TaskStatus } from '@/types/api_types/taskSchemas'
 import { Divider } from '@heroui/react'
 import {
     Handle,
@@ -181,28 +180,6 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 </div>
             </div>
         )
-    }
-
-    const nodeRunStatus: TaskStatus = node?.data?.taskStatus as TaskStatus
-    let outlineColor = 'gray'
-    switch (nodeRunStatus) {
-        case 'PENDING':
-            outlineColor = 'yellow'
-            break
-        case 'RUNNING':
-            outlineColor = 'blue'
-            break
-        case 'COMPLETED':
-            outlineColor = '#4CAF50'
-            break
-        case 'FAILED':
-            outlineColor = 'red'
-            break
-        case 'CANCELED':
-            outlineColor = 'gray'
-            break
-        default:
-            break
     }
 
     return (
