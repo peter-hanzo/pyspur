@@ -34,8 +34,6 @@ class BaseSubworkflowNode(BaseNode, ABC):
         self._subworkflow_output_node = next(
             (node for node in self.subworkflow.nodes if node.node_type == "OutputNode")
         )
-        output_schema = self._subworkflow_output_node.config["output_schema"]
-        self.output_model = self.create_output_model_class(output_schema)
 
     def _build_dependencies(self) -> Dict[str, Set[str]]:
         assert self.subworkflow is not None

@@ -36,7 +36,7 @@ class BestOfNNodeConfig(SingleLLMCallNodeConfig, BaseSubworkflowNodeConfig):
         description="System message for the generation LLM",
     )
     user_message: str = Field(default="", description="User message template")
-    output_schema: Dict[str, str] = Field(default={"response": "str"})
+    output_schema: Dict[str, str] = Field(default={"response": "string"})
 
 
 class BestOfNNodeInput(BaseNodeInput):
@@ -107,7 +107,7 @@ class BestOfNNode(BaseSubworkflowNode):
                     "llm_info": self.config.llm_info.model_dump(),
                     "system_message": self.config.rating_prompt,
                     "user_message": "",
-                    "output_schema": {"rating": "float"},
+                    "output_schema": {"rating": "number"},
                 },
             )
             nodes.append(rate_node)
@@ -171,7 +171,6 @@ class BestOfNNode(BaseSubworkflowNode):
             id=output_node_id,
             node_type="OutputNode",
             config={
-                "output_schema": output_schema,
                 "output_map": {
                     f"{k}": f"pick_one_node.{k}" for k in output_schema.keys()
                 },

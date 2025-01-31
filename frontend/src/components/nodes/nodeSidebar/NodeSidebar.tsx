@@ -827,7 +827,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
             const title = key.endsWith('_template')
-                ? key.slice(0, -9).replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+                ? key
+                      .slice(0, -9)
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (char) => char.toUpperCase())
                 : key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>

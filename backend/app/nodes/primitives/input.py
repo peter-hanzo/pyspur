@@ -64,16 +64,17 @@ class InputNode(VariableOutputBaseNode):
         if self.config.enforce_schema:
             return input
         else:
-            fields = {
-                key: (value.annotation, ...)
-                for key, value in input.model_fields.items()
-                if value.annotation is not None
-            }
+            fields = {key: (value, ...) for key, value in input.model_fields.items()}
 
-            new_output_model = create_model(  # type: ignore
+            new_output_model = create_model(
                 "InputNodeOutput",
                 __base__=InputNodeOutput,
-                **fields,  # type: ignore
+                __config__=None,
+                __module__=self.__module__,
+                __doc__=f"Output model for {self.name} node",
+                __validators__=None,
+                __cls_kwargs__=None,
+                **fields,
             )
             self.output_model = new_output_model
             ret_value = self.output_model.model_validate(input.model_dump())  # type: ignore

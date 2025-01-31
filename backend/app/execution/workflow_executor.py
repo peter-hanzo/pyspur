@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import ValidationError
 
-from ..nodes.base import BaseNodeOutput
+from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
 
 from ..schemas.workflow_schemas import (
@@ -46,6 +46,7 @@ class WorkflowExecutor:
             self.task_recorder = None
         self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
+        self.node_instances: Dict[str, BaseNode] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
@@ -172,7 +173,7 @@ class WorkflowExecutor:
                             for dep_id in dependency_ids
                         ),
                     )
-                except Exception as e:
+                except Exception:
                     raise UpstreamFailure(
                         f"Node {node_id} skipped due to upstream failure"
                     )
@@ -257,6 +258,7 @@ class WorkflowExecutor:
             node_instance = NodeFactory.create_node(
                 node_name=node.title, node_type_name=node.node_type, config=node.config
             )
+            self.node_instances[node_id] = node_instance
             # Update task recorder
             if self.task_recorder:
                 self.task_recorder.update_task(
@@ -300,7 +302,7 @@ class WorkflowExecutor:
                 f"Node Type: {node.node_type}\n"
                 f"Node Title: {node.title}\n"
                 f"Inputs: {node_input}\n"
-                f"Error: {str(e)}"
+                f"Error: {traceback.format_exc()}"
             )
             print(error_msg)
             self._failed_nodes.add(node_id)
@@ -317,17 +319,23 @@ class WorkflowExecutor:
         self,
         input: Dict[str, Any] = {},
         node_ids: List[str] = [],
-        precomputed_outputs: Dict[str, Dict[str, Any]] = {},
+        precomputed_outputs: Dict[str, Dict[str, Any] | List[Dict[str, Any]]] = {},
     ) -> Dict[str, BaseNodeOutput]:
         # Handle precomputed outputs first
         if precomputed_outputs:
             for node_id, output in precomputed_outputs.items():
                 try:
-                    self._outputs[node_id] = NodeFactory.create_node(
-                        node_name=self._node_dict[node_id].title,
-                        node_type_name=self._node_dict[node_id].node_type,
-                        config=self._node_dict[node_id].config,
-                    ).output_model.model_validate(output)
+                    if isinstance(output, dict):
+                        self._outputs[node_id] = NodeFactory.create_node(
+                            node_name=self._node_dict[node_id].title,
+                            node_type_name=self._node_dict[node_id].node_type,
+                            config=self._node_dict[node_id].config,
+                        ).output_model.model_validate(output)
+                    else:
+                        # If output is a list of dicts, do not validate the output
+                        # these are outputs of loop nodes, their precomputed outputs are not supported yet
+                        continue
+
                 except ValidationError as e:
                     print(
                         f"[WARNING]: Precomputed output validation failed for node {node_id}: {e}\n skipping precomputed output"
@@ -387,7 +395,7 @@ class WorkflowExecutor:
         self,
         input: Dict[str, Any] = {},
         node_ids: List[str] = [],
-        precomputed_outputs: Dict[str, Dict[str, Any]] = {},
+        precomputed_outputs: Dict[str, Dict[str, Any] | List[Dict[str, Any]]] = {},
     ) -> Dict[str, BaseNodeOutput]:
         """
         Execute the workflow with the given input data.
