@@ -1,68 +1,55 @@
 /* Node Wrapper */
 .nodeWrapper {
     position: relative;
-    padding: 8px;
-    border-radius: 8px;
-    backdrop-filter: blur(8px);
-    transition: all 0.2s ease;
+    width: 100%;
+    min-height: 20px;
 }
 
 /* Handles Wrapper */
 .handlesWrapper {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: stretch;
-    min-height: 40px;
-    margin: -4px 0;
+    width: 100%;
 }
 
 /* Handles Columns */
 .handlesColumn {
+    width: 50%;
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 8px 0;
-    min-width: 40px;
+    overflow: hidden;
 }
 
 .inputHandlesColumn {
-    margin-right: 8px;
+    align-items: flex-start;
 }
 
 .outputHandlesColumn {
-    margin-left: 8px;
+    align-items: flex-end;
 }
 
 /* Handle Row */
 .handleRow {
-    position: relative;
     display: flex;
     align-items: center;
-    height: 32px;
-    padding: 0 4px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-bottom: 0.25rem;
 }
-
-
 
 /* Handle Cell */
 .handleCell {
-    position: relative;
-    width: 24px;
-    height: 100%;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
 }
 
 .inputHandleCell {
-    justify-content: flex-start;
+    margin-right: 0.5rem;
 }
 
 .outputHandleCell {
-    justify-content: flex-end;
+    margin-left: 0.5rem;
 }
 
 /* Handle Label Cell */
@@ -108,11 +95,11 @@
 
 /* Left and Right Handles */
 .handleLeft {
-    left: 0;
+    /* Additional styles for left handles if needed */
 }
 
 .handleRight {
-    right: 0;
+    /* Additional styles for right handles if needed */
 }
 
 /* Collapsed Handles */
