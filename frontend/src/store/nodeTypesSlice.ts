@@ -68,6 +68,7 @@ export interface FlowWorkflowNodeType {
         routes?: RouteCondition[]
         input_schema?: Record<string, string>
         output_schema?: Record<string, string>
+        has_fixed_schema?: boolean
         title?: string
         system_message?: string
         user_message?: string
