@@ -401,8 +401,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             variant="flat"
                                             className="dark:bg-default-100/20 dark:border-default-700"
                                             style={staticStyles.collapseButton}
-                                            onClick={(e) => {
-                                                e.stopPropagation()
+                                            onPress={() => {
                                                 setIsCollapsed(!isCollapsed)
                                             }}
                                         >
