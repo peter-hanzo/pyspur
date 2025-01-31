@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import ValidationError
 
-from ..nodes.base import BaseNodeOutput
+from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
 
 from ..schemas.workflow_schemas import (
@@ -46,6 +46,7 @@ class WorkflowExecutor:
             self.task_recorder = None
         self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
+        self.node_instances: Dict[str, BaseNode] = {}
         self._dependencies: Dict[str, Set[str]] = {}
         self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._initial_inputs: Dict[str, Dict[str, Any]] = {}
@@ -257,6 +258,7 @@ class WorkflowExecutor:
             node_instance = NodeFactory.create_node(
                 node_name=node.title, node_type_name=node.node_type, config=node.config
             )
+            self.node_instances[node_id] = node_instance
             # Update task recorder
             if self.task_recorder:
                 self.task_recorder.update_task(
