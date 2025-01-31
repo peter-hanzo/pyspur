@@ -170,6 +170,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     const [width, setWidth] = useState<number>(storedWidth)
     const [isResizing, setIsResizing] = useState<boolean>(false)
+    const [isResizerHovered, setIsResizerHovered] = useState<boolean>(false)
 
     const [nodeType, setNodeType] = useState<string>(node?.type || 'ExampleNode')
     const [nodeSchema, setNodeSchema] = useState<FlowWorkflowNodeType | null>(
@@ -965,11 +966,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <NumberInput
                             key={`number-input-${nodeID}-${key}`}
                             label={key}
-                            className={isMissingNumberRequired ? 'border-warning' : ''}
                             value={value}
                             onChange={(e) => {
-                                const newValue = parseFloat(e.target.value)
-                                handleInputChange(key, isNaN(newValue) ? 0 : newValue)
+                                const newValue = parseFloat(e.target.value);
+                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
                             }}
                         />
                         {!isLast && <hr className="my-2" />}
@@ -1261,7 +1261,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     return (
         <Card
             className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
-            style={{ width: `${width}px` }}
+            style={{
+                width: `${width}px`,
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                borderRadius: '10px'
+            }}
         >
             {showTitleError && (
                 <Alert
@@ -1282,14 +1286,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 }}
             >
                 <div
-                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize transition-colors duration-200"
+                    className="absolute left-0 top-0 h-full cursor-ew-resize"
                     onMouseDown={handleMouseDown}
                     style={{
-                        backgroundColor: isResizing ? 'var(--heroui-colors-primary)' : undefined,
-                        opacity: isResizing ? 1 : 0,
+                        width: isResizerHovered || isResizing ? '4px' : '3px',
+                        backgroundColor: isResizing ? 'var(--heroui-colors-primary)' : isResizerHovered ? 'var(--heroui-colors-primary-light)' : 'rgba(0, 0, 0, 0.2)',
+                        opacity: isResizing ? 1 : (isResizerHovered ? 1 : 0),
+                        borderRadius: '2px'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                    onMouseLeave={(e) => !isResizing && (e.currentTarget.style.opacity = '0')}
+                    onMouseEnter={(e) => { setIsResizerHovered(true); e.currentTarget.style.opacity = '1'; }}
+                    onMouseLeave={(e) => { setIsResizerHovered(false); if (!isResizing) e.currentTarget.style.opacity = '0'; }}
                 />
 
                 <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">
