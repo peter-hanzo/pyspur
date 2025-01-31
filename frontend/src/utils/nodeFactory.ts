@@ -14,8 +14,8 @@ export const createNode = (
     let nodeType: FlowWorkflowNodeType | null = null
     for (const category in nodeTypes) {
         const found = nodeTypes[category].find((node) => node.name === type)
-        if (found) {
-            nodeType = found
+        if (found && 'input' in found && 'output' in found) {
+            nodeType = found as FlowWorkflowNodeType
             break
         }
     }

@@ -23,6 +23,7 @@ const initialState: FlowState = {
     nodeConfigs: {},
     workflowID: null,
     selectedNode: null,
+    selectedEdgeId: null,
     sidebarWidth: 400,
     projectName: 'Untitled Project',
     workflowInputVariables: {},

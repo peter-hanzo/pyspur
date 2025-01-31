@@ -3,14 +3,17 @@ import { useRouter } from 'next/router'
 import { Button, Card, CardBody, Spinner } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { listDocumentCollections, listVectorIndices } from '@/utils/api'
-import type { DocumentCollectionResponse, VectorIndexResponse } from '@/utils/api'
+import type {
+    DocumentCollectionResponseSchema,
+    VectorIndexResponseSchema
+} from '@/types/api_types/ragSchemas'
 import DocumentCollectionCard from '../cards/DocumentCollectionCard'
 import VectorIndexCard from '../cards/VectorIndexCard'
 
 export const KnowledgeBases: React.FC = () => {
     const router = useRouter()
-    const [collections, setCollections] = useState<DocumentCollectionResponse[]>([])
-    const [indices, setIndices] = useState<VectorIndexResponse[]>([])
+    const [collections, setCollections] = useState<DocumentCollectionResponseSchema[]>([])
+    const [indices, setIndices] = useState<VectorIndexResponseSchema[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 

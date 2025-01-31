@@ -39,6 +39,8 @@ import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
 import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
 import { listVectorIndices } from '../../../utils/api'
+import { previewChunk } from '@/utils/api'
+import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
 
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 // Define types for props and state

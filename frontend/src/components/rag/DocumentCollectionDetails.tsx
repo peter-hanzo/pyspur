@@ -24,7 +24,7 @@ import {
     deleteDocumentCollection,
     getCollectionDocuments,
 } from '@/utils/api'
-import type { DocumentCollectionResponse, DocumentWithChunks } from '@/utils/api'
+import type { DocumentCollectionResponseSchema as DocumentCollectionResponse, DocumentWithChunksSchema as DocumentWithChunks } from '@/types/api_types/ragSchemas'
 import FileUploadBox from '../FileUploadBox'
 import ChunkCard from '../cards/ChunkCard'
 
