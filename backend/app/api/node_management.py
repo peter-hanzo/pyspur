@@ -2,6 +2,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter
 from ..nodes.factory import NodeFactory
 from ..nodes.llm._utils import LLMModels
+from ..nodes.base import FixedOutputBaseNode
 
 
 router = APIRouter()
@@ -41,7 +42,31 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 "output": output_schema,
                 "config": config_schema,
                 "visual_tag": node_class.get_default_visual_tag().model_dump(),
+                "has_fixed_output": issubclass(node_class, FixedOutputBaseNode),
             }
+
+            # Add output schema to config for fixed output nodes
+            if issubclass(node_class, FixedOutputBaseNode) and hasattr(node_class, 'output_schema'):
+                if 'properties' not in config_schema:
+                    config_schema['properties'] = {}
+
+                # Get the output schema from the node class
+                output_schema_dict = {}
+                if hasattr(node_class, 'output_schema'):
+                    if isinstance(node_class.output_schema, property):
+                        # If it's a property, create an instance to get the schema
+                        node_instance = node_class(name="temp", config=node_class.config_model())
+                        output_schema_dict = node_instance.output_schema
+                    else:
+                        output_schema_dict = node_class.output_schema
+
+                config_schema['properties']['output_schema'] = {
+                    'type': 'object',
+                    'title': 'Output Schema',
+                    'description': 'Fixed output schema for this node',
+                    'default': output_schema_dict,
+                    'readOnly': True
+                }
 
             # Add model constraints if this is an LLM node
             if node_type.node_type_name in ["LLMNode", "SingleLLMCallNode"]:

@@ -19,9 +19,8 @@ import {
     deleteNode,
     setWorkflowInputVariable,
     setNodes,
-    FlowWorkflowNode,
-    FlowWorkflowEdge,
 } from '../../store/flowSlice'
+import { FlowWorkflowNode, FlowWorkflowEdge } from '@/types/api_types/nodeTypeSchemas'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
 import CustomEdge from './Edge'
 import HelperLinesRenderer from '../HelperLines'
@@ -124,6 +123,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         edges,
         hoveredNode,
         hoveredEdge,
+        selectedEdgeId: null,
         readOnly: true,
     })
 

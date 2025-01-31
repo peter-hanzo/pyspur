@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import os
 from fastapi import HTTPException
 
@@ -114,3 +114,30 @@ class ProcessingProgressSchema(BaseModel):
     error_message: Optional[str] = None
     created_at: str
     updated_at: str
+
+class RetrievalRequestSchema(BaseModel):
+    """Request model for retrieving from vector index"""
+    query: str
+    top_k: Optional[int] = 5
+    score_threshold: Optional[float] = None
+    semantic_weight: Optional[float] = 1.0
+    keyword_weight: Optional[float] = None
+
+class ChunkMetadataSchema(BaseModel):
+    """Schema for chunk metadata in retrieval response"""
+    document_id: str
+    chunk_id: str
+    document_title: Optional[str] = None
+    page_number: Optional[int] = None
+    chunk_number: Optional[int] = None
+
+class RetrievalResultSchema(BaseModel):
+    """Schema for a single retrieval result"""
+    text: str
+    score: float
+    metadata: ChunkMetadataSchema
+
+class RetrievalResponseSchema(BaseModel):
+    """Response model for retrieval operations"""
+    results: List[RetrievalResultSchema]
+    total_results: int

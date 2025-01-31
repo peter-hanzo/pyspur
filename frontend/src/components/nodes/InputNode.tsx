@@ -12,7 +12,7 @@ import { Icon } from '@iconify/react'
 import styles from './InputNode.module.css'
 import { RootState } from '../../store/store'
 import { isEqual } from 'lodash'
-import { FlowWorkflowNode } from '../../store/flowSlice'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import NodeOutputDisplay from './NodeOutputDisplay'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 
