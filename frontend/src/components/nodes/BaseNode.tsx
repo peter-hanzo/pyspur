@@ -5,7 +5,7 @@ import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { TaskStatus } from '@/types/api_types/taskSchemas'
 import { deleteNode, duplicateNode, getNodeTitle } from '@/utils/flowUtils'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
-import { Alert, Button, Card, CardBody, CardHeader, Divider, Input, Spinner } from '@heroui/react'
+import { Alert, Button, Card, CardBody, CardHeader, Divider, Input } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { createSelector } from '@reduxjs/toolkit'
 import { Handle, Position, useConnection } from '@xyflow/react'
@@ -13,6 +13,7 @@ import isEqual from 'lodash/isEqual'
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeDataOnly, updateNodeTitle } from '../../store/flowSlice'
+import NodeControls from './NodeControls'
 
 const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
 
@@ -431,84 +432,17 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     </div>
                 </div>
 
-                {/* Controls */}
-                <Card
-                    key={`controls-card-${id}`}
-                    style={staticStyles.controlsCard}
-                    className={`opacity-0 group-hover:opacity-100 dark:bg-default-100/20 dark:border-default-700 shadow-lg dark:shadow-lg-dark`}
-                    classNames={{
-                        base: 'bg-background/80 border-default-200 transition-all duration-200',
-                    }}
-                >
-                    <div className="flex flex-row gap-2">
-                        <Button
-                            key={`run-btn-${id}`}
-                            isIconOnly
-                            radius="lg"
-                            variant="light"
-                            onPress={handlePartialRun}
-                            disabled={loading || isRunning}
-                            className="hover:bg-primary/20"
-                        >
-                            {isRunning ? (
-                                <Spinner key={`spinner-${id}`} size="sm" color="current" />
-                            ) : (
-                                <Icon
-                                    key={`play-icon-${id}`}
-                                    className="text-default-600 dark:text-default-400"
-                                    icon="solar:play-linear"
-                                    width={22}
-                                />
-                            )}
-                        </Button>
-                        {!isInputNode && (
-                            <Button
-                                key={`delete-btn-${id}`}
-                                isIconOnly
-                                radius="lg"
-                                variant="light"
-                                onPress={handleDelete}
-                            >
-                                <Icon
-                                    key={`delete-icon-${id}`}
-                                    className="text-default-600 dark:text-default-400"
-                                    icon="solar:trash-bin-trash-linear"
-                                    width={22}
-                                />
-                            </Button>
-                        )}
-                        <Button
-                            key={`duplicate-btn-${id}`}
-                            isIconOnly
-                            radius="lg"
-                            variant="light"
-                            onPress={handleDuplicate}
-                        >
-                            <Icon
-                                key={`duplicate-icon-${id}`}
-                                className="text-default-600 dark:text-default-400"
-                                icon="solar:copy-linear"
-                                width={22}
-                            />
-                        </Button>
-                        {handleOpenModal && data?.run !== undefined && (
-                            <Button
-                                key={`modal-btn-${id}`}
-                                isIconOnly
-                                radius="lg"
-                                variant="light"
-                                onPress={() => handleOpenModal(true)}
-                            >
-                                <Icon
-                                    key={`view-icon-${id}`}
-                                    className="text-default-600 dark:text-default-400"
-                                    icon="solar:eye-linear"
-                                    width={22}
-                                />
-                            </Button>
-                        )}
-                    </div>
-                </Card>
+                <NodeControls
+                    id={id}
+                    isRunning={isRunning}
+                    loading={loading}
+                    isInputNode={isInputNode}
+                    hasRun={data?.run !== undefined}
+                    handlePartialRun={handlePartialRun}
+                    handleDelete={handleDelete}
+                    handleDuplicate={handleDuplicate}
+                    handleOpenModal={handleOpenModal}
+                />
             </div>
         </>
     )
