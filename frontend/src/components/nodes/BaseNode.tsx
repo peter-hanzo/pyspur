@@ -1,19 +1,18 @@
-import React, { useCallback, useState, memo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '../../store/flowSlice'
-import { Handle, Position, useConnection } from '@xyflow/react'
-import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } from '@heroui/react'
-import { Icon } from '@iconify/react'
 import usePartialRun from '@/hooks/usePartialRun'
-import { TaskStatus } from '@/types/api_types/taskSchemas'
+import store, { RootState } from '@/store/store'
 import { AlertState } from '@/types/alert'
-import isEqual from 'lodash/isEqual'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { getNodeTitle, duplicateNode, deleteNode } from '@/utils/flowUtils'
-import { RootState } from '@/store/store'
-import store from '@/store/store'
-import { createSelector } from '@reduxjs/toolkit'
+import { TaskStatus } from '@/types/api_types/taskSchemas'
+import { deleteNode, duplicateNode, getNodeTitle } from '@/utils/flowUtils'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+import { Alert, Button, Card, CardBody, CardHeader, Divider, Input, Spinner } from '@heroui/react'
+import { Icon } from '@iconify/react'
+import { createSelector } from '@reduxjs/toolkit'
+import { Handle, Position, useConnection } from '@xyflow/react'
+import isEqual from 'lodash/isEqual'
+import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { updateNodeDataOnly, updateNodeTitle } from '../../store/flowSlice'
 
 const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
 
@@ -150,7 +149,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 }) => {
     const [editingTitle, setEditingTitle] = useState(false)
     const [isRunning, setIsRunning] = useState(false)
-    const [showTitleError, setShowTitleError] = useState(false)
     const [titleInputValue, setTitleInputValue] = useState('')
     const [alert, setAlert] = useState<AlertState>({
         message: '',
@@ -317,16 +315,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 </div>
             )}
             <div style={staticStyles.container} draggable={false} className="group" id={`node-${id}`}>
-                {showTitleError && (
-                    <Alert
-                        key={`alert-${id}`}
-                        className="absolute -top-16 left-0 right-0 z-50"
-                        color="danger"
-                        onClose={() => setShowTitleError(false)}
-                    >
-                        Title cannot contain whitespace. Use underscores instead.
-                    </Alert>
-                )}
                 <div>
                     {connection.inProgress && (
                         <Handle
@@ -379,7 +367,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             }}
                                             classNames={{
                                                 input: 'text-foreground dark:text-white',
-                                                inputWrapper: 'dark:bg-default-100/50 bg-default-100/50 backdrop-blur-sm',
+                                                inputWrapper:
+                                                    'dark:bg-default-100/50 bg-default-100/50 backdrop-blur-sm',
                                             }}
                                         />
                                     ) : (
@@ -417,7 +406,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             }}
                                         >
                                             <Icon
-                                                icon={isCollapsed ? 'solar:alt-arrow-down-linear' : 'solar:alt-arrow-up-linear'}
+                                                icon={
+                                                    isCollapsed
+                                                        ? 'solar:alt-arrow-down-linear'
+                                                        : 'solar:alt-arrow-up-linear'
+                                                }
                                                 width={16}
                                                 className="text-default-600 dark:text-default-400"
                                             />
