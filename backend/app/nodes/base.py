@@ -273,6 +273,12 @@ class BaseNode(ABC):
 
 
 class FixedOutputBaseNodeConfig(BaseNodeConfig):
+    output_schema: Dict[str, str] = Field(
+        default={"output": "string"},
+        title="Output schema",
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
     pass
 
 
@@ -281,15 +287,9 @@ class FixedOutputBaseNode(BaseNode, ABC):
     config_model = FixedOutputBaseNodeConfig
     input_model = BaseNodeInput
     output_model = BaseNodeOutput
-    has_fixed_output = True
-
-    @property
-    @abstractmethod
-    def output_schema(self) -> Dict[str, str]:
-        pass
 
     def setup(self) -> None:
-        self.output_model = self.create_output_model_class(self.output_schema)
+        self.output_model = self.create_output_model_class(self.config.output_schema)
         super().setup()
 
     @abstractmethod
