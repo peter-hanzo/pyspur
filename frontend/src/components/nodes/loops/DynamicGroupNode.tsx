@@ -257,6 +257,7 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 positionAbsoluteX={0}
                 positionAbsoluteY={0}
                 className={`group ${isSelected ? 'selected' : ''}`}
+                isResizable={true}
                 handleOpenModal={() => {}}
             >
                 <div className={styles.nodeWrapper}>

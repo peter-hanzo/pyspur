@@ -26,6 +26,7 @@ export interface BaseNodeProps {
     style?: React.CSSProperties
     isInputNode?: boolean
     className?: string
+    isResizable?: boolean
     handleOpenModal?: (isModalOpen: boolean) => void
     positionAbsoluteX?: number
     positionAbsoluteY?: number
@@ -98,7 +99,6 @@ const staticStyles = {
 } as const
 
 const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
-    // Compare only the props that would trigger a meaningful visual change
     return (
         prev.isCollapsed === next.isCollapsed &&
         prev.id === next.id &&
@@ -106,6 +106,7 @@ const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
         isEqual(prev.style, next.style) &&
         prev.isInputNode === next.isInputNode &&
         prev.className === next.className &&
+        prev.isResizable === next.isResizable &&
         prev.positionAbsoluteX === next.positionAbsoluteX &&
         prev.positionAbsoluteY === next.positionAbsoluteY
     )
@@ -145,6 +146,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     style = {},
     isInputNode = false,
     className = '',
+    isResizable = false,
     positionAbsoluteX,
     positionAbsoluteY,
 }) => {
@@ -308,6 +310,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         [isCollapsed]
     )
 
+    const resizableClass = isResizable ? 'w-full h-full' : ''
+
     return (
         <>
             {alert.isVisible && (
@@ -315,8 +319,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     <Alert color={alert.color}>{alert.message}</Alert>
                 </div>
             )}
-            <div style={staticStyles.container} draggable={false} className="group" id={`node-${id}`}>
-                <div>
+            <div
+                style={staticStyles.container}
+                draggable={false}
+                className={`group ${resizableClass}`}
+                id={`node-${id}`}
+            >
+                <div className={resizableClass}>
                     {connection.inProgress && (
                         <Handle
                             key={`handle-${id}`}
@@ -329,10 +338,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         />
                     )}
 
-                    <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
+                    <div className={`react-flow__node-drag-handle ${resizableClass}`} style={staticStyles.dragHandle}>
                         <Card
                             key={`card-${id}`}
-                            className={`base-node ${className || ''}`}
+                            className={`base-node ${className || ''} ${resizableClass}`}
                             style={cardStyle}
                             classNames={{
                                 base: `bg-background outline-default-200 ${
