@@ -68,6 +68,8 @@ class LLMModel(BaseModel):
 
 class LLMModels(str, Enum):
     # OpenAI Models
+    O3_MINI = "openai/o3-mini"
+    O3_MINI_2025_01_31 = "openai/o3-mini-2025-01-31"
     GPT_4O_MINI = "openai/gpt-4o-mini"
     GPT_4O = "openai/gpt-4o"
     O1_PREVIEW = "openai/o1-preview"
@@ -119,6 +121,18 @@ class LLMModels(str, Enum):
     def get_model_info(cls, model_id: str) -> LLMModel:
         model_registry = {
             # OpenAI Models - all have temperature up to 2.0
+            cls.O3_MINI.value: LLMModel(
+                id=cls.O3_MINI.value,
+                provider=LLMProvider.OPENAI,
+                name="O3 Mini",
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+            ),
+            cls.O3_MINI_2025_01_31.value: LLMModel(
+                id=cls.O3_MINI_2025_01_31.value,
+                provider=LLMProvider.OPENAI,
+                name="O3 Mini (2025-01-31)",
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+            ),
             cls.GPT_4O_MINI.value: LLMModel(
                 id=cls.GPT_4O_MINI.value,
                 provider=LLMProvider.OPENAI,
