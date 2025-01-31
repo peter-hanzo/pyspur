@@ -565,7 +565,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
-            const hasFixedOutput = Boolean(nodeSchema && 'has_fixed_output' in nodeSchema ? nodeSchema.has_fixed_output : false)
+            const hasFixedOutput = Boolean(currentNodeConfig?.has_fixed_output ?? false)
 
             return (
                 <div key={key} className="my-2">
@@ -665,7 +665,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
-            const hasFixedOutput = Boolean(nodeSchema && 'has_fixed_output' in nodeSchema ? nodeSchema.has_fixed_output : false)
+            const hasFixedOutput = Boolean(currentNodeConfig?.has_fixed_output ?? false)
 
             return (
                 <div key={key}>
@@ -864,6 +864,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
         if (key === 'output_map') {
             return renderOutputMapField(key, value, incomingSchema, handleInputChange)
+        }
+        if (key === 'has_fixed_output') {
+            // do not render this field
+            return null
         }
 
         // Handle other types (string, number, boolean, object)
