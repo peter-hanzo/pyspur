@@ -9,7 +9,8 @@ import { Icon } from '@iconify/react'
 import { RootState } from '../../../store/store'
 import NodeOutputDisplay from '../NodeOutputDisplay'
 import isEqual from 'lodash/isEqual'
-import { FlowWorkflowNode, FlowWorkflowNodeConfig } from '../../../store/flowSlice'
+import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 
 interface CoalesceNodeProps {
     id: string

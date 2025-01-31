@@ -6,10 +6,10 @@ import {
     selectNodeById,
     setSidebarWidth,
     setSelectedNode,
-    FlowWorkflowNode,
-    FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
+import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../../store/nodeTypesSlice'
 import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import NumberInput from '../../NumberInput'
@@ -38,6 +38,10 @@ import SchemaEditor from './SchemaEditor'
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
 import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
+import { listVectorIndices } from '../../../utils/api'
+import { previewChunk } from '@/utils/api'
+import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
+
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 // Define types for props and state
 interface NodeSidebarProps {
@@ -142,6 +146,14 @@ const getModelConstraints = (nodeSchema: FlowWorkflowNodeType | null, modelId: s
     return nodeSchema.model_constraints[modelId]
 }
 
+// Add this after other interfaces
+interface VectorIndexOption {
+    id: string
+    name: string
+    description?: string
+    status: string
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -165,6 +177,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {})
     const [fewShotIndex, setFewShotIndex] = useState<number | null>(null)
     const [showTitleError, setShowTitleError] = useState(false)
+
+    // Add state for vector indices
+    const [vectorIndices, setVectorIndices] = useState<VectorIndexOption[]>([])
+    const [isLoadingIndices, setIsLoadingIndices] = useState(false)
 
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
@@ -427,10 +443,95 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
     }, [])
 
-    // Update the `renderField` function to include missing cases
+    // Update function to fetch vector indices
+    const fetchVectorIndices = async () => {
+        try {
+            setIsLoadingIndices(true)
+            const indices = await listVectorIndices()
+            setVectorIndices(indices)
+        } catch (error) {
+            console.error('Error fetching vector indices:', error)
+        } finally {
+            setIsLoadingIndices(false)
+        }
+    }
+
+    // Add effect to fetch indices when node type is RetrieverNode
+    useEffect(() => {
+        if (node?.type === 'RetrieverNode') {
+            fetchVectorIndices()
+        }
+    }, [node?.type])
+
+    // Update renderField to handle vector index selection
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
+
+        // Add special handling for index_id field in RetrieverNode
+        if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
+            return (
+                <div key={key} className="my-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Vector Index</h3>
+                        <Tooltip
+                            content="Select a vector index to retrieve documents from. Only indices with 'ready' status are available."
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                    </div>
+                    <Select
+                        key={`select-${nodeID}-${key}`}
+                        label="Select Vector Index"
+                        items={vectorIndices}
+                        selectedKeys={value ? [value] : []}
+                        placeholder="Select a vector index"
+                        classNames={{
+                            value: "text-small",
+                        }}
+                        renderValue={(items) => {
+                            const selectedIndex = items[0];
+                            return (
+                                <div className="flex flex-col">
+                                    <span>{selectedIndex?.data?.name}</span>
+                                </div>
+                            );
+                        }}
+                        onChange={(e) => handleInputChange(key, e.target.value)}
+                        isLoading={isLoadingIndices}
+                        fullWidth
+                    >
+                        {(index) => (
+                            <SelectItem
+                                key={index.id}
+                                value={index.id}
+                                textValue={index.name}
+                                description={`Status: ${index.status}`}
+                                isDisabled={index.status !== 'ready'}
+                            >
+                                <div className="flex flex-col">
+                                    <span className="text-small">{index.name}</span>
+                                    <span className="text-tiny text-default-400">ID: {index.id}</span>
+                                </div>
+                            </SelectItem>
+                        )}
+                    </Select>
+                    {vectorIndices.length === 0 && !isLoadingIndices && (
+                        <p className="text-sm text-default-500 mt-2">
+                            No vector indices available. Please create one first.
+                        </p>
+                    )}
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            )
+        }
 
         // Skip api_base field if the selected model is not an Ollama model
         if (key === 'api_base') {
@@ -464,6 +565,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+            const hasFixedOutput = Boolean(nodeSchema && 'has_fixed_output' in nodeSchema ? nodeSchema.has_fixed_output : false)
 
             return (
                 <div key={key} className="my-2">
@@ -471,7 +573,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <h3 className="font-semibold">Output Schema</h3>
                         <Tooltip
                             content={
-                                supportsJsonOutput
+                                hasFixedOutput
+                                    ? "This node has a fixed output schema that cannot be modified. The schema defines the structure of the node's output."
+                                    : supportsJsonOutput
                                     ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
@@ -486,7 +590,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    {supportsJsonOutput ? (
+                    {hasFixedOutput ? (
+                        <div className="bg-default-100 rounded-lg p-4">
+                            <SchemaEditor
+                                key={`schema-editor-output-${nodeID}`}
+                                jsonValue={currentNodeConfig.output_schema || {}}
+                                onChange={() => {}} // No-op for fixed output nodes
+                                options={jsonOptions}
+                                schemaType="output_schema"
+                                nodeId={nodeID}
+                                readOnly={true}
+                            />
+                            <p className="text-sm text-default-500 mt-2">
+                                This node has a fixed output schema that cannot be modified.
+                            </p>
+                        </div>
+                    ) : supportsJsonOutput ? (
                         <SchemaEditor
                             key={`schema-editor-output-${nodeID}`}
                             jsonValue={currentNodeConfig.output_schema || {}}
@@ -546,6 +665,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+            const hasFixedOutput = Boolean(nodeSchema && 'has_fixed_output' in nodeSchema ? nodeSchema.has_fixed_output : false)
 
             return (
                 <div key={key}>
@@ -553,7 +673,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <h3 className="font-semibold">Output JSON Schema</h3>
                         <Tooltip
                             content={
-                                supportsJsonOutput
+                                hasFixedOutput
+                                    ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
+                                    : supportsJsonOutput
                                     ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
@@ -568,9 +690,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    {supportsJsonOutput ? (
+                    {hasFixedOutput ? (
+                        <div className="bg-default-100 rounded-lg p-4">
+                            <CodeEditor
+                                key={`code-editor-output-json-schema-${nodeID}`}
+                                code={currentNodeConfig[key] || ''}
+                                mode="json"
+                                onChange={() => {}} // No-op for fixed output nodes
+                                readOnly={true}
+                            />
+                            <p className="text-sm text-default-500 mt-2">
+                                This node has a fixed output schema that cannot be modified.
+                            </p>
+                        </div>
+                    ) : supportsJsonOutput ? (
                         <CodeEditor
-                            key={`text-editor-output-json-schema-${nodeID}`}
+                            key={`code-editor-output-json-schema-${nodeID}`}
                             code={currentNodeConfig[key] || ''}
                             mode="json"
                             onChange={(value: string) => {
@@ -846,6 +981,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const renderConfigFields = (): React.ReactNode => {
         if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null
         const properties = nodeSchema.config
+
         const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type')
 
         // Prioritize system_message and user_message to appear first

@@ -25,7 +25,8 @@ import {
     deleteNode as deleteNodeAction,
 } from '../store/flowSlice'
 import isEqual from 'lodash/isEqual'
-import { FlowWorkflowNode, CreateNodeResult } from '../store/flowSlice'
+import { CreateNodeResult } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import DynamicNode from '../components/nodes/DynamicNode'
 import InputNode from '../components/nodes/InputNode'
 import { RouterNode } from '../components/nodes/logic/RouterNode'

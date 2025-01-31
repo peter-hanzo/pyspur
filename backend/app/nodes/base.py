@@ -291,6 +291,7 @@ class FixedOutputBaseNode(BaseNode, ABC):
     config_model = FixedOutputBaseNodeConfig
     input_model = BaseNodeInput
     output_model = BaseNodeOutput
+    has_fixed_output = True
 
     @property
     @abstractmethod

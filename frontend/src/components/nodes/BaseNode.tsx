@@ -8,7 +8,7 @@ import usePartialRun from '@/hooks/usePartialRun'
 import { TaskStatus } from '@/types/api_types/taskSchemas'
 import { AlertState } from '@/types/alert'
 import isEqual from 'lodash/isEqual'
-import { FlowWorkflowNode } from '@/store/flowSlice'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { getNodeTitle, duplicateNode, deleteNode } from '@/utils/flowUtils'
 import { RootState } from '@/store/store'
 import store from '@/store/store'
@@ -101,7 +101,8 @@ const selectInitialInputs = createSelector(
     (state: RootState) => state.flow.nodes,
     (state: RootState) => state.flow.testInputs,
     (nodes, testInputs) => {
-        const inputNodeId = nodes.find((node) => node.type === 'InputNode')?.id
+        const inputNode = nodes.find((node) => node.type === 'InputNode')
+        const inputNodeId = inputNode?.data?.title || inputNode?.id
         if (testInputs && Array.isArray(testInputs) && testInputs.length > 0) {
             const { id, ...rest } = testInputs[0]
             return { [inputNodeId as string]: rest }
@@ -114,7 +115,7 @@ const selectAvailableOutputs = createSelector([(state: RootState) => state.flow.
     const outputs: Record<string, any> = {}
     nodes.forEach((node) => {
         if (node.data?.run) {
-            outputs[node.id] = node.data.run
+            outputs[node.data?.title || node.id] = node.data.run
         }
     })
     return outputs
@@ -153,7 +154,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     const availableOutputs = useSelector(selectAvailableOutputs, isEqual)
 
-    const { executePartialRun, loading } = usePartialRun()
+    const { executePartialRun, loading } = usePartialRun(dispatch)
 
     const showAlert = (message: string, color: AlertState['color']) => {
         setAlert({ message, color, isVisible: true })
@@ -178,8 +179,19 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             return
         }
         setIsRunning(true)
-        const rerunPredecessors = false
+        // Clear the current node's run data before starting new run
+        dispatch(
+            updateNodeDataOnly({
+                id,
+                data: {
+                    run: undefined,
+                    taskStatus: 'RUNNING',
+                    error: undefined,
+                },
+            })
+        )
 
+        const rerunPredecessors = false
         const workflowId = window.location.pathname.split('/').pop()
         if (!workflowId) return
 
@@ -193,32 +205,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             })
 
             if (result) {
-                Object.entries(result).forEach(([nodeId, output_values]) => {
-                    if (output_values) {
-                        dispatch(
-                            updateNodeDataOnly({
-                                id: nodeId,
-                                data: {
-                                    run: {
-                                        ...(data?.run || {}),
-                                        ...(output_values || {}),
-                                    },
-                                },
-                            })
-                        )
-                        dispatch(setSelectedNode({ nodeId }))
-                    }
-                })
                 showAlert('Node execution completed successfully', 'success')
             }
         } catch (error: any) {
             console.error('Error running node:', error)
-            // Extract error message from the response if available
             const errorMessage =
                 error.response?.data?.detail || 'Node execution failed. Please check the inputs and try again.'
             showAlert(errorMessage, 'danger')
-            // Prevent the error from propagating to the global error handler
-            return
         } finally {
             setIsRunning(false)
         }

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { getNodeTypes } from '../utils/api'
 import { RootState } from './store'
-import { ModelConstraintsMap,  } from '../types/api_types/modelMetadataSchemas'
+import { ModelConstraintsMap, } from '../types/api_types/modelMetadataSchemas'
 
 // Define the types for the conditional node
 type ComparisonOperator =

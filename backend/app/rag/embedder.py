@@ -268,7 +268,7 @@ async def get_single_text_embedding(
             kwargs["encoding_format"] = encoding_format
 
         response = await aembedding(**kwargs)
-        return response.data[0].embedding
+        return response.data[0]["embedding"]
 
     except Exception as e:
         logging.error(f"Error getting embedding: {str(e)}")
@@ -328,14 +328,15 @@ async def get_multiple_text_embeddings(
                     kwargs["encoding_format"] = encoding_format.value
 
             # Log the request details
-            logging.debug(f"Requesting embeddings for batch of size {len(batch)}")
-            logging.debug(f"First text in batch (truncated): {batch[0][:100]}...")
-            logging.debug(f"Using model: {model} with kwargs: {kwargs}")
+            logging.debug(f"[DEBUG] Requesting embeddings for batch of size {len(batch)}")
+            logging.debug(f"[DEBUG] First text in batch (truncated): {batch[0][:100]}...")
+            logging.debug(f"[DEBUG] Using model: {model} with kwargs: {kwargs}")
 
             response: EmbeddingResponse = await aembedding(**kwargs)
             batch_embeddings: List[List[float]] = [item["embedding"] for item in response.data]
             all_embeddings.extend(batch_embeddings)
-
+            logging.debug(f"[DEBUG] Batch embeddings length: {len(batch_embeddings)}")
+            logging.debug(f"[DEBUG] First embedding sample: {batch_embeddings[0][:5]}")
             # Validate embeddings
             for i, emb in enumerate(batch_embeddings):
                 if not emb or len(emb) == 0:

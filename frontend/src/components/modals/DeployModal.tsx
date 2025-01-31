@@ -15,7 +15,7 @@ import {
 import { Icon } from '@iconify/react'
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
-import { FlowState } from '@/store/flowSlice'
+import { FlowState } from '@/types/api_types/flowStateSchema'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 
 interface DeployModalProps {
