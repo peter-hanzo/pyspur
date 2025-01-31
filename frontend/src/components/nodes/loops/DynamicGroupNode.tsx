@@ -203,10 +203,10 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 isResizable={true}
                 handleOpenModal={() => {}}
             >
-                <div className={styles.nodeWrapper}>
+                <div className={`h-full ${styles.nodeWrapper}`}>
                     <div className="mt-2">{renderHandles()}</div>
                     <Divider className="mt-2" />
-                    <div style={{ flexGrow: 1, minHeight }} className="mt-2 bg-none rounded-md">
+                    <div style={{ minHeight }} className="mt-2 bg-content2 dark:bg-content2/10 rounded-md h-full">
                         {/* Container that will expand for child nodes */}
                     </div>
                 </div>
