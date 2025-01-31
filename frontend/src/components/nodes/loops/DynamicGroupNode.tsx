@@ -1,8 +1,5 @@
-import { updateNodeTitle } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
 import { TaskStatus } from '@/types/api_types/taskSchemas'
-import { getNodeTitle } from '@/utils/flowUtils'
-import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 import { Divider } from '@heroui/react'
 import {
     Handle,
@@ -10,33 +7,21 @@ import {
     Position,
     useConnection,
     useNodeConnections,
-    useReactFlow,
     useStore,
-    useStoreApi,
     useUpdateNodeInternals,
 } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useEffect, useMemo, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
 import { getRelativeNodesBounds } from './groupNodeUtils'
-import useDetachNodes from './useDetachNodes'
 
 export interface DynamicGroupNodeProps {
     id: string
 }
 
 const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
-    const dispatch = useDispatch()
-    const { deleteElements } = useReactFlow()
-    const detachNodes = useDetachNodes()
-    const store = useStoreApi()
-
-    // Local state for title editing and collapse
-    const [editingTitle, setEditingTitle] = useState(false)
-    const [titleInputValue, setTitleInputValue] = useState('')
-    const [showTitleError, setShowTitleError] = useState(false)
     const [isCollapsed, setIsCollapsed] = useState(false)
 
     // Select node data and associated config (if any)
@@ -196,25 +181,6 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 </div>
             </div>
         )
-    }
-
-    // Callbacks for deleting the group node and detaching its children
-    const handleDelete = () => {
-        deleteElements({ nodes: [{ id }] })
-    }
-
-    const handleDetach = () => {
-        const childNodeIds = Array.from(store.getState().nodeLookup.values())
-            .filter((n) => n.parentId === id)
-            .map((n) => n.id)
-        detachNodes(childNodeIds, id)
-    }
-
-    const handleTitleChange = (newTitle: string) => {
-        const validTitle = convertToPythonVariableName(newTitle)
-        if (validTitle && validTitle !== getNodeTitle(node?.data)) {
-            dispatch(updateNodeTitle({ nodeId: id, newTitle: validTitle }))
-        }
     }
 
     const nodeRunStatus: TaskStatus = node?.data?.taskStatus as TaskStatus
