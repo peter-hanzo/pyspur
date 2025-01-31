@@ -43,6 +43,7 @@ import { previewChunk } from '@/utils/api'
 import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
 
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+
 // Define types for props and state
 interface NodeSidebarProps {
     nodeID: string
@@ -211,27 +212,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         [dispatch]
     )
 
-    // Update the existing useEffect to initialize LLM nodes with a default model
-    useEffect(() => {
-        if (node) {
-            setNodeType(node.type || 'ExampleNode')
-            setNodeSchema(findNodeSchema(node.type || 'ExampleNode', nodeTypes))
-
-            // Initialize the model with a default value for LLM nodes
-            let initialConfig = nodeConfig || {}
-            if (node.type === 'LLMNode' || node.type === 'SingleLLMCallNode') {
-                initialConfig = {
-                    ...initialConfig,
-                    llm_info: {
-                        ...initialConfig.llm_info,
-                        model: initialConfig.llm_info?.model || 'gpt-4o', // Set default model
-                    },
-                }
-            }
-
-            setCurrentNodeConfig(initialConfig)
-        }
-    }, [nodeID, node, nodeTypes, nodeConfig]) // nodeConfig dependency handles updates
 
     // Helper function to update nested object by path
     const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
@@ -875,13 +855,24 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         // Handle other types (string, number, boolean, object)
         switch (typeof field) {
-            case 'string':
+            case 'string': {
+                const isMissingStringRequired =
+                    Boolean(fieldMetadata?.required) && (value === '' || value === undefined || value === null)
                 return (
                     <div key={key} className="my-4">
+                        {isMissingStringRequired && (
+                            <Alert color="warning" className="mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:danger-triangle-linear" width={20} />
+                                    <span>This field is required but not set.</span>
+                                </div>
+                            </Alert>
+                        )}
                         <Textarea
                             key={`textarea-${nodeID}-${key}`}
                             fullWidth
-                            label={fieldMetadata?.title || key}
+                            label={`${fieldMetadata?.title || key}${Boolean(fieldMetadata?.required) ? ' *' : ''}`}
+                            className={isMissingStringRequired ? 'border-warning' : ''}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter your input"
@@ -889,7 +880,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         {!isLast && <hr className="my-2" />}
                     </div>
                 )
-            case 'number':
+            }
+            case 'number': {
+                const isMissingNumberRequired =
+                    Boolean(fieldMetadata?.required) && (value === undefined || value === null)
                 // Get current model constraints if this is a temperature or max_tokens field
                 const currentModel = currentNodeConfig?.llm_info?.model
                 const modelConstraints = currentModel ? getModelConstraints(nodeSchema, currentModel) : null
@@ -915,6 +909,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 if (fieldMetadata && (min !== undefined || max !== undefined)) {
                     return (
                         <div key={key} className="my-4">
+                            {isMissingNumberRequired && (
+                                <Alert color="warning" className="mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <Icon icon="solar:danger-triangle-linear" width={20} />
+                                        <span>This field is required but not set.</span>
+                                    </div>
+                                </Alert>
+                            )}
                             <div className="flex justify-between items-center mb-2">
                                 <label className="font-semibold">{fieldMetadata.title || key}</label>
                                 <span className="text-sm">{value}</span>
@@ -939,31 +941,60 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         </div>
                     )
                 }
+
                 return (
-                    <NumberInput
-                        key={`number-input-${nodeID}-${key}`}
-                        label={key}
-                        value={value}
-                        onChange={(e) => {
-                            const newValue = parseFloat(e.target.value)
-                            handleInputChange(key, isNaN(newValue) ? 0 : newValue)
-                        }}
-                    />
+                    <div key={key} className="my-4">
+                        {isMissingNumberRequired && (
+                            <Alert color="warning" className="mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:danger-triangle-linear" width={20} />
+                                    <span>This field is required but not set.</span>
+                                </div>
+                            </Alert>
+                        )}
+                        <NumberInput
+                            key={`number-input-${nodeID}-${key}`}
+                            label={key}
+                            className={isMissingNumberRequired ? 'border-warning' : ''}
+                            value={value}
+                            onChange={(e) => {
+                                const newValue = parseFloat(e.target.value)
+                                handleInputChange(key, isNaN(newValue) ? 0 : newValue)
+                            }}
+                        />
+                        {!isLast && <hr className="my-2" />}
+                    </div>
                 )
-            case 'boolean':
+            }
+            case 'boolean': {
+                const isMissingBooleanRequired =
+                    Boolean(fieldMetadata?.required) && (value === undefined || value === null)
                 return (
                     <div key={key} className="my-4">
                         <div className="flex justify-between items-center">
-                            <label className="font-semibold">{fieldMetadata?.title || key}</label>
+                            <label className="font-semibold">
+                                {fieldMetadata?.title || key}
+                                {Boolean(fieldMetadata?.required) && <span className="text-warning ml-1">*</span>}
+                            </label>
                             <Switch
                                 key={`switch-${nodeID}-${key}`}
                                 isSelected={value}
                                 onChange={(e) => handleInputChange(key, e.target.checked)}
+                                className={isMissingBooleanRequired ? 'border-warning' : ''}
                             />
                         </div>
+                        {isMissingBooleanRequired && (
+                            <Alert color="warning" className="mt-2">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:danger-triangle-linear" width={20} />
+                                    <span>This field is required but not set.</span>
+                                </div>
+                            </Alert>
+                        )}
                         {!isLast && <hr className="my-2" />}
                     </div>
                 )
+            }
             case 'object':
                 if (field && typeof field === 'object' && !Array.isArray(field)) {
                     return (

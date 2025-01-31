@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { getNodeTypes } from '../utils/api'
 import { RootState } from './store'
-import { ModelConstraintsMap, } from '../types/api_types/modelMetadataSchemas'
+import { ModelConstraintsMap, FieldMetadata } from '../types/api_types/modelMetadataSchemas'
 
 // Define the types for the conditional node
 type ComparisonOperator =
@@ -35,16 +35,13 @@ interface RouterNodeConfig {
     title?: string
 }
 
-// Define interfaces for the metadata structure
-interface NodeMetadata {
+// Update the NodeMetadata interface to include config fields
+export interface NodeMetadata {
     name: string
-    config?: {
-        routes?: RouteCondition[]
-        input_schema?: Record<string, string>
-        output_schema?: Record<string, string>
-        title?: string
-        api_base?: string
-        [key: string]: any
+    config?: Record<string, FieldMetadata>
+    visual_tag?: {
+        color: string
+        acronym: string
     }
     [key: string]: any
 }
@@ -175,6 +172,54 @@ export const selectPropertyMetadata = (
     const [nodeType, ...pathParts] = propertyPath.split('.')
     const remainingPath = pathParts.join('.')
     return findMetadataInCategory(state.nodeTypes.metadata, nodeType, remainingPath)
+}
+
+export const getNodeMissingRequiredFields = (
+    nodeType: string,
+    nodeConfig: Record<string, any>,
+    metadata: Record<string, NodeMetadata[]>
+): string[] => {
+    // We'll find the node metadata that matches nodeType
+    // Then see what fields are "required" in config
+    const categories = Object.keys(metadata)
+    for (const category of categories) {
+        const nodeMetadata = metadata[category]?.find(md => md.name === nodeType)
+        if (nodeMetadata) {
+            const missingFields: string[] = []
+
+            // Check config fields
+            if (nodeMetadata.config) {
+                Object.entries(nodeMetadata.config).forEach(([field, fieldMetadata]) => {
+                    // Check if field is required and empty
+                    if (fieldMetadata.required) {
+                        const value = nodeConfig[field]
+                        if (value === undefined || value === null || value === '' ||
+                            (typeof value === 'string' && value.trim() === '') ||
+                            (Array.isArray(value) && value.length === 0)) {
+                            missingFields.push(field)
+                        }
+                    }
+
+                    // Check nested fields
+                    if (fieldMetadata.properties) {
+                        Object.entries(fieldMetadata.properties).forEach(([nestedField, nestedMetadata]) => {
+                            if (nestedMetadata.required) {
+                                const nestedValue = nodeConfig[field]?.[nestedField]
+                                if (nestedValue === undefined || nestedValue === null || nestedValue === '' ||
+                                    (typeof nestedValue === 'string' && nestedValue.trim() === '') ||
+                                    (Array.isArray(nestedValue) && nestedValue.length === 0)) {
+                                    missingFields.push(`${field}.${nestedField}`)
+                                }
+                            }
+                        })
+                    }
+                })
+            }
+
+            return missingFields
+        }
+    }
+    return []
 }
 
 export default nodeTypesSlice.reducer

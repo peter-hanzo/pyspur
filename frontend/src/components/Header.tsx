@@ -28,6 +28,8 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { AlertState } from '../types/alert'
 import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
+import { getNodeMissingRequiredFields } from '../store/nodeTypesSlice'
+import { selectNodeById } from '../store/flowSlice'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -39,6 +41,10 @@ import { RootState } from '../store/store'
 const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
+    const edges = useSelector((state: RootState) => state.flow.edges)
+    const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data)
+    const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes).metadata
+    const allNodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
     const projectName = useSelector((state: RootState) => state.flow.projectName)
     const [isDebugModalOpen, setIsDebugModalOpen] = useState<boolean>(false)
     const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false)
