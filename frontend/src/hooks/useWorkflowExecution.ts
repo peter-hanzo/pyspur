@@ -161,8 +161,32 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
             setIsRunning(true)
             await fetchWorkflowRuns()
             updateWorkflowStatus(result.id)
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error starting workflow run:', error)
+            // Check if this is a model provider error
+            const errorDetail = error?.response?.data?.detail
+            if (typeof errorDetail === 'string') {
+                try {
+                    const parsedError = JSON.parse(errorDetail)
+                    if (parsedError.type === 'model_provider_error') {
+                        // Map error types to alert colors
+                        const errorColors: Record<string, AlertColor> = {
+                            overloaded: 'warning',
+                            rate_limit: 'warning',
+                            context_length: 'danger',
+                            auth: 'danger',
+                            service_unavailable: 'warning',
+                            unknown: 'danger',
+                        }
+                        const color = errorColors[parsedError.error_type] || 'danger'
+                        const provider = parsedError.provider.toUpperCase()
+                        onAlert(`${provider} Model Error: ${parsedError.message}`, color)
+                        return
+                    }
+                } catch (e) {
+                    // Not a JSON error, continue with generic error handling
+                }
+            }
             onAlert('Error starting workflow run.', 'danger')
         }
     }

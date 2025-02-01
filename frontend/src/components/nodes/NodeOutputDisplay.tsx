@@ -2,6 +2,7 @@ import React from 'react'
 import Markdown from 'react-markdown'
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import { Icon } from '@iconify/react'
 
 interface NodeOutputDisplayProps {
     output: Record<string, any>
@@ -137,6 +138,59 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         )
     }
     const renderValue = (value: any) => {
+        // Handle model provider errors
+        if (typeof value === 'string') {
+            try {
+                const parsedValue = JSON.parse(value)
+                if (parsedValue.type === 'model_provider_error') {
+                    // Map error types to icons and colors
+                    const errorConfig = {
+                        overloaded: {
+                            icon: 'solar:server-path-broken-linear',
+                            color: 'warning',
+                        },
+                        rate_limit: {
+                            icon: 'solar:clock-circle-linear',
+                            color: 'warning',
+                        },
+                        context_length: {
+                            icon: 'solar:document-broken-linear',
+                            color: 'danger',
+                        },
+                        auth: {
+                            icon: 'solar:key-linear',
+                            color: 'danger',
+                        },
+                        service_unavailable: {
+                            icon: 'solar:server-linear',
+                            color: 'warning',
+                        },
+                        unknown: {
+                            icon: 'solar:danger-triangle-linear',
+                            color: 'danger',
+                        },
+                    }
+
+                    const config = errorConfig[parsedValue.error_type as keyof typeof errorConfig] || errorConfig.unknown
+                    const colorClass = config.color === 'warning' ? 'warning' : 'danger'
+
+                    return (
+                        <div className={`p-4 bg-${colorClass}-50 border border-${colorClass}-200 rounded-lg`}>
+                            <div className="flex items-center mb-2">
+                                <Icon icon={config.icon} className={`text-${colorClass}-500 mr-2`} width={24} />
+                                <span className={`font-semibold text-${colorClass}-700`}>
+                                    {parsedValue.provider.toUpperCase()} Model Error
+                                </span>
+                            </div>
+                            <p className={`text-${colorClass}-700`}>{parsedValue.message}</p>
+                        </div>
+                    )
+                }
+            } catch (e) {
+                // Not a JSON string, continue with normal rendering
+            }
+        }
+
         // Handle JSON objects recursively
         if (typeof value === 'object' && value !== null) {
             return renderJsonObject(value)
