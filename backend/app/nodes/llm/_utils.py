@@ -603,6 +603,8 @@ async def generate_text(
 
     if json_mode and supports_json:
         if model_name.startswith("ollama"):
+            if api_base is None:
+                api_base = os.getenv('OLLAMA_BASE_URL')
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
             raw_response = await ollama_with_backoff(
                 model=model_name,
