@@ -186,6 +186,7 @@ class JSPydanticModel {
 
         // Add required field if this field is required or has minLength > 0
         if (schema.minLength > 0 || schema === '...') {
+            // @ts-ignore
             metadata.required = true
         }
 
