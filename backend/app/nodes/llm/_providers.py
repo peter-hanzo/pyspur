@@ -14,7 +14,7 @@ class OllamaOptions(BaseModel):
         default=None, ge=0, description="Maximum number of tokens to generate"
     )
     top_p: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0, description="Nucleus sampling threshold"
+        default=0.9, ge=0.0, le=1.0, description="Nucleus sampling threshold"
     )
     top_k: Optional[int] = Field(
         default=None,

@@ -31,6 +31,9 @@ import {
     Card,
     Alert,
     Tooltip,
+    Tabs,
+    Tab,
+    CardBody,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import NodeOutput from '../NodeOutputDisplay'
@@ -553,103 +556,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key === 'output_schema') {
-            // Get model constraints to check if JSON output is supported
-            const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
-            const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
-            const hasFixedOutput = Boolean(currentNodeConfig?.has_fixed_output ?? false)
-
-            return (
-                <div key={key} className="my-2">
-                    <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">Output Schema</h3>
-                        <Tooltip
-                            content={
-                                hasFixedOutput
-                                    ? "This node has a fixed output schema that cannot be modified. The schema defines the structure of the node's output."
-                                    : supportsJsonOutput
-                                    ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
-                                    : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
-                            }
-                            placement="left-start"
-                            showArrow={true}
-                            className="max-w-xs"
-                        >
-                            <Icon
-                                icon="solar:question-circle-linear"
-                                className="text-default-400 cursor-help"
-                                width={20}
-                            />
-                        </Tooltip>
-                    </div>
-                    {hasFixedOutput ? (
-                        <div className="bg-default-100 rounded-lg p-4">
-                            <SchemaEditor
-                                key={`schema-editor-output-${nodeID}`}
-                                jsonValue={currentNodeConfig.output_schema || {}}
-                                onChange={() => {}} // No-op for fixed output nodes
-                                options={jsonOptions}
-                                schemaType="output_schema"
-                                nodeId={nodeID}
-                                readOnly={true}
-                            />
-                            <p className="text-sm text-default-500 mt-2">
-                                This node has a fixed output schema that cannot be modified.
-                            </p>
-                        </div>
-                    ) : supportsJsonOutput ? (
-                        <SchemaEditor
-                            key={`schema-editor-output-${nodeID}`}
-                            jsonValue={currentNodeConfig.output_schema || {}}
-                            onChange={(newValue) => {
-                                if (Object.keys(newValue).length === 0) {
-                                    // If schema is empty, just update output_schema
-                                    handleInputChange('output_schema', newValue)
-                                    return
-                                }
-
-                                // Try to generate JSON schema
-                                const jsonSchema = generateJsonSchemaFromSchema(newValue)
-                                if (jsonSchema) {
-                                    // Update both if valid
-                                    const updates = {
-                                        output_schema: newValue,
-                                        output_json_schema: jsonSchema,
-                                    }
-                                    setCurrentNodeConfig((prev) => ({
-                                        ...prev,
-                                        ...updates,
-                                    }))
-                                    dispatch(
-                                        updateNodeConfigOnly({
-                                            id: nodeID,
-                                            data: {
-                                                ...currentNodeConfig,
-                                                ...updates,
-                                            },
-                                        })
-                                    )
-                                } else {
-                                    // Update only output_schema if JSON schema generation fails
-                                    handleInputChange('output_schema', newValue)
-                                }
-                            }}
-                            options={jsonOptions}
-                            schemaType="output_schema"
-                            nodeId={nodeID}
-                        />
-                    ) : (
-                        <Alert className="mb-2" color="warning">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="solar:info-circle-linear" width={20} />
-                                <span>
-                                    This model uses a fixed output schema: <code>{'{ output: string }'}</code>
-                                </span>
-                            </div>
-                        </Alert>
-                    )}
-                    {!isLast && <hr className="my-2" />}
-                </div>
-            )
+            // Skip rendering since we now handle this in output_json_schema's tabbed interface
+            return null
         }
 
         if (key === 'output_json_schema') {
@@ -661,13 +569,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">Output JSON Schema</h3>
+                        <h3 className="font-semibold">Output Schema</h3>
                         <Tooltip
                             content={
                                 hasFixedOutput
                                     ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
                                     : supportsJsonOutput
-                                    ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
+                                    ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
                             placement="left-start"
@@ -680,6 +588,26 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 width={20}
                             />
                         </Tooltip>
+                        {!hasFixedOutput && supportsJsonOutput && (
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                size="sm"
+                                onClick={() => {
+                                    const defaultSchema = {
+                                        type: 'object',
+                                        properties: {
+                                            output: { type: 'string' }
+                                        },
+                                        required: ['output']
+                                    }
+                                    handleInputChange('output_json_schema', JSON.stringify(defaultSchema, null, 2))
+                                }}
+                            >
+                                <Icon icon="solar:restart-linear" width={20} />
+                            </Button>
+                        )}
                     </div>
                     {hasFixedOutput ? (
                         <div className="bg-default-100 rounded-lg p-4">
@@ -695,44 +623,90 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </p>
                         </div>
                     ) : supportsJsonOutput ? (
-                        <CodeEditor
-                            key={`code-editor-output-json-schema-${nodeID}`}
-                            code={currentNodeConfig[key] || ''}
-                            mode="json"
-                            onChange={(value: string) => {
-                                if (!value.trim()) {
-                                    // If JSON schema is empty, just update output_json_schema
-                                    handleInputChange('output_json_schema', value)
-                                    return
-                                }
+                        <Tabs aria-label="Schema Editor Options">
+                            <Tab key="simple" title="Simple Editor">
+                                <Card>
+                                    <CardBody>
+                                        <SchemaEditor
+                                            key={`schema-editor-output-${nodeID}`}
+                                            jsonValue={extractSchemaFromJsonSchema(currentNodeConfig[key] || '') || {}}
+                                            onChange={(newValue) => {
+                                                // If it's a simple schema object, convert it to JSON schema
+                                                if (typeof newValue === 'object' && !('type' in newValue)) {
+                                                    const jsonSchema = generateJsonSchemaFromSchema(newValue)
+                                                    if (jsonSchema) {
+                                                        const updates = {
+                                                            output_json_schema: jsonSchema
+                                                        }
+                                                        setCurrentNodeConfig((prev) => ({
+                                                            ...prev,
+                                                            ...updates,
+                                                        }))
+                                                        dispatch(
+                                                            updateNodeConfigOnly({
+                                                                id: nodeID,
+                                                                data: {
+                                                                    ...currentNodeConfig,
+                                                                    ...updates,
+                                                                },
+                                                            })
+                                                        )
+                                                    }
+                                                } else {
+                                                    // For direct schema updates (like adding fields), update both states
+                                                    const updates = {
+                                                        output_json_schema: JSON.stringify(newValue, null, 2)
+                                                    }
+                                                    setCurrentNodeConfig((prev) => ({
+                                                        ...prev,
+                                                        ...updates,
+                                                    }))
+                                                    dispatch(
+                                                        updateNodeConfigOnly({
+                                                            id: nodeID,
+                                                            data: {
+                                                                ...currentNodeConfig,
+                                                                ...updates,
+                                                            },
+                                                        })
+                                                    )
+                                                }
+                                            }}
+                                            options={jsonOptions}
+                                            schemaType="output_schema"
+                                            nodeId={nodeID}
+                                        />
+                                    </CardBody>
+                                </Card>
+                            </Tab>
+                            <Tab key="json" title="JSON Schema">
+                                <Card>
+                                    <CardBody>
+                                        <CodeEditor
+                                            key={`code-editor-output-json-schema-${nodeID}`}
+                                            code={currentNodeConfig[key] || ''}
+                                            mode="json"
+                                            onChange={(value: string) => {
+                                                if (!value.trim()) {
+                                                    // If JSON schema is empty, just update output_json_schema
+                                                    handleInputChange('output_json_schema', value)
+                                                    return
+                                                }
 
-                                // Try to extract simple schema
-                                const simpleSchema = extractSchemaFromJsonSchema(value)
-                                if (simpleSchema) {
-                                    // Update both if valid
-                                    const updates = {
-                                        output_json_schema: value,
-                                        output_schema: simpleSchema,
-                                    }
-                                    setCurrentNodeConfig((prev) => ({
-                                        ...prev,
-                                        ...updates,
-                                    }))
-                                    dispatch(
-                                        updateNodeConfigOnly({
-                                            id: nodeID,
-                                            data: {
-                                                ...currentNodeConfig,
-                                                ...updates,
-                                            },
-                                        })
-                                    )
-                                } else {
-                                    // Update only output_json_schema if schema extraction fails
-                                    handleInputChange('output_json_schema', value)
-                                }
-                            }}
-                        />
+                                                try {
+                                                    // Validate that it's proper JSON
+                                                    JSON.parse(value)
+                                                    handleInputChange('output_json_schema', value)
+                                                } catch (e) {
+                                                    // If it's not valid JSON, don't update
+                                                    console.error('Invalid JSON schema:', e)
+                                                }
+                                            }}
+                                        />
+                                    </CardBody>
+                                </Card>
+                            </Tab>
+                        </Tabs>
                     ) : (
                         <Alert className="mb-2" color="warning">
                             <div className="flex items-center gap-2">
