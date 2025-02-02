@@ -12,7 +12,7 @@ import { Handle, Position, useConnection } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeDataOnly, updateNodeTitle } from '../../store/flowSlice'
+import { updateNodeDataOnly, updateNodeParentAndCoordinates, updateNodeTitle } from '../../store/flowSlice'
 import NodeControls from './NodeControls'
 
 const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
@@ -164,6 +164,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     // Only keep the selectors we need for this component's functionality
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode)
+    const parentId = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id)?.parentId)
+    const nodePosition = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id)?.position)
+    const parentPosition = useSelector((state: RootState) =>
+        parentId ? state.flow.nodes.find((n) => n.id === parentId)?.position : undefined
+    )
 
     const initialInputs = useSelector(selectInitialInputs, isEqual)
 
@@ -187,6 +192,24 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         }
 
         duplicateNode(id, dispatch, store.getState as () => RootState)
+    }
+
+    const handleDetach = () => {
+        if (!data || !nodePosition || !parentPosition) return
+
+        // Add parent's position to maintain absolute position after detaching
+        const absolutePosition = {
+            x: nodePosition.x + parentPosition.x,
+            y: nodePosition.y + parentPosition.y,
+        }
+
+        dispatch(
+            updateNodeParentAndCoordinates({
+                nodeId: id,
+                parentId: undefined,
+                position: absolutePosition,
+            })
+        )
     }
 
     const handlePartialRun = async () => {
@@ -450,6 +473,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     handleDelete={handleDelete}
                     handleDuplicate={handleDuplicate}
                     handleOpenModal={handleOpenModal}
+                    handleDetach={parentId ? handleDetach : undefined}
                 />
             </div>
         </>

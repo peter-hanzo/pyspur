@@ -12,6 +12,7 @@ interface NodeControlsProps {
     handleDelete: () => void
     handleDuplicate: () => void
     handleOpenModal?: (isModalOpen: boolean) => void
+    handleDetach?: () => void
 }
 
 const controlsCardStyle = {
@@ -37,6 +38,7 @@ const NodeControls: React.FC<NodeControlsProps> = ({
     handleDelete,
     handleDuplicate,
     handleOpenModal,
+    handleDetach,
 }) => {
     return (
         <Card
@@ -74,6 +76,16 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                             key={`delete-icon-${id}`}
                             className="text-default-600 dark:text-default-400"
                             icon="solar:trash-bin-trash-linear"
+                            width={22}
+                        />
+                    </Button>
+                )}
+                {handleDetach && (
+                    <Button key={`detach-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDetach}>
+                        <Icon
+                            key={`detach-icon-${id}`}
+                            className="text-default-600 dark:text-default-400"
+                            icon="solar:link-broken-linear"
                             width={22}
                         />
                     </Button>
