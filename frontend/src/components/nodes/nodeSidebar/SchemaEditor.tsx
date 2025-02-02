@@ -271,7 +271,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     nodeId,
     availableFields = ['string', 'boolean', 'integer', 'number', 'array', 'object', 'null'],
     readOnly = false,
-}) => {
+}): JSX.Element => {
     const [newKey, setNewKey] = useState<string>('')
     const [newType, setNewType] = useState<string>(availableFields[0])
     const dispatch = useDispatch()
@@ -388,25 +388,78 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
             // If the target is a string (type), convert it to an object
             if (typeof current[path[lastIndex]] === 'string') {
-                current[path[lastIndex]] = {}
+                current[path[lastIndex]] = {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
             }
 
             // Initialize the object if it doesn't exist
             if (!current[path[lastIndex]]) {
-                current[path[lastIndex]] = {}
+                current[path[lastIndex]] = {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
             }
 
-            // Add the new field
-            current[path[lastIndex]][newFieldName] = action.value || 'string'
+            // Add the new field as a JSON Schema property
+            if (!current[path[lastIndex]].properties) {
+                current[path[lastIndex]].properties = {}
+            }
+            current[path[lastIndex]].properties[newFieldName] = {
+                type: action.value || 'string'
+            }
+
+            // Add to required fields
+            if (!current[path[lastIndex]].required) {
+                current[path[lastIndex]].required = []
+            }
+            current[path[lastIndex]].required.push(newFieldName)
         } else if (action.type === 'update') {
             // For update operations, create new objects along the path
             for (let i = 0; i < lastIndex; i++) {
                 current = current[path[i]] = { ...current[path[i]] }
             }
-            current[path[lastIndex]] = action.value
+
+            // If updating to an object type
+            if (action.value === 'object') {
+                current[path[lastIndex]] = {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            } else {
+                // For primitive types
+                current[path[lastIndex]] = {
+                    type: action.value
+                }
+            }
         }
 
-        onChange(newValue)
+        // Ensure the root object follows JSON Schema format
+        if (Object.keys(newValue).length > 0 && !newValue.type) {
+            const formattedValue = {
+                type: 'object',
+                properties: {},
+                required: []
+            }
+
+            // Convert existing fields to properties
+            Object.entries(newValue).forEach(([key, value]) => {
+                if (typeof value === 'string') {
+                    formattedValue.properties[key] = { type: value }
+                } else {
+                    formattedValue.properties[key] = value
+                }
+                formattedValue.required.push(key)
+            })
+
+            onChange(formattedValue)
+        } else {
+            onChange(newValue)
+        }
     }
 
     const handleFieldDelete = (path: string[]): void => {
