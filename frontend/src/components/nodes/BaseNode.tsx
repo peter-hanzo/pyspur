@@ -234,9 +234,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     const isSelected = String(id) === String(selectedNodeId)
 
-    const status = data.run ? 'completed' : ''
+    const status = data?.run ? 'completed' : ''
 
-    const nodeRunStatus: TaskStatus = data.taskStatus as TaskStatus
+    const nodeRunStatus: TaskStatus = data?.taskStatus as TaskStatus
 
     let outlineColor = 'gray'
 
@@ -276,8 +276,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         [restStyle, outlineColor]
     )
 
-    const acronym = data.acronym || 'N/A'
-    const color = data.color || '#ccc'
+    const acronym = data?.acronym || 'N/A'
+    const color = data?.color || '#ccc'
 
     const tagStyle = React.useMemo(
         () => ({
