@@ -70,16 +70,14 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                         />
                     )}
                 </Button>
-                {!isInputNode && (
-                    <Button key={`delete-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDelete}>
-                        <Icon
-                            key={`delete-icon-${id}`}
-                            className="text-default-600 dark:text-default-400"
-                            icon="solar:trash-bin-trash-linear"
-                            width={22}
-                        />
-                    </Button>
-                )}
+                <Button key={`duplicate-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDuplicate}>
+                    <Icon
+                        key={`duplicate-icon-${id}`}
+                        className="text-default-600 dark:text-default-400"
+                        icon="solar:copy-linear"
+                        width={22}
+                    />
+                </Button>
                 {handleDetach && (
                     <Button key={`detach-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDetach}>
                         <Icon
@@ -90,14 +88,6 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                         />
                     </Button>
                 )}
-                <Button key={`duplicate-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDuplicate}>
-                    <Icon
-                        key={`duplicate-icon-${id}`}
-                        className="text-default-600 dark:text-default-400"
-                        icon="solar:copy-linear"
-                        width={22}
-                    />
-                </Button>
                 {handleOpenModal && hasRun && (
                     <Button
                         key={`modal-btn-${id}`}
@@ -110,6 +100,16 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                             key={`view-icon-${id}`}
                             className="text-default-600 dark:text-default-400"
                             icon="solar:eye-linear"
+                            width={22}
+                        />
+                    </Button>
+                )}
+                {!isInputNode && (
+                    <Button key={`delete-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDelete}>
+                        <Icon
+                            key={`delete-icon-${id}`}
+                            className="text-default-600 dark:text-default-400"
+                            icon="solar:trash-bin-trash-linear"
                             width={22}
                         />
                     </Button>
