@@ -181,12 +181,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     }
 
     const handleDuplicate = () => {
-        if (!data || !positionAbsoluteX || !positionAbsoluteY) {
-            console.error('Node position not found')
+        if (!data) {
+            console.error('Node data not found')
             return
         }
 
-        duplicateNode(id, positionAbsoluteX, positionAbsoluteY, dispatch, store.getState as () => RootState)
+        duplicateNode(id, dispatch, store.getState as () => RootState)
     }
 
     const handlePartialRun = async () => {
