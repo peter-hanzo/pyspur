@@ -1,19 +1,19 @@
-import React, { useCallback, useState, memo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeDataOnly, setEdges, updateNodeTitle, setSelectedNode } from '../../store/flowSlice'
-import { Handle, Position, useConnection } from '@xyflow/react'
-import { Card, CardHeader, CardBody, Divider, Button, Input, Alert, Spinner } from '@heroui/react'
-import { Icon } from '@iconify/react'
 import usePartialRun from '@/hooks/usePartialRun'
-import { TaskStatus } from '@/types/api_types/taskSchemas'
+import store, { RootState } from '@/store/store'
 import { AlertState } from '@/types/alert'
-import isEqual from 'lodash/isEqual'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { getNodeTitle, duplicateNode, deleteNode } from '@/utils/flowUtils'
-import { RootState } from '@/store/store'
-import store from '@/store/store'
-import { createSelector } from '@reduxjs/toolkit'
+import { TaskStatus } from '@/types/api_types/taskSchemas'
+import { deleteNode, duplicateNode, getNodeTitle } from '@/utils/flowUtils'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+import { Alert, Button, Card, CardBody, CardHeader, Divider, Input } from '@heroui/react'
+import { Icon } from '@iconify/react'
+import { createSelector } from '@reduxjs/toolkit'
+import { Handle, Position, useConnection } from '@xyflow/react'
+import isEqual from 'lodash/isEqual'
+import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { updateNodeDataOnly, updateNodeParentAndCoordinates, updateNodeTitle } from '../../store/flowSlice'
+import NodeControls from './NodeControls'
 
 const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
 
@@ -26,6 +26,7 @@ export interface BaseNodeProps {
     style?: React.CSSProperties
     isInputNode?: boolean
     className?: string
+    isResizable?: boolean
     handleOpenModal?: (isModalOpen: boolean) => void
     positionAbsoluteX?: number
     positionAbsoluteY?: number
@@ -98,7 +99,6 @@ const staticStyles = {
 } as const
 
 const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
-    // Compare only the props that would trigger a meaningful visual change
     return (
         prev.isCollapsed === next.isCollapsed &&
         prev.id === next.id &&
@@ -106,6 +106,7 @@ const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
         isEqual(prev.style, next.style) &&
         prev.isInputNode === next.isInputNode &&
         prev.className === next.className &&
+        prev.isResizable === next.isResizable &&
         prev.positionAbsoluteX === next.positionAbsoluteX &&
         prev.positionAbsoluteY === next.positionAbsoluteY
     )
@@ -145,12 +146,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     style = {},
     isInputNode = false,
     className = '',
+    isResizable = false,
     positionAbsoluteX,
     positionAbsoluteY,
 }) => {
     const [editingTitle, setEditingTitle] = useState(false)
     const [isRunning, setIsRunning] = useState(false)
-    const [showTitleError, setShowTitleError] = useState(false)
     const [titleInputValue, setTitleInputValue] = useState('')
     const [alert, setAlert] = useState<AlertState>({
         message: '',
@@ -163,6 +164,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     // Only keep the selectors we need for this component's functionality
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode)
+    const parentId = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id)?.parentId)
+    const nodePosition = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id)?.position)
+    const parentPosition = useSelector((state: RootState) =>
+        parentId ? state.flow.nodes.find((n) => n.id === parentId)?.position : undefined
+    )
 
     const initialInputs = useSelector(selectInitialInputs, isEqual)
 
@@ -180,12 +186,30 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     }
 
     const handleDuplicate = () => {
-        if (!data || !positionAbsoluteX || !positionAbsoluteY) {
-            console.error('Node position not found')
+        if (!data) {
+            console.error('Node data not found')
             return
         }
 
-        duplicateNode(id, positionAbsoluteX, positionAbsoluteY, dispatch, store.getState as () => RootState)
+        duplicateNode(id, dispatch, store.getState as () => RootState)
+    }
+
+    const handleDetach = () => {
+        if (!data || !nodePosition || !parentPosition) return
+
+        // Add parent's position to maintain absolute position after detaching
+        const absolutePosition = {
+            x: nodePosition.x + parentPosition.x,
+            y: nodePosition.y + parentPosition.y,
+        }
+
+        dispatch(
+            updateNodeParentAndCoordinates({
+                nodeId: id,
+                parentId: undefined,
+                position: absolutePosition,
+            })
+        )
     }
 
     const handlePartialRun = async () => {
@@ -233,9 +257,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     const isSelected = String(id) === String(selectedNodeId)
 
-    const status = data.run ? 'completed' : ''
+    const status = data?.run ? 'completed' : ''
 
-    const nodeRunStatus: TaskStatus = data.taskStatus as TaskStatus
+    const nodeRunStatus: TaskStatus = data?.taskStatus as TaskStatus
 
     let outlineColor = 'gray'
 
@@ -275,8 +299,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         [restStyle, outlineColor]
     )
 
-    const acronym = data.acronym || 'N/A'
-    const color = data.color || '#ccc'
+    const acronym = data?.acronym || 'N/A'
+    const color = data?.color || '#ccc'
 
     const tagStyle = React.useMemo(
         () => ({
@@ -309,6 +333,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         [isCollapsed]
     )
 
+    const resizableClass = isResizable ? 'w-full h-full' : ''
+
     return (
         <>
             {alert.isVisible && (
@@ -316,18 +342,13 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     <Alert color={alert.color}>{alert.message}</Alert>
                 </div>
             )}
-            <div style={staticStyles.container} draggable={false} className="group" id={`node-${id}`}>
-                {showTitleError && (
-                    <Alert
-                        key={`alert-${id}`}
-                        className="absolute -top-16 left-0 right-0 z-50"
-                        color="danger"
-                        onClose={() => setShowTitleError(false)}
-                    >
-                        Title cannot contain whitespace. Use underscores instead.
-                    </Alert>
-                )}
-                <div>
+            <div
+                style={staticStyles.container}
+                draggable={false}
+                className={`group ${resizableClass}`}
+                id={`node-${id}`}
+            >
+                <div className={resizableClass}>
                     {connection.inProgress && (
                         <Handle
                             key={`handle-${id}`}
@@ -340,10 +361,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                         />
                     )}
 
-                    <div className="react-flow__node-drag-handle" style={staticStyles.dragHandle}>
+                    <div className={`react-flow__node-drag-handle ${resizableClass}`} style={staticStyles.dragHandle}>
                         <Card
                             key={`card-${id}`}
-                            className={`base-node ${className || ''}`}
+                            className={`base-node ${className || ''} ${resizableClass}`}
                             style={cardStyle}
                             classNames={{
                                 base: `bg-background outline-default-200 ${
@@ -379,7 +400,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             }}
                                             classNames={{
                                                 input: 'text-foreground dark:text-white',
-                                                inputWrapper: 'dark:bg-default-100/50 bg-default-100/50 backdrop-blur-sm',
+                                                inputWrapper:
+                                                    'dark:bg-default-100/50 bg-default-100/50 backdrop-blur-sm',
                                             }}
                                         />
                                     ) : (
@@ -411,13 +433,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                             variant="flat"
                                             className="dark:bg-default-100/20 dark:border-default-700"
                                             style={staticStyles.collapseButton}
-                                            onClick={(e) => {
-                                                e.stopPropagation()
+                                            onPress={() => {
                                                 setIsCollapsed(!isCollapsed)
                                             }}
                                         >
                                             <Icon
-                                                icon={isCollapsed ? 'solar:alt-arrow-down-linear' : 'solar:alt-arrow-up-linear'}
+                                                icon={
+                                                    isCollapsed
+                                                        ? 'solar:alt-arrow-down-linear'
+                                                        : 'solar:alt-arrow-up-linear'
+                                                }
                                                 width={16}
                                                 className="text-default-600 dark:text-default-400"
                                             />
@@ -438,84 +463,18 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     </div>
                 </div>
 
-                {/* Controls */}
-                <Card
-                    key={`controls-card-${id}`}
-                    style={staticStyles.controlsCard}
-                    className={`opacity-0 group-hover:opacity-100 dark:bg-default-100/20 dark:border-default-700 shadow-lg dark:shadow-lg-dark`}
-                    classNames={{
-                        base: 'bg-background/80 border-default-200 transition-all duration-200',
-                    }}
-                >
-                    <div className="flex flex-row gap-2">
-                        <Button
-                            key={`run-btn-${id}`}
-                            isIconOnly
-                            radius="lg"
-                            variant="light"
-                            onPress={handlePartialRun}
-                            disabled={loading || isRunning}
-                            className="hover:bg-primary/20"
-                        >
-                            {isRunning ? (
-                                <Spinner key={`spinner-${id}`} size="sm" color="current" />
-                            ) : (
-                                <Icon
-                                    key={`play-icon-${id}`}
-                                    className="text-default-600 dark:text-default-400"
-                                    icon="solar:play-linear"
-                                    width={22}
-                                />
-                            )}
-                        </Button>
-                        {!isInputNode && (
-                            <Button
-                                key={`delete-btn-${id}`}
-                                isIconOnly
-                                radius="lg"
-                                variant="light"
-                                onPress={handleDelete}
-                            >
-                                <Icon
-                                    key={`delete-icon-${id}`}
-                                    className="text-default-600 dark:text-default-400"
-                                    icon="solar:trash-bin-trash-linear"
-                                    width={22}
-                                />
-                            </Button>
-                        )}
-                        <Button
-                            key={`duplicate-btn-${id}`}
-                            isIconOnly
-                            radius="lg"
-                            variant="light"
-                            onPress={handleDuplicate}
-                        >
-                            <Icon
-                                key={`duplicate-icon-${id}`}
-                                className="text-default-600 dark:text-default-400"
-                                icon="solar:copy-linear"
-                                width={22}
-                            />
-                        </Button>
-                        {handleOpenModal && data?.run !== undefined && (
-                            <Button
-                                key={`modal-btn-${id}`}
-                                isIconOnly
-                                radius="lg"
-                                variant="light"
-                                onPress={() => handleOpenModal(true)}
-                            >
-                                <Icon
-                                    key={`view-icon-${id}`}
-                                    className="text-default-600 dark:text-default-400"
-                                    icon="solar:eye-linear"
-                                    width={22}
-                                />
-                            </Button>
-                        )}
-                    </div>
-                </Card>
+                <NodeControls
+                    id={id}
+                    isRunning={isRunning}
+                    loading={loading}
+                    isInputNode={isInputNode}
+                    hasRun={data?.run !== undefined}
+                    handlePartialRun={handlePartialRun}
+                    handleDelete={handleDelete}
+                    handleDuplicate={handleDuplicate}
+                    handleOpenModal={handleOpenModal}
+                    handleDetach={parentId ? handleDetach : undefined}
+                />
             </div>
         </>
     )
