@@ -1,14 +1,14 @@
 import { type Node, type NodeOrigin, type Rect, Box, Edge } from '@xyflow/react'
 // @todo import from @xyflow/react when fixed
-import { boxToRect, getNodePositionWithOrigin, rectToBox } from '@xyflow/system'
 import { Dispatch } from '@reduxjs/toolkit'
+import { boxToRect, getNodePositionWithOrigin, rectToBox } from '@xyflow/system'
 import { updateNodeParentAndCoordinates } from '../../../store/flowSlice'
 // Add MouseEvent from React
-import { MouseEvent as ReactMouseEvent } from 'react'
-import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
-import { createNode } from '@/utils/nodeFactory'
-import { AppDispatch } from '@/store/store'
 import { addNodeWithConfig } from '@/store/flowSlice'
+import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
+import { AppDispatch } from '@/store/store'
+import { createNode } from '@/utils/nodeFactory'
+import { MouseEvent as ReactMouseEvent } from 'react'
 
 export const GROUP_NODE_TYPES = ['ForLoopNode']
 
@@ -236,6 +236,16 @@ export const createDynamicGroupNodeWithChildren = (
             },
             loopNodeAndConfig.node.id
         )
+
+        // Set input node's output schema to be fixed but empty initially
+        // It will be populated reactively based on the parent's input_map
+        if (inputNodeAndConfig) {
+            inputNodeAndConfig.config = {
+                ...inputNodeAndConfig.config,
+                has_fixed_output: true, // Make output schema non-editable
+                output_schema: {}, // Empty initially, will be populated reactively
+            }
+        }
 
         // Dispatch all nodes
         dispatch(addNodeWithConfig(loopNodeAndConfig))
