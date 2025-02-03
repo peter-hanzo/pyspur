@@ -105,12 +105,10 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+                    // console.log('RouterNode', edge.targetHandle)
                     return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            title: edge.targetHandle,
-                        },
+                        ...sourceNode,
+                        handle_id: edge.targetHandle
                     }
                 }
                 return sourceNode
@@ -125,14 +123,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
         const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
         const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
-
+        console.log(id, keyName)
         return (
             <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
                 <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
                     <Handle
                         type="target"
                         position={Position.Left}
-                        id={String(keyName)}
+                        id={String(id)}
                         className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
                         isConnectable={isConnectable}
                     />
@@ -208,7 +206,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                     <Handle
                         type="source"
                         position={Position.Right}
-                        id={keyName}
+                        id={String(id)}
                         className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
                         isConnectable={!isCollapsed}
                     />
@@ -227,12 +225,10 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+                    // console.log('RouterNode', edge.targetHandle)
                     return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            title: edge.targetHandle,
-                        },
+                        ...sourceNode,
+                        handle_id: edge.targetHandle
                     }
                 }
                 return sourceNode
@@ -255,13 +251,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
             ) {
                 if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
+                    // console.log('RouterNode', connection.fromHandle.id)
                     result = [
                         ...updatedPredecessorNodes,
                         {
                             id: connection.fromNode.id,
                             type: connection.fromNode.type,
                             data: {
-                                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
+                                title: connection.fromHandle.id,
                             },
                         },
                     ]
@@ -311,11 +308,17 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 {/* Input Handles */}
                 <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
                     {dedupedPredecessors.map((node) => {
-                        const handleId = String(node.data?.title || node.id || '')
+                        const handleId =
+                            node.type === 'RouterNode' && node.handle_id
+                                ? (node.data?.title + '.' + String(node.handle_id).split('.').pop())
+                                : String(node.data?.title || node.id || '')
+                        // set node id for router node as node.id + node.data.title
+                        const nodeId = node.type === 'RouterNode' ? node?.handle_id : node?.id
+                        // console.log(nodeId)
                         return (
                             <InputHandleRow
                                 key={`input-handle-row-${node.id}-${handleId}`}
-                                id={node?.id}
+                                id={nodeId}
                                 keyName={handleId}
                             />
                         )

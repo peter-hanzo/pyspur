@@ -50,6 +50,7 @@ const DEFAULT_ROUTE: RouteConditionGroup = {
 }
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false }) => {
+    // console.log('id',id)
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
     const nodeRef = useRef<HTMLDivElement | null>(null)
@@ -57,6 +58,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges)
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
+    // console.log(nodeConfig.route_map)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
 
     const nodeData = data
@@ -100,7 +102,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                     <Handle
                         type="target"
                         position={Position.Left}
-                        id={String(keyName)}
+                        id={String(id)}
                         className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
                         isConnectable={isConnectable}
                     />
@@ -438,6 +440,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {/* Routes */}
                         <div className="flex flex-col gap-4">
                             {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
+                                
                                 <Card
                                     key={routeKey}
                                     classNames={{
@@ -659,7 +662,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                             <Handle
                                                 type="source"
                                                 position={Position.Right}
-                                                id={routeKey}
+                                                id={id + '.' + routeKey}
                                                 className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
                                             />
                                         </div>

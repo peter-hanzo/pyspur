@@ -357,17 +357,17 @@ const flowSlice = createSlice({
             const oldTitle = state.nodeConfigs[id]?.title
             const newTitle = data.title
 
-            if (oldTitle && newTitle && oldTitle !== newTitle) {
-                state.edges = state.edges.map((edge) => {
-                    if (edge.source === id && edge.sourceHandle === oldTitle) {
-                        return { ...edge, sourceHandle: newTitle }
-                    }
-                    if (edge.target === id && edge.targetHandle === oldTitle) {
-                        return { ...edge, targetHandle: newTitle }
-                    }
-                    return edge
-                })
-            }
+            // if (oldTitle && newTitle && oldTitle !== newTitle) {
+            //     state.edges = state.edges.map((edge) => {
+            //         if (edge.source === id && edge.sourceHandle === oldTitle) {
+            //             return { ...edge, sourceHandle: newTitle }
+            //         }
+            //         if (edge.target === id && edge.targetHandle === oldTitle) {
+            //             return { ...edge, targetHandle: newTitle }
+            //         }
+            //         return edge
+            //     })
+            // }
 
             // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
             if (data?.output_schema) {
@@ -805,16 +805,16 @@ const flowSlice = createSlice({
                 let updatedEdge = { ...edge }
 
                 // Update source handle if this is the source node
-                if (edge.source === nodeId && edge.sourceHandle === oldTitle) {
-                    updatedEdge.sourceHandle = newTitle
-                    updatedEdge.targetHandle = newTitle
-                }
+                // if (edge.source === nodeId && edge.sourceHandle === oldTitle) {
+                //     updatedEdge.sourceHandle = newTitle
+                //     updatedEdge.targetHandle = newTitle
+                // }
 
                 // special case for router nodes, the sourceHandle for them is the routeid so above logic doesn't work
-                if (isRouterNode && edge.source === nodeId) {
-                    // we only update the targetHandle. we replace the oldTitle with the newTitle
-                    updatedEdge.targetHandle = edge.targetHandle.replace(oldTitle, newTitle)
-                }
+                // if (isRouterNode && edge.source === nodeId) {
+                //     // we only update the targetHandle. we replace the oldTitle with the newTitle
+                //     updatedEdge.targetHandle = edge.targetHandle.replace(oldTitle, newTitle)
+                // }
 
                 // Update references in downstream nodes
                 const findDownstreamNodes = (startNodeId: string): Set<string> => {
