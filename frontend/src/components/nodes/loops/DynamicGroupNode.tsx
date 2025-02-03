@@ -102,8 +102,8 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
 
     // Keep input node's output schema in sync with parent's input_map
     useEffect(() => {
-        const inputNodeId = `${id}_input`
-        const inputNode = nodes.find((n) => n.id === inputNodeId)
+        // Find the input node by type and parent relationship
+        const inputNode = nodes.find((n) => n.type === 'InputNode' && n.parentId === id)
         if (inputNode && nodeConfig?.input_map) {
             // Build output schema by looking up the actual types from source nodes
             const derivedSchema: Record<string, string> = {}
@@ -127,11 +127,11 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             })
 
             // Only update if the schema has actually changed
-            const inputNodeConfig = nodeConfigs[inputNodeId]
+            const inputNodeConfig = nodeConfigs[inputNode.id]
             if (!isEqual(inputNodeConfig?.output_schema, derivedSchema)) {
                 dispatch(
                     updateNodeConfigOnly({
-                        id: inputNodeId,
+                        id: inputNode.id,
                         data: {
                             output_schema: derivedSchema,
                             has_fixed_output: true,
