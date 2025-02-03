@@ -107,11 +107,9 @@ const SchemaField: React.FC<FieldProps> = ({
 
     const getTypeFromValue = (val: any): string => {
         if (typeof val === 'object' && val !== null) {
-            // If it has an explicit type, use it
+            if (val.type === 'array') return 'array'
             if (val.type) return val.type
-            // If it has properties, it's an object
             if (val.properties) return 'object'
-            // If it's empty, it's an object
             if (Object.keys(val).length === 0) return 'object'
             return 'object'
         }
@@ -316,6 +314,42 @@ const SchemaField: React.FC<FieldProps> = ({
                         )}
                     </div>
                 )}
+
+                {type === 'array' && (
+                    <div className="ml-4 mt-2">
+                        {value.items ? (
+                            <SchemaField
+                                key={`${path.join('.')}-items`}
+                                path={[...path, 'items']}
+                                value={value.items}
+                                onUpdate={(childPath, action) => {
+                                    // Update the items schema inside the array
+                                    onUpdate(path, { type: 'update', value: { ...value, items: action.value || value.items } })
+                                }}
+                                onDelete={() => {}}
+                                readOnly={readOnly}
+                                availableFields={availableFields}
+                                level={level + 1}
+                            />
+                        ) : (
+                            !readOnly && (
+                                <Button
+                                    size="sm"
+                                    variant="light"
+                                    color="primary"
+                                    onClick={() => onUpdate(path, { type: 'update', value: { ...value, items: { type: availableFields[0] } } })}
+                                >
+                                    <Icon
+                                        icon="solar:add-circle-linear"
+                                        className="mr-1"
+                                        width={18}
+                                    />
+                                    Add Items Schema
+                                </Button>
+                            )
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )
@@ -380,7 +414,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     }
 
     const schemaForEditing: JSONSchema = {
-        $schema: jsonValue?.$schema || 'http://json-schema.org/draft-07/schema#',
         type: jsonValue?.type || 'object',
         properties: jsonValue && jsonValue.properties
             ? Object.entries(jsonValue.properties).reduce((acc, [key, value]) => {
