@@ -384,14 +384,14 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         type: jsonValue?.type || 'object',
         properties: jsonValue && jsonValue.properties
             ? Object.entries(jsonValue.properties).reduce((acc, [key, value]) => {
-                acc[key] = normalizeSchema(value)
-                return acc
+                acc[key] = normalizeSchema(value);
+                return acc;
             }, {} as Record<string, any>)
             : Object.entries(jsonValue || {}).reduce((acc, [key, value]) => {
-                acc[key] = normalizeSchema(value)
-                return acc
+                acc[key] = normalizeSchema(value);
+                return acc;
             }, {} as Record<string, any>),
-        required: jsonValue?.required || Object.keys(jsonValue || {})
+        required: jsonValue?.properties ? Object.keys(jsonValue.properties) : []
     }
 
 
@@ -400,156 +400,209 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     }
 
     const handleAddKey = (): void => {
-        const validKey = convertToPythonVariableName(newKey)
-        if (schemaForEditing.properties.hasOwnProperty(validKey)) return
+        const validatedKey = convertToPythonVariableName(newKey);
+        if (schemaForEditing.properties.hasOwnProperty(validatedKey)) return;
         const newField =
             newType === 'object'
                 ? { type: 'object', properties: {}, required: [] }
-                : { type: newType }
+                : { type: newType };
+        const updatedProperties = {
+            ...schemaForEditing.properties,
+            [validatedKey]: newField
+        };
         const updatedSchema = {
             ...schemaForEditing,
-            properties: {
-                ...schemaForEditing.properties,
-                [validKey]: newField,
-            },
-            required: [...(schemaForEditing.required || []), validKey],
-        }
-        onChange(updatedSchema)
-        setNewKey('')
-        setNewType(availableFields[0])
+            properties: updatedProperties,
+            required: Object.keys(updatedProperties)
+        };
+        onChange(updatedSchema);
+        setNewKey('');
+        setNewType(availableFields[0]);
     }
 
     const handleFieldUpdate = (path: string[], action: { type: string; value?: any; newKey?: string; sourceField?: any }): void => {
-        let updatedSchema = { ...schemaForEditing }
+        let updatedSchema = { ...schemaForEditing };
         // Navigate to the parent schema's properties based on path
-        let parent = updatedSchema.properties
+        let parent = updatedSchema.properties;
         for (let i = 0; i < path.length - 1; i++) {
             if (!parent[path[i]]) {
-                // if parent property does not exist, initialize it as an object schema
-                parent[path[i]] = { type: 'object', properties: {}, required: [] }
+                // If parent property does not exist, initialize it as an object schema
+                parent[path[i]] = { type: 'object', properties: {}, required: [] };
             }
-            parent = parent[path[i]].properties
+            parent = parent[path[i]].properties;
         }
-        const fieldKey = path[path.length - 1]
+        const fieldKey = path[path.length - 1];
         if (action.type === 'move') {
-            const sourceField = action.sourceField
-            const sourcePath: string[] = sourceField.path
-            const sourceFieldName = sourceField.fieldName
+            const sourceField = action.sourceField;
+            const sourcePath: string[] = sourceField.path;
+            const sourceFieldName = sourceField.fieldName;
 
             // Remove from original location
-            let sourceParent = updatedSchema.properties
+            let sourceParent = updatedSchema.properties;
             for (let i = 0; i < sourcePath.length - 1; i++) {
-                sourceParent = sourceParent[sourcePath[i]].properties
+                sourceParent = sourceParent[sourcePath[i]].properties;
             }
-            delete sourceParent[sourceFieldName]
+            delete sourceParent[sourceFieldName];
 
             // Add to new location
             if (!parent[fieldKey]) {
-                parent[fieldKey] = { type: 'object', properties: {}, required: [] }
+                parent[fieldKey] = { type: 'object', properties: {}, required: [] };
             }
             parent[fieldKey].properties = {
                 ...parent[fieldKey].properties,
-                [sourceFieldName]: sourceField.value,
-            }
-            parent[fieldKey].required = Object.keys(parent[fieldKey].properties)
+                [sourceFieldName]: sourceField.value
+            };
+            parent[fieldKey].required = Object.keys(parent[fieldKey].properties);
+
+            // Recalculate top-level required array after removal
+            updatedSchema.required = Object.keys(updatedSchema.properties);
 
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
                     oldHandleId: sourceFieldName,
                     newHandleId: [...path, sourceFieldName].join('.'),
-                    schemaType: 'output_schema',
+                    schemaType: 'output_schema'
                 })
-            )
+            );
         } else if (action.type === 'rename') {
-            let parentObj = updatedSchema.properties
+            let parentObj = updatedSchema.properties;
             for (let i = 0; i < path.length - 1; i++) {
-                parentObj = parentObj[path[i]].properties
+                parentObj = parentObj[path[i]].properties;
             }
-            const oldKey = path[path.length - 1]
-            const newKey = action.newKey!
+            const oldKey = path[path.length - 1];
+            const newKey = action.newKey!;
             if (oldKey !== newKey) {
-                const value = parentObj[oldKey]
-                delete parentObj[oldKey]
-                parentObj[newKey] = value
+                const value = parentObj[oldKey];
+                delete parentObj[oldKey];
+                parentObj[newKey] = value;
 
                 dispatch(
                     updateEdgesOnHandleRename({
                         nodeId,
                         oldHandleId: oldKey,
                         newHandleId: newKey,
-                        schemaType: 'output_schema',
+                        schemaType: 'output_schema'
                     })
-                )
+                );
             }
         } else if (action.type === 'add') {
-            // Navigate to target object where new field will be added
-            let targetObj = updatedSchema.properties
+            let targetObj = updatedSchema.properties;
             for (let i = 0; i < path.length; i++) {
                 if (!targetObj[path[i]]) {
-                    targetObj[path[i]] = { type: 'object', properties: {}, required: [] }
+                    targetObj[path[i]] = { type: 'object', properties: {}, required: [] };
                 }
                 if (!targetObj[path[i]].properties) {
-                    targetObj[path[i]].properties = {}
+                    targetObj[path[i]].properties = {};
                 }
-                targetObj = targetObj[path[i]].properties
+                targetObj = targetObj[path[i]].properties;
             }
-            let newFieldName = 'new_field'
-            let counter = 1
+            let newFieldName = 'new_field';
+            let counter = 1;
             while (newFieldName in targetObj) {
-                newFieldName = `new_field_${counter}`
-                counter++
+                newFieldName = `new_field_${counter}`;
+                counter++;
             }
             const newFieldValue =
                 action.value === 'object'
                     ? { type: 'object', properties: {}, required: [] }
-                    : { type: action.value || 'string' }
-            targetObj[newFieldName] = newFieldValue
-
+                    : { type: action.value || 'string' };
+            targetObj[newFieldName] = newFieldValue;
             // Update required array for the parent object
-            let parentOfTarget = updatedSchema.properties
+            let parentOfTarget = updatedSchema.properties;
             for (let i = 0; i < path.length; i++) {
                 if (parentOfTarget[path[i]] && parentOfTarget[path[i]].properties) {
-                    parentOfTarget[path[i]].required = Object.keys(parentOfTarget[path[i]].properties)
+                    parentOfTarget[path[i]].required = Object.keys(parentOfTarget[path[i]].properties);
                 }
-                parentOfTarget = parentOfTarget[path[i]].properties
+                parentOfTarget = parentOfTarget[path[i]].properties;
             }
-            onChange(updatedSchema)
+            onChange(updatedSchema);
+            return;
         } else if (action.type === 'update') {
-            let parentObj = updatedSchema.properties
+            let parentObj = updatedSchema.properties;
             for (let i = 0; i < path.length - 1; i++) {
-                parentObj = parentObj[path[i]].properties
+                parentObj = parentObj[path[i]].properties;
             }
-            const key = path[path.length - 1]
+            const key = path[path.length - 1];
             parentObj[key] =
                 action.value === 'object'
                     ? { type: 'object', properties: {}, required: [] }
-                    : { type: action.value }
+                    : { type: action.value };
         }
-        onChange(updatedSchema)
-    }
+        onChange(updatedSchema);
+    };
 
     const handleFieldDelete = (path: string[]): void => {
-        let updatedSchema = { ...schemaForEditing }
-        let parent = updatedSchema.properties
-        const lastIndex = path.length - 1
+        let updatedSchema = { ...schemaForEditing };
+        let parent = updatedSchema.properties;
+        const lastIndex = path.length - 1;
         for (let i = 0; i < lastIndex; i++) {
-            parent = parent[path[i]].properties
+            parent = parent[path[i]].properties;
         }
-        const key = path[lastIndex]
-        delete parent[key]
-        // update required on parent level
-        let parentOfDeleted = updatedSchema.properties
-        for (let i = 0; i < path.length - 1; i++) {
-            parentOfDeleted = parentOfDeleted[path[i]]
+        const key = path[lastIndex];
+        delete parent[key];
+
+        if (path.length === 1) {
+            // top-level deletion: update required on the schema
+            updatedSchema.required = Object.keys(updatedSchema.properties);
+        } else {
+            // nested deletion: update required on the parent object
+            let parentOfDeleted = updatedSchema.properties;
+            for (let i = 0; i < path.length - 1; i++) {
+                parentOfDeleted = parentOfDeleted[path[i]];
+            }
+            if (parentOfDeleted.properties) {
+                parentOfDeleted.required = Object.keys(parentOfDeleted.properties);
+            }
         }
-        parentOfDeleted.required = Object.keys(parentOfDeleted.properties)
-        onChange(updatedSchema)
-        dispatch(deleteEdgeByHandle({ nodeId, handleKey: key }))
+
+        onChange(updatedSchema);
+        dispatch(deleteEdgeByHandle({ nodeId, handleKey: key }));
     }
 
+    const handleDropOnRoot = (e: React.DragEvent<HTMLDivElement>): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            let updatedSchema = JSON.parse(JSON.stringify(schemaForEditing));
+
+            // If the dragged field is nested (path length > 1), remove it from its parent's properties
+            if (data.path.length > 1) {
+                let parentObj = updatedSchema.properties;
+                for (let i = 0; i < data.path.length - 1; i++) {
+                    parentObj = parentObj[data.path[i]];
+                }
+                if (parentObj && parentObj.properties) {
+                    delete parentObj.properties[data.fieldName];
+                    parentObj.required = Object.keys(parentObj.properties);
+                }
+            }
+
+            // Add the field to the root level
+            updatedSchema.properties[data.fieldName] = data.value;
+            updatedSchema.required = Object.keys(updatedSchema.properties);
+
+            onChange(updatedSchema);
+            dispatch(
+                updateEdgesOnHandleRename({
+                    nodeId,
+                    oldHandleId: data.fieldName,
+                    newHandleId: data.fieldName,
+                    schemaType: 'output_schema',
+                })
+            );
+        } catch (err) {
+            console.error('Failed to handle drop on root:', err);
+        }
+    };
+
     return (
-        <div className={`schema-editor ${readOnly ? 'opacity-75 cursor-not-allowed' : ''}`}>
+        <div
+            className={`schema-editor ${readOnly ? 'opacity-75 cursor-not-allowed' : ''}`}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDropOnRoot}
+        >
             {!readOnly && (
                 <div className="mb-4 flex items-center space-x-4">
                     <Input
