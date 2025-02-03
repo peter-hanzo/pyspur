@@ -1,20 +1,18 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { FlowState } from '@/types/api_types/flowStateSchema'
 import {
-    applyNodeChanges,
-    applyEdgeChanges,
-    addEdge,
-    NodeChange,
-    EdgeChange,
-    Connection,
-} from '@xyflow/react'
+    CreateNodeResult,
+    FlowWorkflowEdge,
+    FlowWorkflowNode,
+    NodeTypesConfig,
+    Position,
+} from '@/types/api_types/nodeTypeSchemas'
+import { TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange } from '@xyflow/react'
+import { isEqual } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import { createNode } from '../utils/nodeFactory'
-import { TestInput } from '@/types/api_types/workflowSchemas'
-import { WorkflowDefinition } from '@/types/api_types/workflowSchemas'
-import { CreateNodeResult, FlowWorkflowEdge, FlowWorkflowNode, NodeTypesConfig, Position } from '@/types/api_types/nodeTypeSchemas'
-import { isEqual } from 'lodash'
-import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
-import { FlowState } from '@/types/api_types/flowStateSchema'
 
 const initialState: FlowState = {
     nodeTypes: {},
@@ -294,9 +292,21 @@ const flowSlice = createSlice({
             saveToHistory(state)
             state.nodes = state.nodes.filter((node) => node.id !== nodeId)
             state.edges = state.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+
+            // Remove node from nodeConfigs and selectedNode if it was selected
+            delete state.nodeConfigs[nodeId]
             if (state.selectedNode === nodeId) {
                 state.selectedNode = null
             }
+
+            // Delete nodes whose parent is the deleted node
+            const children = state.nodes.filter((node) => node.parentId === nodeId)
+            children.forEach((child) => {
+                delete state.nodeConfigs[child.id]
+            })
+            state.nodes = state.nodes.filter((node) => node.parentId !== nodeId)
+            state.edges = state.edges.filter((edge) => !children.find((child) => child.id === edge.source))
+            state.edges = state.edges.filter((edge) => !children.find((child) => child.id === edge.target))
         },
 
         deleteEdge: (state, action: PayloadAction<{ edgeId: string }>) => {
