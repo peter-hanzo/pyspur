@@ -80,42 +80,34 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
 }
 
 // Add this helper function near the top of the file, after other utility functions
-const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, string> | null => {
+const extractSchemaFromJsonSchema = (jsonSchema: string): Record<string, any> | null => {
     try {
-        // First try to parse the string directly
-        let parsed: Record<string, any>
+        // Try to parse the schema
+        let parsed: Record<string, any>;
         try {
-            parsed = JSON.parse(jsonSchema.trim())
+            parsed = JSON.parse(jsonSchema.trim());
         } catch {
-            try {
-                // cleaning is required for some escaped characters
-                let cleaned = jsonSchema
-                    .replace(/\\"/g, '"') // Replace escaped quotes
-                    .replace(/\\\[/g, '[') // Replace escaped brackets
-                    .replace(/\\\]/g, ']')
-                    .replace(/\\n/g, '') // Remove newlines
-                    .replace(/\\t/g, '') // Remove tabs
-                    .replace(/\\/g, '') // Remove remaining backslashes
-                    .trim()
-                parsed = JSON.parse(cleaned.trim())
-            } catch {
-                return null
-            }
+            // If the schema has escaped characters, clean it up first
+            let cleaned = jsonSchema
+                .replace(/\\"/g, '"') // Replace escaped quotes
+                .replace(/\\\[/g, '[') // Replace escaped brackets
+                .replace(/\\\]/g, ']')
+                .replace(/\\n/g, '') // Remove newlines
+                .replace(/\\t/g, '') // Remove tabs
+                .replace(/\\/g, '') // Remove remaining backslashes
+                .trim();
+            parsed = JSON.parse(cleaned);
         }
 
+        // If the parsed schema has a properties field (i.e. full JSON Schema format),
+        // return the nested properties so that nested objects are preserved.
         if (parsed.properties) {
-            const schema: Record<string, string> = {}
-            for (const [key, value] of Object.entries(parsed.properties)) {
-                if (typeof value === 'object' && 'type' in value) {
-                    schema[key] = (value as { type: string }).type
-                }
-            }
-            return Object.keys(schema).length > 0 ? schema : null
+            return parsed.properties;
         }
-        return null
+        return parsed;
     } catch (error) {
-        console.error('Error parsing JSON schema:', error)
-        return null
+        console.error('Error parsing JSON schema:', error);
+        return null;
     }
 }
 
@@ -673,7 +665,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                                 }
                                             }}
                                             options={jsonOptions}
-                                            schemaType="output_schema"
                                             nodeId={nodeID}
                                         />
                                     </CardBody>
@@ -1192,7 +1183,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     jsonValue={value || {}}
                     onChange={(newValue) => handleInputChange(key, newValue)}
                     options={jsonOptions}
-                    schemaType="input_map"
                     nodeId={nodeID}
                     availableFields={incomingSchema}
                 />
@@ -1224,7 +1214,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     jsonValue={value || {}}
                     onChange={(newValue) => handleInputChange(key, newValue)}
                     options={jsonOptions}
-                    schemaType="output_map"
                     nodeId={nodeID}
                     availableFields={incomingSchema}
                 />

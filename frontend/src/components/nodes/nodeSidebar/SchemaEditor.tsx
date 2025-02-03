@@ -9,10 +9,16 @@ export interface SchemaEditorProps {
     jsonValue: Record<string, any>
     onChange: (value: Record<string, any>) => void
     options: string[]
-    schemaType: 'output_schema' | 'input_schema' | 'input_map' | 'output_map'
     nodeId: string
     availableFields?: string[]
     readOnly?: boolean
+}
+
+interface JSONSchema {
+    $schema?: string
+    type: string
+    properties: Record<string, any>
+    required?: string[]
 }
 
 interface FieldProps {
@@ -101,7 +107,12 @@ const SchemaField: React.FC<FieldProps> = ({
 
     const getTypeFromValue = (val: any): string => {
         if (typeof val === 'object' && val !== null) {
+            // If it has an explicit type, use it
             if (val.type) return val.type
+            // If it has properties, it's an object
+            if (val.properties) return 'object'
+            // If it's empty, it's an object
+            if (Object.keys(val).length === 0) return 'object'
             return 'object'
         }
         return val
@@ -111,7 +122,10 @@ const SchemaField: React.FC<FieldProps> = ({
     const isObject = type === 'object'
     // Check whether this object already has fields.
     const isObjectWithFields =
-        isObject && value && typeof value === 'object' && Object.keys(value).length > 0
+        isObject && value && typeof value === 'object' &&
+        ((value.properties && Object.keys(value.properties).length > 0) ||
+         (!value.type && !value.properties && Object.keys(value).length > 0))
+
 
     const handleTypeChange = (newType: string) => {
         // Prevent switching type if this object already has nested fields.
@@ -119,14 +133,74 @@ const SchemaField: React.FC<FieldProps> = ({
             return
         }
         if (newType === 'object') {
-            onUpdate(path, { type: 'update', value: {} })
+            onUpdate(path, {
+                type: 'update',
+                value: {
+                    type: 'object',
+                    properties: value?.properties || {},
+                    required: value?.required || []
+                }
+            })
         } else {
-            onUpdate(path, { type: 'update', value: newType })
+            onUpdate(path, { type: 'update', value: { type: newType } })
         }
     }
 
     const handleTypeChangeWrapper = (e: React.ChangeEvent<HTMLSelectElement>) => {
         handleTypeChange(e.target.value)
+    }
+
+    const handleAddNestedField = () => {
+        if (!value.properties) {
+            value.properties = {}
+        }
+        onUpdate(path, {
+            type: 'add',
+            value: { type: 'string' }
+        })
+    }
+
+    // Render nested fields if this is an object type with properties
+    const renderNestedFields = () => {
+        if (!value || typeof value !== 'object') return null
+
+        // If it has a properties field (JSON Schema format)
+        if (value.properties) {
+            return Object.entries(value.properties).map(([key, val]) => {
+                return (
+                    <SchemaField
+                        key={key}
+                        path={[...path, key]}
+                        value={val}
+                        onUpdate={onUpdate}
+                        onDelete={onDelete}
+                        readOnly={readOnly}
+                        availableFields={availableFields}
+                        level={level + 1}
+                    />
+                )
+            })
+        }
+
+        // If it's a direct object without properties field
+        if (!value.type && Object.keys(value).length > 0) {
+            return Object.entries(value).map(([key, val]) => {
+                return (
+                    <SchemaField
+                        key={key}
+                        path={[...path, key]}
+                        value={val}
+                        onUpdate={onUpdate}
+                        onDelete={onDelete}
+                        readOnly={readOnly}
+                        availableFields={availableFields}
+                        level={level + 1}
+                    />
+                )
+            })
+        }
+
+        return null
     }
 
     return (
@@ -221,31 +295,15 @@ const SchemaField: React.FC<FieldProps> = ({
                     )}
                 </div>
 
-                {isObject && typeof value === 'object' && (
+                {isObject && (
                     <div className="ml-4 mt-2">
-                        {Object.entries(value).map(([key, val]) => (
-                            <SchemaField
-                                key={key}
-                                path={[...path, key]}
-                                value={val}
-                                onUpdate={onUpdate}
-                                onDelete={onDelete}
-                                readOnly={readOnly}
-                                availableFields={availableFields}
-                                level={level + 1}
-                            />
-                        ))}
+                        {renderNestedFields()}
                         {!readOnly && (
                             <Button
                                 size="sm"
                                 variant="light"
                                 color="primary"
-                                onClick={() =>
-                                    onUpdate([...path, 'new_field'], {
-                                        type: 'add',
-                                        value: 'string',
-                                    })
-                                }
+                                onClick={handleAddNestedField}
                                 className="mt-2"
                             >
                                 <Icon
@@ -267,276 +325,231 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     jsonValue,
     onChange,
     options,
-    schemaType,
     nodeId,
     availableFields = ['string', 'boolean', 'integer', 'number', 'array', 'object', 'null'],
     readOnly = false,
-}): JSX.Element => {
+}) => {
     const [newKey, setNewKey] = useState<string>('')
     const [newType, setNewType] = useState<string>(availableFields[0])
     const dispatch = useDispatch()
 
+    // Update the schema normalization to handle nested structures
+    const normalizeSchema = (value: any): any => {
+        if (typeof value === 'string') {
+            return { type: value }
+        }
+        if (typeof value === 'object' && value !== null) {
+            // If it's already a valid schema object with type and properties
+            if (value.type === 'object') {
+                return {
+                    ...value,  // Preserve all original fields
+                    type: 'object',
+                    properties: Object.entries(value.properties || {}).reduce((acc, [k, v]) => {
+                        acc[k] = normalizeSchema(v)
+                        return acc
+                    }, {}),
+                    required: value.required || []
+                }
+            }
+            // If it has an explicit type but no properties
+            if (value.type) {
+                return value
+            }
+            // If it has properties but no type
+            if (value.properties) {
+                return {
+                    type: 'object',
+                    properties: Object.entries(value.properties).reduce((acc, [k, v]) => {
+                        acc[k] = normalizeSchema(v)
+                        return acc
+                    }, {}),
+                    required: value.required || []
+                }
+            }
+            // If it's a plain object
+            return {
+                type: 'object',
+                properties: Object.entries(value).reduce((acc, [k, v]) => {
+                    acc[k] = normalizeSchema(v)
+                    return acc
+                }, {}),
+                required: []
+            }
+        }
+        return { type: 'string' } // fallback
+    }
+
+    const schemaForEditing: JSONSchema = {
+        $schema: jsonValue?.$schema || 'http://json-schema.org/draft-07/schema#',
+        type: jsonValue?.type || 'object',
+        properties: jsonValue && jsonValue.properties
+            ? Object.entries(jsonValue.properties).reduce((acc, [key, value]) => {
+                acc[key] = normalizeSchema(value)
+                return acc
+            }, {} as Record<string, any>)
+            : Object.entries(jsonValue || {}).reduce((acc, [key, value]) => {
+                acc[key] = normalizeSchema(value)
+                return acc
+            }, {} as Record<string, any>),
+        required: jsonValue?.required || Object.keys(jsonValue || {})
+    }
+
+
     const getPlaceholderExample = (): string => {
-        return schemaType === 'input_schema' ? 'eg. article' : 'eg. summary'
+        return 'eg. summary'
     }
 
     const handleAddKey = (): void => {
         const validKey = convertToPythonVariableName(newKey)
-        if (validKey && !jsonValue?.hasOwnProperty(validKey)) {
-            const updatedJson = {
-                ...jsonValue,
-                [validKey]: newType === 'object' ? {} : newType,
-            }
-            onChange(updatedJson)
-            setNewKey('')
-            setNewType(availableFields[0])
+        if (schemaForEditing.properties.hasOwnProperty(validKey)) return
+        const newField =
+            newType === 'object'
+                ? { type: 'object', properties: {}, required: [] }
+                : { type: newType }
+        const updatedSchema = {
+            ...schemaForEditing,
+            properties: {
+                ...schemaForEditing.properties,
+                [validKey]: newField,
+            },
+            required: [...(schemaForEditing.required || []), validKey],
         }
+        onChange(updatedSchema)
+        setNewKey('')
+        setNewType(availableFields[0])
     }
 
     const handleFieldUpdate = (path: string[], action: { type: string; value?: any; newKey?: string; sourceField?: any }): void => {
-        const newValue = { ...jsonValue }
-        let current = newValue
-        const lastIndex = path.length - 1
-
+        let updatedSchema = { ...schemaForEditing }
+        // Navigate to the parent schema's properties based on path
+        let parent = updatedSchema.properties
+        for (let i = 0; i < path.length - 1; i++) {
+            if (!parent[path[i]]) {
+                // if parent property does not exist, initialize it as an object schema
+                parent[path[i]] = { type: 'object', properties: {}, required: [] }
+            }
+            parent = parent[path[i]].properties
+        }
+        const fieldKey = path[path.length - 1]
         if (action.type === 'move') {
             const sourceField = action.sourceField
-            const sourcePath = sourceField.path
-            const sourceValue = sourceField.value
+            const sourcePath: string[] = sourceField.path
             const sourceFieldName = sourceField.fieldName
 
             // Remove from original location
-            let sourceParent = newValue
+            let sourceParent = updatedSchema.properties
             for (let i = 0; i < sourcePath.length - 1; i++) {
-                sourceParent = sourceParent[sourcePath[i]] = { ...sourceParent[sourcePath[i]] }
+                sourceParent = sourceParent[sourcePath[i]].properties
             }
             delete sourceParent[sourceFieldName]
 
-            // Add to new location (target object's contents)
-            let targetParent = newValue
-            for (let i = 0; i < path.length - 1; i++) {
-                if (typeof targetParent[path[i]] === 'string') {
-                    // If it's a string type, initialize it as an empty object
-                    targetParent[path[i]] = {}
-                }
-                targetParent = targetParent[path[i]] = { ...targetParent[path[i]] }
+            // Add to new location
+            if (!parent[fieldKey]) {
+                parent[fieldKey] = { type: 'object', properties: {}, required: [] }
             }
-
-            // Handle the last path segment
-            const lastKey = path[path.length - 1]
-            if (typeof targetParent[lastKey] === 'string') {
-                // If the target is a string type, initialize it as an empty object
-                targetParent[lastKey] = {}
-            } else if (!targetParent[lastKey] || typeof targetParent[lastKey] !== 'object') {
-                // If the target doesn't exist or isn't an object, initialize it
-                targetParent[lastKey] = {}
+            parent[fieldKey].properties = {
+                ...parent[fieldKey].properties,
+                [sourceFieldName]: sourceField.value,
             }
-            // Create a new object reference to ensure it's extensible
-            targetParent[lastKey] = { ...targetParent[lastKey] }
-            targetParent = targetParent[lastKey]
+            parent[fieldKey].required = Object.keys(parent[fieldKey].properties)
 
-            // Now targetParent is the object we want to add the field to
-            targetParent[sourceFieldName] = sourceValue
-
-            // Update edges if needed
-            if (schemaType !== 'input_map' && schemaType !== 'output_map') {
-                dispatch(
-                    updateEdgesOnHandleRename({
-                        nodeId,
-                        oldHandleId: sourceFieldName,
-                        newHandleId: [...path, sourceFieldName].join('.'),
-                        schemaType,
-                    })
-                )
-            }
+            dispatch(
+                updateEdgesOnHandleRename({
+                    nodeId,
+                    oldHandleId: sourceFieldName,
+                    newHandleId: [...path, sourceFieldName].join('.'),
+                    schemaType: 'output_schema',
+                })
+            )
         } else if (action.type === 'rename') {
-            let parentObj = newValue
-            for (let i = 0; i < lastIndex; i++) {
-                parentObj = parentObj[path[i]] = { ...parentObj[path[i]] }
+            let parentObj = updatedSchema.properties
+            for (let i = 0; i < path.length - 1; i++) {
+                parentObj = parentObj[path[i]].properties
             }
-            const oldKey = path[lastIndex]
+            const oldKey = path[path.length - 1]
             const newKey = action.newKey!
-
             if (oldKey !== newKey) {
                 const value = parentObj[oldKey]
                 delete parentObj[oldKey]
                 parentObj[newKey] = value
 
-                if (schemaType !== 'input_map' && schemaType !== 'output_map') {
-                    dispatch(
-                        updateEdgesOnHandleRename({
-                            nodeId,
-                            oldHandleId: oldKey,
-                            newHandleId: newKey,
-                            schemaType,
-                        })
-                    )
-                }
+                dispatch(
+                    updateEdgesOnHandleRename({
+                        nodeId,
+                        oldHandleId: oldKey,
+                        newHandleId: newKey,
+                        schemaType: 'output_schema',
+                    })
+                )
             }
         } else if (action.type === 'add') {
-            // For add operations, create new objects along the path
-            for (let i = 0; i < lastIndex; i++) {
-                current = current[path[i]] = { ...current[path[i]] }
+            // Navigate to target object where new field will be added
+            let targetObj = updatedSchema.properties
+            for (let i = 0; i < path.length; i++) {
+                if (!targetObj[path[i]]) {
+                    targetObj[path[i]] = { type: 'object', properties: {}, required: [] }
+                }
+                if (!targetObj[path[i]].properties) {
+                    targetObj[path[i]].properties = {}
+                }
+                targetObj = targetObj[path[i]].properties
             }
-
-            // Generate a unique field name
             let newFieldName = 'new_field'
             let counter = 1
-            while (current[path[lastIndex]] && current[path[lastIndex]][newFieldName]) {
+            while (newFieldName in targetObj) {
                 newFieldName = `new_field_${counter}`
                 counter++
             }
+            const newFieldValue =
+                action.value === 'object'
+                    ? { type: 'object', properties: {}, required: [] }
+                    : { type: action.value || 'string' }
+            targetObj[newFieldName] = newFieldValue
 
-            // If the target is a string (type), convert it to an object
-            if (typeof current[path[lastIndex]] === 'string') {
-                current[path[lastIndex]] = {
-                    type: 'object',
-                    properties: {},
-                    required: []
+            // Update required array for the parent object
+            let parentOfTarget = updatedSchema.properties
+            for (let i = 0; i < path.length; i++) {
+                if (parentOfTarget[path[i]] && parentOfTarget[path[i]].properties) {
+                    parentOfTarget[path[i]].required = Object.keys(parentOfTarget[path[i]].properties)
                 }
+                parentOfTarget = parentOfTarget[path[i]].properties
             }
-
-            // Initialize the object if it doesn't exist
-            if (!current[path[lastIndex]]) {
-                current[path[lastIndex]] = {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            }
-
-            // Add the new field as a JSON Schema property
-            if (!current[path[lastIndex]].properties) {
-                current[path[lastIndex]].properties = {}
-            }
-            current[path[lastIndex]].properties[newFieldName] = {
-                type: action.value || 'string'
-            }
-
-            // Add to required fields
-            if (!current[path[lastIndex]].required) {
-                current[path[lastIndex]].required = []
-            }
-            current[path[lastIndex]].required.push(newFieldName)
+            onChange(updatedSchema)
         } else if (action.type === 'update') {
-            // For update operations, create new objects along the path
-            for (let i = 0; i < lastIndex; i++) {
-                current = current[path[i]] = { ...current[path[i]] }
+            let parentObj = updatedSchema.properties
+            for (let i = 0; i < path.length - 1; i++) {
+                parentObj = parentObj[path[i]].properties
             }
-
-            // If updating to an object type
-            if (action.value === 'object') {
-                current[path[lastIndex]] = {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            } else {
-                // For primitive types
-                current[path[lastIndex]] = {
-                    type: action.value
-                }
-            }
+            const key = path[path.length - 1]
+            parentObj[key] =
+                action.value === 'object'
+                    ? { type: 'object', properties: {}, required: [] }
+                    : { type: action.value }
         }
-
-        // Ensure the root object follows JSON Schema format
-        if (Object.keys(newValue).length > 0 && !newValue.type) {
-            const formattedValue = {
-                type: 'object',
-                properties: {},
-                required: []
-            }
-
-            // Convert existing fields to properties
-            Object.entries(newValue).forEach(([key, value]) => {
-                if (typeof value === 'string') {
-                    formattedValue.properties[key] = { type: value }
-                } else {
-                    formattedValue.properties[key] = value
-                }
-                formattedValue.required.push(key)
-            })
-
-            onChange(formattedValue)
-        } else {
-            onChange(newValue)
-        }
+        onChange(updatedSchema)
     }
 
     const handleFieldDelete = (path: string[]): void => {
-        const newValue = { ...jsonValue }
-        let current = newValue
+        let updatedSchema = { ...schemaForEditing }
+        let parent = updatedSchema.properties
         const lastIndex = path.length - 1
-
-        // Create new references for each level to ensure proper mutation
         for (let i = 0; i < lastIndex; i++) {
-            current[path[i]] = { ...current[path[i]] }
-            current = current[path[i]]
+            parent = parent[path[i]].properties
         }
-
         const key = path[lastIndex]
-        delete current[key]
-
-        onChange(newValue)
+        delete parent[key]
+        // update required on parent level
+        let parentOfDeleted = updatedSchema.properties
+        for (let i = 0; i < path.length - 1; i++) {
+            parentOfDeleted = parentOfDeleted[path[i]]
+        }
+        parentOfDeleted.required = Object.keys(parentOfDeleted.properties)
+        onChange(updatedSchema)
         dispatch(deleteEdgeByHandle({ nodeId, handleKey: key }))
     }
 
     return (
-        <div
-            className={`schema-editor ${readOnly ? 'opacity-75 cursor-not-allowed' : ''}`}
-            onDragOver={(e) => {
-                if (!readOnly) {
-                    e.preventDefault()
-                    e.currentTarget.classList.add('bg-default-200')
-                }
-            }}
-            onDragLeave={(e) => {
-                e.preventDefault()
-                e.currentTarget.classList.remove('bg-default-200')
-            }}
-            onDrop={(e) => {
-                if (readOnly) return
-                e.preventDefault()
-                e.currentTarget.classList.remove('bg-default-200')
-
-                try {
-                    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-                    const { path, value, fieldName } = data
-
-                    // Create a new value and add the field at root level
-                    const newValue = { ...jsonValue }
-                    newValue[fieldName] = value
-
-                    // Delete from original location
-                    let current = newValue
-                    const lastIndex = path.length - 1
-
-                    // Create new references for each level to ensure proper mutation
-                    for (let i = 0; i < lastIndex; i++) {
-                        current[path[i]] = { ...current[path[i]] }
-                        current = current[path[i]]
-                    }
-
-                    const key = path[lastIndex]
-                    delete current[key]
-
-                    onChange(newValue)
-
-                    if (schemaType !== 'input_map' && schemaType !== 'output_map') {
-                        dispatch(
-                            updateEdgesOnHandleRename({
-                                nodeId,
-                                oldHandleId: path.join('.'),
-                                newHandleId: fieldName,
-                                schemaType,
-                            })
-                        )
-                    }
-                } catch (err) {
-                    console.error('Failed to handle drop:', err)
-                    console.error('Drop event data:', e.dataTransfer.getData('text/plain'))
-                }
-            }}
-        >
+        <div className={`schema-editor ${readOnly ? 'opacity-75 cursor-not-allowed' : ''}`}>
             {!readOnly && (
                 <div className="mb-4 flex items-center space-x-4">
                     <Input
@@ -590,10 +603,9 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     </Button>
                 </div>
             )}
-            {jsonValue &&
-                typeof jsonValue === 'object' &&
-                !Array.isArray(jsonValue) &&
-                Object.entries(jsonValue).map(([key, value]) => (
+            {schemaForEditing &&
+                typeof schemaForEditing.properties === 'object' &&
+                Object.entries(schemaForEditing.properties).map(([key, value]) => (
                     <SchemaField
                         key={key}
                         path={[key]}
