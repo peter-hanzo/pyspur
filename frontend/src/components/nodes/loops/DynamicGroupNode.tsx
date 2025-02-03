@@ -1,3 +1,4 @@
+import { updateNodeConfigOnly } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
 import { Divider } from '@heroui/react'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useEffect, useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
 import { getRelativeNodesBounds } from './groupNodeUtils'
@@ -22,12 +23,14 @@ export interface DynamicGroupNodeProps {
 
 const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const dispatch = useDispatch()
 
     // Select node data and associated config (if any)
     const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id))
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
+    const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
 
     const updateNodeInternals = useUpdateNodeInternals()
 
@@ -96,6 +99,26 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             updateNodeInternals(id)
         }
     }, [finalPredecessors, predecessorNodes, id, updateNodeInternals])
+
+    // Keep input node's output schema in sync with parent's input_map
+    useEffect(() => {
+        const inputNodeId = `${id}_input`
+        const inputNode = nodes.find((n) => n.id === inputNodeId)
+        if (inputNode && nodeConfig?.input_map) {
+            const inputNodeConfig = nodeConfigs[inputNodeId]
+            if (!isEqual(inputNodeConfig?.output_schema, nodeConfig.input_map)) {
+                dispatch(
+                    updateNodeConfigOnly({
+                        id: inputNodeId,
+                        data: {
+                            output_schema: nodeConfig.input_map,
+                            has_fixed_output: true,
+                        },
+                    })
+                )
+            }
+        }
+    }, [id, nodeConfig?.input_map, nodes, nodeConfigs, dispatch])
 
     // Handlers for Input and Output handle rows
     interface HandleRowProps {
