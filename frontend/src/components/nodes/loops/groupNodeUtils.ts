@@ -237,12 +237,13 @@ export const createDynamicGroupNodeWithChildren = (
             loopNodeAndConfig.node.id
         )
 
-        // Set input node's output schema to be tied to parent's input_map
+        // Set input node's output schema to be fixed but empty initially
+        // It will be populated reactively based on the parent's input_map
         if (inputNodeAndConfig) {
             inputNodeAndConfig.config = {
                 ...inputNodeAndConfig.config,
                 has_fixed_output: true, // Make output schema non-editable
-                output_schema: loopNodeAndConfig.config.input_map || {}, // Initialize from parent's input_map
+                output_schema: {}, // Empty initially, will be populated reactively
             }
         }
 

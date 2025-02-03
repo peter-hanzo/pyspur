@@ -105,13 +105,35 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
         const inputNodeId = `${id}_input`
         const inputNode = nodes.find((n) => n.id === inputNodeId)
         if (inputNode && nodeConfig?.input_map) {
+            // Build output schema by looking up the actual types from source nodes
+            const derivedSchema: Record<string, string> = {}
+
+            Object.entries(nodeConfig.input_map).forEach(([key, sourceField]) => {
+                // sourceField should be in format "node-title.field-name"
+                const [sourceNodeTitle, fieldName] = String(sourceField).split('.')
+                if (sourceNodeTitle && fieldName) {
+                    // Find the source node by its title
+                    const sourceNode = nodes.find((n) => n.data?.title === sourceNodeTitle)
+                    if (sourceNode) {
+                        // Get the source node's output schema
+                        const sourceNodeConfig = nodeConfigs[sourceNode.id]
+                        const sourceSchema = sourceNodeConfig?.output_schema
+                        if (sourceSchema && fieldName in sourceSchema) {
+                            // Use the type from the source node's output schema
+                            derivedSchema[key] = sourceSchema[fieldName]
+                        }
+                    }
+                }
+            })
+
+            // Only update if the schema has actually changed
             const inputNodeConfig = nodeConfigs[inputNodeId]
-            if (!isEqual(inputNodeConfig?.output_schema, nodeConfig.input_map)) {
+            if (!isEqual(inputNodeConfig?.output_schema, derivedSchema)) {
                 dispatch(
                     updateNodeConfigOnly({
                         id: inputNodeId,
                         data: {
-                            output_schema: nodeConfig.input_map,
+                            output_schema: derivedSchema,
                             has_fixed_output: true,
                         },
                     })
