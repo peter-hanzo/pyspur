@@ -23,7 +23,7 @@ import {
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
 import { previewChunk } from '@/utils/api'
-import type { ChunkPreviewResponse, ChunkPreview } from '@/utils/api'
+import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
 
 interface ChunkTemplate {
     enabled: boolean

@@ -22,9 +22,12 @@ import {
     deleteVectorIndex,
     getDocumentCollection,
     getIndexProgress,
-    ProcessingProgress,
 } from '@/utils/api'
-import type { VectorIndexResponse, DocumentCollectionResponse } from '@/utils/api'
+import type {
+    VectorIndexResponseSchema as VectorIndexResponse,
+    DocumentCollectionResponseSchema as DocumentCollectionResponse,
+    ProcessingProgressSchema as ProcessingProgress
+} from '@/types/api_types/ragSchemas'
 
 export const VectorIndexDetails: React.FC = () => {
     const router = useRouter()

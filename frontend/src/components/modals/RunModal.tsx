@@ -16,6 +16,7 @@ import {
     Input,
     Tooltip,
     Switch,
+    Alert,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import TextEditor from '../textEditor/TextEditor'
@@ -26,6 +27,7 @@ import { TestInput } from '@/types/api_types/workflowSchemas'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import FileUploadBox from '../FileUploadBox'
 import { uploadTestFiles } from '@/utils/api'
+import { getNodeMissingRequiredFields } from '../../store/nodeTypesSlice'
 
 interface RunModalProps {
     isOpen: boolean
@@ -42,10 +44,16 @@ interface EditingCell {
 const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
+    const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes).metadata
     const workflowID = useSelector((state: RootState) => state.flow.workflowID)
     const inputNode = nodes.find((node) => node.type === 'InputNode')
     const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {}
     const workflowInputVariableNames = Object.keys(workflowInputVariables)
+    const [alert, setAlert] = useState<{ message: string; color: 'danger' | 'success' | 'warning' | 'default'; isVisible: boolean }>({
+        message: '',
+        color: 'default',
+        isVisible: false,
+    })
 
     const [testData, setTestData] = useState<TestInput[]>([])
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
@@ -217,8 +225,26 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         )
     }
 
-    const handleRun = () => {
-        if (!inputNode) return
+    const showAlert = (message: string, color: 'danger' | 'success' | 'warning' | 'default') => {
+        setAlert({ message, color, isVisible: true })
+        setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000)
+    }
+
+    const handleRun = (): boolean => {
+        if (!inputNode) return false
+
+        // Check each node for missing required fields
+        for (const n of nodes) {
+            const cfg = nodeConfigs[n.id] || {}
+            const missingFields = getNodeMissingRequiredFields(n.type, cfg, nodeTypesMetadata)
+            if (missingFields.length > 0) {
+                showAlert(
+                    `Cannot run. Node "${cfg.title || n.id}" is missing required field(s): ${missingFields.join(', ')}.`,
+                    'danger'
+                )
+                return false
+            }
+        }
 
         let testCaseToRun: TestInput | undefined
 
@@ -239,7 +265,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             testCaseToRun = testData.find((row) => row.id.toString() === selectedRow)
         }
 
-        if (!testCaseToRun) return
+        if (!testCaseToRun) return false
 
         const { id, ...inputValues } = testCaseToRun
 
@@ -248,6 +274,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         }
 
         onRun(initialInputs, filePaths)
+        return true
     }
 
     const handleSaveTestCase = () => {
@@ -287,6 +314,11 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             <ModalContent>
                 {(onClose) => (
                     <>
+                        {alert.isVisible && (
+                            <div className="fixed bottom-4 right-4 z-50">
+                                <Alert color={alert.color}>{alert.message}</Alert>
+                            </div>
+                        )}
                         <ModalHeader className="flex flex-col gap-1">Run Test Cases</ModalHeader>
                         <ModalBody>
                             <div className="flex flex-col gap-4 p-4 overflow-y-auto">
@@ -467,8 +499,10 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                 <Button
                                     color="primary"
                                     onPress={() => {
-                                        handleRun()
-                                        onClose()
+                                        const success = handleRun()
+                                        if (success) {
+                                            onClose()
+                                        }
                                     }}
                                     isDisabled={!selectedRow && !Object.values(editorContents).some((v) => v?.trim())}
                                     startContent={<Icon icon="material-symbols:play-arrow" />}

@@ -116,16 +116,56 @@ class SingleLLMCallNode(VariableOutputBaseNode):
                 # Always use image_url format regardless of file type
                 url_vars["image"] = file_value
 
-        assistant_message_str = await generate_text(
-            messages=messages,
-            model_name=model_name,
-            temperature=self.config.llm_info.temperature,
-            max_tokens=self.config.llm_info.max_tokens,
-            json_mode=True,
-            url_variables=url_vars,
-            output_json_schema=self.config.output_json_schema,
-            output_schema=self.config.output_schema,
-        )
+        try:
+            assistant_message_str = await generate_text(
+                messages=messages,
+                model_name=model_name,
+                temperature=self.config.llm_info.temperature,
+                max_tokens=self.config.llm_info.max_tokens,
+                json_mode=True,
+                url_variables=url_vars,
+                output_json_schema=self.config.output_json_schema,
+                output_schema=self.config.output_schema,
+            )
+        except Exception as e:
+            error_str = str(e)
+
+            # Handle all LiteLLM errors
+            if "litellm" in error_str.lower():
+                error_message = "An error occurred with the LLM service"
+                error_type = "unknown"
+
+                # Extract provider from model name
+                provider = model_name.split('/')[0] if '/' in model_name else 'unknown'
+
+                # Handle specific known error cases
+                if "VertexAIError" in error_str and "The model is overloaded" in error_str:
+                    error_type = "overloaded"
+                    error_message = "The model is currently overloaded. Please try again later."
+                elif "rate limit" in error_str.lower():
+                    error_type = "rate_limit"
+                    error_message = "Rate limit exceeded. Please try again in a few minutes."
+                elif "context length" in error_str.lower() or "maximum token" in error_str.lower():
+                    error_type = "context_length"
+                    error_message = "Input is too long for the model's context window. Please reduce the input length."
+                elif "invalid api key" in error_str.lower() or "authentication" in error_str.lower():
+                    error_type = "auth"
+                    error_message = "Authentication error with the LLM service. Please check your API key."
+                elif "bad gateway" in error_str.lower() or "503" in error_str:
+                    error_type = "service_unavailable"
+                    error_message = "The LLM service is temporarily unavailable. Please try again later."
+
+                raise Exception(
+                    json.dumps({
+                        "type": "model_provider_error",
+                        "provider": provider,
+                        "error_type": error_type,
+                        "message": error_message,
+                        "original_error": error_str
+                    })
+                )
+            raise e
+
         assistant_message_dict = json.loads(assistant_message_str)
 
         # Validate and return

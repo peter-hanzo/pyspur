@@ -1,12 +1,12 @@
-import React, { memo } from 'react'
-import ZoomInOut from './ZoomInOut'
-import { MiniMap } from '@xyflow/react'
-import UndoRedo from './UndoRedo'
 import { Button, ButtonGroup } from '@heroui/react'
-import { useModeStore } from '../../../store/modeStore'
 import { Icon } from '@iconify/react'
-import TipPopup from './TipPopUp'
+import { MiniMap } from '@xyflow/react'
 import { useTheme } from 'next-themes'
+import { memo } from 'react'
+import { useModeStore } from '../../../store/modeStore'
+import TipPopup from './TipPopUp'
+import UndoRedo from './UndoRedo'
+import ZoomInOut from './ZoomInOut'
 
 function Operator({ handleLayout }) {
     const mode = useModeStore((state) => state.mode)
@@ -20,10 +20,23 @@ function Operator({ handleLayout }) {
                 style={{
                     width: 102,
                     height: 72,
-                    background: isDark ? '#333' : '#fff',
                 }}
                 nodeColor={() => (isDark ? '#777' : '#eee')}
-                className="!absolute !left-4 !bottom-14 z-[9] !m-0 !w-[102px] !h-[72px] !border-[0.5px] !border-default-200 !rounded-lg !shadow-lg"
+                className={`
+                    bg-content2
+                    dark:bg-content2/10
+                    !absolute 
+                    !left-4 
+                    !bottom-14 
+                    z-[9] 
+                    !m-0 
+                    !w-[102px] 
+                    !h-[72px] 
+                    !border-[0.5px] 
+                    !border-default-200 
+                    !rounded-lg 
+                    !shadow-lg
+                `}
             />
             <div className="flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9]">
                 <ZoomInOut />

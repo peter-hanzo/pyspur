@@ -2,6 +2,7 @@ import React from 'react'
 import Markdown from 'react-markdown'
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import { Icon } from '@iconify/react'
 
 interface NodeOutputDisplayProps {
     output: Record<string, any>
@@ -10,109 +11,109 @@ interface NodeOutputDisplayProps {
 const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
     const detectLanguage = (code: string): string => {
         // Count occurrences of language-specific patterns
-        let pythonScore = 0;
-        let cppScore = 0;
-        let tsScore = 0;
-        let jsScore = 0;
+        let pythonScore = 0
+        let cppScore = 0
+        let tsScore = 0
+        let jsScore = 0
 
         // Python indicators with stronger patterns
-        if (code.match(/^(from|import)\s+[\w.]+(\s+import\s+[\w.]+)?$/m)) pythonScore += 3;
-        if (code.match(/def\s+\w+\s*\([^)]*\)\s*:/)) pythonScore += 3;
-        if (code.match(/class\s+\w+(\s*\([^)]*\))?\s*:/)) pythonScore += 3;
-        if (code.match(/^\s*@\w+/m)) pythonScore += 2;  // Decorators
-        if (code.match(/^\s*if\s+__name__\s*==\s*['"]__main__['"]/m)) pythonScore += 3;
+        if (code.match(/^(from|import)\s+[\w.]+(\s+import\s+[\w.]+)?$/m)) pythonScore += 3
+        if (code.match(/def\s+\w+\s*\([^)]*\)\s*:/)) pythonScore += 3
+        if (code.match(/class\s+\w+(\s*\([^)]*\))?\s*:/)) pythonScore += 3
+        if (code.match(/^\s*@\w+/m)) pythonScore += 2 // Decorators
+        if (code.match(/^\s*if\s+__name__\s*==\s*['"]__main__['"]/m)) pythonScore += 3
 
         // C++ indicators with stronger patterns
-        if (code.match(/#include\s*<[^>]+>/)) cppScore += 3;
-        if (code.match(/\b(std::|\bvector<|template\s*<)/)) cppScore += 3;
-        if (code.match(/\b(public|private|protected):/)) cppScore += 2;
-        if (code.match(/\b(int|void|bool|char|double|float|long)\s+\w+\s*\([^)]*\)\s*{/)) cppScore += 3;
+        if (code.match(/#include\s*<[^>]+>/)) cppScore += 3
+        if (code.match(/\b(std::|\bvector<|template\s*<)/)) cppScore += 3
+        if (code.match(/\b(public|private|protected):/)) cppScore += 2
+        if (code.match(/\b(int|void|bool|char|double|float|long)\s+\w+\s*\([^)]*\)\s*{/)) cppScore += 3
 
         // TypeScript indicators with stronger patterns
-        if (code.match(/interface\s+\w+\s*{/)) tsScore += 3;
-        if (code.match(/type\s+\w+\s*=\s*{/)) tsScore += 3;
-        if (code.match(/([\w\s,]+):\s*(string|number|boolean|any)\b/)) tsScore += 2;
-        if (code.match(/import\s*{\s*[\w\s,]+\s*}\s*from/)) tsScore += 2;
+        if (code.match(/interface\s+\w+\s*{/)) tsScore += 3
+        if (code.match(/type\s+\w+\s*=\s*{/)) tsScore += 3
+        if (code.match(/([\w\s,]+):\s*(string|number|boolean|any)\b/)) tsScore += 2
+        if (code.match(/import\s*{\s*[\w\s,]+\s*}\s*from/)) tsScore += 2
 
         // JavaScript indicators with stronger patterns
-        if (code.match(/const\s+\w+\s*=\s*require\(/)) jsScore += 3;
-        if (code.match(/module\.exports\s*=/)) jsScore += 3;
-        if (code.match(/function\s*\w+\s*\([^)]*\)\s*{/)) jsScore += 2;
-        if (code.match(/new\s+Promise\s*\(/)) jsScore += 2;
+        if (code.match(/const\s+\w+\s*=\s*require\(/)) jsScore += 3
+        if (code.match(/module\.exports\s*=/)) jsScore += 3
+        if (code.match(/function\s*\w+\s*\([^)]*\)\s*{/)) jsScore += 2
+        if (code.match(/new\s+Promise\s*\(/)) jsScore += 2
 
         // Get the highest scoring language
         const scores = [
             { lang: 'python', score: pythonScore },
             { lang: 'cpp', score: cppScore },
             { lang: 'typescript', score: tsScore },
-            { lang: 'javascript', score: jsScore }
-        ];
+            { lang: 'javascript', score: jsScore },
+        ]
 
-        const highestScore = Math.max(...scores.map(s => s.score));
+        const highestScore = Math.max(...scores.map((s) => s.score))
 
         // Only return a language if we have a reasonable confidence
         if (highestScore >= 3) {
-            return scores.find(s => s.score === highestScore)!.lang;
+            return scores.find((s) => s.score === highestScore)!.lang
         }
 
         // If no strong indicators, don't assume it's code
-        return '';
+        return ''
     }
 
     const isCodeBlock = (value: any): boolean => {
-        if (typeof value !== 'string') return false;
-        if (!value.includes('\n')) return false;  // Must be multiline
+        if (typeof value !== 'string') return false
+        if (!value.includes('\n')) return false // Must be multiline
 
         // Detect if it's a data structure or configuration format
         if (value.trim().startsWith('{') && value.trim().endsWith('}')) {
             try {
-                JSON.parse(value);
-                return true;  // Valid JSON
+                JSON.parse(value)
+                return true // Valid JSON
             } catch (e) {
                 // Not JSON, continue checking
             }
         }
 
         // Count strong code indicators
-        let codeScore = 0;
+        let codeScore = 0
 
         // Strong indicators (weighted more heavily)
-        if (value.match(/^(import|from)\s+[\w.]+(\s+import\s+[\w.]+)?$/m)) codeScore += 3;
-        if (value.match(/^(class|def|function)\s+\w+\s*[\({]/m)) codeScore += 3;
-        if (value.match(/#include\s*<[^>]+>/)) codeScore += 3;
-        if (value.match(/\b(public|private|protected):/)) codeScore += 3;
-        if (value.match(/^interface\s+\w+\s*{/m)) codeScore += 3;
-        if (value.match(/^type\s+\w+\s*=/m)) codeScore += 3;
+        if (value.match(/^(import|from)\s+[\w.]+(\s+import\s+[\w.]+)?$/m)) codeScore += 3
+        if (value.match(/^(class|def|function)\s+\w+\s*[\({]/m)) codeScore += 3
+        if (value.match(/#include\s*<[^>]+>/)) codeScore += 3
+        if (value.match(/\b(public|private|protected):/)) codeScore += 3
+        if (value.match(/^interface\s+\w+\s*{/m)) codeScore += 3
+        if (value.match(/^type\s+\w+\s*=/m)) codeScore += 3
 
         // Medium indicators
-        if (value.match(/^(const|let|var)\s+\w+\s*=/m)) codeScore += 2;
-        if (value.match(/=>\s*{/)) codeScore += 2;
-        if (value.match(/^export\s+(default\s+)?/m)) codeScore += 2;
-        if (value.match(/^@\w+/m)) codeScore += 2;  // Decorators
+        if (value.match(/^(const|let|var)\s+\w+\s*=/m)) codeScore += 2
+        if (value.match(/=>\s*{/)) codeScore += 2
+        if (value.match(/^export\s+(default\s+)?/m)) codeScore += 2
+        if (value.match(/^@\w+/m)) codeScore += 2 // Decorators
 
         // Weak indicators (only count if we already have some score)
         if (codeScore > 0) {
-            if (value.includes(';')) codeScore += 1;
-            if (value.match(/[{}\[\]()]/g)) codeScore += 1;
-            if (value.match(/^\s*\/\//m)) codeScore += 1;  // Comments
-            if (value.match(/^\s*return\s+/m)) codeScore += 1;
+            if (value.includes(';')) codeScore += 1
+            if (value.match(/[{}\[\]()]/g)) codeScore += 1
+            if (value.match(/^\s*\/\//m)) codeScore += 1 // Comments
+            if (value.match(/^\s*return\s+/m)) codeScore += 1
         }
 
         // Check for common non-code patterns
         const nonCodeIndicators = [
-            /^[\s-]*Dear\s+\w+/i,  // Letters/emails
-            /^(Hi|Hello|Hey)\s+\w+/i,  // Conversational text
-            /^[\s-]*Chapter\s+\d+/i,  // Book chapters
-            /^\d+\.\s+[\w\s]+$/m,  // Numbered lists
-            /^[A-Z][^.!?]+[.!?]\s*$/m  // Regular sentences
-        ];
+            /^[\s-]*Dear\s+\w+/i, // Letters/emails
+            /^(Hi|Hello|Hey)\s+\w+/i, // Conversational text
+            /^[\s-]*Chapter\s+\d+/i, // Book chapters
+            /^\d+\.\s+[\w\s]+$/m, // Numbered lists
+            /^[A-Z][^.!?]+[.!?]\s*$/m, // Regular sentences
+        ]
 
-        if (nonCodeIndicators.some(pattern => pattern.test(value))) {
-            return false;
+        if (nonCodeIndicators.some((pattern) => pattern.test(value))) {
+            return false
         }
 
         // Require a minimum score to consider it code
-        return codeScore >= 3;
+        return codeScore >= 3
     }
 
     // JSON rendering logic with indentation
@@ -137,6 +138,59 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         )
     }
     const renderValue = (value: any) => {
+        // Handle model provider errors
+        if (typeof value === 'string') {
+            try {
+                const parsedValue = JSON.parse(value)
+                if (parsedValue.type === 'model_provider_error') {
+                    // Map error types to icons and colors
+                    const errorConfig = {
+                        overloaded: {
+                            icon: 'solar:server-path-broken-linear',
+                            color: 'warning',
+                        },
+                        rate_limit: {
+                            icon: 'solar:clock-circle-linear',
+                            color: 'warning',
+                        },
+                        context_length: {
+                            icon: 'solar:document-broken-linear',
+                            color: 'danger',
+                        },
+                        auth: {
+                            icon: 'solar:key-linear',
+                            color: 'danger',
+                        },
+                        service_unavailable: {
+                            icon: 'solar:server-linear',
+                            color: 'warning',
+                        },
+                        unknown: {
+                            icon: 'solar:danger-triangle-linear',
+                            color: 'danger',
+                        },
+                    }
+
+                    const config = errorConfig[parsedValue.error_type as keyof typeof errorConfig] || errorConfig.unknown
+                    const colorClass = config.color === 'warning' ? 'warning' : 'danger'
+
+                    return (
+                        <div className={`p-4 bg-${colorClass}-50 border border-${colorClass}-200 rounded-lg`}>
+                            <div className="flex items-center mb-2">
+                                <Icon icon={config.icon} className={`text-${colorClass}-500 mr-2`} width={24} />
+                                <span className={`font-semibold text-${colorClass}-700`}>
+                                    {parsedValue.provider.toUpperCase()} Model Error
+                                </span>
+                            </div>
+                            <p className={`text-${colorClass}-700`}>{parsedValue.message}</p>
+                        </div>
+                    )
+                }
+            } catch (e) {
+                // Not a JSON string, continue with normal rendering
+            }
+        }
+
         // Handle JSON objects recursively
         if (typeof value === 'object' && value !== null) {
             return renderJsonObject(value)

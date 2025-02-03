@@ -5,8 +5,7 @@ import logging
 import os
 import re
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, cast
-from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 from docx2python import docx2python
 
 import litellm
@@ -45,12 +44,12 @@ if os.getenv("AZURE_OPENAI_API_KEY"):
 
 
 class LLMProvider(str, Enum):
-    OPENAI = "OpenAI"
-    ANTHROPIC = "Anthropic"
-    GOOGLE = "Google"
-    OLLAMA = "Ollama"
-    AZURE_OPENAI = "AzureOpenAI"
-    DEEPSEEK = "Deepseek"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
+    OLLAMA = "ollama"
+    AZURE_OPENAI = "azure"
+    DEEPSEEK = "deepseek"
 
 
 class ModelConstraints(BaseModel):
@@ -69,16 +68,18 @@ class LLMModel(BaseModel):
 
 class LLMModels(str, Enum):
     # OpenAI Models
-    GPT_4O_MINI = "gpt-4o-mini"
-    GPT_4O = "gpt-4o"
-    O1_PREVIEW = "o1-preview"
-    O1_MINI = "o1-mini"
-    O1 = "o1"
-    O1_2024_12_17 = "o1-2024-12-17"
-    O1_MINI_2024_09_12 = "o1-mini-2024-09-12"
-    O1_PREVIEW_2024_09_12 = "o1-preview-2024-09-12"
-    GPT_4_TURBO = "gpt-4-turbo"
-    CHATGPT_4O_LATEST = "chatgpt-4o-latest"
+    O3_MINI = "openai/o3-mini"
+    O3_MINI_2025_01_31 = "openai/o3-mini-2025-01-31"
+    GPT_4O_MINI = "openai/gpt-4o-mini"
+    GPT_4O = "openai/gpt-4o"
+    O1_PREVIEW = "openai/o1-preview"
+    O1_MINI = "openai/o1-mini"
+    O1 = "openai/o1"
+    O1_2024_12_17 = "openai/o1-2024-12-17"
+    O1_MINI_2024_09_12 = "openai/o1-mini-2024-09-12"
+    O1_PREVIEW_2024_09_12 = "openai/o1-preview-2024-09-12"
+    GPT_4_TURBO = "openai/gpt-4-turbo"
+    CHATGPT_4O_LATEST = "openai/chatgpt-4o-latest"
 
     # Azure OpenAI Models
     AZURE_GPT_4 = "azure/gpt-4"
@@ -86,9 +87,9 @@ class LLMModels(str, Enum):
     AZURE_GPT_35_TURBO = "azure/gpt-35-turbo"
 
     # Anthropic Models
-    CLAUDE_3_5_SONNET_LATEST = "claude-3-5-sonnet-latest"
-    CLAUDE_3_5_HAIKU_LATEST = "claude-3-5-haiku-latest"
-    CLAUDE_3_OPUS_LATEST = "claude-3-opus-latest"
+    CLAUDE_3_5_SONNET_LATEST = "anthropic/claude-3-5-sonnet-latest"
+    CLAUDE_3_5_HAIKU_LATEST = "anthropic/claude-3-5-haiku-latest"
+    CLAUDE_3_OPUS_LATEST = "anthropic/claude-3-opus-latest"
 
     # Google Models
     GEMINI_2_0_FLASH_EXP = "gemini/gemini-2.0-flash-exp"
@@ -102,6 +103,8 @@ class LLMModels(str, Enum):
     DEEPSEEK_REASONER = "deepseek/deepseek-reasoner"
 
     # Ollama Models
+    OLLAMA_MISTRAL_SMALL = "ollama/mistral-small:24b"
+    OLLAMA_DEEPSEEK_R1 = "ollama/deepseek-r1"
     OLLAMA_PHI4 = "ollama/phi4"
     OLLAMA_LLAMA3_3_70B = "ollama/llama3.3:70b"
     OLLAMA_LLAMA3_3_8B = "ollama/llama3.3:8b"
@@ -113,12 +116,23 @@ class LLMModels(str, Enum):
     OLLAMA_MISTRAL = "ollama/mistral"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
-    OLLAMA_DEEPSEEK_R1 = "ollama/deepseek-r1"
 
     @classmethod
     def get_model_info(cls, model_id: str) -> LLMModel:
         model_registry = {
             # OpenAI Models - all have temperature up to 2.0
+            cls.O3_MINI.value: LLMModel(
+                id=cls.O3_MINI.value,
+                provider=LLMProvider.OPENAI,
+                name="O3 Mini",
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+            ),
+            cls.O3_MINI_2025_01_31.value: LLMModel(
+                id=cls.O3_MINI_2025_01_31.value,
+                provider=LLMProvider.OPENAI,
+                name="O3 Mini (2025-01-31)",
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+            ),
             cls.GPT_4O_MINI.value: LLMModel(
                 id=cls.GPT_4O_MINI.value,
                 provider=LLMProvider.OPENAI,
@@ -203,42 +217,48 @@ class LLMModels(str, Enum):
                 id=cls.CLAUDE_3_5_SONNET_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Sonnet Latest",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0, supports_JSON_output=False
+                ),
             ),
             cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_5_HAIKU_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Haiku Latest",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0, supports_JSON_output=False
+                ),
             ),
             cls.CLAUDE_3_OPUS_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_OPUS_LATEST.value,
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3 Opus Latest",
-                constraints=ModelConstraints(max_tokens=4096, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=4096, max_temperature=1.0, supports_JSON_output=False
+                ),
             ),
             # Google Models
             cls.GEMINI_1_5_PRO.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO.value,
-                provider=LLMProvider.GOOGLE,
+                provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Pro",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_FLASH.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH.value,
-                provider=LLMProvider.GOOGLE,
+                provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Flash",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_PRO_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO_LATEST.value,
-                provider=LLMProvider.GOOGLE,
+                provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Pro Latest",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
             cls.GEMINI_1_5_FLASH_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH_LATEST.value,
-                provider=LLMProvider.GOOGLE,
+                provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Flash Latest",
                 constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
             ),
@@ -330,6 +350,12 @@ class LLMModels(str, Enum):
                 id=cls.OLLAMA_DEEPSEEK_R1.value,
                 provider=LLMProvider.OLLAMA,
                 name="Deepseek R1",
+                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+            ),
+            cls.OLLAMA_MISTRAL_SMALL.value: LLMModel(
+                id=cls.OLLAMA_MISTRAL_SMALL.value,
+                provider=LLMProvider.OLLAMA,
+                name="Mistral Small 24B",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
         }
@@ -481,7 +507,7 @@ async def completion_with_backoff(**kwargs) -> str:
             return response.choices[0].message.content
 
     except Exception as e:
-        logging.error(f"=== LLM Request Error ===")
+        logging.error("=== LLM Request Error ===")
         # Create a save copy of kwargs without sensitive information
         save_config = kwargs.copy()
         save_config["api_key"] = "********" if "api_key" in save_config else None
@@ -535,12 +561,16 @@ async def generate_text(
             output_json_schema = convert_output_schema_to_json_schema(output_schema)
         elif output_json_schema is not None and output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
+        else:
+            raise ValueError("Invalid output schema", output_schema, output_json_schema)
         output_json_schema["additionalProperties"] = False
 
         # check if the model supports response format
-        if "response_format" in litellm.get_supported_openai_params(model=model_name):
+        if "response_format" in litellm.get_supported_openai_params(
+            model=model_name, custom_llm_provider=model_info.provider
+        ):
             if litellm.supports_response_schema(
-                model=model_name, custom_llm_provider=None
+                model=model_name, custom_llm_provider=model_info.provider
             ):
                 if (
                     "name" not in output_json_schema
@@ -573,6 +603,8 @@ async def generate_text(
 
     if json_mode and supports_json:
         if model_name.startswith("ollama"):
+            if api_base is None:
+                api_base = os.getenv('OLLAMA_BASE_URL')
             options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
             raw_response = await ollama_with_backoff(
                 model=model_name,
@@ -605,13 +637,17 @@ async def generate_text(
                                     logging.info(f"Reading file from: {file_path}")
 
                                     # Check if file is a DOCX file
-                                    if str(file_path).lower().endswith('.docx'):
+                                    if str(file_path).lower().endswith(".docx"):
                                         # Convert DOCX to XML
-                                        xml_content = convert_docx_to_xml(str(file_path))
+                                        xml_content = convert_docx_to_xml(
+                                            str(file_path)
+                                        )
                                         # Encode the XML content directly
                                         data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
                                     else:
-                                        data_url = encode_file_to_base64_data_url(str(file_path))
+                                        data_url = encode_file_to_base64_data_url(
+                                            str(file_path)
+                                        )
 
                                     content.append(
                                         {
@@ -628,13 +664,6 @@ async def generate_text(
             raw_response = await completion_with_backoff(**kwargs)
             response = raw_response
         else:
-            messages.insert(
-                0,
-                {
-                    "role": "system",
-                    "content": "You must respond with valid JSON only. No other text before or after the JSON Object.",
-                },
-            )
             raw_response = await completion_with_backoff(**kwargs)
             response = raw_response
     else:
@@ -645,13 +674,17 @@ async def generate_text(
     if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
         # Check for provider-specific fields
-        if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-            if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                provider_fields = raw_response.choices[0].message.provider_specific_fields
-                return json.dumps({
-                    "output": sanitized_response,
-                    "provider_specific_fields": provider_fields
-                })
+        if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
+            if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
+                provider_fields = raw_response.choices[
+                    0
+                ].message.provider_specific_fields
+                return json.dumps(
+                    {
+                        "output": sanitized_response,
+                        "provider_specific_fields": provider_fields,
+                    }
+                )
         return f'{{"output": "{sanitized_response}"}}'
 
     # Ensure response is valid JSON for models that support it
@@ -676,13 +709,17 @@ async def generate_text(
             # If all attempts to parse JSON fail, wrap the response in a JSON structure
             sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
             # Check for provider-specific fields
-            if hasattr(raw_response, 'choices') and len(raw_response.choices) > 0:
-                if hasattr(raw_response.choices[0].message, 'provider_specific_fields'):
-                    provider_fields = raw_response.choices[0].message.provider_specific_fields
-                    return json.dumps({
-                        "output": sanitized_response,
-                        "provider_specific_fields": provider_fields
-                    })
+            if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
+                if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
+                    provider_fields = raw_response.choices[
+                        0
+                    ].message.provider_specific_fields
+                    return json.dumps(
+                        {
+                            "output": sanitized_response,
+                            "provider_specific_fields": provider_fields,
+                        }
+                    )
             return f'{{"output": "{sanitized_response}"}}'
 
     return response
@@ -763,7 +800,7 @@ def convert_docx_to_xml(file_path: str) -> str:
     try:
         with docx2python(file_path) as docx_content:
             # Convert the document content to XML format
-            xml_content = f"<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
+            xml_content = "<?xml version='1.0' encoding='UTF-8'?>\n<document>\n"
 
             # Add metadata
             xml_content += "<metadata>\n"

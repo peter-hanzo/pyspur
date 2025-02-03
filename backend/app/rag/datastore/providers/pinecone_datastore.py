@@ -178,6 +178,12 @@ class PineconeDataStore(DataStore):
                 ):
                     metadata_without_text["source"] = None
 
+                # Convert created_at from timestamp back to string if it exists
+                if metadata_without_text and "created_at" in metadata_without_text:
+                    from datetime import datetime
+                    timestamp = float(metadata_without_text["created_at"])
+                    metadata_without_text["created_at"] = datetime.fromtimestamp(timestamp).isoformat()
+
                 # Create a document chunk with score object with the result data
                 result = DocumentChunkWithScoreSchema(
                     id=result.id,
@@ -185,7 +191,7 @@ class PineconeDataStore(DataStore):
                     text=(
                         str(metadata["text"]) if metadata and "text" in metadata else ""
                     ),
-                    metadata=DocumentChunkMetadataSchema(**metadata_without_text) if metadata_without_text else None,
+                    metadata=DocumentChunkMetadataSchema(**metadata_without_text) if metadata_without_text else DocumentChunkMetadataSchema(),
                 )
                 query_results.append(result)
             return QueryResultSchema(query=query.query, results=query_results)

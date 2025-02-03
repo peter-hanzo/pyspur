@@ -1,41 +1,40 @@
-import React, { useMemo, useCallback } from 'react'
-import { createNode } from './nodeFactory'
+import DynamicGroupNode from '@/components/nodes/loops/DynamicGroupNode'
+import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
+import { CreateNodeResult, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import {
-    ReactFlowInstance,
-    NodeTypes,
-    Node,
-    Edge,
-    NodeChange,
-    EdgeChange,
     Connection,
-    OnNodesChange,
-    OnEdgesChange,
+    Edge,
+    EdgeChange,
+    Node,
+    NodeChange,
+    NodeTypes,
     OnConnect,
+    OnEdgesChange,
+    OnNodesChange,
+    ReactFlowInstance,
     getConnectedEdges,
 } from '@xyflow/react'
-import { AppDispatch } from '../store/store'
-import {
-    connect,
-    deleteEdge,
-    nodesChange,
-    edgesChange,
-    addNodeWithConfig,
-    setEdges,
-    setSelectedNode,
-    deleteNode as deleteNodeAction,
-} from '../store/flowSlice'
 import isEqual from 'lodash/isEqual'
-import { FlowWorkflowNode, CreateNodeResult } from '../store/flowSlice'
+import { useTheme } from 'next-themes'
+import { useCallback, useMemo } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import DynamicNode from '../components/nodes/DynamicNode'
 import InputNode from '../components/nodes/InputNode'
-import { RouterNode } from '../components/nodes/logic/RouterNode'
 import { CoalesceNode } from '../components/nodes/logic/CoalesceNode'
-import { v4 as uuidv4 } from 'uuid'
-import { RootState } from '../store/store'
-import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
-import { useTheme } from 'next-themes'
-import DynamicGroupNode from '@/components/nodes/loops/DynamicGroupNode'
+import { RouterNode } from '../components/nodes/logic/RouterNode'
 import { createDynamicGroupNodeWithChildren } from '../components/nodes/loops/groupNodeUtils'
+import {
+    addNodeWithConfig,
+    connect,
+    deleteEdge,
+    deleteNode as deleteNodeAction,
+    edgesChange,
+    nodesChange,
+    setEdges,
+    setSelectedNode,
+} from '../store/flowSlice'
+import { AppDispatch, RootState } from '../store/store'
+import { createNode } from './nodeFactory'
 
 interface UseNodeTypesOptions {
     nodeTypesConfig: FlowWorkflowNodeTypesByCategory | undefined
@@ -131,13 +130,7 @@ export const createNodeAtCenter = (
     }
 }
 
-export const duplicateNode = (
-    nodeId: string,
-    positionAbsoluteX: number,
-    positionAbsoluteY: number,
-    dispatch: AppDispatch,
-    getState: () => RootState
-): void => {
+export const duplicateNode = (nodeId: string, dispatch: AppDispatch, getState: () => RootState): void => {
     const state = getState()
     const nodes = state.flow.nodes
     const edges = state.flow.edges
@@ -153,7 +146,7 @@ export const duplicateNode = (
         [
             {
                 id: nodeId,
-                position: { x: positionAbsoluteX, y: positionAbsoluteY },
+                position: sourceNode.position,
                 data: sourceNode.data,
             },
         ],
@@ -165,16 +158,16 @@ export const duplicateNode = (
 
     // Create the new node with an offset position
     const newNode = {
+        ...sourceNode,
         id: newNodeId,
         position: {
-            x: positionAbsoluteX + 20,
-            y: positionAbsoluteY + 20,
+            x: sourceNode.position.x + 20,
+            y: sourceNode.position.y + 20,
         },
         data: {
             ...sourceNode.data,
             title: newNodeId, // Update the title in node data
         },
-        type: sourceNode.type || 'default',
         selected: false,
     }
 
@@ -194,20 +187,91 @@ export const duplicateNode = (
         },
     }
 
-    // Duplicate the edges connected to the node
-    const newEdges = connectedEdges.map((edge) => {
-        const newEdgeId = uuidv4()
-        return {
-            ...edge,
-            id: newEdgeId,
-            source: edge.source === nodeId ? newNodeId : edge.source,
-            target: edge.target === nodeId ? newNodeId : edge.target,
-        }
-    })
+    // Check if this node has any children
+    const childNodes = nodes.filter((node) => node.parentId === nodeId)
 
-    // Dispatch actions to add the new node and edges
-    dispatch(addNodeWithConfig(nodeConfig))
-    dispatch(setEdges({ edges: [...edges, ...newEdges] }))
+    if (childNodes.length > 0) {
+        // Find all edges between children
+        const childEdges = edges.filter((edge) =>
+            childNodes.some((child) => child.id === edge.source || child.id === edge.target)
+        )
+
+        // Create new nodes and edges for each child
+        const newChildNodes: FlowWorkflowNode[] = []
+        const newChildEdges: Edge[] = []
+        const idMapping: Record<string, string> = { [nodeId]: newNodeId }
+
+        // Add the parent node first
+        dispatch(addNodeWithConfig(nodeConfig))
+
+        // Duplicate each child node
+        childNodes.forEach((childNode) => {
+            const newChildId = generateNewNodeId(nodes, childNode.type || 'default')
+            idMapping[childNode.id] = newChildId
+
+            const newChildNode = {
+                ...childNode,
+                id: newChildId,
+                parentId: newNodeId,
+                data: {
+                    ...childNode.data,
+                    title: newChildId,
+                },
+                selected: false,
+            }
+            newChildNodes.push(newChildNode)
+
+            // Add config for the new child node
+            const childConfig = state.flow.nodeConfigs[childNode.id]
+            if (childConfig) {
+                dispatch(
+                    addNodeWithConfig({
+                        node: newChildNode,
+                        config: {
+                            ...childConfig,
+                            title: newChildId,
+                        },
+                    })
+                )
+            }
+        })
+
+        // Duplicate internal edges between children
+        childEdges.forEach((edge) => {
+            const newEdgeId = uuidv4()
+            const newSourceId = idMapping[edge.source]
+            const newTargetId = idMapping[edge.target]
+
+            if (newSourceId && newTargetId) {
+                newChildEdges.push({
+                    ...edge,
+                    id: newEdgeId,
+                    source: newSourceId,
+                    target: newTargetId,
+                    sourceHandle: edge.sourceHandle,
+                    targetHandle: edge.targetHandle,
+                })
+            }
+        })
+
+        // Add all the new edges
+        dispatch(setEdges({ edges: [...edges, ...newChildEdges] }))
+    } else {
+        // For nodes without children, just duplicate the node and its edges
+        const newEdges = connectedEdges.map((edge) => {
+            const newEdgeId = uuidv4()
+            return {
+                ...edge,
+                id: newEdgeId,
+                source: edge.source === nodeId ? newNodeId : edge.source,
+                target: edge.target === nodeId ? newNodeId : edge.target,
+            }
+        })
+
+        // Dispatch actions to add the new node and edges
+        dispatch(addNodeWithConfig(nodeConfig))
+        dispatch(setEdges({ edges: [...edges, ...newEdges] }))
+    }
 }
 
 export const insertNodeBetweenNodes = (
@@ -316,7 +380,10 @@ export const useStyledEdges = ({
                           : isDark
                             ? '#888'
                             : '#555'
-                    : hoveredEdge === edge.id || edge.id === selectedEdgeId || hoveredNode === edge.source || hoveredNode === edge.target
+                    : hoveredEdge === edge.id ||
+                        edge.id === selectedEdgeId ||
+                        hoveredNode === edge.source ||
+                        hoveredNode === edge.target
                       ? isDark
                           ? '#fff'
                           : '#555'
@@ -329,7 +396,10 @@ export const useStyledEdges = ({
                         : edge.source === hoveredNode || edge.target === hoveredNode
                           ? 4
                           : 2
-                    : hoveredEdge === edge.id || edge.id === selectedEdgeId || hoveredNode === edge.source || hoveredNode === edge.target
+                    : hoveredEdge === edge.id ||
+                        edge.id === selectedEdgeId ||
+                        hoveredNode === edge.source ||
+                        hoveredNode === edge.target
                       ? 3
                       : 1.5,
             },

@@ -5,6 +5,8 @@ export interface FieldMetadata {
     minimum?: number
     maximum?: number
     type?: string
+    required?: boolean
+    properties?: Record<string, FieldMetadata>
 }
 
 export interface ModelConstraints {

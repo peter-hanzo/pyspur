@@ -130,20 +130,33 @@ class RouterNode(BaseNode):
         Evaluates conditions for each route in order. The first route that matches
         gets the input data. If no routes match, the first route acts as a default.
         """
-        output_model = create_model(  # type: ignore
+        output_model = create_model(
             f"{self.name}",
-            **{field_name: (field_type, ...) for field_name, field_type in input.model_fields.items()},  # type: ignore
+            __config__=None,
             __base__=RouterNodeOutput,
+            __doc__=f"Output model for {self.name} node",
+            __module__=self.__module__,
+            __validators__=None,
+            __cls_kwargs__=None,
+            **{
+                field_name: (field_type, None)
+                for field_name, field_type in input.model_fields.items()
+            },
         )
         # Create fields for each route with Optional[input type]
-        route_fields = {  # type: ignore
-            route_name: (Optional[output_model], None)  # type: ignore
+        route_fields = {
+            route_name: (Optional[output_model], None)
             for route_name in self.config.route_map.keys()
         }
-        new_output_model = create_model(  # type: ignore
+        new_output_model = create_model(
             f"{self.name}CompositeOutput",
             __base__=RouterNodeOutput,
-            **route_fields,  # type: ignore
+            __config__=None,
+            __doc__=f"Composite output model for {self.name} node",
+            __module__=self.__module__,
+            __validators__=None,
+            __cls_kwargs__=None,
+            **route_fields,
         )
         self.output_model = new_output_model
 
@@ -151,9 +164,9 @@ class RouterNode(BaseNode):
 
         for route_name, route in self.config.route_map.items():
             if self._evaluate_route_conditions(input, route):
-                output[route_name] = output_model(**input.model_dump())  # type: ignore
+                output[route_name] = output_model(**input.model_dump())
 
-        return self.output_model(**output)  # type: ignore
+        return self.output_model(**output)
 
 
 if __name__ == "__main__":

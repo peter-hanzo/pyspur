@@ -1,131 +1,18 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { FlowState } from '@/types/api_types/flowStateSchema'
 import {
-    applyNodeChanges,
-    applyEdgeChanges,
-    addEdge,
-    NodeChange,
-    EdgeChange,
-    Connection,
-    CoordinateExtent,
-} from '@xyflow/react'
+    CreateNodeResult,
+    FlowWorkflowEdge,
+    FlowWorkflowNode,
+    NodeTypesConfig,
+    Position,
+} from '@/types/api_types/nodeTypeSchemas'
+import { TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
+import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange } from '@xyflow/react'
+import { isEqual } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import { createNode } from '../utils/nodeFactory'
-import { TestInput } from '@/types/api_types/workflowSchemas'
-import { WorkflowDefinition, WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
-import { RouteConditionGroup } from '@/types/api_types/routerSchemas'
-import { isEqual } from 'lodash'
-import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
-
-export interface NodeTypes {
-    [key: string]: any
-}
-
-export interface NodeTypesConfig {
-    [category: string]: Array<{
-        name: string
-        [key: string]: any
-    }>
-}
-
-export interface CreateNodeResult {
-    node: FlowWorkflowNode
-    config: FlowWorkflowNodeConfig
-}
-
-export interface Position {
-    x: number
-    y: number
-}
-
-export interface NodeData {
-    title?: string
-    acronym?: string
-    color?: string
-    logo?: string
-    category?: string
-}
-
-export interface BaseNode {
-    id: string
-    position: Position
-    type: string
-    data?: NodeData
-}
-
-export interface FlowWorkflowNodeConfig {
-    title?: string
-    type?: string
-    input_schema?: Record<string, any>
-    output_schema?: Record<string, any>
-    system_message?: string
-    user_message?: string
-    few_shot_examples?:
-        | Array<{
-              input: string
-              output: string
-          }>
-        | Record<string, any>[]
-    llm_info?: {
-        model?: string
-        api_base?: string
-        [key: string]: any
-    }
-    route_map?: Record<string, RouteConditionGroup>
-    preferences?: string[]
-    [key: string]: any
-}
-
-export interface FlowWorkflowNode {
-    id: string
-    type: string
-    position: WorkflowNodeCoordinates
-    parentId?: string
-    extent?: 'parent' | CoordinateExtent
-    data: {
-        title: string
-        acronym: string
-        color: string
-        run?: Record<string, any>
-        error?: string
-        taskStatus?: string
-        [key: string]: any
-    }
-    measured?: {
-        width: number
-        height: number
-    }
-    [key: string]: any
-}
-
-export interface FlowWorkflowEdge {
-    id: string
-    key: string
-    source: string
-    target: string
-    selected?: boolean
-    sourceHandle: string
-    targetHandle: string
-    [key: string]: any
-}
-
-export interface FlowState {
-    nodeTypes: NodeTypes
-    nodes: FlowWorkflowNode[]
-    edges: FlowWorkflowEdge[]
-    nodeConfigs: Record<string, FlowWorkflowNodeConfig>
-    workflowID: string | null
-    selectedNode: string | null
-    selectedEdgeId: string | null
-    sidebarWidth: number
-    projectName: string
-    workflowInputVariables: Record<string, any>
-    testInputs: TestInput[]
-    inputNodeValues: Record<string, any>
-    history: {
-        past: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
-        future: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
-    }
-}
 
 const initialState: FlowState = {
     nodeTypes: {},
@@ -134,6 +21,7 @@ const initialState: FlowState = {
     nodeConfigs: {},
     workflowID: null,
     selectedNode: null,
+    selectedEdgeId: null,
     sidebarWidth: 400,
     projectName: 'Untitled Project',
     workflowInputVariables: {},
@@ -404,9 +292,21 @@ const flowSlice = createSlice({
             saveToHistory(state)
             state.nodes = state.nodes.filter((node) => node.id !== nodeId)
             state.edges = state.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+
+            // Remove node from nodeConfigs and selectedNode if it was selected
+            delete state.nodeConfigs[nodeId]
             if (state.selectedNode === nodeId) {
                 state.selectedNode = null
             }
+
+            // Delete nodes whose parent is the deleted node
+            const children = state.nodes.filter((node) => node.parentId === nodeId)
+            children.forEach((child) => {
+                delete state.nodeConfigs[child.id]
+            })
+            state.nodes = state.nodes.filter((node) => node.parentId !== nodeId)
+            state.edges = state.edges.filter((edge) => !children.find((child) => child.id === edge.source))
+            state.edges = state.edges.filter((edge) => !children.find((child) => child.id === edge.target))
         },
 
         deleteEdge: (state, action: PayloadAction<{ edgeId: string }>) => {
@@ -898,6 +798,33 @@ const flowSlice = createSlice({
                 node.expandParent = true
             }
         },
+
+        updateNodesFromPartialRun: (state, action: PayloadAction<Record<string, any>>) => {
+            const outputs = action.payload
+
+            state.nodes = state.nodes.map((node) => {
+                // Try to find output by node ID first
+                let nodeOutput = outputs[node.id]
+
+                // If not found, try to find by node title
+                if (!nodeOutput && node.data?.title) {
+                    nodeOutput = outputs[node.data.title]
+                }
+
+                if (nodeOutput) {
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            run: nodeOutput,
+                            taskStatus: 'COMPLETED', // Always set to COMPLETED if we have output
+                            error: undefined,
+                        },
+                    }
+                }
+                return node // Return unchanged node if no output found
+            })
+        },
     },
 })
 
@@ -936,6 +863,7 @@ export const {
     updateNodeTitle,
     addNodeWithConfig,
     updateNodeParentAndCoordinates,
+    updateNodesFromPartialRun,
 } = flowSlice.actions
 
 export default flowSlice.reducer

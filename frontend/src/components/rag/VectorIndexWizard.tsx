@@ -26,11 +26,10 @@ import {
     getApiKey,
 } from '@/utils/api'
 import type {
-    DocumentCollectionResponse,
-    EmbeddingModelConfig,
-    VectorStoreConfig,
-    VectorIndexCreateRequest,
-} from '@/utils/api'
+    DocumentCollectionResponseSchema,
+    VectorIndexCreateRequestSchema as VectorIndexCreateRequest,
+} from '@/types/api_types/ragSchemas'
+import type { EmbeddingModelConfig, VectorStoreConfig } from '@/utils/api'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface EmbeddingConfig {
@@ -96,7 +95,7 @@ export const VectorIndexWizard: React.FC = () => {
     const router = useRouter()
     const [activeStep, setActiveStep] = useState(0)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [collections, setCollections] = useState<DocumentCollectionResponse[]>([])
+    const [collections, setCollections] = useState<DocumentCollectionResponseSchema[]>([])
     const [embeddingModels, setEmbeddingModels] = useState<Record<string, EmbeddingModelConfig>>({})
     const [vectorStores, setVectorStores] = useState<Record<string, VectorStoreConfig>>({})
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({})

@@ -6,10 +6,10 @@ import {
     selectNodeById,
     setSidebarWidth,
     setSelectedNode,
-    FlowWorkflowNode,
-    FlowWorkflowNodeConfig,
     updateNodeTitle,
 } from '../../../store/flowSlice'
+import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../../store/nodeTypesSlice'
 import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import NumberInput from '../../NumberInput'
@@ -38,7 +38,12 @@ import SchemaEditor from './SchemaEditor'
 import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
 import { cloneDeep, set, debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
+import { listVectorIndices } from '../../../utils/api'
+import { previewChunk } from '@/utils/api'
+import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
+
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+
 // Define types for props and state
 interface NodeSidebarProps {
     nodeID: string
@@ -142,6 +147,14 @@ const getModelConstraints = (nodeSchema: FlowWorkflowNodeType | null, modelId: s
     return nodeSchema.model_constraints[modelId]
 }
 
+// Add this after other interfaces
+interface VectorIndexOption {
+    id: string
+    name: string
+    description?: string
+    status: string
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -157,6 +170,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     const [width, setWidth] = useState<number>(storedWidth)
     const [isResizing, setIsResizing] = useState<boolean>(false)
+    const [isResizerHovered, setIsResizerHovered] = useState<boolean>(false)
 
     const [nodeType, setNodeType] = useState<string>(node?.type || 'ExampleNode')
     const [nodeSchema, setNodeSchema] = useState<FlowWorkflowNodeType | null>(
@@ -165,6 +179,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [currentNodeConfig, setCurrentNodeConfig] = useState<FlowWorkflowNodeConfig>(nodeConfig || {})
     const [fewShotIndex, setFewShotIndex] = useState<number | null>(null)
     const [showTitleError, setShowTitleError] = useState(false)
+
+    // Add state for vector indices
+    const [vectorIndices, setVectorIndices] = useState<VectorIndexOption[]>([])
+    const [isLoadingIndices, setIsLoadingIndices] = useState(false)
 
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
@@ -195,27 +213,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         [dispatch]
     )
 
-    // Update the existing useEffect to initialize LLM nodes with a default model
-    useEffect(() => {
-        if (node) {
-            setNodeType(node.type || 'ExampleNode')
-            setNodeSchema(findNodeSchema(node.type || 'ExampleNode', nodeTypes))
-
-            // Initialize the model with a default value for LLM nodes
-            let initialConfig = nodeConfig || {}
-            if (node.type === 'LLMNode' || node.type === 'SingleLLMCallNode') {
-                initialConfig = {
-                    ...initialConfig,
-                    llm_info: {
-                        ...initialConfig.llm_info,
-                        model: initialConfig.llm_info?.model || 'gpt-4o', // Set default model
-                    },
-                }
-            }
-
-            setCurrentNodeConfig(initialConfig)
-        }
-    }, [nodeID, node, nodeTypes, nodeConfig]) // nodeConfig dependency handles updates
 
     // Helper function to update nested object by path
     const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
@@ -427,10 +424,105 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
     }, [])
 
-    // Update the `renderField` function to include missing cases
+    // Update function to fetch vector indices
+    const fetchVectorIndices = async () => {
+        try {
+            setIsLoadingIndices(true)
+            const indices = await listVectorIndices()
+            setVectorIndices(indices)
+        } catch (error) {
+            console.error('Error fetching vector indices:', error)
+        } finally {
+            setIsLoadingIndices(false)
+        }
+    }
+
+    // Add effect to fetch indices when node type is RetrieverNode
+    useEffect(() => {
+        if (node?.type === 'RetrieverNode') {
+            fetchVectorIndices()
+        }
+    }, [node?.type])
+
+    // Update renderField to handle vector index selection
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
+
+        // Add special handling for index_id field in RetrieverNode
+        if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
+            const isMissingVectorIndexRequired = Boolean(fieldMetadata?.required) && !value;
+            return (
+                <div key={key} className="my-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Vector Index</h3>
+                        <Tooltip
+                            content="Select a vector index to retrieve documents from. Only indices with 'ready' status are available."
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                    </div>
+                    {isMissingVectorIndexRequired && (
+                        <Alert color="warning" className="mb-2">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:danger-triangle-linear" width={20} />
+                                <span>A vector index is required but not selected.</span>
+                            </div>
+                        </Alert>
+                    )}
+                    <Select
+                        key={`select-${nodeID}-${key}`}
+                        label="Select Vector Index"
+                        items={vectorIndices}
+                        selectedKeys={value ? [value] : []}
+                        placeholder="Select a vector index"
+                        classNames={{
+                            value: "text-small",
+                            base: isMissingVectorIndexRequired ? "border-warning" : "",
+                        }}
+                        renderValue={(items) => {
+                            const selectedIndex = items[0];
+                            return (
+                                <div className="flex flex-col">
+                                    <span>{selectedIndex?.data?.name}</span>
+                                </div>
+                            );
+                        }}
+                        onChange={(e) => handleInputChange(key, e.target.value)}
+                        isLoading={isLoadingIndices}
+                        fullWidth
+                    >
+                        {(index) => (
+                            <SelectItem
+                                key={index.id}
+                                value={index.id}
+                                textValue={index.name}
+                                description={`Status: ${index.status}`}
+                                isDisabled={index.status !== 'ready'}
+                            >
+                                <div className="flex flex-col">
+                                    <span className="text-small">{index.name}</span>
+                                    <span className="text-tiny text-default-400">ID: {index.id}</span>
+                                </div>
+                            </SelectItem>
+                        )}
+                    </Select>
+                    {vectorIndices.length === 0 && !isLoadingIndices && (
+                        <p className="text-sm text-default-500 mt-2">
+                            No vector indices available. Please create one first.
+                        </p>
+                    )}
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            )
+        }
 
         // Skip api_base field if the selected model is not an Ollama model
         if (key === 'api_base') {
@@ -464,6 +556,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+            const hasFixedOutput = Boolean(currentNodeConfig?.has_fixed_output ?? false)
 
             return (
                 <div key={key} className="my-2">
@@ -471,7 +564,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <h3 className="font-semibold">Output Schema</h3>
                         <Tooltip
                             content={
-                                supportsJsonOutput
+                                hasFixedOutput
+                                    ? "This node has a fixed output schema that cannot be modified. The schema defines the structure of the node's output."
+                                    : supportsJsonOutput
                                     ? "The Output Schema defines the structure of this node's output. It helps ensure consistent data flow between nodes and enables type checking. Define the expected fields and their types (string, number, boolean, object, etc.)."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
@@ -486,7 +581,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    {supportsJsonOutput ? (
+                    {hasFixedOutput ? (
+                        <div className="bg-default-100 rounded-lg p-4">
+                            <SchemaEditor
+                                key={`schema-editor-output-${nodeID}`}
+                                jsonValue={currentNodeConfig.output_schema || {}}
+                                onChange={() => {}} // No-op for fixed output nodes
+                                options={jsonOptions}
+                                schemaType="output_schema"
+                                nodeId={nodeID}
+                                readOnly={true}
+                            />
+                            <p className="text-sm text-default-500 mt-2">
+                                This node has a fixed output schema that cannot be modified.
+                            </p>
+                        </div>
+                    ) : supportsJsonOutput ? (
                         <SchemaEditor
                             key={`schema-editor-output-${nodeID}`}
                             jsonValue={currentNodeConfig.output_schema || {}}
@@ -546,6 +656,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             // Get model constraints to check if JSON output is supported
             const modelConstraints = getModelConstraints(nodeSchema, currentNodeConfig?.llm_info?.model)
             const supportsJsonOutput = modelConstraints?.supports_JSON_output ?? true
+            const hasFixedOutput = Boolean(currentNodeConfig?.has_fixed_output ?? false)
 
             return (
                 <div key={key}>
@@ -553,7 +664,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         <h3 className="font-semibold">Output JSON Schema</h3>
                         <Tooltip
                             content={
-                                supportsJsonOutput
+                                hasFixedOutput
+                                    ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
+                                    : supportsJsonOutput
                                     ? "The Output JSON Schema defines the structure of this node's output in JSON Schema format. This allows for more complex validation rules and nested data structures. Output Schema is ignored if Output JSON Schema is provided."
                                     : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
@@ -568,9 +681,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             />
                         </Tooltip>
                     </div>
-                    {supportsJsonOutput ? (
+                    {hasFixedOutput ? (
+                        <div className="bg-default-100 rounded-lg p-4">
+                            <CodeEditor
+                                key={`code-editor-output-json-schema-${nodeID}`}
+                                code={currentNodeConfig[key] || ''}
+                                mode="json"
+                                onChange={() => {}} // No-op for fixed output nodes
+                                readOnly={true}
+                            />
+                            <p className="text-sm text-default-500 mt-2">
+                                This node has a fixed output schema that cannot be modified.
+                            </p>
+                        </div>
+                    ) : supportsJsonOutput ? (
                         <CodeEditor
-                            key={`text-editor-output-json-schema-${nodeID}`}
+                            key={`code-editor-output-json-schema-${nodeID}`}
                             code={currentNodeConfig[key] || ''}
                             mode="json"
                             onChange={(value: string) => {
@@ -692,7 +818,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
             const title = key.endsWith('_template')
-                ? key.slice(0, -9).replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+                ? key
+                      .slice(0, -9)
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (char) => char.toUpperCase())
                 : key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>
@@ -730,16 +859,31 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         if (key === 'output_map') {
             return renderOutputMapField(key, value, incomingSchema, handleInputChange)
         }
+        if (key === 'has_fixed_output') {
+            // do not render this field
+            return null
+        }
 
         // Handle other types (string, number, boolean, object)
         switch (typeof field) {
-            case 'string':
+            case 'string': {
+                const isMissingStringRequired =
+                    Boolean(fieldMetadata?.required) && (value === '' || value === undefined || value === null)
                 return (
                     <div key={key} className="my-4">
+                        {isMissingStringRequired && (
+                            <Alert color="warning" className="mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:danger-triangle-linear" width={20} />
+                                    <span>This field is required but not set.</span>
+                                </div>
+                            </Alert>
+                        )}
                         <Textarea
                             key={`textarea-${nodeID}-${key}`}
                             fullWidth
-                            label={fieldMetadata?.title || key}
+                            label={`${fieldMetadata?.title || key}${Boolean(fieldMetadata?.required) ? ' *' : ''}`}
+                            className={isMissingStringRequired ? 'border-warning' : ''}
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter your input"
@@ -747,7 +891,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         {!isLast && <hr className="my-2" />}
                     </div>
                 )
-            case 'number':
+            }
+            case 'number': {
+                const isMissingNumberRequired =
+                    Boolean(fieldMetadata?.required) && (value === undefined || value === null)
                 // Get current model constraints if this is a temperature or max_tokens field
                 const currentModel = currentNodeConfig?.llm_info?.model
                 const modelConstraints = currentModel ? getModelConstraints(nodeSchema, currentModel) : null
@@ -773,6 +920,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 if (fieldMetadata && (min !== undefined || max !== undefined)) {
                     return (
                         <div key={key} className="my-4">
+                            {isMissingNumberRequired && (
+                                <Alert color="warning" className="mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <Icon icon="solar:danger-triangle-linear" width={20} />
+                                        <span>This field is required but not set.</span>
+                                    </div>
+                                </Alert>
+                            )}
                             <div className="flex justify-between items-center mb-2">
                                 <label className="font-semibold">{fieldMetadata.title || key}</label>
                                 <span className="text-sm">{value}</span>
@@ -797,31 +952,59 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         </div>
                     )
                 }
+
                 return (
-                    <NumberInput
-                        key={`number-input-${nodeID}-${key}`}
-                        label={key}
-                        value={value}
-                        onChange={(e) => {
-                            const newValue = parseFloat(e.target.value)
-                            handleInputChange(key, isNaN(newValue) ? 0 : newValue)
-                        }}
-                    />
+                    <div key={key} className="my-4">
+                        {isMissingNumberRequired && (
+                            <Alert color="warning" className="mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:danger-triangle-linear" width={20} />
+                                    <span>This field is required but not set.</span>
+                                </div>
+                            </Alert>
+                        )}
+                        <NumberInput
+                            key={`number-input-${nodeID}-${key}`}
+                            label={key}
+                            value={value}
+                            onChange={(e) => {
+                                const newValue = parseFloat(e.target.value);
+                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
+                            }}
+                        />
+                        {!isLast && <hr className="my-2" />}
+                    </div>
                 )
-            case 'boolean':
+            }
+            case 'boolean': {
+                const isMissingBooleanRequired =
+                    Boolean(fieldMetadata?.required) && (value === undefined || value === null)
                 return (
                     <div key={key} className="my-4">
                         <div className="flex justify-between items-center">
-                            <label className="font-semibold">{fieldMetadata?.title || key}</label>
+                            <label className="font-semibold">
+                                {fieldMetadata?.title || key}
+                                {Boolean(fieldMetadata?.required) && <span className="text-warning ml-1">*</span>}
+                            </label>
                             <Switch
                                 key={`switch-${nodeID}-${key}`}
                                 isSelected={value}
                                 onChange={(e) => handleInputChange(key, e.target.checked)}
+                                className={isMissingBooleanRequired ? 'border-warning' : ''}
                             />
                         </div>
+                        {isMissingBooleanRequired && (
+                            <Alert color="warning" className="mt-2">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:danger-triangle-linear" width={20} />
+                                    <span>This field is required but not set.</span>
+                                </div>
+                            </Alert>
+                        )}
                         {!isLast && <hr className="my-2" />}
                     </div>
                 )
+            }
             case 'object':
                 if (field && typeof field === 'object' && !Array.isArray(field)) {
                     return (
@@ -843,6 +1026,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const renderConfigFields = (): React.ReactNode => {
         if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null
         const properties = nodeSchema.config
+
         const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type')
 
         // Prioritize system_message and user_message to appear first
@@ -1077,7 +1261,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     return (
         <Card
             className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
-            style={{ width: `${width}px` }}
+            style={{
+                width: `${width}px`,
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                borderRadius: '10px'
+            }}
         >
             {showTitleError && (
                 <Alert
@@ -1098,14 +1286,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 }}
             >
                 <div
-                    className="absolute left-0 top-0 h-full w-1 cursor-ew-resize transition-colors duration-200"
+                    className="absolute left-0 top-0 h-full cursor-ew-resize"
                     onMouseDown={handleMouseDown}
                     style={{
-                        backgroundColor: isResizing ? 'var(--heroui-colors-primary)' : undefined,
-                        opacity: isResizing ? 1 : 0,
+                        width: isResizerHovered || isResizing ? '4px' : '3px',
+                        backgroundColor: isResizing ? 'var(--heroui-colors-primary)' : isResizerHovered ? 'var(--heroui-colors-primary-light)' : 'rgba(0, 0, 0, 0.2)',
+                        opacity: isResizing ? 1 : (isResizerHovered ? 1 : 0),
+                        borderRadius: '2px'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                    onMouseLeave={(e) => !isResizing && (e.currentTarget.style.opacity = '0')}
+                    onMouseEnter={(e) => { setIsResizerHovered(true); e.currentTarget.style.opacity = '1'; }}
+                    onMouseLeave={(e) => { setIsResizerHovered(false); if (!isResizing) e.currentTarget.style.opacity = '0'; }}
                 />
 
                 <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">

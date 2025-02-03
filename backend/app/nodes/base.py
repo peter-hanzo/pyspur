@@ -121,8 +121,13 @@ class BaseNode(ABC):
                     else (field_type, ...)  # try as is
                 )
                 for field_name, field_type in output_schema.items()
-            },  # type: ignore
+            },
             __base__=BaseNodeOutput,
+            __config__=None,
+            __doc__=f"Output model for {self.name} node",
+            __module__=self.__module__,
+            __validators__=None,
+            __cls_kwargs__=None,
         )
 
     def create_composite_model_instance(
@@ -142,10 +147,15 @@ class BaseNode(ABC):
         return create_model(
             model_name,
             **{
-                instance.__class__.__name__: (instance.__class__, ...)  # type: ignore
+                instance.__class__.__name__: (instance.__class__, ...)
                 for instance in instances
             },
             __base__=BaseNodeInput,
+            __config__=None,
+            __doc__=f"Input model for {self.name} node",
+            __module__=self.__module__,
+            __validators__=None,
+            __cls_kwargs__=None,
         )
 
     async def __call__(
@@ -273,6 +283,12 @@ class BaseNode(ABC):
 
 
 class FixedOutputBaseNodeConfig(BaseNodeConfig):
+    output_schema: Dict[str, str] = Field(
+        default={"output": "string"},
+        title="Output schema",
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
     pass
 
 
@@ -282,13 +298,8 @@ class FixedOutputBaseNode(BaseNode, ABC):
     input_model = BaseNodeInput
     output_model = BaseNodeOutput
 
-    @property
-    @abstractmethod
-    def output_schema(self) -> Dict[str, str]:
-        pass
-
     def setup(self) -> None:
-        self.output_model = self.create_output_model_class(self.output_schema)
+        self.output_model = self.create_output_model_class(self.config.output_schema)
         super().setup()
 
     @abstractmethod

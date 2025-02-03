@@ -12,7 +12,7 @@ import { useSelector } from 'react-redux'
 import BaseNode from './BaseNode'
 import styles from './DynamicNode.module.css'
 import { CardBody, Input } from '@heroui/react'
-import { FlowWorkflowNode } from '../../store/flowSlice'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { selectPropertyMetadata } from '../../store/nodeTypesSlice'
 import { RootState } from '../../store/store'
 import NodeOutputDisplay from './NodeOutputDisplay'
@@ -28,13 +28,15 @@ const baseNodeStyle = {
     height: 'auto',
     minHeight: '150px',
     maxHeight: '800px',
-    transition: 'height 0.3s ease, width 0.3s ease',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
 }
 
 const nodeResizerHandleStyle = {
-    width: '10px',
-    height: '10px',
-    borderRadius: '3px',
+    width: '12px',
+    height: '12px',
+    borderRadius: '4px',
 }
 interface SchemaMetadata {
     required?: boolean
@@ -135,7 +137,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                         isConnectable={isConnectable}
                     />
                 </div>
-                <div className="border-r border-gray-300 h-full mx-0" />
+                <div className="border-r border-gray-200 h-full mx-0" />
                 {!isCollapsed && (
                     <div
                         className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden"
@@ -150,13 +152,14 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                                 variant="faded"
                                 radius="lg"
                                 classNames={{
-                                    input: 'bg-default-100',
+                                    input: 'bg-default-100/50 backdrop-blur-sm',
                                     inputWrapper: 'shadow-none',
                                 }}
                             />
                         ) : (
                             <span
-                                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary
+                                    mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
                             >
                                 {String(keyName)}
                             </span>
@@ -188,20 +191,21 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                                 variant="faded"
                                 radius="lg"
                                 classNames={{
-                                    input: 'bg-default-100',
+                                    input: 'bg-default-100/50 backdrop-blur-sm',
                                     inputWrapper: 'shadow-none',
                                 }}
                             />
                         ) : (
                             <span
-                                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                                className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary
+                                    ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
                             >
                                 {keyName}
                             </span>
                         )}
                     </div>
                 )}
-                <div className="border-l border-gray-300 h-full mx-0" />
+                <div className="border-l border-gray-200 h-full mx-0" />
                 <div className={`${styles.handleCell} ${styles.outputHandleCell}`} id={`output-${keyName}-handle`}>
                     <Handle
                         type="source"
