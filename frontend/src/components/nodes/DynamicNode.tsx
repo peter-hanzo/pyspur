@@ -232,7 +232,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                     // console.log('RouterNode', edge.targetHandle)
                     return {
                         ...sourceNode,
-                        handle_id: edge.targetHandle
+                        handle_id: edge.sourceHandle,
                     }
                 }
                 return sourceNode
@@ -314,10 +314,10 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                     {dedupedPredecessors.map((node) => {
                         const handleId =
                             node.type === 'RouterNode' && node.handle_id
-                                ? (node.data?.title + '.' + String(node.handle_id).split('.').pop())
+                                ? (node.data?.title + '.' + node.handle_id)
                                 : String(node.data?.title || node.id || '')
                         // set node id for router node as node.id + node.data.title
-                        const nodeId = node.type === 'RouterNode' ? node?.handle_id : node?.id
+                        const nodeId = node.type === 'RouterNode' ? node?.id + '.' + node?.handle_id : node?.id
                         // console.log(nodeId)
                         return (
                             <InputHandleRow
