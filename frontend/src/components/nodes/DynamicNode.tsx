@@ -107,7 +107,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                    // console.log('RouterNode', edge.targetHandle)
                     return {
                         ...sourceNode,
                         handle_id: edge.targetHandle
@@ -125,7 +124,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
         const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
         const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
-        console.log(id, keyName)
         return (
             <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
                 <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
@@ -229,7 +227,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                    // console.log('RouterNode', edge.targetHandle)
                     return {
                         ...sourceNode,
                         handle_id: edge.sourceHandle,
@@ -255,7 +252,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                 !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
             ) {
                 if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-                    // console.log('RouterNode', connection.fromHandle.id)
                     result = [
                         ...updatedPredecessorNodes,
                         {

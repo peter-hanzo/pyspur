@@ -99,7 +99,7 @@ class BaseNode(ABC):
         Setup method to define output_model and any other initialization.
         For dynamic schema nodes, these can be created based on self.config.
         """
-        if hasattr(self._config, "has_fixed_output") and self._config.has_fixed_output:
+        if self._config.has_fixed_output:
             self.output_model = self.create_output_model_class(
                 self._config.output_schema
             )
