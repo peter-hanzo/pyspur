@@ -2,12 +2,18 @@ import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
+from typing import Dict
 
 
 class GitHubGetRepositoryNodeConfig(BaseNodeConfig):
     repo_name: str = Field(
         "", description="The full name of the repository (e.g. 'owner/repo')."
     )
+    output_schema: Dict[str, str] = Field(
+        default={"repository_details": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
 
 
 class GitHubGetRepositoryNodeInput(BaseNodeInput):
@@ -25,7 +31,6 @@ class GitHubGetRepositoryNode(BaseNode):
     display_name = "GitHubGetRepository"
     logo = "/images/github.png"
     category = "GitHub"
-
 
     config_model = GitHubGetRepositoryNodeConfig
     input_model = GitHubGetRepositoryNodeInput

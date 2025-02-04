@@ -1,9 +1,14 @@
 import json
 import logging
 from pydantic import BaseModel, Field  # type: ignore
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ...base import (
+    BaseNode,
+    BaseNodeConfig,
+    BaseNodeInput,
+    BaseNodeOutput,
+)
 from firecrawl import FirecrawlApp  # type: ignore
-from typing import Optional
+from typing import Optional, Dict
 from ...utils.template_utils import render_template_or_get_first_string
 
 
@@ -15,13 +20,23 @@ class FirecrawlCrawlNodeConfig(BaseNodeConfig):
     limit: Optional[int] = Field(
         None, description="The maximum number of pages to crawl."
     )
+    output_schema: Dict[str, str] = Field(
+        default={"crawl_result": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
 
 
 class FirecrawlCrawlNodeInput(BaseNodeInput):
-    pass
+    """Input for the firecrawl node"""
+
+    class Config:
+        extra = "allow"
 
 
 class FirecrawlCrawlNodeOutput(BaseNodeOutput):
+    """Output from the firecrawl node"""
+
     crawl_result: str = Field(
         ..., description="The crawled data in markdown or structured format."
     )
