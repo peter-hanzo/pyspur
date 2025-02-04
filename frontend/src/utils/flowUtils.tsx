@@ -504,7 +504,7 @@ export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEv
                 // console.log('sdfsd', connection)
                 connection = {
                     ...connection,
-                    targetHandle: connection.sourceHandle,
+                    targetHandle: connection.source + '.' + connection.sourceHandle,
                 }
             } else {
                 connection = {
