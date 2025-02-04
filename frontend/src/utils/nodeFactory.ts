@@ -27,7 +27,7 @@ export const createNode = (
     let config = cloneDeep(nodeType.config)
     config = {
         ...config,
-        title: id,
+        title: title || id,
     }
     const extent = parentId ? 'parent' : undefined
     const expandParent = parentId ? true : undefined
