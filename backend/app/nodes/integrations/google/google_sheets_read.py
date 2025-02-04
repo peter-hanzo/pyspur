@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Dict
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from app.integrations.google.client import GoogleSheetsClient
@@ -6,7 +7,13 @@ from app.integrations.google.client import GoogleSheetsClient
 
 class GoogleSheetsReadNodeConfig(BaseNodeConfig):
     spreadsheet_id: str = Field("", description="The ID of the Google Spreadsheet.")
-    range_name: str = Field("", description="The range to read from (e.g. 'Sheet1!A1:C10').")
+    range_name: str = Field(
+        "", description="The range to read from (e.g. 'Sheet1!A1:C10')."
+    )
+    output_schema: Dict[str, str] = Field(
+        default={"data": "string"}, description="The schema for the output of the node"
+    )
+    has_fixed_output: bool = True
 
 
 class GoogleSheetsReadNodeInput(BaseNodeInput):
@@ -21,9 +28,10 @@ class GoogleSheetsReadNode(BaseNode):
     """
     Node that reads data from a specified range in a Google Sheet.
     """
+
     name = "google_sheets_read_node"
     display_name = "GoogleSheetsRead"
-    logo="/images/google.png"
+    logo = "/images/google.png"
     category = "Google"
 
     config_model = GoogleSheetsReadNodeConfig
