@@ -1264,7 +1264,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             style={{
                 width: `${width}px`,
                 boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
-                borderRadius: '10px'
+                borderRadius: '10px',
+                backdropFilter: 'blur(8px)',
+                backgroundColor: 'rgba(255, 255, 255, 0.75)'
             }}
         >
             {showTitleError && (
