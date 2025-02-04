@@ -125,24 +125,40 @@ const SchemaField: React.FC<FieldProps> = ({
          (!value.type && !value.properties && Object.keys(value).length > 0))
 
     const normalizeSchemaValue = (value: any, newType: string) => {
-        // If the value is already a properly structured schema object, return it
-        if (typeof value === 'object' && value !== null && value.type === newType) {
-            return value;
-        }
+        // Helper to preserve schema metadata
+        const preserveSchemaMetadata = (oldValue: any, newValue: any) => {
+            const metadataFields = ['description', 'enum', 'nullable', 'minimum', 'maximum', 'properties', 'required'];
+            const metadata = {};
+            for (const field of metadataFields) {
+                if (oldValue && oldValue[field] !== undefined) {
+                    metadata[field] = oldValue[field];
+                }
+            }
+            return { ...metadata, ...newValue };
+        };
 
         if (newType === 'object') {
+            if (typeof value === 'object' && value !== null) {
+                return {
+                    ...value,
+                    type: 'object',
+                    properties: value.properties ? value.properties : {},
+                    required: value.required ? value.required : []
+                };
+            }
             return {
                 type: 'object',
-                properties: value?.properties || {},
-                required: value?.required || []
-            }
+                properties: {},
+                required: []
+            };
         } else if (newType === 'array') {
-            return {
+            const baseArray = {
                 type: 'array',
                 items: value?.items || { type: 'string' }
-            }
+            };
+            return preserveSchemaMetadata(value, baseArray);
         }
-        return { type: newType }
+        return preserveSchemaMetadata(value, { type: newType });
     }
 
     const handleTypeChange = (newType: string) => {
@@ -336,10 +352,7 @@ const SchemaField: React.FC<FieldProps> = ({
                                 key={`${path.join('.')}-items`}
                                 path={[...path, 'items']}
                                 value={value.items}
-                                onUpdate={(childPath, action) => {
-                                    // Update the items schema inside the array
-                                    onUpdate(path, { type: 'update', value: { ...value, items: action.value || value.items } })
-                                }}
+                                onUpdate={onUpdate}
                                 onDelete={() => {}}
                                 readOnly={readOnly}
                                 availableFields={availableFields}
@@ -470,39 +483,76 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     const handleFieldUpdate = (path: string[], action: { type: string; value?: any; newKey?: string; sourceField?: any }): void => {
         let updatedSchema = { ...schemaForEditing };
-        // Navigate to the parent schema's properties based on path
-        let parent = updatedSchema.properties;
-        for (let i = 0; i < path.length - 1; i++) {
-            if (!parent[path[i]]) {
-                // If parent property does not exist, initialize it as an object schema
-                parent[path[i]] = { type: 'object', properties: {}, required: [] };
+
+        // Helper function to traverse the schema based on a path
+        const getContainerAndKey = (schema: any, path: string[]) => {
+            let node = schema;
+            for (let i = 0; i < path.length - 1; i++) {
+                const segment = path[i];
+                if (node.type === 'object') {
+                    if (!node.properties) {
+                        node.properties = {};
+                    }
+                    if (!node.properties[segment]) {
+                        node.properties[segment] = { type: 'object', properties: {}, required: [] };
+                    }
+                    node = node.properties[segment];
+                } else if (node.type === 'array') {
+                    // For arrays, we expect the next segment to be 'items'
+                    if (segment === 'items') {
+                        if (!node.items) {
+                            node.items = { type: 'object', properties: {}, required: [] };
+                        }
+                        node = node.items;
+                    } else {
+                        console.error(`Unexpected segment '${segment}' in array type`);
+                        return null;
+                    }
+                } else {
+                    console.error(`Unknown node type encountered during traversal at segment '${segment}'`);
+                    return null;
+                }
             }
-            parent = parent[path[i]].properties;
+            return { container: node, key: path[path.length - 1] };
+        };
+
+        const traversal = getContainerAndKey(updatedSchema, path);
+        if (!traversal) {
+            console.error('Failed to traverse schema with path', path);
+            return;
         }
-        const fieldKey = path[path.length - 1];
+        const { container, key } = traversal;
+        if (!container.properties) {
+            container.properties = {};
+        }
+
         if (action.type === 'move') {
             const sourceField = action.sourceField;
             const sourcePath: string[] = sourceField.path;
             const sourceFieldName = sourceField.fieldName;
 
-            // Remove from original location
-            let sourceParent = updatedSchema.properties;
-            for (let i = 0; i < sourcePath.length - 1; i++) {
-                sourceParent = sourceParent[sourcePath[i]].properties;
+            const sourceTraversal = getContainerAndKey(updatedSchema, sourcePath);
+            if (!sourceTraversal) {
+                console.error('Failed to traverse source path', sourcePath);
+                return;
             }
-            delete sourceParent[sourceFieldName];
+            const { container: sourceContainer } = sourceTraversal;
+            if (sourceContainer.properties && sourceContainer.properties[sourceFieldName]) {
+                delete sourceContainer.properties[sourceFieldName];
+            }
 
-            // Add to new location
-            if (!parent[fieldKey]) {
-                parent[fieldKey] = { type: 'object', properties: {}, required: [] };
+            if (!container.properties[key]) {
+                container.properties[key] = { type: 'object', properties: {}, required: [] };
             }
-            parent[fieldKey].properties = {
-                ...parent[fieldKey].properties,
+            if (!container.properties[key].properties) {
+                container.properties[key].properties = {};
+            }
+            container.properties[key].properties = {
+                ...container.properties[key].properties,
                 [sourceFieldName]: sourceField.value
             };
-            parent[fieldKey].required = Object.keys(parent[fieldKey].properties);
+            container.properties[key].required = Object.keys(container.properties[key].properties);
 
-            // Recalculate top-level required array after removal
             updatedSchema.required = Object.keys(updatedSchema.properties);
 
             dispatch(
@@ -514,37 +564,26 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 })
             );
         } else if (action.type === 'rename') {
-            let parentObj = updatedSchema.properties;
-            for (let i = 0; i < path.length - 1; i++) {
-                parentObj = parentObj[path[i]].properties;
-            }
-            const oldKey = path[path.length - 1];
-            const newKey = action.newKey!;
-            if (oldKey !== newKey) {
-                const value = parentObj[oldKey];
-                delete parentObj[oldKey];
-                parentObj[newKey] = value;
+            if (container.properties[key]) {
+                const oldKey = key;
+                const newKey = action.newKey!;
+                if (oldKey !== newKey) {
+                    const value = container.properties[oldKey];
+                    delete container.properties[oldKey];
+                    container.properties[newKey] = value;
 
-                dispatch(
-                    updateEdgesOnHandleRename({
-                        nodeId,
-                        oldHandleId: oldKey,
-                        newHandleId: newKey,
-                        schemaType: 'output_schema'
-                    })
-                );
+                    dispatch(
+                        updateEdgesOnHandleRename({
+                            nodeId,
+                            oldHandleId: oldKey,
+                            newHandleId: newKey,
+                            schemaType: 'output_schema'
+                        })
+                    );
+                }
             }
         } else if (action.type === 'add') {
-            let targetObj = updatedSchema.properties;
-            for (let i = 0; i < path.length; i++) {
-                if (!targetObj[path[i]]) {
-                    targetObj[path[i]] = { type: 'object', properties: {}, required: [] };
-                }
-                if (!targetObj[path[i]].properties) {
-                    targetObj[path[i]].properties = {};
-                }
-                targetObj = targetObj[path[i]].properties;
-            }
+            let targetObj = container.properties;
             let newFieldName = 'new_field';
             let counter = 1;
             while (newFieldName in targetObj) {
@@ -556,28 +595,16 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     ? { type: 'object', properties: {}, required: [] }
                     : { type: action.value || 'string' };
             targetObj[newFieldName] = newFieldValue;
-            // Update required array for the parent object
-            let parentOfTarget = updatedSchema.properties;
-            for (let i = 0; i < path.length; i++) {
-                if (parentOfTarget[path[i]] && parentOfTarget[path[i]].properties) {
-                    parentOfTarget[path[i]].required = Object.keys(parentOfTarget[path[i]].properties);
-                }
-                parentOfTarget = parentOfTarget[path[i]].properties;
-            }
+            container.required = Object.keys(targetObj);
             onChange(updatedSchema);
             return;
         } else if (action.type === 'update') {
-            let parentObj = updatedSchema.properties;
-            for (let i = 0; i < path.length - 1; i++) {
-                parentObj = parentObj[path[i]].properties;
-            }
-            const key = path[path.length - 1];
-
-            // Ensure we're setting a valid schema structure
-            if (typeof action.value === 'object' && action.value !== null && typeof action.value.type === 'string') {
-                parentObj[key] = action.value;
-            } else {
-                parentObj[key] = { type: action.value };
+            if (container.properties && container.properties[key]) {
+                if (typeof action.value === 'object' && action.value !== null && typeof action.value.type === 'string') {
+                    container.properties[key] = action.value;
+                } else {
+                    container.properties[key] = { type: action.value };
+                }
             }
         }
         onChange(updatedSchema);
