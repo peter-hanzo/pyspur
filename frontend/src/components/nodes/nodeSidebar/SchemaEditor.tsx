@@ -394,6 +394,28 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const [newType, setNewType] = useState<string>(availableFields[0])
     const dispatch = useDispatch()
 
+    // Recursive helper to update required fields and set additionalProperties: false for all nested objects
+    const updateSchemaRecursively = (schema: any): any => {
+        if (schema && typeof schema === 'object') {
+            if (schema.type === 'object' && schema.properties) {
+                schema.required = Object.keys(schema.properties);
+                schema.additionalProperties = false;
+                Object.keys(schema.properties).forEach((key) => {
+                    schema.properties[key] = updateSchemaRecursively(schema.properties[key]);
+                });
+            } else if (schema.type === 'array' && schema.items) {
+                schema.items = updateSchemaRecursively(schema.items);
+            }
+        }
+        return schema;
+    };
+
+    // Modified helper function to update the entire schema using the recursive helper
+    const handleSchemaChange = (updatedSchema: JSONSchema) => {
+        const finalSchema = updateSchemaRecursively(updatedSchema);
+        onChange(finalSchema);
+    };
+
     // Update the schema normalization to handle nested structures
     const normalizeSchema = (value: any): any => {
         if (typeof value === 'string') {
@@ -474,12 +496,11 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         const updatedSchema = {
             ...schemaForEditing,
             properties: updatedProperties,
-            required: Object.keys(updatedProperties)
         };
-        onChange(updatedSchema);
+        handleSchemaChange(updatedSchema);
         setNewKey('');
         setNewType(availableFields[0]);
-    }
+    };
 
     const handleFieldUpdate = (path: string[], action: { type: string; value?: any; newKey?: string; sourceField?: any }): void => {
         let updatedSchema = { ...schemaForEditing };
@@ -498,7 +519,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     }
                     node = node.properties[segment];
                 } else if (node.type === 'array') {
-                    // For arrays, we expect the next segment to be 'items'
                     if (segment === 'items') {
                         if (!node.items) {
                             node.items = { type: 'object', properties: {}, required: [] };
@@ -583,7 +603,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 }
             }
         } else if (action.type === 'add') {
-            // Check if the field is nested; if so, target the nested object's properties.
             let targetObj;
             if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
                 if (!container.properties[key].properties) {
@@ -606,13 +625,12 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     : { type: action.value || 'string' };
             targetObj[newFieldName] = newFieldValue;
 
-            // Update the required array for the correct container
             if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
                 container.properties[key].required = Object.keys(targetObj);
             } else {
                 container.required = Object.keys(targetObj);
             }
-            onChange(updatedSchema);
+            handleSchemaChange(updatedSchema);
             return;
         } else if (action.type === 'update') {
             if (container.properties && container.properties[key]) {
@@ -623,7 +641,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 }
             }
         }
-        onChange(updatedSchema);
+        handleSchemaChange(updatedSchema);
     };
 
     const handleFieldDelete = (path: string[]): void => {
@@ -637,10 +655,8 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         delete parent[key];
 
         if (path.length === 1) {
-            // top-level deletion: update required on the schema
             updatedSchema.required = Object.keys(updatedSchema.properties);
         } else {
-            // nested deletion: update required on the parent object
             let parentOfDeleted = updatedSchema.properties;
             for (let i = 0; i < path.length - 1; i++) {
                 parentOfDeleted = parentOfDeleted[path[i]];
@@ -650,9 +666,9 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             }
         }
 
-        onChange(updatedSchema);
+        handleSchemaChange(updatedSchema);
         dispatch(deleteEdgeByHandle({ nodeId, handleKey: key }));
-    }
+    };
 
     const handleDropOnRoot = (e: React.DragEvent<HTMLDivElement>): void => {
         e.preventDefault();
@@ -661,7 +677,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             const data = JSON.parse(e.dataTransfer.getData('text/plain'));
             let updatedSchema = JSON.parse(JSON.stringify(schemaForEditing));
 
-            // If the dragged field is nested (path length > 1), remove it from its parent's properties
             if (data.path.length > 1) {
                 let parentObj = updatedSchema.properties;
                 for (let i = 0; i < data.path.length - 1; i++) {
@@ -673,11 +688,10 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 }
             }
 
-            // Add the field to the root level
             updatedSchema.properties[data.fieldName] = data.value;
             updatedSchema.required = Object.keys(updatedSchema.properties);
 
-            onChange(updatedSchema);
+            handleSchemaChange(updatedSchema);
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
