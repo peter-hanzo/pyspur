@@ -105,7 +105,8 @@ export const useSaveWorkflow = () => {
                         nodes: updatedNodes.map(
                             (node) =>
                                 ({
-                                    id: node.new_id,
+                                    id: node.id,
+                                    title: node.title,
                                     node_type: node.type,
                                     config: node.config,
                                     coordinates: node.position,
@@ -119,15 +120,15 @@ export const useSaveWorkflow = () => {
 
                             if (sourceNode?.type === 'RouterNode') {
                                 return {
-                                    source_id: sourceNode?.new_id || '',
-                                    target_id: targetNode?.new_id || '',
+                                    source_id: sourceNode?.id || '',
+                                    target_id: targetNode?.id || '',
                                     source_handle: edge.sourceHandle,
                                     target_handle: edge.targetHandle,
                                 }
                             } else {
                                 return {
-                                    source_id: sourceNode?.new_id || '',
-                                    target_id: targetNode?.new_id || '',
+                                    source_id: sourceNode?.id || '',
+                                    target_id: targetNode?.id || '',
                                 }
                             }
                         }),
