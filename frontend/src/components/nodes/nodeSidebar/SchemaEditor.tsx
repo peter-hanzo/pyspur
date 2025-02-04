@@ -184,7 +184,7 @@ const SchemaField: React.FC<FieldProps> = ({
         }
         onUpdate(path, {
             type: 'add',
-            value: { type: 'string' }
+            value: 'string'
         })
     }
 
@@ -583,7 +583,17 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 }
             }
         } else if (action.type === 'add') {
-            let targetObj = container.properties;
+            // Check if the field is nested; if so, target the nested object's properties.
+            let targetObj;
+            if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
+                if (!container.properties[key].properties) {
+                    container.properties[key].properties = {};
+                }
+                targetObj = container.properties[key].properties;
+            } else {
+                targetObj = container.properties;
+            }
+
             let newFieldName = 'new_field';
             let counter = 1;
             while (newFieldName in targetObj) {
@@ -595,7 +605,13 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     ? { type: 'object', properties: {}, required: [] }
                     : { type: action.value || 'string' };
             targetObj[newFieldName] = newFieldValue;
-            container.required = Object.keys(targetObj);
+
+            // Update the required array for the correct container
+            if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
+                container.properties[key].required = Object.keys(targetObj);
+            } else {
+                container.required = Object.keys(targetObj);
+            }
             onChange(updatedSchema);
             return;
         } else if (action.type === 'update') {
