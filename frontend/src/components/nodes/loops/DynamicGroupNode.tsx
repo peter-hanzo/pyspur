@@ -1,3 +1,4 @@
+import { updateNodeConfigOnly } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
 import { Divider } from '@heroui/react'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useEffect, useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
 import { getRelativeNodesBounds } from './groupNodeUtils'
@@ -22,12 +23,14 @@ export interface DynamicGroupNodeProps {
 
 const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const dispatch = useDispatch()
 
     // Select node data and associated config (if any)
     const node = useSelector((state: RootState) => state.flow.nodes.find((n) => n.id === id))
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
+    const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
 
     const updateNodeInternals = useUpdateNodeInternals()
 
@@ -96,6 +99,48 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
             updateNodeInternals(id)
         }
     }, [finalPredecessors, predecessorNodes, id, updateNodeInternals])
+
+    // Keep input node's output schema in sync with parent's input_map
+    useEffect(() => {
+        // Find the input node by type and parent relationship
+        const inputNode = nodes.find((n) => n.type === 'InputNode' && n.parentId === id)
+        if (inputNode && nodeConfig?.input_map) {
+            // Build output schema by looking up the actual types from source nodes
+            const derivedSchema: Record<string, string> = {}
+
+            Object.entries(nodeConfig.input_map).forEach(([key, sourceField]) => {
+                // sourceField should be in format "node-title.field-name"
+                const [sourceNodeTitle, fieldName] = String(sourceField).split('.')
+                if (sourceNodeTitle && fieldName) {
+                    // Find the source node by its title
+                    const sourceNode = nodes.find((n) => n.data?.title === sourceNodeTitle)
+                    if (sourceNode) {
+                        // Get the source node's output schema
+                        const sourceNodeConfig = nodeConfigs[sourceNode.id]
+                        const sourceSchema = sourceNodeConfig?.output_schema
+                        if (sourceSchema && fieldName in sourceSchema) {
+                            // Use the type from the source node's output schema
+                            derivedSchema[key] = sourceSchema[fieldName]
+                        }
+                    }
+                }
+            })
+
+            // Only update if the schema has actually changed
+            const inputNodeConfig = nodeConfigs[inputNode.id]
+            if (!isEqual(inputNodeConfig?.output_schema, derivedSchema)) {
+                dispatch(
+                    updateNodeConfigOnly({
+                        id: inputNode.id,
+                        data: {
+                            output_schema: derivedSchema,
+                            has_fixed_output: true,
+                        },
+                    })
+                )
+            }
+        }
+    }, [id, nodeConfig?.input_map, nodes, nodeConfigs, dispatch])
 
     // Handlers for Input and Output handle rows
     interface HandleRowProps {

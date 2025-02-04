@@ -1,4 +1,4 @@
-# PySpur - Graph-Based Editor for LLM Workflows
+# PySpur - Minimalist Graph Editor for LLM Workflows
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
