@@ -50,6 +50,7 @@ const DEFAULT_ROUTE: RouteConditionGroup = {
 }
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false }) => {
+    // console.log('id',id)
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
     const nodeRef = useRef<HTMLDivElement | null>(null)
@@ -57,6 +58,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges)
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
+    // console.log(nodeConfig.route_map)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
 
     const nodeData = data
@@ -71,11 +73,8 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                 }
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            title: edge.targetHandle,
-                        },
+                        ...sourceNode,
+                        handle_id: edge.sourceHandle
                     }
                 }
                 return sourceNode
@@ -100,7 +99,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                     <Handle
                         type="target"
                         position={Position.Left}
-                        id={String(keyName)}
+                        id={String(id)}
                         className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
                         isConnectable={isConnectable}
                     />
@@ -132,11 +131,8 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                 }
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            title: edge.targetHandle,
-                        },
+                        ...sourceNode,
+                        handle_id: edge.sourceHandle,
                     }
                 }
                 return sourceNode
@@ -216,11 +212,16 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                 {/* Input Handles */}
                 <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
                     {dedupedPredecessors.map((node) => {
-                        const handleId = String(node.data?.title || node.id || '')
-                        return (
+                        const handleId =
+                        node.type === 'RouterNode' && node.handle_id
+                            ? (node.data?.title + '.' + node.handle_id)
+                            : String(node.data?.title || node.id || '')
+                        // set node id for router node as node.id + node.data.title
+                        const nodeId = node.type === 'RouterNode' ? node?.id + '.' + node?.handle_id : node?.id
+                    return (
                             <InputHandleRow
                                 key={`input-handle-row-${node.id}-${handleId}`}
-                                id={node?.id}
+                                id={nodeId}
                                 keyName={handleId}
                             />
                         )
@@ -438,6 +439,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {/* Routes */}
                         <div className="flex flex-col gap-4">
                             {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
+                                
                                 <Card
                                     key={routeKey}
                                     classNames={{
