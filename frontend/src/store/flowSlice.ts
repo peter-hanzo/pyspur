@@ -132,7 +132,8 @@ const flowSlice = createSlice({
                         y: node.coordinates.y,
                     },
                     node.parent_id,
-                    node.dimensions
+                    node.dimensions,
+                    node.title,
                 )
                 // Load the config directly from the definition instead of creating fresh
                 state.nodeConfigs[node.id] = node.config
@@ -679,7 +680,6 @@ const flowSlice = createSlice({
 
         updateNodeTitle: (state, action: PayloadAction<{ nodeId: string; newTitle: string }>) => {
             const { nodeId, newTitle } = action.payload
-            const oldTitle = state.nodes.find((node) => node.id === nodeId)?.data?.title
 
             // Update the node title
             const node = state.nodes.find((node) => node.id === nodeId)
@@ -697,80 +697,6 @@ const flowSlice = createSlice({
                     title: newTitle,
                 }
             }
-
-            const isRouterNode = node?.type === 'RouterNode'
-
-            // Update edges where this node is source or target
-            state.edges = state.edges.map((edge) => {
-                let updatedEdge = { ...edge }
-
-                // Update source handle if this is the source node
-                // if (edge.source === nodeId && edge.sourceHandle === oldTitle) {
-                //     updatedEdge.sourceHandle = newTitle
-                //     updatedEdge.targetHandle = newTitle
-                // }
-
-                // special case for router nodes, the sourceHandle for them is the routeid so above logic doesn't work
-                // if (isRouterNode && edge.source === nodeId) {
-                //     // we only update the targetHandle. we replace the oldTitle with the newTitle
-                //     updatedEdge.targetHandle = edge.targetHandle.replace(oldTitle, newTitle)
-                // }
-
-                // Update references in downstream nodes
-                const findDownstreamNodes = (startNodeId: string): Set<string> => {
-                    const visited = new Set<string>()
-                    const queue = [startNodeId]
-
-                    while (queue.length > 0) {
-                        const currentId = queue.shift()!
-                        if (!visited.has(currentId)) {
-                            visited.add(currentId)
-                            state.edges
-                                .filter((edge) => edge.source === currentId)
-                                .forEach((edge) => queue.push(edge.target))
-                        }
-                    }
-                    return visited
-                }
-
-                const downstreamNodes = findDownstreamNodes(nodeId)
-
-                state.nodes = state.nodes.map((node) => {
-                    if (!downstreamNodes.has(node.id)) return node
-
-                    const nodeConfig = state.nodeConfigs[node.id]
-                    if (nodeConfig) {
-                        const config = { ...nodeConfig }
-                        let hasChanges = false
-
-                        Object.keys(config).forEach((key) => {
-                            if (
-                                key === 'system_message' ||
-                                key === 'user_message' ||
-                                key.endsWith('_prompt') ||
-                                key.endsWith('_message')
-                            ) {
-                                const content = config[key]
-                                if (typeof content === 'string') {
-                                    const oldPattern = new RegExp(`{{${nodeId}\\.`, 'g')
-                                    const newContent = content.replace(oldPattern, `{{${newTitle}.`)
-                                    if (newContent !== content) {
-                                        config[key] = newContent
-                                        hasChanges = true
-                                    }
-                                }
-                            }
-                        })
-
-                        if (hasChanges) {
-                            state.nodeConfigs[node.id] = config
-                        }
-                    }
-                    return node
-                })
-
-                return updatedEdge // Return the updated edge
-            })
         },
 
         addNodeWithConfig: (state, action: PayloadAction<CreateNodeResult>) => {
