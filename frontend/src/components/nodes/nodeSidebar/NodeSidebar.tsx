@@ -738,23 +738,49 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </p>
                         </div>
                     ) : currentNodeConfig?.llm_info?.model ? (
-                        <Tabs
-                            aria-label="Schema Editor Options"
-                            disabledKeys={jsonSchemaError ? ["simple"] : []}
-                        >
-                            <Tab key="simple" title="Simple Editor">
-                                {parsedSchema && (
-                                    <Card>
-                                        <CardBody>
-                                            <SchemaEditor
-                                                key={`schema-editor-output-${nodeID}`}
-                                                jsonValue={parsedSchema}
-                                                onChange={(newValue) => {
-                                                    if (typeof newValue === 'object' && !('type' in newValue)) {
-                                                        const jsonSchema = generateJsonSchemaFromSchema(newValue);
-                                                        if (jsonSchema) {
+                        <>
+                            {jsonSchemaError && (
+                                <Alert color="danger" className="mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span>{jsonSchemaError}</span>
+                                    </div>
+                                </Alert>
+                            )}
+                            <Tabs
+                                aria-label="Schema Editor Options"
+                                disabledKeys={jsonSchemaError ? ["simple"] : []}
+                            >
+                                <Tab key="simple" title="Simple Editor">
+                                    {parsedSchema && (
+                                        <Card>
+                                            <CardBody>
+                                                <SchemaEditor
+                                                    key={`schema-editor-output-${nodeID}`}
+                                                    jsonValue={parsedSchema}
+                                                    onChange={(newValue) => {
+                                                        if (typeof newValue === 'object' && !('type' in newValue)) {
+                                                            const jsonSchema = generateJsonSchemaFromSchema(newValue);
+                                                            if (jsonSchema) {
+                                                                const updates = {
+                                                                    output_json_schema: jsonSchema
+                                                                };
+                                                                setCurrentNodeConfig((prev) => ({
+                                                                    ...prev,
+                                                                    ...updates
+                                                                }));
+                                                                dispatch(
+                                                                    updateNodeConfigOnly({
+                                                                        id: nodeID,
+                                                                        data: {
+                                                                            ...currentNodeConfig,
+                                                                            ...updates
+                                                                        }
+                                                                    })
+                                                                );
+                                                            }
+                                                        } else {
                                                             const updates = {
-                                                                output_json_schema: jsonSchema
+                                                                output_json_schema: JSON.stringify(newValue, null, 2)
                                                             };
                                                             setCurrentNodeConfig((prev) => ({
                                                                 ...prev,
@@ -770,56 +796,31 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                                                 })
                                                             );
                                                         }
-                                                    } else {
-                                                        const updates = {
-                                                            output_json_schema: JSON.stringify(newValue, null, 2)
-                                                        };
-                                                        setCurrentNodeConfig((prev) => ({
-                                                            ...prev,
-                                                            ...updates
-                                                        }));
-                                                        dispatch(
-                                                            updateNodeConfigOnly({
-                                                                id: nodeID,
-                                                                data: {
-                                                                    ...currentNodeConfig,
-                                                                    ...updates
-                                                                }
-                                                            })
-                                                        );
-                                                    }
+                                                    }}
+                                                    options={jsonOptions}
+                                                    nodeId={nodeID}
+                                                />
+                                            </CardBody>
+                                        </Card>
+                                    )}
+                                </Tab>
+                                <Tab key="json" title="JSON Schema">
+                                    <Card>
+                                        <CardBody>
+                                            <CodeEditor
+                                                key={`code-editor-output-json-schema-${nodeID}`}
+                                                code={currentNodeConfig[key] || ''}
+                                                mode="json"
+                                                onChange={(value: string) => {
+                                                    handleInputChange('output_json_schema', value);
+                                                    debouncedValidate(value);
                                                 }}
-                                                options={jsonOptions}
-                                                nodeId={nodeID}
                                             />
                                         </CardBody>
                                     </Card>
-                                )}
-                            </Tab>
-                            <Tab key="json" title="JSON Schema">
-                                <Card>
-                                    <CardBody>
-                                        <CodeEditor
-                                            key={`code-editor-output-json-schema-${nodeID}`}
-                                            code={currentNodeConfig[key] || ''}
-                                            mode="json"
-                                            onChange={(value: string) => {
-                                                handleInputChange('output_json_schema', value);
-                                                debouncedValidate(value);
-                                            }}
-                                        />
-                                        {jsonSchemaError && (
-                                            <Alert color="danger" className="mt-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Icon icon="solar:danger-triangle-linear" width={20} />
-                                                    <span>{jsonSchemaError}</span>
-                                                </div>
-                                            </Alert>
-                                        )}
-                                    </CardBody>
-                                </Card>
-                            </Tab>
-                        </Tabs>
+                                </Tab>
+                            </Tabs>
+                        </>
                     ) : (
                         <Alert color="warning">
                             <div className="flex items-center gap-2">

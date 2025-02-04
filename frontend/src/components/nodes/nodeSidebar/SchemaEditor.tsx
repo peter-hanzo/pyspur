@@ -15,7 +15,7 @@ export interface SchemaEditorProps {
 }
 
 interface JSONSchema {
-    $schema?: string
+    $schema: string
     type: string
     properties: Record<string, any>
     required?: string[]
@@ -124,24 +124,38 @@ const SchemaField: React.FC<FieldProps> = ({
         ((value.properties && Object.keys(value.properties).length > 0) ||
          (!value.type && !value.properties && Object.keys(value).length > 0))
 
+    const normalizeSchemaValue = (value: any, newType: string) => {
+        // If the value is already a properly structured schema object, return it
+        if (typeof value === 'object' && value !== null && value.type === newType) {
+            return value;
+        }
+
+        if (newType === 'object') {
+            return {
+                type: 'object',
+                properties: value?.properties || {},
+                required: value?.required || []
+            }
+        } else if (newType === 'array') {
+            return {
+                type: 'array',
+                items: value?.items || { type: 'string' }
+            }
+        }
+        return { type: newType }
+    }
 
     const handleTypeChange = (newType: string) => {
         // Prevent switching type if this object already has nested fields.
         if (isObjectWithFields && newType !== 'object') {
             return
         }
-        if (newType === 'object') {
-            onUpdate(path, {
-                type: 'update',
-                value: {
-                    type: 'object',
-                    properties: value?.properties || {},
-                    required: value?.required || []
-                }
-            })
-        } else {
-            onUpdate(path, { type: 'update', value: { type: newType } })
-        }
+
+        const normalizedValue = normalizeSchemaValue(value, newType);
+        onUpdate(path, {
+            type: 'update',
+            value: normalizedValue
+        })
     }
 
     const handleTypeChangeWrapper = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -261,10 +275,10 @@ const SchemaField: React.FC<FieldProps> = ({
                         isDisabled={readOnly || isObjectWithFields}
                         value={type}
                         defaultSelectedKeys={[type]}
-                        className="max-w-xs"
+                        className="w-32"
                         isMultiline={true}
                         renderValue={(items) => (
-                            <div>
+                            <div className="flex flex-wrap gap-1">
                                 {items.map((item) => (
                                     <Chip key={item.key} size="sm">
                                         {item.textValue}
@@ -414,6 +428,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     }
 
     const schemaForEditing: JSONSchema = {
+        $schema: jsonValue?.$schema || 'http://json-schema.org/draft-07/schema#',
         type: jsonValue?.type || 'object',
         properties: jsonValue && jsonValue.properties
             ? Object.entries(jsonValue.properties).reduce((acc, [key, value]) => {
@@ -557,10 +572,13 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 parentObj = parentObj[path[i]].properties;
             }
             const key = path[path.length - 1];
-            parentObj[key] =
-                action.value === 'object'
-                    ? { type: 'object', properties: {}, required: [] }
-                    : { type: action.value };
+
+            // Ensure we're setting a valid schema structure
+            if (typeof action.value === 'object' && action.value !== null && typeof action.value.type === 'string') {
+                parentObj[key] = action.value;
+            } else {
+                parentObj[key] = { type: action.value };
+            }
         }
         onChange(updatedSchema);
     };
@@ -659,10 +677,10 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         disabled={readOnly}
                         label="Type"
                         defaultSelectedKeys={[availableFields[0]]}
-                        className="max-w-xs p-2 w-1/3"
+                        className="w-32"
                         isMultiline={true}
                         renderValue={(items) => (
-                            <div>
+                            <div className="flex flex-wrap gap-1">
                                 {items.map((item) => (
                                     <Chip key={item.key} size="sm">
                                         {item.textValue}
