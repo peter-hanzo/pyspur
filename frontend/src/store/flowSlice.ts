@@ -242,22 +242,6 @@ const flowSlice = createSlice({
                 ...data,
             }
 
-            // Handle title changes in edges if title was updated
-            const oldTitle = state.nodeConfigs[id]?.title
-            const newTitle = data.title
-
-            // if (oldTitle && newTitle && oldTitle !== newTitle) {
-            //     state.edges = state.edges.map((edge) => {
-            //         if (edge.source === id && edge.sourceHandle === oldTitle) {
-            //             return { ...edge, sourceHandle: newTitle }
-            //         }
-            //         if (edge.target === id && edge.targetHandle === oldTitle) {
-            //             return { ...edge, targetHandle: newTitle }
-            //         }
-            //         return edge
-            //     })
-            // }
-
             // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
             if (data?.output_schema) {
                 const connectedRouterNodes = state.nodes.filter(
