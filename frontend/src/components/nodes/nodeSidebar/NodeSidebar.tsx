@@ -1260,13 +1260,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     return (
         <Card
-            className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 overflow-auto"
+            className="fixed top-16 bottom-4 right-4 p-4 rounded-xl border border-solid border-default-200 dark:border-default-100 overflow-auto bg-background/70 dark:bg-default-100/50"
             style={{
                 width: `${width}px`,
                 boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
                 borderRadius: '10px',
                 backdropFilter: 'blur(8px)',
-                backgroundColor: 'rgba(255, 255, 255, 0.75)'
             }}
         >
             {showTitleError && (
