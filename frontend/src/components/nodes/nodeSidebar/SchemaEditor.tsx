@@ -619,7 +619,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     onChange,
     options,
     nodeId,
-    availableFields = ['string', 'boolean', 'integer', 'number', 'array', 'object', 'null'],
+    availableFields = ['string', 'boolean', 'integer', 'number', 'array', 'object'],
     readOnly = false,
 }) => {
     const [newKey, setNewKey] = useState<string>('')
