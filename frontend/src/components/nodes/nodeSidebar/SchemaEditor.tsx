@@ -43,6 +43,7 @@ const SchemaField: React.FC<FieldProps> = ({
     const [isEditing, setIsEditing] = useState(false)
     const [editValue, setEditValue] = useState(path[path.length - 1])
     const [isDragOver, setIsDragOver] = useState(false)
+    const [showEnumPanel, setShowEnumPanel] = useState(false)
 
     const handleDragStart = (e: React.DragEvent) => {
         e.stopPropagation()
@@ -116,8 +117,19 @@ const SchemaField: React.FC<FieldProps> = ({
         return val
     }
 
+    const handleEnumUpdate = (enumValues: string[]) => {
+        const updatedValue = { ...value }
+        if (enumValues.length > 0) {
+            updatedValue.enum = enumValues
+        } else {
+            delete updatedValue.enum
+        }
+        onUpdate(path, { type: 'update', value: updatedValue })
+    }
+
     const type = getTypeFromValue(value)
     const isObject = type === 'object'
+    const hasEnumValues = type === 'string' && value?.enum?.length > 0
     // Check whether this object already has fields.
     const isObjectWithFields =
         isObject && value && typeof value === 'object' &&
@@ -310,6 +322,19 @@ const SchemaField: React.FC<FieldProps> = ({
                         ))}
                     </Select>
 
+                    {type === 'string' && !readOnly && (
+                        <Button
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onClick={() => setShowEnumPanel(!showEnumPanel)}
+                            color={hasEnumValues ? "primary" : "default"}
+                            className="ml-1"
+                        >
+                            <Icon icon="solar:list-linear" width={18} />
+                        </Button>
+                    )}
+
                     {!readOnly && (
                         <Button
                             isIconOnly
@@ -322,6 +347,14 @@ const SchemaField: React.FC<FieldProps> = ({
                         </Button>
                     )}
                 </div>
+
+                {showEnumPanel && type === 'string' && (
+                    <EnumPanel
+                        value={value}
+                        onUpdate={handleEnumUpdate}
+                        readOnly={readOnly}
+                    />
+                )}
 
                 {isObject && (
                     <div className="ml-4 mt-2">
@@ -382,6 +415,191 @@ const SchemaField: React.FC<FieldProps> = ({
     )
 }
 
+interface DraggableEnumChipProps {
+    value: string
+    index: number
+    onRemove?: () => void
+    onReorder: (dragIndex: number, hoverIndex: number) => void
+    readOnly?: boolean
+}
+
+const DraggableEnumChip: React.FC<DraggableEnumChipProps> = ({
+    value,
+    index,
+    onRemove,
+    onReorder,
+    readOnly
+}) => {
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        e.stopPropagation() // Prevent parent field drag
+        e.dataTransfer.setData('application/enum-index', String(index))
+        e.dataTransfer.effectAllowed = 'move'
+    }
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        e.dataTransfer.dropEffect = 'move'
+    }
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const dragIndex = parseInt(e.dataTransfer.getData('application/enum-index'))
+        if (dragIndex !== index) {
+            onReorder(dragIndex, index)
+        }
+    }
+
+    return (
+        <div
+            draggable={!readOnly}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className={!readOnly ? "cursor-move" : ""}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <Chip
+                onClose={!readOnly ? onRemove : undefined}
+                variant="flat"
+                color="primary"
+                startContent={
+                    !readOnly && (
+                        <Icon
+                            icon="solar:menu-dots-bold"
+                            className="mr-1 text-default-400"
+                            width={14}
+                        />
+                    )
+                }
+            >
+                {value}
+            </Chip>
+        </div>
+    )
+}
+
+interface EnumPanelProps {
+    value: any
+    onUpdate: (enumValues: string[]) => void
+    readOnly?: boolean
+}
+
+const EnumPanel: React.FC<EnumPanelProps> = ({ value, onUpdate, readOnly = false }) => {
+    const [newEnumValue, setNewEnumValue] = useState<string>('')
+    const enumValues = value?.enum || []
+
+    const handleAddEnum = () => {
+        if (!newEnumValue.trim() || enumValues.includes(newEnumValue)) {
+            return
+        }
+        const updatedEnums = [...enumValues, newEnumValue]
+        onUpdate(updatedEnums)
+        setNewEnumValue('')
+    }
+
+    const handleRemoveEnum = (valueToRemove: string) => {
+        const updatedEnums = enumValues.filter((v: string) => v !== valueToRemove)
+        onUpdate(updatedEnums)
+    }
+
+    const handleReorderEnums = (dragIndex: number, hoverIndex: number) => {
+        const reorderedEnums = [...enumValues]
+        const [removed] = reorderedEnums.splice(dragIndex, 1)
+        reorderedEnums.splice(hoverIndex, 0, removed)
+        onUpdate(reorderedEnums)
+    }
+
+    // Stop propagation of drag events to parent
+    const preventDragPropagation = (e: React.DragEvent) => {
+        e.stopPropagation()
+    }
+
+    return (
+        <div
+            className="mt-2 p-3 bg-default-100 rounded-lg border border-default-200"
+            onDragStart={preventDragPropagation}
+            onDragOver={preventDragPropagation}
+            onDrop={preventDragPropagation}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="flex justify-between items-center mb-2">
+                <div>
+                    <h4 className="text-small font-medium">Enum Values</h4>
+                    <p className="text-tiny text-default-500">
+                        {enumValues.length
+                            ? `Select one of these ${enumValues.length} options:`
+                            : "Add values to create an enum:"}
+                    </p>
+                </div>
+                {enumValues.length > 0 && (
+                    <Chip size="sm" variant="flat">
+                        {enumValues.length} options
+                    </Chip>
+                )}
+            </div>
+
+            <div
+                className="flex flex-wrap gap-2 mb-3 min-h-[40px] p-2 bg-default-50 rounded border border-dashed border-default-300"
+            >
+                {enumValues.map((enumValue: string, index: number) => (
+                    <DraggableEnumChip
+                        key={enumValue}
+                        value={enumValue}
+                        index={index}
+                        onRemove={() => handleRemoveEnum(enumValue)}
+                        onReorder={handleReorderEnums}
+                        readOnly={readOnly}
+                    />
+                ))}
+                {enumValues.length === 0 && (
+                    <div className="text-tiny text-default-400 p-1">
+                        No enum values yet
+                    </div>
+                )}
+            </div>
+
+            {!readOnly && (
+                <div className="flex gap-2">
+                    <Input
+                        type="text"
+                        value={newEnumValue}
+                        onChange={(e) => setNewEnumValue(e.target.value)}
+                        placeholder="Add enum value..."
+                        size="sm"
+                        startContent={
+                            <Icon
+                                icon="solar:add-circle-linear"
+                                className="text-default-400"
+                                width={16}
+                            />
+                        }
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newEnumValue) {
+                                e.preventDefault()
+                                handleAddEnum()
+                            }
+                        }}
+                    />
+                    <Button
+                        isIconOnly
+                        radius="full"
+                        variant="flat"
+                        onClick={handleAddEnum}
+                        color="primary"
+                        disabled={!newEnumValue}
+                        size="sm"
+                    >
+                        <Icon icon="solar:add-circle-linear" width={18} />
+                    </Button>
+                </div>
+            )}
+        </div>
+    )
+}
+
 const SchemaEditor: React.FC<SchemaEditorProps> = ({
     jsonValue,
     onChange,
@@ -434,8 +652,16 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     required: value.required || []
                 }
             }
-            // If it has an explicit type but no properties
+            // If it has an explicit type
             if (value.type) {
+                // Preserve enum values for string types
+                if (value.type === 'string' && Array.isArray(value.enum)) {
+                    return {
+                        ...value,
+                        type: 'string',
+                        enum: value.enum
+                    }
+                }
                 return value
             }
             // If it has properties but no type
