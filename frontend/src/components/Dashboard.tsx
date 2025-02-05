@@ -127,9 +127,9 @@ const Dashboard: React.FC = () => {
     const columns = [
         { key: 'id', label: 'ID' },
         { key: 'name', label: 'Name' },
-        { key: 'updated_at', label: 'Last Modified' },
         { key: 'action', label: 'Action' },
         { key: 'recentRuns', label: 'Recent Runs' },
+        { key: 'updated_at', label: 'Last Modified' },
     ]
 
     const fetchWorkflowRuns = async (workflowId: string) => {
