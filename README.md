@@ -24,6 +24,7 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 - 🖐️ **Drag-and-drop**: Visually build and test workflows in seconds.
 - 🧪 **Interactive Evals**: Quickly test and refine agent steps.
 - 📋 **Structured Outputs First**: Native Support and UI editor for JSON Schemas.
+- 🖼️ **Multimodal**: Support for Video, Images, Audio, Texts, Code.
 - 🧰 **Tools**: Slack, Firecrawl.dev, Google Sheets, GitHub, and more.
 - 🗃️ **RAG**: Parse, chunk, embed, and upsert data into a vector DB in a few clicks.
 - 🚀 **1-Click Deploy**: Publish as an API and integrate wherever you want.
