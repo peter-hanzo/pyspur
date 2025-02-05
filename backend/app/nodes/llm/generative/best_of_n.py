@@ -135,7 +135,7 @@ class BestOfNNode(BaseSubworkflowNode):
             node_type="PythonFuncNode",
             config={
                 "output_schema": output_schema,
-                "ouput_json_schema": self.config.output_json_schema,
+                "output_json_schema": self.config.output_json_schema,
                 "code": (
                     """gen_and_ratings = input_model.model_dump()\n"""
                     """print(gen_and_ratings)\n"""
