@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -14,33 +15,11 @@ from ...database import get_db
 from ..base import (
     BaseNodeInput,
     BaseNodeOutput,
-    FixedOutputBaseNode,
-    FixedOutputBaseNodeConfig,
+    BaseNode,
+    BaseNodeConfig,
 )
 
 # Todo: Use Fixed Node Output; where the outputs will always be chunks
-
-
-class RetrieverNodeConfig(FixedOutputBaseNodeConfig):
-    """Configuration for the retriever node"""
-
-    output_schema: Dict[str, str] = Field(
-        default={"results": "list[RetrievalResultSchema]", "total_results": "integer"},
-        description="The schema for the output of the node",
-    )
-    vector_index_id: str = Field(
-        ...,
-        description="ID of the vector index to query",
-        min_length=1
-    )
-    top_k: int = Field(5, description="Number of results to return", ge=1, le=10)
-    query_template: str = Field(
-        "{{input_1}}",
-        description="Template for the query string. Use {{variable}} syntax to reference input variables.",
-    )
-    # score_threshold: Optional[float] = Field(None, description="Minimum similarity score threshold")
-    # semantic_weight: float = Field(1.0, description="Weight for semantic search (0 to 1)")
-    # keyword_weight: Optional[float] = Field(None, description="Weight for keyword search (0 to 1)")
 
 
 class RetrieverNodeInput(BaseNodeInput):
@@ -59,7 +38,31 @@ class RetrieverNodeOutput(BaseNodeOutput):
     total_results: int = Field(..., description="Total number of results found")
 
 
-class RetrieverNode(FixedOutputBaseNode):
+class RetrieverNodeConfig(BaseNodeConfig):
+    """Configuration for the retriever node"""
+
+    output_schema: Dict[str, str] = Field(
+        default={"results": "list[RetrievalResultSchema]", "total_results": "integer"},
+        description="The schema for the output of the node",
+    )
+    output_json_schema: str = Field(
+        default=json.dumps(RetrieverNodeOutput.model_json_schema(), indent=2),
+        description="The JSON schema for the output of the node",
+    )
+    vector_index_id: str = Field(
+        ..., description="ID of the vector index to query", min_length=1
+    )
+    top_k: int = Field(5, description="Number of results to return", ge=1, le=10)
+    query_template: str = Field(
+        "{{input_1}}",
+        description="Template for the query string. Use {{variable}} syntax to reference input variables.",
+    )
+    # score_threshold: Optional[float] = Field(None, description="Minimum similarity score threshold")
+    # semantic_weight: float = Field(1.0, description="Weight for semantic search (0 to 1)")
+    # keyword_weight: Optional[float] = Field(None, description="Weight for keyword search (0 to 1)")
+
+
+class RetrieverNode(BaseNode):
     """Node for retrieving relevant documents from a vector index"""
 
     name = "retriever_node"

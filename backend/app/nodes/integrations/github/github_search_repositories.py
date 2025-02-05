@@ -2,6 +2,7 @@ import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
+from typing import Dict
 
 
 class GitHubSearchRepositoriesNodeConfig(BaseNodeConfig):
@@ -16,6 +17,11 @@ class GitHubSearchRepositoriesNodeConfig(BaseNodeConfig):
         "desc", description="The order of results. Can be 'asc' or 'desc'."
     )
     per_page: int = Field(5, description="Number of results per page.")
+    output_schema: Dict[str, str] = Field(
+        default={"repositories": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
 
 
 class GitHubSearchRepositoriesNodeInput(BaseNodeInput):
@@ -33,7 +39,6 @@ class GitHubSearchRepositoriesNode(BaseNode):
     display_name = "GitHubSearchRepositories"
     logo = "/images/github.png"
     category = "GitHub"
-
 
     config_model = GitHubSearchRepositoriesNodeConfig
     input_model = GitHubSearchRepositoriesNodeInput

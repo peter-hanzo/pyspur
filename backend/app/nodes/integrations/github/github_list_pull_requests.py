@@ -1,7 +1,8 @@
 import logging
-from pydantic import BaseModel, Field # type: ignore 
+from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
+from typing import Dict
 
 
 class GitHubListPullRequestsNodeConfig(BaseNodeConfig):
@@ -12,6 +13,11 @@ class GitHubListPullRequestsNodeConfig(BaseNodeConfig):
         "open",
         description="The state of the pull requests to fetch. Can be 'open', 'closed', or 'all'.",
     )
+    output_schema: Dict[str, str] = Field(
+        default={"pull_requests": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
 
 
 class GitHubListPullRequestsNodeInput(BaseNodeInput):
@@ -27,7 +33,6 @@ class GitHubListPullRequestsNode(BaseNode):
     display_name = "GitHubListPullRequests"
     logo = "/images/github.png"
     category = "GitHub"
-
 
     config_model = GitHubListPullRequestsNodeConfig
     input_model = GitHubListPullRequestsNodeInput

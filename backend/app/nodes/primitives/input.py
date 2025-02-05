@@ -3,12 +3,12 @@ from pydantic import BaseModel, create_model
 from ..base import (
     BaseNodeInput,
     BaseNodeOutput,
-    VariableOutputBaseNode,
-    VariableOutputBaseNodeConfig,
+    BaseNode,
+    BaseNodeConfig,
 )
 
 
-class InputNodeConfig(VariableOutputBaseNodeConfig):
+class InputNodeConfig(BaseNodeConfig):
     """
     Configuration for the InputNode.
     enforce_schema: bool = False. If True, the output_schema will be enforced. Otherwise the output will be the same as the input.
@@ -17,6 +17,9 @@ class InputNodeConfig(VariableOutputBaseNodeConfig):
 
     enforce_schema: bool = False
     output_schema: Dict[str, str] = {"input_1": "string"}
+    output_json_schema: str = (
+        '{"type": "object", "properties": {"input_1": {"type": "string"} } }'
+    )
     pass
 
 
@@ -28,7 +31,7 @@ class InputNodeOutput(BaseNodeOutput):
     pass
 
 
-class InputNode(VariableOutputBaseNode):
+class InputNode(BaseNode):
     """
     Node for defining dataset schema and using the output as input for other nodes.
     """

@@ -455,7 +455,8 @@ def save_embedded_file(data_uri: str, workflow_id: str) -> str:
         "image/gif": ".gif",
         "application/pdf": ".pdf",
         "video/mp4": ".mp4",
-        # Add more mime types as needed
+        "text/plain": ".txt",
+        "text/csv": ".csv",
     }
     extension = ext_map.get(mime_type, "")
 
