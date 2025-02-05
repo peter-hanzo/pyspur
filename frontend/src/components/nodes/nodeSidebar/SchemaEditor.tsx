@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Chip, Input, Select, SelectItem } from '@heroui/react'
+import { Button, Chip, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
@@ -44,6 +44,11 @@ const SchemaField: React.FC<FieldProps> = ({
     const [editValue, setEditValue] = useState(path[path.length - 1])
     const [isDragOver, setIsDragOver] = useState(false)
     const [showEnumPanel, setShowEnumPanel] = useState(false)
+
+    // Helper to determine if this is an 'items' field of an array
+    const isItemsField = (path: string[]) => {
+        return path[path.length - 1] === 'items' && path.length > 1
+    }
 
     const handleDragStart = (e: React.DragEvent) => {
         e.stopPropagation()
@@ -260,7 +265,7 @@ const SchemaField: React.FC<FieldProps> = ({
                 onDrop={handleDrop}
             >
                 <div className="flex items-center gap-2">
-                    {isEditing && !readOnly ? (
+                    {isEditing && !readOnly && !isItemsField(path) ? (
                         <Input
                             autoFocus
                             value={editValue}
@@ -286,16 +291,25 @@ const SchemaField: React.FC<FieldProps> = ({
                             className="w-40"
                         />
                     ) : (
-                        <span
-                            className={`mr-2 p-1 border rounded-full bg-default-100 ${
-                                !readOnly
-                                    ? 'hover:bg-default-200 cursor-pointer'
-                                    : ''
-                            }`}
-                            onClick={() => !readOnly && setIsEditing(true)}
+                        <Tooltip
+                            content="'items' is a required field for arrays and cannot be renamed"
+                            isDisabled={!isItemsField(path)}
+                            showArrow={true}
+                            placement="right"
                         >
-                            {path[path.length - 1]}
-                        </span>
+                            <span
+                                className={`mr-2 p-1 border rounded-full bg-default-100 ${
+                                    !readOnly && !isItemsField(path)
+                                        ? 'hover:bg-default-200 cursor-pointer'
+                                        : isItemsField(path)
+                                        ? 'cursor-not-allowed'
+                                        : ''
+                                }`}
+                                onClick={() => !readOnly && !isItemsField(path) && setIsEditing(true)}
+                            >
+                                {path[path.length - 1]}
+                            </span>
+                        </Tooltip>
                     )}
 
                     <Select
