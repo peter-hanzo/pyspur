@@ -218,7 +218,7 @@ class LLMModels(str, Enum):
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Sonnet Latest",
                 constraints=ModelConstraints(
-                    max_tokens=8192, max_temperature=1.0, supports_JSON_output=False
+                    max_tokens=8192, max_temperature=1.0,
                 ),
             ),
             cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
@@ -226,7 +226,7 @@ class LLMModels(str, Enum):
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3.5 Haiku Latest",
                 constraints=ModelConstraints(
-                    max_tokens=8192, max_temperature=1.0, supports_JSON_output=False
+                    max_tokens=8192, max_temperature=1.0,
                 ),
             ),
             cls.CLAUDE_3_OPUS_LATEST.value: LLMModel(
@@ -234,7 +234,7 @@ class LLMModels(str, Enum):
                 provider=LLMProvider.ANTHROPIC,
                 name="Claude 3 Opus Latest",
                 constraints=ModelConstraints(
-                    max_tokens=4096, max_temperature=1.0, supports_JSON_output=False
+                    max_tokens=4096, max_temperature=1.0,
                 ),
             ),
             # Google Models
@@ -567,7 +567,7 @@ async def generate_text(
         ):
             if litellm.supports_response_schema(
                 model=model_name, custom_llm_provider=model_info.provider
-            ):
+            ) or model_name.startswith("anthropic"):
                 if (
                     "name" not in output_json_schema
                     and "schema" not in output_json_schema
