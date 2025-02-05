@@ -23,13 +23,13 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 - 🖐️ **Drag-and-drop**: Visually build and test workflows in seconds.
 - 🧪 **Interactive Evals**: Quickly test and refine agent steps.
-- 📋 **Structured Outputs First**: Native Support and UI editor for JSON Schemas
-- 🧰 **Tools**: Connect to Slack, Google Sheets, GitHub, and more.
+- 📋 **Structured Outputs First**: Native Support and UI editor for JSON Schemas.
+- 🧰 **Tools**: Slack, Firecrawl.dev, Google Sheets, GitHub, and more.
 - 🗃️ **RAG**: Parse, chunk, embed, and upsert data into a vector DB in a few clicks.
 - 🚀 **1-Click Deploy**: Publish as an API and integrate wherever you want.
 - 🤖 **Multi-agent**: Orchestrate and manage conversations across multiple agents.
 - 🐍 **Python-based**: Add new nodes by creating a single Python file.
-- 🎛️ **Flexible**: Agnostic to LLMs, embedders, and vector databases.
+- 🎛️ **Agnostic**: >100 LLM providers, embedders, and vector databases.
 
 # ✨ Core Benefits
 
