@@ -121,7 +121,6 @@ class SingleLLMCallNode(BaseNode):
                 json_mode=True,
                 url_variables=url_vars,
                 output_json_schema=self.config.output_json_schema,
-                output_schema=self.config.output_schema,
             )
         except Exception as e:
             error_str = str(e)
@@ -199,10 +198,6 @@ if __name__ == "__main__":
                 ),
                 system_message="You are a helpful assistant.",
                 user_message="Hello, my name is {{ name }}. I want to ask: {{ question }}",
-                output_schema={
-                    # "answer": "str",
-                    # "name_of_user": "str",
-                },
                 url_variables=None,
                 output_json_schema=json.dumps(
                     {

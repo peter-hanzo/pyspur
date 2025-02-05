@@ -38,7 +38,7 @@
             "model": "ollama/llama3.2",
             "max_tokens": 16384,
             "temperature": 0.7,
-            "top_p": 1
+            "top_p": 0.9
           },
           "system_message": "You are a helpful assistant.",
           "user_message": "<p>{{input_prompt.input_1}}</p>",
@@ -64,7 +64,7 @@
             "model": "ollama/gemma2",
             "max_tokens": 16384,
             "temperature": 0.7,
-            "top_p": 1
+            "top_p": 0.9
           },
           "system_message": "You are a helpful assistant.",
           "user_message": "<p>{{input_prompt.input_1}}</p>",
@@ -90,7 +90,7 @@
             "model": "ollama/mistral",
             "max_tokens": 16384,
             "temperature": 0.7,
-            "top_p": 1
+            "top_p": 0.9
           },
           "system_message": "You are a helpful assistant.",
           "user_message": "<p>{{input_prompt.input_1}}</p>",

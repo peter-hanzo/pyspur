@@ -448,7 +448,7 @@ if __name__ == "__main__":
                             "model": "gpt-4o",
                             "max_tokens": 16384,
                             "temperature": 0.7,
-                            "top_p": 1,
+                            "top_p": 0.9,
                         },
                         "system_message": "You are a helpful assistant.",
                         "user_message": "",
