@@ -10,15 +10,15 @@ from ...utils.pydantic_utils import get_nested_field, json_schema_to_model
 from ..base import (
     BaseNodeInput,
     BaseNodeOutput,
-    VariableOutputBaseNode,
-    VariableOutputBaseNodeConfig,
+    BaseNodeConfig,
+    BaseNode,
 )
 from ._utils import LLMModels, ModelInfo, create_messages, generate_text
 
 load_dotenv()
 
 
-class SingleLLMCallNodeConfig(VariableOutputBaseNodeConfig):
+class SingleLLMCallNodeConfig(BaseNodeConfig):
     llm_info: ModelInfo = Field(
         ModelInfo(model=LLMModels.GPT_4O, max_tokens=16384, temperature=0.7),
         description="The default LLM model to use",
@@ -34,10 +34,6 @@ class SingleLLMCallNodeConfig(VariableOutputBaseNodeConfig):
     url_variables: Optional[Dict[str, str]] = Field(
         None,
         description="Optional mapping of URL types (image, video, pdf) to input schema variables for Gemini models",
-    )
-    output_json_schema: Optional[str] = Field(
-        None,
-        description="The JSON schema for the output of the LLM. When provided this will be passed to the LLMs that support JSON schema validation.",
     )
 
 
@@ -55,7 +51,7 @@ class SingleLLMCallNodeOutput(BaseNodeOutput):
     pass
 
 
-class SingleLLMCallNode(VariableOutputBaseNode):
+class SingleLLMCallNode(BaseNode):
     """
     Node type for calling an LLM with structured i/o and support for params in system prompt and user_input.
     """
@@ -136,19 +132,32 @@ class SingleLLMCallNode(VariableOutputBaseNode):
                 error_type = "unknown"
 
                 # Extract provider from model name
-                provider = model_name.split('/')[0] if '/' in model_name else 'unknown'
+                provider = model_name.split("/")[0] if "/" in model_name else "unknown"
 
                 # Handle specific known error cases
-                if "VertexAIError" in error_str and "The model is overloaded" in error_str:
+                if (
+                    "VertexAIError" in error_str
+                    and "The model is overloaded" in error_str
+                ):
                     error_type = "overloaded"
-                    error_message = "The model is currently overloaded. Please try again later."
+                    error_message = (
+                        "The model is currently overloaded. Please try again later."
+                    )
                 elif "rate limit" in error_str.lower():
                     error_type = "rate_limit"
-                    error_message = "Rate limit exceeded. Please try again in a few minutes."
-                elif "context length" in error_str.lower() or "maximum token" in error_str.lower():
+                    error_message = (
+                        "Rate limit exceeded. Please try again in a few minutes."
+                    )
+                elif (
+                    "context length" in error_str.lower()
+                    or "maximum token" in error_str.lower()
+                ):
                     error_type = "context_length"
                     error_message = "Input is too long for the model's context window. Please reduce the input length."
-                elif "invalid api key" in error_str.lower() or "authentication" in error_str.lower():
+                elif (
+                    "invalid api key" in error_str.lower()
+                    or "authentication" in error_str.lower()
+                ):
                     error_type = "auth"
                     error_message = "Authentication error with the LLM service. Please check your API key."
                 elif "bad gateway" in error_str.lower() or "503" in error_str:
@@ -156,13 +165,15 @@ class SingleLLMCallNode(VariableOutputBaseNode):
                     error_message = "The LLM service is temporarily unavailable. Please try again later."
 
                 raise Exception(
-                    json.dumps({
-                        "type": "model_provider_error",
-                        "provider": provider,
-                        "error_type": error_type,
-                        "message": error_message,
-                        "original_error": error_str
-                    })
+                    json.dumps(
+                        {
+                            "type": "model_provider_error",
+                            "provider": provider,
+                            "error_type": error_type,
+                            "message": error_message,
+                            "original_error": error_str,
+                        }
+                    )
                 )
             raise e
 

@@ -29,6 +29,11 @@ class BaseNodeConfig(BaseModel):
         title="Output schema",
         description="The schema for the output of the node",
     )
+    output_json_schema: str = Field(
+        default="{}",
+        title="Output JSON schema",
+        description="The JSON schema for the output of the node",
+    )
     has_fixed_output: bool = Field(
         default=False,
         description="Whether the node has a fixed output schema defined in config",
@@ -307,29 +312,6 @@ class FixedOutputBaseNodeConfig(BaseNodeConfig):
 class FixedOutputBaseNode(BaseNode, ABC):
     name = "fixed_output_node"
     config_model = FixedOutputBaseNodeConfig
-    input_model = BaseNodeInput
-    output_model = BaseNodeOutput
-
-    def setup(self) -> None:
-        self.output_model = self.create_output_model_class(self.config.output_schema)
-        super().setup()
-
-    @abstractmethod
-    async def run(self, input: BaseModel) -> BaseModel:
-        pass
-
-
-class VariableOutputBaseNodeConfig(BaseNodeConfig):
-    output_schema: Dict[str, str] = Field(
-        default={"output": "string"},
-        title="Output schema",
-        description="The schema for the output of the node",
-    )
-
-
-class VariableOutputBaseNode(BaseNode, ABC):
-    name = "variable_output_node"
-    config_model = VariableOutputBaseNodeConfig
     input_model = BaseNodeInput
     output_model = BaseNodeOutput
 
