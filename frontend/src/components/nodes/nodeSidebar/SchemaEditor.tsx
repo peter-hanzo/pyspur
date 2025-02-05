@@ -612,6 +612,27 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const [newType, setNewType] = useState<string>(availableFields[0])
     const dispatch = useDispatch()
 
+    // New utility function to generate default schema structures
+    const getDefaultSchemaForType = (type: string) => {
+        switch (type) {
+            case 'object':
+                return { type: 'object', properties: {}, required: [] };
+            case 'array':
+                return {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {},
+                        required: []
+                    }
+                };
+            case 'null':
+                return { type: 'null' };
+            default:
+                return { type };
+        }
+    };
+
     // Recursive helper to update required fields and set additionalProperties: false for all nested objects
     const updateSchemaRecursively = (schema: any): any => {
         if (schema && typeof schema === 'object') {
@@ -711,10 +732,8 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const handleAddKey = (): void => {
         const validatedKey = convertToPythonVariableName(newKey);
         if (schemaForEditing.properties.hasOwnProperty(validatedKey)) return;
-        const newField =
-            newType === 'object'
-                ? { type: 'object', properties: {}, required: [] }
-                : { type: newType };
+
+        const newField = getDefaultSchemaForType(newType);
         const updatedProperties = {
             ...schemaForEditing.properties,
             [validatedKey]: newField
@@ -744,16 +763,11 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         node.properties[segment] = { type: 'object', properties: {}, required: [] };
                     }
                     node = node.properties[segment];
-                } else if (node.type === 'array') {
-                    if (segment === 'items') {
-                        if (!node.items) {
-                            node.items = { type: 'object', properties: {}, required: [] };
-                        }
-                        node = node.items;
-                    } else {
-                        console.error(`Unexpected segment '${segment}' in array type`);
-                        return null;
+                } else if (node.type === 'array' && segment === 'items') {
+                    if (!node.items) {
+                        node.items = { type: 'object', properties: {}, required: [] };
                     }
+                    node = node.items;
                 } else {
                     console.error(`Unknown node type encountered during traversal at segment '${segment}'`);
                     return null;
@@ -768,11 +782,55 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             return;
         }
         const { container, key } = traversal;
-        if (!container.properties) {
-            container.properties = {};
-        }
 
-        if (action.type === 'move') {
+        if (action.type === 'add') {
+            let targetObj;
+
+            // If we're dealing with an array's items
+            if (container.type === 'array' && key === 'items') {
+                if (!container.items.properties) {
+                    container.items.properties = {};
+                }
+                targetObj = container.items.properties;
+            }
+            // If we're dealing with a nested object field
+            else if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
+                if (!container.properties[key].properties) {
+                    container.properties[key].properties = {};
+                }
+                targetObj = container.properties[key].properties;
+            }
+            // If we're dealing with a regular object
+            else if (container.type === 'object') {
+                if (!container.properties) {
+                    container.properties = {};
+                }
+                targetObj = container.properties;
+            }
+
+            if (targetObj) {
+                let newFieldName = 'new_field';
+                let counter = 1;
+                while (newFieldName in targetObj) {
+                    newFieldName = `new_field_${counter}`;
+                    counter++;
+                }
+                const newFieldValue =
+                    action.value === 'object'
+                        ? { type: 'object', properties: {}, required: [] }
+                        : { type: action.value || 'string' };
+                targetObj[newFieldName] = newFieldValue;
+
+                // Update required fields
+                if (container.type === 'array' && key === 'items') {
+                    container.items.required = Object.keys(targetObj);
+                } else if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
+                    container.properties[key].required = Object.keys(targetObj);
+                } else if (container.type === 'object') {
+                    container.required = Object.keys(targetObj);
+                }
+            }
+        } else if (action.type === 'move') {
             const sourceField = action.sourceField;
             const sourcePath: string[] = sourceField.path;
             const sourceFieldName = sourceField.fieldName;
@@ -828,36 +886,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     );
                 }
             }
-        } else if (action.type === 'add') {
-            let targetObj;
-            if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
-                if (!container.properties[key].properties) {
-                    container.properties[key].properties = {};
-                }
-                targetObj = container.properties[key].properties;
-            } else {
-                targetObj = container.properties;
-            }
-
-            let newFieldName = 'new_field';
-            let counter = 1;
-            while (newFieldName in targetObj) {
-                newFieldName = `new_field_${counter}`;
-                counter++;
-            }
-            const newFieldValue =
-                action.value === 'object'
-                    ? { type: 'object', properties: {}, required: [] }
-                    : { type: action.value || 'string' };
-            targetObj[newFieldName] = newFieldValue;
-
-            if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
-                container.properties[key].required = Object.keys(targetObj);
-            } else {
-                container.required = Object.keys(targetObj);
-            }
-            handleSchemaChange(updatedSchema);
-            return;
         } else if (action.type === 'update') {
             if (container.properties && container.properties[key]) {
                 if (typeof action.value === 'object' && action.value !== null && typeof action.value.type === 'string') {
