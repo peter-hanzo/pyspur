@@ -43,6 +43,8 @@ class PythonFuncNode(BaseNode):
         return super().setup()
 
     async def run(self, input: BaseModel) -> BaseModel:
+
+        self.output_model = self.create_output_model_class(self.config.output_schema)
         # Prepare the execution environment
         exec_globals: Dict[str, Any] = {}
         exec_locals: Dict[str, Any] = {}
