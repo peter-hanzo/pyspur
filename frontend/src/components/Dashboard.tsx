@@ -113,10 +113,21 @@ const Dashboard: React.FC = () => {
         fetchApiKeys()
     }, [])
 
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString)
+        return date.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+    }
+
     const columns = [
         { key: 'id', label: 'ID' },
         { key: 'name', label: 'Name' },
-        { key: 'description', label: 'Description' },
+        { key: 'updated_at', label: 'Last Modified' },
         { key: 'action', label: 'Action' },
         { key: 'recentRuns', label: 'Recent Runs' },
     ]
@@ -390,6 +401,10 @@ const Dashboard: React.FC = () => {
                                                             >
                                                                 {workflow.name}
                                                             </Chip>
+                                                        ) : columnKey === 'updated_at' ? (
+                                                            <span className="text-default-500">
+                                                                {formatDate(getKeyValue(workflow, columnKey))}
+                                                            </span>
                                                         ) : (
                                                             getKeyValue(workflow, columnKey)
                                                         )}
