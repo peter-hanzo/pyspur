@@ -3,12 +3,18 @@ from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.youtube_tools import YouTubeTools
 import logging
 from ...utils.template_utils import render_template_or_get_first_string
+from typing import Dict
 
 
 class YouTubeTranscriptNodeConfig(BaseNodeConfig):
     video_url_template: str = Field(
         "", description="The YouTube video url template to fetch the transcript for."
     )
+    output_schema: Dict[str, str] = Field(
+        default={"transcript": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
 
 
 class YouTubeTranscriptNodeInput(BaseNodeInput):

@@ -1,57 +1,42 @@
-import React, { useState, useEffect, ChangeEvent } from 'react'
+import { RunResponse } from '@/types/api_types/runSchemas'
+import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
 import {
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
-    getKeyValue,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    Button,
-    Input,
-    Progress,
-    useDisclosure,
     Accordion,
     AccordionItem,
     Alert,
+    Button,
     Chip,
     Spinner,
+    Table,
+    TableBody,
+    TableCell,
+    TableColumn,
+    TableHeader,
+    TableRow,
+    getKeyValue,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import {
-    getWorkflows,
-    createWorkflow,
-    uploadDataset,
-    startBatchRun,
-    deleteWorkflow,
-    getTemplates,
-    instantiateTemplate,
-    duplicateWorkflow,
-    listApiKeys,
-    getApiKey,
-    getWorkflowRuns,
-} from '../utils/api'
 import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { RootState } from '../store/store'
-import TemplateCard from './cards/TemplateCard'
-import WorkflowBatchRunsTable from './WorkflowBatchRunsTable'
-import WelcomeModal from './modals/WelcomeModal'
 import { Template } from '../types/workflow'
-import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
-import { ApiKey } from '../utils/api'
-import { RunResponse } from '@/types/api_types/runSchemas'
+import {
+    ApiKey,
+    createWorkflow,
+    deleteWorkflow,
+    duplicateWorkflow,
+    getApiKey,
+    getTemplates,
+    getWorkflowRuns,
+    getWorkflows,
+    instantiateTemplate,
+    listApiKeys,
+} from '../utils/api'
+import TemplateCard from './cards/TemplateCard'
+import WelcomeModal from './modals/WelcomeModal'
 
 const Dashboard: React.FC = () => {
-    const { isOpen, onOpen, onOpenChange } = useDisclosure()
-    const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowResponse | null>(null)
-    const [file, setFile] = useState<File | null>(null)
-    const [progress, setProgress] = useState<number>(0)
     const router = useRouter()
     const [workflows, setWorkflows] = useState<WorkflowResponse[]>([])
     const [templates, setTemplates] = useState<Template[]>([])
@@ -128,12 +113,23 @@ const Dashboard: React.FC = () => {
         fetchApiKeys()
     }, [])
 
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString)
+        return date.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+    }
+
     const columns = [
         { key: 'id', label: 'ID' },
         { key: 'name', label: 'Name' },
-        { key: 'description', label: 'Description' },
         { key: 'action', label: 'Action' },
         { key: 'recentRuns', label: 'Recent Runs' },
+        { key: 'updated_at', label: 'Last Modified' },
     ]
 
     const fetchWorkflowRuns = async (workflowId: string) => {
@@ -145,49 +141,10 @@ const Dashboard: React.FC = () => {
         }
     }
 
-    const handleRunWorkflowClick = (workflow: WorkflowResponse) => {
-        setSelectedWorkflow(workflow)
-        onOpen()
-    }
-
     const handleEditClick = (workflow: WorkflowResponse) => {
         router.push({
             pathname: `/workflows/${workflow.id}`,
         })
-    }
-
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0])
-        }
-    }
-
-    const handleRunWorkflow = async () => {
-        if (!file || !selectedWorkflow) {
-            alert('Please upload a file')
-            return
-        }
-
-        try {
-            const datasetName = `Dataset_${Date.now()}`
-            const datasetDescription = `Uploaded dataset for workflow ${selectedWorkflow.name}`
-            const uploadedDataset = await uploadDataset(datasetName, datasetDescription, file)
-
-            setProgress(0)
-            const interval = setInterval(() => {
-                setProgress((prev) => {
-                    if (prev >= 100) {
-                        clearInterval(interval)
-                        return 100
-                    }
-                    return prev + 10
-                })
-            }, 500)
-
-            await startBatchRun(selectedWorkflow.id, uploadedDataset.id)
-        } catch (error) {
-            console.error('Error running workflow:', error)
-        }
     }
 
     const handleNewWorkflowClick = async () => {
@@ -405,14 +362,6 @@ const Dashboard: React.FC = () => {
                                                                     aria-label="Edit"
                                                                 />
                                                                 <Icon
-                                                                    icon="solar:playlist-bold"
-                                                                    className="cursor-pointer text-default-400"
-                                                                    height={18}
-                                                                    width={18}
-                                                                    onClick={() => handleRunWorkflowClick(workflow)}
-                                                                    aria-label="Run on a dataset"
-                                                                />
-                                                                <Icon
                                                                     icon="solar:copy-bold"
                                                                     className="cursor-pointer text-default-400"
                                                                     height={18}
@@ -452,6 +401,10 @@ const Dashboard: React.FC = () => {
                                                             >
                                                                 {workflow.name}
                                                             </Chip>
+                                                        ) : columnKey === 'updated_at' ? (
+                                                            <span className="text-default-500">
+                                                                {formatDate(getKeyValue(workflow, columnKey))}
+                                                            </span>
                                                         ) : (
                                                             getKeyValue(workflow, columnKey)
                                                         )}
@@ -559,37 +512,6 @@ const Dashboard: React.FC = () => {
                     </AccordionItem>
                 </Accordion>
             </div>
-
-            <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-                <ModalContent>
-                    {(onClose) => (
-                        <>
-                            <ModalHeader className="flex flex-col gap-1">Run {selectedWorkflow?.name}</ModalHeader>
-                            <ModalBody>
-                                <Input
-                                    type="file"
-                                    accept=".csv,.jsonl"
-                                    onChange={handleFileChange}
-                                    label="Upload CSV or JSONL"
-                                />
-                                {progress > 0 && <Progress value={progress} />}
-                            </ModalBody>
-                            <ModalFooter>
-                                <Button color="danger" variant="light" onPress={onClose}>
-                                    Close
-                                </Button>
-                                <Button
-                                    color="primary"
-                                    onPress={handleRunWorkflow}
-                                    disabled={progress > 0 && progress < 100}
-                                >
-                                    {progress > 0 && progress < 100 ? 'Running...' : 'Run'}
-                                </Button>
-                            </ModalFooter>
-                        </>
-                    )}
-                </ModalContent>
-            </Modal>
         </div>
     )
 }

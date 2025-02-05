@@ -24,6 +24,15 @@ class BaseNodeConfig(BaseModel):
     Each node must define its output_schema.
     """
 
+    output_schema: Dict[str, str] = Field(
+        default={"output": "string"},
+        title="Output schema",
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = Field(
+        default=False,
+        description="Whether the node has a fixed output schema defined in config",
+    )
     pass
 
 
@@ -90,7 +99,10 @@ class BaseNode(ABC):
         Setup method to define output_model and any other initialization.
         For dynamic schema nodes, these can be created based on self.config.
         """
-        pass
+        if self._config.has_fixed_output:
+            self.output_model = self.create_output_model_class(
+                self._config.output_schema
+            )
 
     def create_output_model_class(
         self, output_schema: Dict[str, str]

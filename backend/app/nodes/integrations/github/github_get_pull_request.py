@@ -2,6 +2,7 @@ import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
+from typing import Dict
 
 
 class GitHubGetPullRequestNodeConfig(BaseNodeConfig):
@@ -9,6 +10,11 @@ class GitHubGetPullRequestNodeConfig(BaseNodeConfig):
         "", description="The full name of the repository (e.g. 'owner/repo')."
     )
     pr_number: str = Field("", description="The pull request number.")
+    output_schema: Dict[str, str] = Field(
+        default={"pull_request": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
 
 
 class GitHubGetPullRequestNodeInput(BaseNodeInput):
@@ -26,7 +32,6 @@ class GitHubGetPullRequestNode(BaseNode):
     display_name = "GitHubGetPullRequest"
     logo = "/images/github.png"
     category = "GitHub"
-
 
     config_model = GitHubGetPullRequestNodeConfig
     input_model = GitHubGetPullRequestNodeInput
