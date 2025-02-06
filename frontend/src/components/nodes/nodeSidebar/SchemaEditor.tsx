@@ -2,7 +2,6 @@ import { Button, Chip, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { deleteEdgeByHandle } from '../../../store/flowSlice'
 import { convertToPythonVariableName } from '../../../utils/variableNameUtils'
 
 export interface SchemaEditorProps {
@@ -887,7 +886,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         }
 
         handleSchemaChange(updatedSchema)
-        dispatch(deleteEdgeByHandle({ nodeId, handleKey: path.join('.') }))
     }
 
     const handleDropOnRoot = (e: React.DragEvent<HTMLDivElement>): void => {
