@@ -392,7 +392,7 @@ const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, re
                                 path={[...path, 'items']}
                                 value={value.items}
                                 onUpdate={onUpdate}
-                                onDelete={() => {}}
+                                onDelete={onDelete}
                                 readOnly={readOnly}
                                 availableFields={availableFields}
                                 level={level + 1}
