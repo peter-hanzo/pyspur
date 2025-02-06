@@ -617,17 +617,19 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
         }
     }
 
-    // Recursive helper to update required fields and set additionalProperties: false for all nested objects
-    const updateSchemaRecursively = (schema: any): any => {
+    const sanitizeSchemaForLLMs = (schema: any): any => {
+        // Adds required and additionalProperties fields to object schemas recursively
+        // This is to ensure the schema is in a format that LLMs can work with
+        schema = JSON.parse(JSON.stringify(schema)) // Deep copy to avoid mutating the original schema
         if (schema && typeof schema === 'object') {
             if (schema.type === 'object' && schema.properties) {
                 schema.required = Object.keys(schema.properties)
                 schema.additionalProperties = false
                 Object.keys(schema.properties).forEach((key) => {
-                    schema.properties[key] = updateSchemaRecursively(schema.properties[key])
+                    schema.properties[key] = sanitizeSchemaForLLMs(schema.properties[key])
                 })
             } else if (schema.type === 'array' && schema.items) {
-                schema.items = updateSchemaRecursively(schema.items)
+                schema.items = sanitizeSchemaForLLMs(schema.items)
             }
         }
         return schema
@@ -635,7 +637,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     // Modified helper function to update the entire schema using the recursive helper
     const handleSchemaChange = (updatedSchema: JSONSchema) => {
-        const finalSchema = updateSchemaRecursively(updatedSchema)
+        const finalSchema = sanitizeSchemaForLLMs(updatedSchema)
         onChange(finalSchema)
     }
 
