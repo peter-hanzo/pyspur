@@ -379,7 +379,7 @@ class ModelInfo(BaseModel):
         description="Temperature for randomness, between 0.0 and 1.0",
     )
     top_p: Optional[float] = Field(
-        default=1.0,
+        default=0.9,
         ge=0.0,
         le=1.0,
         description="Top-p sampling value, between 0.0 and 1.0",
@@ -531,7 +531,6 @@ async def generate_text(
     api_base: Optional[str] = None,
     url_variables: Optional[Dict[str, str]] = None,
     output_json_schema: Optional[str] = None,
-    output_schema: Optional[Dict[str, Any]] = None,
 ) -> str:
     kwargs = {
         "model": model_name,
@@ -550,19 +549,16 @@ async def generate_text(
 
     # Only process JSON schema if the model supports it
     if supports_json:
-        if output_json_schema is None and output_schema is None:
-            output_schema = {"output": "string"}
-            output_json_schema = {
+        if output_json_schema is None:
+            output_json_schema = json.dumps({
                 "type": "object",
                 "properties": {"output": {"type": "string"}},
-                "required": ["output"],
-            }
-        elif output_json_schema is None and output_schema is not None:
-            output_json_schema = convert_output_schema_to_json_schema(output_schema)
-        elif output_json_schema is not None and output_json_schema.strip() != "":
+                "required": ["output"]
+            })
+        elif output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
         else:
-            raise ValueError("Invalid output schema", output_schema, output_json_schema)
+            raise ValueError("Invalid output schema", output_json_schema)
         output_json_schema["additionalProperties"] = False
 
         # check if the model supports response format
@@ -587,12 +583,7 @@ async def generate_text(
                 }
             else:
                 kwargs["response_format"] = {"type": "json_object"}
-                if output_schema:
-                    schema_for_prompt = json.dumps(output_schema)
-                elif output_json_schema:
-                    schema_for_prompt = json.dumps(output_json_schema)
-                else:
-                    schema_for_prompt = json.dumps({"output": "string"})
+                schema_for_prompt = json.dumps(output_json_schema)
                 system_message = next(
                     message for message in messages if message["role"] == "system"
                 )

@@ -18,8 +18,8 @@ class ChatCompletionRequest(BaseModel):
     messages: List[Dict[str, Any]]
     functions: Optional[List[Dict[str, Any]]] = None
     function_call: Optional[Union[Dict[str, Any], str]] = None
-    temperature: float = 1.0
-    top_p: float = 1.0
+    temperature: float = 0.7
+    top_p: float = 0.9
     n: int = 1
     stream: bool = False
     stop: Optional[Union[str, List[str]]] = None

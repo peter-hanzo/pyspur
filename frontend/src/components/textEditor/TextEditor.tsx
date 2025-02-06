@@ -1,17 +1,17 @@
 'use client'
 
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
-import { useEditor, EditorContent, Editor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
-import { Color } from '@tiptap/extension-color'
-import TextStyle from '@tiptap/extension-text-style'
-import ListItem from '@tiptap/extension-list-item'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from '@heroui/react'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import { Color } from '@tiptap/extension-color'
+import ListItem from '@tiptap/extension-list-item'
+import TextStyle from '@tiptap/extension-text-style'
+import Underline from '@tiptap/extension-underline'
+import { Editor, EditorContent, useEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
 import { List, ListOrdered } from 'lucide-react'
-import styles from './TextEditor.module.css'
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react'
 import { Markdown } from 'tiptap-markdown'
+import styles from './TextEditor.module.css'
 
 interface TextEditorProps {
     nodeID: string
@@ -67,8 +67,8 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                 },
             },
             parseOptions: {
-      preserveWhitespace: 'full',
-    },
+                preserveWhitespace: 'full',
+            },
             onUpdate: ({ editor }) => {
                 const newContent = editor.storage.markdown?.getMarkdown() ?? ''
                 setLocalContent(newContent)
@@ -76,6 +76,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             },
             editable: isEditable,
             autofocus: 'end',
+            immediatelyRender: false,
         })
 
         useImperativeHandle(ref, () => ({
@@ -116,6 +117,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             },
             editable: true,
             autofocus: false,
+            immediatelyRender: false,
         })
 
         // Update effect to only sync modal editor content when modal opens

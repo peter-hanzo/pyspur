@@ -35,7 +35,7 @@
             "model": "gpt-4o",
             "max_tokens": 16384,
             "temperature": 0.7,
-            "top_p": 1
+            "top_p": 0.9
           },
           "system_message": "You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.\n\nThe user will provide you with a topic and audience, and you have to devise a short joke for that.\n\nYou can roast the person if a person is mentioned, it's only among friends.",
           "user_message": "Your audience is: {{input_node.audience}}\nThe topic should be about {{input_node.topic}}",
@@ -63,7 +63,7 @@
             "model": "gpt-4o",
             "max_tokens": 16384,
             "temperature": 0.7,
-            "top_p": 1
+            "top_p": 0.9
           },
           "system_message": "Your goal is to refine a joke to make it more vulgar and concise. It's just among friends, so you can get roasty.\n\n- Be mean\n- Have dark humour\n- Be very punchy",
           "user_message": "{{JokeDrafter.initial_joke}}",
@@ -91,7 +91,7 @@
             "model": "gpt-4o",
             "max_tokens": 16384,
             "temperature": 0.7,
-            "top_p": 1
+            "top_p": 0.9
           },
           "system_message": "You are a stand-up comedian who uses dark humor like Ricky Gervais or Jimmy Carr.\n\nThe user will provide you with a topic and audience, and you have to devise a short joke for that.\n\nYou can roast the person if a person is mentioned, it's only among friends.",
           "user_message": "Your audience is: {{input_node.audience}}\nThe topic should be about {{input_node.topic}}",

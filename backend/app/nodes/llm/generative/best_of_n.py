@@ -108,6 +108,7 @@ class BestOfNNode(BaseSubworkflowNode):
                     "system_message": self.config.rating_prompt,
                     "user_message": "",
                     "output_schema": {"rating": "number"},
+                    "output_json_schema": '{"type": "object", "properties": {"rating": {"type": "number"} }, "required": ["rating"]}',
                 },
             )
             nodes.append(rate_node)
@@ -134,6 +135,7 @@ class BestOfNNode(BaseSubworkflowNode):
             node_type="PythonFuncNode",
             config={
                 "output_schema": output_schema,
+                "output_json_schema": self.config.output_json_schema,
                 "code": (
                     """gen_and_ratings = input_model.model_dump()\n"""
                     """print(gen_and_ratings)\n"""
@@ -174,6 +176,8 @@ class BestOfNNode(BaseSubworkflowNode):
                 "output_map": {
                     f"{k}": f"pick_one_node.{k}" for k in output_schema.keys()
                 },
+                "output_schema": output_schema,
+                "output_json_schema": self.config.output_json_schema,
             },
         )
         nodes.append(output_node)
@@ -208,7 +212,7 @@ if __name__ == "__main__":
             user_message="",
             output_schema={"response": "string"},
             url_variables=None,
-            output_json_schema=None,
+            output_json_schema='{"type": "object", "properties": {"response": {"type": "string"} }, "required": ["response"]}',
         ),
     )
     import asyncio

@@ -3,14 +3,14 @@ from typing import Dict, Any
 from pydantic import BaseModel
 
 from ..base import (
-    VariableOutputBaseNode,
-    VariableOutputBaseNodeConfig,
+    BaseNode,
+    BaseNodeConfig,
     BaseNodeInput,
     BaseNodeOutput,
 )
 
 
-class PythonFuncNodeConfig(VariableOutputBaseNodeConfig):
+class PythonFuncNodeConfig(BaseNodeConfig):
     code: str = "\n".join(
         [
             "# Write your Python code here.",
@@ -28,7 +28,7 @@ class PythonFuncNodeOutput(BaseNodeOutput):
     pass
 
 
-class PythonFuncNode(VariableOutputBaseNode):
+class PythonFuncNode(BaseNode):
     """
     Node type for executing Python code on the input data.
     """
@@ -43,6 +43,8 @@ class PythonFuncNode(VariableOutputBaseNode):
         return super().setup()
 
     async def run(self, input: BaseModel) -> BaseModel:
+
+        self.output_model = self.create_output_model_class(self.config.output_schema)
         # Prepare the execution environment
         exec_globals: Dict[str, Any] = {}
         exec_locals: Dict[str, Any] = {}
