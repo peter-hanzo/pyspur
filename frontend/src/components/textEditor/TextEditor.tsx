@@ -118,21 +118,13 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             autofocus: false,
         })
 
+        // Update effect to only sync modal editor content when modal opens
         useEffect(() => {
-            if (editor && editor.storage.markdown?.getMarkdown() !== localContent) {
-                editor.commands.setContent(localContent)
+            if (isOpen && modalEditor && editor) {
+                const content = editor.storage.markdown?.getMarkdown() ?? ''
+                modalEditor.commands.setContent(content)
             }
-            if (modalEditor && modalEditor.storage.markdown?.getMarkdown() !== localContent) {
-                modalEditor.commands.setContent(localContent)
-            }
-        }, [localContent, editor, modalEditor])
-
-        // Add effect to sync modal editor content when modal opens
-        useEffect(() => {
-            if (isOpen && modalEditor && localContent) {
-                modalEditor.commands.setContent(localContent)
-            }
-        }, [isOpen, modalEditor, localContent])
+        }, [isOpen, modalEditor, editor])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
             if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
@@ -252,12 +244,21 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             )
         }
 
-        const handleCancel = (onClose: () => void) => {
-            setLocalContent(initialContent)
+        const handleSave = (onClose: () => void) => {
+            if (modalEditor && editor) {
+                const content = modalEditor.storage.markdown?.getMarkdown() ?? ''
+                editor.commands.setContent(content)
+                setLocalContent(content)
+                setContent(content)
+            }
             onClose()
         }
 
-        const handleSave = (onClose: () => void) => {
+        const handleCancel = (onClose: () => void) => {
+            if (modalEditor && editor) {
+                const content = editor.storage.markdown?.getMarkdown() ?? ''
+                modalEditor.commands.setContent(content)
+            }
             onClose()
         }
 
