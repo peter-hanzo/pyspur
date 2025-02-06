@@ -315,6 +315,7 @@ const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, re
                         value={type}
                         className="w-32"
                         isMultiline={true}
+                        aria-label="Field type"
                         renderValue={(items) => (
                             <div className="flex flex-wrap gap-1">
                                 {items.map((item) => (
@@ -337,16 +338,24 @@ const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, re
                             isIconOnly
                             radius="full"
                             variant="light"
-                            onClick={() => setShowEnumPanel(!showEnumPanel)}
+                            onPress={() => setShowEnumPanel(!showEnumPanel)}
                             color={hasEnumValues ? 'primary' : 'default'}
                             className="ml-1"
+                            aria-label="Edit enum values"
                         >
                             <Icon icon="solar:list-linear" width={18} />
                         </Button>
                     )}
 
                     {!readOnly && (
-                        <Button isIconOnly radius="full" variant="light" onClick={() => onDelete(path)} color="primary">
+                        <Button
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onPress={() => onDelete(path)}
+                            color="primary"
+                            aria-label="Delete field"
+                        >
                             <Icon icon="solar:trash-bin-trash-linear" width={22} />
                         </Button>
                     )}
@@ -364,8 +373,9 @@ const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, re
                                 size="sm"
                                 variant="light"
                                 color="primary"
-                                onClick={handleAddNestedField}
+                                onPress={handleAddNestedField}
                                 className="mt-2"
+                                aria-label="Add nested field"
                             >
                                 <Icon icon="solar:add-circle-linear" className="mr-1" width={18} />
                                 Add Field
@@ -393,12 +403,13 @@ const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, re
                                     size="sm"
                                     variant="light"
                                     color="primary"
-                                    onClick={() =>
+                                    onPress={() =>
                                         onUpdate(path, {
                                             type: 'update',
                                             value: { ...value, items: { type: availableFields[0] } },
                                         })
                                     }
+                                    aria-label="Add items schema"
                                 >
                                     <Icon icon="solar:add-circle-linear" className="mr-1" width={18} />
                                     Add Items Schema
@@ -560,10 +571,11 @@ const EnumPanel: React.FC<EnumPanelProps> = ({ value, onUpdate, readOnly = false
                         isIconOnly
                         radius="full"
                         variant="flat"
-                        onClick={handleAddEnum}
+                        onPress={handleAddEnum}
                         color="primary"
                         disabled={!newEnumValue}
                         size="sm"
+                        aria-label="Add enum value"
                     >
                         <Icon icon="solar:add-circle-linear" width={18} />
                     </Button>
@@ -951,6 +963,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         label="Type"
                         className="w-32"
                         isMultiline={true}
+                        aria-label="New field type"
                         renderValue={(items) => (
                             <div className="flex flex-wrap gap-1">
                                 {items.map((item) => (
@@ -971,9 +984,10 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         isIconOnly
                         radius="full"
                         variant="light"
-                        onClick={handleAddKey}
+                        onPress={handleAddKey}
                         color="primary"
                         disabled={readOnly || !newKey}
+                        aria-label="Add new field"
                     >
                         <Icon icon="solar:add-circle-linear" width={22} />
                     </Button>
