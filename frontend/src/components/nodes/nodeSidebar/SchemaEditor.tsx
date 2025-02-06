@@ -901,12 +901,16 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                 }
             }
         } else if (action.type === 'update') {
-            if (container.properties && container.properties[key]) {
-                if (typeof action.value === 'object' && action.value !== null && typeof action.value.type === 'string') {
-                    container.properties[key] = action.value;
-                } else {
-                    container.properties[key] = { type: action.value };
-                }
+            if (container.type === 'array' && key === 'items') {
+                // Handle array items update
+                container.items = typeof action.value === 'string'
+                    ? { type: action.value }
+                    : action.value;
+            } else if (container.properties && container.properties[key]) {
+                // Handle regular property update
+                container.properties[key] = typeof action.value === 'string'
+                    ? { type: action.value }
+                    : action.value;
             }
         }
         handleSchemaChange(updatedSchema);
