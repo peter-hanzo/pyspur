@@ -19,6 +19,7 @@ interface JSONSchema {
     type: string
     properties: Record<string, any>
     required?: string[]
+    items?: JSONSchema
 }
 
 interface FieldProps {
@@ -29,6 +30,13 @@ interface FieldProps {
     readOnly?: boolean
     availableFields: string[]
     level: number
+}
+
+interface SchemaNode {
+    type?: string;
+    properties?: Record<string, any>;
+    items?: SchemaNode;
+    required?: string[];
 }
 
 const SchemaField: React.FC<FieldProps> = ({
@@ -918,28 +926,26 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
     const handleFieldDelete = (path: string[]): void => {
         let updatedSchema = { ...schemaForEditing };
-        let parent = updatedSchema.properties;
-        const lastIndex = path.length - 1;
-        for (let i = 0; i < lastIndex; i++) {
-            parent = parent[path[i]].properties;
-        }
-        const key = path[lastIndex];
-        delete parent[key];
+        let current: SchemaNode = updatedSchema;
 
-        if (path.length === 1) {
-            updatedSchema.required = Object.keys(updatedSchema.properties);
-        } else {
-            let parentOfDeleted = updatedSchema.properties;
-            for (let i = 0; i < path.length - 1; i++) {
-                parentOfDeleted = parentOfDeleted[path[i]];
+        // Traverse to the parent of the field to delete
+        for (let i = 0; i < path.length - 1; i++) {
+            if (current.type === 'object') {
+                current = current.properties![path[i]];
+            } else if (current.type === 'array' && path[i] === 'items') {
+                current = current.items!;
             }
-            if (parentOfDeleted.properties) {
-                parentOfDeleted.required = Object.keys(parentOfDeleted.properties);
-            }
+        }
+
+        // Delete the field
+        const fieldToDelete = path[path.length - 1];
+        if (current.properties) {
+            delete current.properties[fieldToDelete];
+            current.required = Object.keys(current.properties);
         }
 
         handleSchemaChange(updatedSchema);
-        dispatch(deleteEdgeByHandle({ nodeId, handleKey: key }));
+        dispatch(deleteEdgeByHandle({ nodeId, handleKey: path.join('.') }));
     };
 
     const handleDropOnRoot = (e: React.DragEvent<HTMLDivElement>): void => {
