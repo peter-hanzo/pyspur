@@ -799,10 +799,8 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     newFieldName = `new_field_${counter}`
                     counter++
                 }
-                const newFieldValue =
-                    action.value === 'object'
-                        ? { type: 'object', properties: {}, required: [] }
-                        : { type: action.value || 'string' }
+                // Use getDefaultSchemaForType instead of inline schema creation
+                const newFieldValue = getDefaultSchemaForType(action.value || 'string')
                 targetObj[newFieldName] = newFieldValue
 
                 // Update required fields
