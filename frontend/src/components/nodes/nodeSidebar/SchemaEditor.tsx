@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
 import { Button, Chip, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
 import { convertToPythonVariableName } from '../../../utils/variableNameUtils'
@@ -33,21 +33,13 @@ interface FieldProps {
 }
 
 interface SchemaNode {
-    type?: string;
-    properties?: Record<string, any>;
-    items?: SchemaNode;
-    required?: string[];
+    type?: string
+    properties?: Record<string, any>
+    items?: SchemaNode
+    required?: string[]
 }
 
-const SchemaField: React.FC<FieldProps> = ({
-    path,
-    value,
-    onUpdate,
-    onDelete,
-    readOnly,
-    availableFields,
-    level,
-}) => {
+const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, readOnly, availableFields, level }) => {
     const [isEditing, setIsEditing] = useState(false)
     const [editValue, setEditValue] = useState(path[path.length - 1])
     const [isDragOver, setIsDragOver] = useState(false)
@@ -145,22 +137,24 @@ const SchemaField: React.FC<FieldProps> = ({
     const hasEnumValues = type === 'string' && value?.enum?.length > 0
     // Check whether this object already has fields.
     const isObjectWithFields =
-        isObject && value && typeof value === 'object' &&
+        isObject &&
+        value &&
+        typeof value === 'object' &&
         ((value.properties && Object.keys(value.properties).length > 0) ||
-         (!value.type && !value.properties && Object.keys(value).length > 0))
+            (!value.type && !value.properties && Object.keys(value).length > 0))
 
     const normalizeSchemaValue = (value: any, newType: string) => {
         // Helper to preserve schema metadata
         const preserveSchemaMetadata = (oldValue: any, newValue: any) => {
-            const metadataFields = ['description', 'enum', 'nullable', 'minimum', 'maximum', 'properties', 'required'];
-            const metadata = {};
+            const metadataFields = ['description', 'enum', 'nullable', 'minimum', 'maximum', 'properties', 'required']
+            const metadata = {}
             for (const field of metadataFields) {
                 if (oldValue && oldValue[field] !== undefined) {
-                    metadata[field] = oldValue[field];
+                    metadata[field] = oldValue[field]
                 }
             }
-            return { ...metadata, ...newValue };
-        };
+            return { ...metadata, ...newValue }
+        }
 
         if (newType === 'object') {
             if (typeof value === 'object' && value !== null) {
@@ -168,22 +162,22 @@ const SchemaField: React.FC<FieldProps> = ({
                     ...value,
                     type: 'object',
                     properties: value.properties ? value.properties : {},
-                    required: value.required ? value.required : []
-                };
+                    required: value.required ? value.required : [],
+                }
             }
             return {
                 type: 'object',
                 properties: {},
-                required: []
-            };
+                required: [],
+            }
         } else if (newType === 'array') {
             const baseArray = {
                 type: 'array',
-                items: value?.items || { type: 'string' }
-            };
-            return preserveSchemaMetadata(value, baseArray);
+                items: value?.items || { type: 'string' },
+            }
+            return preserveSchemaMetadata(value, baseArray)
         }
-        return preserveSchemaMetadata(value, { type: newType });
+        return preserveSchemaMetadata(value, { type: newType })
     }
 
     const handleTypeChange = (newType: string) => {
@@ -192,10 +186,10 @@ const SchemaField: React.FC<FieldProps> = ({
             return
         }
 
-        const normalizedValue = normalizeSchemaValue(value, newType);
+        const normalizedValue = normalizeSchemaValue(value, newType)
         onUpdate(path, {
             type: 'update',
-            value: normalizedValue
+            value: normalizedValue,
         })
     }
 
@@ -209,7 +203,7 @@ const SchemaField: React.FC<FieldProps> = ({
         }
         onUpdate(path, {
             type: 'add',
-            value: 'string'
+            value: 'string',
         })
     }
 
@@ -264,9 +258,7 @@ const SchemaField: React.FC<FieldProps> = ({
         >
             <div
                 className={`flex flex-col ${
-                    isObject
-                        ? 'border-2 border-dashed border-default-300 rounded-lg p-2'
-                        : ''
+                    isObject ? 'border-2 border-dashed border-default-300 rounded-lg p-2' : ''
                 } ${isDragOver ? 'bg-default-200' : ''}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -280,9 +272,7 @@ const SchemaField: React.FC<FieldProps> = ({
                             size="sm"
                             variant="faded"
                             radius="lg"
-                            onChange={(e) =>
-                                setEditValue(convertToPythonVariableName(e.target.value))
-                            }
+                            onChange={(e) => setEditValue(convertToPythonVariableName(e.target.value))}
                             onBlur={() => handleKeyEdit(editValue)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -310,8 +300,8 @@ const SchemaField: React.FC<FieldProps> = ({
                                     !readOnly && !isItemsField(path)
                                         ? 'hover:bg-default-200 cursor-pointer'
                                         : isItemsField(path)
-                                        ? 'cursor-not-allowed'
-                                        : ''
+                                          ? 'cursor-not-allowed'
+                                          : ''
                                 }`}
                                 onClick={() => !readOnly && !isItemsField(path) && setIsEditing(true)}
                             >
@@ -350,7 +340,7 @@ const SchemaField: React.FC<FieldProps> = ({
                             radius="full"
                             variant="light"
                             onClick={() => setShowEnumPanel(!showEnumPanel)}
-                            color={hasEnumValues ? "primary" : "default"}
+                            color={hasEnumValues ? 'primary' : 'default'}
                             className="ml-1"
                         >
                             <Icon icon="solar:list-linear" width={18} />
@@ -358,24 +348,14 @@ const SchemaField: React.FC<FieldProps> = ({
                     )}
 
                     {!readOnly && (
-                        <Button
-                            isIconOnly
-                            radius="full"
-                            variant="light"
-                            onClick={() => onDelete(path)}
-                            color="primary"
-                        >
+                        <Button isIconOnly radius="full" variant="light" onClick={() => onDelete(path)} color="primary">
                             <Icon icon="solar:trash-bin-trash-linear" width={22} />
                         </Button>
                     )}
                 </div>
 
                 {showEnumPanel && type === 'string' && (
-                    <EnumPanel
-                        value={value}
-                        onUpdate={handleEnumUpdate}
-                        readOnly={readOnly}
-                    />
+                    <EnumPanel value={value} onUpdate={handleEnumUpdate} readOnly={readOnly} />
                 )}
 
                 {isObject && (
@@ -389,11 +369,7 @@ const SchemaField: React.FC<FieldProps> = ({
                                 onClick={handleAddNestedField}
                                 className="mt-2"
                             >
-                                <Icon
-                                    icon="solar:add-circle-linear"
-                                    className="mr-1"
-                                    width={18}
-                                />
+                                <Icon icon="solar:add-circle-linear" className="mr-1" width={18} />
                                 Add Field
                             </Button>
                         )}
@@ -419,13 +395,14 @@ const SchemaField: React.FC<FieldProps> = ({
                                     size="sm"
                                     variant="light"
                                     color="primary"
-                                    onClick={() => onUpdate(path, { type: 'update', value: { ...value, items: { type: availableFields[0] } } })}
+                                    onClick={() =>
+                                        onUpdate(path, {
+                                            type: 'update',
+                                            value: { ...value, items: { type: availableFields[0] } },
+                                        })
+                                    }
                                 >
-                                    <Icon
-                                        icon="solar:add-circle-linear"
-                                        className="mr-1"
-                                        width={18}
-                                    />
+                                    <Icon icon="solar:add-circle-linear" className="mr-1" width={18} />
                                     Add Items Schema
                                 </Button>
                             )
@@ -445,13 +422,7 @@ interface DraggableEnumChipProps {
     readOnly?: boolean
 }
 
-const DraggableEnumChip: React.FC<DraggableEnumChipProps> = ({
-    value,
-    index,
-    onRemove,
-    onReorder,
-    readOnly
-}) => {
+const DraggableEnumChip: React.FC<DraggableEnumChipProps> = ({ value, index, onRemove, onReorder, readOnly }) => {
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
         e.stopPropagation() // Prevent parent field drag
         e.dataTransfer.setData('application/enum-index', String(index))
@@ -480,7 +451,7 @@ const DraggableEnumChip: React.FC<DraggableEnumChipProps> = ({
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className={!readOnly ? "cursor-move" : ""}
+            className={!readOnly ? 'cursor-move' : ''}
             onClick={(e) => e.stopPropagation()}
         >
             <Chip
@@ -488,13 +459,7 @@ const DraggableEnumChip: React.FC<DraggableEnumChipProps> = ({
                 variant="flat"
                 color="primary"
                 startContent={
-                    !readOnly && (
-                        <Icon
-                            icon="solar:menu-dots-bold"
-                            className="mr-1 text-default-400"
-                            width={14}
-                        />
-                    )
+                    !readOnly && <Icon icon="solar:menu-dots-bold" className="mr-1 text-default-400" width={14} />
                 }
             >
                 {value}
@@ -553,7 +518,7 @@ const EnumPanel: React.FC<EnumPanelProps> = ({ value, onUpdate, readOnly = false
                     <p className="text-tiny text-default-500">
                         {enumValues.length
                             ? `Select one of these ${enumValues.length} options:`
-                            : "Add values to create an enum:"}
+                            : 'Add values to create an enum:'}
                     </p>
                 </div>
                 {enumValues.length > 0 && (
@@ -563,9 +528,7 @@ const EnumPanel: React.FC<EnumPanelProps> = ({ value, onUpdate, readOnly = false
                 )}
             </div>
 
-            <div
-                className="flex flex-wrap gap-2 mb-3 min-h-[40px] p-2 bg-default-50 rounded border border-dashed border-default-300"
-            >
+            <div className="flex flex-wrap gap-2 mb-3 min-h-[40px] p-2 bg-default-50 rounded border border-dashed border-default-300">
                 {enumValues.map((enumValue: string, index: number) => (
                     <DraggableEnumChip
                         key={enumValue}
@@ -576,11 +539,7 @@ const EnumPanel: React.FC<EnumPanelProps> = ({ value, onUpdate, readOnly = false
                         readOnly={readOnly}
                     />
                 ))}
-                {enumValues.length === 0 && (
-                    <div className="text-tiny text-default-400 p-1">
-                        No enum values yet
-                    </div>
-                )}
+                {enumValues.length === 0 && <div className="text-tiny text-default-400 p-1">No enum values yet</div>}
             </div>
 
             {!readOnly && (
@@ -591,13 +550,7 @@ const EnumPanel: React.FC<EnumPanelProps> = ({ value, onUpdate, readOnly = false
                         onChange={(e) => setNewEnumValue(e.target.value)}
                         placeholder="Add enum value..."
                         size="sm"
-                        startContent={
-                            <Icon
-                                icon="solar:add-circle-linear"
-                                className="text-default-400"
-                                width={16}
-                            />
-                        }
+                        startContent={<Icon icon="solar:add-circle-linear" className="text-default-400" width={16} />}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && newEnumValue) {
                                 e.preventDefault()
@@ -638,44 +591,44 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const getDefaultSchemaForType = (type: string) => {
         switch (type) {
             case 'object':
-                return { type: 'object', properties: {}, required: [] };
+                return { type: 'object', properties: {}, required: [] }
             case 'array':
                 return {
                     type: 'array',
                     items: {
                         type: 'object',
                         properties: {},
-                        required: []
-                    }
-                };
+                        required: [],
+                    },
+                }
             case 'null':
-                return { type: 'null' };
+                return { type: 'null' }
             default:
-                return { type };
+                return { type }
         }
-    };
+    }
 
     // Recursive helper to update required fields and set additionalProperties: false for all nested objects
     const updateSchemaRecursively = (schema: any): any => {
         if (schema && typeof schema === 'object') {
             if (schema.type === 'object' && schema.properties) {
-                schema.required = Object.keys(schema.properties);
-                schema.additionalProperties = false;
+                schema.required = Object.keys(schema.properties)
+                schema.additionalProperties = false
                 Object.keys(schema.properties).forEach((key) => {
-                    schema.properties[key] = updateSchemaRecursively(schema.properties[key]);
-                });
+                    schema.properties[key] = updateSchemaRecursively(schema.properties[key])
+                })
             } else if (schema.type === 'array' && schema.items) {
-                schema.items = updateSchemaRecursively(schema.items);
+                schema.items = updateSchemaRecursively(schema.items)
             }
         }
-        return schema;
-    };
+        return schema
+    }
 
     // Modified helper function to update the entire schema using the recursive helper
     const handleSchemaChange = (updatedSchema: JSONSchema) => {
-        const finalSchema = updateSchemaRecursively(updatedSchema);
-        onChange(finalSchema);
-    };
+        const finalSchema = updateSchemaRecursively(updatedSchema)
+        onChange(finalSchema)
+    }
 
     // Update the schema normalization to handle nested structures
     const normalizeSchema = (value: any): any => {
@@ -686,13 +639,13 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             // If it's already a valid schema object with type and properties
             if (value.type === 'object') {
                 return {
-                    ...value,  // Preserve all original fields
+                    ...value, // Preserve all original fields
                     type: 'object',
                     properties: Object.entries(value.properties || {}).reduce((acc, [k, v]) => {
                         acc[k] = normalizeSchema(v)
                         return acc
                     }, {}),
-                    required: value.required || []
+                    required: value.required || [],
                 }
             }
             // If it has an explicit type
@@ -702,7 +655,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     return {
                         ...value,
                         type: 'string',
-                        enum: value.enum
+                        enum: value.enum,
                     }
                 }
                 return value
@@ -715,7 +668,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         acc[k] = normalizeSchema(v)
                         return acc
                     }, {}),
-                    required: value.required || []
+                    required: value.required || [],
                 }
             }
             // If it's a plain object
@@ -725,7 +678,7 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     acc[k] = normalizeSchema(v)
                     return acc
                 }, {}),
-                required: []
+                required: [],
             }
         }
         return { type: 'string' } // fallback
@@ -734,242 +687,251 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
     const schemaForEditing: JSONSchema = {
         $schema: jsonValue?.$schema || 'http://json-schema.org/draft-07/schema#',
         type: jsonValue?.type || 'object',
-        properties: jsonValue && jsonValue.properties
-            ? Object.entries(jsonValue.properties).reduce((acc, [key, value]) => {
-                acc[key] = normalizeSchema(value);
-                return acc;
-            }, {} as Record<string, any>)
-            : Object.entries(jsonValue || {}).reduce((acc, [key, value]) => {
-                acc[key] = normalizeSchema(value);
-                return acc;
-            }, {} as Record<string, any>),
-        required: jsonValue?.properties ? Object.keys(jsonValue.properties) : []
+        properties:
+            jsonValue && jsonValue.properties
+                ? Object.entries(jsonValue.properties).reduce(
+                      (acc, [key, value]) => {
+                          acc[key] = normalizeSchema(value)
+                          return acc
+                      },
+                      {} as Record<string, any>
+                  )
+                : Object.entries(jsonValue || {}).reduce(
+                      (acc, [key, value]) => {
+                          acc[key] = normalizeSchema(value)
+                          return acc
+                      },
+                      {} as Record<string, any>
+                  ),
+        required: jsonValue?.properties ? Object.keys(jsonValue.properties) : [],
     }
-
 
     const getPlaceholderExample = (): string => {
         return 'eg. summary'
     }
 
     const handleAddKey = (): void => {
-        const validatedKey = convertToPythonVariableName(newKey);
-        if (schemaForEditing.properties.hasOwnProperty(validatedKey)) return;
+        const validatedKey = convertToPythonVariableName(newKey)
+        if (schemaForEditing.properties.hasOwnProperty(validatedKey)) return
 
-        const newField = getDefaultSchemaForType(newType);
+        const newField = getDefaultSchemaForType(newType)
         const updatedProperties = {
             ...schemaForEditing.properties,
-            [validatedKey]: newField
-        };
+            [validatedKey]: newField,
+        }
         const updatedSchema = {
             ...schemaForEditing,
             properties: updatedProperties,
-        };
-        handleSchemaChange(updatedSchema);
-        setNewKey('');
-        setNewType(availableFields[0]);
-    };
+        }
+        handleSchemaChange(updatedSchema)
+        setNewKey('')
+        setNewType(availableFields[0])
+    }
 
-    const handleFieldUpdate = (path: string[], action: { type: string; value?: any; newKey?: string; sourceField?: any }): void => {
-        let updatedSchema = { ...schemaForEditing };
+    const handleFieldUpdate = (
+        path: string[],
+        action: { type: string; value?: any; newKey?: string; sourceField?: any }
+    ): void => {
+        let updatedSchema = { ...schemaForEditing }
 
         // Helper function to traverse the schema based on a path
         const getContainerAndKey = (schema: any, path: string[]) => {
-            let node = schema;
+            let node = schema
             for (let i = 0; i < path.length - 1; i++) {
-                const segment = path[i];
+                const segment = path[i]
                 if (node.type === 'object') {
                     if (!node.properties) {
-                        node.properties = {};
+                        node.properties = {}
                     }
                     if (!node.properties[segment]) {
-                        node.properties[segment] = { type: 'object', properties: {}, required: [] };
+                        node.properties[segment] = { type: 'object', properties: {}, required: [] }
                     }
-                    node = node.properties[segment];
+                    node = node.properties[segment]
                 } else if (node.type === 'array' && segment === 'items') {
                     if (!node.items) {
-                        node.items = { type: 'object', properties: {}, required: [] };
+                        node.items = { type: 'object', properties: {}, required: [] }
                     }
-                    node = node.items;
+                    node = node.items
                 } else {
-                    console.error(`Unknown node type encountered during traversal at segment '${segment}'`);
-                    return null;
+                    console.error(`Unknown node type encountered during traversal at segment '${segment}'`)
+                    return null
                 }
             }
-            return { container: node, key: path[path.length - 1] };
-        };
-
-        const traversal = getContainerAndKey(updatedSchema, path);
-        if (!traversal) {
-            console.error('Failed to traverse schema with path', path);
-            return;
+            return { container: node, key: path[path.length - 1] }
         }
-        const { container, key } = traversal;
+
+        const traversal = getContainerAndKey(updatedSchema, path)
+        if (!traversal) {
+            console.error('Failed to traverse schema with path', path)
+            return
+        }
+        const { container, key } = traversal
 
         if (action.type === 'add') {
-            let targetObj;
+            let targetObj
 
             // If we're dealing with an array's items
             if (container.type === 'array' && key === 'items') {
                 if (!container.items.properties) {
-                    container.items.properties = {};
+                    container.items.properties = {}
                 }
-                targetObj = container.items.properties;
+                targetObj = container.items.properties
             }
             // If we're dealing with a nested object field
             else if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
                 if (!container.properties[key].properties) {
-                    container.properties[key].properties = {};
+                    container.properties[key].properties = {}
                 }
-                targetObj = container.properties[key].properties;
+                targetObj = container.properties[key].properties
             }
             // If we're dealing with a regular object
             else if (container.type === 'object') {
                 if (!container.properties) {
-                    container.properties = {};
+                    container.properties = {}
                 }
-                targetObj = container.properties;
+                targetObj = container.properties
             }
 
             if (targetObj) {
-                let newFieldName = 'new_field';
-                let counter = 1;
+                let newFieldName = 'new_field'
+                let counter = 1
                 while (newFieldName in targetObj) {
-                    newFieldName = `new_field_${counter}`;
-                    counter++;
+                    newFieldName = `new_field_${counter}`
+                    counter++
                 }
                 const newFieldValue =
                     action.value === 'object'
                         ? { type: 'object', properties: {}, required: [] }
-                        : { type: action.value || 'string' };
-                targetObj[newFieldName] = newFieldValue;
+                        : { type: action.value || 'string' }
+                targetObj[newFieldName] = newFieldValue
 
                 // Update required fields
                 if (container.type === 'array' && key === 'items') {
-                    container.items.required = Object.keys(targetObj);
-                } else if (container.properties && container.properties[key] && container.properties[key].type === 'object') {
-                    container.properties[key].required = Object.keys(targetObj);
+                    container.items.required = Object.keys(targetObj)
+                } else if (
+                    container.properties &&
+                    container.properties[key] &&
+                    container.properties[key].type === 'object'
+                ) {
+                    container.properties[key].required = Object.keys(targetObj)
                 } else if (container.type === 'object') {
-                    container.required = Object.keys(targetObj);
+                    container.required = Object.keys(targetObj)
                 }
             }
         } else if (action.type === 'move') {
-            const sourceField = action.sourceField;
-            const sourcePath: string[] = sourceField.path;
-            const sourceFieldName = sourceField.fieldName;
+            const sourceField = action.sourceField
+            const sourcePath: string[] = sourceField.path
+            const sourceFieldName = sourceField.fieldName
 
-            const sourceTraversal = getContainerAndKey(updatedSchema, sourcePath);
+            const sourceTraversal = getContainerAndKey(updatedSchema, sourcePath)
             if (!sourceTraversal) {
-                console.error('Failed to traverse source path', sourcePath);
-                return;
+                console.error('Failed to traverse source path', sourcePath)
+                return
             }
-            const { container: sourceContainer } = sourceTraversal;
+            const { container: sourceContainer } = sourceTraversal
             if (sourceContainer.properties && sourceContainer.properties[sourceFieldName]) {
-                delete sourceContainer.properties[sourceFieldName];
+                delete sourceContainer.properties[sourceFieldName]
             }
 
             if (!container.properties[key]) {
-                container.properties[key] = { type: 'object', properties: {}, required: [] };
+                container.properties[key] = { type: 'object', properties: {}, required: [] }
             }
             if (!container.properties[key].properties) {
-                container.properties[key].properties = {};
+                container.properties[key].properties = {}
             }
             container.properties[key].properties = {
                 ...container.properties[key].properties,
-                [sourceFieldName]: sourceField.value
-            };
-            container.properties[key].required = Object.keys(container.properties[key].properties);
+                [sourceFieldName]: sourceField.value,
+            }
+            container.properties[key].required = Object.keys(container.properties[key].properties)
 
-            updatedSchema.required = Object.keys(updatedSchema.properties);
+            updatedSchema.required = Object.keys(updatedSchema.properties)
 
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
                     oldHandleId: sourceFieldName,
                     newHandleId: [...path, sourceFieldName].join('.'),
-                    schemaType: 'output_schema'
+                    schemaType: 'output_schema',
                 })
-            );
+            )
         } else if (action.type === 'rename') {
             if (container.properties[key]) {
-                const oldKey = key;
-                const newKey = action.newKey!;
+                const oldKey = key
+                const newKey = action.newKey!
                 if (oldKey !== newKey) {
-                    const value = container.properties[oldKey];
-                    delete container.properties[oldKey];
-                    container.properties[newKey] = value;
+                    const value = container.properties[oldKey]
+                    delete container.properties[oldKey]
+                    container.properties[newKey] = value
 
                     dispatch(
                         updateEdgesOnHandleRename({
                             nodeId,
                             oldHandleId: oldKey,
                             newHandleId: newKey,
-                            schemaType: 'output_schema'
+                            schemaType: 'output_schema',
                         })
-                    );
+                    )
                 }
             }
         } else if (action.type === 'update') {
             if (container.type === 'array' && key === 'items') {
                 // Handle array items update
-                container.items = typeof action.value === 'string'
-                    ? { type: action.value }
-                    : action.value;
+                container.items = typeof action.value === 'string' ? { type: action.value } : action.value
             } else if (container.properties && container.properties[key]) {
                 // Handle regular property update
-                container.properties[key] = typeof action.value === 'string'
-                    ? { type: action.value }
-                    : action.value;
+                container.properties[key] = typeof action.value === 'string' ? { type: action.value } : action.value
             }
         }
-        handleSchemaChange(updatedSchema);
-    };
+        handleSchemaChange(updatedSchema)
+    }
 
     const handleFieldDelete = (path: string[]): void => {
-        let updatedSchema = { ...schemaForEditing };
-        let current: SchemaNode = updatedSchema;
+        let updatedSchema = { ...schemaForEditing }
+        let current: SchemaNode = updatedSchema
 
         // Traverse to the parent of the field to delete
         for (let i = 0; i < path.length - 1; i++) {
             if (current.type === 'object') {
-                current = current.properties![path[i]];
+                current = current.properties![path[i]]
             } else if (current.type === 'array' && path[i] === 'items') {
-                current = current.items!;
+                current = current.items!
             }
         }
 
         // Delete the field
-        const fieldToDelete = path[path.length - 1];
+        const fieldToDelete = path[path.length - 1]
         if (current.properties) {
-            delete current.properties[fieldToDelete];
-            current.required = Object.keys(current.properties);
+            delete current.properties[fieldToDelete]
+            current.required = Object.keys(current.properties)
         }
 
-        handleSchemaChange(updatedSchema);
-        dispatch(deleteEdgeByHandle({ nodeId, handleKey: path.join('.') }));
-    };
+        handleSchemaChange(updatedSchema)
+        dispatch(deleteEdgeByHandle({ nodeId, handleKey: path.join('.') }))
+    }
 
     const handleDropOnRoot = (e: React.DragEvent<HTMLDivElement>): void => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault()
+        e.stopPropagation()
         try {
-            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-            let updatedSchema = JSON.parse(JSON.stringify(schemaForEditing));
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+            let updatedSchema = JSON.parse(JSON.stringify(schemaForEditing))
 
             if (data.path.length > 1) {
-                let parentObj = updatedSchema.properties;
+                let parentObj = updatedSchema.properties
                 for (let i = 0; i < data.path.length - 1; i++) {
-                    parentObj = parentObj[data.path[i]];
+                    parentObj = parentObj[data.path[i]]
                 }
                 if (parentObj && parentObj.properties) {
-                    delete parentObj.properties[data.fieldName];
-                    parentObj.required = Object.keys(parentObj.properties);
+                    delete parentObj.properties[data.fieldName]
+                    parentObj.required = Object.keys(parentObj.properties)
                 }
             }
 
-            updatedSchema.properties[data.fieldName] = data.value;
-            updatedSchema.required = Object.keys(updatedSchema.properties);
+            updatedSchema.properties[data.fieldName] = data.value
+            updatedSchema.required = Object.keys(updatedSchema.properties)
 
-            handleSchemaChange(updatedSchema);
+            handleSchemaChange(updatedSchema)
             dispatch(
                 updateEdgesOnHandleRename({
                     nodeId,
@@ -977,11 +939,11 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     newHandleId: data.fieldName,
                     schemaType: 'output_schema',
                 })
-            );
+            )
         } catch (err) {
-            console.error('Failed to handle drop on root:', err);
+            console.error('Failed to handle drop on root:', err)
         }
-    };
+    }
 
     return (
         <div
