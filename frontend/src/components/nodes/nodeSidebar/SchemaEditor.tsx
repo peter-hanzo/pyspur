@@ -869,10 +869,17 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
         // Traverse to the parent of the field to delete
         for (let i = 0; i < path.length - 1; i++) {
-            if (current.type === 'object') {
-                current = current.properties![path[i]]
-            } else if (current.type === 'array' && path[i] === 'items') {
-                current = current.items!
+            if (current.type === 'object' && current.properties) {
+                if (!current.properties[path[i]]) {
+                    console.error('Path does not exist during traversal:', path[i])
+                    return
+                }
+                current = current.properties[path[i]]
+            } else if (current.type === 'array' && current.items && path[i] === 'items') {
+                current = current.items
+            } else {
+                console.error('Invalid schema structure during traversal')
+                return
             }
         }
 
