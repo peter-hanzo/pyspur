@@ -321,10 +321,10 @@ const SchemaField: React.FC<FieldProps> = ({
                     )}
 
                     <Select
+                        selectedKeys={[type]}
                         onChange={handleTypeChangeWrapper}
                         isDisabled={readOnly || isObjectWithFields}
                         value={type}
-                        defaultSelectedKeys={[type]}
                         className="w-32"
                         isMultiline={true}
                         renderValue={(items) => (
@@ -1008,10 +1008,10 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         className="p-2 flex-grow w-2/3"
                     />
                     <Select
+                        selectedKeys={[newType]}
                         onChange={(e) => setNewType(e.target.value)}
                         disabled={readOnly}
                         label="Type"
-                        defaultSelectedKeys={[availableFields[0]]}
                         className="w-32"
                         isMultiline={true}
                         renderValue={(items) => (
