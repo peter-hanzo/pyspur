@@ -1,7 +1,6 @@
 import { Button, Chip, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React, { useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { convertToPythonVariableName } from '../../../utils/variableNameUtils'
 
 export interface SchemaEditorProps {
@@ -584,7 +583,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
 }) => {
     const [newKey, setNewKey] = useState<string>('')
     const [newType, setNewType] = useState<string>(availableFields[0])
-    const dispatch = useDispatch()
 
     // New utility function to generate default schema structures
     const getDefaultSchemaForType = (type: string) => {
