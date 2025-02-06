@@ -2,7 +2,7 @@ import { Button, Chip, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { deleteEdgeByHandle, updateEdgesOnHandleRename } from '../../../store/flowSlice'
+import { deleteEdgeByHandle } from '../../../store/flowSlice'
 import { convertToPythonVariableName } from '../../../utils/variableNameUtils'
 
 export interface SchemaEditorProps {
@@ -844,15 +844,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             container.properties[key].required = Object.keys(container.properties[key].properties)
 
             updatedSchema.required = Object.keys(updatedSchema.properties)
-
-            dispatch(
-                updateEdgesOnHandleRename({
-                    nodeId,
-                    oldHandleId: sourceFieldName,
-                    newHandleId: [...path, sourceFieldName].join('.'),
-                    schemaType: 'output_schema',
-                })
-            )
         } else if (action.type === 'rename') {
             if (container.properties[key]) {
                 const oldKey = key
@@ -861,15 +852,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                     const value = container.properties[oldKey]
                     delete container.properties[oldKey]
                     container.properties[newKey] = value
-
-                    dispatch(
-                        updateEdgesOnHandleRename({
-                            nodeId,
-                            oldHandleId: oldKey,
-                            newHandleId: newKey,
-                            schemaType: 'output_schema',
-                        })
-                    )
                 }
             }
         } else if (action.type === 'update') {
@@ -930,14 +912,6 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
             updatedSchema.required = Object.keys(updatedSchema.properties)
 
             handleSchemaChange(updatedSchema)
-            dispatch(
-                updateEdgesOnHandleRename({
-                    nodeId,
-                    oldHandleId: data.fieldName,
-                    newHandleId: data.fieldName,
-                    schemaType: 'output_schema',
-                })
-            )
         } catch (err) {
             console.error('Failed to handle drop on root:', err)
         }

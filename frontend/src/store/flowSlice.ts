@@ -133,7 +133,7 @@ const flowSlice = createSlice({
                     },
                     node.parent_id,
                     node.dimensions,
-                    node.title,
+                    node.title
                 )
                 // Load the config directly from the definition instead of creating fresh
                 state.nodeConfigs[node.id] = node.config
@@ -563,27 +563,6 @@ const flowSlice = createSlice({
             }))
         },
 
-        updateEdgesOnHandleRename: (
-            state,
-            action: PayloadAction<{
-                nodeId: string
-                oldHandleId: string
-                newHandleId: string
-                schemaType: 'input_schema' | 'output_schema'
-            }>
-        ) => {
-            const { nodeId, oldHandleId, newHandleId, schemaType } = action.payload
-            state.edges = state.edges.map((edge) => {
-                if (schemaType === 'input_schema' && edge.target === nodeId && edge.targetHandle === oldHandleId) {
-                    return { ...edge, targetHandle: newHandleId }
-                }
-                if (schemaType === 'output_schema' && edge.source === nodeId && edge.sourceHandle === oldHandleId) {
-                    return { ...edge, sourceHandle: newHandleId }
-                }
-                return edge
-            })
-        },
-
         resetRun: (state) => {
             state.nodes = state.nodes.map((node) => ({
                 ...node,
@@ -760,7 +739,6 @@ export const {
     deleteWorkflowInputVariable,
     updateWorkflowInputVariableKey,
     resetFlow,
-    updateEdgesOnHandleRename,
     resetRun,
     clearCanvas,
     setTestInputs,
