@@ -489,7 +489,7 @@ async def completion_with_backoff(**kwargs) -> str:
             azure_kwargs = setup_azure_configuration(kwargs)
             logging.info(f"Using Azure config for model: {azure_kwargs['model']}")
             try:
-                response = await acompletion(**azure_kwargs)
+                response = await acompletion(**azure_kwargs, drop_params=True)
                 return response.choices[0].message.content
             except Exception as e:
                 logging.error(f"Error calling Azure OpenAI: {e}")
@@ -497,11 +497,11 @@ async def completion_with_backoff(**kwargs) -> str:
 
         elif model.startswith("ollama/"):
             logging.info("=== Ollama Configuration ===")
-            response = await acompletion(**kwargs)
+            response = await acompletion(**kwargs, drop_params=True)
             return response.choices[0].message.content
         else:
             logging.info("=== Standard Configuration ===")
-            response = await acompletion(**kwargs)
+            response = await acompletion(**kwargs, drop_params=True)
             return response.choices[0].message.content
 
     except Exception as e:
