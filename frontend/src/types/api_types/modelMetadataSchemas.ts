@@ -14,6 +14,8 @@ export interface ModelConstraints {
     min_temperature: number
     max_temperature: number
     supports_JSON_output: boolean
+    supports_max_tokens: boolean
+    supports_temperature: boolean
 }
 
 export interface ModelConstraintsMap {

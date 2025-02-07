@@ -57,6 +57,8 @@ class ModelConstraints(BaseModel):
     min_temperature: float = 0.0
     max_temperature: float = 1.0
     supports_JSON_output: bool = True
+    supports_max_tokens: bool = True
+    supports_temperature: bool = True
 
 
 class LLMModel(BaseModel):
@@ -125,13 +127,13 @@ class LLMModels(str, Enum):
                 id=cls.O3_MINI.value,
                 provider=LLMProvider.OPENAI,
                 name="O3 Mini",
-                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.O3_MINI_2025_01_31.value: LLMModel(
                 id=cls.O3_MINI_2025_01_31.value,
                 provider=LLMProvider.OPENAI,
                 name="O3 Mini (2025-01-31)",
-                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.GPT_4O_MINI.value: LLMModel(
                 id=cls.GPT_4O_MINI.value,
@@ -149,37 +151,37 @@ class LLMModels(str, Enum):
                 id=cls.O1_PREVIEW.value,
                 provider=LLMProvider.OPENAI,
                 name="O1 Preview",
-                constraints=ModelConstraints(max_tokens=32768, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.O1_MINI.value: LLMModel(
                 id=cls.O1_MINI.value,
                 provider=LLMProvider.OPENAI,
                 name="O1 Mini",
-                constraints=ModelConstraints(max_tokens=65536, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=65536, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.O1.value: LLMModel(
                 id=cls.O1.value,
                 provider=LLMProvider.OPENAI,
                 name="O1",
-                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.O1_2024_12_17.value: LLMModel(
                 id=cls.O1_2024_12_17.value,
                 provider=LLMProvider.OPENAI,
                 name="O1 (2024-12-17)",
-                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=100000, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.O1_MINI_2024_09_12.value: LLMModel(
                 id=cls.O1_MINI_2024_09_12.value,
                 provider=LLMProvider.OPENAI,
                 name="O1 Mini (2024-09-12)",
-                constraints=ModelConstraints(max_tokens=65536, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=65536, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.O1_PREVIEW_2024_09_12.value: LLMModel(
                 id=cls.O1_PREVIEW_2024_09_12.value,
                 provider=LLMProvider.OPENAI,
                 name="O1 Preview (2024-09-12)",
-                constraints=ModelConstraints(max_tokens=32768, max_temperature=2.0),
+                constraints=ModelConstraints(max_tokens=32768, max_temperature=2.0, supports_max_tokens=False, supports_temperature=False),
             ),
             cls.GPT_4_TURBO.value: LLMModel(
                 id=cls.GPT_4_TURBO.value,
@@ -267,17 +269,13 @@ class LLMModels(str, Enum):
                 id=cls.DEEPSEEK_CHAT.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
-                constraints=ModelConstraints(
-                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
-                ),
+                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0, supports_JSON_output=False),
             ),
             cls.DEEPSEEK_REASONER.value: LLMModel(
                 id=cls.DEEPSEEK_REASONER.value,
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Reasoner",
-                constraints=ModelConstraints(
-                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
-                ),
+                constraints=ModelConstraints(max_tokens=8192, max_temperature=2.0, supports_JSON_output=False, supports_max_tokens=False),
             ),
             # Ollama Models
             cls.OLLAMA_PHI4.value: LLMModel(
@@ -541,10 +539,12 @@ async def generate_text(
     if model_name == "deepseek/deepseek-reasoner":
         kwargs.pop("temperature")
 
-    response = ""
-
     # Get model info to check if it supports JSON output
     model_info = LLMModels.get_model_info(model_name)
+    if model_info and not model_info.constraints.supports_temperature:
+        kwargs.pop("temperature", None)
+    if model_info and not model_info.constraints.supports_max_tokens:
+        kwargs.pop("max_tokens", None)
     supports_json = model_info and model_info.constraints.supports_JSON_output
 
     # Only process JSON schema if the model supports it

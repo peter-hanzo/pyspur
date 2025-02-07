@@ -290,6 +290,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [vectorIndices, setVectorIndices] = useState<VectorIndexOption[]>([])
     const [isLoadingIndices, setIsLoadingIndices] = useState(false)
 
+    // Add this near other state variables (e.g., after currentNodeConfig state)
+    const [currentModelConstraints, setCurrentModelConstraints] = useState<ModelConstraints | null>(null);
+
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
         const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source))
@@ -991,8 +994,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 const isMissingNumberRequired =
                     Boolean(fieldMetadata?.required) && (value === undefined || value === null)
                 // Get current model constraints if this is a temperature or max_tokens field
-                const currentModel = currentNodeConfig?.llm_info?.model
-                const modelConstraints = currentModel ? getModelConstraints(nodeSchema, currentModel) : null
+                const modelConstraints = currentModelConstraints;
 
                 let min = fieldMetadata?.minimum ?? 0
                 let max = fieldMetadata?.maximum ?? 100
@@ -1010,6 +1012,60 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         // Ensure value is within constraints
                         if (value > max) value = max
                     }
+                }
+
+                // If this is the max_tokens field and the model does not support it, render a disabled slider with a tooltip
+                if ((key === 'max_tokens' || fullPath.endsWith('.max_tokens')) && modelConstraints && !modelConstraints.supports_max_tokens) {
+                    return (
+                        <div key={key} className="my-4">
+                            <Tooltip content="max_tokens is not supported for the selected model" placement="top" showArrow>
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="font-semibold">{fieldMetadata.title || key}</label>
+                                        <span className="text-sm">{value}</span>
+                                    </div>
+                                    <Slider
+                                        isDisabled={true}
+                                        key={`slider-${nodeID}-${key}`}
+                                        aria-label={fieldMetadata.title || key}
+                                        value={value}
+                                        minValue={value}
+                                        maxValue={value}
+                                        step={fieldMetadata.type === 'integer' ? 1 : 0.1}
+                                        className="w-full"
+                                    />
+                                </div>
+                            </Tooltip>
+                            {!isLast && <hr className="my-2" />}
+                        </div>
+                    );
+                }
+
+                // If this is the temperature field and the model does not support it, render a disabled slider with a tooltip
+                if ((key === 'temperature' || fullPath.endsWith('.temperature')) && modelConstraints && !modelConstraints.supports_temperature) {
+                    return (
+                        <div key={key} className="my-4">
+                            <Tooltip content="Temperature is not supported for the selected model" placement="top" showArrow>
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="font-semibold">{fieldMetadata.title || key}</label>
+                                        <span className="text-sm">{value}</span>
+                                    </div>
+                                    <Slider
+                                        isDisabled={true}
+                                        key={`slider-${nodeID}-${key}`}
+                                        aria-label={fieldMetadata.title || key}
+                                        value={value}
+                                        minValue={value}
+                                        maxValue={value}
+                                        step={fieldMetadata.type === 'integer' ? 1 : 0.1}
+                                        className="w-full"
+                                    />
+                                </div>
+                            </Tooltip>
+                            {!isLast && <hr className="my-2" />}
+                        </div>
+                    );
                 }
 
                 if (fieldMetadata && (min !== undefined || max !== undefined)) {
@@ -1350,6 +1406,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             </div>
         )
     }
+
+    useEffect(() => {
+        if (currentNodeConfig?.llm_info?.model && nodeSchema) {
+            const constraints = getModelConstraints(nodeSchema, currentNodeConfig.llm_info.model);
+            setCurrentModelConstraints(constraints);
+        } else {
+            setCurrentModelConstraints(null);
+        }
+    }, [currentNodeConfig?.llm_info?.model, nodeSchema]);
 
     return (
         <Card
