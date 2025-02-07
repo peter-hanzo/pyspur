@@ -54,6 +54,17 @@ class ModelConstraints(BaseModel):
         self.supported_mime_types.update(mime_types)
         return self
 
+    def is_mime_type_supported(self, mime_type: RecognisedMimeType) -> bool:
+        """Check if a specific MIME type is supported.
+
+        Args:
+            mime_type: The RecognisedMimeType to check.
+
+        Returns:
+            bool: True if the MIME type is supported, False otherwise.
+        """
+        return mime_type in self.supported_mime_types
+
 
 class LLMModel(BaseModel):
     id: str
