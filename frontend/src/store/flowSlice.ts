@@ -104,6 +104,17 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
     }
 }
 
+const generateJsonSchema = (schema: Record<string, any>): string => {
+    const jsonSchema = {
+        type: 'object',
+        properties: Object.fromEntries(
+            Object.entries(schema).map(([key, type]) => [key, { type }])
+        ),
+        required: Object.keys(schema)
+    }
+    return JSON.stringify(jsonSchema, null, 2)
+}
+
 const flowSlice = createSlice({
     name: 'flow',
     initialState,
@@ -389,7 +400,13 @@ const flowSlice = createSlice({
             state.projectName = action.payload
         },
 
-        setWorkflowInputVariable: (state, action: PayloadAction<{ key: string; value: any }>) => {
+        setWorkflowInputVariable: (
+            state,
+            action: PayloadAction<{
+                key: string
+                value: any
+            }>
+        ) => {
             const { key, value } = action.payload
             state.workflowInputVariables[key] = value
 
@@ -397,12 +414,15 @@ const flowSlice = createSlice({
             const inputNode = state.nodes.find((node) => node.type === 'InputNode')
             if (inputNode) {
                 const currentConfig = state.nodeConfigs[inputNode.id] || {}
+                const updatedSchema = {
+                    ...(currentConfig.output_schema || {}),
+                    [key]: value,
+                }
+
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
-                    output_schema: {
-                        ...(currentConfig.output_schema || {}),
-                        [key]: value,
-                    },
+                    output_schema: updatedSchema,
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
 
@@ -429,18 +449,25 @@ const flowSlice = createSlice({
             }
         },
 
-        deleteWorkflowInputVariable: (state, action: PayloadAction<{ key: string }>) => {
+        deleteWorkflowInputVariable: (
+            state,
+            action: PayloadAction<{
+                key: string
+            }>
+        ) => {
             const { key } = action.payload
 
             // Remove from input node output schema
             const inputNode = state.nodes.find((node) => node.type === 'InputNode')
             if (inputNode) {
                 const currentConfig = state.nodeConfigs[inputNode.id] || {}
-                const currentSchema = { ...(currentConfig.output_schema || {}) }
-                delete currentSchema[key]
+                const updatedSchema = { ...(currentConfig.output_schema || {}) }
+                delete updatedSchema[key]
+
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
-                    output_schema: currentSchema,
+                    output_schema: updatedSchema,
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
             // Remove from global workflowInputVariables
@@ -472,7 +499,13 @@ const flowSlice = createSlice({
             }
         },
 
-        updateWorkflowInputVariableKey: (state, action: PayloadAction<{ oldKey: string; newKey: string }>) => {
+        updateWorkflowInputVariableKey: (
+            state,
+            action: PayloadAction<{
+                oldKey: string
+                newKey: string
+            }>
+        ) => {
             const { oldKey, newKey } = action.payload
 
             // Only proceed if keys differ
@@ -486,14 +519,16 @@ const flowSlice = createSlice({
             const inputNode = state.nodes.find((node) => node.type === 'InputNode')
             if (inputNode) {
                 const currentConfig = state.nodeConfigs[inputNode.id] || {}
-                const currentSchema = { ...(currentConfig.output_schema || {}) }
-                if (currentSchema.hasOwnProperty(oldKey)) {
-                    currentSchema[newKey] = currentSchema[oldKey]
-                    delete currentSchema[oldKey]
+                const updatedSchema = { ...(currentConfig.output_schema || {}) }
+                if (updatedSchema.hasOwnProperty(oldKey)) {
+                    updatedSchema[newKey] = updatedSchema[oldKey]
+                    delete updatedSchema[oldKey]
                 }
+
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
-                    output_schema: currentSchema,
+                    output_schema: updatedSchema,
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
 
@@ -505,7 +540,7 @@ const flowSlice = createSlice({
                 return edge
             })
 
-            // 4. Rebuild RouterNode/CoalesceNode schemas connected to the input node,
+            // 4. Rebuild RouterNode/CoalesceNode schemas connected to the input node
             if (inputNode?.id) {
                 const connectedRouterNodes = state.nodes.filter(
                     (targetNode) =>
