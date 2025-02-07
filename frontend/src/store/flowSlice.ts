@@ -104,6 +104,17 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
     }
 }
 
+const generateJsonSchema = (schema: Record<string, any>): string => {
+    const jsonSchema = {
+        type: 'object',
+        properties: Object.fromEntries(
+            Object.entries(schema).map(([key, type]) => [key, { type }])
+        ),
+        required: Object.keys(schema)
+    }
+    return JSON.stringify(jsonSchema, null, 2)
+}
+
 const flowSlice = createSlice({
     name: 'flow',
     initialState,
@@ -408,19 +419,10 @@ const flowSlice = createSlice({
                     [key]: value,
                 }
 
-                // Generate JSON schema
-                const jsonSchema = {
-                    type: 'object',
-                    properties: Object.fromEntries(
-                        Object.entries(updatedSchema).map(([k, type]) => [k, { type }])
-                    ),
-                    required: Object.keys(updatedSchema)
-                }
-
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: JSON.stringify(jsonSchema, null, 2)
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
 
@@ -462,19 +464,10 @@ const flowSlice = createSlice({
                 const updatedSchema = { ...(currentConfig.output_schema || {}) }
                 delete updatedSchema[key]
 
-                // Generate JSON schema
-                const jsonSchema = {
-                    type: 'object',
-                    properties: Object.fromEntries(
-                        Object.entries(updatedSchema).map(([k, type]) => [k, { type }])
-                    ),
-                    required: Object.keys(updatedSchema)
-                }
-
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: JSON.stringify(jsonSchema, null, 2)
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
             // Remove from global workflowInputVariables
@@ -532,19 +525,10 @@ const flowSlice = createSlice({
                     delete updatedSchema[oldKey]
                 }
 
-                // Generate JSON schema
-                const jsonSchema = {
-                    type: 'object',
-                    properties: Object.fromEntries(
-                        Object.entries(updatedSchema).map(([k, type]) => [k, { type }])
-                    ),
-                    required: Object.keys(updatedSchema)
-                }
-
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: JSON.stringify(jsonSchema, null, 2)
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
 
