@@ -300,13 +300,15 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             const config = allNodeConfigs[node.id]
             if (config?.output_json_schema) {
                 const nodeTitle = config.title || node.id
-                try {
-                    const { schema } = extractSchemaFromJsonSchema(config.output_json_schema)
-                    if (schema && typeof schema === 'object') {
-                        return [...acc, ...Object.keys(schema).map((key) => `${nodeTitle}.${key}`)]
-                    }
-                } catch (e) {
-                    console.error('Error parsing output_json_schema:', e)
+                const { schema, error } = extractSchemaFromJsonSchema(config.output_json_schema)
+                if (error) {
+                    console.error('Error parsing output_json_schema:', error)
+                    return acc
+                }
+                if (schema && typeof schema === 'object') {
+                    Object.keys(schema).forEach(key => {
+                        acc.push(`${nodeTitle}.${key}`)
+                    })
                 }
             }
             return acc
