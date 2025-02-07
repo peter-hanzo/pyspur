@@ -1,3 +1,4 @@
+import mimetypes
 from enum import Enum
 from typing import Dict, List
 
@@ -89,3 +90,36 @@ MIME_TYPES_BY_CATEGORY: Dict[MimeCategory, List[RecognisedMimeType]] = {
         RecognisedMimeType.JSON,
     ],
 }
+
+
+class UnsopportedFileTypeError(Exception):
+    """Exception raised when a file type is not supported."""
+
+    pass
+
+
+def get_mime_type_for_url(url: str) -> RecognisedMimeType:
+    """
+    Get the MIME type for a given URL.
+
+    Args:
+        url (str): The URL to get the MIME type for. This can be a file path, a URL, or a data URI.
+
+    Returns:
+        RecognisedMimeType: The MIME type for the URL.
+    """
+    # Data URI
+    if url.startswith("data:"):
+        # Data URI
+        mime_type = url.split(";")[0].split(":")[1]
+        try:
+            return RecognisedMimeType(mime_type)
+        except ValueError:
+            raise UnsopportedFileTypeError(f"Unsupported data URI: {url.split(';')[0]}")
+
+    # File path or URL
+    mime_type, _ = mimetypes.guess_type(url)
+    if mime_type:
+        return RecognisedMimeType(mime_type)
+    else:
+        raise UnsopportedFileTypeError(f"Unsupported file type: {url}")
