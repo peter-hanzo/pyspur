@@ -298,9 +298,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         return incomingNodes.reduce((acc: string[], node) => {
             if (!node) return acc
             const config = allNodeConfigs[node.id]
-            if (config?.output_schema) {
+            if (config?.output_json_schema) {
                 const nodeTitle = config.title || node.id
-                return [...acc, ...Object.keys(config.output_schema).map((key) => `${nodeTitle}.${key}`)]
+                try {
+                    const { schema } = extractSchemaFromJsonSchema(config.output_json_schema)
+                    if (schema && typeof schema === 'object') {
+                        return [...acc, ...Object.keys(schema).map((key) => `${nodeTitle}.${key}`)]
+                    }
+                } catch (e) {
+                    console.error('Error parsing output_json_schema:', e)
+                }
             }
             return acc
         }, [])
@@ -561,9 +568,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     // Add useEffect to validate initial schema
     useEffect(() => {
         if (currentNodeConfig?.output_json_schema) {
-            debouncedValidate(currentNodeConfig.output_json_schema);
+            debouncedValidate(currentNodeConfig.output_json_schema)
         }
-    }, [currentNodeConfig?.output_json_schema]);
+    }, [currentNodeConfig?.output_json_schema])
 
     // Update renderField to handle vector index selection
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
