@@ -16,6 +16,7 @@ from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
 from ...utils.file_utils import encode_file_to_base64_data_url
 from ...utils.path_utils import resolve_file_path, is_external_url
+from ...utils.mime_types_utils import get_mime_type_for_url
 
 from ._providers import OllamaOptions, setup_azure_configuration
 from ._model_info import LLMModels
@@ -290,8 +291,15 @@ async def generate_text(
                 api_base=api_base,
             )
             response = raw_response
-        # Handle Gemini models with URL variables
-        elif model_name.startswith("gemini") and url_variables:
+        # Handle inputs with URL variables
+        elif url_variables:
+            # check if the mime type is supported
+            mime_type = get_mime_type_for_url(url_variables["image"])
+            if not model_info.constraints.is_mime_type_supported(mime_type):
+                raise ValueError(
+                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}. Supported types: {( mime.value for mime in model_info.constraints.supported_mime_types)}"""
+                )
+
             # Transform messages to include URL content
             transformed_messages = []
             for msg in messages:
