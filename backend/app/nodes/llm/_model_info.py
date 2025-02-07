@@ -114,7 +114,7 @@ class LLMModels(str, Enum):
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
 
     @classmethod
-    def get_model_info(cls, model_id: str) -> LLMModel:
+    def get_model_info(cls, model_id: str) -> LLMModel | None:
         model_registry = {
             # OpenAI Models - all have temperature up to 2.0
             cls.O3_MINI.value: LLMModel(
@@ -441,5 +441,4 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
         }
-        assert model_id in model_registry, f"Model {model_id} not found in registry"
-        return model_registry[model_id]
+        return model_registry.get(model_id)
