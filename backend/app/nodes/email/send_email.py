@@ -10,7 +10,7 @@ from .providers.base import (
 )
 from .providers.registry import EmailProviderRegistry
 from ..utils.template_utils import render_template_or_get_first_string
-
+import json
 
 def parse_email_addresses(email_str: str) -> List[str]:
     """
@@ -41,6 +41,13 @@ def parse_email_addresses(email_str: str) -> List[str]:
         return emails
     return [email_str]
 
+class SendEmailNodeOutput(BaseNodeOutput):
+    provider: EmailProvider = Field(..., description="The email provider used")
+    message_id: str = Field(..., description="The message ID from the provider")
+    status: str = Field(..., description="The status of the email send operation")
+    raw_response: str = Field(
+        ..., description="The raw response from the provider as JSON string"
+    )
 
 class SendEmailNodeConfig(BaseNodeConfig):
     provider: EmailProvider = Field(
@@ -61,6 +68,7 @@ class SendEmailNodeConfig(BaseNodeConfig):
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
+    output_json_schema: str = json.dumps(SendEmailNodeOutput.model_json_schema())
 
 
 class SendEmailNodeInput(BaseNodeInput):
@@ -68,15 +76,6 @@ class SendEmailNodeInput(BaseNodeInput):
 
     class Config:
         extra = "allow"
-
-
-class SendEmailNodeOutput(BaseNodeOutput):
-    provider: EmailProvider = Field(..., description="The email provider used")
-    message_id: str = Field(..., description="The message ID from the provider")
-    status: str = Field(..., description="The status of the email send operation")
-    raw_response: str = Field(
-        ..., description="The raw response from the provider as JSON string"
-    )
 
 
 class SendEmailNode(BaseNode):
