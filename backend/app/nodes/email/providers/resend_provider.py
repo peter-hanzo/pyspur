@@ -15,7 +15,7 @@ class ResendProvider:
     async def send_email(self, message: EmailMessage) -> EmailResponse:
         params: resend.Emails.SendParams = {
             "from": message.from_email,
-            "to": [message.to_email],
+            "to": message.to_emails,
             "subject": message.subject,
             "text": message.content,
         }
@@ -26,7 +26,7 @@ class ResendProvider:
             response_dict = {
                 "id": getattr(response, "id", ""),
                 "from": message.from_email,
-                "to": message.to_email,
+                "to": message.to_emails,
                 "subject": message.subject,
             }
 
@@ -40,7 +40,7 @@ class ResendProvider:
             error_dict = {
                 "error": str(e),
                 "from": message.from_email,
-                "to": message.to_email,
+                "to": message.to_emails,
                 "subject": message.subject,
             }
             return EmailResponse(

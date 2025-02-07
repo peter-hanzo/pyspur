@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict
+from typing import Dict, List
 
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from .providers.base import (
@@ -10,6 +10,36 @@ from .providers.base import (
 )
 from .providers.registry import EmailProviderRegistry
 from ..utils.template_utils import render_template_or_get_first_string
+
+
+def parse_email_addresses(email_str: str) -> List[str]:
+    """
+    Parse a string containing one or more email addresses.
+
+    Args:
+        email_str: A string that can be either a single email or a list of emails in the format "['email1', 'email2']"
+
+    Returns:
+        List[str]: A list of cleaned email addresses
+
+    Example:
+        >>> parse_email_addresses("test@example.com")
+        ["test@example.com"]
+        >>> parse_email_addresses("['test1@example.com', 'test2@example.com']")
+        ["test1@example.com", "test2@example.com"]
+    """
+    email_str = email_str.strip()
+    if email_str.startswith("[") and email_str.endswith("]"):
+        # Remove brackets and split by comma
+        email_str = email_str[1:-1]
+        # Split by comma and clean each email
+        emails = [email.strip().strip("'").strip('"') for email in email_str.split(",")]
+        # Remove any empty strings
+        emails = [email for email in emails if email]
+        if not emails:
+            raise ValueError("No valid email addresses found in the list")
+        return emails
+    return [email_str]
 
 
 class SendEmailNodeConfig(BaseNodeConfig):
@@ -73,9 +103,12 @@ class SendEmailNode(BaseNode):
         from_email = render_template_or_get_first_string(
             self.config.from_template, raw_input_dict, self.name
         )
-        to_email = render_template_or_get_first_string(
+        to_emails_str = render_template_or_get_first_string(
             self.config.to_template, raw_input_dict, self.name
         )
+
+        to_emails = parse_email_addresses(to_emails_str)
+
         subject = render_template_or_get_first_string(
             self.config.subject_template, raw_input_dict, self.name
         )
@@ -86,7 +119,7 @@ class SendEmailNode(BaseNode):
         # Create the email message
         message = EmailMessage(
             from_email=from_email,
-            to_email=to_email,
+            to_emails=to_emails,
             subject=subject,
             content=content,
         )

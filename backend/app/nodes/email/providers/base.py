@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, List
 from enum import Enum
 from pydantic import BaseModel, Field
 
@@ -18,7 +18,7 @@ class EmailMessage(BaseModel):
     """Common email message format across providers"""
 
     from_email: str
-    to_email: str
+    to_emails: List[str]
     subject: str
     content: str
 
