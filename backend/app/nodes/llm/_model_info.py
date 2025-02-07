@@ -1,5 +1,11 @@
 from enum import Enum
+from typing import Set
 from pydantic import BaseModel
+from app.utils.mime_types_utils import (
+    MimeCategory,
+    RecognisedMimeType,
+    MIME_TYPES_BY_CATEGORY,
+)
 
 
 class LLMProvider(str, Enum):
@@ -18,6 +24,35 @@ class ModelConstraints(BaseModel):
     supports_JSON_output: bool = True
     supports_max_tokens: bool = True
     supports_temperature: bool = True
+    supported_mime_types: Set[RecognisedMimeType] = (
+        set()
+    )  # Empty set means no multimodal support
+
+    def add_mime_categories(self, categories: Set[MimeCategory]) -> "ModelConstraints":
+        """Add MIME type support for entire categories.
+
+        Args:
+            categories: Set of MimeCategory to add support for. All MIME types
+                      in these categories will be added.
+
+        Returns:
+            self: Returns self for method chaining.
+        """
+        for category in categories:
+            self.supported_mime_types.update(MIME_TYPES_BY_CATEGORY[category])
+        return self
+
+    def add_mime_types(self, mime_types: Set[RecognisedMimeType]) -> "ModelConstraints":
+        """Add support for specific MIME types.
+
+        Args:
+            mime_types: Set of specific RecognisedMimeType to add support for.
+
+        Returns:
+            self: Returns self for method chaining.
+        """
+        self.supported_mime_types.update(mime_types)
+        return self
 
 
 class LLMModel(BaseModel):
@@ -114,7 +149,9 @@ class LLMModels(str, Enum):
                 id=cls.GPT_4O.value,
                 provider=LLMProvider.OPENAI,
                 name="GPT-4O",
-                constraints=ModelConstraints(max_tokens=16384, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=16384, max_temperature=2.0
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1_PREVIEW.value: LLMModel(
                 id=cls.O1_PREVIEW.value,
@@ -186,7 +223,10 @@ class LLMModels(str, Enum):
                 id=cls.GPT_4_TURBO.value,
                 provider=LLMProvider.OPENAI,
                 name="GPT-4 Turbo",
-                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=4096,
+                    max_temperature=2.0,
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.CHATGPT_4O_LATEST.value: LLMModel(
                 id=cls.CHATGPT_4O_LATEST.value,
@@ -239,32 +279,67 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(
                     max_tokens=4096,
                     max_temperature=1.0,
-                ),
+                )
+                .add_mime_categories({MimeCategory.IMAGES, MimeCategory.DOCUMENTS})
+                .add_mime_types({RecognisedMimeType.CSV, RecognisedMimeType.JSON}),
             ),
             # Google Models
             cls.GEMINI_1_5_PRO.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO.value,
                 provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Pro",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192,
+                    max_temperature=1.0,
+                ).add_mime_categories({MimeCategory.IMAGES, MimeCategory.AUDIO}),
             ),
             cls.GEMINI_1_5_FLASH.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH.value,
                 provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Flash",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0
+                ).add_mime_categories(
+                    {
+                        MimeCategory.IMAGES,
+                        MimeCategory.AUDIO,
+                        MimeCategory.VIDEO,
+                        MimeCategory.DOCUMENTS,
+                        MimeCategory.TEXT,
+                    }
+                ),
             ),
             cls.GEMINI_1_5_PRO_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_PRO_LATEST.value,
                 provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Pro Latest",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0
+                ).add_mime_categories(
+                    {
+                        MimeCategory.IMAGES,
+                        MimeCategory.AUDIO,
+                        MimeCategory.VIDEO,
+                        MimeCategory.DOCUMENTS,
+                        MimeCategory.TEXT,
+                    }
+                ),
             ),
             cls.GEMINI_1_5_FLASH_LATEST.value: LLMModel(
                 id=cls.GEMINI_1_5_FLASH_LATEST.value,
                 provider=LLMProvider.GEMINI,
                 name="Gemini 1.5 Flash Latest",
-                constraints=ModelConstraints(max_tokens=8192, max_temperature=1.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0
+                ).add_mime_categories(
+                    {
+                        MimeCategory.IMAGES,
+                        MimeCategory.AUDIO,
+                        MimeCategory.VIDEO,
+                        MimeCategory.DOCUMENTS,
+                        MimeCategory.TEXT,
+                    }
+                ),
             ),
             # Deepseek Models
             cls.DEEPSEEK_CHAT.value: LLMModel(
