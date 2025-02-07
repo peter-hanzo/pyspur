@@ -30,7 +30,7 @@ class BaseNodeConfig(BaseModel):
         description="The schema for the output of the node",
     )
     output_json_schema: str = Field(
-        default="{}",
+        default='{"type": "object", "properties": {"output": {"type": "string"} } }',
         title="Output JSON schema",
         description="The JSON schema for the output of the node",
     )
