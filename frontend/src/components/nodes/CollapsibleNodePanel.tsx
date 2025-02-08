@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Icon } from '@iconify/react'
-import { Button, Accordion, AccordionItem, Input } from '@heroui/react'
+import { Button, Accordion, AccordionItem, Input, Tooltip } from '@heroui/react'
 import { useSelector, useDispatch } from 'react-redux'
 import { ReactFlowInstance, useReactFlow } from '@xyflow/react'
 import { useHotkeys } from 'react-hotkeys-hook'
@@ -118,13 +118,23 @@ const CollapsibleNodePanel: React.FC = () => {
             ref={panelRef}
             className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}
         >
-            <Button isIconOnly size="md" className="bg-background" onClick={handleToggleExpand}>
-                <Icon
-                    icon={isExpanded ? 'solar:minus-square-linear' : 'solar:widget-add-linear'}
-                    width={'80%'}
-                    className="text-default-500"
-                />
-            </Button>
+            <Tooltip
+                content={
+                    <div className="px-1 py-2">
+                        <div className="text-small font-bold">Keyboard Shortcuts</div>
+                        <div className="text-tiny">Press <kbd>Ctrl+N</kbd> or <kbd>N</kbd> to toggle panel</div>
+                    </div>
+                }
+                placement="right"
+            >
+                <Button isIconOnly size="md" className="bg-background" onClick={handleToggleExpand}>
+                    <Icon
+                        icon={isExpanded ? 'solar:minus-square-linear' : 'solar:widget-add-linear'}
+                        width={'80%'}
+                        className="text-default-500"
+                    />
+                </Button>
+            </Tooltip>
             {isExpanded && (
                 <>
                     <Input
