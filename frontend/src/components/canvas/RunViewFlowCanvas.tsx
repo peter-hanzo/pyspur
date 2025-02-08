@@ -37,6 +37,7 @@ import {
     useFlowEventHandlers,
     useAdjustGroupNodesZIndex,
 } from '../../utils/flowUtils'
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 
 interface RunViewFlowCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
@@ -172,6 +173,11 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         [dispatch, selectedNodeID]
     )
 
+    const handleLayout = useCallback(() => {
+        const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[])
+        dispatch(setNodes({ nodes: layoutedNodes }))
+    }, [nodes, edges, dispatch])
+
     const handleKeyDown = useCallback(
         (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
@@ -220,6 +226,8 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         }
     }, [handleKeyDown])
 
+    useKeyboardShortcuts(selectedNodeID, nodes, nodeTypes, nodeTypesConfig, dispatch, handleLayout)
+
     const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
         setHoveredNode(node.id)
     }, [])
@@ -227,11 +235,6 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     const onNodeMouseLeave = useCallback(() => {
         setHoveredNode(null)
     }, [])
-
-    const handleLayout = useCallback(() => {
-        const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[])
-        dispatch(setNodes({ nodes: layoutedNodes }))
-    }, [nodes, edges, dispatch])
 
     if (isLoading) {
         return <LoadingSpinner />

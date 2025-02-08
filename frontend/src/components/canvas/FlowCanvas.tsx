@@ -272,7 +272,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         }
     }, [handleKeyDown])
 
-    useKeyboardShortcuts(selectedNodeID, nodes, nodeTypes, nodeTypesConfig, dispatch)
+    useKeyboardShortcuts(selectedNodeID, nodes, nodeTypes, nodeTypesConfig, dispatch, handleLayout)
 
     const { cut, copy, paste, bufferedNodes } = useCopyPaste()
     useCopyPaste()
