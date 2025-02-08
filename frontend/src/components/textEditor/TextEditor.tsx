@@ -142,8 +142,16 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         }, [isOpen, modalEditor, editor])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
-            if (inputSchema === null || inputSchema === undefined || inputSchema.length === 0) {
-                return null
+            // Show message when no input schema is available (undefined or empty array)
+            if (!inputSchema || !Array.isArray(inputSchema) || inputSchema.length === 0) {
+                return (
+                    <div className="flex items-center gap-2 mb-2 px-2">
+                        <span className="text-foreground-500 text-sm flex items-center gap-1">
+                            <Icon icon="solar:info-circle-linear" className="w-4 h-4" />
+                            Connect nodes to use variables
+                        </span>
+                    </div>
+                )
             }
 
             const generateFullSchemaJson = () => {
@@ -196,7 +204,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         }
 
         const renderToolbar = (editorInstance: Editor | null, isFullScreen = false) => {
-            if (!editorInstance || disableFormatting) return null
+            if (!editorInstance) return null
 
             const buttonSize = isFullScreen ? 'sm' : 'md'
             const buttonClassName = isFullScreen ? 'w-4 h-4' : 'w-3 h-3'
@@ -204,56 +212,58 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
 
             return (
                 <div className={toolbarClassName}>
-                    <div className="flex justify-start items-center gap-1 w-full lg:w-10/12 flex-wrap">
-                        <Button
-                            onPress={() => editorInstance.chain().focus().toggleBold().run()}
-                            disabled={!editorInstance.can().chain().focus().toggleBold().run()}
-                            color="primary"
-                            variant={editorInstance.isActive('bold') ? 'solid' : 'flat'}
-                            size={buttonSize}
-                            isIconOnly
-                        >
-                            <Icon icon="solar:text-bold-linear" className={buttonClassName} />
-                        </Button>
-                        <Button
-                            onPress={() => editorInstance.chain().focus().toggleItalic().run()}
-                            disabled={!editorInstance.can().chain().focus().toggleItalic().run()}
-                            color="primary"
-                            variant={editorInstance.isActive('italic') ? 'solid' : 'flat'}
-                            size={buttonSize}
-                            isIconOnly
-                        >
-                            <Icon icon="solar:text-italic-linear" className={buttonClassName} />
-                        </Button>
-                        <Button
-                            onPress={() => editorInstance.chain().focus().toggleUnderline().run()}
-                            disabled={!editorInstance.can().chain().focus().toggleUnderline().run()}
-                            color="primary"
-                            variant={editorInstance.isActive('underline') ? 'solid' : 'flat'}
-                            size={buttonSize}
-                            isIconOnly
-                        >
-                            <Icon icon="solar:text-underline-linear" className={buttonClassName} />
-                        </Button>
-                        <Button
-                            onPress={() => editorInstance.chain().focus().toggleBulletList().run()}
-                            color="primary"
-                            variant={editorInstance.isActive('bulletList') ? 'solid' : 'flat'}
-                            size={buttonSize}
-                            isIconOnly
-                        >
-                            <List className={buttonClassName} />
-                        </Button>
-                        <Button
-                            onPress={() => editorInstance.chain().focus().toggleOrderedList().run()}
-                            color="primary"
-                            variant={editorInstance.isActive('orderedList') ? 'solid' : 'flat'}
-                            size={buttonSize}
-                            isIconOnly
-                        >
-                            <ListOrdered className={buttonClassName} />
-                        </Button>
-                    </div>
+                    {!disableFormatting && (
+                        <div className="flex justify-start items-center gap-1 w-full lg:w-10/12 flex-wrap">
+                            <Button
+                                onPress={() => editorInstance.chain().focus().toggleBold().run()}
+                                disabled={!editorInstance.can().chain().focus().toggleBold().run()}
+                                color="primary"
+                                variant={editorInstance.isActive('bold') ? 'solid' : 'flat'}
+                                size={buttonSize}
+                                isIconOnly
+                            >
+                                <Icon icon="solar:text-bold-linear" className={buttonClassName} />
+                            </Button>
+                            <Button
+                                onPress={() => editorInstance.chain().focus().toggleItalic().run()}
+                                disabled={!editorInstance.can().chain().focus().toggleItalic().run()}
+                                color="primary"
+                                variant={editorInstance.isActive('italic') ? 'solid' : 'flat'}
+                                size={buttonSize}
+                                isIconOnly
+                            >
+                                <Icon icon="solar:text-italic-linear" className={buttonClassName} />
+                            </Button>
+                            <Button
+                                onPress={() => editorInstance.chain().focus().toggleUnderline().run()}
+                                disabled={!editorInstance.can().chain().focus().toggleUnderline().run()}
+                                color="primary"
+                                variant={editorInstance.isActive('underline') ? 'solid' : 'flat'}
+                                size={buttonSize}
+                                isIconOnly
+                            >
+                                <Icon icon="solar:text-underline-linear" className={buttonClassName} />
+                            </Button>
+                            <Button
+                                onPress={() => editorInstance.chain().focus().toggleBulletList().run()}
+                                color="primary"
+                                variant={editorInstance.isActive('bulletList') ? 'solid' : 'flat'}
+                                size={buttonSize}
+                                isIconOnly
+                            >
+                                <List className={buttonClassName} />
+                            </Button>
+                            <Button
+                                onPress={() => editorInstance.chain().focus().toggleOrderedList().run()}
+                                color="primary"
+                                variant={editorInstance.isActive('orderedList') ? 'solid' : 'flat'}
+                                size={buttonSize}
+                                isIconOnly
+                            >
+                                <ListOrdered className={buttonClassName} />
+                            </Button>
+                        </div>
+                    )}
                     {renderVariableButtons(editorInstance)}
                 </div>
             )
