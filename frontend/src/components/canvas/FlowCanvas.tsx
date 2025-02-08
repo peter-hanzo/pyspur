@@ -227,11 +227,23 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                 return;
             }
 
+            // Get the node panel state
+            const nodePanelElement = document.querySelector('[data-node-panel]');
+            const isNodePanelExpanded = nodePanelElement?.getAttribute('data-expanded') === 'true';
+            const isNodePanelFocused = nodePanelElement?.contains(document.activeElement);
+
+            // Only handle delete/backspace regardless of panel state
             if (event.key === 'Delete' || event.key === 'Backspace') {
                 const selectedNodes = nodes.filter((node) => node.selected);
                 if (selectedNodes.length > 0) {
                     onNodesDelete(selectedNodes);
                 }
+                return;
+            }
+
+            // Don't handle arrow keys if node panel is expanded and focused
+            if (isNodePanelExpanded && isNodePanelFocused) {
+                return;
             }
 
             // Pan amount per keypress (adjust this value to control pan speed)
