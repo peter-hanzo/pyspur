@@ -22,6 +22,7 @@ interface TextEditorProps {
     fullScreen?: boolean
     inputSchema?: string[]
     fieldTitle?: string
+    disableFormatting?: boolean
 }
 
 interface TextEditorRef {
@@ -30,7 +31,7 @@ interface TextEditorRef {
 
 const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
     (
-        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle },
+        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle, disableFormatting = false },
         ref
     ) => {
         const [localContent, setLocalContent] = React.useState(initialContent)
@@ -39,8 +40,29 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             setLocalContent(initialContent)
         }, [initialContent])
 
-        const editor = useEditor({
-            extensions: [
+        const getEditorExtensions = () => {
+            if (disableFormatting) {
+                return [
+                    StarterKit.configure({
+                        heading: false,
+                        bold: false,
+                        italic: false,
+                        bulletList: false,
+                        orderedList: false,
+                        code: false,
+                        codeBlock: false,
+                        blockquote: false,
+                        strike: false,
+                    }),
+                    Markdown.configure({
+                        html: false,
+                        transformPastedText: true,
+                        transformCopiedText: true,
+                    }),
+                ]
+            }
+
+            return [
                 Color.configure({ types: [TextStyle.name, ListItem.name] }),
                 TextStyle.configure(),
                 StarterKit.configure({
@@ -53,7 +75,11 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                     transformPastedText: true,
                     transformCopiedText: true,
                 }),
-            ],
+            ]
+        }
+
+        const editor = useEditor({
+            extensions: getEditorExtensions(),
             content: localContent ? localContent : '',
             editorProps: {
                 attributes: {
@@ -90,20 +116,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
         const modalEditor = useEditor({
-            extensions: [
-                Color.configure({ types: [TextStyle.name, ListItem.name] }),
-                TextStyle.configure(),
-                StarterKit.configure({
-                    bulletList: { keepMarks: true, keepAttributes: false },
-                    orderedList: { keepMarks: true, keepAttributes: false },
-                }),
-                Underline,
-                Markdown.configure({
-                    html: false,
-                    transformPastedText: true,
-                    transformCopiedText: true,
-                }),
-            ],
+            extensions: getEditorExtensions(),
             content: localContent ? localContent : '',
             editorProps: {
                 attributes: {
@@ -183,7 +196,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         }
 
         const renderToolbar = (editorInstance: Editor | null, isFullScreen = false) => {
-            if (!editorInstance) return null
+            if (!editorInstance || disableFormatting) return null
 
             const buttonSize = isFullScreen ? 'sm' : 'md'
             const buttonClassName = isFullScreen ? 'w-4 h-4' : 'w-3 h-3'
