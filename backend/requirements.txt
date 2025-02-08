@@ -46,3 +46,5 @@ youtube_transcript_api==0.6.3
 PyGithub==2.5.0
 firecrawl-py==1.10.2
 httpx[http2]==0.27.2
+sendgrid==6.11.0
+resend==2.6.0
