@@ -174,8 +174,11 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
 
     const handleKeyDown = useCallback(
         (event: KeyboardEvent) => {
-            const isFlowCanvasFocused = (event.target as HTMLElement).closest('.react-flow')
-            if (!isFlowCanvasFocused) return
+            const target = event.target as HTMLElement;
+            const tagName = target.tagName.toLowerCase();
+            if (target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+                return;
+            }
 
             if (event.key === 'Delete' || event.key === 'Backspace') {
                 const selectedNodes = nodes.filter((node) => node.selected)
@@ -183,8 +186,31 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
                     onNodesDelete(selectedNodes)
                 }
             }
+
+            // Pan amount per keypress (adjust this value to control pan speed)
+            const BASE_PAN_AMOUNT = 15;
+            const PAN_AMOUNT = event.shiftKey ? BASE_PAN_AMOUNT * 3 : BASE_PAN_AMOUNT;
+
+            if (reactFlowInstance) {
+                const { x, y, zoom } = reactFlowInstance.getViewport();
+
+                switch (event.key) {
+                    case 'ArrowLeft':
+                        reactFlowInstance.setViewport({ x: x + PAN_AMOUNT, y, zoom });
+                        break;
+                    case 'ArrowRight':
+                        reactFlowInstance.setViewport({ x: x - PAN_AMOUNT, y, zoom });
+                        break;
+                    case 'ArrowUp':
+                        reactFlowInstance.setViewport({ x, y: y + PAN_AMOUNT, zoom });
+                        break;
+                    case 'ArrowDown':
+                        reactFlowInstance.setViewport({ x, y: y - PAN_AMOUNT, zoom });
+                        break;
+                }
+            }
         },
-        [nodes, onNodesDelete]
+        [nodes, onNodesDelete, reactFlowInstance]
     )
 
     useEffect(() => {
