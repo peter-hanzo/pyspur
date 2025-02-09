@@ -16,6 +16,7 @@ import {
     getKeyValue,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
@@ -35,6 +36,36 @@ import {
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import WelcomeModal from './modals/WelcomeModal'
+
+// Calendly Widget Component
+const CalendlyWidget: React.FC = () => {
+    useEffect(() => {
+        // Load Calendly widget script
+        const script = document.createElement('script')
+        script.src = 'https://assets.calendly.com/assets/external/widget.js'
+        script.async = true
+        document.body.appendChild(script)
+
+        // Initialize widget once script is loaded
+        script.onload = () => {
+            if ((window as any).Calendly) {
+                ;(window as any).Calendly.initBadgeWidget({
+                    url: 'https://calendly.com/d/cnf9-57m-bv3/pyspur-founders',
+                    text: 'Talk to the Founders',
+                    color: '#1a1a1a',
+                    textColor: '#ffffff',
+                })
+            }
+        }
+
+        return () => {
+            // Cleanup
+            document.body.removeChild(script)
+        }
+    }, [])
+
+    return null
+}
 
 const Dashboard: React.FC = () => {
     const router = useRouter()
@@ -277,6 +308,10 @@ const Dashboard: React.FC = () => {
 
     return (
         <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
+            <Head>
+                <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet" />
+            </Head>
+            <CalendlyWidget />
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
             <div>
                 {/* Dashboard Header */}
