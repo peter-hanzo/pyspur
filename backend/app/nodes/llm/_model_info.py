@@ -85,12 +85,10 @@ class LLMModels(str, Enum):
     O1_2024_12_17 = "openai/o1-2024-12-17"
     O1_MINI_2024_09_12 = "openai/o1-mini-2024-09-12"
     O1_PREVIEW_2024_09_12 = "openai/o1-preview-2024-09-12"
-    GPT_4_TURBO = "openai/gpt-4-turbo"
     CHATGPT_4O_LATEST = "openai/chatgpt-4o-latest"
 
     # Azure OpenAI Models
     AZURE_GPT_4 = "azure/gpt-4"
-    AZURE_GPT_4_TURBO = "azure/gpt-4-turbo"
     AZURE_GPT_35_TURBO = "azure/gpt-35-turbo"
 
     # Anthropic Models
@@ -230,15 +228,6 @@ class LLMModels(str, Enum):
                     supports_temperature=False,
                 ),
             ),
-            cls.GPT_4_TURBO.value: LLMModel(
-                id=cls.GPT_4_TURBO.value,
-                provider=LLMProvider.OPENAI,
-                name="GPT-4 Turbo",
-                constraints=ModelConstraints(
-                    max_tokens=4096,
-                    max_temperature=2.0,
-                ).add_mime_categories({MimeCategory.IMAGES}),
-            ),
             cls.CHATGPT_4O_LATEST.value: LLMModel(
                 id=cls.CHATGPT_4O_LATEST.value,
                 provider=LLMProvider.OPENAI,
@@ -250,12 +239,6 @@ class LLMModels(str, Enum):
                 id=cls.AZURE_GPT_4.value,
                 provider=LLMProvider.AZURE_OPENAI,
                 name="Azure GPT-4",
-                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
-            ),
-            cls.AZURE_GPT_4_TURBO.value: LLMModel(
-                id=cls.AZURE_GPT_4_TURBO.value,
-                provider=LLMProvider.AZURE_OPENAI,
-                name="Azure GPT-4 Turbo",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
             ),
             cls.AZURE_GPT_35_TURBO.value: LLMModel(
