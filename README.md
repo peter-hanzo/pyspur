@@ -11,15 +11,15 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/7Spn7C8A5F">
-    <img alt="Join Our Discord" src="https://img.shields.io/badge/Discord-7289DA.svg?style=for-the-badge&logo=discord&logoColor=white">
-  </a>
 <a href="https://calendly.com/d/cnf9-57m-bv3/pyspur-founders" target="_blank">
-  <img alt="Talk to the creators" src="https://img.shields.io/badge/Talk%20to%20the%20creators-blue.svg?style=for-the-badge">
+  <img alt="Talk to the creators" src="https://img.shields.io/badge/Talk%20to%20the%20creators-blue.svg?style=for-the-badge&logo=calendly&logoColor=white">
 </a>
 <a href="https://forms.gle/5wHRctedMpgfNGah7" target="_blank">
   <img alt="Get PySpur Cloud" src="https://img.shields.io/badge/Get%20PySpur%20Cloud-orange.svg?style=for-the-badge">
 </a>
+  <a href="https://discord.gg/7Spn7C8A5F">
+    <img alt="Join Our Discord" src="https://img.shields.io/badge/Discord-7289DA.svg?style=for-the-badge&logo=discord&logoColor=white">
+  </a>
 </p>
 
 https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
@@ -27,17 +27,17 @@ https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
 
 # 🕸️ Why PySpur?
 
-- 🖐️ **Drag-and-drop**: Visually build and test workflows in seconds.
-- 🧪 **Interactive Evals**: Quickly test and refine agent steps.
-- 📋 **Structured Outputs First**: Native Support and UI editor for JSON Schemas.
+- 🖐️ **Drag-and-Drop**: Build, Test and Iterate in Seconds.
+- 🔄 **Loops**: Iterative Tool Calling with Memory.
+- 📤 **File Upload**: Upload files or paste URLs to process documents.
+- 📋 **Structured Outputs**: UI editor for JSON Schemas.
+- 🗃️ **RAG**: Parse, Chunk, Embed, and Upsert Data into a Vector DB.
 - 🖼️ **Multimodal**: Support for Video, Images, Audio, Texts, Code.
-- 🔄 **Loops**: Continual Tool Calling and Output Refinement.
 - 🧰 **Tools**: Slack, Firecrawl.dev, Google Sheets, GitHub, and more.
-- 🗃️ **RAG**: Parse, chunk, embed, and upsert data into a vector DB in a few clicks.
-- 🚀 **1-Click Deploy**: Publish as an API and integrate wherever you want.
-- 🤖 **Multi-agent**: Orchestrate and manage conversations across multiple agents.
-- 🐍 **Python-based**: Add new nodes by creating a single Python file.
-- 🎛️ **Agnostic**: >100 LLM providers, embedders, and vector databases.
+- 🧪 **Evals**: Evaluate Agents on Real-World Datasets.
+- 🚀 **One-Click Deploy**: Publish as an API and integrate wherever you want.
+- 🐍 **Python-Based**: Add new nodes by creating a single Python file.
+- 🎛️ **Any-Vendor-Support**: >100 LLM providers, embedders, and vector DBs.
 
 # ✨ Core Benefits
 
