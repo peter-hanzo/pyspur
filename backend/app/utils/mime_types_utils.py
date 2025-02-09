@@ -115,11 +115,11 @@ def get_mime_type_for_url(url: str) -> RecognisedMimeType:
         try:
             return RecognisedMimeType(mime_type)
         except ValueError:
-            raise UnsopportedFileTypeError(f"Unsupported data URI: {url.split(';')[0]}")
+            raise UnsupportedFileTypeError(f"Unsupported data URI: {url.split(';')[0]}")
 
     # File path or URL
     mime_type, _ = mimetypes.guess_type(url)
     if mime_type:
         return RecognisedMimeType(mime_type)
     else:
-        raise UnsopportedFileTypeError(f"Unsupported file type: {url}")
+        raise UnsupportedFileTypeError(f"Unsupported file type: {url}")
