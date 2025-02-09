@@ -259,7 +259,7 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(
                     max_tokens=8192,
                     max_temperature=1.0,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_5_HAIKU_LATEST.value,
@@ -277,9 +277,7 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(
                     max_tokens=4096,
                     max_temperature=1.0,
-                )
-                .add_mime_categories({MimeCategory.IMAGES, MimeCategory.DOCUMENTS})
-                .add_mime_types({RecognisedMimeType.CSV, RecognisedMimeType.JSON}),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             # Google Models
             cls.GEMINI_1_5_PRO.value: LLMModel(
