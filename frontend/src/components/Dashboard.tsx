@@ -40,14 +40,21 @@ import WelcomeModal from './modals/WelcomeModal'
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
     useEffect(() => {
-        // Load Calendly widget script
-        const script = document.createElement('script')
-        script.src = 'https://assets.calendly.com/assets/external/widget.js'
-        script.async = true
-        document.body.appendChild(script)
+        // Check if script already exists
+        const existingScript = document.querySelector(
+            'script[src="https://assets.calendly.com/assets/external/widget.js"]'
+        )
+        let scriptElement: HTMLScriptElement | null = null
 
-        // Initialize widget once script is loaded
-        script.onload = () => {
+        if (!existingScript) {
+            // Load Calendly widget script only if it doesn't exist
+            scriptElement = document.createElement('script')
+            scriptElement.src = 'https://assets.calendly.com/assets/external/widget.js'
+            scriptElement.async = true
+            document.body.appendChild(scriptElement)
+        }
+
+        const initializeWidget = () => {
             if ((window as any).Calendly) {
                 ;(window as any).Calendly.initBadgeWidget({
                     url: 'https://calendly.com/d/cnf9-57m-bv3/pyspur-founders',
@@ -58,9 +65,25 @@ const CalendlyWidget: React.FC = () => {
             }
         }
 
+        // Initialize widget once script is loaded or if it already exists
+        if (existingScript) {
+            initializeWidget()
+        } else if (scriptElement) {
+            scriptElement.onload = initializeWidget
+        }
+
         return () => {
-            // Cleanup
-            document.body.removeChild(script)
+            // Safe cleanup - only remove the script if we added it and it still exists
+            if (scriptElement && document.body.contains(scriptElement)) {
+                document.body.removeChild(scriptElement)
+            }
+            // Clean up the widget if it exists
+            if ((window as any).Calendly) {
+                const widgetElement = document.querySelector('.calendly-badge-widget')
+                if (widgetElement) {
+                    widgetElement.remove()
+                }
+            }
         }
     }, [])
 
