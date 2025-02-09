@@ -352,6 +352,22 @@ class LLMModels(str, Enum):
                     }
                 ),
             ),
+            cls.GEMINI_2_0_FLASH_EXP.value: LLMModel(
+                id=cls.GEMINI_2_0_FLASH_EXP.value,
+                provider=LLMProvider.GEMINI,
+                name="Gemini 2.0 Flash Exp",
+                constraints=ModelConstraints(
+                    max_tokens=8192, max_temperature=1.0
+                ).add_mime_categories(
+                    {
+                        MimeCategory.IMAGES,
+                        MimeCategory.AUDIO,
+                        MimeCategory.VIDEO,
+                        MimeCategory.DOCUMENTS,
+                        MimeCategory.TEXT,
+                    }
+                ),
+            ),
             # Deepseek Models
             cls.DEEPSEEK_CHAT.value: LLMModel(
                 id=cls.DEEPSEEK_CHAT.value,
