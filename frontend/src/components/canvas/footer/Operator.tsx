@@ -1,10 +1,9 @@
-import { Button, ButtonGroup } from '@heroui/react'
+import { Button, ButtonGroup, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { MiniMap } from '@xyflow/react'
 import { useTheme } from 'next-themes'
 import { memo } from 'react'
 import { useModeStore } from '../../../store/modeStore'
-import TipPopup from './TipPopUp'
 import UndoRedo from './UndoRedo'
 import ZoomInOut from './ZoomInOut'
 
@@ -25,23 +24,31 @@ function Operator({ handleLayout }) {
                 className={`
                     bg-content2
                     dark:bg-content2/10
-                    !absolute 
-                    !left-4 
-                    !bottom-14 
-                    z-[9] 
-                    !m-0 
-                    !w-[102px] 
-                    !h-[72px] 
-                    !border-[0.5px] 
-                    !border-default-200 
-                    !rounded-lg 
+                    !absolute
+                    !left-4
+                    !bottom-14
+                    z-[9]
+                    !m-0
+                    !w-[102px]
+                    !h-[72px]
+                    !border-[0.5px]
+                    !border-default-200
+                    !rounded-lg
                     !shadow-lg
                 `}
             />
             <div className="flex items-center mt-1 gap-2 absolute left-4 bottom-4 z-[9]">
                 <ZoomInOut />
                 <ButtonGroup>
-                    <TipPopup title="Select" shortcuts={['v']}>
+                    <Tooltip
+                        content={
+                            <div className="px-1 py-2">
+                                <div className="text-small font-bold">Select</div>
+                                <div className="text-tiny">Press <kbd>V</kbd></div>
+                            </div>
+                        }
+                        placement="bottom"
+                    >
                         <Button
                             size="sm"
                             isIconOnly
@@ -54,8 +61,16 @@ function Operator({ handleLayout }) {
                                 width={16}
                             />
                         </Button>
-                    </TipPopup>
-                    <TipPopup title="Pan" shortcuts={['space']}>
+                    </Tooltip>
+                    <Tooltip
+                        content={
+                            <div className="px-1 py-2">
+                                <div className="text-small font-bold">Pan</div>
+                                <div className="text-tiny">Press <kbd>Space</kbd></div>
+                            </div>
+                        }
+                        placement="bottom"
+                    >
                         <Button size="sm" isIconOnly onPress={() => setMode('hand')} className="bg-background">
                             <Icon
                                 className={mode === 'hand' ? 'text-foreground' : 'text-foreground/60'}
@@ -63,12 +78,20 @@ function Operator({ handleLayout }) {
                                 width={16}
                             />
                         </Button>
-                    </TipPopup>
-                    <TipPopup title="Layout Nodes">
+                    </Tooltip>
+                    <Tooltip
+                        content={
+                            <div className="px-1 py-2">
+                                <div className="text-small font-bold">Layout Nodes</div>
+                                <div className="text-tiny">Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>L</kbd></div>
+                            </div>
+                        }
+                        placement="bottom"
+                    >
                         <Button size="sm" isIconOnly onPress={handleLayout} className="bg-background">
                             <Icon className="text-foreground" icon="solar:ruler-angular-linear" width={16} />
                         </Button>
-                    </TipPopup>
+                    </Tooltip>
                 </ButtonGroup>
                 <ButtonGroup>
                     <UndoRedo />

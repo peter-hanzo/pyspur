@@ -15,6 +15,7 @@ import {
     DropdownItem,
     Alert,
     CircularProgress,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import SettingsCard from './modals/SettingsModal'
@@ -273,9 +274,19 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                                     </>
                                 ) : (
                                     <NavbarItem className="hidden sm:flex">
-                                        <Button isIconOnly radius="full" variant="light" onPress={handleRunWorkflow}>
-                                            <Icon className="text-foreground/60" icon="solar:play-linear" width={22} />
-                                        </Button>
+                                        <Tooltip
+                                            content={
+                                                <div className="px-1 py-2">
+                                                    <div className="text-small font-bold">Run Workflow</div>
+                                                    <div className="text-tiny">Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>Enter</kbd></div>
+                                                </div>
+                                            }
+                                            placement="bottom"
+                                        >
+                                            <Button isIconOnly radius="full" variant="light" onPress={handleRunWorkflow}>
+                                                <Icon className="text-foreground/60" icon="solar:play-linear" width={22} />
+                                            </Button>
+                                        </Tooltip>
                                     </NavbarItem>
                                 )}
                             </>

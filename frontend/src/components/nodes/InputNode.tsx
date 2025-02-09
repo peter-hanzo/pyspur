@@ -281,7 +281,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         setNewFieldValue(validValue)
                     }}
                     size="sm"
-                    variant="flat"
+                    variant="bordered"
                     radius="lg"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -289,8 +289,8 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                         }
                     }}
                     classNames={{
-                        input: 'text-default-900',
-                        inputWrapper: 'shadow-none bg-default-100',
+                        input: 'text-default-900 dark:text-default-100 placeholder:text-default-500',
+                        inputWrapper: 'shadow-none bg-transparent border-default-200 dark:border-default-700 group-data-[hover=true]:border-default-200 dark:group-data-[hover=true]:border-default-600',
                     }}
                     endContent={
                         <Button

@@ -129,6 +129,13 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "JinaReaderNode",
         },
     ],
+    "Tools": [
+        {
+            "node_type_name": "SendEmailNode",
+            "module": ".nodes.email.send_email",
+            "class_name": "SendEmailNode",
+        },
+    ],
 }
 
 DEPRECATED_NODE_TYPES = [

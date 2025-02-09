@@ -915,13 +915,34 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
-        if (key.endsWith('_prompt') || key.endsWith('_message') || key.endsWith('_template')) {
-            const title = key.endsWith('_template')
-                ? key
-                      .slice(0, -9)
-                      .replace(/_/g, ' ')
-                      .replace(/\b\w/g, (char) => char.toUpperCase())
-                : key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+        if (key.endsWith('_template')) {
+            const title = key.slice(0, -9)
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+            return (
+                <div key={key}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">{title}</h3>
+                    </div>
+                    <TextEditor
+                        key={`text-editor-${nodeID}-${key}`}
+                        nodeID={nodeID}
+                        fieldName={key}
+                        inputSchema={incomingSchema}
+                        fieldTitle={key}
+                        content={currentNodeConfig[key] || ''}
+                        setContent={(value) => handleInputChange(key, value)}
+                        disableFormatting={true}
+                    />
+                    {!isLast && <hr className="my-2" />}
+                </div>
+            );
+        }
+
+        if (key.endsWith('_prompt') || key.endsWith('_message')) {
+            const title = key
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (char) => char.toUpperCase());
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -938,7 +959,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
-            )
+            );
         }
 
         if (key === 'code') {
