@@ -259,7 +259,7 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(
                     max_tokens=8192,
                     max_temperature=1.0,
-                ).add_mime_categories({MimeCategory.IMAGES}),
+                ).add_mime_categories({MimeCategory.IMAGES, MimeCategory.DOCUMENTS}),
             ),
             cls.CLAUDE_3_5_HAIKU_LATEST.value: LLMModel(
                 id=cls.CLAUDE_3_5_HAIKU_LATEST.value,
