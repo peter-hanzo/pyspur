@@ -379,7 +379,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                         <SettingsCard />
                     </NavbarItem>
                     <NavbarItem className="hidden sm:flex">
-                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsHelpModalOpen(true)}>
+                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsHelpModalOpen(true)} aria-label="Help">
                             <Icon className="text-foreground/60" icon="solar:question-circle-linear" width={24} />
                         </Button>
                     </NavbarItem>
