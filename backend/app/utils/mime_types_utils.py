@@ -92,7 +92,7 @@ MIME_TYPES_BY_CATEGORY: Dict[MimeCategory, List[RecognisedMimeType]] = {
 }
 
 
-class UnsopportedFileTypeError(Exception):
+class UnsupportedFileTypeError(Exception):
     """Exception raised when a file type is not supported."""
 
     pass
