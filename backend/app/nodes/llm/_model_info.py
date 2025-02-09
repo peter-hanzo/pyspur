@@ -135,7 +135,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O3_MINI_2025_01_31.value: LLMModel(
                 id=cls.O3_MINI_2025_01_31.value,
@@ -146,13 +146,15 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.GPT_4O_MINI.value: LLMModel(
                 id=cls.GPT_4O_MINI.value,
                 provider=LLMProvider.OPENAI,
                 name="GPT-4O Mini",
-                constraints=ModelConstraints(max_tokens=16384, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=16384, max_temperature=2.0
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.GPT_4O.value: LLMModel(
                 id=cls.GPT_4O.value,
@@ -171,7 +173,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1_MINI.value: LLMModel(
                 id=cls.O1_MINI.value,
@@ -182,7 +184,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1.value: LLMModel(
                 id=cls.O1.value,
@@ -193,7 +195,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1_2024_12_17.value: LLMModel(
                 id=cls.O1_2024_12_17.value,
@@ -204,7 +206,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1_MINI_2024_09_12.value: LLMModel(
                 id=cls.O1_MINI_2024_09_12.value,
@@ -215,7 +217,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1_PREVIEW_2024_09_12.value: LLMModel(
                 id=cls.O1_PREVIEW_2024_09_12.value,
@@ -226,13 +228,15 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
-                ),
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.CHATGPT_4O_LATEST.value: LLMModel(
                 id=cls.CHATGPT_4O_LATEST.value,
                 provider=LLMProvider.OPENAI,
                 name="ChatGPT-4 Optimized Latest",
-                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=4096, max_temperature=2.0
+                ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             # Azure OpenAI Models
             cls.AZURE_GPT_4.value: LLMModel(
