@@ -297,7 +297,7 @@ async def generate_text(
             mime_type = get_mime_type_for_url(url_variables["image"])
             if not model_info.constraints.is_mime_type_supported(mime_type):
                 raise ValueError(
-                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}. Supported types: {( mime.value for mime in model_info.constraints.supported_mime_types)}"""
+                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}. Supported types: {[mime.value for mime in model_info.constraints.supported_mime_types]}"""
                 )
 
             # Transform messages to include URL content
