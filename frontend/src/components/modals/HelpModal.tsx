@@ -12,6 +12,46 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
             <ModalContent>
                 <ModalHeader>How can we help you? 🤝</ModalHeader>
                 <ModalBody>
+                    <div className="mb-8">
+                        <h3 className="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <h4 className="font-medium mb-2">Navigation</h4>
+                                <ul className="space-y-2 text-sm text-default-600">
+                                    <li className="flex items-center justify-between">
+                                        <span>Pan Canvas</span>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">Arrow Keys</kbd>
+                                    </li>
+                                    <li className="flex items-center justify-between">
+                                        <span>Pan Canvas Faster</span>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">Shift + Arrow Keys</kbd>
+                                    </li>
+                                    <li className="flex items-center justify-between">
+                                        <span>Add New Nodes</span>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">⌘/Ctrl + K</kbd>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-medium mb-2">Actions</h4>
+                                <ul className="space-y-2 text-sm text-default-600">
+                                    <li className="flex items-center justify-between">
+                                        <span>Copy Node</span>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">⌘/Ctrl + C</kbd>
+                                    </li>
+                                    <li className="flex items-center justify-between">
+                                        <span>Paste Node</span>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">⌘/Ctrl + V</kbd>
+                                    </li>
+                                    <li className="flex items-center justify-between">
+                                        <span>Layout Workflow</span>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">⌘/Ctrl + L</kbd>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card
                             className="cursor-pointer hover:scale-[1.02] transition-transform"
