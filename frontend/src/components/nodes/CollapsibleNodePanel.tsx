@@ -219,7 +219,7 @@ const CollapsibleNodePanel: React.FC = () => {
                                     const hasSubcategories = nodes.some((node) => node.category)
 
                                     return (
-                                        <AccordionItem key={category} title={category}>
+                                        <AccordionItem key={category} title={category} textValue={category}>
                                             {hasSubcategories ? (
                                                 <Accordion selectionMode="multiple">
                                                     {Object.entries(groupNodesBySubcategory(nodes)).map(
@@ -229,6 +229,7 @@ const CollapsibleNodePanel: React.FC = () => {
                                                         ]) => (
                                                             <AccordionItem
                                                                 key={subcategory}
+                                                                textValue={subcategory}
                                                                 title={
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="w-8 flex-shrink-0">

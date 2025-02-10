@@ -18,7 +18,10 @@ class GitHubGetPullRequestChangesNodeConfig(BaseNodeConfig):
 
 
 class GitHubGetPullRequestChangesNodeInput(BaseNodeInput):
-    pass
+    """Input for the GitHubGetPullRequestChanges node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GitHubGetPullRequestChangesNodeOutput(BaseNodeOutput):

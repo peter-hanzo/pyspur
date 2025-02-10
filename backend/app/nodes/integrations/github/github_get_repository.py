@@ -17,7 +17,10 @@ class GitHubGetRepositoryNodeConfig(BaseNodeConfig):
 
 
 class GitHubGetRepositoryNodeInput(BaseNodeInput):
-    pass
+    """Input for the GitHubGetRepository node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GitHubGetRepositoryNodeOutput(BaseNodeOutput):

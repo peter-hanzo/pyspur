@@ -7,6 +7,19 @@ from ...utils.template_utils import render_template_or_get_first_string
 from typing import Dict
 
 
+class FirecrawlScrapeNodeInput(BaseNodeInput):
+    """Input for the FirecrawlScrape node"""
+
+    class Config:
+        extra = "allow"
+
+
+class FirecrawlScrapeNodeOutput(BaseNodeOutput):
+    scrape_result: str = Field(
+        ..., description="The scraped data in markdown or structured format."
+    )
+
+
 class FirecrawlScrapeNodeConfig(BaseNodeConfig):
     url_template: str = Field(
         "",
@@ -17,18 +30,9 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
-
-
-class FirecrawlScrapeNodeInput(BaseNodeInput):
-    """Input for the firecrawl node"""
-
-    class Config:
-        extra = "allow"
-
-
-class FirecrawlScrapeNodeOutput(BaseNodeOutput):
-    scrape_result: str = Field(
-        ..., description="The scraped data in markdown or structured format."
+    output_json_schema: str = Field(
+        default=json.dumps(FirecrawlScrapeNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
     )
 
 
@@ -43,6 +47,9 @@ class FirecrawlScrapeNode(BaseNode):
     output_model = FirecrawlScrapeNodeOutput
 
     async def run(self, input: BaseModel) -> BaseModel:
+        """
+        Scrapes a URL and returns the content in markdown or structured format.
+        """
         try:
             # Grab the entire dictionary from the input
             raw_input_dict = input.model_dump()

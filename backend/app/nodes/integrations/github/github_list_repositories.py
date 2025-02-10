@@ -14,7 +14,10 @@ class GitHubListRepositoriesNodeConfig(BaseNodeConfig):
 
 
 class GitHubListRepositoriesNodeInput(BaseNodeInput):
-    pass
+    """Input for the GitHubListRepositories node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GitHubListRepositoriesNodeOutput(BaseNodeOutput):

@@ -3,6 +3,18 @@ from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
 from typing import Dict
+import json
+
+
+class GitHubListPullRequestsNodeInput(BaseNodeInput):
+    """Input for the GitHubListPullRequests node"""
+
+    class Config:
+        extra = "allow"
+
+
+class GitHubListPullRequestsNodeOutput(BaseNodeOutput):
+    pull_requests: str = Field(..., description="The pull requests for the repository.")
 
 
 class GitHubListPullRequestsNodeConfig(BaseNodeConfig):
@@ -18,14 +30,10 @@ class GitHubListPullRequestsNodeConfig(BaseNodeConfig):
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
-
-
-class GitHubListPullRequestsNodeInput(BaseNodeInput):
-    pass
-
-
-class GitHubListPullRequestsNodeOutput(BaseNodeOutput):
-    pull_requests: str = Field(..., description="The pull requests for the repository.")
+    output_json_schema: str = Field(
+        default=json.dumps(GitHubListPullRequestsNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
+    )
 
 
 class GitHubListPullRequestsNode(BaseNode):

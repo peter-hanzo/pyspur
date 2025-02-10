@@ -25,7 +25,10 @@ class GitHubSearchRepositoriesNodeConfig(BaseNodeConfig):
 
 
 class GitHubSearchRepositoriesNodeInput(BaseNodeInput):
-    pass
+    """Input for the GitHubSearchRepositories node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GitHubSearchRepositoriesNodeOutput(BaseNodeOutput):

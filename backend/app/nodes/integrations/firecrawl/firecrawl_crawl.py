@@ -12,6 +12,19 @@ from typing import Optional, Dict
 from ...utils.template_utils import render_template_or_get_first_string
 
 
+class FirecrawlCrawlNodeInput(BaseNodeInput):
+    """Input for the FirecrawlCrawl node"""
+
+    class Config:
+        extra = "allow"
+
+
+class FirecrawlCrawlNodeOutput(BaseNodeOutput):
+    crawl_result: str = Field(
+        ..., description="The crawled data in markdown or structured format."
+    )
+
+
 class FirecrawlCrawlNodeConfig(BaseNodeConfig):
     url_template: str = Field(
         "",
@@ -25,20 +38,9 @@ class FirecrawlCrawlNodeConfig(BaseNodeConfig):
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
-
-
-class FirecrawlCrawlNodeInput(BaseNodeInput):
-    """Input for the firecrawl node"""
-
-    class Config:
-        extra = "allow"
-
-
-class FirecrawlCrawlNodeOutput(BaseNodeOutput):
-    """Output from the firecrawl node"""
-
-    crawl_result: str = Field(
-        ..., description="The crawled data in markdown or structured format."
+    output_json_schema: str = Field(
+        default=json.dumps(FirecrawlCrawlNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
     )
 
 

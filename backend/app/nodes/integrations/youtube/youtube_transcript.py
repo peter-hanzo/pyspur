@@ -4,6 +4,18 @@ from phi.tools.youtube_tools import YouTubeTools
 import logging
 from ...utils.template_utils import render_template_or_get_first_string
 from typing import Dict
+import json
+
+
+class YouTubeTranscriptNodeInput(BaseNodeInput):
+    """Input for the YouTubeTranscript node"""
+
+    class Config:
+        extra = "allow"
+
+
+class YouTubeTranscriptNodeOutput(BaseNodeOutput):
+    transcript: str = Field(..., description="The transcript of the YouTube video.")
 
 
 class YouTubeTranscriptNodeConfig(BaseNodeConfig):
@@ -15,14 +27,10 @@ class YouTubeTranscriptNodeConfig(BaseNodeConfig):
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
-
-
-class YouTubeTranscriptNodeInput(BaseNodeInput):
-    pass
-
-
-class YouTubeTranscriptNodeOutput(BaseNodeOutput):
-    transcript: str = Field(..., description="The transcript of the video.")
+    output_json_schema: str = Field(
+        default=json.dumps(YouTubeTranscriptNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
+    )
 
 
 class YouTubeTranscriptNode(BaseNode):
