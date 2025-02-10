@@ -204,6 +204,24 @@ async def completion_with_backoff(**kwargs) -> str:
         raise e
 
 
+def sanitize_json_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Makes a JSON schema compatible with the LLM providers.
+    * sets "additionalProperties" to False
+    * adds all properties to the "required" list recursively
+    """
+    if "additionalProperties" not in schema:
+        schema["additionalProperties"] = False
+    if "properties" in schema:
+        for key, value in schema["properties"].items():
+            if "required" not in schema:
+                schema["required"] = []
+            if key not in schema["required"]:
+                schema["required"].append(key)
+            sanitize_json_schema(value)
+    return schema
+
+
 async def generate_text(
     messages: List[Dict[str, str]],
     model_name: str,
@@ -243,6 +261,7 @@ async def generate_text(
             )
         elif output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
+            output_json_schema = sanitize_json_schema(output_json_schema)
         else:
             raise ValueError("Invalid output schema", output_json_schema)
         output_json_schema["additionalProperties"] = False
