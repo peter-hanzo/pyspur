@@ -4,17 +4,6 @@ import { updateWorkflow } from '../utils/api'
 import { RootState } from '../store/store'
 import { debounce } from 'lodash'
 import { WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas'
-import { WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
-import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
-
-// Use existing types from flowSlice.ts
-type Position = WorkflowNodeCoordinates
-
-interface NodeData {
-    config: FlowWorkflowNodeConfig
-    title?: string
-}
-import { FlowWorkflowNode as Node } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowEdge as Edge } from '@/types/api_types/nodeTypeSchemas'
 
 export const useSaveWorkflow = () => {
@@ -64,17 +53,6 @@ export const useSaveWorkflow = () => {
 
                         // Ensure the RouterNode structure uses route_map
                         if (node.type === 'RouterNode') {
-                            const { route_map, ...restConfig } = config
-
-                            const routeMap = Object.entries(route_map || {}).reduce(
-                                (map: Record<string, any>, [_, route], index) => {
-                                    const routeName = `Route_${index + 1}`
-                                    map[routeName] = { conditions: route.conditions }
-                                    return map
-                                },
-                                {}
-                            )
-
                             return {
                                 ...node,
                                 config: {
@@ -82,7 +60,6 @@ export const useSaveWorkflow = () => {
                                     route_map: config.route_map || {}, // Ensure route_map exists
                                 },
                                 title,
-                                new_id: title || node.type || 'Untitled',
                                 parent_id: node.parentId || null,
                                 dimensions: node.measured,
                             }
@@ -92,7 +69,6 @@ export const useSaveWorkflow = () => {
                             ...node,
                             config,
                             title,
-                            new_id: title || node.type || 'Untitled',
                             parent_id: node.parentId || null,
                             dimensions: node.type === 'ForLoopNode' ? node.measured : undefined,
                         }
@@ -138,7 +114,7 @@ export const useSaveWorkflow = () => {
 
                 await updateWorkflow(workflowID, updatedWorkflow)
             } catch (error) {
-                console.error('Error saving workflow:', error)
+                throw error
             }
         }, 1000)
     ).current
