@@ -1,4 +1,4 @@
-# PySpur - Minimalist AI Agent Builder with Graph UI
+# PySpur - AI Agent Builder with Graph UI
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
