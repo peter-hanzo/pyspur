@@ -1,34 +1,35 @@
-import React, { useState, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import {
+    Alert,
+    Button,
+    CircularProgress,
+    Dropdown,
+    DropdownItem,
+    DropdownMenu,
+    DropdownTrigger,
     Input,
+    Link,
     Navbar,
     NavbarBrand,
     NavbarContent,
     NavbarItem,
-    Link,
-    Button,
     Spinner,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
-    Alert,
-    CircularProgress,
     Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import SettingsCard from './modals/SettingsModal'
-import { setProjectName } from '../store/flowSlice'
-import RunModal from './modals/RunModal'
-import { getWorkflow } from '../utils/api'
-import { useRouter } from 'next/router'
-import DeployModal from './modals/DeployModal'
 import { formatDistanceStrict } from 'date-fns'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
-import { AlertState } from '../types/alert'
+import { useDispatch, useSelector } from 'react-redux'
 import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
+import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
+import { setProjectName } from '../store/flowSlice'
+import { AlertState } from '../types/alert'
+import { getWorkflow } from '../utils/api'
+import DeployModal from './modals/DeployModal'
+import HelpModal from './modals/HelpModal'
+import RunModal from './modals/RunModal'
+import SettingsCard from './modals/SettingsModal'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -52,6 +53,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
     })
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
     const [selectedRow, setSelectedRow] = useState<number | null>(null)
+    const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false)
 
     const router = useRouter()
     const { id } = router.query
@@ -278,13 +280,28 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                                             content={
                                                 <div className="px-1 py-2">
                                                     <div className="text-small font-bold">Run Workflow</div>
-                                                    <div className="text-tiny">Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>Enter</kbd></div>
+                                                    <div className="text-tiny">
+                                                        Press{' '}
+                                                        <kbd>
+                                                            {navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}
+                                                        </kbd>
+                                                        +<kbd>Enter</kbd>
+                                                    </div>
                                                 </div>
                                             }
                                             placement="bottom"
                                         >
-                                            <Button isIconOnly radius="full" variant="light" onPress={handleRunWorkflow}>
-                                                <Icon className="text-foreground/60" icon="solar:play-linear" width={22} />
+                                            <Button
+                                                isIconOnly
+                                                radius="full"
+                                                variant="light"
+                                                onPress={handleRunWorkflow}
+                                            >
+                                                <Icon
+                                                    className="text-foreground/60"
+                                                    icon="solar:play-linear"
+                                                    width={22}
+                                                />
                                             </Button>
                                         </Tooltip>
                                     </NavbarItem>
@@ -361,6 +378,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     <NavbarItem className="hidden sm:flex">
                         <SettingsCard />
                     </NavbarItem>
+                    <NavbarItem className="hidden sm:flex">
+                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsHelpModalOpen(true)} aria-label="Help">
+                            <Icon className="text-foreground/60" icon="solar:question-circle-linear" width={24} />
+                        </Button>
+                    </NavbarItem>
                 </NavbarContent>
             </Navbar>
             <RunModal
@@ -377,6 +399,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                 workflowId={workflowId}
                 testInput={testInputs.find((row) => row.id === selectedRow) ?? testInputs[0]}
             />
+            <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         </>
     )
 }
