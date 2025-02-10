@@ -157,8 +157,8 @@ const flowSlice = createSlice({
                 selected: false,
                 source: link.source_id,
                 target: link.target_id,
-                sourceHandle: link.source_handle || state.nodes.find((node) => node.id === link.source_id)?.data?.title,
-                targetHandle: link.target_handle || state.nodes.find((node) => node.id === link.source_id)?.data?.title,
+                sourceHandle: link.source_handle || link.source_id,
+                targetHandle: link.target_handle || link.source_id,
             }))
             // deduplicate edges
             edges = edges.filter(
