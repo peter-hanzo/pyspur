@@ -1,28 +1,33 @@
 import logging
-from typing import Optional, Dict
+import json
+from typing import Dict
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
 
 
-class GitHubCreateIssueNodeConfig(BaseNodeConfig):
-    repo_name: str = Field(
-        "", description="The full name of the repository (e.g. 'owner/repo')."
-    )
-    issue_title: str = Field("", description="The title of the issue.")
-    body: Optional[str] = Field(None, description="The body content of the issue.")
-    output_schema: Dict[str, str] = Field(
-        default={"issue": "string"}, description="The schema for the output of the node"
-    )
-    has_fixed_output: bool = True
-
-
 class GitHubCreateIssueNodeInput(BaseNodeInput):
-    pass
+    title: str = Field(..., description="The title of the issue.")
+    body: str = Field(..., description="The body of the issue.")
 
 
 class GitHubCreateIssueNodeOutput(BaseNodeOutput):
-    issue: str = Field(..., description="The created issue details in JSON format.")
+    issue_url: str = Field(..., description="The URL of the created issue.")
+
+
+class GitHubCreateIssueNodeConfig(BaseNodeConfig):
+    repo_name: str = Field(
+        "", description="The GitHub repository URL to create the issue in."
+    )
+    output_schema: Dict[str, str] = Field(
+        default={"issue_url": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
+    output_json_schema: str = Field(
+        default=json.dumps(GitHubCreateIssueNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
+    )
 
 
 class GitHubCreateIssueNode(BaseNode):
@@ -43,7 +48,7 @@ class GitHubCreateIssueNode(BaseNode):
                 title=self.config.issue_title,
                 body=self.config.body,
             )
-            return GitHubCreateIssueNodeOutput(issue=issue_info)
+            return GitHubCreateIssueNodeOutput(issue_url=issue_info)
         except Exception as e:
             logging.error(f"Failed to create issue: {e}")
-            return GitHubCreateIssueNodeOutput(issue="")
+            return GitHubCreateIssueNodeOutput(issue_url="")

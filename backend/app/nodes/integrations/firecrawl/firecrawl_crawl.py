@@ -12,6 +12,14 @@ from typing import Optional, Dict
 from ...utils.template_utils import render_template_or_get_first_string
 
 
+class FirecrawlCrawlNodeInput(BaseNodeInput):
+    url: str = Field(..., description="The URL to crawl.")
+
+
+class FirecrawlCrawlNodeOutput(BaseNodeOutput):
+    content: str = Field(..., description="The crawled content.")
+
+
 class FirecrawlCrawlNodeConfig(BaseNodeConfig):
     url_template: str = Field(
         "",
@@ -21,24 +29,13 @@ class FirecrawlCrawlNodeConfig(BaseNodeConfig):
         None, description="The maximum number of pages to crawl."
     )
     output_schema: Dict[str, str] = Field(
-        default={"crawl_result": "string"},
+        default={"content": "string"},
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
-
-
-class FirecrawlCrawlNodeInput(BaseNodeInput):
-    """Input for the firecrawl node"""
-
-    class Config:
-        extra = "allow"
-
-
-class FirecrawlCrawlNodeOutput(BaseNodeOutput):
-    """Output from the firecrawl node"""
-
-    crawl_result: str = Field(
-        ..., description="The crawled data in markdown or structured format."
+    output_json_schema: str = Field(
+        default=json.dumps(FirecrawlCrawlNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
     )
 
 
@@ -70,7 +67,7 @@ class FirecrawlCrawlNode(BaseNode):
                     "scrapeOptions": {"formats": ["markdown", "html"]},
                 },
             )
-            return FirecrawlCrawlNodeOutput(crawl_result=json.dumps(crawl_result))
+            return FirecrawlCrawlNodeOutput(content=json.dumps(crawl_result))
         except Exception as e:
             logging.error(f"Failed to crawl URL: {e}")
-            return FirecrawlCrawlNodeOutput(crawl_result="")
+            return FirecrawlCrawlNodeOutput(content="")

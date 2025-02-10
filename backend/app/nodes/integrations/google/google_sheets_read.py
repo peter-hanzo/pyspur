@@ -1,19 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import Dict
+import json
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from app.integrations.google.client import GoogleSheetsClient
-
-
-class GoogleSheetsReadNodeConfig(BaseNodeConfig):
-    spreadsheet_id: str = Field("", description="The ID of the Google Spreadsheet.")
-    range_name: str = Field(
-        "", description="The range to read from (e.g. 'Sheet1!A1:C10')."
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"data": "string"}, description="The schema for the output of the node"
-    )
-    has_fixed_output: bool = True
 
 
 class GoogleSheetsReadNodeInput(BaseNodeInput):
@@ -21,7 +11,25 @@ class GoogleSheetsReadNodeInput(BaseNodeInput):
 
 
 class GoogleSheetsReadNodeOutput(BaseNodeOutput):
-    data: str = Field(..., description="The data read from the Google Sheet.")
+    data: str = Field(..., description="The data from the Google Sheet.")
+
+
+class GoogleSheetsReadNodeConfig(BaseNodeConfig):
+    spreadsheet_id: str = Field(
+        "", description="The ID of the Google Sheet to read from."
+    )
+    range: str = Field(
+        "", description="The range of cells to read from (e.g. 'Sheet1!A1:B10')."
+    )
+    output_schema: Dict[str, str] = Field(
+        default={"data": "string"},
+        description="The schema for the output of the node",
+    )
+    has_fixed_output: bool = True
+    output_json_schema: str = Field(
+        default=json.dumps(GoogleSheetsReadNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
+    )
 
 
 class GoogleSheetsReadNode(BaseNode):
@@ -48,7 +56,7 @@ class GoogleSheetsReadNode(BaseNode):
         try:
             success, result = sheets_client.read_sheet(
                 spreadsheet_id=self.config.spreadsheet_id,
-                range_name=self.config.range_name,
+                range_name=self.config.range,
             )
 
             if success:

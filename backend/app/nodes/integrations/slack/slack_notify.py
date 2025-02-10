@@ -11,6 +11,16 @@ class ModeEnum(str, Enum):
     USER = "user"
 
 
+class SlackNotifyNodeInput(BaseNodeInput):
+    message: str = Field(..., description="The message to send to the Slack channel.")
+
+
+class SlackNotifyNodeOutput(BaseNodeOutput):
+    status: str = Field(
+        ..., description="Error message if the message was not sent successfully."
+    )
+
+
 class SlackNotifyNodeConfig(BaseNodeConfig):
     channel: str = Field("", description="The channel ID to send the message to.")
     mode: ModeEnum = Field(
@@ -22,15 +32,9 @@ class SlackNotifyNodeConfig(BaseNodeConfig):
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
-
-
-class SlackNotifyNodeInput(BaseNodeInput):
-    message: str = Field(..., description="The message to send to the Slack channel.")
-
-
-class SlackNotifyNodeOutput(BaseNodeOutput):
-    status: str = Field(
-        ..., description="Error message if the message was not sent successfully."
+    output_json_schema: str = Field(
+        default=json.dumps(SlackNotifyNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
     )
 
 
