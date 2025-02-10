@@ -187,15 +187,20 @@ export const getNodeMissingRequiredFields = (
 
             if (nodeMetadata.config) {
                 Object.entries(nodeMetadata.config).forEach(([field, fieldMetadata]) => {
+                    // Skip schema type fields
+                    if (field.toLowerCase().includes('schema')) {
+                        return
+                    }
+
                     // Special handling for llm_info/ModelInfo
                     if (field === 'llm_info' || field === 'ModelInfo') {
                         // If the field exists at all, consider it valid since it has defaults
                         if (nodeConfig.llm_info !== undefined) {
-                            return;
+                            return
                         }
                         // Only add ModelInfo as missing if it's completely undefined
-                        missingFields.push('ModelInfo');
-                        return;
+                        missingFields.push('ModelInfo')
+                        return
                     }
 
                     // Regular field handling
@@ -211,6 +216,11 @@ export const getNodeMissingRequiredFields = (
                     // Check other nested fields
                     if (fieldMetadata.properties && field !== 'llm_info') {
                         Object.entries(fieldMetadata.properties).forEach(([nestedField, nestedMetadata]) => {
+                            // Skip nested schema type fields
+                            if (nestedField.toLowerCase().includes('schema')) {
+                                return
+                            }
+                            
                             if (nestedMetadata.required) {
                                 const nestedValue = nodeConfig[field]?.[nestedField]
                                 if (nestedValue === undefined || nestedValue === null || nestedValue === '' ||
