@@ -12,7 +12,9 @@ class FirecrawlScrapeNodeInput(BaseNodeInput):
 
 
 class FirecrawlScrapeNodeOutput(BaseNodeOutput):
-    content: str = Field(..., description="The scraped content.")
+    scrape_result: str = Field(
+        ..., description="The scraped data in markdown or structured format."
+    )
 
 
 class FirecrawlScrapeNodeConfig(BaseNodeConfig):
@@ -21,7 +23,7 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
         description="The URL to scrape and convert into clean markdown or structured data.",
     )
     output_schema: Dict[str, str] = Field(
-        default={"content": "string"},
+        default={"scrape_result": "string"},
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
@@ -61,7 +63,7 @@ class FirecrawlScrapeNode(BaseNode):
                     "formats": ["markdown", "html"],
                 },
             )
-            return FirecrawlScrapeNodeOutput(content=json.dumps(scrape_result))
+            return FirecrawlScrapeNodeOutput(scrape_result=json.dumps(scrape_result))
         except Exception as e:
             logging.error(f"Failed to scrape URL: {e}")
-            return FirecrawlScrapeNodeOutput(content="")
+            return FirecrawlScrapeNodeOutput(scrape_result="")

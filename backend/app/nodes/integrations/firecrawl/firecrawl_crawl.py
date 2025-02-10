@@ -17,7 +17,9 @@ class FirecrawlCrawlNodeInput(BaseNodeInput):
 
 
 class FirecrawlCrawlNodeOutput(BaseNodeOutput):
-    content: str = Field(..., description="The crawled content.")
+    crawl_result: str = Field(
+        ..., description="The crawled data in markdown or structured format."
+    )
 
 
 class FirecrawlCrawlNodeConfig(BaseNodeConfig):
@@ -29,7 +31,7 @@ class FirecrawlCrawlNodeConfig(BaseNodeConfig):
         None, description="The maximum number of pages to crawl."
     )
     output_schema: Dict[str, str] = Field(
-        default={"content": "string"},
+        default={"crawl_result": "string"},
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
@@ -67,7 +69,7 @@ class FirecrawlCrawlNode(BaseNode):
                     "scrapeOptions": {"formats": ["markdown", "html"]},
                 },
             )
-            return FirecrawlCrawlNodeOutput(content=json.dumps(crawl_result))
+            return FirecrawlCrawlNodeOutput(crawl_result=json.dumps(crawl_result))
         except Exception as e:
             logging.error(f"Failed to crawl URL: {e}")
-            return FirecrawlCrawlNodeOutput(content="")
+            return FirecrawlCrawlNodeOutput(crawl_result="")

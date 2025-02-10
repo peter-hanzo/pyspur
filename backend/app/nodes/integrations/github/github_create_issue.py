@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Dict
+from typing import Dict, Optional
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
@@ -12,15 +12,17 @@ class GitHubCreateIssueNodeInput(BaseNodeInput):
 
 
 class GitHubCreateIssueNodeOutput(BaseNodeOutput):
-    issue_url: str = Field(..., description="The URL of the created issue.")
+    issue: str = Field(..., description="The created issue details in JSON format.")
 
 
 class GitHubCreateIssueNodeConfig(BaseNodeConfig):
     repo_name: str = Field(
-        "", description="The GitHub repository URL to create the issue in."
+        "", description="The full name of the repository (e.g. 'owner/repo')."
     )
+    issue_title: str = Field("", description="The title of the issue.")
+    body: Optional[str] = Field(None, description="The body content of the issue.")
     output_schema: Dict[str, str] = Field(
-        default={"issue_url": "string"},
+        default={"issue": "string"},
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
@@ -48,7 +50,7 @@ class GitHubCreateIssueNode(BaseNode):
                 title=self.config.issue_title,
                 body=self.config.body,
             )
-            return GitHubCreateIssueNodeOutput(issue_url=issue_info)
+            return GitHubCreateIssueNodeOutput(issue=issue_info)
         except Exception as e:
             logging.error(f"Failed to create issue: {e}")
-            return GitHubCreateIssueNodeOutput(issue_url="")
+            return GitHubCreateIssueNodeOutput(issue="")
