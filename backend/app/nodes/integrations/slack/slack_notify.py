@@ -12,7 +12,10 @@ class ModeEnum(str, Enum):
 
 
 class SlackNotifyNodeInput(BaseNodeInput):
-    message: str = Field(..., description="The message to send to the Slack channel.")
+    """Input for the SlackNotify node"""
+
+    class Config:
+        extra = "allow"
 
 
 class SlackNotifyNodeOutput(BaseNodeOutput):
@@ -60,18 +63,3 @@ class SlackNotifyNode(BaseNode):
         ok, status = client.send_message(channel=self.config.channel, text=message, mode=self.config.mode)  # type: ignore
         return SlackNotifyNodeOutput(status=status)
 
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        # Example usage
-        node = SlackNotifyNode(
-            name="slack_node",  # Add the missing 'name' parameter
-            config=SlackNotifyNodeConfig(mode=ModeEnum.BOT, channel="#integrations"),
-        )
-        input_data = SlackNotifyNodeInput(message="Hello from the SlackNode!")
-        output = await node.run(input_data)
-        print(output)
-
-    asyncio.run(main())

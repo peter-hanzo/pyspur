@@ -8,7 +8,10 @@ import json
 
 
 class YouTubeTranscriptNodeInput(BaseNodeInput):
-    video_url: str = Field(..., description="The URL of the YouTube video.")
+    """Input for the YouTubeTranscript node"""
+
+    class Config:
+        extra = "allow"
 
 
 class YouTubeTranscriptNodeOutput(BaseNodeOutput):

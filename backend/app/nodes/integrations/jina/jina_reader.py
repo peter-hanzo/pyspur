@@ -10,9 +10,10 @@ from ...utils.template_utils import render_template_or_get_first_string
 
 
 class JinaReaderNodeInput(BaseNodeInput):
-    url: str = Field(
-        ..., description="The URL to crawl and convert into clean markdown."
-    )
+    """Input for the JinaReader node"""
+
+    class Config:
+        extra = "allow"
 
 
 class JinaReaderNodeOutput(BaseNodeOutput):

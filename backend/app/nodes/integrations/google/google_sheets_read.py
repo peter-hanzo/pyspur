@@ -7,7 +7,10 @@ from app.integrations.google.client import GoogleSheetsClient
 
 
 class GoogleSheetsReadNodeInput(BaseNodeInput):
-    pass
+    """Input for the GoogleSheetsRead node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GoogleSheetsReadNodeOutput(BaseNodeOutput):

@@ -7,8 +7,10 @@ from phi.tools.github import GithubTools
 
 
 class GitHubCreateIssueNodeInput(BaseNodeInput):
-    title: str = Field(..., description="The title of the issue.")
-    body: str = Field(..., description="The body of the issue.")
+    """Input for the GitHubCreateIssue node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GitHubCreateIssueNodeOutput(BaseNodeOutput):

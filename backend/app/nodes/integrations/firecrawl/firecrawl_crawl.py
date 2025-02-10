@@ -13,7 +13,10 @@ from ...utils.template_utils import render_template_or_get_first_string
 
 
 class FirecrawlCrawlNodeInput(BaseNodeInput):
-    url: str = Field(..., description="The URL to crawl.")
+    """Input for the FirecrawlCrawl node"""
+
+    class Config:
+        extra = "allow"
 
 
 class FirecrawlCrawlNodeOutput(BaseNodeOutput):

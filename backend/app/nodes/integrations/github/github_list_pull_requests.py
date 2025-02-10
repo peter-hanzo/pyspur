@@ -7,7 +7,10 @@ import json
 
 
 class GitHubListPullRequestsNodeInput(BaseNodeInput):
-    pass
+    """Input for the GitHubListPullRequests node"""
+
+    class Config:
+        extra = "allow"
 
 
 class GitHubListPullRequestsNodeOutput(BaseNodeOutput):

@@ -8,7 +8,10 @@ from typing import Dict
 
 
 class FirecrawlScrapeNodeInput(BaseNodeInput):
-    url: str = Field(..., description="The URL to scrape.")
+    """Input for the FirecrawlScrape node"""
+
+    class Config:
+        extra = "allow"
 
 
 class FirecrawlScrapeNodeOutput(BaseNodeOutput):
