@@ -58,7 +58,7 @@ const CalendlyWidget: React.FC = () => {
             if ((window as any).Calendly) {
                 ;(window as any).Calendly.initBadgeWidget({
                     url: 'https://calendly.com/d/cnf9-57m-bv3/pyspur-founders',
-                    text: 'Talk to the Founders',
+                    text: 'Talk to the founders',
                     color: '#1a1a1a',
                     textColor: '#ffffff',
                 })
@@ -73,16 +73,26 @@ const CalendlyWidget: React.FC = () => {
         }
 
         return () => {
-            // Safe cleanup - only remove the script if we added it and it still exists
+            // Remove the widget element if it exists
+            const widgetElements = document.querySelectorAll('.calendly-badge-widget')
+            widgetElements.forEach((element) => element.remove())
+
+            // Remove the inline widget if it exists
+            const inlineWidgets = document.querySelectorAll('.calendly-inline-widget')
+            inlineWidgets.forEach((element) => element.remove())
+
+            // Remove any Calendly popups if they exist
+            const popupWidgets = document.querySelectorAll('.calendly-overlay')
+            popupWidgets.forEach((element) => element.remove())
+
+            // Clean up the script only if we added it
             if (scriptElement && document.body.contains(scriptElement)) {
                 document.body.removeChild(scriptElement)
             }
-            // Clean up the widget if it exists
+
+            // Reset the Calendly object
             if ((window as any).Calendly) {
-                const widgetElement = document.querySelector('.calendly-badge-widget')
-                if (widgetElement) {
-                    widgetElement.remove()
-                }
+                delete (window as any).Calendly
             }
         }
     }, [])
