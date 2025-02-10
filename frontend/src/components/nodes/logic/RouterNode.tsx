@@ -1,16 +1,16 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Handle, useNodeConnections, useConnection, Position, useUpdateNodeInternals } from '@xyflow/react'
-import BaseNode from '../BaseNode'
-import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@heroui/react'
-import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeConfigOnly, deleteEdgeByHandle } from '../../../store/flowSlice'
-import styles from '../DynamicNode.module.css'
-import { Icon } from '@iconify/react'
-import { RootState } from '../../../store/store'
-import { ComparisonOperator, RouteConditionRule, RouteConditionGroup } from '../../../types/api_types/routerSchemas'
-import NodeOutputDisplay from '../NodeOutputDisplay'
-import { isEqual } from 'lodash'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
+import { Button, Card, Divider, Input, Radio, RadioGroup, Select, SelectItem } from '@heroui/react'
+import { Icon } from '@iconify/react'
+import { Handle, Position, useConnection, useNodeConnections, useUpdateNodeInternals } from '@xyflow/react'
+import { isEqual } from 'lodash'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { deleteEdgeByHandle, updateNodeConfigOnly } from '../../../store/flowSlice'
+import { RootState } from '../../../store/store'
+import { ComparisonOperator, RouteConditionGroup, RouteConditionRule } from '../../../types/api_types/routerSchemas'
+import BaseNode from '../BaseNode'
+import styles from '../DynamicNode.module.css'
+import NodeOutputDisplay from '../NodeOutputDisplay'
 
 interface RouterNodeData {
     title?: string
@@ -74,7 +74,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
                         ...sourceNode,
-                        handle_id: edge.sourceHandle
+                        handle_id: edge.sourceHandle,
                     }
                 }
                 return sourceNode
@@ -160,8 +160,11 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {
                             id: connection.fromNode.id,
                             type: connection.fromNode.type,
+                            position: connection.fromNode.position,
                             data: {
                                 title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
+                                acronym: 'RN' as string, // just to complete the type requirement, not used
+                                color: '#F6AD55' as string, // just to complete the type requirement, not used
                             },
                         },
                     ]
@@ -171,9 +174,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {
                             id: connection.fromNode.id,
                             type: connection.fromNode.type,
+                            position: connection.fromNode.position,
                             data: {
                                 title:
                                     (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
+                                acronym: (connection.fromNode.data?.acronym as string) || 'N', // just to complete the type requirement, not used
+                                color: (connection.fromNode.data?.color as string) || '#F6AD55', // just to complete the type requirement, not used
                             },
                         },
                     ]
@@ -213,12 +219,12 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                 <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
                     {dedupedPredecessors.map((node) => {
                         const handleId =
-                        node.type === 'RouterNode' && node.handle_id
-                            ? (node.data?.title + '.' + node.handle_id)
-                            : String(node.data?.title || node.id || '')
+                            node.type === 'RouterNode' && node.handle_id
+                                ? node.data?.title + '.' + node.handle_id
+                                : String(node.data?.title || node.id || '')
                         // set node id for router node as node.id + node.data.title
                         const nodeId = node.type === 'RouterNode' ? node?.id + '.' + node?.handle_id : node?.id
-                    return (
+                        return (
                             <InputHandleRow
                                 key={`input-handle-row-${node.id}-${handleId}`}
                                 id={nodeId}
@@ -439,7 +445,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {/* Routes */}
                         <div className="flex flex-col gap-4">
                             {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
-                                
                                 <Card
                                     key={routeKey}
                                     classNames={{
