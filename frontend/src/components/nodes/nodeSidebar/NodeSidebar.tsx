@@ -1,49 +1,49 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../../store/store'
+import { FlowWorkflowNode, FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
 import {
-    updateNodeConfigOnly,
-    selectNodeById,
-    setSidebarWidth,
-    setSelectedNode,
-    updateNodeTitle,
-} from '../../../store/flowSlice'
-import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
-import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../../store/nodeTypesSlice'
-import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
-import NumberInput from '../../NumberInput'
-import CodeEditor from '../../CodeEditor'
-import { jsonOptions } from '../../../constants/jsonOptions'
-import FewShotEditor from '../../textEditor/FewShotEditor'
-import TextEditor from '../../textEditor/TextEditor'
-import {
+    Accordion,
+    AccordionItem,
+    Alert,
     Button,
-    Slider,
-    Switch,
-    Textarea,
+    Card,
+    CardBody,
     Input,
     Select,
     SelectItem,
     SelectSection,
-    Accordion,
-    AccordionItem,
-    Card,
-    Alert,
-    Tooltip,
-    Tabs,
+    Slider,
+    Switch,
     Tab,
-    CardBody,
+    Tabs,
+    Textarea,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import { cloneDeep, debounce, set } from 'lodash'
+import isEqual from 'lodash/isEqual'
+import React, { useCallback, useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { jsonOptions } from '../../../constants/jsonOptions'
+import {
+    selectNodeById,
+    setSelectedNode,
+    setSidebarWidth,
+    updateNodeConfigOnly,
+    updateNodeTitle,
+} from '../../../store/flowSlice'
+import {
+    FlowWorkflowNodeType,
+    FlowWorkflowNodeTypesByCategory,
+    selectPropertyMetadata,
+} from '../../../store/nodeTypesSlice'
+import { RootState } from '../../../store/store'
+import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
+import { listVectorIndices } from '../../../utils/api'
+import CodeEditor from '../../CodeEditor'
+import NumberInput from '../../NumberInput'
+import FewShotEditor from '../../textEditor/FewShotEditor'
+import TextEditor from '../../textEditor/TextEditor'
 import NodeOutput from '../NodeOutputDisplay'
 import SchemaEditor from './SchemaEditor'
-import { selectPropertyMetadata } from '../../../store/nodeTypesSlice'
-import { cloneDeep, set, debounce } from 'lodash'
-import isEqual from 'lodash/isEqual'
-import { listVectorIndices } from '../../../utils/api'
-import { previewChunk } from '@/utils/api'
-import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
 
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 import Ajv from 'ajv'
@@ -81,15 +81,17 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
 }
 
 // Update the extractSchemaFromJsonSchema function to return an error instead of calling setError
-const extractSchemaFromJsonSchema = (jsonSchema: string): { schema: Record<string, any> | null; error: string | null } => {
+const extractSchemaFromJsonSchema = (
+    jsonSchema: string
+): { schema: Record<string, any> | null; error: string | null } => {
     if (!jsonSchema || !jsonSchema.trim()) {
-        return { schema: null, error: null };
+        return { schema: null, error: null }
     }
     try {
         // Try to parse the schema
-        let parsed: Record<string, any>;
+        let parsed: Record<string, any>
         try {
-            parsed = JSON.parse(jsonSchema.trim());
+            parsed = JSON.parse(jsonSchema.trim())
         } catch (e: any) {
             // If the schema has escaped characters, clean it up first
             let cleaned = jsonSchema
@@ -99,29 +101,29 @@ const extractSchemaFromJsonSchema = (jsonSchema: string): { schema: Record<strin
                 .replace(/\\n/g, '') // Remove newlines
                 .replace(/\\t/g, '') // Remove tabs
                 .replace(/\\/g, '') // Remove remaining backslashes
-                .trim();
+                .trim()
             try {
-                parsed = JSON.parse(cleaned);
+                parsed = JSON.parse(cleaned)
             } catch (e: any) {
                 // Extract line and column info from the error message if available
-                const match = e.message.match(/at position (\d+)(?:\s*\(line (\d+) column (\d+)\))?/);
-                const errorMsg = match ?
-                    `Invalid JSON: ${e.message.split('at position')[0].trim()} at line ${match[2] || '?'}, column ${match[3] || '?'}` :
-                    `Invalid JSON: ${e.message}`;
-                return { schema: null, error: errorMsg };
+                const match = e.message.match(/at position (\d+)(?:\s*\(line (\d+) column (\d+)\))?/)
+                const errorMsg = match
+                    ? `Invalid JSON: ${e.message.split('at position')[0].trim()} at line ${match[2] || '?'}, column ${match[3] || '?'}`
+                    : `Invalid JSON: ${e.message}`
+                return { schema: null, error: errorMsg }
             }
         }
 
         // If the parsed schema has a properties field (i.e. full JSON Schema format),
         // return the nested properties so that nested objects are preserved.
         if (parsed.properties) {
-            return { schema: parsed.properties, error: null };
+            return { schema: parsed.properties, error: null }
         }
-        return { schema: parsed, error: null };
+        return { schema: parsed, error: null }
     } catch (error: any) {
-        return { schema: null, error: error.message || 'Invalid JSON Schema' };
+        return { schema: null, error: error.message || 'Invalid JSON Schema' }
     }
-};
+}
 
 // Add this helper function near the top, after extractSchemaFromJsonSchema
 const generateJsonSchemaFromSchema = (schema: Record<string, string>): string | null => {
@@ -165,65 +167,63 @@ interface VectorIndexOption {
 // Add after other const declarations at the top
 const ajv = new Ajv({
     strict: false,
-    allErrors: true
-});
+    allErrors: true,
+})
 
 // Replace the validateJsonSchema function with this enhanced version
 const validateJsonSchema = (schema: string): string | null => {
     if (!schema || !schema.trim()) {
-        return 'Schema cannot be empty';
+        return 'Schema cannot be empty'
     }
 
-    let parsedSchema: any;
+    let parsedSchema: any
 
     // First try to parse the JSON
     try {
-        parsedSchema = JSON.parse(schema);
+        parsedSchema = JSON.parse(schema)
     } catch (e: any) {
         // Extract line and column info from the error message if available
-        const match = e.message.match(/at position (\d+)(?:\s*\(line (\d+) column (\d+)\))?/);
+        const match = e.message.match(/at position (\d+)(?:\s*\(line (\d+) column (\d+)\))?/)
         if (match) {
-            const [, pos, line, col] = match;
+            const [, pos, line, col] = match
             if (line && col) {
-                return `Invalid JSON: ${e.message.split('at position')[0].trim()} at line ${line}, column ${col}`;
+                return `Invalid JSON: ${e.message.split('at position')[0].trim()} at line ${line}, column ${col}`
             }
-            return `Invalid JSON: ${e.message.split('at position')[0].trim()} at position ${pos}`;
+            return `Invalid JSON: ${e.message.split('at position')[0].trim()} at position ${pos}`
         }
-        return `Invalid JSON: ${e.message}`;
+        return `Invalid JSON: ${e.message}`
     }
 
     // Now validate the schema structure
     try {
         // Basic structure validation
         if (!parsedSchema.properties) {
-            return 'Schema must have a properties field';
+            return 'Schema must have a properties field'
         }
 
         if (typeof parsedSchema.properties !== 'object') {
-            return 'properties must be an object';
+            return 'properties must be an object'
         }
 
         // Check that all required properties exist in properties object
         if (Array.isArray(parsedSchema.required)) {
-            const missingProps = parsedSchema.required.filter(
-                (prop: string) => !parsedSchema.properties[prop]
-            );
+            const missingProps = parsedSchema.required.filter((prop: string) => !parsedSchema.properties[prop])
             if (missingProps.length > 0) {
-                return `Required properties [${missingProps.join(', ')}] are missing from properties object`;
+                return `Required properties [${missingProps.join(', ')}] are missing from properties object`
             }
         }
 
         // Check that each property has a valid type
-        const validTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'];
+        const validTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null']
         for (const [propName, propSchema] of Object.entries(parsedSchema.properties)) {
             if (typeof propSchema !== 'object') {
-                return `Property "${propName}" must be an object with a type field`;
+                return `Property "${propName}" must be an object with a type field`
             }
             if (!('type' in propSchema)) {
-                return `Property "${propName}" must have a type field`;
+                return `Property "${propName}" must have a type field`
             }
             if (!validTypes.includes((propSchema as any).type)) {
-                return `Property "${propName}" has invalid type "${(propSchema as any).type}". Valid types are: ${validTypes.join(', ')}`;
+                return `Property "${propName}" has invalid type "${(propSchema as any).type}". Valid types are: ${validTypes.join(', ')}`
             }
         }
 
@@ -239,26 +239,26 @@ const validateJsonSchema = (schema: string): string | null => {
                         type: 'object',
                         required: ['type'],
                         properties: {
-                            type: { type: 'string', enum: validTypes }
-                        }
-                    }
+                            type: { type: 'string', enum: validTypes },
+                        },
+                    },
                 },
                 required: {
                     type: 'array',
-                    items: { type: 'string' }
-                }
-            }
-        });
+                    items: { type: 'string' },
+                },
+            },
+        })
 
         if (!validate(parsedSchema)) {
-            return validate.errors?.[0]?.message || 'Invalid JSON Schema structure';
+            return validate.errors?.[0]?.message || 'Invalid JSON Schema structure'
         }
 
-        return null;
+        return null
     } catch (e: any) {
-        return `Schema validation error: ${e.message}`;
+        return `Schema validation error: ${e.message}`
     }
-};
+}
 
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
@@ -291,7 +291,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const [isLoadingIndices, setIsLoadingIndices] = useState(false)
 
     // Add this near other state variables (e.g., after currentNodeConfig state)
-    const [currentModelConstraints, setCurrentModelConstraints] = useState<ModelConstraints | null>(null);
+    const [currentModelConstraints, setCurrentModelConstraints] = useState<ModelConstraints | null>(null)
 
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
@@ -309,7 +309,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     return acc
                 }
                 if (schema && typeof schema === 'object') {
-                    Object.keys(schema).forEach(key => {
+                    Object.keys(schema).forEach((key) => {
                         acc.push(`${nodeTitle}.${key}`)
                     })
                 }
@@ -334,11 +334,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     // Add debounced validation
     const debouncedValidate = useCallback(
         debounce((value: string) => {
-            const error = validateJsonSchema(value);
-            setJsonSchemaError(error || '');
+            const error = validateJsonSchema(value)
+            setJsonSchemaError(error || '')
         }, 500),
         []
-    );
+    )
 
     // Helper function to update nested object by path
     const updateNestedModel = (obj: FlowWorkflowNodeConfig, path: string, value: any): FlowWorkflowNodeConfig => {
@@ -406,7 +406,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         id: modelId,
                         name: modelId.replace('ollama/', ''),
                     })
-                } else if (modelId.startsWith('claude')) {
+                } else if (modelId.startsWith('anthropic')) {
                     modelsByProvider.Anthropic.push({ id: modelId, name: modelId })
                 } else if (modelId.startsWith('gemini')) {
                     modelsByProvider.Google.push({ id: modelId, name: modelId })
@@ -584,7 +584,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         // Add special handling for index_id field in RetrieverNode
         if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
-            const isMissingVectorIndexRequired = Boolean(fieldMetadata?.required) && !value;
+            const isMissingVectorIndexRequired = Boolean(fieldMetadata?.required) && !value
             return (
                 <div key={key} className="my-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -617,16 +617,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         selectedKeys={value ? [value] : []}
                         placeholder="Select a vector index"
                         classNames={{
-                            value: "text-small",
-                            base: isMissingVectorIndexRequired ? "border-warning" : "",
+                            value: 'text-small',
+                            base: isMissingVectorIndexRequired ? 'border-warning' : '',
                         }}
                         renderValue={(items) => {
-                            const selectedIndex = items[0];
+                            const selectedIndex = items[0]
                             return (
                                 <div className="flex flex-col">
                                     <span>{selectedIndex?.data?.name}</span>
                                 </div>
-                            );
+                            )
                         }}
                         onChange={(e) => handleInputChange(key, e.target.value)}
                         isLoading={isLoadingIndices}
@@ -691,7 +691,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key === 'output_json_schema') {
-            const { schema: parsedSchema, error: parseError } = extractSchemaFromJsonSchema(currentNodeConfig[key] || '');
+            const { schema: parsedSchema, error: parseError } = extractSchemaFromJsonSchema(
+                currentNodeConfig[key] || ''
+            )
 
             return (
                 <div key={key}>
@@ -702,8 +704,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 currentNodeConfig?.has_fixed_output === true
                                     ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
                                     : currentNodeConfig?.llm_info?.model
-                                    ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
-                                    : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                                      ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
+                                      : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                             }
                             placement="left-start"
                             showArrow={true}
@@ -725,11 +727,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                     const defaultSchema = {
                                         type: 'object',
                                         properties: {
-                                            output: { type: 'string' }
+                                            output: { type: 'string' },
                                         },
-                                        required: ['output']
-                                    };
-                                    handleInputChange('output_json_schema', JSON.stringify(defaultSchema, null, 2));
+                                        required: ['output'],
+                                    }
+                                    handleInputChange('output_json_schema', JSON.stringify(defaultSchema, null, 2))
                                 }}
                             >
                                 <Icon icon="solar:restart-linear" width={20} />
@@ -758,10 +760,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                     </div>
                                 </Alert>
                             )}
-                            <Tabs
-                                aria-label="Schema Editor Options"
-                                disabledKeys={jsonSchemaError ? ["simple"] : []}
-                            >
+                            <Tabs aria-label="Schema Editor Options" disabledKeys={jsonSchemaError ? ['simple'] : []}>
                                 <Tab key="simple" title="Simple Editor">
                                     {parsedSchema && (
                                         <Card>
@@ -771,42 +770,42 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                                     jsonValue={parsedSchema}
                                                     onChange={(newValue) => {
                                                         if (typeof newValue === 'object' && !('type' in newValue)) {
-                                                            const jsonSchema = generateJsonSchemaFromSchema(newValue);
+                                                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
                                                             if (jsonSchema) {
                                                                 const updates = {
-                                                                    output_json_schema: jsonSchema
-                                                                };
+                                                                    output_json_schema: jsonSchema,
+                                                                }
                                                                 setCurrentNodeConfig((prev) => ({
                                                                     ...prev,
-                                                                    ...updates
-                                                                }));
+                                                                    ...updates,
+                                                                }))
                                                                 dispatch(
                                                                     updateNodeConfigOnly({
                                                                         id: nodeID,
                                                                         data: {
                                                                             ...currentNodeConfig,
-                                                                            ...updates
-                                                                        }
+                                                                            ...updates,
+                                                                        },
                                                                     })
-                                                                );
+                                                                )
                                                             }
                                                         } else {
                                                             const updates = {
-                                                                output_json_schema: JSON.stringify(newValue, null, 2)
-                                                            };
+                                                                output_json_schema: JSON.stringify(newValue, null, 2),
+                                                            }
                                                             setCurrentNodeConfig((prev) => ({
                                                                 ...prev,
-                                                                ...updates
-                                                            }));
+                                                                ...updates,
+                                                            }))
                                                             dispatch(
                                                                 updateNodeConfigOnly({
                                                                     id: nodeID,
                                                                     data: {
                                                                         ...currentNodeConfig,
-                                                                        ...updates
-                                                                    }
+                                                                        ...updates,
+                                                                    },
                                                                 })
-                                                            );
+                                                            )
                                                         }
                                                     }}
                                                     options={jsonOptions}
@@ -824,8 +823,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                                 code={currentNodeConfig[key] || ''}
                                                 mode="json"
                                                 onChange={(value: string) => {
-                                                    handleInputChange('output_json_schema', value);
-                                                    debouncedValidate(value);
+                                                    handleInputChange('output_json_schema', value)
+                                                    debouncedValidate(value)
                                                 }}
                                             />
                                         </CardBody>
@@ -840,7 +839,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 <span>
                                     This model uses a fixed output schema:{' '}
                                     <code>
-                                        {"{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"}
+                                        {
+                                            "{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"
+                                        }
                                     </code>
                                 </span>
                             </div>
@@ -1015,7 +1016,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 const isMissingNumberRequired =
                     Boolean(fieldMetadata?.required) && (value === undefined || value === null)
                 // Get current model constraints if this is a temperature or max_tokens field
-                const modelConstraints = currentModelConstraints;
+                const modelConstraints = currentModelConstraints
 
                 let min = fieldMetadata?.minimum ?? 0
                 let max = fieldMetadata?.maximum ?? 100
@@ -1036,10 +1037,18 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 }
 
                 // If this is the max_tokens field and the model does not support it, render a disabled slider with a tooltip
-                if ((key === 'max_tokens' || fullPath.endsWith('.max_tokens')) && modelConstraints && !modelConstraints.supports_max_tokens) {
+                if (
+                    (key === 'max_tokens' || fullPath.endsWith('.max_tokens')) &&
+                    modelConstraints &&
+                    !modelConstraints.supports_max_tokens
+                ) {
                     return (
                         <div key={key} className="my-4">
-                            <Tooltip content="max_tokens is not supported for the selected model" placement="top" showArrow>
+                            <Tooltip
+                                content="max_tokens is not supported for the selected model"
+                                placement="top"
+                                showArrow
+                            >
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="font-semibold">{fieldMetadata.title || key}</label>
@@ -1059,14 +1068,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </Tooltip>
                             {!isLast && <hr className="my-2" />}
                         </div>
-                    );
+                    )
                 }
 
                 // If this is the temperature field and the model does not support it, render a disabled slider with a tooltip
-                if ((key === 'temperature' || fullPath.endsWith('.temperature')) && modelConstraints && !modelConstraints.supports_temperature) {
+                if (
+                    (key === 'temperature' || fullPath.endsWith('.temperature')) &&
+                    modelConstraints &&
+                    !modelConstraints.supports_temperature
+                ) {
                     return (
                         <div key={key} className="my-4">
-                            <Tooltip content="Temperature is not supported for the selected model" placement="top" showArrow>
+                            <Tooltip
+                                content="Temperature is not supported for the selected model"
+                                placement="top"
+                                showArrow
+                            >
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
                                         <label className="font-semibold">{fieldMetadata.title || key}</label>
@@ -1086,7 +1103,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </Tooltip>
                             {!isLast && <hr className="my-2" />}
                         </div>
-                    );
+                    )
                 }
 
                 if (fieldMetadata && (min !== undefined || max !== undefined)) {
@@ -1140,8 +1157,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             label={key}
                             value={value}
                             onChange={(e) => {
-                                const newValue = parseFloat(e.target.value);
-                                handleInputChange(key, isNaN(newValue) ? 0 : newValue);
+                                const newValue = parseFloat(e.target.value)
+                                handleInputChange(key, isNaN(newValue) ? 0 : newValue)
                             }}
                         />
                         {!isLast && <hr className="my-2" />}
@@ -1430,12 +1447,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     useEffect(() => {
         if (currentNodeConfig?.llm_info?.model && nodeSchema) {
-            const constraints = getModelConstraints(nodeSchema, currentNodeConfig.llm_info.model);
-            setCurrentModelConstraints(constraints);
+            const constraints = getModelConstraints(nodeSchema, currentNodeConfig.llm_info.model)
+            setCurrentModelConstraints(constraints)
         } else {
-            setCurrentModelConstraints(null);
+            setCurrentModelConstraints(null)
         }
-    }, [currentNodeConfig?.llm_info?.model, nodeSchema]);
+    }, [currentNodeConfig?.llm_info?.model, nodeSchema])
 
     return (
         <Card
@@ -1470,12 +1487,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     onMouseDown={handleMouseDown}
                     style={{
                         width: isResizerHovered || isResizing ? '4px' : '3px',
-                        backgroundColor: isResizing ? 'var(--heroui-colors-primary)' : isResizerHovered ? 'var(--heroui-colors-primary-light)' : 'rgba(0, 0, 0, 0.2)',
-                        opacity: isResizing ? 1 : (isResizerHovered ? 1 : 0),
-                        borderRadius: '2px'
+                        backgroundColor: isResizing
+                            ? 'var(--heroui-colors-primary)'
+                            : isResizerHovered
+                              ? 'var(--heroui-colors-primary-light)'
+                              : 'rgba(0, 0, 0, 0.2)',
+                        opacity: isResizing ? 1 : isResizerHovered ? 1 : 0,
+                        borderRadius: '2px',
                     }}
-                    onMouseEnter={(e) => { setIsResizerHovered(true); e.currentTarget.style.opacity = '1'; }}
-                    onMouseLeave={(e) => { setIsResizerHovered(false); if (!isResizing) e.currentTarget.style.opacity = '0'; }}
+                    onMouseEnter={(e) => {
+                        setIsResizerHovered(true)
+                        e.currentTarget.style.opacity = '1'
+                    }}
+                    onMouseLeave={(e) => {
+                        setIsResizerHovered(false)
+                        if (!isResizing) e.currentTarget.style.opacity = '0'
+                    }}
                 />
 
                 <div className="flex-1 px-6 py-1 overflow-auto max-h-screen" id="node-details">

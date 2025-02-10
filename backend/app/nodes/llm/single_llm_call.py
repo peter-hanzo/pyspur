@@ -103,7 +103,7 @@ class SingleLLMCallNode(BaseNode):
 
         url_vars: Optional[Dict[str, str]] = None
         # Process URL variables if they exist and we're using a Gemini model
-        if model_name.startswith("gemini") and self.config.url_variables:
+        if self.config.url_variables:
             url_vars = {}
             if "file" in self.config.url_variables:
                 # Split the input variable reference (e.g. "input_node.video_url")
