@@ -249,12 +249,21 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
             const predNodeConfig = nodeConfigs[node.id]
             const nodeTitle = predNodeConfig?.title || node.id
-            const outputSchema = predNodeConfig?.output_schema || {}
+            const outputSchema = predNodeConfig?.output_json_schema || '{}'
 
-            return Object.entries(outputSchema).map(([key, type]) => ({
-                value: `${nodeTitle}.${key}`,
-                label: `${nodeTitle}.${key} (${type})`,
-            }))
+            try {
+                const schema = JSON.parse(outputSchema)
+                // Extract properties from JSON schema
+                const properties = schema.properties || {}
+
+                return Object.entries(properties).map(([key, value]: [string, any]) => ({
+                    value: `${nodeTitle}.${key}`,
+                    label: `${nodeTitle}.${key} (${value.type || 'any'})`,
+                }))
+            } catch (error) {
+                console.error('Failed to parse output schema:', error)
+                return []
+            }
         })
     }, [predecessorNodes, nodeConfigs])
 
