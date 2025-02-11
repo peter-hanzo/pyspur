@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="pyspur-logo.svg" alt="PySpur Logo" width="40" height="40" style="vertical-align: middle; filter: invert(1)" data-dark-mode="filter: invert(0)"> PySpur - Modular and extensible AI Agent framework with Graph UI
+  <img src="pyspur-logo.svg" alt="PySpur Logo" width="40" height="40" style="vertical-align: middle; filter: invert(1)" data-dark-mode="filter: invert(0)"> PySpur - Python based AI Agent Builder with Graph UI
 </h1>
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
