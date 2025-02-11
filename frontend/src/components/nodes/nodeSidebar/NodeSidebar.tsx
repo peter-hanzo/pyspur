@@ -833,19 +833,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </Tabs>
                         </>
                     ) : (
-                        <Alert color="warning">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="solar:info-circle-linear" width={20} />
-                                <span>
-                                    This model uses a fixed output schema:{' '}
-                                    <code>
-                                        {
-                                            "{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"
-                                        }
-                                    </code>
-                                </span>
-                            </div>
-                        </Alert>
+                        <></>
                     )}
                     {!isLast && <hr className="my-2" />}
                 </div>
@@ -916,9 +904,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key.endsWith('_template')) {
-            const title = key.slice(0, -9)
+            const title = key
+                .slice(0, -9)
                 .replace(/_/g, ' ')
-                .replace(/\b\w/g, (char) => char.toUpperCase());
+                .replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -936,13 +925,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
-            );
+            )
         }
 
         if (key.endsWith('_prompt') || key.endsWith('_message')) {
-            const title = key
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (char) => char.toUpperCase());
+            const title = key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -959,7 +946,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
-            );
+            )
         }
 
         if (key === 'code') {
