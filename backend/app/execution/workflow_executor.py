@@ -359,6 +359,13 @@ class WorkflowExecutor:
             ),
         )
         self._initial_inputs[input_node.id] = input
+        # also update outputs for input node
+        input_node_obj = NodeFactory.create_node(
+            node_name=input_node.title,
+            node_type_name=input_node.node_type,
+            config=input_node.config,
+        )
+        self._outputs[input_node.id] = await input_node_obj(input)
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
