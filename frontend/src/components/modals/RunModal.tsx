@@ -1,39 +1,40 @@
-import React, { useState, useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { TestInput } from '@/types/api_types/workflowSchemas'
+import { uploadTestFiles } from '@/utils/api'
 import {
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    Button,
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
-    Input,
-    Tooltip,
-    Switch,
     Alert,
+    Button,
+    Input,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    Switch,
+    Table,
+    TableBody,
+    TableCell,
+    TableColumn,
+    TableHeader,
+    TableRow,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import TextEditor from '../textEditor/TextEditor'
-import { addTestInput, deleteTestInput, updateTestInput } from '../../store/flowSlice'
-import { RootState } from '../../store/store'
-import { AppDispatch } from '../../store/store'
-import { TestInput } from '@/types/api_types/workflowSchemas'
+import React, { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
-import FileUploadBox from '../FileUploadBox'
-import { uploadTestFiles } from '@/utils/api'
+import { addTestInput, deleteTestInput, updateTestInput } from '../../store/flowSlice'
 import { getNodeMissingRequiredFields } from '../../store/nodeTypesSlice'
+import { AppDispatch, RootState } from '../../store/store'
+import FileUploadBox from '../FileUploadBox'
+import TextEditor from '../textEditor/TextEditor'
 
 interface RunModalProps {
     isOpen: boolean
     onOpenChange: (isOpen: boolean) => void
     onRun: (initialInputs: Record<string, any>, files?: Record<string, string[]>) => void
     onSave?: () => void
+    selectedRow?: string | null
+    onSelectedRowChange?: (rowId: string | null) => void
 }
 
 interface EditingCell {
@@ -41,7 +42,14 @@ interface EditingCell {
     field: string
 }
 
-const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
+const RunModal: React.FC<RunModalProps> = ({
+    isOpen,
+    onOpenChange,
+    onRun,
+    onSave,
+    selectedRow: externalSelectedRow,
+    onSelectedRowChange,
+}) => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
     const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes).metadata
@@ -49,7 +57,11 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
     const inputNode = nodes.find((node) => node.type === 'InputNode')
     const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {}
     const workflowInputVariableNames = Object.keys(workflowInputVariables)
-    const [alert, setAlert] = useState<{ message: string; color: 'danger' | 'success' | 'warning' | 'default'; isVisible: boolean }>({
+    const [alert, setAlert] = useState<{
+        message: string
+        color: 'danger' | 'success' | 'warning' | 'default'
+        isVisible: boolean
+    }>({
         message: '',
         color: 'default',
         isVisible: false,
@@ -57,7 +69,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     const [testData, setTestData] = useState<TestInput[]>([])
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
-    const [selectedRow, setSelectedRow] = useState<string | null>(null)
+    const [selectedRow, setSelectedRow] = useState<string | null>(externalSelectedRow || null)
     const [editorContents, setEditorContents] = useState<Record<string, string>>({})
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
     const [filePaths, setFilePaths] = useState<Record<string, string[]>>({})
@@ -73,9 +85,17 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
 
     useEffect(() => {
         if (isOpen && testData.length > 0 && !selectedRow) {
-            setSelectedRow(testData[0].id.toString())
+            const newSelectedRow = testData[0].id.toString()
+            setSelectedRow(newSelectedRow)
+            onSelectedRowChange?.(newSelectedRow)
         }
     }, [isOpen, testData, selectedRow])
+
+    useEffect(() => {
+        if (externalSelectedRow !== selectedRow) {
+            setSelectedRow(externalSelectedRow)
+        }
+    }, [externalSelectedRow])
 
     const getNextId = () => {
         const maxId = testData.reduce((max, row) => Math.max(max, row.id), 0)
@@ -337,6 +357,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                             onSelectionChange={(selection) => {
                                                 const selectedKey = Array.from(selection)[0]?.toString() || null
                                                 setSelectedRow(selectedKey)
+                                                onSelectedRowChange?.(selectedKey)
                                             }}
                                             classNames={{
                                                 base: 'min-w-[800px]',

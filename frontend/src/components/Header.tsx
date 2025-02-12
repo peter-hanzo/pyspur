@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
         isVisible: false,
     })
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
-    const [selectedRow, setSelectedRow] = useState<number | null>(null)
+    const [selectedRow, setSelectedRow] = useState<string | null>(null)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false)
 
     const router = useRouter()
@@ -78,7 +78,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
 
     useEffect(() => {
         if (testInputs.length > 0 && !selectedRow) {
-            setSelectedRow(testInputs[0].id)
+            setSelectedRow(testInputs[0].id.toString())
         }
     }, [testInputs])
 
@@ -142,7 +142,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                 return
             }
 
-            const testCase = testInputs.find((row) => row.id === selectedRow) ?? testInputs[0]
+            const testCase = testInputs.find((row) => row.id.toString() === selectedRow) ?? testInputs[0]
 
             if (testCase) {
                 const { id, ...inputValues } = testCase
@@ -379,7 +379,13 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                         <SettingsCard />
                     </NavbarItem>
                     <NavbarItem className="hidden sm:flex">
-                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsHelpModalOpen(true)} aria-label="Help">
+                        <Button
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onPress={() => setIsHelpModalOpen(true)}
+                            aria-label="Help"
+                        >
                             <Icon className="text-foreground/60" icon="solar:question-circle-linear" width={24} />
                         </Button>
                     </NavbarItem>
@@ -392,12 +398,14 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                     await executeWorkflow(selectedInputs)
                     setIsDebugModalOpen(false)
                 }}
+                selectedRow={selectedRow}
+                onSelectedRowChange={setSelectedRow}
             />
             <DeployModal
                 isOpen={isDeployModalOpen}
                 onOpenChange={setIsDeployModalOpen}
                 workflowId={workflowId}
-                testInput={testInputs.find((row) => row.id === selectedRow) ?? testInputs[0]}
+                testInput={testInputs.find((row) => row.id.toString() === selectedRow) ?? testInputs[0]}
             />
             <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         </>

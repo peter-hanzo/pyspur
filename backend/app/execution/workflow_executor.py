@@ -234,6 +234,11 @@ class WorkflowExecutor:
             ):
                 self._outputs[node_id] = None
                 return None
+            elif node.node_type == "CoalesceNode" and all(
+                [v is None for v in node_input.values()]
+            ):
+                self._outputs[node_id] = None
+                return None
 
             # Remove None values from input
             node_input = {k: v for k, v in node_input.items() if v is not None}
@@ -354,6 +359,13 @@ class WorkflowExecutor:
             ),
         )
         self._initial_inputs[input_node.id] = input
+        # also update outputs for input node
+        input_node_obj = NodeFactory.create_node(
+            node_name=input_node.title,
+            node_type_name=input_node.node_type,
+            config=input_node.config,
+        )
+        self._outputs[input_node.id] = await input_node_obj(input)
 
         nodes_to_run = set(self._node_dict.keys())
         if node_ids:
