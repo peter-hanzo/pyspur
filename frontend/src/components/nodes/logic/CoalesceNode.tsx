@@ -1,16 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { Button, Card, Divider, Select, SelectItem } from '@heroui/react'
+import { Icon } from '@iconify/react'
 import { Handle, Position, useConnection } from '@xyflow/react'
-import BaseNode from '../BaseNode'
-import { Input, Card, Divider, Button, Select, SelectItem } from '@heroui/react'
+import isEqual from 'lodash/isEqual'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeConfigOnly } from '../../../store/flowSlice'
-import styles from '../DynamicNode.module.css'
-import { Icon } from '@iconify/react'
 import { RootState } from '../../../store/store'
+import BaseNode from '../BaseNode'
+import styles from '../DynamicNode.module.css'
 import NodeOutputDisplay from '../NodeOutputDisplay'
-import isEqual from 'lodash/isEqual'
-import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
-import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 
 interface CoalesceNodeProps {
     id: string
@@ -357,6 +356,9 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                                                     key={variable.value}
                                                     value={variable.value}
                                                     textValue={variable.label}
+                                                    classNames={{
+                                                        title: 'w-full whitespace-normal break-words',
+                                                    }}
                                                 >
                                                     <div className="whitespace-normal">
                                                         <span>{variable.label}</span>
