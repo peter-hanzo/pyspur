@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ....integrations.slack.client import SlackClient
 from enum import Enum
-from typing import Dict
 
 
 class ModeEnum(str, Enum):
@@ -29,10 +28,6 @@ class SlackNotifyNodeConfig(BaseNodeConfig):
     mode: ModeEnum = Field(
         ModeEnum.BOT,
         description="The mode to send the message in. Can be 'bot' or 'user'.",
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"status": "string"},
-        description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
@@ -62,4 +57,3 @@ class SlackNotifyNode(BaseNode):
         client = SlackClient()
         ok, status = client.send_message(channel=self.config.channel, text=message, mode=self.config.mode)  # type: ignore
         return SlackNotifyNodeOutput(status=status)
-

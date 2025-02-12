@@ -33,9 +33,9 @@
   ],
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://docs.pyspur.dev"
+      "name": "Cloud",
+      "icon": "cloud",
+      "url": "https://forms.gle/kamonWPvE3ybvo7ZA"
     },
     {
       "name": "Community",
@@ -85,7 +85,7 @@
   ],
   "footerSocials": {
     "x": "https://x.com/pyspurdev",
-    "github": "https://github.com/pyspur",
+    "github": "https://github.com/PySpur-Dev/pyspur",
     "linkedin": "https://linkedin.com/company/pyspur"
   }
 }

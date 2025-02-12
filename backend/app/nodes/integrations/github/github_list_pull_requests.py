@@ -2,7 +2,6 @@ import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
-from typing import Dict
 import json
 
 
@@ -24,10 +23,6 @@ class GitHubListPullRequestsNodeConfig(BaseNodeConfig):
     state: str = Field(
         "open",
         description="The state of the pull requests to fetch. Can be 'open', 'closed', or 'all'.",
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"pull_requests": "string"},
-        description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

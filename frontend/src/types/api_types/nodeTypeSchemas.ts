@@ -1,7 +1,7 @@
+import { RouteConditionGroup } from '@/types/api_types/routerSchemas'
 import { WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
 import { CoordinateExtent } from '@xyflow/react'
 import { ModelConstraints } from './modelMetadataSchemas'
-import { RouteConditionGroup } from '@/types/api_types/routerSchemas'
 
 export interface NodeTypeSchema {
     node_type_name: string
@@ -69,12 +69,15 @@ export interface FlowWorkflowNodeConfig {
     type?: string
     input_schema?: Record<string, any>
     output_schema?: Record<string, any>
+    output_json_schema?: string
     system_message?: string
     user_message?: string
-    few_shot_examples?: Array<{
-        input: string
-        output: string
-    }> | Record<string, any>[]
+    few_shot_examples?:
+        | Array<{
+              input: string
+              output: string
+          }>
+        | Record<string, any>[]
     llm_info?: {
         model?: string
         api_base?: string

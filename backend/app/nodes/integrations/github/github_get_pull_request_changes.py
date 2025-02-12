@@ -1,20 +1,9 @@
+import json
 import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
-from typing import Optional, Dict
-
-
-class GitHubGetPullRequestChangesNodeConfig(BaseNodeConfig):
-    repo_name: str = Field(
-        "", description="The full name of the repository (e.g. 'owner/repo')."
-    )
-    pr_number: Optional[int] = Field(None, description="The pull request number.")
-    output_schema: Dict[str, str] = Field(
-        default={"pull_request_changes": "string"},
-        description="The schema for the output of the node",
-    )
-    has_fixed_output: bool = True
+from typing import Optional
 
 
 class GitHubGetPullRequestChangesNodeInput(BaseNodeInput):
@@ -29,6 +18,16 @@ class GitHubGetPullRequestChangesNodeOutput(BaseNodeOutput):
         ..., description="The list of changed files in the pull request in JSON format."
     )
 
+class GitHubGetPullRequestChangesNodeConfig(BaseNodeConfig):
+    repo_name: str = Field(
+        "", description="The full name of the repository (e.g. 'owner/repo')."
+    )
+    pr_number: Optional[int] = Field(None, description="The pull request number.")
+    has_fixed_output: bool = True
+    output_json_schema: str = Field(
+        default=json.dumps(GitHubGetPullRequestChangesNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
+    )
 
 class GitHubGetPullRequestChangesNode(BaseNode):
     name = "github_get_pull_request_changes_node"

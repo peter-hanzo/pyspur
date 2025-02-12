@@ -25,20 +25,22 @@ import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { setProjectName } from '../store/flowSlice'
 import { AlertState } from '../types/alert'
-import { getWorkflow } from '../utils/api'
+import { getWorkflow, getRunStatus } from '../utils/api'
 import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
 import RunModal from './modals/RunModal'
 import SettingsCard from './modals/SettingsModal'
+import { RunResponse } from '../types/api_types/runSchemas'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
     associatedWorkflowId?: string
+    runId?: string
 }
 
 import { RootState } from '../store/store'
 
-const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => {
+const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const projectName = useSelector((state: RootState) => state.flow.projectName)
@@ -162,6 +164,59 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
             enabled: activePage === 'workflow',
         }
     )
+
+    const handleDownloadTrace = async (): Promise<void> => {
+        if (!runId) return
+
+        try {
+            // Show loading state in the alert
+            showAlert('Preparing trace data...', 'default')
+
+            // Fetch run data on demand
+            const runData = await getRunStatus(runId)
+
+            const traceData = {
+                id: runData.id,
+                workflow_id: runData.workflow_id,
+                status: runData.status,
+                start_time: runData.start_time,
+                end_time: runData.end_time,
+                initial_inputs: runData.initial_inputs,
+                outputs: runData.outputs,
+                tasks: runData.tasks.map(task => ({
+                    id: task.id,
+                    node_id: task.node_id,
+                    status: task.status,
+                    inputs: task.inputs,
+                    outputs: task.outputs,
+                    error: task.error,
+                    start_time: task.start_time,
+                    end_time: task.end_time
+                }))
+            }
+
+            const blob = new Blob([JSON.stringify(traceData, null, 2)], {
+                type: 'application/json',
+            })
+
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `trace_${runData.id}.json`
+
+            document.body.appendChild(a)
+            a.click()
+
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+
+            // Show success message
+            showAlert('Trace downloaded successfully', 'success')
+        } catch (error) {
+            console.error('Error downloading trace:', error)
+            showAlert('Error downloading trace', 'danger')
+        }
+    }
 
     return (
         <>
@@ -364,6 +419,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId }) => 
                         className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
                         justify="end"
                     >
+                        <NavbarItem className="hidden sm:flex">
+                            <Button isIconOnly radius="full" variant="light" onPress={handleDownloadTrace}>
+                                <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
+                            </Button>
+                        </NavbarItem>
                         <NavbarItem>
                             <Link href={`/workflows/${associatedWorkflowId}`}>
                                 <Button variant="light">Go To Workflow</Button>
