@@ -1,18 +1,57 @@
 ---
 title: Introduction
-description: 'PySpur is an AI Agents Builder with Graph UI.'
+description: 'PySpur is a Python based AI Agents Builder with Graph UI.'
 ---
 
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.svg"
-  alt="Hero Light"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.svg"
-  alt="Hero Dark"
-/>
+<video
+  width="100%"
+  controls
+>
+  <source src="/images/hero.mp4" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+# PySpur's Design Principles
+
+Pyspur encompasses three design principles:
+
+## 1. Rapid feedback loops:
+
+* **Build and test in one place:** Build and test your workflow in real-time within the canvas editor, providing you with instant feedback on your changes.
+* **Vendor abstraction**: Not 20 different nodes for 20 different vendors. For example, a unified LLM call node that is vendor-agnostic, enabling you to jump between models quickly to see which one is best for your use case.
+
+## 2. Built-In AI components
+
+As AI capabilities improve, agentic workflows involve more AI-native components. For example:
+* Larger context windows enabled *multi-document RAG*
+* Reasoning models enabled robust *tool calling*
+* Vision models enabled *web browsing*
+
+Unlike traditional workflow platforms that rely on external integrations, PySpur's batteries-included approach gives you more control. Example: you spot a problematic document chunk in your vector index during run time? You can delete it directly inside PySpur.
+
+## 3. Easy Extensibility
+
+Create custom nodes with a simple Python decorator:
+
+```python
+@NodeRegistry.register(
+    category="Integrations",
+    display_name="Firecrawl Scrape",
+    logo="/images/firecrawl.png"
+)
+class FirecrawlScrapeNode(BaseNode):
+    name = "firecrawl_scrape_node"
+    config_model = FirecrawlScrapeNodeConfig
+    input_model = FirecrawlScrapeNodeInput
+    output_model = FirecrawlScrapeNodeOutput
+    category = "Firecrawl"  # This will be used by the frontend for subcategory grouping
+
+    async def run(self, input: BaseModel) -> BaseModel:
+        """
+        Scrapes a URL and returns the content in markdown or structured format.
+        """
+
+```
 
 ## Setting up
 
