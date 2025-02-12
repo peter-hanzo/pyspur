@@ -10,6 +10,8 @@ import { RootState } from '../../../store/store'
 import isEqual from 'lodash/isEqual'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import NodeOutputModal from '../NodeOutputModal'
+import { OutputHandleRow } from '../shared/OutputHandleRow'
+import DynamicNode from '../DynamicNode'
 
 export interface CoalesceNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
@@ -26,7 +28,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const nodeRef = useRef<HTMLDivElement | null>(null)
 
-    // We’ll dynamically compute a width that fits the labels (handles).
+    // We'll dynamically compute a width that fits the labels (handles).
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
 
     const dispatch = useDispatch()
@@ -93,7 +95,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
     /**
      * Build an array of upstream node IDs for the dropdown.
-     * (We’re not currently using the node’s output_schema to filter the keys.)
+     * (We're not currently using the node's output_schema to filter the keys.)
      */
     const inputVariables = useMemo(() => {
         return predecessorNodes
@@ -222,54 +224,13 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         taskStatus: data.taskStatus,
     }
 
-    interface HandleRowProps {
-        id: string
-        keyName: string
-    }
-
-    const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
-        return (
-            <div
-                className={`${styles.handleRow} w-full justify-end`}
-                key={`output-${keyName}`}
-                id={`output-${keyName}-row`}
-            >
-                {!isCollapsed && (
-                    <div
-                        className="align-center flex flex-grow flex-shrink mr-[0.5rem] max-w-full overflow-hidden"
-                        id={`output-${keyName}-label`}
-                    >
-                        <span
-                            className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary
-                                ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                        >
-                            {keyName}
-                        </span>
-                    </div>
-                )}
-                <div className="border-l border-gray-200 h-full mx-0" />
-                <div className={`${styles.handleCell} ${styles.outputHandleCell}`} id={`output-${keyName}-handle`}>
-                    <Handle
-                        type="source"
-                        position={Position.Right}
-                        id={String(id)}
-                        className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
-                        isConnectable={!isCollapsed}
-                    />
-                </div>
-            </div>
-        )
-    }
-
     const renderOutputHandles = () => {
         return (
             <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
-                {nodeData?.title && <OutputHandleRow id={id} keyName={String(nodeData?.title)} />}
+                {nodeData?.title && <OutputHandleRow id={id} keyName={String(nodeData?.title)} isCollapsed={isCollapsed} />}
             </div>
         )
     }
-
-
 
     return (
         <BaseNode
