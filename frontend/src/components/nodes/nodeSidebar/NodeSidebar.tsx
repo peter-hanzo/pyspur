@@ -5,15 +5,12 @@ import {
     Alert,
     Button,
     Card,
-    CardBody,
     Input,
     Select,
     SelectItem,
     SelectSection,
     Slider,
     Switch,
-    Tab,
-    Tabs,
     Textarea,
     Tooltip,
 } from '@heroui/react'
@@ -43,8 +40,10 @@ import NumberInput from '../../NumberInput'
 import FewShotEditor from '../../textEditor/FewShotEditor'
 import TextEditor from '../../textEditor/TextEditor'
 import NodeOutput from '../NodeOutputDisplay'
+import OutputSchemaEditor from './OutputSchemaEditor'
 import SchemaEditor from './SchemaEditor'
 
+import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '@/utils/schemaUtils'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 import Ajv from 'ajv'
 
@@ -80,75 +79,7 @@ const nodesComparator = (prevNodes: FlowWorkflowNode[], nextNodes: FlowWorkflowN
     return prevNodes.every((node, index) => nodeComparator(node, nextNodes[index]))
 }
 
-// Update the extractSchemaFromJsonSchema function to return an error instead of calling setError
-const extractSchemaFromJsonSchema = (
-    jsonSchema: string
-): { schema: Record<string, any> | null; error: string | null } => {
-    if (!jsonSchema || !jsonSchema.trim()) {
-        return { schema: null, error: null }
-    }
-    try {
-        // Try to parse the schema
-        let parsed: Record<string, any>
-        try {
-            parsed = JSON.parse(jsonSchema.trim())
-        } catch (e: any) {
-            // If the schema has escaped characters, clean it up first
-            let cleaned = jsonSchema
-                .replace(/\"/g, '"') // Replace escaped quotes
-                .replace(/\\\[/g, '[') // Replace escaped brackets
-                .replace(/\\\]/g, ']')
-                .replace(/\\n/g, '') // Remove newlines
-                .replace(/\\t/g, '') // Remove tabs
-                .replace(/\\/g, '') // Remove remaining backslashes
-                .trim()
-            try {
-                parsed = JSON.parse(cleaned)
-            } catch (e: any) {
-                // Extract line and column info from the error message if available
-                const match = e.message.match(/at position (\d+)(?:\s*\(line (\d+) column (\d+)\))?/)
-                const errorMsg = match
-                    ? `Invalid JSON: ${e.message.split('at position')[0].trim()} at line ${match[2] || '?'}, column ${match[3] || '?'}`
-                    : `Invalid JSON: ${e.message}`
-                return { schema: null, error: errorMsg }
-            }
-        }
-
-        // If the parsed schema has a properties field (i.e. full JSON Schema format),
-        // return the nested properties so that nested objects are preserved.
-        if (parsed.properties) {
-            return { schema: parsed.properties, error: null }
-        }
-        return { schema: parsed, error: null }
-    } catch (error: any) {
-        return { schema: null, error: error.message || 'Invalid JSON Schema' }
-    }
-}
-
 // Add this helper function near the top, after extractSchemaFromJsonSchema
-const generateJsonSchemaFromSchema = (schema: Record<string, string>): string | null => {
-    if (!schema || Object.keys(schema).length === 0) return null
-
-    try {
-        const jsonSchema = {
-            type: 'object',
-            required: Object.keys(schema),
-            properties: {} as Record<string, { type: string }>,
-        }
-
-        for (const [key, type] of Object.entries(schema)) {
-            if (!key || !type) return null
-            jsonSchema.properties[key] = { type }
-        }
-
-        return JSON.stringify(jsonSchema, null, 2)
-    } catch (error) {
-        console.error('Error generating JSON schema:', error)
-        return null
-    }
-}
-
-// Add this function after the existing helper functions and before the NodeSidebar component
 const getModelConstraints = (nodeSchema: FlowWorkflowNodeType | null, modelId: string): ModelConstraints | null => {
     if (!nodeSchema || !nodeSchema.model_constraints || !nodeSchema.model_constraints[modelId]) {
         return null
@@ -691,10 +622,12 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key === 'output_json_schema') {
-            const { schema: parsedSchema, error: parseError } = extractSchemaFromJsonSchema(
-                currentNodeConfig[key] || ''
-            )
-
+            const isReadOnly =
+                currentNodeConfig?.has_fixed_output ||
+                (currentNodeConfig?.llm_info?.model && !currentModelConstraints?.supports_JSON_output) ||
+                node.type === 'RouterNode' ||
+                node.type === 'CoalesceNode' ||
+                false
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -703,9 +636,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             content={
                                 currentNodeConfig?.has_fixed_output === true
                                     ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
-                                    : currentNodeConfig?.llm_info?.model
+                                    : currentNodeConfig?.llm_info?.model &&
+                                        currentModelConstraints?.supports_JSON_output
                                       ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
-                                      : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                                      : currentNodeConfig?.llm_info?.model &&
+                                          !currentModelConstraints?.supports_JSON_output
+                                        ? "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                                        : "The output schema defines the structure of this node's output."
                             }
                             placement="left-start"
                             showArrow={true}
@@ -738,115 +675,21 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             </Button>
                         )}
                     </div>
-                    {currentNodeConfig?.has_fixed_output ? (
-                        <div className="bg-default-100 rounded-lg p-4">
-                            <CodeEditor
-                                key={`code-editor-output-json-schema-${nodeID}`}
-                                code={currentNodeConfig[key] || ''}
-                                mode="json"
-                                onChange={() => {}} // No-op for fixed output nodes
-                                readOnly={true}
-                            />
-                            <p className="text-sm text-default-500 mt-2">
-                                This node has a fixed output schema that cannot be modified.
-                            </p>
-                        </div>
-                    ) : currentNodeConfig?.llm_info?.model ? (
-                        <>
-                            {jsonSchemaError && (
-                                <Alert color="danger" className="mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <span>{jsonSchemaError}</span>
-                                    </div>
-                                </Alert>
-                            )}
-                            <Tabs aria-label="Schema Editor Options" disabledKeys={jsonSchemaError ? ['simple'] : []}>
-                                <Tab key="simple" title="Simple Editor">
-                                    {parsedSchema && (
-                                        <Card>
-                                            <CardBody>
-                                                <SchemaEditor
-                                                    key={`schema-editor-output-${nodeID}`}
-                                                    jsonValue={parsedSchema}
-                                                    onChange={(newValue) => {
-                                                        if (typeof newValue === 'object' && !('type' in newValue)) {
-                                                            const jsonSchema = generateJsonSchemaFromSchema(newValue)
-                                                            if (jsonSchema) {
-                                                                const updates = {
-                                                                    output_json_schema: jsonSchema,
-                                                                }
-                                                                setCurrentNodeConfig((prev) => ({
-                                                                    ...prev,
-                                                                    ...updates,
-                                                                }))
-                                                                dispatch(
-                                                                    updateNodeConfigOnly({
-                                                                        id: nodeID,
-                                                                        data: {
-                                                                            ...currentNodeConfig,
-                                                                            ...updates,
-                                                                        },
-                                                                    })
-                                                                )
-                                                            }
-                                                        } else {
-                                                            const updates = {
-                                                                output_json_schema: JSON.stringify(newValue, null, 2),
-                                                            }
-                                                            setCurrentNodeConfig((prev) => ({
-                                                                ...prev,
-                                                                ...updates,
-                                                            }))
-                                                            dispatch(
-                                                                updateNodeConfigOnly({
-                                                                    id: nodeID,
-                                                                    data: {
-                                                                        ...currentNodeConfig,
-                                                                        ...updates,
-                                                                    },
-                                                                })
-                                                            )
-                                                        }
-                                                    }}
-                                                    options={jsonOptions}
-                                                    nodeId={nodeID}
-                                                />
-                                            </CardBody>
-                                        </Card>
-                                    )}
-                                </Tab>
-                                <Tab key="json" title="JSON Schema">
-                                    <Card>
-                                        <CardBody>
-                                            <CodeEditor
-                                                key={`code-editor-output-json-schema-${nodeID}`}
-                                                code={currentNodeConfig[key] || ''}
-                                                mode="json"
-                                                onChange={(value: string) => {
-                                                    handleInputChange('output_json_schema', value)
-                                                    debouncedValidate(value)
-                                                }}
-                                            />
-                                        </CardBody>
-                                    </Card>
-                                </Tab>
-                            </Tabs>
-                        </>
-                    ) : (
-                        <Alert color="warning">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="solar:info-circle-linear" width={20} />
-                                <span>
-                                    This model uses a fixed output schema:{' '}
-                                    <code>
-                                        {
-                                            "{ type: 'object', properties: { output: { type: 'string' } }, required: ['output'] }"
-                                        }
-                                    </code>
-                                </span>
-                            </div>
-                        </Alert>
+                    {currentNodeConfig?.has_fixed_output && (
+                        <p className="text-sm text-default-500 mb-2">
+                            This node has a fixed output schema that cannot be modified.
+                        </p>
                     )}
+                    <OutputSchemaEditor
+                        nodeID={nodeID}
+                        schema={currentNodeConfig.output_json_schema || ''}
+                        readOnly={isReadOnly}
+                        error={jsonSchemaError}
+                        onChange={(newSchema) => {
+                            handleInputChange('output_json_schema', newSchema)
+                            debouncedValidate(newSchema)
+                        }}
+                    />
                     {!isLast && <hr className="my-2" />}
                 </div>
             )
@@ -916,9 +759,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key.endsWith('_template')) {
-            const title = key.slice(0, -9)
+            const title = key
+                .slice(0, -9)
                 .replace(/_/g, ' ')
-                .replace(/\b\w/g, (char) => char.toUpperCase());
+                .replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -936,13 +780,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
-            );
+            )
         }
 
         if (key.endsWith('_prompt') || key.endsWith('_message')) {
-            const title = key
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (char) => char.toUpperCase());
+            const title = key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -959,7 +801,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
-            );
+            )
         }
 
         if (key === 'code') {

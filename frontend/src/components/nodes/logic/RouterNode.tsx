@@ -249,12 +249,21 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
             const predNodeConfig = nodeConfigs[node.id]
             const nodeTitle = predNodeConfig?.title || node.id
-            const outputSchema = predNodeConfig?.output_schema || {}
+            const outputSchema = predNodeConfig?.output_json_schema || '{}'
 
-            return Object.entries(outputSchema).map(([key, type]) => ({
-                value: `${nodeTitle}.${key}`,
-                label: `${nodeTitle}.${key} (${type})`,
-            }))
+            try {
+                const schema = JSON.parse(outputSchema)
+                // Extract properties from JSON schema
+                const properties = schema.properties || {}
+
+                return Object.entries(properties).map(([key, value]: [string, any]) => ({
+                    value: `${nodeTitle}.${key}`,
+                    label: `${nodeTitle}.${key} (${value.type || 'any'})`,
+                }))
+            } catch (error) {
+                console.error('Failed to parse output schema:', error)
+                return []
+            }
         })
     }, [predecessorNodes, nodeConfigs])
 
@@ -511,8 +520,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                         variant="flat"
                                                         classNames={{
                                                             trigger: 'dark:bg-default-50/10',
-                                                            base: 'dark:bg-default-50/10',
-                                                            popoverContent: 'dark:bg-default-50/10',
+                                                            popoverContent: 'dark:bg-default-50',
                                                         }}
                                                         renderValue={(items) => {
                                                             return items.map((item) => (
@@ -532,6 +540,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                                 value={variable.value}
                                                                 textValue={variable.label}
                                                                 className="text-default-700 dark:text-default-300"
+                                                                classNames={{
+                                                                    title: 'w-full whitespace-normal break-words',
+                                                                }}
                                                             >
                                                                 <div className="whitespace-normal">
                                                                     <span>{variable.label}</span>
@@ -570,8 +581,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                             variant="flat"
                                                             classNames={{
                                                                 trigger: 'dark:bg-default-50/10',
-                                                                base: 'dark:bg-default-50/10',
-                                                                popoverContent: 'dark:bg-default-50/10',
+                                                                popoverContent: 'dark:bg-default-50',
                                                             }}
                                                             renderValue={(items) => {
                                                                 return items.map((item) => (
@@ -590,6 +600,9 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                                                     value={op.value}
                                                                     textValue={op.label}
                                                                     className="text-default-700 dark:text-default-300"
+                                                                    classNames={{
+                                                                        title: 'w-full whitespace-normal break-words',
+                                                                    }}
                                                                 >
                                                                     {op.label}
                                                                 </SelectItem>
