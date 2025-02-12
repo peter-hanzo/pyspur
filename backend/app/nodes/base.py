@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from hashlib import md5
 from typing import Any, Dict, List, Optional, Type
+import json
 
 from pydantic import BaseModel, Field, create_model
 from ..execution.workflow_execution_context import WorkflowExecutionContext
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
+from ..utils import pydantic_utils
 
 
 class VisualTag(BaseModel):
@@ -105,9 +107,11 @@ class BaseNode(ABC):
         For dynamic schema nodes, these can be created based on self.config.
         """
         if self._config.has_fixed_output:
-            self.output_model = self.create_output_model_class(
-                self._config.output_schema
+            schema = json.loads(self._config.output_json_schema)
+            model = pydantic_utils.json_schema_to_model(
+                schema, model_class_name=self.name, base_class=BaseNodeOutput
             )
+            self.output_model = model  # type: ignore
 
     def create_output_model_class(
         self, output_schema: Dict[str, str]
