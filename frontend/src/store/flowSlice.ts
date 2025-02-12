@@ -45,33 +45,36 @@ function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode)
     const incomingEdges = state.edges.filter((edge) => edge.target === routerNode.id)
 
     // Build new output schema by combining all source nodes
-    const newOutputSchema = incomingEdges.reduce(
-        (schema, edge) => {
+    const newSchemaProperties = incomingEdges.reduce(
+        (properties, edge) => {
             const sourceNode = state.nodes.find((n) => n.id === edge.source)
             const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
-            if (sourceNodeConfig?.output_schema) {
+            if (sourceNodeConfig?.output_json_schema) {
                 const nodeTitle = sourceNodeConfig.title || sourceNode?.id
-                const sourceSchema = sourceNodeConfig.output_schema
+                const sourceSchema = sourceNodeConfig.output_json_schema
 
-                // Add prefixed entries from the source schema
-                Object.entries(sourceSchema).forEach(([key, value]) => {
-                    schema[`${nodeTitle}.${key}`] = value
-                })
+                properties[nodeTitle] = sourceSchema
             }
-            return schema
+            return properties
         },
         {} as Record<string, any>
     )
+    const newOutputSchema = JSON.stringify({
+        type: 'object',
+        properties: newSchemaProperties,
+        required: Object.keys(newSchemaProperties),
+        additionalProperties: false,
+    })
 
     const routerNodeConfig = state.nodeConfigs[routerNode.id] || {}
-    const currentSchema = routerNodeConfig.output_schema || {}
+    const currentSchema = routerNodeConfig.output_json_schema || '{}'
     const hasChanges = !isEqual(currentSchema, newOutputSchema)
 
     // Only update if there are actual changes
     if (hasChanges) {
         state.nodeConfigs[routerNode.id] = {
             ...routerNodeConfig,
-            output_schema: newOutputSchema,
+            output_json_schema: newOutputSchema,
         }
     }
 }
@@ -107,10 +110,8 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
 const generateJsonSchema = (schema: Record<string, any>): string => {
     const jsonSchema = {
         type: 'object',
-        properties: Object.fromEntries(
-            Object.entries(schema).map(([key, type]) => [key, { type }])
-        ),
-        required: Object.keys(schema)
+        properties: Object.fromEntries(Object.entries(schema).map(([key, type]) => [key, { type }])),
+        required: Object.keys(schema),
     }
     return JSON.stringify(jsonSchema, null, 2)
 }
@@ -422,7 +423,7 @@ const flowSlice = createSlice({
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: generateJsonSchema(updatedSchema)
+                    output_json_schema: generateJsonSchema(updatedSchema),
                 }
             }
 
@@ -467,7 +468,7 @@ const flowSlice = createSlice({
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: generateJsonSchema(updatedSchema)
+                    output_json_schema: generateJsonSchema(updatedSchema),
                 }
             }
             // Remove from global workflowInputVariables
@@ -528,7 +529,7 @@ const flowSlice = createSlice({
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: generateJsonSchema(updatedSchema)
+                    output_json_schema: generateJsonSchema(updatedSchema),
                 }
             }
 
