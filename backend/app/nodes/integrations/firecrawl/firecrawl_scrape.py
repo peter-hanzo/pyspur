@@ -15,8 +15,8 @@ class FirecrawlScrapeNodeInput(BaseNodeInput):
 
 
 class FirecrawlScrapeNodeOutput(BaseNodeOutput):
-    scrape_result: str = Field(
-        ..., description="The scraped data in markdown or structured format."
+    markdown: str = Field(
+        ..., description="The scraped data in markdown format."
     )
 
 
@@ -26,7 +26,7 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
         description="The URL to scrape and convert into clean markdown or structured data.",
     )
     output_schema: Dict[str, str] = Field(
-        default={"scrape_result": "string"},
+        default={"markdown": "string"},
         description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
@@ -59,17 +59,14 @@ class FirecrawlScrapeNode(BaseNode):
                 self.config.url_template, raw_input_dict, self.name
             )
 
-            if not os.getenv("FIRECRAWL_API_KEY"):
-                raise ValueError("FIRECRAWL_API_KEY environment variable is not set")
-
             app = FirecrawlApp()  # type: ignore
             scrape_result = app.scrape_url(  # type: ignore
                 url_template,
                 params={
-                    "formats": ["markdown", "html"],
+                    "formats": ["markdown"],
                 },
             )
-            return FirecrawlScrapeNodeOutput(scrape_result=json.dumps(scrape_result))
+            return FirecrawlScrapeNodeOutput(markdown=scrape_result["markdown"])
         except Exception as e:
             logging.error(f"Failed to scrape URL: {e}")
-            return FirecrawlScrapeNodeOutput(scrape_result="")
+            return FirecrawlScrapeNodeOutput(markdown="")
