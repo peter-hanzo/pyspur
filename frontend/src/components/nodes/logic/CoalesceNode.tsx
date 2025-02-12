@@ -7,9 +7,6 @@ import { updateNodeConfigOnly } from '../../../store/flowSlice'
 import styles from '../DynamicNode.module.css'
 import { Icon } from '@iconify/react'
 import { RootState } from '../../../store/store'
-import NodeOutputDisplay from '../NodeOutputDisplay'
-import isEqual from 'lodash/isEqual'
-import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import NodeOutputModal from '../NodeOutputModal'
 
@@ -73,85 +70,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index)
         return result
     }, [edges, nodes, connection, id])
-
-    // const updateNodeInternals = useUpdateNodeInternals()
-
-    // useEffect(() => {
-    //     // Check if finalPredecessors differ from predecessorNodes
-    //     // (We do a deeper comparison to detect config/title changes, not just ID changes)
-    //     const hasChanged =
-    //         finalPredecessors.length !== predecessorNodes.length ||
-    //         finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
-
-    //     if (hasChanged) {
-    //         setPredecessorNodes(finalPredecessors)
-    //         updateNodeInternals(id)
-    //     }
-    // }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
-
-    // Add a type guard to check if the node is a FlowWorkflowNode
-    // const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
-    //     return 'type' in node
-    // }
-
-    // Recompute predecessor nodes whenever edges/connections change
-    // useEffect(() => {
-    //     const updatedPredecessors = edges
-    //         .filter((edge) => edge.target === id)
-    //         .map((edge) => {
-    //             const sourceNode = nodes.find((node) => node.id === edge.source)
-    //             if (!sourceNode) return null
-    //             if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-    //                 return {
-    //                     id: sourceNode.id,
-    //                     type: sourceNode.type,
-    //                     data: {
-    //                         config: sourceNode.data.config,
-    //                         title: edge.targetHandle,
-    //                     },
-    //                 }
-    //             }
-    //             return sourceNode
-    //         })
-    //         .filter(Boolean)
-
-    //     let finalPredecessors = updatedPredecessors
-
-    //     // If a new connection is in progress to this node, show that source node as well
-    //     if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
-    //         const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
-    //         if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-    //             if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-    //                 finalPredecessors = [
-    //                     ...finalPredecessors,
-    //                     {
-    //                         id: connection.fromNode.id,
-    //                         type: connection.fromNode.type,
-    //                         data: {
-    //                             config: connection.fromNode.data.config,
-    //                             title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
-    //                         },
-    //                     },
-    //                 ]
-    //             } else {
-    //                 finalPredecessors = [...finalPredecessors, connection.fromNode]
-    //             }
-    //         }
-    //     }
-
-    //     // Deduplicate by both id and data.title (for RouterNode handles)
-    //     finalPredecessors = finalPredecessors.filter((node, index, self) => {
-    //         return self.findIndex((n) => n?.id === node?.id && n?.data?.title === node?.data?.title) === index
-    //     })
-
-    //     // Compare to existing predecessorNodes; only set if changed
-    //     const hasChanged =
-    //         finalPredecessors.length !== predecessorNodes.length ||
-    //         finalPredecessors.some((node, i) => !isEqual(node, predecessorNodes[i]))
-    //     if (hasChanged) {
-    //         setPredecessorNodes(finalPredecessors)
-    //     }
-    // }, [connection, edges, id, nodes, predecessorNodes])
 
     /**
      * Extract schema from JSON schema string, handling various formats and errors
@@ -407,61 +325,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
             handleOpenModal={setIsModalOpen}
         >
             <div className="p-3" ref={nodeRef}>
-                {/**
-                 * --------------------------
-                 * Top Row: Input + Output
-                 * --------------------------
-                 */}
-                <div className="flex w-full items-start justify-between mb-4">
-                    {/* Left column: input handles */}
-                    {/* <div>
-                        {predecessorNodes.map((node) => {
-                            if (!node) return null
-                            const handleId = node.data?.config?.title || node.data?.title || node.id
-                            return (
-                                <div
-                                    key={`${node.id}-${handleId}`}
-                                    className={`${styles.handleRow} w-full justify-start mb-2`}
-                                >
-                                    <Handle
-                                        type="target"
-                                        position={Position.Left}
-                                        id={handleId}
-                                        className={`${styles.handle} ${styles.handleLeft} ${
-                                            isCollapsed ? styles.collapsedHandleInput : ''
-                                        }`}
-                                    />
-                                    {!isCollapsed && (
-                                        <span className="text-sm font-medium ml-2 text-foreground">{handleId}</span>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div> */}
-
-                    {/* Right column: output handle */}
-                    {/* <div>
-                        <div className={`${styles.handleRow} w-full justify-end`}>
-                            {!isCollapsed && (
-                                <div className="align-center flex flex-grow flex-shrink mr-2">
-                                    <span className="text-sm font-medium ml-auto text-foreground">
-                                        {nodeConfig?.title || 'Output'}
-                                    </span>
-                                </div>
-                            )}
-                            <Handle
-                                type="source"
-                                position={Position.Right}
-                                // Use node title for handle id
-                                id={nodeConfig?.title || id}
-                                className={`${styles.handle} ${styles.handleRight} ${
-                                    isCollapsed ? styles.collapsedHandleOutput : ''
-                                }`}
-                            />
-                        </div>
-                    </div> */}
-                </div>
-
                 {/* The main body, hidden if collapsed */}
                 {!isCollapsed && (
                     <>
