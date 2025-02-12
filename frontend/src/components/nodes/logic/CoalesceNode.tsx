@@ -35,7 +35,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     // Retrieve all nodes & edges from Redux so we can figure out which are predecessors
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges)
-    const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
 
     const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -53,16 +52,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
-                if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                    return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            config: sourceNode.data.config,
-                            title: edge.targetHandle,
-                        },
-                    }
-                }
                 return sourceNode
             })
             .filter(Boolean)
@@ -80,16 +69,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
-                // if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                //     return {
-                //         id: sourceNode.id,
-                //         type: sourceNode.type,
-                //         data: {
-                //             config: sourceNode.data.config,
-                //             title: edge.targetHandle,
-                //         },
-                //     }
-                // }
                 return sourceNode
             })
             .filter(Boolean)
@@ -97,26 +76,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         let finalPredecessors = updatedPredecessors
 
         // If a new connection is in progress to this node, show that source node as well
-        // if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
-        //     const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
-        //     if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-        //         if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-        //             finalPredecessors = [
-        //                 ...finalPredecessors,
-        //                 {
-        //                     id: connection.fromNode.id,
-        //                     type: connection.fromNode.type,
-        //                     data: {
-        //                         config: connection.fromNode.data.config,
-        //                         title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
-        //                     },
-        //                 },
-        //             ]
-        //         } else {
-        //             finalPredecessors = [...finalPredecessors, connection.fromNode]
-        //         }
-        //     }
-        // }
 
         // Deduplicate by both id and data.title (for RouterNode handles)
         finalPredecessors = finalPredecessors.filter((node, index, self) => {
