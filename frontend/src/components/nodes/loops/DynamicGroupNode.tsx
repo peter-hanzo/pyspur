@@ -148,31 +148,31 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
         keyName: string
     }
 
-    const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
-        const connections = useNodeConnections({ id, handleType: 'target', handleId: keyName })
-        const isConnectable = connections.length === 0
-        return (
-            <div className={`${styles.handleRow} w-full justify-end`} key={keyName}>
-                <div className={`${styles.handleCell} ${styles.inputHandleCell}`}>
-                    <Handle
-                        type="target"
-                        position={Position.Left}
-                        id={keyName}
-                        className={`${styles.handle} ${styles.handleLeft}`}
-                        isConnectable={isConnectable}
-                    />
-                </div>
-                <div className="border-r border-gray-300 h-full mx-0" />
-                <div className="flex flex-grow flex-shrink ml-2 max-w-full overflow-hidden">
-                    <span
-                        className={`${styles.handleLabel} text-sm font-medium mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                    >
-                        {keyName}
-                    </span>
-                </div>
-            </div>
-        )
-    }
+    // const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
+    //     const connections = useNodeConnections({ id, handleType: 'target', handleId: keyName })
+    //     const isConnectable = connections.length === 0
+    //     return (
+    //         <div className={`${styles.handleRow} w-full justify-end`} key={keyName}>
+    //             <div className={`${styles.handleCell} ${styles.inputHandleCell}`}>
+    //                 <Handle
+    //                     type="target"
+    //                     position={Position.Left}
+    //                     id={keyName}
+    //                     className={`${styles.handle} ${styles.handleLeft}`}
+    //                     isConnectable={isConnectable}
+    //                 />
+    //             </div>
+    //             <div className="border-r border-gray-300 h-full mx-0" />
+    //             <div className="flex flex-grow flex-shrink ml-2 max-w-full overflow-hidden">
+    //                 <span
+    //                     className={`${styles.handleLabel} text-sm font-medium mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+    //                 >
+    //                     {keyName}
+    //                 </span>
+    //             </div>
+    //         </div>
+    //     )
+    // }
 
     const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
         return (
@@ -198,31 +198,39 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
         )
     }
 
-    const renderHandles = () => {
-        const dedupedPredecessors = finalPredecessors.filter(
-            (node, index, self) => self.findIndex((n) => n.id === node.id) === index
-        )
+    // const renderHandles = () => {
+    //     const dedupedPredecessors = finalPredecessors.filter(
+    //         (node, index, self) => self.findIndex((n) => n.id === node.id) === index
+    //     )
 
+    //     return (
+    //         <div className={`${styles.handlesWrapper}`}>
+    //             {/* Input Handles */}
+    //             {/* <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`}>
+    //                 {dedupedPredecessors.map((node) => {
+    //                     const handleId = String(node?.data?.title || node.id)
+    //                     return (
+    //                         <InputHandleRow
+    //                             key={`input-handle-${node.id}-${handleId}`}
+    //                             id={node.id}
+    //                             keyName={handleId}
+    //                         />
+    //                     )
+    //                 })}
+    //             </div> */}
+
+    //             {/* Output Handle */}
+    //             <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`}>
+    //                 {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig.title)} />}
+    //             </div>
+    //         </div>
+    //     )
+    // }
+
+    const renderOutputHandles = () => {
         return (
-            <div className={`${styles.handlesWrapper}`}>
-                {/* Input Handles */}
-                <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`}>
-                    {dedupedPredecessors.map((node) => {
-                        const handleId = String(node?.data?.title || node.id)
-                        return (
-                            <InputHandleRow
-                                key={`input-handle-${node.id}-${handleId}`}
-                                id={node.id}
-                                keyName={handleId}
-                            />
-                        )
-                    })}
-                </div>
-
-                {/* Output Handle */}
-                <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`}>
-                    {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig.title)} />}
-                </div>
+            <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
+                {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig?.title)} />}
             </div>
         )
     }
@@ -247,9 +255,10 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
                 className={`group ${isSelected ? 'selected' : ''}`}
                 isResizable={true}
                 handleOpenModal={() => {}}
+                renderOutputHandles={renderOutputHandles}
             >
                 <div className={`h-full ${styles.nodeWrapper}`}>
-                    <div className="mt-2">{renderHandles()}</div>
+                    {/* <div className="mt-2">{renderHandles()}</div> */}
                     <Divider className="mt-2" />
                     <div style={{ minHeight }} className="mt-2 bg-content2 dark:bg-content2/10 rounded-md h-full">
                         {/* Container that will expand for child nodes */}

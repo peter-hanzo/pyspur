@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Handle, Position, useConnection } from '@xyflow/react'
+import { Handle, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react'
 import BaseNode from '../BaseNode'
 import { Input, Card, Divider, Button, Select, SelectItem } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -11,6 +11,8 @@ import NodeOutputDisplay from '../NodeOutputDisplay'
 import isEqual from 'lodash/isEqual'
 import { FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import NodeOutputModal from '../NodeOutputModal'
+
 
 interface CoalesceNodeProps {
     id: string
@@ -26,7 +28,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const nodeRef = useRef<HTMLDivElement | null>(null)
 
-    // We’ll dynamically compute a width that fits the labels (handles).
+    // We'll dynamically compute a width that fits the labels (handles).
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
 
     const dispatch = useDispatch()
@@ -35,124 +37,207 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     // Retrieve all nodes & edges from Redux so we can figure out which are predecessors
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges)
+    const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
+
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
     // Node's output for display
     const nodeOutput = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.run)
 
     // Node's config
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
-    console.log('nodeConfig', nodeConfig)
+    // console.log('nodeConfig', nodeConfig)
 
     // The CoalesceNode might have multiple incoming edges. We'll track those predecessor nodes (if any).
-    const [predecessorNodes, setPredecessorNodes] = useState(() => {
-        return edges
+    const finalPredecessors = useMemo(() => {
+        const updatedPredecessorNodes = edges
             .filter((edge) => edge.target === id)
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
-                if (!sourceNode) return null
+                if (!sourceNode) {
+                    return null
+                }
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            config: sourceNode.data.config,
-                            title: edge.targetHandle,
-                        },
+                        ...sourceNode,
+                        handle_id: edge.sourceHandle,
                     }
                 }
                 return sourceNode
             })
             .filter(Boolean)
-    })
+
+        let result = updatedPredecessorNodes
+
+        // deduplicate
+        result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index)
+        return result
+    }, [edges, nodes, connection, id])
+
+    // const updateNodeInternals = useUpdateNodeInternals()
+
+    // useEffect(() => {
+    //     // Check if finalPredecessors differ from predecessorNodes
+    //     // (We do a deeper comparison to detect config/title changes, not just ID changes)
+    //     const hasChanged =
+    //         finalPredecessors.length !== predecessorNodes.length ||
+    //         finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
+
+    //     if (hasChanged) {
+    //         setPredecessorNodes(finalPredecessors)
+    //         updateNodeInternals(id)
+    //     }
+    // }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
 
     // Add a type guard to check if the node is a FlowWorkflowNode
-    const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
-        return 'type' in node
-    }
+    // const isFlowWorkflowNode = (node: any): node is FlowWorkflowNode => {
+    //     return 'type' in node
+    // }
 
     // Recompute predecessor nodes whenever edges/connections change
-    useEffect(() => {
-        const updatedPredecessors = edges
-            .filter((edge) => edge.target === id)
-            .map((edge) => {
-                const sourceNode = nodes.find((node) => node.id === edge.source)
-                if (!sourceNode) return null
-                if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                    return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            config: sourceNode.data.config,
-                            title: edge.targetHandle,
-                        },
-                    }
-                }
-                return sourceNode
-            })
-            .filter(Boolean)
+    // useEffect(() => {
+    //     const updatedPredecessors = edges
+    //         .filter((edge) => edge.target === id)
+    //         .map((edge) => {
+    //             const sourceNode = nodes.find((node) => node.id === edge.source)
+    //             if (!sourceNode) return null
+    //             if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
+    //                 return {
+    //                     id: sourceNode.id,
+    //                     type: sourceNode.type,
+    //                     data: {
+    //                         config: sourceNode.data.config,
+    //                         title: edge.targetHandle,
+    //                     },
+    //                 }
+    //             }
+    //             return sourceNode
+    //         })
+    //         .filter(Boolean)
 
-        let finalPredecessors = updatedPredecessors
+    //     let finalPredecessors = updatedPredecessors
 
-        // If a new connection is in progress to this node, show that source node as well
-        if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
-            const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
-            if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-                if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-                    finalPredecessors = [
-                        ...finalPredecessors,
-                        {
-                            id: connection.fromNode.id,
-                            type: connection.fromNode.type,
-                            data: {
-                                config: connection.fromNode.data.config,
-                                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
-                            },
-                        },
-                    ]
-                } else {
-                    finalPredecessors = [...finalPredecessors, connection.fromNode]
+    //     // If a new connection is in progress to this node, show that source node as well
+    //     if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
+    //         const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
+    //         if (!existing && isFlowWorkflowNode(connection.fromNode)) {
+    //             if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
+    //                 finalPredecessors = [
+    //                     ...finalPredecessors,
+    //                     {
+    //                         id: connection.fromNode.id,
+    //                         type: connection.fromNode.type,
+    //                         data: {
+    //                             config: connection.fromNode.data.config,
+    //                             title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
+    //                         },
+    //                     },
+    //                 ]
+    //             } else {
+    //                 finalPredecessors = [...finalPredecessors, connection.fromNode]
+    //             }
+    //         }
+    //     }
+
+    //     // Deduplicate by both id and data.title (for RouterNode handles)
+    //     finalPredecessors = finalPredecessors.filter((node, index, self) => {
+    //         return self.findIndex((n) => n?.id === node?.id && n?.data?.title === node?.data?.title) === index
+    //     })
+
+    //     // Compare to existing predecessorNodes; only set if changed
+    //     const hasChanged =
+    //         finalPredecessors.length !== predecessorNodes.length ||
+    //         finalPredecessors.some((node, i) => !isEqual(node, predecessorNodes[i]))
+    //     if (hasChanged) {
+    //         setPredecessorNodes(finalPredecessors)
+    //     }
+    // }, [connection, edges, id, nodes, predecessorNodes])
+
+    /**
+     * Extract schema from JSON schema string, handling various formats and errors
+     */
+    const extractSchemaFromJsonSchema = (
+        jsonSchema: string
+    ): { schema: Record<string, any> | null; error: string | null } => {
+        if (!jsonSchema || !jsonSchema.trim()) {
+            return { schema: null, error: null }
+        }
+        try {
+            // Try to parse the schema
+            let parsed: Record<string, any>
+            try {
+                parsed = JSON.parse(jsonSchema.trim())
+            } catch (e: any) {
+                // If the schema has escaped characters, clean it up first
+                let cleaned = jsonSchema
+                    .replace(/\"/g, '"') // Replace escaped quotes
+                    .replace(/\\\[/g, '[') // Replace escaped brackets
+                    .replace(/\\\]/g, ']')
+                    .replace(/\\n/g, '') // Remove newlines
+                    .replace(/\\t/g, '') // Remove tabs
+                    .replace(/\\/g, '') // Remove remaining backslashes
+                    .trim()
+                try {
+                    parsed = JSON.parse(cleaned)
+                } catch (e: any) {
+                    // Extract line and column info from the error message if available
+                    const match = e.message.match(/at position (\d+)(?:\s*\(line (\d+) column (\d+)\))?/)
+                    const errorMsg = match
+                        ? `Invalid JSON: ${e.message.split('at position')[0].trim()} at line ${match[2] || '?'}, column ${match[3] || '?'}`
+                        : `Invalid JSON: ${e.message}`
+                    return { schema: null, error: errorMsg }
                 }
             }
-        }
 
-        // Deduplicate by both id and data.title (for RouterNode handles)
-        finalPredecessors = finalPredecessors.filter((node, index, self) => {
-            return self.findIndex((n) => n?.id === node?.id && n?.data?.title === node?.data?.title) === index
-        })
-
-        // Compare to existing predecessorNodes; only set if changed
-        const hasChanged =
-            finalPredecessors.length !== predecessorNodes.length ||
-            finalPredecessors.some((node, i) => !isEqual(node, predecessorNodes[i]))
-        if (hasChanged) {
-            setPredecessorNodes(finalPredecessors)
+            // If the parsed schema has a properties field (i.e. full JSON Schema format),
+            // return the nested properties so that nested objects are preserved.
+            if (parsed.properties) {
+                return { schema: parsed.properties, error: null }
+            }
+            return { schema: parsed, error: null }
+        } catch (error: any) {
+            return { schema: null, error: error.message || 'Invalid JSON Schema' }
         }
-    }, [connection, edges, id, nodes, predecessorNodes])
+    }
 
     /**
      * Build an array of upstream node IDs for the dropdown.
-     * (We’re not currently using the node’s output_schema to filter the keys.)
+     * (We're not currently using the node's output_schema to filter the keys.)
      */
     const inputVariables = useMemo(() => {
-        return predecessorNodes
-            .map((pred) => {
-                if (!pred) return null
-                const nodeId = pred.id
-                const handleId = pred.data?.title || ''
-                const label = pred.data?.config?.title || handleId || pred.id
-                const value = `${nodeId}|${handleId}`
-                return {
-                    value,
-                    label,
+        if (!finalPredecessors.length) {
+            return []
+        }
+        return finalPredecessors.flatMap((node) => {
+            if (!node) {
+                return []
+            }
+
+            const predNodeConfig = nodeConfigs[node.id]
+            const nodeTitle = predNodeConfig?.title || node.id
+            
+            // Extract schema from output_json_schema instead of using output_schema directly
+            if (predNodeConfig?.output_json_schema) {
+                const { schema, error } = extractSchemaFromJsonSchema(predNodeConfig.output_json_schema)
+                if (error) {
+                    console.error('Error parsing output_json_schema:', error)
+                    return []
                 }
-            })
-            .filter(Boolean) as { value: string; label: string }[]
-    }, [predecessorNodes])
+                if (schema && typeof schema === 'object') {
+                    return Object.entries(schema).map(([key, type]) => ({
+                        value: `${nodeTitle}.${key}`,
+                        label: `${nodeTitle}.${key} (${(type as any).type || 'unknown'})`,
+                    }))
+                }
+            }
+            return []
+        })
+    }, [finalPredecessors, nodeConfigs])
 
     /**
      * Keep track of used variable preferences so we don't show duplicates in other slots.
      */
-    const usedPreferences = nodeConfig.preferences.filter(Boolean)
+    const usedPreferences = nodeConfig?.preferences?.filter(Boolean)
     const availableVariablesForIndex = (index: number) => {
         return inputVariables.filter(
             (v) => !usedPreferences.includes(v.value) || v.value === nodeConfig.preferences[index]
@@ -215,7 +300,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         if (!nodeRef.current) return
 
         // We have multiple input handle labels
-        const inputLabels = predecessorNodes.map(
+        const inputLabels = finalPredecessors.map(
             (pred) => pred?.data?.config?.title || pred?.data?.title || pred?.id || ''
         )
 
@@ -249,24 +334,77 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         if (nodeWidth !== `${finalWidth}px`) {
             setNodeWidth(isCollapsed ? 'auto' : `${finalWidth}px`)
         }
-    }, [predecessorNodes, nodeConfig?.title, isCollapsed])
+    }, [finalPredecessors, nodeConfig?.title, isCollapsed])
+
+    const nodeData = {
+        title: nodeConfig?.title || 'Coalesce',
+        color: data.color || '#38B2AC',
+        acronym: 'CL',
+        run: data.run,
+        config: nodeConfig,
+        taskStatus: data.taskStatus,
+    }
+
+    interface HandleRowProps {
+        id: string
+        keyName: string
+    }
+
+    const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
+        return (
+            <div
+                className={`${styles.handleRow} w-full justify-end`}
+                key={`output-${keyName}`}
+                id={`output-${keyName}-row`}
+            >
+                {!isCollapsed && (
+                    <div
+                        className="align-center flex flex-grow flex-shrink mr-[0.5rem] max-w-full overflow-hidden"
+                        id={`output-${keyName}-label`}
+                    >
+                        <span
+                            className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary
+                                ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
+                        >
+                            {keyName}
+                        </span>
+                    </div>
+                )}
+                <div className="border-l border-gray-200 h-full mx-0" />
+                <div className={`${styles.handleCell} ${styles.outputHandleCell}`} id={`output-${keyName}-handle`}>
+                    <Handle
+                        type="source"
+                        position={Position.Right}
+                        id={String(id)}
+                        className={`${styles.handle} ${styles.handleRight} ${isCollapsed ? styles.collapsedHandleOutput : ''}`}
+                        isConnectable={!isCollapsed}
+                    />
+                </div>
+            </div>
+        )
+    }
+
+    const renderOutputHandles = () => {
+        return (
+            <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
+                {nodeData?.title && <OutputHandleRow id={id} keyName={String(nodeData?.title)} />}
+            </div>
+        )
+    }
+
+    
 
     return (
         <BaseNode
             id={id}
             isCollapsed={isCollapsed}
             setIsCollapsed={setIsCollapsed}
-            data={{
-                title: nodeConfig?.title || 'Coalesce',
-                color: data.color || '#38B2AC',
-                acronym: 'CL',
-                config: nodeConfig,
-                run: data.run,
-                taskStatus: data.taskStatus,
-            }}
+            data={nodeData}
             // Use the computed nodeWidth
             style={{ width: nodeWidth }}
             className="hover:!bg-background"
+            renderOutputHandles={renderOutputHandles}
+            handleOpenModal={setIsModalOpen}
         >
             <div className="p-3" ref={nodeRef}>
                 {/**
@@ -276,7 +414,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                  */}
                 <div className="flex w-full items-start justify-between mb-4">
                     {/* Left column: input handles */}
-                    <div>
+                    {/* <div>
                         {predecessorNodes.map((node) => {
                             if (!node) return null
                             const handleId = node.data?.config?.title || node.data?.title || node.id
@@ -293,19 +431,17 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                                             isCollapsed ? styles.collapsedHandleInput : ''
                                         }`}
                                     />
-                                    {/* Show the full label if not collapsed */}
                                     {!isCollapsed && (
                                         <span className="text-sm font-medium ml-2 text-foreground">{handleId}</span>
                                     )}
                                 </div>
                             )
                         })}
-                    </div>
+                    </div> */}
 
                     {/* Right column: output handle */}
-                    <div>
+                    {/* <div>
                         <div className={`${styles.handleRow} w-full justify-end`}>
-                            {/* Show the label if not collapsed */}
                             {!isCollapsed && (
                                 <div className="align-center flex flex-grow flex-shrink mr-2">
                                     <span className="text-sm font-medium ml-auto text-foreground">
@@ -323,7 +459,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                                 }`}
                             />
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* The main body, hidden if collapsed */}
@@ -336,7 +472,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            {nodeConfig.preferences.map((prefValue, i) => (
+                            {nodeConfig?.preferences?.map((prefValue, i) => (
                                 <Card key={i} classNames={{ base: 'bg-background border-default-200 p-2' }}>
                                     <div className="flex flex-wrap items-center gap-2">
                                         <Select
@@ -382,9 +518,12 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                     </>
                 )}
             </div>
-
-            {/* Display node's output if it exists */}
-            <NodeOutputDisplay output={nodeOutput} />
+            <NodeOutputModal
+                isOpen={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                title={nodeData?.title || 'Node Output'}
+                data={nodeData}
+            />
         </BaseNode>
     )
 }
