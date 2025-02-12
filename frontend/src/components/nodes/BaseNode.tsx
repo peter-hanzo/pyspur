@@ -640,8 +640,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                     {renderHandles()}
                                     </div>
                                 {children}
-                                {nodeData.error && <NodeErrorDisplay error={nodeData.error} />}
-                                <NodeOutputDisplay key={`output-display-${id}`} output={nodeData.run} />   
+                                {nodeData?.error && <NodeErrorDisplay error={nodeData?.error} />}
+                                <NodeOutputDisplay key={`output-display-${id}`} output={nodeData?.run} />   
                             </CardBody>
                         </Card>
                     </div>
