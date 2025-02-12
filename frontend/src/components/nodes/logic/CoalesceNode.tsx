@@ -283,17 +283,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                                                 </SelectItem>
                                             ))}
                                         </Select>
-
-                                        {prefValue && (
-                                            <Button
-                                                size="sm"
-                                                color="danger"
-                                                onClick={() => clearPreference(i)}
-                                                isIconOnly
-                                            >
-                                                <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                                            </Button>
-                                        )}
                                     </div>
                                 </Card>
                             ))}
