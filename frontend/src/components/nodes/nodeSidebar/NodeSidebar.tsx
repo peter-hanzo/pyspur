@@ -623,18 +623,69 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         if (key === 'output_json_schema') {
             return (
-                <OutputSchemaEditor
-                    key={key}
-                    nodeID={nodeID}
-                    currentNodeConfig={currentNodeConfig}
-                    jsonSchemaError={jsonSchemaError}
-                    handleInputChange={handleInputChange}
-                    debouncedValidate={debouncedValidate}
-                    setCurrentNodeConfig={setCurrentNodeConfig}
-                    dispatch={dispatch}
-                    updateNodeConfigOnly={updateNodeConfigOnly}
-                    isLast={isLast}
-                />
+                <div key={key}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold">Output Schema</h3>
+                        <Tooltip
+                            content={
+                                currentNodeConfig?.has_fixed_output === true
+                                    ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
+                                    : currentNodeConfig?.llm_info?.model &&
+                                        currentNodeConfig?.llm_info?.supports_JSON_output
+                                      ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
+                                      : currentNodeConfig?.llm_info?.model &&
+                                          !currentNodeConfig?.llm_info?.supports_JSON_output
+                                        ? "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                                        : "The output schema defines the structure of this node's output."
+                            }
+                            placement="left-start"
+                            showArrow={true}
+                            className="max-w-xs"
+                        >
+                            <Icon
+                                icon="solar:question-circle-linear"
+                                className="text-default-400 cursor-help"
+                                width={20}
+                            />
+                        </Tooltip>
+                        {!currentNodeConfig?.has_fixed_output && currentNodeConfig?.llm_info?.model && (
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                size="sm"
+                                onClick={() => {
+                                    const defaultSchema = {
+                                        type: 'object',
+                                        properties: {
+                                            output: { type: 'string' },
+                                        },
+                                        required: ['output'],
+                                    }
+                                    handleInputChange('output_json_schema', JSON.stringify(defaultSchema, null, 2))
+                                }}
+                            >
+                                <Icon icon="solar:restart-linear" width={20} />
+                            </Button>
+                        )}
+                    </div>
+                    {currentNodeConfig?.has_fixed_output && (
+                        <p className="text-sm text-default-500 mb-2">
+                            This node has a fixed output schema that cannot be modified.
+                        </p>
+                    )}
+                    <OutputSchemaEditor
+                        nodeID={nodeID}
+                        schema={currentNodeConfig.output_json_schema || ''}
+                        readOnly={currentNodeConfig?.has_fixed_output || false}
+                        error={jsonSchemaError}
+                        onChange={(newSchema) => {
+                            handleInputChange('output_json_schema', newSchema)
+                            debouncedValidate(newSchema)
+                        }}
+                    />
+                    {!isLast && <hr className="my-2" />}
+                </div>
             )
         }
 
