@@ -59,8 +59,11 @@ class FirecrawlScrapeNode(BaseNode):
                 self.config.url_template, raw_input_dict, self.name
             )
 
-            app = FirecrawlApp()
-            scrape_result = app.scrape_url(
+            if not os.getenv("FIRECRAWL_API_KEY"):
+                raise ValueError("FIRECRAWL_API_KEY environment variable is not set")
+
+            app = FirecrawlApp()  # type: ignore
+            scrape_result = app.scrape_url(  # type: ignore
                 url_template,
                 params={
                     "formats": ["markdown", "html"],
