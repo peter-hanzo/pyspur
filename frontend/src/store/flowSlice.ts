@@ -8,7 +8,6 @@ import {
 } from '@/types/api_types/nodeTypeSchemas'
 import { TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
-import { computeJsonSchemaIntersection } from '@/utils/schemaUtils'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange } from '@xyflow/react'
 import { isEqual } from 'lodash'
@@ -57,36 +56,34 @@ function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode)
     const incomingEdges = state.edges.filter((edge) => edge.target === routerNode.id)
 
     // Build new output schema by combining all source nodes
-    const newSchemaProperties = incomingEdges.reduce(
-        (properties, edge) => {
+    const newOutputSchema = incomingEdges.reduce(
+        (schema, edge) => {
             const sourceNode = state.nodes.find((n) => n.id === edge.source)
             const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
-            if (sourceNodeConfig?.output_json_schema) {
+            if (sourceNodeConfig?.output_schema) {
                 const nodeTitle = sourceNodeConfig.title || sourceNode?.id
-                const sourceSchema = sourceNodeConfig.output_json_schema
+                const sourceSchema = sourceNodeConfig.output_schema
 
-                properties[nodeTitle] = JSON.parse(sourceSchema)
+                // Add prefixed entries from the source schema
+                Object.entries(sourceSchema).forEach(([key, value]) => {
+                    schema[`${nodeTitle}.${key}`] = value
+                })
             }
-            return properties
+            return schema
         },
         {} as Record<string, any>
     )
-    const newOutputSchema = JSON.stringify({
-        type: 'object',
-        properties: newSchemaProperties,
-        required: Object.keys(newSchemaProperties),
-        additionalProperties: false,
-    })
 
     const routerNodeConfig = state.nodeConfigs[routerNode.id] || {}
-    const currentSchema = routerNodeConfig.output_json_schema || '{}'
+    const currentSchema = routerNodeConfig.output_schema || {}
     const hasChanges = !isEqual(currentSchema, newOutputSchema)
 
     // Only update if there are actual changes
     if (hasChanges) {
         state.nodeConfigs[routerNode.id] = {
             ...routerNodeConfig,
-            output_json_schema: newOutputSchema,
+            output_schema: newOutputSchema,
+            output_json_schema: generateJsonSchema(newOutputSchema)
         }
     }
 }
@@ -95,30 +92,28 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
     const incomingEdges = state.edges.filter((edge) => edge.target === coalesceNode.id)
 
     // Collect all source schemas
-    const schemas: string[] = []
-    incomingEdges.forEach((ed) => {
+    const schemas: Record<string, any>[] = incomingEdges.map((ed) => {
         const sourceNode = state.nodes.find((n) => n.id === ed.source)
-        const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
-        if (sourceNodeConfig?.output_json_schema) {
-            schemas.push(sourceNodeConfig.output_json_schema)
-        }
+        return sourceNode ? state.nodeConfigs[sourceNode.id]?.output_schema || {} : {}
     })
 
-    // Compute intersection using the utility function
-    const intersectionSchema = computeJsonSchemaIntersection(schemas)
+    // Intersection
+    let intersection: Record<string, any> = {}
+    if (schemas.length > 0) {
+        const firstSchema = schemas[0]
+        const commonKeys = Object.keys(firstSchema).filter((key) =>
+            schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
+        )
+        commonKeys.forEach((key) => {
+            intersection[key] = firstSchema[key]
+        })
+    }
 
     const coalesceNodeConfig = state.nodeConfigs[coalesceNode.id] || {}
     state.nodeConfigs[coalesceNode.id] = {
         ...coalesceNodeConfig,
-        output_json_schema: intersectionSchema,
-    }
-}
-
-const generateJsonSchema = (schema: Record<string, any>): string => {
-    const jsonSchema = {
-        type: 'object',
-        properties: Object.fromEntries(Object.entries(schema).map(([key, type]) => [key, { type }])),
-        required: Object.keys(schema),
+        output_schema: intersection,
+        output_json_schema: generateJsonSchema(intersection)
     }
 }
 
@@ -262,7 +257,7 @@ const flowSlice = createSlice({
             }
 
             // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
-            if (data?.output_schema || data?.output_json_schema) {
+            if (data?.output_schema) {
                 const connectedRouterNodes = state.nodes.filter(
                     (targetNode) =>
                         targetNode.type === 'RouterNode' &&
@@ -326,20 +321,22 @@ const flowSlice = createSlice({
                 const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
 
                 // If target is a RouterNode and source has output schema, update target's schema
-                if (targetNode?.type === 'RouterNode') {
-                    const sourceTitle = sourceNodeConfig.title
-                    const currentSchema = targetNodeConfig.output_json_schema || '{}'
+                if (targetNode?.type === 'RouterNode' && sourceNodeConfig?.output_schema) {
+                    const sourceTitle = sourceNodeConfig.title || sourceNode?.id
+                    const currentSchema = { ...(targetNodeConfig?.output_schema || {}) }
 
-                    // Remove the property that corresponds to the source node's title
-                    let newSchema = JSON.parse(currentSchema)
-                    delete newSchema.properties[sourceTitle]
-                    newSchema['required'] = Object.keys(newSchema.properties)
-                    const updatedSchema = JSON.stringify(newSchema)
+                    // Remove fields that start with this source's prefix
+                    const prefix = `${sourceTitle}.`
+                    Object.keys(currentSchema).forEach((key) => {
+                        if (key.startsWith(prefix)) {
+                            delete currentSchema[key]
+                        }
+                    })
 
                     // Update the target node's schema
                     state.nodeConfigs[targetNode.id] = {
                         ...targetNodeConfig,
-                        output_json_schema: updatedSchema,
+                        output_schema: currentSchema,
                     }
                 }
 
@@ -348,21 +345,30 @@ const flowSlice = createSlice({
                     const incomingEdges = state.edges.filter((e) => e.target === targetNode.id && e.id !== edgeId)
 
                     // Collect all source schemas from remaining edges
-                    const schemas: string[] = []
+                    const schemas: Record<string, any>[] = []
                     incomingEdges.forEach((ed) => {
                         const sourceNode = state.nodes.find((n) => n.id === ed.source)
                         const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
-                        if (sourceNodeConfig?.output_json_schema) {
-                            schemas.push(sourceNodeConfig.output_json_schema)
+                        if (sourceNodeConfig?.output_schema) {
+                            schemas.push(sourceNodeConfig.output_schema)
                         }
                     })
 
-                    // Compute intersection using the utility function
-                    const intersectionSchema = computeJsonSchemaIntersection(schemas)
+                    // Compute intersection
+                    let intersection: Record<string, any> = {}
+                    if (schemas.length > 0) {
+                        const firstSchema = schemas[0]
+                        const commonKeys = Object.keys(firstSchema).filter((key) =>
+                            schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
+                        )
+                        commonKeys.forEach((key) => {
+                            intersection[key] = firstSchema[key]
+                        })
+                    }
 
                     state.nodeConfigs[targetNode.id] = {
                         ...targetNodeConfig,
-                        output_json_schema: intersectionSchema,
+                        output_schema: intersection,
                     }
                 }
 
@@ -419,7 +425,7 @@ const flowSlice = createSlice({
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: generateJsonSchema(updatedSchema),
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
 
@@ -464,7 +470,7 @@ const flowSlice = createSlice({
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: generateJsonSchema(updatedSchema),
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
             // Remove from global workflowInputVariables
@@ -525,7 +531,7 @@ const flowSlice = createSlice({
                 state.nodeConfigs[inputNode.id] = {
                     ...currentConfig,
                     output_schema: updatedSchema,
-                    output_json_schema: generateJsonSchema(updatedSchema),
+                    output_json_schema: generateJsonSchema(updatedSchema)
                 }
             }
 
