@@ -349,6 +349,10 @@ class WorkflowExecutor:
                     print(
                         f"[WARNING]: Node {node_id} does not have an output_model defined: {e}\n skipping precomputed output"
                     )
+                except KeyError as e:
+                    print(
+                        f"[WARNING]: Node {node_id} not found in the predecessor workflow: {e}\n skipping precomputed output"
+                    )
 
         # Store input in initial inputs to be used by InputNode
         input_node = next(
