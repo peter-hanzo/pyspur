@@ -8,7 +8,6 @@ from ..execution.workflow_execution_context import WorkflowExecutionContext
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 from ..utils import pydantic_utils
 
-
 class VisualTag(BaseModel):
     """
     Pydantic model for visual tag properties.

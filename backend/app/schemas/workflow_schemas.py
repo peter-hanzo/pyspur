@@ -3,8 +3,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
-from ..nodes.node_types import is_valid_node_type
-
 
 class WorkflowNodeCoordinatesSchema(BaseModel):
     """
@@ -52,12 +50,6 @@ class WorkflowNodeSchema(BaseModel):
         if self.title.strip() == "":
             self.title = self.id
         return self
-
-    @field_validator("node_type")
-    def type_must_be_in_factory(cls, v: str):
-        if not is_valid_node_type(v):
-            raise ValueError(f"Node type '{v}' is not valid.")
-        return v
 
     @model_validator(mode="after")
     def prefix_model_name_with_provider(self):
