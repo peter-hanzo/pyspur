@@ -84,27 +84,22 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
     const incomingEdges = state.edges.filter((edge) => edge.target === coalesceNode.id)
 
     // Collect all source schemas
-    const schemas: Record<string, any>[] = incomingEdges.map((ed) => {
+    const schemas: string[] = []
+    incomingEdges.forEach((ed) => {
         const sourceNode = state.nodes.find((n) => n.id === ed.source)
-        return sourceNode ? state.nodeConfigs[sourceNode.id]?.output_schema || {} : {}
+        const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
+        if (sourceNodeConfig?.output_json_schema) {
+            schemas.push(sourceNodeConfig.output_json_schema)
+        }
     })
 
-    // Intersection
-    let intersection: Record<string, any> = {}
-    if (schemas.length > 0) {
-        const firstSchema = schemas[0]
-        const commonKeys = Object.keys(firstSchema).filter((key) =>
-            schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
-        )
-        commonKeys.forEach((key) => {
-            intersection[key] = firstSchema[key]
-        })
-    }
+    // Compute intersection using the utility function
+    const intersectionSchema = computeJsonSchemaIntersection(schemas)
 
     const coalesceNodeConfig = state.nodeConfigs[coalesceNode.id] || {}
     state.nodeConfigs[coalesceNode.id] = {
         ...coalesceNodeConfig,
-        output_schema: intersection,
+        output_json_schema: intersectionSchema,
     }
 }
 
