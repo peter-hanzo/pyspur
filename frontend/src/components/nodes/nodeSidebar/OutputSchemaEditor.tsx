@@ -2,6 +2,7 @@ import { Alert, Button, Card, CardBody, Tab, Tabs, Tooltip } from '@heroui/react
 import { Icon } from '@iconify/react'
 import React from 'react'
 import { jsonOptions } from '../../../constants/jsonOptions'
+import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '../../../utils/schemaUtils'
 import CodeEditor from '../../CodeEditor'
 import SchemaEditor from './SchemaEditor'
 
@@ -14,8 +15,6 @@ interface OutputSchemaEditorProps {
     setCurrentNodeConfig: (updater: (prev: any) => any) => void
     dispatch: any
     updateNodeConfigOnly: any
-    generateJsonSchemaFromSchema: (schema: Record<string, string>) => string | null
-    extractSchemaFromJsonSchema: (jsonSchema: string) => { schema: Record<string, any> | null; error: string | null }
     isLast?: boolean
 }
 
@@ -28,8 +27,6 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
     setCurrentNodeConfig,
     dispatch,
     updateNodeConfigOnly,
-    generateJsonSchemaFromSchema,
-    extractSchemaFromJsonSchema,
     isLast = false,
 }) => {
     const { schema: parsedSchema } = extractSchemaFromJsonSchema(currentNodeConfig.output_json_schema || '')
