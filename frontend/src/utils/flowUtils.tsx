@@ -501,7 +501,6 @@ export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEv
 
             const sourceNode = nodes.find((n) => n.id === connection.source)
             if (sourceNode?.type === 'RouterNode') {
-                // console.log('sdfsd', connection)
                 connection = {
                     ...connection,
                     targetHandle: connection.source + '.' + connection.sourceHandle,

@@ -1,21 +1,23 @@
-import NodeErrorDisplay from '@/components/nodes/NodeErrorDisplay'
-import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { Button, Card, Divider, Select, SelectItem } from '@heroui/react'
-import { Icon } from '@iconify/react'
-import { Handle, Position, useConnection } from '@xyflow/react'
-import isEqual from 'lodash/isEqual'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { Handle, NodeProps, Position, useConnection } from '@xyflow/react'
+import BaseNode from '../BaseNode'
+import { Input, Card, Divider, Button, Select, SelectItem } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateNodeConfigOnly } from '../../../store/flowSlice'
-import { RootState } from '../../../store/store'
-import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
-import NodeOutputDisplay from '../NodeOutputDisplay'
+import { Icon } from '@iconify/react'
+import { RootState } from '../../../store/store'
+import isEqual from 'lodash/isEqual'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import NodeOutputModal from '../NodeOutputModal'
+import { OutputHandleRow } from '../shared/OutputHandleRow'
+import DynamicNode from '../DynamicNode'
 
-interface CoalesceNodeProps {
-    id: string
-    data: FlowWorkflowNode['data']
-    selected?: boolean
+export interface CoalesceNodeProps extends NodeProps<FlowWorkflowNode> {
+    displayOutput?: boolean
+    readOnly?: boolean
+    displaySubflow?: boolean
+    displayResizer?: boolean
 }
 
 /**
@@ -26,7 +28,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const nodeRef = useRef<HTMLDivElement | null>(null)
 
-    // We’ll dynamically compute a width that fits the labels (handles).
+    // We'll dynamically compute a width that fits the labels (handles).
     const [nodeWidth, setNodeWidth] = useState<string>('auto')
 
     const dispatch = useDispatch()
@@ -36,13 +38,14 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges)
 
+    const [isModalOpen, setIsModalOpen] = useState(false)
+
     // Node's output for display
     const nodeOutput = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.run)
-    const nodeError = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.error)
 
     // Node's config
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
-    console.log('nodeConfig', nodeConfig)
+    // console.log('nodeConfig', nodeConfig)
 
     // The CoalesceNode might have multiple incoming edges. We'll track those predecessor nodes (if any).
     const [predecessorNodes, setPredecessorNodes] = useState(() => {
@@ -51,16 +54,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
-                if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                    return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            config: sourceNode.data.config,
-                            title: edge.targetHandle,
-                        },
-                    }
-                }
                 return sourceNode
             })
             .filter(Boolean)
@@ -78,16 +71,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
             .map((edge) => {
                 const sourceNode = nodes.find((node) => node.id === edge.source)
                 if (!sourceNode) return null
-                if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-                    return {
-                        id: sourceNode.id,
-                        type: sourceNode.type,
-                        data: {
-                            config: sourceNode.data.config,
-                            title: edge.targetHandle,
-                        },
-                    }
-                }
                 return sourceNode
             })
             .filter(Boolean)
@@ -95,26 +78,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         let finalPredecessors = updatedPredecessors
 
         // If a new connection is in progress to this node, show that source node as well
-        if (connection.inProgress && connection.toNode?.id === id && connection.fromNode) {
-            const existing = finalPredecessors.find((p) => p?.id === connection.fromNode?.id)
-            if (!existing && isFlowWorkflowNode(connection.fromNode)) {
-                if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-                    finalPredecessors = [
-                        ...finalPredecessors,
-                        {
-                            id: connection.fromNode.id,
-                            type: connection.fromNode.type,
-                            data: {
-                                config: connection.fromNode.data.config,
-                                title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
-                            },
-                        },
-                    ]
-                } else {
-                    finalPredecessors = [...finalPredecessors, connection.fromNode]
-                }
-            }
-        }
 
         // Deduplicate by both id and data.title (for RouterNode handles)
         finalPredecessors = finalPredecessors.filter((node, index, self) => {
@@ -132,7 +95,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
     /**
      * Build an array of upstream node IDs for the dropdown.
-     * (We’re not currently using the node’s output_schema to filter the keys.)
+     * (We're not currently using the node's output_schema to filter the keys.)
      */
     const inputVariables = useMemo(() => {
         return predecessorNodes
@@ -153,7 +116,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
     /**
      * Keep track of used variable preferences so we don't show duplicates in other slots.
      */
-    const usedPreferences = nodeConfig.preferences.filter(Boolean)
+    const usedPreferences = nodeConfig?.preferences?.filter(Boolean)
     const availableVariablesForIndex = (index: number) => {
         return inputVariables.filter(
             (v) => !usedPreferences.includes(v.value) || v.value === nodeConfig.preferences[index]
@@ -252,81 +215,36 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
         }
     }, [predecessorNodes, nodeConfig?.title, isCollapsed])
 
+    const nodeData = {
+        title: nodeConfig?.title || 'Coalesce',
+        color: data.color || '#38B2AC',
+        acronym: 'CL',
+        run: data.run,
+        config: nodeConfig,
+        taskStatus: data.taskStatus,
+    }
+
+    const renderOutputHandles = () => {
+        return (
+            <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
+                {nodeData?.title && <OutputHandleRow id={id} keyName={String(nodeData?.title)} isCollapsed={isCollapsed} />}
+            </div>
+        )
+    }
+
     return (
         <BaseNode
             id={id}
             isCollapsed={isCollapsed}
             setIsCollapsed={setIsCollapsed}
-            data={{
-                title: nodeConfig?.title || 'Coalesce',
-                color: data.color || '#38B2AC',
-                acronym: 'CL',
-                config: nodeConfig,
-                run: data.run,
-                taskStatus: data.taskStatus,
-            }}
+            data={nodeData}
             // Use the computed nodeWidth
             style={{ width: nodeWidth }}
             className="hover:!bg-background"
+            renderOutputHandles={renderOutputHandles}
+            handleOpenModal={setIsModalOpen}
         >
             <div className="p-3" ref={nodeRef}>
-                {/**
-                 * --------------------------
-                 * Top Row: Input + Output
-                 * --------------------------
-                 */}
-                <div className="flex w-full items-start justify-between mb-4">
-                    {/* Left column: input handles */}
-                    <div>
-                        {predecessorNodes.map((node) => {
-                            if (!node) return null
-                            const handleId = node.data?.config?.title || node.data?.title || node.id
-                            return (
-                                <div
-                                    key={`${node.id}-${handleId}`}
-                                    className={`${styles.handleRow} w-full justify-start mb-2`}
-                                >
-                                    <Handle
-                                        type="target"
-                                        position={Position.Left}
-                                        id={handleId}
-                                        className={`${styles.handle} ${styles.handleLeft} ${
-                                            isCollapsed ? styles.collapsedHandleInput : ''
-                                        }`}
-                                    />
-                                    {/* Show the full label if not collapsed */}
-                                    {!isCollapsed && (
-                                        <span className="text-sm font-medium ml-2 text-foreground">{handleId}</span>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-
-                    {/* Right column: output handle */}
-                    <div>
-                        <div className={`${styles.handleRow} w-full justify-end`}>
-                            {/* Show the label if not collapsed */}
-                            {!isCollapsed && (
-                                <div className="align-center flex flex-grow flex-shrink mr-2">
-                                    <span className="text-sm font-medium ml-auto text-foreground">
-                                        {nodeConfig?.title || 'Output'}
-                                    </span>
-                                </div>
-                            )}
-                            <Handle
-                                type="source"
-                                position={Position.Right}
-                                // Use node title for handle id
-                                id={nodeConfig?.title || id}
-                                className={`${styles.handle} ${styles.handleRight} ${
-                                    isCollapsed ? styles.collapsedHandleOutput : ''
-                                }`}
-                            />
-                        </div>
-                    </div>
-                </div>
-
                 {/* The main body, hidden if collapsed */}
                 {!isCollapsed && (
                     <>
@@ -337,7 +255,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                         </div>
 
                         <div className="flex flex-col gap-4">
-                            {nodeConfig.preferences.map((prefValue, i) => (
+                            {nodeConfig?.preferences?.map((prefValue, i) => (
                                 <Card key={i} classNames={{ base: 'bg-background border-default-200 p-2' }}>
                                     <div className="flex flex-wrap items-center gap-2">
                                         <Select
@@ -358,9 +276,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                                                     key={variable.value}
                                                     value={variable.value}
                                                     textValue={variable.label}
-                                                    classNames={{
-                                                        title: 'w-full whitespace-normal break-words',
-                                                    }}
                                                 >
                                                     <div className="whitespace-normal">
                                                         <span>{variable.label}</span>
@@ -368,17 +283,6 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                                                 </SelectItem>
                                             ))}
                                         </Select>
-
-                                        {prefValue && (
-                                            <Button
-                                                size="sm"
-                                                color="danger"
-                                                onClick={() => clearPreference(i)}
-                                                isIconOnly
-                                            >
-                                                <Icon icon="solar:trash-bin-trash-linear" width={18} />
-                                            </Button>
-                                        )}
                                     </div>
                                 </Card>
                             ))}
@@ -386,9 +290,12 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                     </>
                 )}
             </div>
-            {nodeError && <NodeErrorDisplay error={nodeError} />}
-            {/* Display node's output if it exists */}
-            <NodeOutputDisplay output={nodeOutput} />
+            <NodeOutputModal
+                isOpen={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                title={nodeData?.title || 'Node Output'}
+                data={nodeData}
+            />
         </BaseNode>
     )
 }
