@@ -35,7 +35,9 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
 @NodeRegistry.register(
     category="Integrations",
     display_name="Firecrawl Scrape",
-    logo="/images/firecrawl.png"
+    logo="/images/firecrawl.png",
+    subcategory="Web Scraping",
+    position="after:FirecrawlCrawlNode"
 )
 class FirecrawlScrapeNode(BaseNode):
     name = "firecrawl_scrape_node"

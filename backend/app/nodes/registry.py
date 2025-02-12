@@ -2,19 +2,21 @@
 import importlib
 import importlib.util
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Type
+from typing import Dict, List, Optional, Set, Type, Union
 from .base import BaseNode
 from loguru import logger
 
 class NodeRegistry:
-    _nodes: Dict[str, List[Dict[str, str]]] = {}
+    _nodes: Dict[str, List[Dict[str, Union[str, Optional[str]]]]] = {}
     _decorator_registered_classes: Set[Type[BaseNode]] = set()  # Track classes registered via decorator
 
     @classmethod
     def register(cls,
                 category: str = "Uncategorized",
                 display_name: Optional[str] = None,
-                logo: Optional[str] = None):
+                logo: Optional[str] = None,
+                subcategory: Optional[str] = None,
+                position: Optional[Union[int, str]] = None):
         """
         Decorator to register a node class with metadata.
 
@@ -22,6 +24,11 @@ class NodeRegistry:
             category: The category this node belongs to
             display_name: Optional display name for the node
             logo: Optional path to the node's logo
+            subcategory: Optional subcategory for finer-grained organization
+            position: Optional position specifier. Can be:
+                     - Integer for absolute position
+                     - "after:NodeName" for relative position after a node
+                     - "before:NodeName" for relative position before a node
         """
         def decorator(node_class: Type[BaseNode]) -> Type[BaseNode]:
             # Set metadata on the class
@@ -31,6 +38,10 @@ class NodeRegistry:
                 node_class.display_name = display_name
             if logo:
                 node_class.logo = logo
+
+            # Store subcategory as class attribute without type checking
+            if subcategory:
+                setattr(node_class, 'subcategory', subcategory)
 
             # Initialize category if not exists
             if category not in cls._nodes:
@@ -42,23 +53,50 @@ class NodeRegistry:
             if module_path.startswith('app.'):
                 module_path = module_path[4:]  # Remove 'app.' prefix
 
-            node_info = {
+            node_info: Dict[str, Union[str, Optional[str]]] = {
                 "node_type_name": node_class.__name__,
                 "module": f".{module_path}",
-                "class_name": node_class.__name__
+                "class_name": node_class.__name__,
+                "subcategory": subcategory
             }
 
-            # Add to registry if not already present
-            if not any(n["node_type_name"] == node_class.__name__ for n in cls._nodes[category]):
-                cls._nodes[category].append(node_info)
-                logger.debug(f"Registered node {node_class.__name__} in category {category}")
-                cls._decorator_registered_classes.add(node_class)
+            # Handle positioning
+            nodes_list = cls._nodes[category]
+            if position is not None:
+                if isinstance(position, int):
+                    # Insert at specific index
+                    insert_idx = min(position, len(nodes_list))
+                    nodes_list.insert(insert_idx, node_info)
+                elif position.startswith("after:"):
+                    target_node = position[6:]
+                    for i, n in enumerate(nodes_list):
+                        if n["node_type_name"] == target_node:
+                            nodes_list.insert(i + 1, node_info)
+                            break
+                    else:
+                        nodes_list.append(node_info)
+                elif position.startswith("before:"):
+                    target_node = position[7:]
+                    for i, n in enumerate(nodes_list):
+                        if n["node_type_name"] == target_node:
+                            nodes_list.insert(i, node_info)
+                            break
+                    else:
+                        nodes_list.append(node_info)
+                else:
+                    nodes_list.append(node_info)
+            else:
+                # Add to end if no position specified
+                if not any(n["node_type_name"] == node_class.__name__ for n in nodes_list):
+                    nodes_list.append(node_info)
+                    logger.debug(f"Registered node {node_class.__name__} in category {category}")
+                    cls._decorator_registered_classes.add(node_class)
 
             return node_class
         return decorator
 
     @classmethod
-    def get_registered_nodes(cls) -> Dict[str, List[Dict[str, str]]]:
+    def get_registered_nodes(cls) -> Dict[str, List[Dict[str, Union[str, Optional[str]]]]]:
         """Get all registered nodes."""
         return cls._nodes
 
