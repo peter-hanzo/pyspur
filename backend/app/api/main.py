@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from ..nodes.registry import NodeRegistry
+NodeRegistry.discover_nodes()
 
 from .node_management import router as node_management_router
 from .workflow_management import router as workflow_management_router
@@ -16,7 +18,9 @@ from ..integrations.google.auth import router as google_auth_router
 from .rag_management import router as rag_management_router
 from .file_management import router as file_management_router
 
+
 load_dotenv()
+
 
 
 app = FastAPI(root_path="/api")
