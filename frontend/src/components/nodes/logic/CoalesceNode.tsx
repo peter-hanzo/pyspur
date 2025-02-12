@@ -1,3 +1,4 @@
+import NodeErrorDisplay from '@/components/nodes/NodeErrorDisplay'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { Button, Card, Divider, Select, SelectItem } from '@heroui/react'
 import { Icon } from '@iconify/react'
@@ -37,6 +38,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
 
     // Node's output for display
     const nodeOutput = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.run)
+    const nodeError = useSelector((state: RootState) => state.flow.nodes.find((node) => node.id === id)?.data?.error)
 
     // Node's config
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
@@ -384,7 +386,7 @@ export const CoalesceNode: React.FC<CoalesceNodeProps> = ({ id, data }) => {
                     </>
                 )}
             </div>
-
+            {nodeError && <NodeErrorDisplay error={nodeError} />}
             {/* Display node's output if it exists */}
             <NodeOutputDisplay output={nodeOutput} />
         </BaseNode>
