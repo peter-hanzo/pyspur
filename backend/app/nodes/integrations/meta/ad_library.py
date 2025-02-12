@@ -1,10 +1,23 @@
 import logging
 import json
 import requests
-from typing import Dict, List, Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+
+
+class FacebookAdLibraryNodeInput(BaseNodeInput):
+    """Input for the FacebookAdLibrary node"""
+    class Config:
+        extra = "allow"
+
+
+class FacebookAdLibraryNodeOutput(BaseNodeOutput):
+    ads: str = Field(
+        ..., description="JSON string containing the retrieved ad data"
+    )
+
 
 class FacebookAdLibraryNodeConfig(BaseNodeConfig):
     access_token: str = Field(
@@ -45,31 +58,15 @@ class FacebookAdLibraryNodeConfig(BaseNodeConfig):
         ],
         description="Fields to retrieve from the Ad Library API"
     )
-    output_schema: Dict[str, str] = Field(
-        default={"ads": "string"},
-        description="The schema for the output of the node"
-    )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
-        default="",
+        default=json.dumps(FacebookAdLibraryNodeOutput.model_json_schema()),
         description="The JSON schema for the output of the node"
     )
 
     def __init__(self, **data):
         super().__init__(**data)
-        # Set the output JSON schema based on the output model
-        if not self.output_json_schema:
-            self.output_json_schema = json.dumps(FacebookAdLibraryNodeOutput.model_json_schema())
 
-class FacebookAdLibraryNodeInput(BaseNodeInput):
-    """Input for the FacebookAdLibrary node"""
-    class Config:
-        extra = "allow"
-
-class FacebookAdLibraryNodeOutput(BaseNodeOutput):
-    ads: str = Field(
-        ..., description="JSON string containing the retrieved ad data"
-    )
 
 class FacebookAdLibraryNode(BaseNode):
     name = "facebook_ad_library_node"

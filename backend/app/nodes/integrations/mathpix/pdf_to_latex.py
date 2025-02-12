@@ -5,7 +5,6 @@ import requests
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...utils.template_utils import render_template_or_get_first_string
-from typing import Dict
 
 
 class MathpixPdfToLatexNodeInput(BaseNodeInput):
@@ -32,10 +31,6 @@ class MathpixPdfToLatexNodeConfig(BaseNodeConfig):
     app_key: str = Field(
         default="",
         description="Mathpix API app_key. Can be set via environment variable MATHPIX_APP_KEY."
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"latex_result": "string"},
-        description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

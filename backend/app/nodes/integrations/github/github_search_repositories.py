@@ -1,9 +1,20 @@
+import json
 import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
-from typing import Dict
 
+class GitHubSearchRepositoriesNodeInput(BaseNodeInput):
+    """Input for the GitHubSearchRepositories node"""
+
+    class Config:
+        extra = "allow"
+
+
+class GitHubSearchRepositoriesNodeOutput(BaseNodeOutput):
+    repositories: str = Field(
+        ..., description="A JSON string of repositories matching the search query."
+    )
 
 class GitHubSearchRepositoriesNodeConfig(BaseNodeConfig):
     query: str = Field(
@@ -17,23 +28,10 @@ class GitHubSearchRepositoriesNodeConfig(BaseNodeConfig):
         "desc", description="The order of results. Can be 'asc' or 'desc'."
     )
     per_page: int = Field(5, description="Number of results per page.")
-    output_schema: Dict[str, str] = Field(
-        default={"repositories": "string"},
-        description="The schema for the output of the node",
-    )
     has_fixed_output: bool = True
-
-
-class GitHubSearchRepositoriesNodeInput(BaseNodeInput):
-    """Input for the GitHubSearchRepositories node"""
-
-    class Config:
-        extra = "allow"
-
-
-class GitHubSearchRepositoriesNodeOutput(BaseNodeOutput):
-    repositories: str = Field(
-        ..., description="A JSON string of repositories matching the search query."
+    output_json_schema: str = Field(
+        default=json.dumps(GitHubSearchRepositoriesNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
     )
 
 

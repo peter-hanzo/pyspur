@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from firecrawl import FirecrawlApp  # type: ignore
 from ...utils.template_utils import render_template_or_get_first_string
-from typing import Dict
 
 
 class FirecrawlScrapeNodeInput(BaseNodeInput):
@@ -25,14 +24,10 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
         "",
         description="The URL to scrape and convert into clean markdown or structured data.",
     )
-    output_schema: Dict[str, str] = Field(
-        default={"markdown": "string"},
-        description="The schema for the output of the node",
-    )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(FirecrawlScrapeNodeOutput.model_json_schema()),
-        description="The JSON schema for the output of the node",
+        description="The JSON schema for the output of the node"
     )
 
 

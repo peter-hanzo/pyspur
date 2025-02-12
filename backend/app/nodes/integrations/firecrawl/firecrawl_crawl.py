@@ -8,7 +8,7 @@ from ...base import (
     BaseNodeOutput,
 )
 from firecrawl import FirecrawlApp  # type: ignore
-from typing import Optional, Dict
+from typing import Optional
 from ...utils.template_utils import render_template_or_get_first_string
 
 
@@ -32,10 +32,6 @@ class FirecrawlCrawlNodeConfig(BaseNodeConfig):
     )
     limit: Optional[int] = Field(
         None, description="The maximum number of pages to crawl."
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"crawl_result": "string"},
-        description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

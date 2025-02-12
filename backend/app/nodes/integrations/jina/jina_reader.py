@@ -1,10 +1,8 @@
 import logging
-from typing import Dict
 import json
-
-from pydantic import BaseModel, Field  # type: ignore
 import httpx
 
+from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...utils.template_utils import render_template_or_get_first_string
 
@@ -30,10 +28,6 @@ class JinaReaderNodeConfig(BaseNodeConfig):
     )
     use_readerlm_v2: bool = Field(
         True, description="Use the Reader LM v2 model to process the URL"
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"title": "string", "content": "string"},
-        description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

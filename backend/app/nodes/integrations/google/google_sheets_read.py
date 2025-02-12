@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import Dict
 import json
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
@@ -23,10 +22,6 @@ class GoogleSheetsReadNodeConfig(BaseNodeConfig):
     )
     range: str = Field(
         "", description="The range of cells to read from (e.g. 'Sheet1!A1:B10')."
-    )
-    output_schema: Dict[str, str] = Field(
-        default={"data": "string"},
-        description="The schema for the output of the node",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
