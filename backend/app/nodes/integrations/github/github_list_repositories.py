@@ -1,16 +1,8 @@
+import json
 import logging
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
-from typing import Dict
-
-
-class GitHubListRepositoriesNodeConfig(BaseNodeConfig):
-    output_schema: Dict[str, str] = Field(
-        default={"repositories": "string"},
-        description="The schema for the output of the node",
-    )
-    has_fixed_output: bool = True
 
 
 class GitHubListRepositoriesNodeInput(BaseNodeInput):
@@ -23,6 +15,14 @@ class GitHubListRepositoriesNodeInput(BaseNodeInput):
 class GitHubListRepositoriesNodeOutput(BaseNodeOutput):
     repositories: str = Field(
         ..., description="A JSON string of the repositories for the user."
+    )
+
+
+class GitHubListRepositoriesNodeConfig(BaseNodeConfig):
+    has_fixed_output: bool = True
+    output_json_schema: str = Field(
+        default=json.dumps(GitHubListRepositoriesNodeOutput.model_json_schema()),
+        description="The JSON schema for the output of the node",
     )
 
 

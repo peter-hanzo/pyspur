@@ -20,6 +20,8 @@ import {
     cn,
     Divider,
     ScrollShadow,
+    Accordion,
+    AccordionItem,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { listApiKeys, setApiKey, getApiKey, deleteApiKey } from '@/utils/api'
@@ -210,6 +212,9 @@ const APIKeys = (props: CardProps): React.ReactElement => {
             chroma: 'solar:database-minimalistic-bold',
             supabase: 'logos:supabase-icon',
             database: 'solar:database-bold',
+
+            // Other Integrations
+            'solar:spider-bold': 'solar:spider-bold',  // For Firecrawl
         }
         return iconMap[iconName] || iconMap.database
     }
@@ -217,118 +222,103 @@ const APIKeys = (props: CardProps): React.ReactElement => {
     const renderProviderGrid = () => {
         const vectorStoreProviders = providers.filter((p) => p.category === 'vectorstore')
         const llmProviders = providers.filter((p) => p.category === 'llm')
+        const otherProviders = providers.filter((p) => !['vectorstore', 'llm'].includes(p.category))
 
-        return (
-            <div className="space-y-6">
-                {/* LLM Providers */}
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <Icon icon="solar:brain-bold" className="text-primary" width={20} />
-                        <div>
-                            <h4 className="text-medium font-medium">AI Models</h4>
-                            <p className="text-tiny text-default-400">Configure your AI model providers</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {llmProviders.map((provider) => (
-                            <Card
-                                key={provider.id}
-                                isPressable
-                                onPress={() => setSelectedProvider(provider)}
-                                className={cn(
-                                    'border-2',
-                                    selectedProvider?.id === provider.id ? 'border-primary' : 'border-transparent'
-                                )}
-                            >
-                                <CardBody className="gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon={getProviderIcon(provider.icon)} width={24} />
-                                        <div>
-                                            <h5 className="text-small font-medium">{provider.name}</h5>
-                                            <p className="text-tiny text-default-400">{provider.description}</p>
-                                        </div>
-                                    </div>
-                                </CardBody>
-                            </Card>
-                        ))}
-                    </div>
+        const renderProviderInputs = (provider: ProviderConfig) => {
+            return (
+                <div className="space-y-3 py-2">
+                    {provider.parameters.map((param) => {
+                        const key = keys.find((k) => k.name === param.name)
+                        return (
+                            <Input
+                                key={param.name}
+                                label={param.description}
+                                placeholder={`Enter ${param.description.toLowerCase()}`}
+                                name={param.name}
+                                value={key?.value || ''}
+                                type={param.type === 'password' ? 'password' : 'text'}
+                                size="sm"
+                                variant="bordered"
+                                isClearable
+                                onClear={() => handleDeleteKey(param.name)}
+                                onFocus={() =>
+                                    setKeys((prevKeys) =>
+                                        prevKeys.map((key) =>
+                                            key.name === param.name ? { ...key, value: '' } : key
+                                        )
+                                    )
+                                }
+                                onChange={handleInputChange}
+                            />
+                        )
+                    })}
                 </div>
+            )
+        }
 
-                {/* Vector Store Providers */}
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <Icon icon="solar:database-bold" className="text-primary" width={20} />
-                        <div>
-                            <h4 className="text-medium font-medium">Vector Databases</h4>
-                            <p className="text-tiny text-default-400">Configure your vector database providers</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {vectorStoreProviders.map((provider) => (
-                            <Card
-                                key={provider.id}
-                                isPressable
-                                onPress={() => setSelectedProvider(provider)}
-                                className={cn(
-                                    'border-2',
-                                    selectedProvider?.id === provider.id ? 'border-primary' : 'border-transparent'
-                                )}
-                            >
-                                <CardBody className="gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon={getProviderIcon(provider.icon)} width={24} />
-                                        <div>
-                                            <h5 className="text-small font-medium">{provider.name}</h5>
-                                            <p className="text-tiny text-default-400">{provider.description}</p>
-                                        </div>
-                                    </div>
-                                </CardBody>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
+        const renderProviderSection = (
+            title: string,
+            description: string,
+            icon: string,
+            providerList: ProviderConfig[]
+        ) => {
+            if (providerList.length === 0) return null
 
-                {/* Selected Provider Configuration */}
-                {selectedProvider && (
-                    <Card className="mt-6">
-                        <CardBody className="gap-4">
+            return (
+                <Accordion>
+                    <AccordionItem
+                        key={title}
+                        aria-label={title}
+                        title={
                             <div className="flex items-center gap-2">
-                                <Icon icon={getProviderIcon(selectedProvider.icon)} width={24} />
+                                <Icon icon={icon} className="text-primary" width={20} />
                                 <div>
-                                    <h4 className="text-medium font-medium">{selectedProvider.name} Configuration</h4>
-                                    <p className="text-tiny text-default-400">{selectedProvider.description}</p>
+                                    <h4 className="text-medium font-medium">{title}</h4>
+                                    <p className="text-tiny text-default-400">{description}</p>
                                 </div>
                             </div>
-                            <Divider />
-                            <div className="space-y-3">
-                                {selectedProvider.parameters.map((param) => {
-                                    const key = keys.find((k) => k.name === param.name)
-                                    return (
-                                        <Input
-                                            key={param.name}
-                                            label={param.description}
-                                            placeholder={`Enter ${param.description.toLowerCase()}`}
-                                            name={param.name}
-                                            value={key?.value || ''}
-                                            type={param.type === 'password' ? 'password' : 'text'}
-                                            size="sm"
-                                            variant="bordered"
-                                            isClearable
-                                            onClear={() => handleDeleteKey(param.name)}
-                                            onFocus={() =>
-                                                setKeys((prevKeys) =>
-                                                    prevKeys.map((key) =>
-                                                        key.name === param.name ? { ...key, value: '' } : key
-                                                    )
-                                                )
-                                            }
-                                            onChange={handleInputChange}
-                                        />
-                                    )
-                                })}
-                            </div>
-                        </CardBody>
-                    </Card>
+                        }
+                    >
+                        <div className="space-y-6 px-2">
+                            {providerList.map((provider) => (
+                                <Card key={provider.id} className="border border-default-200">
+                                    <CardBody className="gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <Icon icon={getProviderIcon(provider.icon)} width={24} />
+                                            <div>
+                                                <h5 className="text-small font-medium">{provider.name}</h5>
+                                                <p className="text-tiny text-default-400">{provider.description}</p>
+                                            </div>
+                                        </div>
+                                        {renderProviderInputs(provider)}
+                                    </CardBody>
+                                </Card>
+                            ))}
+                        </div>
+                    </AccordionItem>
+                </Accordion>
+            )
+        }
+
+        return (
+            <div className="space-y-4">
+                {renderProviderSection(
+                    'AI Models',
+                    'Configure your AI model providers',
+                    'solar:brain-bold',
+                    llmProviders
+                )}
+                {renderProviderSection(
+                    'Vector Databases',
+                    'Configure your vector database providers',
+                    'solar:database-bold',
+                    vectorStoreProviders
+                )}
+                {renderProviderSection(
+                    'Other Integrations',
+                    'Configure additional service providers',
+                    'solar:widget-bold',
+                    otherProviders
                 )}
             </div>
         )

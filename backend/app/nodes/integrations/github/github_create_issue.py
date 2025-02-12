@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Dict, Optional
+from typing import Optional
 from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from phi.tools.github import GithubTools
@@ -23,10 +23,6 @@ class GitHubCreateIssueNodeConfig(BaseNodeConfig):
     )
     issue_title: str = Field("", description="The title of the issue.")
     body: Optional[str] = Field(None, description="The body content of the issue.")
-    output_schema: Dict[str, str] = Field(
-        default={"issue": "string"},
-        description="The schema for the output of the node",
-    )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(GitHubCreateIssueNodeOutput.model_json_schema()),

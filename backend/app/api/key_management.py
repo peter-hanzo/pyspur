@@ -173,6 +173,17 @@ PROVIDER_CONFIGS = [
             ProviderParameter(name="SUPABASE_SERVICE_ROLE_KEY", description="Supabase Service Role Key", type="password", required=False),
         ],
     ),
+    # Add Firecrawl Provider
+    ProviderConfig(
+        id="firecrawl",
+        name="Firecrawl",
+        description="Web scraping and crawling service",
+        category="scraping",
+        icon="solar:spider-bold",
+        parameters=[
+            ProviderParameter(name="FIRECRAWL_API_KEY", description="Firecrawl API Key"),
+        ],
+    ),
 ]
 
 # For backward compatibility, create a flat list of all parameter names
