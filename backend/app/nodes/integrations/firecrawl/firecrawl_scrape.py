@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from firecrawl import FirecrawlApp  # type: ignore
 from ...utils.template_utils import render_template_or_get_first_string
-from typing import Dict, Any
 from ...registry import NodeRegistry
 
 
