@@ -234,6 +234,11 @@ class WorkflowExecutor:
             ):
                 self._outputs[node_id] = None
                 return None
+            elif node.node_type == "CoalesceNode" and all(
+                [v is None for v in node_input.values()]
+            ):
+                self._outputs[node_id] = None
+                return None
 
             # Remove None values from input
             node_input = {k: v for k, v in node_input.items() if v is not None}
