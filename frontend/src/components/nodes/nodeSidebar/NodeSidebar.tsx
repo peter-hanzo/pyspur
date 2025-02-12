@@ -703,9 +703,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             content={
                                 currentNodeConfig?.has_fixed_output === true
                                     ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
-                                    : currentNodeConfig?.llm_info?.model
+                                    : currentNodeConfig?.llm_info?.model &&
+                                        currentModelConstraints?.supports_JSON_output
                                       ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
-                                      : "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                                      : currentNodeConfig?.llm_info?.model &&
+                                          !currentModelConstraints?.supports_JSON_output
+                                        ? "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
+                                        : "The output schema defines the structure of this node's output."
                             }
                             placement="left-start"
                             showArrow={true}
