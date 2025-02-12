@@ -53,7 +53,7 @@ function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode)
                 const nodeTitle = sourceNodeConfig.title || sourceNode?.id
                 const sourceSchema = sourceNodeConfig.output_json_schema
 
-                properties[nodeTitle] = sourceSchema
+                properties[nodeTitle] = JSON.parse(sourceSchema)
             }
             return properties
         },
