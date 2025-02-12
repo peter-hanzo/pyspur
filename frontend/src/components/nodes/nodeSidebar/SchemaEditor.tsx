@@ -327,7 +327,13 @@ const SchemaField: React.FC<FieldProps> = ({ path, value, onUpdate, onDelete, re
                         )}
                     >
                         {availableFields.map((field) => (
-                            <SelectItem key={field} value={field}>
+                            <SelectItem
+                                key={field}
+                                value={field}
+                                classNames={{
+                                    title: 'w-full whitespace-normal break-words',
+                                }}
+                            >
                                 {field}
                             </SelectItem>
                         ))}
@@ -977,7 +983,13 @@ const SchemaEditor: React.FC<SchemaEditorProps> = ({
                         )}
                     >
                         {availableFields.map((field) => (
-                            <SelectItem key={field} value={field}>
+                            <SelectItem
+                                key={field}
+                                value={field}
+                                classNames={{
+                                    title: 'w-full whitespace-normal break-words',
+                                }}
+                            >
                                 {field}
                             </SelectItem>
                         ))}
