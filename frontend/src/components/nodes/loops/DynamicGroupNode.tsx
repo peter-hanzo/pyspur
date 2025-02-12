@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
 import { getRelativeNodesBounds } from './groupNodeUtils'
+import { OutputHandleRow } from '../shared/OutputHandleRow'
 
 export interface DynamicGroupNodeProps {
     id: string
@@ -147,34 +148,10 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
         keyName: string
     }
 
-    const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
-        return (
-            <div className={`${styles.handleRow} w-full justify-end`} key={`output-${keyName}`}>
-                <div className="flex flex-grow flex-shrink mr-2 max-w-full overflow-hidden">
-                    <span
-                        className={`${styles.handleLabel} text-sm font-medium ml-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-                    >
-                        {keyName}
-                    </span>
-                </div>
-                <div className="border-l border-gray-300 h-full mx-0" />
-                <div className={`${styles.handleCell} ${styles.outputHandleCell}`}>
-                    <Handle
-                        type="source"
-                        position={Position.Right}
-                        id={keyName}
-                        className={`${styles.handle} ${styles.handleRight}`}
-                        isConnectable={true}
-                    />
-                </div>
-            </div>
-        )
-    }
-
     const renderOutputHandles = () => {
         return (
             <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
-                {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig?.title)} />}
+                {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig?.title)} isCollapsed={isCollapsed} />}
             </div>
         )
     }
