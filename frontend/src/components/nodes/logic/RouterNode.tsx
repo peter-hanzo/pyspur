@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Handle, useNodeConnections, useConnection, Position, useUpdateNodeInternals, NodeProps } from '@xyflow/react'
+import { Handle, useConnection, Position, useUpdateNodeInternals, NodeProps } from '@xyflow/react'
 import BaseNode from '../BaseNode'
 import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -8,9 +8,6 @@ import styles from '../DynamicNode.module.css'
 import { Icon } from '@iconify/react'
 import { RootState } from '../../../store/store'
 import { ComparisonOperator, RouteConditionRule, RouteConditionGroup } from '../../../types/api_types/routerSchemas'
-import NodeOutputDisplay from '../NodeOutputDisplay'
-import { isEqual } from 'lodash'
-import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import NodeOutputModal from '../NodeOutputModal'
 
@@ -67,24 +64,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
     // const nodeData = data
     const updateNodeInternals = useUpdateNodeInternals()
-    // const [predecessorNodes, setPredecessorNodes] = useState(() => {
-    //     return edges
-    //         .filter((edge) => edge.target === id)
-    //         .map((edge) => {
-    //             const sourceNode = nodes.find((node) => node.id === edge.source)
-    //             if (!sourceNode) {
-    //                 return null
-    //             }
-    //             if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-    //                 return {
-    //                     ...sourceNode,
-    //                     handle_id: edge.sourceHandle
-    //                 }
-    //             }
-    //             return sourceNode
-    //         })
-    //         .filter(Boolean)
-    // })
 
     const connection = useConnection()
     const nodeData = {
@@ -95,43 +74,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
         config: nodeConfig,
         taskStatus: data.taskStatus,
     }
-
-    // interface HandleRowProps {
-    //     id: string
-    //     keyName: string
-    // }
-
-    // const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
-    //     const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
-    //     const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
-
-    //     return (
-    //         <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
-    //             <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
-    //                 <Handle
-    //                     type="target"
-    //                     position={Position.Left}
-    //                     id={String(id)}
-    //                     className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-    //                     isConnectable={isConnectable}
-    //                 />
-    //             </div>
-    //             <div className="border-r border-gray-300 h-full mx-0" />
-    //             {!isCollapsed && (
-    //                 <div
-    //                     className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden"
-    //                     id={`input-${keyName}-label`}
-    //                 >
-    //                     <span
-    //                         className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-    //                     >
-    //                         {String(keyName)}
-    //                     </span>
-    //                 </div>
-    //             )}
-    //         </div>
-    //     )
-    // }
 
     const finalPredecessors = useMemo(() => {
         const updatedPredecessorNodes = edges
@@ -153,95 +95,10 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
         let result = updatedPredecessorNodes
 
-        // if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
-        //     // Check if nodes have the same parent or both have no parent
-        //     const fromNodeParentId = connection.fromNode?.parentId
-        //     const toNodeParentId = connection.toNode?.parentId
-        //     const canConnect =
-        //         fromNodeParentId === toNodeParentId &&
-        //         !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
-
-        //     if (
-        //         canConnect &&
-        //         connection.fromNode &&
-        //         !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
-        //     ) {
-        //         if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-        //             result = [
-        //                 ...updatedPredecessorNodes,
-        //                 {
-        //                     id: connection.fromNode.id,
-        //                     type: connection.fromNode.type,
-        //                     data: {
-        //                         title: connection.fromHandle.nodeId + '.' + connection.fromHandle.id,
-        //                     },
-        //                 },
-        //             ]
-        //         } else {
-        //             result = [
-        //                 ...updatedPredecessorNodes,
-        //                 {
-        //                     id: connection.fromNode.id,
-        //                     type: connection.fromNode.type,
-        //                     data: {
-        //                         title:
-        //                             (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
-        //                     },
-        //                 },
-        //             ]
-        //         }
-        //     }
-        // }
         // deduplicate
         result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index)
         return result
     }, [edges, nodes, connection, id])
-
-    // Recompute predecessor nodes whenever edges/connections change
-    // useEffect(() => {
-    //     // Check if finalPredecessors differ from predecessorNodes
-    //     // (We do a deeper comparison to detect config/title changes, not just ID changes)
-    //     const hasChanged =
-    //         finalPredecessors.length !== predecessorNodes.length ||
-    //         finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
-
-    //     if (hasChanged) {
-    //         setPredecessorNodes(finalPredecessors)
-    //         updateNodeInternals(id)
-    //     }
-    // }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
-
-    // const renderHandles = () => {
-    //     if (!nodeData) {
-    //         return null
-    //     }
-    //     const dedupedPredecessors = finalPredecessors.filter(
-    //         (node, index, self) => self.findIndex((n) => n.id === node.id) === index
-    //     )
-
-    //     return (
-    //         <div className={`${styles.handlesWrapper}`} id="handles">
-    //             {/* Input Handles */}
-    //             <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
-    //                 {dedupedPredecessors.map((node) => {
-    //                     const handleId =
-    //                     node.type === 'RouterNode' && node.handle_id
-    //                         ? (node.data?.title + '.' + node.handle_id)
-    //                         : String(node.data?.title || node.id || '')
-    //                     // set node id for router node as node.id + node.data.title
-    //                     const nodeId = node.type === 'RouterNode' ? node?.id + '.' + node?.handle_id : node?.id
-    //                 return (
-    //                         <InputHandleRow
-    //                             key={`input-handle-row-${node.id}-${handleId}`}
-    //                             id={nodeId}
-    //                             keyName={handleId}
-    //                         />
-    //                     )
-    //                 })}
-    //             </div>
-    //         </div>
-    //     )
-    // }
 
     // Get available input variables from the connected node's output schema
     const inputVariables = useMemo(() => {
@@ -263,56 +120,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             }))
         })
     }, [finalPredecessors, nodeConfigs])
-
-    // useEffect(() => {
-    //     if (!nodeRef.current) {
-    //         return
-    //     }
-
-    //     // We have multiple input handle labels
-    //     const inputLabels = predecessorNodes.map((pred) => pred?.data?.title || pred?.id || '')
-
-    //     // Output label is the node's title or fallback
-    //     const outputLabels = [nodeConfig?.title || 'Coalesce']
-
-    //     // Compute the max length among all input labels
-    //     const maxInputLabelLength = inputLabels.reduce((max, label) => Math.max(max, label.length), 0)
-    //     // Compute the max length among all output labels
-    //     const maxOutputLabelLength = outputLabels.reduce((max, label) => Math.max(max, label.length), 0)
-
-    //     // The node's own title (for the top of the node)
-    //     const nodeTitle = nodeConfig?.title || 'Coalesce'
-    //     const nodeTitleLength = nodeTitle.length
-
-    //     // Some extra spacing
-    //     const buffer = 5
-
-    //     // Rough estimate: multiply the longest label length by ~10 for width in px.
-    //     const minNodeWidth = 300
-    //     const maxNodeWidth = 600
-
-    //     const estimatedWidth = Math.max(
-    //         (maxInputLabelLength + maxOutputLabelLength + buffer) * 10,
-    //         nodeTitleLength * 10,
-    //         minNodeWidth
-    //     )
-    //     const finalWidth = Math.min(estimatedWidth, maxNodeWidth)
-
-    //     // If collapsed, show auto; otherwise the computed width
-    //     const newWidth = isCollapsed ? 'auto' : `${finalWidth}px`
-    //     if (nodeWidth !== newWidth) {
-    //         setNodeWidth(newWidth)
-    //         // Update node internals whenever width changes
-    //         setTimeout(() => {
-    //             updateNodeInternals(id)
-    //         }, 0)
-    //     }
-    // }, [predecessorNodes, nodeConfig?.title, isCollapsed, nodeWidth, id, updateNodeInternals])
-
-    // Also add an effect to update node internals when the node config changes
-    // useEffect(() => {
-    //     updateNodeInternals(id)
-    // }, [nodeConfig, id, updateNodeInternals])
 
     // Add this useEffect to update node internals when route_map changes
     useEffect(() => {
