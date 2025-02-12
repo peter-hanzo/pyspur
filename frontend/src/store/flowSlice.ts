@@ -251,7 +251,7 @@ const flowSlice = createSlice({
             }
 
             // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
-            if (data?.output_schema) {
+            if (data?.output_schema || data?.output_json_schema) {
                 const connectedRouterNodes = state.nodes.filter(
                     (targetNode) =>
                         targetNode.type === 'RouterNode' &&
