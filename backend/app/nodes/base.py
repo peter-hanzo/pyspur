@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
 from ..execution.workflow_execution_context import WorkflowExecutionContext
-from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 
 
 class VisualTag(BaseModel):
@@ -81,7 +80,7 @@ class BaseNode(ABC):
     _input: BaseNodeInput
     _output: BaseNodeOutput
     visual_tag: VisualTag
-    subworkflow: Optional[WorkflowDefinitionSchema]
+    subworkflow: Optional[Dict[str, Any]]
     subworkflow_output: Optional[Dict[str, Any]]
 
     def __init__(
