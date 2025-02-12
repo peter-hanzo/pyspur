@@ -626,6 +626,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 currentNodeConfig?.has_fixed_output ||
                 (currentNodeConfig?.llm_info?.model && !currentModelConstraints?.supports_JSON_output) ||
                 node.type === 'RouterNode' ||
+                node.type === 'CoalesceNode' ||
                 false
             return (
                 <div key={key}>
