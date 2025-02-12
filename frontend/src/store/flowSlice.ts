@@ -41,6 +41,17 @@ const saveToHistory = (state: FlowState) => {
     state.history.future = []
 }
 
+const generateJsonSchema = (schema: Record<string, any>): string => {
+    const jsonSchema = {
+        type: 'object',
+        properties: Object.fromEntries(
+            Object.entries(schema).map(([key, type]) => [key, { type }])
+        ),
+        required: Object.keys(schema)
+    }
+    return JSON.stringify(jsonSchema, null, 2)
+}
+
 function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode) {
     const incomingEdges = state.edges.filter((edge) => edge.target === routerNode.id)
 
@@ -72,6 +83,7 @@ function rebuildRouterNodeSchema(state: FlowState, routerNode: FlowWorkflowNode)
         state.nodeConfigs[routerNode.id] = {
             ...routerNodeConfig,
             output_schema: newOutputSchema,
+            output_json_schema: generateJsonSchema(newOutputSchema)
         }
     }
 }
@@ -101,19 +113,10 @@ function rebuildCoalesceNodeSchema(state: FlowState, coalesceNode: FlowWorkflowN
     state.nodeConfigs[coalesceNode.id] = {
         ...coalesceNodeConfig,
         output_schema: intersection,
+        output_json_schema: generateJsonSchema(intersection)
     }
 }
 
-const generateJsonSchema = (schema: Record<string, any>): string => {
-    const jsonSchema = {
-        type: 'object',
-        properties: Object.fromEntries(
-            Object.entries(schema).map(([key, type]) => [key, { type }])
-        ),
-        required: Object.keys(schema)
-    }
-    return JSON.stringify(jsonSchema, null, 2)
-}
 
 const flowSlice = createSlice({
     name: 'flow',
