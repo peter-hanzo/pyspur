@@ -64,109 +64,15 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     displayOutput,
     ...props
 }) => {
-    // const nodeRef = useRef<HTMLDivElement | null>(null)
-    // const [editingField, setEditingField] = useState<string | null>(null)
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
 
-    // const nodes = useSelector(
-    //     (state: RootState) =>
-    //         state.flow.nodes.map((node) => ({
-    //             id: node.id,
-    //             type: node.type,
-    //             data: {
-    //                 title: node.data?.title,
-    //             },
-    //         })),
-    //     isEqual
-    // )
     const nodeData = data
-    // const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
-
-    // const inputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.input`), isEqual)
-    // const outputMetadata = useSelector((state: RootState) => selectPropertyMetadata(state, `${type}.output`), isEqual)
-
-    // const excludeSchemaKeywords = (metadata: SchemaMetadata): Record<string, any> => {
-    //     const schemaKeywords = ['required', 'title', 'type']
-    //     return Object.keys(metadata).reduce((acc: Record<string, any>, key) => {
-    //         if (!schemaKeywords.includes(key)) {
-    //             acc[key] = metadata[key]
-    //         }
-    //         return acc
-    //     }, {})
-    // }
-
-    // const cleanedInputMetadata = excludeSchemaKeywords(inputMetadata || {})
-    // const cleanedOutputMetadata = excludeSchemaKeywords(outputMetadata || {})
-    // const updateNodeInternals = useUpdateNodeInternals()
-
-    // const [predecessorNodes, setPredecessorNodes] = useState(() => {
-    //     return edges
-    //         .filter((edge) => edge.target === id)
-    //         .map((edge) => {
-    //             const sourceNode = nodes.find((node) => node.id === edge.source)
-    //             if (!sourceNode) return null
-    //             if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-    //                 return {
-    //                     ...sourceNode,
-    //                     handle_id: edge.targetHandle
-    //                 }
-    //             }
-    //             return sourceNode
-    //         })
-    //         .filter(Boolean)
-    // })
+    
     interface HandleRowProps {
         id: string
         keyName: string
     }
-
-    // const InputHandleRow: React.FC<HandleRowProps> = ({ id, keyName }) => {
-    //     const connections = useNodeConnections({ id: id, handleType: 'target', handleId: keyName })
-    //     const isConnectable = !isCollapsed && (connections.length === 0 || String(keyName).startsWith('branch'))
-    //     return (
-    //         <div className={`${styles.handleRow} w-full justify-end`} key={keyName} id={`input-${keyName}-row`}>
-    //             <div className={`${styles.handleCell} ${styles.inputHandleCell}`} id={`input-${keyName}-handle`}>
-    //                 <Handle
-    //                     type="target"
-    //                     position={Position.Left}
-    //                     id={String(id)}
-    //                     className={`${styles.handle} ${styles.handleLeft} ${isCollapsed ? styles.collapsedHandleInput : ''}`}
-    //                     isConnectable={isConnectable}
-    //                 />
-    //             </div>
-    //             <div className="border-r border-gray-200 h-full mx-0" />
-    //             {!isCollapsed && (
-    //                 <div
-    //                     className="align-center flex flex-grow flex-shrink ml-[0.5rem] max-w-full overflow-hidden"
-    //                     id={`input-${keyName}-label`}
-    //                 >
-    //                     {editingField === keyName ? (
-    //                         <Input
-    //                             key={`input-field-${keyName}`}
-    //                             autoFocus
-    //                             defaultValue={String(keyName)}
-    //                             size="sm"
-    //                             variant="faded"
-    //                             radius="lg"
-    //                             classNames={{
-    //                                 input: 'bg-default-100/50 backdrop-blur-sm',
-    //                                 inputWrapper: 'shadow-none',
-    //                             }}
-    //                         />
-    //                     ) : (
-    //                         <span
-    //                             className={`${styles.handleLabel} text-sm font-medium cursor-pointer hover:text-primary
-    //                                 mr-auto overflow-hidden text-ellipsis whitespace-nowrap`}
-    //                         >
-    //                             {String(keyName)}
-    //                         </span>
-    //                     )}
-    //                 </div>
-    //             )}
-    //         </div>
-    //     )
-    // }
 
     const OutputHandleRow: React.FC<HandleRowProps> = ({ keyName }) => {
         return (
@@ -202,87 +108,6 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
         )
     }
 
-    const connection = useConnection()
-    // console.log('connection', connection)
-
-    // // Compute finalPredecessors using useMemo to avoid unnecessary computations:
-    // const finalPredecessors = useMemo(() => {
-    //     const updatedPredecessorNodes = edges
-    //         .filter((edge) => edge.target === id)
-    //         .map((edge) => {
-    //             const sourceNode = nodes.find((node) => node.id === edge.source)
-    //             if (!sourceNode) return null
-    //             if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
-    //                 return {
-    //                     ...sourceNode,
-    //                     handle_id: edge.sourceHandle,
-    //                 }
-    //             }
-    //             return sourceNode
-    //         })
-    //         .filter(Boolean)
-
-    //     let result = updatedPredecessorNodes
-
-    //     if (connection.inProgress && connection.toNode && connection.toNode.id === id) {
-    //         // Check if nodes have the same parent or both have no parent
-    //         const fromNodeParentId = connection.fromNode?.parentId
-    //         const toNodeParentId = connection.toNode?.parentId
-    //         const canConnect =
-    //             fromNodeParentId === toNodeParentId &&
-    //             !isTargetAncestorOfSource(connection.fromNode.id, connection.toNode.id, nodes, edges)
-
-    //         if (
-    //             canConnect &&
-    //             connection.fromNode &&
-    //             !updatedPredecessorNodes.find((node: any) => node.id === connection.fromNode.id)
-    //         ) {
-    //             if (connection.fromNode.type === 'RouterNode' && connection.fromHandle) {
-    //                 result = [
-    //                     ...updatedPredecessorNodes,
-    //                     {
-    //                         id: connection.fromNode.id,
-    //                         type: connection.fromNode.type,
-    //                         data: {
-    //                             title: connection.fromHandle.id,
-    //                         },
-    //                     },
-    //                 ]
-    //             } else {
-    //                 result = [
-    //                     ...updatedPredecessorNodes,
-    //                     {
-    //                         id: connection.fromNode.id,
-    //                         type: connection.fromNode.type,
-    //                         data: {
-    //                             title:
-    //                                 (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
-    //                         },
-    //                     },
-    //                 ]
-    //             }
-    //         }
-    //     }
-    //     // deduplicate
-    //     result = result.filter((node, index, self) => self.findIndex((n) => n.id === node.id) === index)
-    //     return result
-    // }, [edges, nodes, connection, id])
-
-    // useEffect(() => {
-    //     // Check if finalPredecessors differ from predecessorNodes
-    //     // (We do a deeper comparison to detect config/title changes, not just ID changes)
-    //     const hasChanged =
-    //         finalPredecessors.length !== predecessorNodes.length ||
-    //         finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
-
-    //     if (hasChanged) {
-    //         setPredecessorNodes(finalPredecessors)
-    //         updateNodeInternals(id)
-    //     }
-    // }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
-
-    // const isRouterNode = type === 'RouterNode'
-
     const renderOutputHandles = () => {
         return (
             <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
@@ -305,18 +130,8 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
                     positionAbsoluteX={positionAbsoluteX}
                     positionAbsoluteY={positionAbsoluteY}
                     renderOutputHandles={renderOutputHandles}
-                    displayOutput={displayOutput}
                     {...props}
                 >
-                    {/* <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
-                        {isRouterNode && (
-                            <div>
-                                <strong>Conditional Node</strong>
-                            </div>
-                        )}
-                    </div> */}
-                    {/* {nodeData.error && <NodeErrorDisplay error={nodeData.error} />}
-                    {displayOutput && <NodeOutputDisplay key={`output-display-${id}`} output={nodeData.run} />} */}
                 </BaseNode>
             </div>
             <NodeOutputModal
