@@ -319,22 +319,20 @@ const flowSlice = createSlice({
                 const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
 
                 // If target is a RouterNode and source has output schema, update target's schema
-                if (targetNode?.type === 'RouterNode' && sourceNodeConfig?.output_schema) {
-                    const sourceTitle = sourceNodeConfig.title || sourceNode?.id
-                    const currentSchema = { ...(targetNodeConfig?.output_schema || {}) }
+                if (targetNode?.type === 'RouterNode') {
+                    const sourceTitle = sourceNodeConfig.title
+                    const currentSchema = targetNodeConfig.output_json_schema || '{}'
 
-                    // Remove fields that start with this source's prefix
-                    const prefix = `${sourceTitle}.`
-                    Object.keys(currentSchema).forEach((key) => {
-                        if (key.startsWith(prefix)) {
-                            delete currentSchema[key]
-                        }
-                    })
+                    // Remove the property that corresponds to the source node's title
+                    let newSchema = JSON.parse(currentSchema)
+                    delete newSchema.properties[sourceTitle]
+                    newSchema['required'] = Object.keys(newSchema.properties)
+                    const updatedSchema = JSON.stringify(newSchema)
 
                     // Update the target node's schema
                     state.nodeConfigs[targetNode.id] = {
                         ...targetNodeConfig,
-                        output_schema: currentSchema,
+                        output_json_schema: updatedSchema,
                     }
                 }
 
