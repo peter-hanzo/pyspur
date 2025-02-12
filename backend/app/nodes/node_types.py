@@ -210,7 +210,7 @@ def is_valid_node_type(node_type_name: str) -> bool:
     """
     Checks if a node type is valid (supported, deprecated, or registered via decorator).
     """
-    # Check hardcoded nodes first
+    # Check configured nodes first
     for node_types in SUPPORTED_NODE_TYPES.values():
         for node_type in node_types:
             if node_type["node_type_name"] == node_type_name:

@@ -15,7 +15,7 @@ from .node_types import (
 class NodeFactory:
     """
     Factory for creating node instances from a configuration.
-    Supports both decorator-based registration and legacy hardcoded registration.
+    Supports both decorator-based registration and legacy configured registration.
 
     Conventions:
     - The node class should be named <NodeTypeName>Node
@@ -26,17 +26,17 @@ class NodeFactory:
 
     Nodes can be registered in two ways:
     1. Using the @NodeRegistry.register decorator (recommended)
-    2. Through the legacy hardcoded SUPPORTED_NODE_TYPES in node_types.py
+    2. Through the legacy configured SUPPORTED_NODE_TYPES in node_types.py
     """
 
     @staticmethod
     def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
         """
         Returns a dictionary of all available node types grouped by category.
-        Combines both decorator-registered and hardcoded nodes.
+        Combines both decorator-registered and configured nodes.
         """
         # Get nodes from both sources
-        hardcoded_nodes = get_all_node_types()
+        configured_nodes = get_all_node_types()
         registered_nodes = NodeRegistry.get_registered_nodes()
 
         # Convert registered nodes to NodeTypeSchema
@@ -52,8 +52,8 @@ class NodeFactory:
                 )
                 converted_nodes[category].append(schema)
 
-        # Merge nodes, giving priority to hardcoded ones
-        result = hardcoded_nodes.copy()
+        # Merge nodes, giving priority to configured ones
+        result = configured_nodes.copy()
         for category, nodes in converted_nodes.items():
             if category not in result:
                 result[category] = []
@@ -76,7 +76,7 @@ class NodeFactory:
         module_name = None
         class_name = None
 
-        # First check hardcoded nodes
+        # First check configured nodes
         for node_group in SUPPORTED_NODE_TYPES.values():
             for node_type in node_group:
                 if node_type["node_type_name"] == node_type_name:
