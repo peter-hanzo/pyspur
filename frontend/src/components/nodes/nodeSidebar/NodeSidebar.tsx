@@ -622,6 +622,11 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key === 'output_json_schema') {
+            const isReadOnly =
+                currentNodeConfig?.has_fixed_output ||
+                (currentNodeConfig?.llm_info?.model && !currentModelConstraints?.supports_JSON_output) ||
+                node.type === 'RouterNode' ||
+                false
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
@@ -631,10 +636,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 currentNodeConfig?.has_fixed_output === true
                                     ? "This node has a fixed output schema that cannot be modified. The JSON schema provides detailed validation rules for the node's output."
                                     : currentNodeConfig?.llm_info?.model &&
-                                        currentNodeConfig?.llm_info?.supports_JSON_output
+                                        currentModelConstraints?.supports_JSON_output
                                       ? "Define the structure of this node's output. You can use either the Simple Editor for basic types, or the JSON Schema Editor for more complex validation rules."
                                       : currentNodeConfig?.llm_info?.model &&
-                                          !currentNodeConfig?.llm_info?.supports_JSON_output
+                                          !currentModelConstraints?.supports_JSON_output
                                         ? "This model only supports a fixed output schema with a single 'output' field of type string. Schema editing is disabled."
                                         : "The output schema defines the structure of this node's output."
                             }
@@ -677,7 +682,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     <OutputSchemaEditor
                         nodeID={nodeID}
                         schema={currentNodeConfig.output_json_schema || ''}
-                        readOnly={currentNodeConfig?.has_fixed_output || false}
+                        readOnly={isReadOnly}
                         error={jsonSchemaError}
                         onChange={(newSchema) => {
                             handleInputChange('output_json_schema', newSchema)
