@@ -3,6 +3,70 @@
  */
 
 /**
+ * Checks if two JSON Schema property definitions are equal
+ */
+const arePropertiesEqual = (prop1: any, prop2: any): boolean => {
+    return JSON.stringify(prop1) === JSON.stringify(prop2)
+}
+
+/**
+ * Computes the intersection of multiple JSON Schemas
+ * @param schemas Array of JSON Schema strings to intersect
+ * @returns A JSON Schema string representing the intersection
+ */
+export const computeJsonSchemaIntersection = (schemas: string[]): string => {
+    if (!schemas.length) {
+        return JSON.stringify({
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false,
+        })
+    }
+
+    try {
+        // Parse all schemas
+        const parsedSchemas = schemas.map((schema) => JSON.parse(schema))
+
+        // Get properties from first schema
+        const firstSchema = parsedSchemas[0]
+        const firstProperties = firstSchema.properties || {}
+
+        // Find common properties that have the same definition across all schemas
+        const commonProperties: Record<string, any> = {}
+
+        Object.entries(firstProperties).forEach(([key, propDef]) => {
+            const isCommon = parsedSchemas.every((schema) => {
+                const properties = schema.properties || {}
+                return properties[key] && arePropertiesEqual(properties[key], propDef)
+            })
+
+            if (isCommon) {
+                commonProperties[key] = propDef
+            }
+        })
+
+        // Create intersection schema
+        const intersectionSchema = {
+            type: 'object',
+            properties: commonProperties,
+            required: Object.keys(commonProperties),
+            additionalProperties: false,
+        }
+
+        return JSON.stringify(intersectionSchema)
+    } catch (error) {
+        console.error('Error computing schema intersection:', error)
+        return JSON.stringify({
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false,
+        })
+    }
+}
+
+/**
  * Generates a JSON Schema from a simple schema object
  * @param schema Record of field names to their types
  * @returns JSON Schema string or null if invalid

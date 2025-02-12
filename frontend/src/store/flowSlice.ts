@@ -8,6 +8,7 @@ import {
 } from '@/types/api_types/nodeTypeSchemas'
 import { TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
+import { computeJsonSchemaIntersection } from '@/utils/schemaUtils'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange } from '@xyflow/react'
 import { isEqual } from 'lodash'
@@ -341,30 +342,21 @@ const flowSlice = createSlice({
                     const incomingEdges = state.edges.filter((e) => e.target === targetNode.id && e.id !== edgeId)
 
                     // Collect all source schemas from remaining edges
-                    const schemas: Record<string, any>[] = []
+                    const schemas: string[] = []
                     incomingEdges.forEach((ed) => {
                         const sourceNode = state.nodes.find((n) => n.id === ed.source)
                         const sourceNodeConfig = sourceNode ? state.nodeConfigs[sourceNode.id] : undefined
-                        if (sourceNodeConfig?.output_schema) {
-                            schemas.push(sourceNodeConfig.output_schema)
+                        if (sourceNodeConfig?.output_json_schema) {
+                            schemas.push(sourceNodeConfig.output_json_schema)
                         }
                     })
 
-                    // Compute intersection
-                    let intersection: Record<string, any> = {}
-                    if (schemas.length > 0) {
-                        const firstSchema = schemas[0]
-                        const commonKeys = Object.keys(firstSchema).filter((key) =>
-                            schemas.every((sch) => sch.hasOwnProperty(key) && sch[key] === firstSchema[key])
-                        )
-                        commonKeys.forEach((key) => {
-                            intersection[key] = firstSchema[key]
-                        })
-                    }
+                    // Compute intersection using the utility function
+                    const intersectionSchema = computeJsonSchemaIntersection(schemas)
 
                     state.nodeConfigs[targetNode.id] = {
                         ...targetNodeConfig,
-                        output_schema: intersection,
+                        output_json_schema: intersectionSchema,
                     }
                 }
 
