@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 import json
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from app.integrations.google.client import GoogleSheetsClient
+from ....integrations.google.client import GoogleSheetsClient
 
 
 class GoogleSheetsReadNodeInput(BaseNodeInput):
