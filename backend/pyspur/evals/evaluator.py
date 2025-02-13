@@ -11,9 +11,9 @@ import yaml
 from datasets import Dataset, load_dataset
 from jinja2 import Template
 
-from app.evals.common import EQUALITY_TEMPLATE, normalize_extracted_answer
-from app.execution.workflow_executor import WorkflowExecutor
-from app.schemas.workflow_schemas import WorkflowDefinitionSchema
+from ..evals.common import EQUALITY_TEMPLATE, normalize_extracted_answer
+from ..execution.workflow_executor import WorkflowExecutor
+from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 
 # Precompiled regular expressions
 NUMBER_REGEX = re.compile(r"-?[\d,]*\.?\d+", re.MULTILINE | re.DOTALL | re.IGNORECASE)
