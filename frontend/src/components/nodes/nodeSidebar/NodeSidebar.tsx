@@ -227,7 +227,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
         const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source))
-        
+
         return incomingNodes.reduce((acc: string[], node) => {
             if (!node) return acc
             const config = allNodeConfigs[node.id]
@@ -238,7 +238,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     console.error('Error parsing output_json_schema:', error)
                     return acc
                 }
-                
+
                 if (schema && typeof schema === 'object') {
                     // For router nodes, handle the nested structure
                     if (node.type === 'RouterNode') {

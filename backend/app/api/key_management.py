@@ -220,10 +220,22 @@ def get_env_variable(name: str) -> Optional[str]:
 
 
 def set_env_variable(name: str, value: str):
+    """
+    Sets an environment variable both in the .env file and in the current process.
+    Also ensures the value is properly quoted if it contains special characters.
+    """
+    # Ensure the value is properly quoted if it contains spaces or special characters
+    if any(c in value for c in ' \'"$&()|<>'):
+        value = f'"{value}"'
+
     # Update the .env file using set_key
     set_key(".env", name, value)
+
     # Update the os.environ dictionary
     os.environ[name] = value
+
+    # Force reload of environment variables
+    load_dotenv(".env", override=True)
 
 
 def delete_env_variable(name: str):
