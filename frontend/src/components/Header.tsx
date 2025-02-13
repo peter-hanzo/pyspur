@@ -25,13 +25,12 @@ import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { setProjectName } from '../store/flowSlice'
 import { AlertState } from '../types/alert'
-import { getWorkflow, getRunStatus } from '../utils/api'
+import { getRunStatus, getWorkflow } from '../utils/api'
+import { handleDownloadImage } from './canvas/FlowCanvas'
 import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
 import RunModal from './modals/RunModal'
 import SettingsCard from './modals/SettingsModal'
-import { RunResponse } from '../types/api_types/runSchemas'
-import { handleDownloadImage } from './canvas/FlowCanvas'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -184,7 +183,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                 end_time: runData.end_time,
                 initial_inputs: runData.initial_inputs,
                 outputs: runData.outputs,
-                tasks: runData.tasks.map(task => ({
+                tasks: runData.tasks.map((task) => ({
                     id: task.id,
                     node_id: task.node_id,
                     status: task.status,
@@ -192,8 +191,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     outputs: task.outputs,
                     error: task.error,
                     start_time: task.start_time,
-                    end_time: task.end_time
-                }))
+                    end_time: task.end_time,
+                })),
             }
 
             const blob = new Blob([JSON.stringify(traceData, null, 2)], {
@@ -249,10 +248,16 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
             >
                 <NavbarBrand className="h-full max-w-fit">
                     {activePage === 'dashboard' ? (
-                        <p className="font-bold text-lg text-default-900 cursor-pointer">PySpur</p>
+                        <div className="flex items-center gap-2 cursor-pointer">
+                            <img src="/pyspur-logo.svg" alt="PySpur Logo" className="h-6 w-6 dark:invert" />
+                            <p className="font-bold text-lg text-default-900">PySpur</p>
+                        </div>
                     ) : (
                         <Link href="/" className="cursor-pointer">
-                            <p className="font-bold text-default-900">PySpur</p>
+                            <div className="flex items-center gap-2">
+                                <img src="/pyspur-logo.svg" alt="PySpur Logo" className="h-6 w-6 dark:invert" />
+                                <p className="font-bold text-default-900">PySpur</p>
+                            </div>
                         </Link>
                     )}
                 </NavbarBrand>
@@ -414,14 +419,26 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                     <DropdownItem
                                         key="download-json-workflow"
                                         onPress={handleDownloadWorkflow}
-                                        startContent={<Icon className="text-foreground/60" icon="solar:document-text-linear" width={20} />}
+                                        startContent={
+                                            <Icon
+                                                className="text-foreground/60"
+                                                icon="solar:document-text-linear"
+                                                width={20}
+                                            />
+                                        }
                                     >
                                         Download JSON
                                     </DropdownItem>
                                     <DropdownItem
                                         key="download-image-workflow"
                                         onPress={handleDownloadImage}
-                                        startContent={<Icon className="text-foreground/60" icon="solar:gallery-linear" width={20} />}
+                                        startContent={
+                                            <Icon
+                                                className="text-foreground/60"
+                                                icon="solar:gallery-linear"
+                                                width={20}
+                                            />
+                                        }
                                     >
                                         Download Image
                                     </DropdownItem>
@@ -451,14 +468,26 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                     <DropdownItem
                                         key="download-json-trace"
                                         onPress={handleDownloadTrace}
-                                        startContent={<Icon className="text-foreground/60" icon="solar:document-text-linear" width={20} />}
+                                        startContent={
+                                            <Icon
+                                                className="text-foreground/60"
+                                                icon="solar:document-text-linear"
+                                                width={20}
+                                            />
+                                        }
                                     >
                                         Download JSON
                                     </DropdownItem>
                                     <DropdownItem
                                         key="download-image-trace"
                                         onPress={handleDownloadImage}
-                                        startContent={<Icon className="text-foreground/60" icon="solar:gallery-linear" width={20} />}
+                                        startContent={
+                                            <Icon
+                                                className="text-foreground/60"
+                                                icon="solar:gallery-linear"
+                                                width={20}
+                                            />
+                                        }
                                     >
                                         Download Image
                                     </DropdownItem>
