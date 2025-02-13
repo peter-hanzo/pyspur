@@ -47,14 +47,19 @@
       "icon": "calendar",
       "url": "https://calendly.com/d/cnf9-57m-bv3/pyspur-founders"
     }
+  ,
+    {
+      "name": "Email",
+      "icon": "envelope",
+      "url": "mailto:founders@pyspur.dev"
+    }
   ],
   "navigation": [
     {
       "group": "Get Started",
       "pages": [
         "introduction",
-        "quickstart",
-        "development"
+        "quickstart"
       ]
     },
     {
