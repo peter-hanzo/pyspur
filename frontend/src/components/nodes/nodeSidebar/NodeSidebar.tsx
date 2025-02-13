@@ -191,6 +191,24 @@ const validateJsonSchema = (schema: string): string | null => {
     }
 }
 
+// Add this helper function before the NodeSidebar component
+const isTemplateField = (key: string, fieldMetadata?: FieldMetadata): boolean => {
+    // First check explicit template flag from metadata
+    if (fieldMetadata?.template === true) {
+        return true
+    }
+
+    // Then check known template field names
+    const templateFields = ['system_message', 'user_message']
+    if (templateFields.includes(key)) {
+        return true
+    }
+
+    // Finally check template-related suffixes
+    const templateSuffixes = ['_template', '_message', '_prompt']
+    return templateSuffixes.some(suffix => key.endsWith(suffix))
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -529,7 +547,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
 
-        // Add special handling for index_id field in RetrieverNode
+        // Special handling for vector_index_id field in RetrieverNode
         if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
             const isMissingVectorIndexRequired = Boolean(fieldMetadata?.required) && !value
             return (
@@ -633,7 +651,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
         }
 
         if (key === 'output_schema') {
-            // Skip rendering since we now handle this in output_json_schema's tabbed interface
             return null
         }
 
@@ -711,44 +728,25 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
-        if (key === 'system_message') {
-            return (
-                <div key={key}>
-                    <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">System Message</h3>
-                        <Tooltip
-                            content="The System Message sets the AI's behavior, role, and constraints. It's like giving the AI its job description and rules to follow. Use it to define the tone, format, and any specific requirements for the responses."
-                            placement="left-start"
-                            showArrow={true}
-                            className="max-w-xs"
-                        >
-                            <Icon
-                                icon="solar:question-circle-linear"
-                                className="text-default-400 cursor-help"
-                                width={20}
-                            />
-                        </Tooltip>
-                    </div>
-                    <TextEditor
-                        key={`text-editor-system-${nodeID}`}
-                        nodeID={nodeID}
-                        fieldName={key}
-                        inputSchema={incomingSchema}
-                        content={currentNodeConfig[key] || ''}
-                        setContent={(value: string) => handleInputChange(key, value)}
-                    />
-                    {!isLast && <hr className="my-2" />}
-                </div>
-            )
-        }
+        // Handle template fields
+        if (isTemplateField(key, fieldMetadata)) {
+            let tooltipContent = fieldMetadata?.description
 
-        if (key === 'user_message') {
+            // Use specific tooltips for well-known template fields
+            if (key === 'system_message') {
+                tooltipContent = "The System Message sets the AI's behavior, role, and constraints. It's like giving the AI its job description and rules to follow. Use it to define the tone, format, and any specific requirements for the responses."
+            } else if (key === 'user_message') {
+                tooltipContent = "The User Message is your main prompt template. Use variables like {{input.variable}} to make it dynamic. This is where you specify what you want the AI to do with each input it receives."
+            } else {
+                tooltipContent = tooltipContent || "Use variables like {{input.variable}} to make the content dynamic. This template will be rendered with data from connected nodes."
+            }
+
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">User Message</h3>
+                        <h3 className="font-semibold">{fieldMetadata?.title || key}</h3>
                         <Tooltip
-                            content="The User Message is your main prompt template. Use variables like {{input.variable}} to make it dynamic. This is where you specify what you want the AI to do with each input it receives."
+                            content={tooltipContent}
                             placement="left-start"
                             showArrow={true}
                             className="max-w-xs"
@@ -761,19 +759,46 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         </Tooltip>
                     </div>
                     <TextEditor
-                        key={`text-editor-user-${nodeID}`}
+                        key={`text-editor-${nodeID}-${key}`}
                         nodeID={nodeID}
                         fieldName={key}
                         inputSchema={incomingSchema}
+                        fieldTitle={key}
                         content={currentNodeConfig[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
+                        disableFormatting={key.endsWith('_template')}  // Disable formatting for pure template fields
                     />
-                    {renderFewShotExamples()}
+                    {key === 'user_message' && renderFewShotExamples()}
                     {!isLast && <hr className="my-2" />}
                 </div>
             )
         }
 
+        if (key === 'input_map') {
+            return renderInputMapField(key, value, incomingSchema, handleInputChange)
+        }
+
+        if (key === 'output_map') {
+            return renderOutputMapField(key, value, incomingSchema, handleInputChange)
+        }
+
+        if (key === 'has_fixed_output') {
+            return null
+        }
+
+        // Handle code editor fields
+        if (key === 'code') {
+            return (
+                <CodeEditor
+                    key={`code-editor-${nodeID}-${key}`}
+                    code={value}
+                    mode="python"
+                    onChange={(newValue: string) => handleInputChange(key, newValue)}
+                />
+            )
+        }
+
+        // Remove redundant template field checks
         if (key.endsWith('_template')) {
             const title = key
                 .slice(0, -9)
@@ -797,49 +822,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     {!isLast && <hr className="my-2" />}
                 </div>
             )
-        }
-
-        if (key.endsWith('_prompt') || key.endsWith('_message')) {
-            const title = key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-            return (
-                <div key={key}>
-                    <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">{title}</h3>
-                    </div>
-                    <TextEditor
-                        key={`text-editor-${nodeID}-${key}`}
-                        nodeID={nodeID}
-                        fieldName={key}
-                        inputSchema={incomingSchema}
-                        fieldTitle={key}
-                        content={currentNodeConfig[key] || ''}
-                        setContent={(value) => handleInputChange(key, value)}
-                    />
-                    {!isLast && <hr className="my-2" />}
-                </div>
-            )
-        }
-
-        if (key === 'code') {
-            return (
-                <CodeEditor
-                    key={`code-editor-${nodeID}-${key}`}
-                    code={value}
-                    mode="python"
-                    onChange={(newValue: string) => handleInputChange(key, newValue)}
-                />
-            )
-        }
-
-        if (key === 'input_map') {
-            return renderInputMapField(key, value, incomingSchema, handleInputChange)
-        }
-        if (key === 'output_map') {
-            return renderOutputMapField(key, value, incomingSchema, handleInputChange)
-        }
-        if (key === 'has_fixed_output') {
-            // do not render this field
-            return null
         }
 
         // Handle other types (string, number, boolean, object)
