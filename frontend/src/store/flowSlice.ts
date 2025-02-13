@@ -150,15 +150,33 @@ const flowSlice = createSlice({
                 return nodeObj
             })
 
-            let edges = links.map((link) => ({
-                id: uuidv4(),
-                key: uuidv4(),
-                selected: false,
-                source: link.source_id,
-                target: link.target_id,
-                sourceHandle: link.source_handle || link.source_id,
-                targetHandle: link.target_handle || link.source_id,
-            }))
+            let edges = links.map((link) => {
+                const sourceNode = nodes.find(node => node.id === link.source_id);
+                const isRouterNode = sourceNode?.node_type === 'RouterNode';
+                
+                // For router nodes, ensure targetHandle matches the format node_id.handle_id
+                let targetHandle = link.target_handle || link.source_id;
+                if (isRouterNode) {
+                    // If targetHandle contains a dot, take only what's after the dot
+                    if (targetHandle.includes('.')) {
+                        targetHandle = targetHandle.split('.').pop() || targetHandle;
+                    }
+                    // Ensure it has the correct prefix
+                    if (!targetHandle.startsWith(link.source_id + '.')) {
+                        targetHandle = `${link.source_id}.${targetHandle}`;
+                    }
+                }
+
+                return {
+                    id: uuidv4(),
+                    key: uuidv4(),
+                    selected: false,
+                    source: link.source_id,
+                    target: link.target_id,
+                    sourceHandle: link.source_handle || link.source_id,
+                    targetHandle,
+                }
+            })
             // deduplicate edges
             edges = edges.filter(
                 (edge, index, self) =>
