@@ -28,6 +28,7 @@
                 "ms-python.black-formatter",
                 "ms-python.pylance",
                 "ms-python.vscode-pylance",
+                "tamasfe.even-better-toml",
                 // Frontend extensions
                 "dbaeumer.vscode-eslint",
                 "esbenp.prettier-vscode",
