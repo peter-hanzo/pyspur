@@ -249,13 +249,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                 <NavbarBrand className="h-full max-w-fit">
                     {activePage === 'dashboard' ? (
                         <div className="flex items-center gap-2 cursor-pointer">
-                            <img src="/pyspur-logo.svg" alt="PySpur Logo" className="h-6 w-6 dark:invert" />
                             <p className="font-bold text-lg text-default-900">PySpur</p>
                         </div>
                     ) : (
                         <Link href="/" className="cursor-pointer">
                             <div className="flex items-center gap-2">
-                                <img src="/pyspur-logo.svg" alt="PySpur Logo" className="h-6 w-6 dark:invert" />
                                 <p className="font-bold text-default-900">PySpur</p>
                             </div>
                         </Link>
