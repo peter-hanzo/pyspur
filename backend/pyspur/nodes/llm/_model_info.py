@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Set
 from pydantic import BaseModel
-from app.utils.mime_types_utils import (
+from ...utils.mime_types_utils import (
     MimeCategory,
     RecognisedMimeType,
     MIME_TYPES_BY_CATEGORY,
@@ -354,14 +354,14 @@ class LLMModels(str, Enum):
                     }
                 ),
             ),
-            cls.GEMINI_2_0_FLASH.value: LLMModel(  
+            cls.GEMINI_2_0_FLASH.value: LLMModel(
                 id=cls.GEMINI_2_0_FLASH.value,
                 provider=LLMProvider.GEMINI,
-                name="Gemini 2.0 Flash",  
+                name="Gemini 2.0 Flash",
                 constraints=ModelConstraints(
-                    max_tokens=8192,  
-                    max_temperature=2.0, 
-                ).add_mime_categories(  
+                    max_tokens=8192,
+                    max_temperature=2.0,
+                ).add_mime_categories(
                     {
                         MimeCategory.IMAGES,
                         MimeCategory.AUDIO,
