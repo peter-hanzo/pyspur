@@ -227,8 +227,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const collectIncomingSchema = (nodeID: string): string[] => {
         const incomingEdges = edges.filter((edge) => edge.target === nodeID)
         const incomingNodes = incomingEdges.map((edge) => nodes.find((n) => n.id === edge.source))
-        // foreach incoming node, get the output schema
-        // return ['nodeTitle.foo', 'nodeTitle.bar', 'nodeTitle.baz',...]
+        
         return incomingNodes.reduce((acc: string[], node) => {
             if (!node) return acc
             const config = allNodeConfigs[node.id]
@@ -239,10 +238,27 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     console.error('Error parsing output_json_schema:', error)
                     return acc
                 }
+                
                 if (schema && typeof schema === 'object') {
-                    Object.keys(schema).forEach((key) => {
-                        acc.push(`${nodeTitle}.${key}`)
-                    })
+                    // For router nodes, handle the nested structure
+                    if (node.type === 'RouterNode') {
+                        Object.entries(schema).forEach(([routeKey, routeValue]) => {
+                            if (routeValue && typeof routeValue === 'object') {
+                                // The router node's schema has properties nested under each route
+                                const routeProperties = (routeValue as any).properties
+                                if (routeProperties && typeof routeProperties === 'object') {
+                                    Object.keys(routeProperties).forEach((propKey) => {
+                                        acc.push(`${nodeTitle}.${routeKey}.${propKey}`)
+                                    })
+                                }
+                            }
+                        })
+                    } else {
+                        // For other nodes, keep the existing one-level behavior
+                        Object.keys(schema).forEach((key) => {
+                            acc.push(`${nodeTitle}.${key}`)
+                        })
+                    }
                 }
             }
             return acc
