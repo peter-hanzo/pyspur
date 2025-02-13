@@ -7,18 +7,18 @@ from alembic import context
 
 
 # Import models
-from app.models.workflow_model import WorkflowModel  # type: ignore
-from app.models.workflow_version_model import WorkflowVersionModel  # type: ignore
-from app.models.run_model import RunModel  # type: ignore
-from app.models.task_model import TaskModel  # type: ignore
-from app.models.output_file_model import OutputFileModel  # type: ignore
-from app.models.dataset_model import DatasetModel  # type: ignore
-from app.models.base_model import BaseModel
-from app.models.eval_run_model import EvalRunModel  # type: ignore
-from app.models.dc_and_vi_model import DocumentCollectionModel, VectorIndexModel  # type: ignore
+from pyspur.models.workflow_model import WorkflowModel  # type: ignore
+from pyspur.models.workflow_version_model import WorkflowVersionModel  # type: ignore
+from pyspur.models.run_model import RunModel  # type: ignore
+from pyspur.models.task_model import TaskModel  # type: ignore
+from pyspur.models.output_file_model import OutputFileModel  # type: ignore
+from pyspur.models.dataset_model import DatasetModel  # type: ignore
+from pyspur.models.base_model import BaseModel
+from pyspur.models.eval_run_model import EvalRunModel  # type: ignore
+from pyspur.models.dc_and_vi_model import DocumentCollectionModel, VectorIndexModel  # type: ignore
 
 # Import database URL
-from app.database import DATABASE_URL
+from pyspur.database import DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
