@@ -98,6 +98,7 @@ class LLMModels(str, Enum):
 
     # Google Models
     GEMINI_2_0_FLASH_EXP = "gemini/gemini-2.0-flash-exp"
+    GEMINI_2_0_FLASH = "gemini/gemini-2.0-flash"
     GEMINI_1_5_PRO = "gemini/gemini-1.5-pro"
     GEMINI_1_5_FLASH = "gemini/gemini-1.5-flash"
     GEMINI_1_5_PRO_LATEST = "gemini/gemini-1.5-pro-latest"
@@ -344,6 +345,23 @@ class LLMModels(str, Enum):
                 constraints=ModelConstraints(
                     max_tokens=8192, max_temperature=1.0
                 ).add_mime_categories(
+                    {
+                        MimeCategory.IMAGES,
+                        MimeCategory.AUDIO,
+                        MimeCategory.VIDEO,
+                        MimeCategory.DOCUMENTS,
+                        MimeCategory.TEXT,
+                    }
+                ),
+            ),
+            cls.GEMINI_2_0_FLASH.value: LLMModel(  
+                id=cls.GEMINI_2_0_FLASH.value,
+                provider=LLMProvider.GEMINI,
+                name="Gemini 2.0 Flash",  
+                constraints=ModelConstraints(
+                    max_tokens=8192,  
+                    max_temperature=2.0, 
+                ).add_mime_categories(  
                     {
                         MimeCategory.IMAGES,
                         MimeCategory.AUDIO,
