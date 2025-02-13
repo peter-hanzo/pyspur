@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field  # type: ignore
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from firecrawl import FirecrawlApp  # type: ignore
 from ...utils.template_utils import render_template_or_get_first_string
+from ...registry import NodeRegistry
 
 
 class FirecrawlScrapeNodeInput(BaseNodeInput):
@@ -31,15 +32,19 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
     )
 
 
+@NodeRegistry.register(
+    category="Integrations",
+    display_name="Firecrawl Scrape",
+    logo="/images/firecrawl.png",
+    subcategory="Web Scraping",
+    position="after:FirecrawlCrawlNode"
+)
 class FirecrawlScrapeNode(BaseNode):
     name = "firecrawl_scrape_node"
-    display_name = "Firecrawl Scrape"
-    logo = "/images/firecrawl.png"
-    category = "Firecrawl"
-
     config_model = FirecrawlScrapeNodeConfig
     input_model = FirecrawlScrapeNodeInput
     output_model = FirecrawlScrapeNodeOutput
+    category = "Firecrawl"  # This will be used by the frontend for subcategory grouping
 
     async def run(self, input: BaseModel) -> BaseModel:
         """

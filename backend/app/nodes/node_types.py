@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 from ..schemas.node_type_schemas import NodeTypeSchema
+from .registry import NodeRegistry
 
 # Simple lists of supported and deprecated node types
 
@@ -118,11 +119,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.firecrawl.firecrawl_crawl",
             "class_name": "FirecrawlCrawlNode",
         },
-        {
-            "node_type_name": "FirecrawlScrapeNode",
-            "module": ".nodes.integrations.firecrawl.firecrawl_scrape",
-            "class_name": "FirecrawlScrapeNode",
-        },
+        # {
+        #     "node_type_name": "FirecrawlScrapeNode",
+        #     "module": ".nodes.integrations.firecrawl.firecrawl_scrape",
+        #     "class_name": "FirecrawlScrapeNode",
+        # },
         {
             "node_type_name": "JinaReaderNode",
             "module": ".nodes.integrations.jina.jina_reader",
@@ -207,13 +208,23 @@ def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
 
 def is_valid_node_type(node_type_name: str) -> bool:
     """
-    Checks if a node type is valid (supported or deprecated).
+    Checks if a node type is valid (supported, deprecated, or registered via decorator).
     """
+    # Check configured nodes first
     for node_types in SUPPORTED_NODE_TYPES.values():
         for node_type in node_types:
             if node_type["node_type_name"] == node_type_name:
                 return True
+
     for node_type in DEPRECATED_NODE_TYPES:
         if node_type["node_type_name"] == node_type_name:
             return True
+
+    # Check registry for decorator-registered nodes
+    registered_nodes = NodeRegistry.get_registered_nodes()
+    for nodes in registered_nodes.values():
+        for node in nodes:
+            if node["node_type_name"] == node_type_name:
+                return True
+
     return False
