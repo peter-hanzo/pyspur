@@ -31,6 +31,7 @@ import HelpModal from './modals/HelpModal'
 import RunModal from './modals/RunModal'
 import SettingsCard from './modals/SettingsModal'
 import { RunResponse } from '../types/api_types/runSchemas'
+import { handleDownloadImage } from './canvas/FlowCanvas'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -403,9 +404,29 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                             </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onPress={handleDownloadWorkflow}>
-                                <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
-                            </Button>
+                            <Dropdown>
+                                <DropdownTrigger>
+                                    <Button isIconOnly radius="full" variant="light">
+                                        <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
+                                    </Button>
+                                </DropdownTrigger>
+                                <DropdownMenu>
+                                    <DropdownItem
+                                        key="download-json-workflow"
+                                        onPress={handleDownloadWorkflow}
+                                        startContent={<Icon className="text-foreground/60" icon="solar:document-text-linear" width={20} />}
+                                    >
+                                        Download JSON
+                                    </DropdownItem>
+                                    <DropdownItem
+                                        key="download-image-workflow"
+                                        onPress={handleDownloadImage}
+                                        startContent={<Icon className="text-foreground/60" icon="solar:gallery-linear" width={20} />}
+                                    >
+                                        Download Image
+                                    </DropdownItem>
+                                </DropdownMenu>
+                            </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Button isIconOnly radius="full" variant="light" onPress={handleDeploy}>
@@ -420,9 +441,29 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         justify="end"
                     >
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onPress={handleDownloadTrace}>
-                                <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
-                            </Button>
+                            <Dropdown>
+                                <DropdownTrigger>
+                                    <Button isIconOnly radius="full" variant="light">
+                                        <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
+                                    </Button>
+                                </DropdownTrigger>
+                                <DropdownMenu>
+                                    <DropdownItem
+                                        key="download-json-trace"
+                                        onPress={handleDownloadTrace}
+                                        startContent={<Icon className="text-foreground/60" icon="solar:document-text-linear" width={20} />}
+                                    >
+                                        Download JSON
+                                    </DropdownItem>
+                                    <DropdownItem
+                                        key="download-image-trace"
+                                        onPress={handleDownloadImage}
+                                        startContent={<Icon className="text-foreground/60" icon="solar:gallery-linear" width={20} />}
+                                    >
+                                        Download Image
+                                    </DropdownItem>
+                                </DropdownMenu>
+                            </Dropdown>
                         </NavbarItem>
                         <NavbarItem>
                             <Link href={`/workflows/${associatedWorkflowId}`}>
