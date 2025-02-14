@@ -30,7 +30,7 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Update with your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,7 +41,6 @@ api_app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     title="PySpur API",
-    description="API for PySpur application",
     version="1.0.0",
 )
 api_app.include_router(node_management_router, prefix="/node")
