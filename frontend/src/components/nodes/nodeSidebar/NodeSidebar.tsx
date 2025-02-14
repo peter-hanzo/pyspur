@@ -198,15 +198,9 @@ const isTemplateField = (key: string, fieldMetadata?: FieldMetadata): boolean =>
         return true
     }
 
-    // Then check known template field names
-    const templateFields = ['system_message', 'user_message']
-    if (templateFields.includes(key)) {
-        return true
-    }
-
-    // Finally check template-related suffixes
-    const templateSuffixes = ['template', 'message', 'prompt']
-    return templateSuffixes.some(suffix => key.endsWith(suffix))
+    // Check known template field names and suffixes
+    const templatePatterns = ['template', 'message', 'prompt']
+    return templatePatterns.some(pattern => key === pattern || key.endsWith(pattern))
 }
 
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
