@@ -1,26 +1,27 @@
+import os
 import uuid
-from typing import Dict, List, Tuple, BinaryIO
-from jinja2 import Template
-import tiktoken
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-import os
+from typing import BinaryIO, Dict, List, Tuple
 
-from .schemas.document_schemas import (
-    DocumentSchema,
-    DocumentChunkSchema,
-    DocumentChunkMetadataSchema,
-    ChunkingConfigSchema,
-)
+import tiktoken
+from jinja2 import Template
+
 from .parser import extract_text_from_file
+from .schemas.document_schemas import (
+    ChunkingConfigSchema,
+    DocumentChunkMetadataSchema,
+    DocumentChunkSchema,
+    DocumentSchema,
+)
 
 # Global variables
-tokenizer = tiktoken.get_encoding(
-    "cl100k_base"
-)  # The encoding scheme to use for tokenization
+tokenizer = tiktoken.get_encoding("cl100k_base")  # The encoding scheme to use for tokenization
 
 
-def apply_template(text: str, template: str, metadata_template: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
+def apply_template(
+    text: str, template: str, metadata_template: Dict[str, str]
+) -> Tuple[str, Dict[str, str]]:
     """Apply Jinja template to chunk text and metadata."""
     try:
         # Create template context
@@ -133,7 +134,7 @@ def create_document_chunks(
             processed_text, processed_metadata = apply_template(
                 text_chunk,
                 config.template.template,
-                config.template.metadata_template or {}
+                config.template.metadata_template or {},
             )
             # Update metadata with processed metadata
             chunk_metadata = metadata.model_copy()
@@ -204,12 +205,16 @@ async def preview_document_chunk(
         preview_chunks = []
         for idx in preview_indices:
             chunk = doc_chunks[idx]
-            preview_chunks.append({
-                "original_text": chunk.text,  # This will already be processed if template is enabled
-                "processed_text": chunk.text,
-                "metadata": chunk.metadata.custom_metadata if chunk.metadata else {"type": "text_chunk"},
-                "chunk_index": idx + 1  # 1-based index for display
-            })
+            preview_chunks.append(
+                {
+                    "original_text": chunk.text,  # This will already be processed if template is enabled
+                    "processed_text": chunk.text,
+                    "metadata": chunk.metadata.custom_metadata
+                    if chunk.metadata
+                    else {"type": "text_chunk"},
+                    "chunk_index": idx + 1,  # 1-based index for display
+                }
+            )
 
         return preview_chunks, len(doc_chunks)
 

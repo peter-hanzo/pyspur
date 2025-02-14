@@ -1,7 +1,8 @@
 import os
+
+from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-from dotenv import load_dotenv
 
 load_dotenv("backend/.env", verbose=True)
 
@@ -55,9 +56,7 @@ class SlackClient:
             print(f"Error sending message: {e}")
             return False, str(e)
 
-    def send_message(
-        self, channel: str, text: str, mode: str = "bot"
-    ) -> tuple[bool, str]:
+    def send_message(self, channel: str, text: str, mode: str = "bot") -> tuple[bool, str]:
         """
         Sends a message to the specified Slack channel.
 
@@ -80,15 +79,11 @@ class SlackClient:
 
 if __name__ == "__main__":
     client = SlackClient()
-    client.send_message_as_bot(
-        channel="#integrations", text="Hello from the SlackClient!"
-    )
-    client.send_message_as_user(
-        channel="#integrations", text="Hello from the Slack Client!"
-    )
+    client.send_message_as_bot(channel="#integrations", text="Hello from the SlackClient!")
+    client.send_message_as_user(channel="#integrations", text="Hello from the Slack Client!")
+    client.send_message(channel="#integrations", text="Hello from the Slack Client!", mode="bot")
     client.send_message(
-        channel="#integrations", text="Hello from the Slack Client!", mode="bot"
-    )
-    client.send_message(
-        channel="#integrations", text="Hello from the Slack Client!", mode="user"
+        channel="#integrations",
+        text="Hello from the Slack Client!",
+        mode="user",
     )

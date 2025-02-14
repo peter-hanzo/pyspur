@@ -1,27 +1,38 @@
-from pathlib import Path
 import json
-from typing import List, Dict, Any, Optional, Callable, Coroutine, cast, Union, Sequence
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
+
 import numpy as np
 from loguru import logger
 
+from .datastore.factory import get_datastore
 from .embedder import (
+    EmbeddingModels,
     get_multiple_text_embeddings,
     get_single_text_embedding,
-    EmbeddingModels
 )
 from .schemas.document_schemas import (
-    DocumentSchema,
-    DocumentWithChunksSchema,
     DocumentChunkSchema,
     DocumentMetadataFilterSchema,
+    DocumentSchema,
+    DocumentWithChunksSchema,
     QueryWithEmbeddingSchema,
-
 )
-from .datastore.factory import get_datastore
 
 
 class ProcessingError(Exception):
     """Custom exception for vector processing errors"""
+
     pass
 
 
@@ -30,7 +41,7 @@ async def _call_progress(
     progress: float,
     stage: str,
     processed_chunks: int,
-    total_chunks: int
+    total_chunks: int,
 ) -> None:
     """Helper function to safely call the progress callback"""
     if on_progress:
@@ -109,12 +120,17 @@ class VectorIndex:
 
             try:
                 # Use OpenAI's text-embedding-3-small by default
-                embedding_model = config.get("embedding_model", EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value)
+                embedding_model = config.get(
+                    "embedding_model",
+                    EmbeddingModels.TEXT_EMBEDDING_3_SMALL.value,
+                )
                 model_info = EmbeddingModels.get_model_info(embedding_model)
                 if not model_info:
                     raise ValueError(f"Unknown embedding model: {embedding_model}")
 
-                logger.debug(f"Using embedding model: {embedding_model} with {model_info.dimensions} dimensions")
+                logger.debug(
+                    f"Using embedding model: {embedding_model} with {model_info.dimensions} dimensions"
+                )
 
                 # Report starting embeddings phase
                 await _call_progress(
@@ -122,15 +138,17 @@ class VectorIndex:
                     0.0,
                     "embedding",
                     0,  # processed_chunks
-                    len(all_chunks)  # total_chunks
+                    len(all_chunks),  # total_chunks
                 )
 
-                embeddings: Sequence[Union[List[float], np.ndarray]] = await get_multiple_text_embeddings(
+                embeddings: Sequence[
+                    Union[List[float], np.ndarray]
+                ] = await get_multiple_text_embeddings(
                     docs=chunk_texts,
                     model=embedding_model,
                     dimensions=model_info.dimensions,
                     batch_size=config.get("embeddings_batch_size", 128),
-                    api_key=config.get("openai_api_key")
+                    api_key=config.get("openai_api_key"),
                 )
 
                 logger.debug(f"[DEBUG] Embeddings generated: {embeddings}.")
@@ -147,7 +165,11 @@ class VectorIndex:
 
                 # Convert embedding to list of floats
                 try:
-                    embedding_list = embeddings[i].tolist() if hasattr(embeddings[i], 'tolist') else embeddings[i]
+                    embedding_list = (
+                        embeddings[i].tolist()
+                        if hasattr(embeddings[i], "tolist")
+                        else embeddings[i]
+                    )
                     embedding_list = [float(x) for x in embedding_list]
                     chunk.embedding = embedding_list
 
@@ -157,8 +179,11 @@ class VectorIndex:
                         emb_path = self.embeddings_dir / f"{doc_id}_{i}.json"
                         with open(emb_path, "w") as f:
                             json.dump(
-                                {"chunk_id": chunk.id, "embedding": embedding_list},
-                                f
+                                {
+                                    "chunk_id": chunk.id,
+                                    "embedding": embedding_list,
+                                },
+                                f,
                             )
                     processed_chunks += 1
                 except Exception as e:
@@ -171,7 +196,7 @@ class VectorIndex:
                     (i + 1) / len(all_chunks) * 0.7,
                     "embedding",
                     processed_chunks,  # processed_chunks
-                    len(all_chunks)  # total_chunks
+                    len(all_chunks),  # total_chunks
                 )
 
             # Report starting vector store upload
@@ -180,20 +205,17 @@ class VectorIndex:
                 0.7,
                 "uploading",
                 processed_chunks,  # processed_chunks
-                len(all_chunks)  # total_chunks
+                len(all_chunks),  # total_chunks
             )
 
             # Initialize datastore
-            datastore = await get_datastore(
-                config["vector_db"],
-                embedding_model=embedding_model
-            )
+            datastore = await get_datastore(config["vector_db"], embedding_model=embedding_model)
             logger.debug("Datastore initialized, starting to upsert chunks.")
 
             # Insert chunks into datastore
             await datastore.upsert(
                 cast(List[DocumentSchema], docs_with_chunks),
-                chunk_token_size=config.get("chunk_token_size", 200)
+                chunk_token_size=config.get("chunk_token_size", 200),
             )
             logger.debug("All chunks successfully upserted into datastore.")
 
@@ -203,7 +225,7 @@ class VectorIndex:
                 1.0,
                 "completed",
                 processed_chunks,  # processed_chunks
-                len(all_chunks)  # total_chunks
+                len(all_chunks),  # total_chunks
             )
 
             return self.index_id
@@ -221,7 +243,7 @@ class VectorIndex:
         return {
             "id": self.index_id,
             "has_embeddings": self.embeddings_dir.exists() and any(self.embeddings_dir.iterdir()),
-            "config": self.get_config()
+            "config": self.get_config(),
         }
 
     async def delete(self) -> bool:
@@ -230,7 +252,7 @@ class VectorIndex:
             # Initialize datastore
             datastore = await get_datastore(
                 self.config["vector_db"],
-                embedding_model=self.config.get("embedding_model")
+                embedding_model=self.config.get("embedding_model"),
             )
 
             # Delete vectors from vector database
@@ -244,6 +266,7 @@ class VectorIndex:
             # Delete files from filesystem
             if self.base_dir.exists():
                 import shutil
+
                 shutil.rmtree(self.base_dir)
 
             return True
@@ -280,15 +303,14 @@ class VectorIndex:
 
             # Initialize datastore
             datastore = await get_datastore(
-                self.config["vector_db"],
-                embedding_model=embedding_model
+                self.config["vector_db"], embedding_model=embedding_model
             )
 
             # Get embedding for query
             query_embedding = await get_single_text_embedding(
                 text=query,
                 model=embedding_model,
-                api_key=self.config.get("openai_api_key")
+                api_key=self.config.get("openai_api_key"),
             )
 
             # Create query with embedding
@@ -307,11 +329,13 @@ class VectorIndex:
             # Format results
             formatted_results = []
             for result in results[0].results:
-                formatted_results.append({
-                    "chunk": result,
-                    "score": result.score,
-                    "metadata": result.metadata.model_dump() if result.metadata else {}
-                })
+                formatted_results.append(
+                    {
+                        "chunk": result,
+                        "score": result.score,
+                        "metadata": result.metadata.model_dump() if result.metadata else {},
+                    }
+                )
 
             return formatted_results
 

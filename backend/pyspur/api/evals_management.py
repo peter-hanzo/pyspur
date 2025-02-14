@@ -1,16 +1,21 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
-from sqlalchemy.orm import Session
-from pathlib import Path
-from typing import List, Dict, Any
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models.workflow_model import WorkflowModel
-from ..evals.evaluator import prepare_and_evaluate_dataset, load_yaml_config
-from ..schemas.workflow_schemas import WorkflowDefinitionSchema
-from ..schemas.eval_schemas import EvalRunRequest, EvalRunStatusEnum, EvalRunResponse
-from .workflow_management import get_workflow_output_variables
+from ..evals.evaluator import load_yaml_config, prepare_and_evaluate_dataset
 from ..models.eval_run_model import EvalRunModel, EvalRunStatus
+from ..models.workflow_model import WorkflowModel
+from ..schemas.eval_schemas import (
+    EvalRunRequest,
+    EvalRunResponse,
+    EvalRunStatusEnum,
+)
+from ..schemas.workflow_schemas import WorkflowDefinitionSchema
+from .workflow_management import get_workflow_output_variables
 
 router = APIRouter()
 
@@ -40,9 +45,7 @@ def list_evals() -> List[Dict[str, Any]]:
                 }
             )
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Error parsing {eval_file.name}: {e}"
-            )
+            raise HTTPException(status_code=500, detail=f"Error parsing {eval_file.name}: {e}")
     return evals
 
 
@@ -60,9 +63,7 @@ async def launch_eval(
     Launch an eval job by triggering the evaluator with the specified eval configuration.
     """
     # Validate workflow ID
-    workflow = (
-        db.query(WorkflowModel).filter(WorkflowModel.id == request.workflow_id).first()
-    )
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == request.workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -84,9 +85,7 @@ async def launch_eval(
         print(f"Valid output variables: {leaf_node_output_variables}")
 
         # Extract the list of valid prefixed variables
-        valid_prefixed_variables = [
-            var["prefixed_variable"] for var in leaf_node_output_variables
-        ]
+        valid_prefixed_variables = [var["prefixed_variable"] for var in leaf_node_output_variables]
 
         if request.output_variable not in valid_prefixed_variables:
             raise HTTPException(
@@ -113,9 +112,7 @@ async def launch_eval(
         async def run_eval_task(eval_run_id: str):
             with next(get_db()) as session:
                 eval_run = (
-                    session.query(EvalRunModel)
-                    .filter(EvalRunModel.id == eval_run_id)
-                    .first()
+                    session.query(EvalRunModel).filter(EvalRunModel.id == eval_run_id).first()
                 )
                 if not eval_run:
                     session.close()
@@ -163,9 +160,7 @@ async def launch_eval(
     response_model=EvalRunResponse,
     description="Get the status of an eval run",
 )
-async def get_eval_run_status(
-    eval_run_id: str, db: Session = Depends(get_db)
-) -> EvalRunResponse:
+async def get_eval_run_status(eval_run_id: str, db: Session = Depends(get_db)) -> EvalRunResponse:
     eval_run = db.query(EvalRunModel).filter(EvalRunModel.id == eval_run_id).first()
     if not eval_run:
         raise HTTPException(status_code=404, detail="Eval run not found")
@@ -185,7 +180,9 @@ async def get_eval_run_status(
     response_model=List[EvalRunResponse],
     description="List all eval runs",
 )
-async def list_eval_runs(db: Session = Depends(get_db)) -> List[EvalRunResponse]:
+async def list_eval_runs(
+    db: Session = Depends(get_db),
+) -> List[EvalRunResponse]:
     eval_runs = db.query(EvalRunModel).order_by(EvalRunModel.start_time.desc()).all()
     return [
         EvalRunResponse(

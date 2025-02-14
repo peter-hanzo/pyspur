@@ -1,13 +1,15 @@
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
 import os
+from typing import Any, Dict, List, Optional
+
 from fastapi import HTTPException
+from pydantic import BaseModel
 
 
 class TemplateSchema(BaseModel):
     enabled: bool = False
     template: str = "{{ text }}"
     metadata_template: Dict[str, str] = {}
+
 
 # Models
 class TextProcessingConfigSchema(BaseModel):
@@ -36,7 +38,7 @@ class TextProcessingConfigSchema(BaseModel):
         if not api_key:
             raise HTTPException(
                 status_code=400,
-                detail=f"Missing API key for vision provider {self.vision_provider}"
+                detail=f"Missing API key for vision provider {self.vision_provider}",
             )
 
         return {
@@ -58,6 +60,7 @@ class EmbeddingConfigSchema(BaseModel):
 
 class DocumentCollectionCreateSchema(BaseModel):
     """Request model for creating a document collection"""
+
     name: str
     description: Optional[str] = None
     text_processing: TextProcessingConfigSchema
@@ -65,6 +68,7 @@ class DocumentCollectionCreateSchema(BaseModel):
 
 class VectorIndexCreateSchema(BaseModel):
     """Request model for creating a vector index"""
+
     name: str
     description: Optional[str] = None
     collection_id: str
@@ -73,6 +77,7 @@ class VectorIndexCreateSchema(BaseModel):
 
 class DocumentCollectionResponseSchema(BaseModel):
     """Response model for document collection operations"""
+
     id: str
     name: str
     description: Optional[str] = None
@@ -86,6 +91,7 @@ class DocumentCollectionResponseSchema(BaseModel):
 
 class VectorIndexResponseSchema(BaseModel):
     """Response model for vector index operations"""
+
     id: str
     name: str
     description: Optional[str] = None
@@ -103,6 +109,7 @@ class VectorIndexResponseSchema(BaseModel):
 # Progress tracking models
 class ProcessingProgressSchema(BaseModel):
     """Base model for tracking processing progress"""
+
     id: str
     status: str = "pending"  # pending, processing, completed, failed
     progress: float = 0.0  # 0 to 1
@@ -115,29 +122,37 @@ class ProcessingProgressSchema(BaseModel):
     created_at: str
     updated_at: str
 
+
 class RetrievalRequestSchema(BaseModel):
     """Request model for retrieving from vector index"""
+
     query: str
     top_k: Optional[int] = 5
     score_threshold: Optional[float] = None
     semantic_weight: Optional[float] = 1.0
     keyword_weight: Optional[float] = None
 
+
 class ChunkMetadataSchema(BaseModel):
     """Schema for chunk metadata in retrieval response"""
+
     document_id: str
     chunk_id: str
     document_title: Optional[str] = None
     page_number: Optional[int] = None
     chunk_number: Optional[int] = None
 
+
 class RetrievalResultSchema(BaseModel):
     """Schema for a single retrieval result"""
+
     text: str
     score: float
     metadata: ChunkMetadataSchema
 
+
 class RetrievalResponseSchema(BaseModel):
     """Response model for retrieval operations"""
+
     results: List[RetrievalResultSchema]
     total_results: int

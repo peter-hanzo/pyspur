@@ -1,16 +1,18 @@
-from pydantic import BaseModel, Field
+import json
 from typing import Dict, List
 
+from pydantic import BaseModel, Field
+
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ..utils.template_utils import render_template_or_get_first_string
 from .providers.base import (
+    EmailMessage,
     EmailProvider,
     EmailProviderConfig,
-    EmailMessage,
     EmailResponse,
 )
 from .providers.registry import EmailProviderRegistry
-from ..utils.template_utils import render_template_or_get_first_string
-import json
+
 
 def parse_email_addresses(email_str: str) -> List[str]:
     """
@@ -41,13 +43,13 @@ def parse_email_addresses(email_str: str) -> List[str]:
         return emails
     return [email_str]
 
+
 class SendEmailNodeOutput(BaseNodeOutput):
     provider: EmailProvider = Field(..., description="The email provider used")
     message_id: str = Field(..., description="The message ID from the provider")
     status: str = Field(..., description="The status of the email send operation")
-    raw_response: str = Field(
-        ..., description="The raw response from the provider as JSON string"
-    )
+    raw_response: str = Field(..., description="The raw response from the provider as JSON string")
+
 
 class SendEmailNodeConfig(BaseNodeConfig):
     provider: EmailProvider = Field(
@@ -93,9 +95,7 @@ class SendEmailNode(BaseNode):
         provider_config = EmailProviderConfig()
 
         # Get the appropriate provider instance
-        provider = EmailProviderRegistry.get_provider(
-            self.config.provider, provider_config
-        )
+        provider = EmailProviderRegistry.get_provider(self.config.provider, provider_config)
 
         # Render the templates
         raw_input_dict = input.model_dump()

@@ -4,12 +4,12 @@ from typing import Dict, List, Optional
 
 from ..chunker import create_document_chunks
 from ..schemas.document_schemas import (
-    DocumentSchema,
+    ChunkingConfigSchema,
     DocumentChunkSchema,
     DocumentMetadataFilterSchema,
+    DocumentSchema,
     QueryResultSchema,
     QueryWithEmbeddingSchema,
-    ChunkingConfigSchema,
 )
 
 
@@ -18,7 +18,9 @@ class DataStore(ABC):
         self.embedding_dimension = embedding_dimension
 
     async def upsert(
-        self, documents: List[DocumentSchema], chunk_token_size: Optional[int] = None
+        self,
+        documents: List[DocumentSchema],
+        chunk_token_size: Optional[int] = None,
     ) -> List[str]:
         """
         Takes in a list of documents and inserts them into the database.
@@ -42,11 +44,15 @@ class DataStore(ABC):
         chunks = {}
         for doc in documents:
             # If the document already has chunks with embeddings, use those
-            if hasattr(doc, 'chunks') and doc.chunks:
+            if hasattr(doc, "chunks") and doc.chunks:
                 chunks[doc.id] = doc.chunks
             else:
                 # Only create new chunks if the document doesn't have them
-                config = ChunkingConfigSchema(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfigSchema()
+                config = (
+                    ChunkingConfigSchema(chunk_token_size=chunk_token_size)
+                    if chunk_token_size
+                    else ChunkingConfigSchema()
+                )
                 doc_chunks, doc_id = create_document_chunks(doc, config)
                 chunks[doc_id] = doc_chunks
 

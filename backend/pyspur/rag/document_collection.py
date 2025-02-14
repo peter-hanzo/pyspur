@@ -1,20 +1,21 @@
-from pathlib import Path
 import json
 import uuid
-from typing import List, Dict, Any, Optional, Callable, Coroutine
-import arrow
+from pathlib import Path
+from typing import Any, Callable, Coroutine, Dict, List, Optional
 
+import arrow
 from loguru import logger
 
-from .parser import extract_text_from_file
 from .chunker import ChunkingConfigSchema, create_document_chunks
+from .parser import extract_text_from_file
 from .schemas.document_schemas import (
+    DocumentChunkSchema,
+    DocumentMetadataSchema,
     DocumentSchema,
     DocumentWithChunksSchema,
-    DocumentMetadataSchema,
-    DocumentChunkSchema,
-    Source
+    Source,
 )
+
 
 class DocumentStore:
     """Manages document storage, parsing and chunking."""
@@ -65,7 +66,7 @@ class DocumentStore:
             # 1. Parse documents
             documents: List[DocumentSchema] = []
             for i, file_info in enumerate(files):
-                logger.debug(f"Parsing file {i+1}/{len(files)}: {file_info.get('path')}")
+                logger.debug(f"Parsing file {i + 1}/{len(files)}: {file_info.get('path')}")
                 file_path = Path(file_info["path"])
 
                 # Create document metadata
@@ -81,7 +82,7 @@ class DocumentStore:
                     text = extract_text_from_file(
                         f,
                         file_info["mime_type"],
-                        vision_config if file_info["mime_type"] == "application/pdf" else None
+                        vision_config if file_info["mime_type"] == "application/pdf" else None,
                     )
 
                 # Save raw text
@@ -98,7 +99,7 @@ class DocumentStore:
                         (i + 1) / len(files) * 0.5,  # First 50% for parsing
                         "parsing",
                         i + 1,
-                        len(files)
+                        len(files),
                     )
 
             # 2. Create chunks
@@ -123,7 +124,7 @@ class DocumentStore:
                     json.dump(
                         [chunk.model_dump() for chunk in doc_chunks],
                         f,
-                        indent=2
+                        indent=2,
                     )
 
                 # Create DocumentWithChunks
@@ -131,7 +132,7 @@ class DocumentStore:
                     id=doc_id,
                     text=doc.text,
                     metadata=doc.metadata,
-                    chunks=doc_chunks
+                    chunks=doc_chunks,
                 )
                 docs_with_chunks.append(doc_with_chunks)
 
@@ -140,7 +141,7 @@ class DocumentStore:
                         0.5 + (i + 1) / len(documents) * 0.5,  # Last 50% for chunking
                         "chunking",
                         i + 1,
-                        len(documents)
+                        len(documents),
                     )
 
             return docs_with_chunks
@@ -169,11 +170,7 @@ class DocumentStore:
                 chunks = [DocumentChunkSchema(**chunk_data) for chunk_data in chunks_data]
 
             # Create DocumentWithChunks
-            return DocumentWithChunksSchema(
-                id=doc_id,
-                text=text,
-                chunks=chunks
-            )
+            return DocumentWithChunksSchema(id=doc_id, text=text, chunks=chunks)
 
         except Exception as e:
             logger.error(f"Error retrieving document {doc_id}: {e}")

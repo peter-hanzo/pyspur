@@ -1,13 +1,12 @@
 import asyncio
-from datetime import datetime
 import traceback
+from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import ValidationError
 
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
-
 from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowNodeSchema,
@@ -55,9 +54,7 @@ class WorkflowExecutor:
         self._build_node_dict()
         self._build_dependencies()
 
-    def _process_subworkflows(
-        self, workflow: WorkflowDefinitionSchema
-    ) -> WorkflowDefinitionSchema:
+    def _process_subworkflows(self, workflow: WorkflowDefinitionSchema) -> WorkflowDefinitionSchema:
         # Group nodes by parent_id
         nodes_by_parent: Dict[Optional[str], List[WorkflowNodeSchema]] = {}
         for node in workflow.nodes:
@@ -76,9 +73,7 @@ class WorkflowExecutor:
                 continue
 
             # Find the parent node in root nodes
-            parent_node = next(
-                (node for node in root_nodes if node.id == parent_id), None
-            )
+            parent_node = next((node for node in root_nodes if node.id == parent_id), None)
             if not parent_node:
                 continue
 
@@ -91,9 +86,7 @@ class WorkflowExecutor:
             ]
 
             # Create subworkflow
-            subworkflow = WorkflowDefinitionSchema(
-                nodes=child_nodes, links=subworkflow_links
-            )
+            subworkflow = WorkflowDefinitionSchema(nodes=child_nodes, links=subworkflow_links)
 
             # Update parent node's config with subworkflow
             parent_node.config = {
@@ -119,9 +112,7 @@ class WorkflowExecutor:
         self._node_dict = {node.id: node for node in self.workflow.nodes}
 
     def _build_dependencies(self):
-        dependencies: Dict[str, Set[str]] = {
-            node.id: set() for node in self.workflow.nodes
-        }
+        dependencies: Dict[str, Set[str]] = {node.id: set() for node in self.workflow.nodes}
         for link in self.workflow.links:
             dependencies[link.target_id].add(link.source_id)
         self._dependencies = dependencies
@@ -174,9 +165,7 @@ class WorkflowExecutor:
                         ),
                     )
                 except Exception:
-                    raise UpstreamFailure(
-                        f"Node {node_id} skipped due to upstream failure"
-                    )
+                    raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
             if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
                 print(f"Node {node_id} skipped due to upstream failure")
@@ -229,14 +218,10 @@ class WorkflowExecutor:
                 node_input = self._initial_inputs.get(node_id, {})
 
             # Only fail early for None inputs if it is NOT a CoalesceNode
-            if node.node_type != "CoalesceNode" and any(
-                [v is None for v in node_input.values()]
-            ):
+            if node.node_type != "CoalesceNode" and any([v is None for v in node_input.values()]):
                 self._outputs[node_id] = None
                 return None
-            elif node.node_type == "CoalesceNode" and all(
-                [v is None for v in node_input.values()]
-            ):
+            elif node.node_type == "CoalesceNode" and all([v is None for v in node_input.values()]):
                 self._outputs[node_id] = None
                 return None
 
@@ -261,7 +246,9 @@ class WorkflowExecutor:
                 raise UnconnectedNode(f"Node {node_id} has no input")
 
             node_instance = NodeFactory.create_node(
-                node_name=node.title, node_type_name=node.node_type, config=node.config
+                node_name=node.title,
+                node_type_name=node.node_type,
+                config=node.config,
             )
             self.node_instances[node_id] = node_instance
             # Update task recorder
@@ -389,9 +376,7 @@ class WorkflowExecutor:
             self._get_async_task_for_node_execution(node_id)
 
         # Wait for all tasks to complete, but don't propagate exceptions
-        results = await asyncio.gather(
-            *self._node_tasks.values(), return_exceptions=True
-        )
+        results = await asyncio.gather(*self._node_tasks.values(), return_exceptions=True)
 
         # Process results to handle any exceptions
         for node_id, result in zip(self._node_tasks.keys(), results):
@@ -401,11 +386,7 @@ class WorkflowExecutor:
                 self._outputs[node_id] = None
 
         # return the non-None outputs
-        return {
-            node_id: output
-            for node_id, output in self._outputs.items()
-            if output is not None
-        }
+        return {node_id: output for node_id, output in self._outputs.items() if output is not None}
 
     async def __call__(
         self,
@@ -478,7 +459,10 @@ if __name__ == "__main__":
                     "config": {
                         "title": "OutputNodeConfig",
                         "type": "object",
-                        "output_schema": {"question": "string", "response": "string"},
+                        "output_schema": {
+                            "question": "string",
+                            "response": "string",
+                        },
                         "output_map": {
                             "question": "bon_node.next_potential_question",
                             "response": "bon_node.response",

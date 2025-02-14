@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+import os
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
-import shutil
-import os
-from datetime import datetime, timezone
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from ..schemas.file_schemas import FileResponseSchema
 
@@ -37,9 +38,7 @@ async def list_workflow_files(workflow_id: str) -> List[FileResponseSchema]:
                     name=file_path.name,
                     path=str(file_path.relative_to(DATA_DIR)),
                     size=os.path.getsize(file_path),
-                    created=datetime.fromtimestamp(
-                        os.path.getctime(file_path), tz=timezone.utc
-                    ),
+                    created=datetime.fromtimestamp(os.path.getctime(file_path), tz=timezone.utc),
                     workflow_id=workflow_id,
                 )
             )
@@ -114,9 +113,7 @@ async def delete_workflow_files(workflow_id: str):
         shutil.rmtree(workflow_dir)
         return {"message": "All workflow files deleted successfully"}
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error deleting workflow files: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error deleting workflow files: {str(e)}")
 
 
 @router.get(

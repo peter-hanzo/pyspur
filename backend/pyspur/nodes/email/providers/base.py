@@ -1,5 +1,6 @@
-from typing import Protocol, List
 from enum import Enum
+from typing import List, Protocol
+
 from pydantic import BaseModel, Field
 
 
@@ -29,9 +30,7 @@ class EmailResponse(BaseModel):
     provider: EmailProvider
     message_id: str
     status: str
-    raw_response: str = Field(
-        ..., description="JSON string containing the raw provider response"
-    )
+    raw_response: str = Field(..., description="JSON string containing the raw provider response")
 
 
 class EmailProviderProtocol(Protocol):

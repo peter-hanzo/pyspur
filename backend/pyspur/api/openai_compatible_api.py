@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Union
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from typing import Any, Dict, List, Optional, Union
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..models.workflow_model import WorkflowModel
 from ..database import get_db
-from .workflow_run import run_workflow_blocking
+from ..models.workflow_model import WorkflowModel
 from ..schemas.run_schemas import StartRunRequestSchema
+from .workflow_run import run_workflow_blocking
 
 router = APIRouter()
 
@@ -60,11 +61,7 @@ async def chat_completions(
 
     # Get the latest user message
     latest_user_message = next(
-        (
-            message["content"]
-            for message in reversed(request.messages)
-            if message["role"] == "user"
-        ),
+        (message["content"] for message in reversed(request.messages) if message["role"] == "user"),
         None,
     )
     if not latest_user_message:

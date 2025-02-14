@@ -1,22 +1,24 @@
 import json
 from typing import Dict, List
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+
 from jinja2 import Template
 from loguru import logger
-from ...rag.vector_index import VectorIndex
-from ...rag.embedder import EmbeddingModels
-from ...schemas.rag_schemas import (
-    RetrievalResultSchema,
-    ChunkMetadataSchema,
-)
-from ...models.dc_and_vi_model import VectorIndexModel
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
 from ...database import get_db
+from ...models.dc_and_vi_model import VectorIndexModel
+from ...rag.embedder import EmbeddingModels
+from ...rag.vector_index import VectorIndex
+from ...schemas.rag_schemas import (
+    ChunkMetadataSchema,
+    RetrievalResultSchema,
+)
 from ..base import (
-    BaseNodeInput,
-    BaseNodeOutput,
     BaseNode,
     BaseNodeConfig,
+    BaseNodeInput,
+    BaseNodeOutput,
 )
 
 # Todo: Use Fixed Node Output; where the outputs will always be chunks
@@ -32,9 +34,7 @@ class RetrieverNodeInput(BaseNodeInput):
 class RetrieverNodeOutput(BaseNodeOutput):
     """Output from the retriever node"""
 
-    results: List[RetrievalResultSchema] = Field(
-        ..., description="List of retrieved results"
-    )
+    results: List[RetrievalResultSchema] = Field(..., description="List of retrieved results")
     total_results: int = Field(..., description="Total number of results found")
 
 
@@ -42,16 +42,17 @@ class RetrieverNodeConfig(BaseNodeConfig):
     """Configuration for the retriever node"""
 
     output_schema: Dict[str, str] = Field(
-        default={"results": "list[RetrievalResultSchema]", "total_results": "integer"},
+        default={
+            "results": "list[RetrievalResultSchema]",
+            "total_results": "integer",
+        },
         description="The schema for the output of the node",
     )
     output_json_schema: str = Field(
         default=json.dumps(RetrieverNodeOutput.model_json_schema(), indent=2),
         description="The JSON schema for the output of the node",
     )
-    vector_index_id: str = Field(
-        ..., description="ID of the vector index to query", min_length=1
-    )
+    vector_index_id: str = Field(..., description="ID of the vector index to query", min_length=1)
     top_k: int = Field(5, description="Number of results to return", ge=1, le=10)
     query_template: str = Field(
         "{{input_1}}",
@@ -100,9 +101,7 @@ class RetrieverNode(BaseNode):
                 .first()
             )
             if not vector_index_model:
-                raise ValueError(
-                    f"Vector index {self.config.vector_index_id} not found"
-                )
+                raise ValueError(f"Vector index {self.config.vector_index_id} not found")
 
             logger.info(
                 f"[DEBUG] Vector index configuration: {vector_index_model.embedding_config}"
@@ -111,9 +110,7 @@ class RetrieverNode(BaseNode):
             # Get embedding model from vector index configuration
             embedding_model = vector_index_model.embedding_config.get("model")
             if not embedding_model:
-                raise ValueError(
-                    "No embedding model specified in vector index configuration"
-                )
+                raise ValueError("No embedding model specified in vector index configuration")
 
             logger.info(f"[DEBUG] Using embedding model: {embedding_model}")
 
@@ -127,9 +124,7 @@ class RetrieverNode(BaseNode):
                         "model": embedding_model,
                         "dimensions": embedding_model_info.dimensions,
                     },
-                    "vector_db": vector_index_model.embedding_config.get(
-                        "vector_db", "pinecone"
-                    ),
+                    "vector_db": vector_index_model.embedding_config.get("vector_db", "pinecone"),
                 }
             )
 

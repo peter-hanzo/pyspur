@@ -1,8 +1,10 @@
 import json
 import logging
 import os
+
 import requests
 from pydantic import BaseModel, Field  # type: ignore
+
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...utils.template_utils import render_template_or_get_first_string
 
@@ -16,21 +18,20 @@ class MathpixPdfToLatexNodeInput(BaseNodeInput):
 
 class MathpixPdfToLatexNodeOutput(BaseNodeOutput):
     latex_result: str = Field(
-        ..., description="The converted LaTeX content or conversion status JSON."
+        ...,
+        description="The converted LaTeX content or conversion status JSON.",
     )
 
 
 class MathpixPdfToLatexNodeConfig(BaseNodeConfig):
-    url_template: str = Field(
-        "", description="The URL of the PDF to convert to LaTeX."
-    )
+    url_template: str = Field("", description="The URL of the PDF to convert to LaTeX.")
     app_id: str = Field(
         default="",
-        description="Mathpix API app_id. Can be set via environment variable MATHPIX_APP_ID."
+        description="Mathpix API app_id. Can be set via environment variable MATHPIX_APP_ID.",
     )
     app_key: str = Field(
         default="",
-        description="Mathpix API app_key. Can be set via environment variable MATHPIX_APP_KEY."
+        description="Mathpix API app_key. Can be set via environment variable MATHPIX_APP_KEY.",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
@@ -72,23 +73,16 @@ class MathpixPdfToLatexNode(BaseNode):
             # Make API request
             response = requests.post(
                 "https://api.mathpix.com/v3/pdf",
-                json={
-                    "url": url,
-                    "conversion_formats": {
-                        "tex.zip": True
-                    }
-                },
+                json={"url": url, "conversion_formats": {"tex.zip": True}},
                 headers={
                     "app_id": app_id,
                     "app_key": app_key,
-                    "Content-type": "application/json"
-                }
+                    "Content-type": "application/json",
+                },
             )
 
             # Return the conversion result
-            return MathpixPdfToLatexNodeOutput(
-                latex_result=json.dumps(response.json(), indent=2)
-            )
+            return MathpixPdfToLatexNodeOutput(latex_result=json.dumps(response.json(), indent=2))
 
         except Exception as e:
             logging.error(f"Failed to convert PDF to LaTeX: {e}")

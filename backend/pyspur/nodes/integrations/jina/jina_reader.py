@@ -1,8 +1,9 @@
-import logging
 import json
-import httpx
+import logging
 
+import httpx
 from pydantic import BaseModel, Field  # type: ignore
+
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...utils.template_utils import render_template_or_get_first_string
 
@@ -16,9 +17,7 @@ class JinaReaderNodeInput(BaseNodeInput):
 
 class JinaReaderNodeOutput(BaseNodeOutput):
     title: str = Field("", description="The title of scraped page")
-    content: str = Field(
-        "", description="The content of the scraped page in markdown format"
-    )
+    content: str = Field("", description="The content of the scraped page in markdown format")
 
 
 class JinaReaderNodeConfig(BaseNodeConfig):
@@ -26,9 +25,7 @@ class JinaReaderNodeConfig(BaseNodeConfig):
         "https://r.jina.ai/{url}",
         description="The URL to crawl and convert into clean markdown.",
     )
-    use_readerlm_v2: bool = Field(
-        True, description="Use the Reader LM v2 model to process the URL"
-    )
+    use_readerlm_v2: bool = Field(True, description="Use the Reader LM v2 model to process the URL")
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(JinaReaderNodeOutput.model_json_schema()),

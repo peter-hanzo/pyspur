@@ -3,7 +3,6 @@ from typing import Any, Dict
 from pydantic import Field
 
 from ...schemas.workflow_schemas import WorkflowDefinitionSchema
-
 from .base_loop_subworkflow_node import (
     BaseLoopSubworkflowNode,
     BaseLoopSubworkflowNodeConfig,
@@ -34,12 +33,13 @@ class ForLoopNode(BaseLoopSubworkflowNode):
 
 
 if __name__ == "__main__":
-    from ...schemas.workflow_schemas import (
-        WorkflowNodeSchema,
-        WorkflowLinkSchema,
-    )
     import asyncio
     from pprint import pprint
+
+    from ...schemas.workflow_schemas import (
+        WorkflowLinkSchema,
+        WorkflowNodeSchema,
+    )
 
     async def main():
         node = ForLoopNode(

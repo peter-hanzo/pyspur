@@ -1,15 +1,17 @@
+from datetime import datetime, timezone
+from enum import Enum as PyEnum
+from typing import Any, Optional
+
 from sqlalchemy import (
+    JSON,
     Computed,
-    Integer,
-    String,
     DateTime,
     Enum,
-    JSON,
+    Integer,
+    String,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-from enum import Enum as PyEnum
-from datetime import datetime, timezone
-from typing import Optional, Any
+
 from .base_model import BaseModel
 
 
@@ -24,9 +26,7 @@ class EvalRunModel(BaseModel):
     __tablename__ = "eval_runs"
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
-    id: Mapped[str] = mapped_column(
-        String, Computed("'ER' || _intid"), nullable=False, unique=True
-    )
+    id: Mapped[str] = mapped_column(String, Computed("'ER' || _intid"), nullable=False, unique=True)
     eval_name: Mapped[str] = mapped_column(String, nullable=False)
     workflow_id: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[EvalRunStatus] = mapped_column(

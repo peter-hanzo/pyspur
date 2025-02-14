@@ -2,21 +2,21 @@ import asyncio
 import os
 from typing import Any, Dict, List, Optional
 
+from loguru import logger
 from pinecone import Pinecone, ServerlessSpec
+from tenacity import retry, stop_after_attempt, wait_random_exponential
+
 from ...schemas.document_schemas import (
-    DocumentChunkSchema,
     DocumentChunkMetadataSchema,
+    DocumentChunkSchema,
     DocumentChunkWithScoreSchema,
     DocumentMetadataFilterSchema,
     QueryResultSchema,
     QueryWithEmbeddingSchema,
     Source,
 )
-from loguru import logger
-from ..services.date import to_unix_timestamp
-from tenacity import retry, stop_after_attempt, wait_random_exponential
-
 from ..datastore import DataStore
+from ..services.date import to_unix_timestamp
 
 # Read environment variables for Pinecone configuration
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
@@ -43,6 +43,7 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 # Set the batch size for upserting vectors to Pinecone
 UPSERT_BATCH_SIZE = 100
 
+
 class PineconeDataStore(DataStore):
     def __init__(self, embedding_dimension: Optional[int] = None):
         super().__init__(embedding_dimension=embedding_dimension)
@@ -59,10 +60,7 @@ class PineconeDataStore(DataStore):
                 pc.create_index(
                     name=PINECONE_INDEX,
                     dimension=self.embedding_dimension or 1536,  # Default to 1536 if not specified
-                    spec=ServerlessSpec(
-                        cloud=PINECONE_CLOUD,
-                        region=PINECONE_REGION
-                    ),
+                    spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_REGION),
                     metadata_config={"indexed": fields_to_index},
                 )
                 self.index = pc.Index(name=PINECONE_INDEX)
@@ -108,15 +106,16 @@ class PineconeDataStore(DataStore):
                 # Convert embedding values to float
                 float_embedding = [float(val) for val in chunk.embedding]
                 # Log embedding details
-                logger.debug(f"Chunk {chunk.id} embedding stats - length: {len(float_embedding)}, non-zero values: {sum(1 for x in float_embedding if x != 0)}, sample: {float_embedding[:5]}")
+                logger.debug(
+                    f"Chunk {chunk.id} embedding stats - length: {len(float_embedding)}, non-zero values: {sum(1 for x in float_embedding if x != 0)}, sample: {float_embedding[:5]}"
+                )
 
                 vector = (chunk.id, float_embedding, pinecone_metadata)
                 vectors.append(vector)
 
         # Split the vectors list into batches of the specified size
         batches = [
-            vectors[i : i + UPSERT_BATCH_SIZE]
-            for i in range(0, len(vectors), UPSERT_BATCH_SIZE)
+            vectors[i : i + UPSERT_BATCH_SIZE] for i in range(0, len(vectors), UPSERT_BATCH_SIZE)
         ]
         # Upsert each batch to Pinecone
         for batch in batches:
@@ -140,7 +139,9 @@ class PineconeDataStore(DataStore):
         """
 
         # Define a helper coroutine that performs a single query and returns a QueryResult
-        async def _single_query(query: QueryWithEmbeddingSchema) -> QueryResultSchema:
+        async def _single_query(
+            query: QueryWithEmbeddingSchema,
+        ) -> QueryResultSchema:
             logger.debug(f"Query: {query.query}")
 
             # Convert the metadata filter object to a dict with pinecone filter expressions
@@ -181,17 +182,20 @@ class PineconeDataStore(DataStore):
                 # Convert created_at from timestamp back to string if it exists
                 if metadata_without_text and "created_at" in metadata_without_text:
                     from datetime import datetime
+
                     timestamp = float(metadata_without_text["created_at"])
-                    metadata_without_text["created_at"] = datetime.fromtimestamp(timestamp).isoformat()
+                    metadata_without_text["created_at"] = datetime.fromtimestamp(
+                        timestamp
+                    ).isoformat()
 
                 # Create a document chunk with score object with the result data
                 result = DocumentChunkWithScoreSchema(
                     id=result.id,
                     score=score,
-                    text=(
-                        str(metadata["text"]) if metadata and "text" in metadata else ""
-                    ),
-                    metadata=DocumentChunkMetadataSchema(**metadata_without_text) if metadata_without_text else DocumentChunkMetadataSchema(),
+                    text=(str(metadata["text"]) if metadata and "text" in metadata else ""),
+                    metadata=DocumentChunkMetadataSchema(**metadata_without_text)
+                    if metadata_without_text
+                    else DocumentChunkMetadataSchema(),
                 )
                 query_results.append(result)
             return QueryResultSchema(query=query.query, results=query_results)
@@ -228,17 +232,19 @@ class PineconeDataStore(DataStore):
         if ids and len(ids) > 0:
             try:
                 # First, query to get the chunk IDs associated with these document IDs
-                dummy_vector: List[float] = [0.0] * (self.embedding_dimension or 1536)  # Default to 1536 if not specified
+                dummy_vector: List[float] = [0.0] * (
+                    self.embedding_dimension or 1536
+                )  # Default to 1536 if not specified
                 query_response = self.index.query(
                     vector=dummy_vector,  # Dummy vector for metadata-only query
                     filter={"document_id": {"$in": ids}},
                     top_k=10000,  # Get as many matches as possible
-                    include_metadata=True
+                    include_metadata=True,
                 )
 
                 # Extract the chunk IDs from the response
                 chunk_ids: List[str] = []
-                if hasattr(query_response, 'matches'):
+                if hasattr(query_response, "matches"):
                     chunk_ids = [str(match.id) for match in query_response.matches]
 
                 if chunk_ids:
@@ -255,17 +261,19 @@ class PineconeDataStore(DataStore):
             try:
                 pinecone_filter = self._get_pinecone_filter(filter)
                 # Query to get the IDs of vectors that match the filter
-                dummy_vector: List[float] = [0.0] * (self.embedding_dimension or 1536)  # Default to 1536 if not specified
+                dummy_vector: List[float] = [0.0] * (
+                    self.embedding_dimension or 1536
+                )  # Default to 1536 if not specified
                 query_response = self.index.query(
                     vector=dummy_vector,  # Dummy vector for metadata-only query
                     filter=pinecone_filter,
                     top_k=10000,  # Get as many matches as possible
-                    include_metadata=True
+                    include_metadata=True,
                 )
 
                 # Extract the IDs from the response
                 chunk_ids: List[str] = []
-                if hasattr(query_response, 'matches'):
+                if hasattr(query_response, "matches"):
                     chunk_ids = [str(match.id) for match in query_response.matches]
 
                 if chunk_ids:
@@ -294,14 +302,10 @@ class PineconeDataStore(DataStore):
         for field, value in filter.model_dump().items():
             if value is not None:
                 if field == "start_date":
-                    pinecone_filter["created_at"] = pinecone_filter.get(
-                        "created_at", {}
-                    )
+                    pinecone_filter["created_at"] = pinecone_filter.get("created_at", {})
                     pinecone_filter["created_at"]["$gte"] = to_unix_timestamp(value)
                 elif field == "end_date":
-                    pinecone_filter["created_at"] = pinecone_filter.get(
-                        "created_at", {}
-                    )
+                    pinecone_filter["created_at"] = pinecone_filter.get("created_at", {})
                     pinecone_filter["created_at"]["$lte"] = to_unix_timestamp(value)
                 else:
                     pinecone_filter[field] = value

@@ -1,16 +1,18 @@
-from sqlalchemy import (
-    Computed,
-    Integer,
-    ForeignKey,
-    Enum,
-    String,
-    JSON,
-    DateTime,
-)
-from sqlalchemy.orm import relationship, Mapped, mapped_column
-from enum import Enum as PyEnum
 from datetime import datetime, timezone
-from typing import Optional, Any
+from enum import Enum as PyEnum
+from typing import Any, Optional
+
+from sqlalchemy import (
+    JSON,
+    Computed,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base_model import BaseModel
 
 
@@ -26,9 +28,7 @@ class TaskModel(BaseModel):
     __tablename__ = "tasks"
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
-    id: Mapped[str] = mapped_column(
-        String, Computed("'T' || _intid"), nullable=False, unique=True
-    )
+    id: Mapped[str] = mapped_column(String, Computed("'T' || _intid"), nullable=False, unique=True)
     run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
     node_id: Mapped[str] = mapped_column(String, nullable=False)
     parent_task_id: Mapped[Optional[str]] = mapped_column(
@@ -49,9 +49,7 @@ class TaskModel(BaseModel):
 
     # Relationships
     parent_task = relationship("TaskModel", remote_side=[id], back_populates="subtasks")
-    subtasks = relationship(
-        "TaskModel", back_populates="parent_task", cascade="all, delete-orphan"
-    )
+    subtasks = relationship("TaskModel", back_populates="parent_task", cascade="all, delete-orphan")
 
     @property
     def run_time(self) -> Optional[float]:

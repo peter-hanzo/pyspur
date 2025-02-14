@@ -1,6 +1,7 @@
-from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class Source(str, Enum):
@@ -11,6 +12,7 @@ class Source(str, Enum):
 
 class DocumentMetadataSchema(BaseModel):
     """Metadata for a document."""
+
     source: Source = Source.text
     source_id: Optional[str] = None
     created_at: Optional[str] = None
@@ -21,6 +23,7 @@ class DocumentMetadataSchema(BaseModel):
 
 class DocumentChunkMetadataSchema(DocumentMetadataSchema):
     """Metadata for a document chunk."""
+
     document_id: Optional[str] = None
     chunk_index: Optional[int] = None
     custom_metadata: Optional[Dict[str, str]] = Field(default_factory=dict)
@@ -28,6 +31,7 @@ class DocumentChunkMetadataSchema(DocumentMetadataSchema):
 
 class DocumentSchema(BaseModel):
     """A document with its metadata."""
+
     id: Optional[str] = None
     text: str
     metadata: Optional[DocumentMetadataSchema] = None
@@ -35,6 +39,7 @@ class DocumentSchema(BaseModel):
 
 class DocumentChunkSchema(BaseModel):
     """A chunk of a document with its metadata and embedding."""
+
     id: str
     text: str
     metadata: DocumentChunkMetadataSchema
@@ -47,6 +52,7 @@ class DocumentChunkWithScoreSchema(DocumentChunkSchema):
 
 class DocumentWithChunksSchema(DocumentSchema):
     """A document with its chunks."""
+
     chunks: List[DocumentChunkSchema] = Field(default_factory=list)
 
 
@@ -61,6 +67,7 @@ class DocumentMetadataFilterSchema(BaseModel):
 
 class ChunkTemplateSchema(BaseModel):
     """Configuration for chunk templates."""
+
     enabled: bool = False
     template: str = "{{ text }}"  # Default template just shows the text
     metadata_template: Optional[Dict[str, str]] = Field(
@@ -70,6 +77,7 @@ class ChunkTemplateSchema(BaseModel):
 
 class ChunkingConfigSchema(BaseModel):
     """Configuration for text chunking."""
+
     chunk_token_size: int = 200
     min_chunk_size_chars: int = 350
     min_chunk_length_to_embed: int = 5

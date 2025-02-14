@@ -303,9 +303,7 @@ def extract_answer(
     return extracted_answer.strip()
 
 
-async def evaluate_answer(
-    predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]
-):
+async def evaluate_answer(predicted_answer, ground_truth_answer, evaluation: Dict[str, Any]):
     """Evaluates if the predicted answer matches the ground truth based on evaluation logic."""
     if predicted_answer is None or ground_truth_answer is None:
         return False
@@ -375,9 +373,7 @@ async def evaluate_dataset_batch(
     preamble = eval_config.get("preamble", "")
     doc_to_text = eval_config.get("doc_to_text", "")
     doc_to_target = eval_config.get("doc_to_target", "")
-    ground_truth_answer_extraction = eval_config.get(
-        "ground_truth_answer_extraction", {}
-    )
+    ground_truth_answer_extraction = eval_config.get("ground_truth_answer_extraction", {})
     predicted_answer_extraction = eval_config.get("predicted_answer_extraction", {})
     evaluation = eval_config.get("evaluation", {})
 
@@ -397,12 +393,9 @@ async def evaluate_dataset_batch(
 
     # Process dataset in batches
     for batch in dataset.iter(batch_size=batch_size):
-        transformed_batch = [
-            dict(zip(batch.keys(), values)) for values in zip(*batch.values())
-        ]
+        transformed_batch = [dict(zip(batch.keys(), values)) for values in zip(*batch.values())]
         full_prompts = [
-            generate_input_prompt(problem, doc_to_text, preamble)
-            for problem in transformed_batch
+            generate_input_prompt(problem, doc_to_text, preamble) for problem in transformed_batch
         ]
 
         # Call the model on all prompts in the batch concurrently
@@ -417,9 +410,7 @@ async def evaluate_dataset_batch(
         for idx, (problem, full_prompt, response_text) in enumerate(
             zip(transformed_batch, full_prompts, responses)
         ):
-            predicted_answer = extract_answer(
-                response_text, predicted_answer_extraction
-            )
+            predicted_answer = extract_answer(response_text, predicted_answer_extraction)
             ground_truth_answer = extract_answer(
                 get_ground_truth_answer(problem, doc_to_target),
                 ground_truth_answer_extraction,
@@ -430,9 +421,7 @@ async def evaluate_dataset_batch(
             short_responses[example_id] = predicted_answer
 
             # Evaluate correctness
-            is_correct = await evaluate_answer(
-                predicted_answer, ground_truth_answer, evaluation
-            )
+            is_correct = await evaluate_answer(predicted_answer, ground_truth_answer, evaluation)
             correct += int(is_correct)
 
             # Add per-example results
@@ -448,9 +437,7 @@ async def evaluate_dataset_batch(
 
             # Update category metrics if needed
             if subject_category_mapping:
-                subject_value = (
-                    subject or problem.get("subject") or problem.get("Subject")
-                )
+                subject_value = subject or problem.get("subject") or problem.get("Subject")
                 category = subject_category_mapping.get(subject_value, "other")
                 category_total[category] += 1
                 if is_correct:
@@ -576,13 +563,9 @@ async def prepare_and_evaluate_dataset(
     if dataset_subsets and isinstance(dataset_subsets, list):
         for subset in dataset_subsets:
             # Load the subset of the dataset
-            dataset = load_dataset_by_name(
-                dataset_name, dataset_split, subset, process_docs
-            )
+            dataset = load_dataset_by_name(dataset_name, dataset_split, subset, process_docs)
             if num_samples is not None:
-                dataset = dataset.shuffle(seed=42).select(
-                    range(min(num_samples, len(dataset)))
-                )
+                dataset = dataset.shuffle(seed=42).select(range(min(num_samples, len(dataset))))
 
             # Evaluate the subset
             metrics = await evaluate_dataset_batch(
@@ -607,17 +590,13 @@ async def prepare_and_evaluate_dataset(
                     category_total = metrics["category_total"]
                 else:
                     for category in metrics["category_correct"]:
-                        category_correct[category] += metrics["category_correct"][
-                            category
-                        ]
+                        category_correct[category] += metrics["category_correct"][category]
                         category_total[category] += metrics["category_total"][category]
     else:
         # Single dataset evaluation
         dataset = load_dataset_by_name(dataset_name, dataset_split, None, process_docs)
         if num_samples is not None:
-            dataset = dataset.shuffle(seed=42).select(
-                range(min(num_samples, len(dataset)))
-            )
+            dataset = dataset.shuffle(seed=42).select(range(min(num_samples, len(dataset))))
 
         metrics = await evaluate_dataset_batch(
             dataset=dataset,

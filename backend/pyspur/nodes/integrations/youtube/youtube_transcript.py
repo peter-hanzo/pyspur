@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from phi.tools.youtube_tools import YouTubeTools
-import logging
-from ...utils.template_utils import render_template_or_get_first_string
 import json
+import logging
+
+from phi.tools.youtube_tools import YouTubeTools
+from pydantic import BaseModel, Field
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from ...utils.template_utils import render_template_or_get_first_string
 
 
 class YouTubeTranscriptNodeInput(BaseNodeInput):
@@ -19,7 +21,8 @@ class YouTubeTranscriptNodeOutput(BaseNodeOutput):
 
 class YouTubeTranscriptNodeConfig(BaseNodeConfig):
     video_url_template: str = Field(
-        "", description="The YouTube video url template to fetch the transcript for."
+        "",
+        description="The YouTube video url template to fetch the transcript for.",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

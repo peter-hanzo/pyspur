@@ -1,24 +1,24 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
+# Import database URL
+from pyspur.database import DATABASE_URL
+from pyspur.models.base_model import BaseModel
+from pyspur.models.dataset_model import DatasetModel  # type: ignore
+from pyspur.models.dc_and_vi_model import (
+    DocumentCollectionModel,
+    VectorIndexModel,
+)  # type: ignore
+from pyspur.models.eval_run_model import EvalRunModel  # type: ignore
+from pyspur.models.output_file_model import OutputFileModel  # type: ignore
+from pyspur.models.run_model import RunModel  # type: ignore
+from pyspur.models.task_model import TaskModel  # type: ignore
 
 # Import models
 from pyspur.models.workflow_model import WorkflowModel  # type: ignore
 from pyspur.models.workflow_version_model import WorkflowVersionModel  # type: ignore
-from pyspur.models.run_model import RunModel  # type: ignore
-from pyspur.models.task_model import TaskModel  # type: ignore
-from pyspur.models.output_file_model import OutputFileModel  # type: ignore
-from pyspur.models.dataset_model import DatasetModel  # type: ignore
-from pyspur.models.base_model import BaseModel
-from pyspur.models.eval_run_model import EvalRunModel  # type: ignore
-from pyspur.models.dc_and_vi_model import DocumentCollectionModel, VectorIndexModel  # type: ignore
-
-# Import database URL
-from pyspur.database import DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

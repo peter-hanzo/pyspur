@@ -1,12 +1,14 @@
+import json
 from abc import ABC, abstractmethod
 from hashlib import md5
 from typing import Any, Dict, List, Optional, Type
-import json
 
 from pydantic import BaseModel, Field, create_model
+
 from ..execution.workflow_execution_context import WorkflowExecutionContext
 from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 from ..utils import pydantic_utils
+
 
 class VisualTag(BaseModel):
     """
@@ -70,9 +72,7 @@ class BaseNode(ABC):
     """
 
     name: str
-    display_name: str = (
-        ""  # Will be used for config title, defaults to class name if not set
-    )
+    display_name: str = ""  # Will be used for config title, defaults to class name if not set
     logo: Optional[str] = None
     category: Optional[str] = None
     config_model: Type[BaseModel]
@@ -112,9 +112,7 @@ class BaseNode(ABC):
             )
             self.output_model = model  # type: ignore
 
-    def create_output_model_class(
-        self, output_schema: Dict[str, str]
-    ) -> Type[BaseNodeOutput]:
+    def create_output_model_class(self, output_schema: Dict[str, str]) -> Type[BaseNodeOutput]:
         """
         Dynamically creates an output model based on the node's output schema.
         """
@@ -166,10 +164,7 @@ class BaseNode(ABC):
         # Create the new model class
         return create_model(
             model_name,
-            **{
-                instance.__class__.__name__: (instance.__class__, ...)
-                for instance in instances
-            },
+            **{instance.__class__.__name__: (instance.__class__, ...) for instance in instances},
             __base__=BaseNodeInput,
             __config__=None,
             __doc__=f"Input model for {self.name} node",
@@ -197,9 +192,9 @@ class BaseNode(ABC):
             The node's output model
         """
         if isinstance(input, dict):
-            if all(
-                isinstance(value, BaseNodeOutput) for value in input.values()
-            ) or all(isinstance(value, BaseNodeInput) for value in input.values()):
+            if all(isinstance(value, BaseNodeOutput) for value in input.values()) or all(
+                isinstance(value, BaseNodeInput) for value in input.values()
+            ):
                 # Input is a dictionary of BaseNodeOutput instances, creating a composite model
                 self.input_model = self.create_composite_model_instance(
                     model_name=self.input_model.__name__,

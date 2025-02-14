@@ -6,12 +6,11 @@ from jinja2 import Template
 from pydantic import BaseModel, Field
 
 from ...utils.pydantic_utils import get_nested_field, json_schema_to_model
-
 from ..base import (
+    BaseNode,
+    BaseNodeConfig,
     BaseNodeInput,
     BaseNodeOutput,
-    BaseNodeConfig,
-    BaseNode,
 )
 from ._utils import LLMModels, ModelInfo, create_messages, generate_text
 
@@ -24,7 +23,8 @@ class SingleLLMCallNodeConfig(BaseNodeConfig):
         description="The default LLM model to use",
     )
     system_message: str = Field(
-        "You are a helpful assistant.", description="The system message for the LLM"
+        "You are a helpful assistant.",
+        description="The system message for the LLM",
     )
     user_message: str = Field(
         "",
@@ -83,14 +83,10 @@ class SingleLLMCallNode(BaseNode):
             if not self.config.user_message.strip():
                 user_message = json.dumps(raw_input_dict, indent=2)
             else:
-                user_message = Template(self.config.user_message).render(
-                    **raw_input_dict
-                )
+                user_message = Template(self.config.user_message).render(**raw_input_dict)
         except Exception as e:
             print(f"[ERROR] Failed to render user_message {self.name}")
-            print(
-                f"[ERROR] user_message: {self.config.user_message} with input: {raw_input_dict}"
-            )
+            print(f"[ERROR] user_message: {self.config.user_message} with input: {raw_input_dict}")
             raise e
 
         messages = create_messages(
@@ -134,34 +130,27 @@ class SingleLLMCallNode(BaseNode):
                 provider = model_name.split("/")[0] if "/" in model_name else "unknown"
 
                 # Handle specific known error cases
-                if (
-                    "VertexAIError" in error_str
-                    and "The model is overloaded" in error_str
-                ):
+                if "VertexAIError" in error_str and "The model is overloaded" in error_str:
                     error_type = "overloaded"
-                    error_message = (
-                        "The model is currently overloaded. Please try again later."
-                    )
+                    error_message = "The model is currently overloaded. Please try again later."
                 elif "rate limit" in error_str.lower():
                     error_type = "rate_limit"
-                    error_message = (
-                        "Rate limit exceeded. Please try again in a few minutes."
-                    )
-                elif (
-                    "context length" in error_str.lower()
-                    or "maximum token" in error_str.lower()
-                ):
+                    error_message = "Rate limit exceeded. Please try again in a few minutes."
+                elif "context length" in error_str.lower() or "maximum token" in error_str.lower():
                     error_type = "context_length"
                     error_message = "Input is too long for the model's context window. Please reduce the input length."
                 elif (
-                    "invalid api key" in error_str.lower()
-                    or "authentication" in error_str.lower()
+                    "invalid api key" in error_str.lower() or "authentication" in error_str.lower()
                 ):
                     error_type = "auth"
-                    error_message = "Authentication error with the LLM service. Please check your API key."
+                    error_message = (
+                        "Authentication error with the LLM service. Please check your API key."
+                    )
                 elif "bad gateway" in error_str.lower() or "503" in error_str:
                     error_type = "service_unavailable"
-                    error_message = "The LLM service is temporarily unavailable. Please try again later."
+                    error_message = (
+                        "The LLM service is temporarily unavailable. Please try again later."
+                    )
 
                 raise Exception(
                     json.dumps(
@@ -193,9 +182,7 @@ if __name__ == "__main__":
         simple_llm_node = SingleLLMCallNode(
             name="WeatherBot",
             config=SingleLLMCallNodeConfig(
-                llm_info=ModelInfo(
-                    model=LLMModels.GPT_4O, temperature=0.4, max_tokens=100
-                ),
+                llm_info=ModelInfo(model=LLMModels.GPT_4O, temperature=0.4, max_tokens=100),
                 system_message="You are a helpful assistant.",
                 user_message="Hello, my name is {{ name }}. I want to ask: {{ question }}",
                 url_variables=None,

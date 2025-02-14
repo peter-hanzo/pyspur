@@ -1,11 +1,12 @@
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from ..schemas.run_schemas import RunResponseSchema
 from ..database import get_db
 from ..models.run_model import RunModel, RunStatus
 from ..models.task_model import TaskStatus
+from ..schemas.run_schemas import RunResponseSchema
 
 router = APIRouter()
 
@@ -30,9 +31,7 @@ def list_runs(
     if run_type:
         query = query.filter(RunModel.run_type == run_type)
 
-    runs = (
-        query.order_by(RunModel.start_time.desc()).offset(offset).limit(page_size).all()
-    )
+    runs = query.order_by(RunModel.start_time.desc()).offset(offset).limit(page_size).all()
     return runs
 
 
@@ -52,9 +51,7 @@ def get_run_status(run_id: str, db: Session = Depends(get_db)):
     if run.status != RunStatus.FAILED:
         failed_tasks = [task for task in run.tasks if task.status == TaskStatus.FAILED]
         running_and_pending_tasks = [
-            task
-            for task in run.tasks
-            if task.status in [TaskStatus.PENDING, TaskStatus.RUNNING]
+            task for task in run.tasks if task.status in [TaskStatus.PENDING, TaskStatus.RUNNING]
         ]
         if failed_tasks and len(running_and_pending_tasks) == 0:
             run.status = RunStatus.FAILED

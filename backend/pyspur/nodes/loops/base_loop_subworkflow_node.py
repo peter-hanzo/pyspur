@@ -1,16 +1,16 @@
 from abc import abstractmethod
 from typing import Any, Dict, List
+
 from pydantic import BaseModel, create_model
 
-from ..primitives.output import OutputNode
-
-from ..base import BaseNodeInput, BaseNodeOutput
 from ...execution.workflow_executor import WorkflowExecutor
+from ...schemas.workflow_schemas import WorkflowDefinitionSchema
+from ..base import BaseNodeInput, BaseNodeOutput
+from ..primitives.output import OutputNode
 from ..subworkflow.base_subworkflow_node import (
     BaseSubworkflowNode,
     BaseSubworkflowNodeConfig,
 )
-from ...schemas.workflow_schemas import WorkflowDefinitionSchema
 
 
 class BaseLoopSubworkflowNodeConfig(BaseSubworkflowNodeConfig):
@@ -41,9 +41,7 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
         for node_id, node_outputs in iteration_output.items():
             # Skip storing the special loop_history field
             if "loop_history" in node_outputs:
-                node_outputs = {
-                    k: v for k, v in node_outputs.items() if k != "loop_history"
-                }
+                node_outputs = {k: v for k, v in node_outputs.items() if k != "loop_history"}
 
             if node_id not in self.loop_outputs:
                 self.loop_outputs[node_id] = [node_outputs]
@@ -64,16 +62,12 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
         iteration_input = {**input, "loop_history": self.loop_outputs}
 
         # Execute the subworkflow
-        self._executor = WorkflowExecutor(
-            workflow=self.config.subworkflow, context=self.context
-        )
+        self._executor = WorkflowExecutor(workflow=self.config.subworkflow, context=self.context)
         workflow_executor = self._executor
         outputs = await workflow_executor.run(iteration_input)
 
         # Convert outputs to dict format
-        iteration_outputs = {
-            node_id: output.model_dump() for node_id, output in outputs.items()
-        }
+        iteration_outputs = {node_id: output.model_dump() for node_id, output in outputs.items()}
 
         # Update loop outputs with this iteration's results
         self._update_loop_outputs(iteration_outputs)
@@ -104,10 +98,7 @@ class BaseLoopSubworkflowNode(BaseSubworkflowNode):
         )
         self.output_model = create_model(
             f"{self.name}",
-            **{
-                name: (field, ...)
-                for name, field in output_node.output_model.model_fields.items()
-            },
+            **{name: (field, ...) for name, field in output_node.output_model.model_fields.items()},
             __base__=BaseLoopSubworkflowNodeOutput,
             __config__=None,
             __module__=self.__module__,

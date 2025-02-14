@@ -3,20 +3,27 @@ import importlib
 import importlib.util
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, Union
-from .base import BaseNode
+
 from loguru import logger
+
+from .base import BaseNode
+
 
 class NodeRegistry:
     _nodes: Dict[str, List[Dict[str, Union[str, Optional[str]]]]] = {}
-    _decorator_registered_classes: Set[Type[BaseNode]] = set()  # Track classes registered via decorator
+    _decorator_registered_classes: Set[Type[BaseNode]] = (
+        set()
+    )  # Track classes registered via decorator
 
     @classmethod
-    def register(cls,
-                category: str = "Uncategorized",
-                display_name: Optional[str] = None,
-                logo: Optional[str] = None,
-                subcategory: Optional[str] = None,
-                position: Optional[Union[int, str]] = None):
+    def register(
+        cls,
+        category: str = "Uncategorized",
+        display_name: Optional[str] = None,
+        logo: Optional[str] = None,
+        subcategory: Optional[str] = None,
+        position: Optional[Union[int, str]] = None,
+    ):
         """
         Decorator to register a node class with metadata.
 
@@ -30,9 +37,10 @@ class NodeRegistry:
                      - "after:NodeName" for relative position after a node
                      - "before:NodeName" for relative position before a node
         """
+
         def decorator(node_class: Type[BaseNode]) -> Type[BaseNode]:
             # Set metadata on the class
-            if not hasattr(node_class, 'category'):
+            if not hasattr(node_class, "category"):
                 node_class.category = category
             if display_name:
                 node_class.display_name = display_name
@@ -41,7 +49,7 @@ class NodeRegistry:
 
             # Store subcategory as class attribute without type checking
             if subcategory:
-                setattr(node_class, 'subcategory', subcategory)
+                setattr(node_class, "subcategory", subcategory)
 
             # Initialize category if not exists
             if category not in cls._nodes:
@@ -50,14 +58,14 @@ class NodeRegistry:
             # Create node registration info
             # Remove 'app.' prefix from module path if present
             module_path = node_class.__module__
-            if module_path.startswith('app.'):
+            if module_path.startswith("app."):
                 module_path = module_path[4:]  # Remove 'app.' prefix
 
             node_info: Dict[str, Union[str, Optional[str]]] = {
                 "node_type_name": node_class.__name__,
                 "module": f".{module_path}",
                 "class_name": node_class.__name__,
-                "subcategory": subcategory
+                "subcategory": subcategory,
             }
 
             # Handle positioning
@@ -93,10 +101,13 @@ class NodeRegistry:
                     cls._decorator_registered_classes.add(node_class)
 
             return node_class
+
         return decorator
 
     @classmethod
-    def get_registered_nodes(cls) -> Dict[str, List[Dict[str, Union[str, Optional[str]]]]]:
+    def get_registered_nodes(
+        cls,
+    ) -> Dict[str, List[Dict[str, Union[str, Optional[str]]]]]:
         """Get all registered nodes."""
         return cls._nodes
 
@@ -108,7 +119,7 @@ class NodeRegistry:
         """
         # Get all Python files in current directory
         for item in base_path.iterdir():
-            if item.is_file() and item.suffix == '.py' and not item.name.startswith('_'):
+            if item.is_file() and item.suffix == ".py" and not item.name.startswith("_"):
                 # Construct module name from package prefix and file name
                 module_name = f"{package_prefix}.{item.stem}"
 
@@ -119,7 +130,7 @@ class NodeRegistry:
                     logger.error(f"Failed to load module {module_name}: {e}")
 
             # Recursively process subdirectories
-            elif item.is_dir() and not item.name.startswith('_'):
+            elif item.is_dir() and not item.name.startswith("_"):
                 subpackage = f"{package_prefix}.{item.name}"
                 cls._discover_in_directory(item, subpackage)
 
@@ -134,7 +145,7 @@ class NodeRegistry:
         """
         try:
             package = importlib.import_module(package_path)
-            if not hasattr(package, '__file__') or package.__file__ is None:
+            if not hasattr(package, "__file__") or package.__file__ is None:
                 raise ImportError(f"Cannot find package {package_path}")
 
             base_path = Path(package.__file__).parent
@@ -143,7 +154,9 @@ class NodeRegistry:
             # Start recursive discovery
             cls._discover_in_directory(base_path, package_path)
 
-            logger.info(f"Node discovery complete. Found {len(cls._decorator_registered_classes)} decorated nodes.")
+            logger.info(
+                f"Node discovery complete. Found {len(cls._decorator_registered_classes)} decorated nodes."
+            )
 
         except ImportError as e:
             logger.error(f"Failed to import base package {package_path}: {e}")

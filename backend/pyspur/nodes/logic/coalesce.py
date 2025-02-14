@@ -1,6 +1,8 @@
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, create_model
-from ..base import BaseNodeConfig, BaseNode, BaseNodeInput, BaseNodeOutput
+
+from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class CoalesceNodeConfig(BaseNodeConfig):

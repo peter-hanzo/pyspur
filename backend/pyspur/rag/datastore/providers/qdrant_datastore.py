@@ -3,6 +3,11 @@ import uuid
 from typing import Dict, List, Optional
 
 import qdrant_client
+from grpc._channel import _InactiveRpcError
+from qdrant_client.http import models as rest
+from qdrant_client.http.exceptions import UnexpectedResponse
+from qdrant_client.http.models import PayloadSchemaType
+
 from ...schemas.document_schemas import (
     DocumentChunkSchema,
     DocumentChunkWithScoreSchema,
@@ -10,13 +15,8 @@ from ...schemas.document_schemas import (
     QueryResultSchema,
     QueryWithEmbeddingSchema,
 )
-from grpc._channel import _InactiveRpcError
-from qdrant_client.http import models as rest
-from qdrant_client.http.exceptions import UnexpectedResponse
-from qdrant_client.http.models import PayloadSchemaType
-from ..services.date import to_unix_timestamp
-
 from ..datastore import DataStore
+from ..services.date import to_unix_timestamp
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost")
 QDRANT_PORT = os.environ.get("QDRANT_PORT", "6333")
@@ -77,9 +77,7 @@ class QdrantDataStore(DataStore):
         """
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
-        search_requests = [
-            self._convert_query_to_search_request(query) for query in queries
-        ]
+        search_requests = [self._convert_query_to_search_request(query) for query in queries]
         results = self._client.search_batch(
             collection_name=self.collection_name,
             requests=search_requests,
@@ -106,16 +104,12 @@ class QdrantDataStore(DataStore):
         Returns whether the operation was successful.
         """
         if ids is None and filter is None and delete_all is None:
-            raise ValueError(
-                "Please provide one of the parameters: ids, filter or delete_all."
-            )
+            raise ValueError("Please provide one of the parameters: ids, filter or delete_all.")
 
         if delete_all:
             points_selector = rest.Filter()
         else:
-            points_selector = self._convert_metadata_filter_to_qdrant_filter(
-                filter, ids
-            )
+            points_selector = self._convert_metadata_filter_to_qdrant_filter(filter, ids)
 
         response = self._client.delete(
             collection_name=self.collection_name,
@@ -193,21 +187,15 @@ class QdrantDataStore(DataStore):
                     continue
 
                 must_conditions.append(
-                    rest.FieldCondition(
-                        key=payload_key, match=rest.MatchValue(value=attr_value)
-                    )
+                    rest.FieldCondition(key=payload_key, match=rest.MatchValue(value=attr_value))
                 )
 
             # Date filters use range filtering
             start_date = metadata_filter.start_date
             end_date = metadata_filter.end_date
             if start_date or end_date:
-                gte_filter = (
-                    to_unix_timestamp(start_date) if start_date is not None else None
-                )
-                lte_filter = (
-                    to_unix_timestamp(end_date) if end_date is not None else None
-                )
+                gte_filter = to_unix_timestamp(start_date) if start_date is not None else None
+                lte_filter = to_unix_timestamp(end_date) if end_date is not None else None
                 must_conditions.append(
                     rest.FieldCondition(
                         key="created_at",
@@ -235,9 +223,7 @@ class QdrantDataStore(DataStore):
             score=scored_point.score,
         )
 
-    def _set_up_collection(
-        self, vector_size: int, distance: str, recreate_collection: bool
-    ):
+    def _set_up_collection(self, vector_size: int, distance: str, recreate_collection: bool):
         distance = rest.Distance[distance.upper()]
 
         if recreate_collection:

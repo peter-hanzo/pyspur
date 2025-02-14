@@ -1,9 +1,16 @@
-from sendgrid import SendGridAPIClient  # type: ignore
-from sendgrid.helpers.mail import Mail, Email, To, Content  # type: ignore
 import json
 import os
 from typing import Any
-from .base import EmailProviderConfig, EmailMessage, EmailResponse, EmailProvider
+
+from sendgrid import SendGridAPIClient  # type: ignore
+from sendgrid.helpers.mail import Content, Email, Mail, To  # type: ignore
+
+from .base import (
+    EmailMessage,
+    EmailProvider,
+    EmailProviderConfig,
+    EmailResponse,
+)
 
 
 class SendGridProvider:

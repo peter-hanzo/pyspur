@@ -12,19 +12,19 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import chromadb
+
 from ...chunker import create_document_chunks
 from ...schemas.document_schemas import (
-    DocumentSchema,
-    DocumentChunkSchema,
+    ChunkingConfigSchema,
     DocumentChunkMetadataSchema,
+    DocumentChunkSchema,
     DocumentChunkWithScoreSchema,
     DocumentMetadataFilterSchema,
+    DocumentSchema,
     QueryResultSchema,
     QueryWithEmbeddingSchema,
     Source,
-    ChunkingConfigSchema,
 )
-
 from ..datastore import DataStore
 
 CHROMA_IN_MEMORY = os.environ.get("CHROMA_IN_MEMORY", "True")
@@ -74,7 +74,9 @@ class ChromaDataStore(DataStore):
         )
 
     async def upsert(
-        self, documents: List[DocumentSchema], chunk_token_size: Optional[int] = None
+        self,
+        documents: List[DocumentSchema],
+        chunk_token_size: Optional[int] = None,
     ) -> List[str]:
         """
         Takes in a list of documents and inserts them into the database. If an id already exists, the document is updated.
@@ -82,7 +84,11 @@ class ChromaDataStore(DataStore):
         """
         chunks = {}
         for doc in documents:
-            config = ChunkingConfigSchema(chunk_token_size=chunk_token_size) if chunk_token_size else ChunkingConfigSchema()
+            config = (
+                ChunkingConfigSchema(chunk_token_size=chunk_token_size)
+                if chunk_token_size
+                else ChunkingConfigSchema()
+            )
             doc_chunks, doc_id = create_document_chunks(doc, config)
             chunks[doc_id] = doc_chunks
 
@@ -97,14 +103,8 @@ class ChromaDataStore(DataStore):
 
         self._collection.upsert(
             ids=[chunk.id for chunk_list in chunks.values() for chunk in chunk_list],
-            embeddings=[
-                chunk.embedding
-                for chunk_list in chunks.values()
-                for chunk in chunk_list
-            ],
-            documents=[
-                chunk.text for chunk_list in chunks.values() for chunk in chunk_list
-            ],
+            embeddings=[chunk.embedding for chunk_list in chunks.values() for chunk in chunk_list],
+            documents=[chunk.text for chunk_list in chunks.values() for chunk in chunk_list],
             metadatas=[
                 self._process_metadata_for_storage(chunk.metadata)
                 for chunk_list in chunks.values()
@@ -125,16 +125,12 @@ class ChromaDataStore(DataStore):
             output["$and"] = [
                 {
                     "created_at": {
-                        "$gte": int(
-                            datetime.fromisoformat(query_filter.start_date).timestamp()
-                        )
+                        "$gte": int(datetime.fromisoformat(query_filter.start_date).timestamp())
                     }
                 },
                 {
                     "created_at": {
-                        "$lte": int(
-                            datetime.fromisoformat(query_filter.end_date).timestamp()
-                        )
+                        "$lte": int(datetime.fromisoformat(query_filter.end_date).timestamp())
                     }
                 },
             ]
@@ -191,9 +187,7 @@ class ChromaDataStore(DataStore):
                 query_embeddings=[query.embedding],
                 include=["documents", "distances", "metadatas"],  # embeddings
                 n_results=min(query.top_k, self._collection.count()),  # type: ignore
-                where=(
-                    self._where_from_query_filter(query.filter) if query.filter else {}
-                ),
+                where=(self._where_from_query_filter(query.filter) if query.filter else {}),
             )
             for query in queries
         ]
@@ -249,7 +243,10 @@ class ChromaDataStore(DataStore):
 
             if filter:
                 where_clause = {
-                    "$and": [self._where_from_query_filter(filter), where_clause]
+                    "$and": [
+                        self._where_from_query_filter(filter),
+                        where_clause,
+                    ]
                 }
         elif filter:
             where_clause = self._where_from_query_filter(filter)

@@ -1,7 +1,14 @@
-import resend
 import json
 import os
-from .base import EmailProviderConfig, EmailMessage, EmailResponse, EmailProvider
+
+import resend
+
+from .base import (
+    EmailMessage,
+    EmailProvider,
+    EmailProviderConfig,
+    EmailResponse,
+)
 
 
 class ResendProvider:

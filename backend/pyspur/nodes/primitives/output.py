@@ -1,12 +1,14 @@
 from typing import Any, Dict
+
 from pydantic import BaseModel, Field, create_model
+
+from ...utils.pydantic_utils import get_nested_field
 from ..base import (
     BaseNode,
     BaseNodeConfig,
-    BaseNodeOutput,
     BaseNodeInput,
+    BaseNodeOutput,
 )
-from ...utils.pydantic_utils import get_nested_field
 
 
 class OutputNodeConfig(BaseNodeConfig):

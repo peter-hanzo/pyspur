@@ -1,8 +1,10 @@
-import logging
-from pydantic import BaseModel, Field  # type: ignore
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from phi.tools.github import GithubTools
 import json
+import logging
+
+from phi.tools.github import GithubTools
+from pydantic import BaseModel, Field  # type: ignore
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class GitHubListPullRequestsNodeInput(BaseNodeInput):
@@ -18,7 +20,8 @@ class GitHubListPullRequestsNodeOutput(BaseNodeOutput):
 
 class GitHubListPullRequestsNodeConfig(BaseNodeConfig):
     repo_name: str = Field(
-        "", description="The GitHub repository URL to fetch the pull requests for."
+        "",
+        description="The GitHub repository URL to fetch the pull requests for.",
     )
     state: str = Field(
         "open",

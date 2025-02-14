@@ -1,8 +1,10 @@
 import json
-from pydantic import BaseModel, Field
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from ....integrations.slack.client import SlackClient
 from enum import Enum
+
+from pydantic import BaseModel, Field
+
+from ....integrations.slack.client import SlackClient
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class ModeEnum(str, Enum):
@@ -19,7 +21,8 @@ class SlackNotifyNodeInput(BaseNodeInput):
 
 class SlackNotifyNodeOutput(BaseNodeOutput):
     status: str = Field(
-        ..., description="Error message if the message was not sent successfully."
+        ...,
+        description="Error message if the message was not sent successfully.",
     )
 
 
@@ -55,5 +58,7 @@ class SlackNotifyNode(BaseNode):
         message = json.dumps(input.model_dump())
 
         client = SlackClient()
-        ok, status = client.send_message(channel=self.config.channel, text=message, mode=self.config.mode)  # type: ignore
+        ok, status = client.send_message(
+            channel=self.config.channel, text=message, mode=self.config.mode
+        )  # type: ignore
         return SlackNotifyNodeOutput(status=status)

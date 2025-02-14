@@ -1,8 +1,10 @@
 import json
 import logging
-from pydantic import BaseModel, Field  # type: ignore
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+
 from phi.tools.github import GithubTools
+from pydantic import BaseModel, Field  # type: ignore
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class GitHubListRepositoriesNodeInput(BaseNodeInput):
@@ -13,9 +15,7 @@ class GitHubListRepositoriesNodeInput(BaseNodeInput):
 
 
 class GitHubListRepositoriesNodeOutput(BaseNodeOutput):
-    repositories: str = Field(
-        ..., description="A JSON string of the repositories for the user."
-    )
+    repositories: str = Field(..., description="A JSON string of the repositories for the user.")
 
 
 class GitHubListRepositoriesNodeConfig(BaseNodeConfig):

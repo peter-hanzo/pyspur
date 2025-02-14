@@ -1,8 +1,10 @@
 import json
 import logging
-from pydantic import BaseModel, Field  # type: ignore
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+
 from phi.tools.github import GithubTools
+from pydantic import BaseModel, Field  # type: ignore
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class GitHubGetPullRequestNodeInput(BaseNodeInput):
@@ -17,10 +19,9 @@ class GitHubGetPullRequestNodeOutput(BaseNodeOutput):
         ..., description="Details of the requested pull request in JSON format."
     )
 
+
 class GitHubGetPullRequestNodeConfig(BaseNodeConfig):
-    repo_name: str = Field(
-        "", description="The full name of the repository (e.g. 'owner/repo')."
-    )
+    repo_name: str = Field("", description="The full name of the repository (e.g. 'owner/repo').")
     pr_number: str = Field("", description="The pull request number.")
     has_fixed_output: bool = True
     output_json_schema: str = Field(
@@ -43,7 +44,8 @@ class GitHubGetPullRequestNode(BaseNode):
         try:
             gh = GithubTools()
             pr_details = gh.get_pull_request(
-                repo_name=self.config.repo_name, pr_number=int(self.config.pr_number)
+                repo_name=self.config.repo_name,
+                pr_number=int(self.config.pr_number),
             )
             return GitHubGetPullRequestNodeOutput(pull_request=pr_details)
         except Exception as e:

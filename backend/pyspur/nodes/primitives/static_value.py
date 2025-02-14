@@ -41,8 +41,6 @@ class StaticValueNode(BaseNode):
 if __name__ == "__main__":
     import asyncio
 
-    constant_value_node = StaticValueNode(
-        StaticValueNodeConfig(values={"key": "value"})
-    )
+    constant_value_node = StaticValueNode(StaticValueNodeConfig(values={"key": "value"}))
     output = asyncio.run(constant_value_node(BaseModel()))
     print(output)

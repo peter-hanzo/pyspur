@@ -1,16 +1,15 @@
 import logging
 from enum import Enum
-from typing import Dict, List, Optional, Callable, Any, TypeAlias, Union
+from typing import Any, Callable, Dict, List, Optional, TypeAlias, Union
+
 import numpy as np
 import numpy.typing as npt
 from litellm import aembedding
 from litellm.types.utils import EmbeddingResponse
-
 from pydantic import BaseModel, Field
 from tenacity import stop_after_attempt, wait_random_exponential
 
 from ..nodes.llm._utils import async_retry
-
 
 EmbeddingArray: TypeAlias = npt.NDArray[np.float32]
 EmbeddingData = Dict[str, List[float]]

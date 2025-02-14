@@ -1,17 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends
-from pathlib import Path
 import json
+from pathlib import Path
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-
 from ..schemas.workflow_schemas import (
-    WorkflowResponseSchema,
     WorkflowCreateRequestSchema,
+    WorkflowResponseSchema,
 )
 from .workflow_management import create_workflow
-from typing import List
-from pydantic import BaseModel
 
 
 class TemplateSchema(BaseModel):
@@ -29,7 +29,9 @@ print(f"TEMPLATES_DIR resolved to: {TEMPLATES_DIR.resolve()}")
 
 
 @router.get(
-    "/", description="List all available templates", response_model=List[TemplateSchema]
+    "/",
+    description="List all available templates",
+    response_model=List[TemplateSchema],
 )
 def list_templates() -> List[TemplateSchema]:
     if not TEMPLATES_DIR.exists():
@@ -37,7 +39,9 @@ def list_templates() -> List[TemplateSchema]:
 
     # Sort by creation time in descending (most recent first)
     sorted_template_files = sorted(
-        TEMPLATES_DIR.glob("*.json"), key=lambda p: p.stat().st_ctime, reverse=True
+        TEMPLATES_DIR.glob("*.json"),
+        key=lambda p: p.stat().st_ctime,
+        reverse=True,
     )
 
     templates: List[TemplateSchema] = []

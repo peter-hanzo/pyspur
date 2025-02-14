@@ -1,15 +1,15 @@
 import os
-from typing import List
-from fastapi import Depends, HTTPException, UploadFile, File
-from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+from typing import List
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
 from ..database import get_db
 from ..models.dataset_model import DatasetModel
 from ..models.run_model import RunModel
 from ..schemas.dataset_schemas import DatasetResponseSchema
 from ..schemas.run_schemas import RunResponseSchema
-
-from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -17,9 +17,7 @@ router = APIRouter()
 def save_file(file: UploadFile) -> str:
     filename = file.filename
     assert filename is not None
-    file_location = os.path.join(
-        os.path.dirname(__file__), "..", "..", "datasets", filename
-    )
+    file_location = os.path.join(os.path.dirname(__file__), "..", "..", "datasets", filename)
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
     return file_location
@@ -53,7 +51,9 @@ def upload_dataset(
 
 
 @router.get(
-    "/", response_model=List[DatasetResponseSchema], description="List all datasets"
+    "/",
+    response_model=List[DatasetResponseSchema],
+    description="List all datasets",
 )
 def list_datasets(db: Session = Depends(get_db)) -> List[DatasetResponseSchema]:
     datasets = db.query(DatasetModel).all()
@@ -76,9 +76,7 @@ def list_datasets(db: Session = Depends(get_db)) -> List[DatasetResponseSchema]:
     response_model=DatasetResponseSchema,
     description="Get a dataset by ID",
 )
-def get_dataset(
-    dataset_id: str, db: Session = Depends(get_db)
-) -> DatasetResponseSchema:
+def get_dataset(dataset_id: str, db: Session = Depends(get_db)) -> DatasetResponseSchema:
     dataset = db.query(DatasetModel).filter(DatasetModel.id == dataset_id).first()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")

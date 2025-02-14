@@ -1,33 +1,35 @@
 import asyncio
-import os
-import json
 import base64
 import hashlib
+import json
+import os
 import re
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
-from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from pathlib import Path  # Import Path for directory handling
-from typing import Awaitable, Dict, Any, List, Optional
+from typing import Any, Awaitable, Dict, List, Optional
 
-from ..schemas.run_schemas import (
-    StartRunRequestSchema,
-    RunResponseSchema,
-    PartialRunRequestSchema,
-    BatchRunRequestSchema,
-)
-from ..schemas.workflow_schemas import WorkflowDefinitionSchema
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
 from ..database import get_db
-from ..models.workflow_model import WorkflowModel as WorkflowModel
-from ..models.run_model import RunModel as RunModel, RunStatus
-from ..models.task_model import TaskStatus
+from ..dataset.ds_util import get_ds_column_names, get_ds_iterator
+from ..execution.task_recorder import TaskRecorder
+from ..execution.workflow_execution_context import WorkflowExecutionContext
+from ..execution.workflow_executor import WorkflowExecutor
 from ..models.dataset_model import DatasetModel
 from ..models.output_file_model import OutputFileModel
-from ..execution.workflow_executor import WorkflowExecutor
-from ..dataset.ds_util import get_ds_iterator, get_ds_column_names
-from ..execution.task_recorder import TaskRecorder
+from ..models.run_model import RunModel as RunModel
+from ..models.run_model import RunStatus
+from ..models.task_model import TaskStatus
+from ..models.workflow_model import WorkflowModel as WorkflowModel
+from ..schemas.run_schemas import (
+    BatchRunRequestSchema,
+    PartialRunRequestSchema,
+    RunResponseSchema,
+    StartRunRequestSchema,
+)
+from ..schemas.workflow_schemas import WorkflowDefinitionSchema
 from ..utils.workflow_version_utils import fetch_workflow_version
-from ..execution.workflow_execution_context import WorkflowExecutionContext
 
 router = APIRouter()
 
@@ -99,9 +101,7 @@ async def run_workflow_blocking(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(
-        workflow_version.definition
-    )
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
 
     initial_inputs = request.initial_inputs or {}
 
@@ -135,9 +135,7 @@ async def run_workflow_blocking(
         task_recorder=task_recorder,
         context=context,
     )
-    input_node = next(
-        node for node in workflow_definition.nodes if node.node_type == "InputNode"
-    )
+    input_node = next(node for node in workflow_definition.nodes if node.node_type == "InputNode")
     outputs = await executor(initial_inputs[input_node.id])
     new_run.status = RunStatus.COMPLETED
     new_run.end_time = datetime.now(timezone.utc)
@@ -163,9 +161,7 @@ async def run_workflow_non_blocking(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(
-        workflow_version.definition
-    )
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
 
     initial_inputs = start_run_request.initial_inputs or {}
 
@@ -181,9 +177,7 @@ async def run_workflow_non_blocking(
         db,
     )
 
-    async def run_workflow_task(
-        run_id: str, workflow_definition: WorkflowDefinitionSchema
-    ):
+    async def run_workflow_task(run_id: str, workflow_definition: WorkflowDefinitionSchema):
         with next(get_db()) as session:
             run = session.query(RunModel).filter(RunModel.id == run_id).first()
             if not run:
@@ -207,9 +201,7 @@ async def run_workflow_non_blocking(
             try:
                 assert run.initial_inputs
                 input_node = next(
-                    node
-                    for node in workflow_definition.nodes
-                    if node.node_type == "InputNode"
+                    node for node in workflow_definition.nodes if node.node_type == "InputNode"
                 )
                 outputs = await executor(run.initial_inputs[input_node.id])
                 run.outputs = {k: v.model_dump() for k, v in outputs.items()}
@@ -233,16 +225,16 @@ async def run_workflow_non_blocking(
     description="Run a partial workflow and return the outputs",
 )
 async def run_partial_workflow(
-    workflow_id: str, request: PartialRunRequestSchema, db: Session = Depends(get_db)
+    workflow_id: str,
+    request: PartialRunRequestSchema,
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
     executor = WorkflowExecutor(workflow_definition)
-    input_node = next(
-        node for node in workflow_definition.nodes if node.node_type == "InputNode"
-    )
+    input_node = next(node for node in workflow_definition.nodes if node.node_type == "InputNode")
     initial_inputs = request.initial_inputs or {}
     try:
         outputs = await executor.run(
@@ -273,9 +265,7 @@ async def batch_run_workflow_non_blocking(
     workflow_version = fetch_workflow_version(workflow_id, workflow, db)
 
     dataset_id = request.dataset_id
-    new_run = await create_run_model(
-        workflow_id, workflow_version.id, {}, None, "batch", db
-    )
+    new_run = await create_run_model(workflow_id, workflow_version.id, {}, None, "batch", db)
 
     # parse the dataset
     dataset = db.query(DatasetModel).filter(DatasetModel.id == dataset_id).first()
@@ -284,12 +274,8 @@ async def batch_run_workflow_non_blocking(
 
     # ensure ds columns match workflow inputs
     dataset_columns = get_ds_column_names(dataset.file_path)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(
-        workflow_version.definition
-    )
-    input_node = next(
-        node for node in workflow_definition.nodes if node.node_type == "InputNode"
-    )
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
+    input_node = next(node for node in workflow_definition.nodes if node.node_type == "InputNode")
     input_node_id = input_node.id
     workflow_input_schema: Dict[str, str] = input_node.config["input_schema"]
     for col in workflow_input_schema.keys():
@@ -331,9 +317,7 @@ async def batch_run_workflow_non_blocking(
         batch_count = 0
         for inputs in ds_iter:
             initial_inputs = {
-                input_node_id: {
-                    k: v for k, v in inputs.items() if k in workflow_input_schema
-                }
+                input_node_id: {k: v for k, v in inputs.items() if k in workflow_input_schema}
             }
             single_input_run_task = run_workflow_blocking(
                 workflow_id=workflow_id,
@@ -351,8 +335,7 @@ async def batch_run_workflow_non_blocking(
                 with open(output_file_path, "a") as output_file:
                     for output in minibatch_results:
                         output = {
-                            node_id: output.model_dump()
-                            for node_id, output in output.items()
+                            node_id: output.model_dump() for node_id, output in output.items()
                         }
                         output_file.write(json.dumps(output) + "\n")
 
@@ -360,10 +343,7 @@ async def batch_run_workflow_non_blocking(
             results = await asyncio.gather(*current_batch)
             with open(output_file_path, "a") as output_file:
                 for output in results:
-                    output = {
-                        node_id: output.model_dump()
-                        for node_id, output in output.items()
-                    }
+                    output = {node_id: output.model_dump() for node_id, output in output.items()}
                     output_file.write(json.dumps(output) + "\n")
 
         with next(get_db()) as session:
@@ -416,9 +396,7 @@ def list_runs(
     # Update run status based on task status
     for run in runs:
         if run.status != RunStatus.FAILED:
-            failed_tasks = [
-                task for task in run.tasks if task.status == TaskStatus.FAILED
-            ]
+            failed_tasks = [task for task in run.tasks if task.status == TaskStatus.FAILED]
             running_and_pending_tasks = [
                 task
                 for task in run.tasks

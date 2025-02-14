@@ -1,14 +1,16 @@
 from typing import Any, Dict, List
+
 from fastapi import APIRouter
+
 from ..nodes.factory import NodeFactory
 from ..nodes.llm._utils import LLMModels
-
 
 router = APIRouter()
 
 
 @router.get(
-    "/supported_types/", description="Get the schemas for all available node types"
+    "/supported_types/",
+    description="Get the schemas for all available node types",
 )
 async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -34,9 +36,7 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
             # Get the config schema and update its title with the display name
             config_schema = node_class.config_model.model_json_schema()
             config_schema["title"] = node_type.display_name
-            has_fixed_output = node_class.config_model.model_fields[
-                "has_fixed_output"
-            ].default
+            has_fixed_output = node_class.config_model.model_fields["has_fixed_output"].default
 
             node_schema: Dict[str, Any] = {
                 "name": node_type.node_type_name,
@@ -53,9 +53,7 @@ async def get_node_types() -> Dict[str, List[Dict[str, Any]]]:
                 for model_enum in LLMModels:
                     model_info = LLMModels.get_model_info(model_enum.value)
                     if model_info:
-                        model_constraints[model_enum.value] = (
-                            model_info.constraints.model_dump()
-                        )
+                        model_constraints[model_enum.value] = model_info.constraints.model_dump()
                 node_schema["model_constraints"] = model_constraints
 
             # Add the logo if available

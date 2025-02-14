@@ -1,10 +1,13 @@
 import json
 import logging
+
 from pydantic import BaseModel, Field  # type: ignore
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+
 from firecrawl import FirecrawlApp  # type: ignore
-from ...utils.template_utils import render_template_or_get_first_string
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ...registry import NodeRegistry
+from ...utils.template_utils import render_template_or_get_first_string
 
 
 class FirecrawlScrapeNodeInput(BaseNodeInput):
@@ -15,9 +18,7 @@ class FirecrawlScrapeNodeInput(BaseNodeInput):
 
 
 class FirecrawlScrapeNodeOutput(BaseNodeOutput):
-    markdown: str = Field(
-        ..., description="The scraped data in markdown format."
-    )
+    markdown: str = Field(..., description="The scraped data in markdown format.")
 
 
 class FirecrawlScrapeNodeConfig(BaseNodeConfig):
@@ -28,7 +29,7 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(FirecrawlScrapeNodeOutput.model_json_schema()),
-        description="The JSON schema for the output of the node"
+        description="The JSON schema for the output of the node",
     )
 
 
@@ -37,7 +38,7 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
     display_name="Firecrawl Scrape",
     logo="/images/firecrawl.png",
     subcategory="Web Scraping",
-    position="after:FirecrawlCrawlNode"
+    position="after:FirecrawlCrawlNode",
 )
 class FirecrawlScrapeNode(BaseNode):
     name = "firecrawl_scrape_node"

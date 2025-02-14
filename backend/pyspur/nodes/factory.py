@@ -3,13 +3,12 @@ from typing import Any, Dict, List
 
 from ..schemas.node_type_schemas import NodeTypeSchema
 from .base import BaseNode
-from .registry import NodeRegistry
-
 from .node_types import (
     SUPPORTED_NODE_TYPES,
     get_all_node_types,
     is_valid_node_type,
 )
+from .registry import NodeRegistry
 
 
 class NodeFactory:

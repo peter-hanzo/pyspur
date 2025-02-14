@@ -1,12 +1,13 @@
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, create_model
 
-from ..base import BaseNodeConfig, BaseNode, BaseNodeInput, BaseNodeOutput
 from ...schemas.router_schemas import (
-    RouteConditionRuleSchema,
-    RouteConditionGroupSchema,
     ComparisonOperator,
+    RouteConditionGroupSchema,
+    RouteConditionRuleSchema,
 )
+from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class RouterNodeConfig(BaseNodeConfig):
@@ -171,8 +172,9 @@ class RouterNode(BaseNode):
 
 if __name__ == "__main__":
     # Test the RouterNode
-    from pydantic import BaseModel
     import asyncio
+
+    from pydantic import BaseModel
 
     class TestInput(RouterNodeInput):
         name: str
@@ -199,7 +201,9 @@ if __name__ == "__main__":
             "route2": RouteConditionGroupSchema(
                 conditions=[
                     RouteConditionRuleSchema(
-                        variable="grade", operator=ComparisonOperator.EQUALS, value="A"
+                        variable="grade",
+                        operator=ComparisonOperator.EQUALS,
+                        value="A",
                     ),
                 ]
             ),

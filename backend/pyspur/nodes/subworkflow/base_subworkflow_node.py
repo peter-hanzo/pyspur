@@ -1,12 +1,13 @@
 from abc import ABC
 from typing import Any, Dict, Optional, Set
 
-from pydantic import BaseModel, Field
 from jinja2 import Template
-from ...schemas.workflow_schemas import WorkflowNodeSchema
-from ..base import BaseNode, BaseNodeConfig
+from pydantic import BaseModel, Field
+
 from ...execution.workflow_executor import WorkflowExecutor
+from ...schemas.workflow_schemas import WorkflowNodeSchema
 from ...utils.pydantic_utils import get_nested_field
+from ..base import BaseNode, BaseNodeConfig
 
 
 class BaseSubworkflowNodeConfig(BaseNodeConfig):
@@ -37,9 +38,7 @@ class BaseSubworkflowNode(BaseNode, ABC):
 
     def _build_dependencies(self) -> Dict[str, Set[str]]:
         assert self.subworkflow is not None
-        dependencies: Dict[str, Set[str]] = {
-            node.id: set() for node in self.subworkflow.nodes
-        }
+        dependencies: Dict[str, Set[str]] = {node.id: set() for node in self.subworkflow.nodes}
         for link in self.subworkflow.links:
             dependencies[link.target_id].add(link.source_id)
         return dependencies
@@ -48,7 +47,10 @@ class BaseSubworkflowNode(BaseNode, ABC):
         if self.config.input_map == {} or self.config.input_map is None:
             return input.model_dump()
         mapped_input: Dict[str, Any] = {}
-        for subworkflow_input_field, input_var_path in self.config.input_map.items():
+        for (
+            subworkflow_input_field,
+            input_var_path,
+        ) in self.config.input_map.items():
             input_var = get_nested_field(input_var_path, input)
             mapped_input[subworkflow_input_field] = input_var
         return mapped_input
@@ -77,9 +79,7 @@ class BaseSubworkflowNode(BaseNode, ABC):
         if self.subworkflow_output is None:
             self.subworkflow_output = {}
         mapped_input = self._map_input(input)
-        workflow_executor = WorkflowExecutor(
-            workflow=self.subworkflow, context=self.context
-        )
+        workflow_executor = WorkflowExecutor(workflow=self.subworkflow, context=self.context)
         outputs = await workflow_executor.run(
             mapped_input, precomputed_outputs=self.subworkflow_output
         )

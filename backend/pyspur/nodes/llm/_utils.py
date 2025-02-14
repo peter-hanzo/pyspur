@@ -5,9 +5,9 @@ import logging
 import os
 import re
 from typing import Any, Callable, Dict, List, Optional
-from docx2python import docx2python
 
 import litellm
+from docx2python import docx2python
 from dotenv import load_dotenv
 from litellm import acompletion
 from ollama import AsyncClient
@@ -15,11 +15,10 @@ from pydantic import BaseModel, Field
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
 
 from ...utils.file_utils import encode_file_to_base64_data_url
-from ...utils.path_utils import resolve_file_path, is_external_url
 from ...utils.mime_types_utils import get_mime_type_for_url
-
-from ._providers import OllamaOptions, setup_azure_configuration
+from ...utils.path_utils import is_external_url, resolve_file_path
 from ._model_info import LLMModels
+from ._providers import OllamaOptions, setup_azure_configuration
 
 # uncomment for debugging litellm issues
 # litellm.set_verbose=True
@@ -45,9 +44,7 @@ if os.getenv("AZURE_OPENAI_API_KEY"):
 
 
 class ModelInfo(BaseModel):
-    model: LLMModels = Field(
-        LLMModels.GPT_4O, description="The LLM model to use for completion"
-    )
+    model: LLMModels = Field(LLMModels.GPT_4O, description="The LLM model to use for completion")
     max_tokens: Optional[int] = Field(
         ...,
         ge=1,
@@ -93,7 +90,10 @@ def create_messages_with_images(
     history: Optional[List[Dict]] = None,
 ) -> List[Dict[str, str]]:
     messages = [
-        {"role": "system", "content": [{"type": "text", "text": system_message}]}
+        {
+            "role": "system",
+            "content": [{"type": "text", "text": system_message}],
+        }
     ]
     if few_shot_examples:
         for example in few_shot_examples:
@@ -107,7 +107,10 @@ def create_messages_with_images(
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image_url", "image_url": {"url": example["img"]}}
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": example["img"]},
+                        }
                     ],
                 }
             )
@@ -197,9 +200,7 @@ async def completion_with_backoff(**kwargs) -> str:
         logging.error(f"Error type: {type(e).__name__}")
         logging.error(f"Error message: {str(e)}")
         if hasattr(e, "response"):
-            logging.error(
-                f"Response status: {getattr(e.response, 'status_code', 'N/A')}"
-            )
+            logging.error(f"Response status: {getattr(e.response, 'status_code', 'N/A')}")
             logging.error(f"Response body: {getattr(e.response, 'text', 'N/A')}")
         raise e
 
@@ -273,10 +274,7 @@ async def generate_text(
             if litellm.supports_response_schema(
                 model=model_name, custom_llm_provider=model_info.provider
             ) or model_name.startswith("anthropic"):
-                if (
-                    "name" not in output_json_schema
-                    and "schema" not in output_json_schema
-                ):
+                if "name" not in output_json_schema and "schema" not in output_json_schema:
                     output_json_schema = {
                         "schema": output_json_schema,
                         "strict": True,
@@ -330,7 +328,10 @@ async def generate_text(
                             # Check if the URL is a base64 data URL
                             if is_external_url(url) or url.startswith("data:"):
                                 content.append(
-                                    {"type": "image_url", "image_url": {"url": url}}
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {"url": url},
+                                    }
                                 )
                             else:
                                 # For file paths, encode the file with appropriate MIME type
@@ -342,15 +343,11 @@ async def generate_text(
                                     # Check if file is a DOCX file
                                     if str(file_path).lower().endswith(".docx"):
                                         # Convert DOCX to XML
-                                        xml_content = convert_docx_to_xml(
-                                            str(file_path)
-                                        )
+                                        xml_content = convert_docx_to_xml(str(file_path))
                                         # Encode the XML content directly
                                         data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
                                     else:
-                                        data_url = encode_file_to_base64_data_url(
-                                            str(file_path)
-                                        )
+                                        data_url = encode_file_to_base64_data_url(str(file_path))
 
                                     content.append(
                                         {
@@ -379,9 +376,7 @@ async def generate_text(
         # Check for provider-specific fields
         if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
             if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
-                provider_fields = raw_response.choices[
-                    0
-                ].message.provider_specific_fields
+                provider_fields = raw_response.choices[0].message.provider_specific_fields
                 return json.dumps(
                     {
                         "output": sanitized_response,
@@ -414,9 +409,7 @@ async def generate_text(
             # Check for provider-specific fields
             if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
                 if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
-                    provider_fields = raw_response.choices[
-                        0
-                    ].message.provider_specific_fields
+                    provider_fields = raw_response.choices[0].message.provider_specific_fields
                     return json.dumps(
                         {
                             "output": sanitized_response,
@@ -429,7 +422,7 @@ async def generate_text(
 
 
 def convert_output_schema_to_json_schema(
-    output_schema: Dict[str, Any]
+    output_schema: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Convert a simple output schema to a JSON schema.

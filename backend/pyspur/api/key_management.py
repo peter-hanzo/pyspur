@@ -1,10 +1,12 @@
+import os
+from typing import Dict, List, Optional
+
+from dotenv import dotenv_values, load_dotenv, set_key, unset_key
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, List
-from dotenv import load_dotenv, set_key, unset_key, dotenv_values
-import os
-from ..rag.embedder import EmbeddingModels, EmbeddingModelConfig
-from ..rag.datastore.factory import get_vector_stores, VectorStoreConfig
+
+from ..rag.datastore.factory import VectorStoreConfig, get_vector_stores
+from ..rag.embedder import EmbeddingModelConfig, EmbeddingModels
 
 # Load existing environment variables from the .env file
 load_dotenv(".env")
@@ -48,8 +50,16 @@ PROVIDER_CONFIGS = [
         icon="azure",
         parameters=[
             ProviderParameter(name="AZURE_OPENAI_API_KEY", description="Azure OpenAI API Key"),
-            ProviderParameter(name="AZURE_OPENAI_ENDPOINT", description="Azure OpenAI Endpoint URL", type="text"),
-            ProviderParameter(name="AZURE_OPENAI_API_VERSION", description="API Version (e.g. 2023-05-15)", type="text"),
+            ProviderParameter(
+                name="AZURE_OPENAI_ENDPOINT",
+                description="Azure OpenAI Endpoint URL",
+                type="text",
+            ),
+            ProviderParameter(
+                name="AZURE_OPENAI_API_VERSION",
+                description="API Version (e.g. 2023-05-15)",
+                type="text",
+            ),
         ],
     ),
     ProviderConfig(
@@ -121,8 +131,16 @@ PROVIDER_CONFIGS = [
         icon="pinecone",
         parameters=[
             ProviderParameter(name="PINECONE_API_KEY", description="Pinecone API Key"),
-            ProviderParameter(name="PINECONE_ENVIRONMENT", description="Pinecone Environment", type="text"),
-            ProviderParameter(name="PINECONE_INDEX", description="Pinecone Index Name", type="text"),
+            ProviderParameter(
+                name="PINECONE_ENVIRONMENT",
+                description="Pinecone Environment",
+                type="text",
+            ),
+            ProviderParameter(
+                name="PINECONE_INDEX",
+                description="Pinecone Index Name",
+                type="text",
+            ),
         ],
     ),
     ProviderConfig(
@@ -133,7 +151,11 @@ PROVIDER_CONFIGS = [
         icon="weaviate",
         parameters=[
             ProviderParameter(name="WEAVIATE_API_KEY", description="Weaviate API Key"),
-            ProviderParameter(name="WEAVIATE_URL", description="Weaviate Instance URL", type="text"),
+            ProviderParameter(
+                name="WEAVIATE_URL",
+                description="Weaviate Instance URL",
+                type="text",
+            ),
         ],
     ),
     ProviderConfig(
@@ -144,7 +166,11 @@ PROVIDER_CONFIGS = [
         icon="qdrant",
         parameters=[
             ProviderParameter(name="QDRANT_API_KEY", description="Qdrant API Key"),
-            ProviderParameter(name="QDRANT_URL", description="Qdrant Instance URL", type="text"),
+            ProviderParameter(
+                name="QDRANT_URL",
+                description="Qdrant Instance URL",
+                type="text",
+            ),
         ],
     ),
     ProviderConfig(
@@ -154,11 +180,31 @@ PROVIDER_CONFIGS = [
         category="vectorstore",
         icon="chroma",
         parameters=[
-            ProviderParameter(name="CHROMA_IN_MEMORY", description="Run Chroma in memory", type="text"),
-            ProviderParameter(name="CHROMA_PERSISTENCE_DIR", description="Directory for Chroma persistence", type="text"),
-            ProviderParameter(name="CHROMA_HOST", description="Chroma server host", type="text"),
-            ProviderParameter(name="CHROMA_PORT", description="Chroma server port", type="text"),
-            ProviderParameter(name="CHROMA_COLLECTION", description="Chroma collection name", type="text"),
+            ProviderParameter(
+                name="CHROMA_IN_MEMORY",
+                description="Run Chroma in memory",
+                type="text",
+            ),
+            ProviderParameter(
+                name="CHROMA_PERSISTENCE_DIR",
+                description="Directory for Chroma persistence",
+                type="text",
+            ),
+            ProviderParameter(
+                name="CHROMA_HOST",
+                description="Chroma server host",
+                type="text",
+            ),
+            ProviderParameter(
+                name="CHROMA_PORT",
+                description="Chroma server port",
+                type="text",
+            ),
+            ProviderParameter(
+                name="CHROMA_COLLECTION",
+                description="Chroma collection name",
+                type="text",
+            ),
         ],
     ),
     ProviderConfig(
@@ -168,9 +214,23 @@ PROVIDER_CONFIGS = [
         category="vectorstore",
         icon="supabase",
         parameters=[
-            ProviderParameter(name="SUPABASE_URL", description="Supabase Project URL", type="text"),
-            ProviderParameter(name="SUPABASE_ANON_KEY", description="Supabase Anonymous Key", type="password", required=False),
-            ProviderParameter(name="SUPABASE_SERVICE_ROLE_KEY", description="Supabase Service Role Key", type="password", required=False),
+            ProviderParameter(
+                name="SUPABASE_URL",
+                description="Supabase Project URL",
+                type="text",
+            ),
+            ProviderParameter(
+                name="SUPABASE_ANON_KEY",
+                description="Supabase Anonymous Key",
+                type="password",
+                required=False,
+            ),
+            ProviderParameter(
+                name="SUPABASE_SERVICE_ROLE_KEY",
+                description="Supabase Service Role Key",
+                type="password",
+                required=False,
+            ),
         ],
     ),
     # Add Firecrawl Provider
@@ -193,16 +253,18 @@ PROVIDER_CONFIGS = [
         icon="logos:slack-icon",
         parameters=[
             ProviderParameter(name="SLACK_BOT_TOKEN", description="Slack Bot User OAuth Token"),
-            ProviderParameter(name="SLACK_USER_TOKEN", description="Slack User OAuth Token", required=False),
+            ProviderParameter(
+                name="SLACK_USER_TOKEN",
+                description="Slack User OAuth Token",
+                required=False,
+            ),
         ],
     ),
 ]
 
 # For backward compatibility, create a flat list of all parameter names
 MODEL_PROVIDER_KEYS = [
-    {"name": param.name, "value": ""}
-    for config in PROVIDER_CONFIGS
-    for param in config.parameters
+    {"name": param.name, "value": ""} for config in PROVIDER_CONFIGS for param in config.parameters
 ]
 
 
@@ -248,9 +310,7 @@ def mask_key_value(value: str, param_type: str = "password") -> str:
         return "*" * len(value)
     else:
         return (
-            value[:visible_chars]
-            + "*" * (len(value) - visible_chars * 2)
-            + value[-visible_chars:]
+            value[:visible_chars] + "*" * (len(value) - visible_chars * 2) + value[-visible_chars:]
         )
 
 
@@ -269,7 +329,8 @@ async def list_api_keys():
 
 
 @router.get(
-    "/{name}", description="Get the masked value of a specific environment variable"
+    "/{name}",
+    description="Get the masked value of a specific environment variable",
 )
 async def get_api_key(name: str):
     """
@@ -320,6 +381,7 @@ async def delete_api_key(name: str):
     delete_env_variable(name)
     return {"message": f"Key '{name}' deleted successfully"}
 
+
 @router.get("/embedding-models/", response_model=Dict[str, EmbeddingModelConfig])
 async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
     """Get all available embedding models and their configurations."""
@@ -331,11 +393,13 @@ async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
                 # Find the corresponding provider config
                 provider_config = next(
                     (p for p in PROVIDER_CONFIGS if p.id == model_info.provider.value.lower()),
-                    None
+                    None,
                 )
                 if provider_config:
                     # Add required environment variables from the provider config
-                    model_info.required_env_vars = [p.name for p in provider_config.parameters if p.required]
+                    model_info.required_env_vars = [
+                        p.name for p in provider_config.parameters if p.required
+                    ]
                 models[model.value] = model_info
         return models
     except Exception as e:
@@ -349,10 +413,7 @@ async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
         stores = get_vector_stores()
         # Add required environment variables from provider configs
         for store_id, store in stores.items():
-            provider_config = next(
-                (p for p in PROVIDER_CONFIGS if p.id == store_id),
-                None
-            )
+            provider_config = next((p for p in PROVIDER_CONFIGS if p.id == store_id), None)
             if provider_config:
                 store.required_env_vars = [p.name for p in provider_config.parameters if p.required]
         return stores

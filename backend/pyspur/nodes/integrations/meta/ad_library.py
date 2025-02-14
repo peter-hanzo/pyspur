@@ -1,7 +1,8 @@
-import logging
 import json
-import requests
+import logging
 from typing import List, Optional
+
+import requests
 from pydantic import BaseModel, Field
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
@@ -9,36 +10,28 @@ from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 class FacebookAdLibraryNodeInput(BaseNodeInput):
     """Input for the FacebookAdLibrary node"""
+
     class Config:
         extra = "allow"
 
 
 class FacebookAdLibraryNodeOutput(BaseNodeOutput):
-    ads: str = Field(
-        ..., description="JSON string containing the retrieved ad data"
-    )
+    ads: str = Field(..., description="JSON string containing the retrieved ad data")
 
 
 class FacebookAdLibraryNodeConfig(BaseNodeConfig):
-    access_token: str = Field(
-        "", description="Meta API access token for authentication"
-    )
-    profile_url: str = Field(
-        "", description="Facebook profile URL to search ads for"
-    )
+    access_token: str = Field("", description="Meta API access token for authentication")
+    profile_url: str = Field("", description="Facebook profile URL to search ads for")
     country_code: str = Field(
-        "US", description="Two-letter country code for ad search (e.g., US, GB, DE)"
+        "US",
+        description="Two-letter country code for ad search (e.g., US, GB, DE)",
     )
-    media_type: str = Field(
-        "ALL", description="Type of media to search for (ALL, IMAGE, VIDEO)"
-    )
+    media_type: str = Field("ALL", description="Type of media to search for (ALL, IMAGE, VIDEO)")
     platforms: List[str] = Field(
         default=["FACEBOOK", "INSTAGRAM"],
-        description="Platforms to search ads on (FACEBOOK, INSTAGRAM)"
+        description="Platforms to search ads on (FACEBOOK, INSTAGRAM)",
     )
-    max_ads: int = Field(
-        100, description="Maximum number of ads to retrieve (max 500)"
-    )
+    max_ads: int = Field(100, description="Maximum number of ads to retrieve (max 500)")
     ad_active_status: str = Field(
         "ACTIVE", description="Filter by ad status (ACTIVE, INACTIVE, ALL)"
     )
@@ -54,14 +47,14 @@ class FacebookAdLibraryNodeConfig(BaseNodeConfig):
             "page_name",
             "publisher_platforms",
             "spend",
-            "impressions"
+            "impressions",
         ],
-        description="Fields to retrieve from the Ad Library API"
+        description="Fields to retrieve from the Ad Library API",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(FacebookAdLibraryNodeOutput.model_json_schema()),
-        description="The JSON schema for the output of the node"
+        description="The JSON schema for the output of the node",
     )
 
     def __init__(self, **data):
@@ -106,7 +99,7 @@ class FacebookAdLibraryNode(BaseNode):
                 "limit": min(500, self.config.max_ads),  # API limit is 500
                 "fields": ",".join(self.config.fields),
                 "ad_type": self.config.media_type,
-                "publisher_platforms": ",".join(self.config.platforms)
+                "publisher_platforms": ",".join(self.config.platforms),
             }
 
             response = requests.get(base_url, params=params)
@@ -118,11 +111,9 @@ class FacebookAdLibraryNode(BaseNode):
             # Format and return the results
             ads_data = data.get("data", [])
             if len(ads_data) > self.config.max_ads:
-                ads_data = ads_data[:self.config.max_ads]
+                ads_data = ads_data[: self.config.max_ads]
 
-            return FacebookAdLibraryNodeOutput(
-                ads=json.dumps(ads_data)
-            )
+            return FacebookAdLibraryNodeOutput(ads=json.dumps(ads_data))
 
         except Exception as e:
             logging.error(f"Failed to retrieve Facebook ads: {str(e)}")

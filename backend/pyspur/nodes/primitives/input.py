@@ -1,10 +1,12 @@
 from typing import Any, Dict, List
+
 from pydantic import BaseModel, create_model
+
 from ..base import (
-    BaseNodeInput,
-    BaseNodeOutput,
     BaseNode,
     BaseNodeConfig,
+    BaseNodeInput,
+    BaseNodeOutput,
 )
 
 
@@ -17,9 +19,7 @@ class InputNodeConfig(BaseNodeConfig):
 
     enforce_schema: bool = False
     output_schema: Dict[str, str] = {"input_1": "string"}
-    output_json_schema: str = (
-        '{"type": "object", "properties": {"input_1": {"type": "string"} } }'
-    )
+    output_json_schema: str = '{"type": "object", "properties": {"input_1": {"type": "string"} } }'
     pass
 
 

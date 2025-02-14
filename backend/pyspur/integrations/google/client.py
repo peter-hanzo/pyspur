@@ -1,6 +1,6 @@
+import json
 from pathlib import Path
 from typing import Tuple
-import json
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build  # type: ignore
@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Default file paths for credentials and tokens.
 TOKEN_FILE = BASE_DIR / "token.json"
+
 
 class GoogleSheetsClient:
     token_path = Path(TOKEN_FILE)
@@ -26,7 +27,7 @@ class GoogleSheetsClient:
             raise FileNotFoundError("Token file does not exist.")
 
         # Load existing credentials from token file if it exists.
-        creds = Credentials(token=access_token) # type: ignore
+        creds = Credentials(token=access_token)  # type: ignore
         return creds
 
     def read_sheet(self, spreadsheet_id: str, range_name: str) -> Tuple[bool, str]:
@@ -41,17 +42,21 @@ class GoogleSheetsClient:
         """
         try:
             creds = self.get_credentials()
-            service = build("sheets", "v4", credentials=creds) # type: ignore
-            sheet = service.spreadsheets() # type: ignore
-            
-            result = sheet.values().get( # type: ignore
-                spreadsheetId=spreadsheet_id, range=range_name
-            ).execute()
+            service = build("sheets", "v4", credentials=creds)  # type: ignore
+            sheet = service.spreadsheets()  # type: ignore
 
-            values = result.get("values", []) # type: ignore
+            result = (
+                sheet.values()
+                .get(  # type: ignore
+                    spreadsheetId=spreadsheet_id, range=range_name
+                )
+                .execute()
+            )
+
+            values = result.get("values", [])  # type: ignore
             if not values:
                 return False, "No data found."
-            return True, str(values) # type: ignore
+            return True, str(values)  # type: ignore
 
         except HttpError as http_err:
             return False, f"HTTP Error: {http_err}"

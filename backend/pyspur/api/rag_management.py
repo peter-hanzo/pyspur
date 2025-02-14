@@ -1,44 +1,45 @@
-from fastapi import (
-    APIRouter,
-    UploadFile,
-    HTTPException,
-    BackgroundTasks,
-    File,
-    Form,
-    Depends,
-)
-from typing import List, Dict, Optional, Any, cast
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from sqlalchemy.orm import Session
-from loguru import logger
+from typing import Any, Dict, List, Optional, cast
 
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
+from loguru import logger
+from sqlalchemy.orm import Session
+
+from ..database import get_db
 from ..models.dc_and_vi_model import (
     DocumentCollectionModel,
-    VectorIndexModel,
     DocumentProcessingProgressModel,
     DocumentStatus,
+    VectorIndexModel,
 )
-from ..database import get_db
+from ..rag.chunker import preview_document_chunk
 from ..rag.document_collection import DocumentStore
-from ..rag.vector_index import VectorIndex
 from ..rag.schemas.document_schemas import (
-    DocumentWithChunksSchema,
     ChunkingConfigSchema,
+    DocumentWithChunksSchema,
 )
+from ..rag.vector_index import VectorIndex
 from ..schemas.rag_schemas import (
+    ChunkMetadataSchema,
     DocumentCollectionCreateSchema,
-    VectorIndexCreateSchema,
     DocumentCollectionResponseSchema,
-    VectorIndexResponseSchema,
     ProcessingProgressSchema,
     RetrievalRequestSchema,
     RetrievalResponseSchema,
-    ChunkMetadataSchema,
     RetrievalResultSchema,
+    VectorIndexCreateSchema,
+    VectorIndexResponseSchema,
 )
-from ..rag.chunker import preview_document_chunk
 
 # In-memory progress tracking (replace with database in production)
 collection_progress: Dict[str, ProcessingProgressSchema] = {}
@@ -76,9 +77,7 @@ async def update_collection_progress(
                 .first()
             )
             if collection:
-                new_status = cast(
-                    DocumentStatus, "ready" if status == "completed" else status
-                )
+                new_status = cast(DocumentStatus, "ready" if status == "completed" else status)
                 collection.status = new_status
                 if error_message:
                     collection.error_message = error_message
@@ -146,11 +145,7 @@ async def update_index_progress(
         if status:
             setattr(progress_record, "status", status)
             # Update index status in database
-            index = (
-                db.query(VectorIndexModel)
-                .filter(VectorIndexModel.id == index_id)
-                .first()
-            )
+            index = db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
             if index:
                 new_status = "ready" if status == "completed" else status
                 setattr(index, "status", new_status)
@@ -181,7 +176,10 @@ async def update_index_status(index_id: str, status: str, db: Session) -> None:
         index = db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
         if index:
             # Convert string status to DocumentStatus enum
-            new_status = cast(DocumentStatus, "ready" if status == "ready" else "failed" if status == "failed" else "processing")
+            new_status = cast(
+                DocumentStatus,
+                "ready" if status == "ready" else "failed" if status == "failed" else "processing",
+            )
             index.status = new_status
             index.updated_at = datetime.now(timezone.utc)
             db.commit()
@@ -201,19 +199,21 @@ async def process_vector_index_creation(
         await vector_index.create_from_document_collection(
             docs_with_chunks,
             config,
-            lambda p, s, pc, tc: update_index_progress(index_id, progress=p, current_step=s, processed_chunks=pc, total_chunks=tc, db=db)
+            lambda p, s, pc, tc: update_index_progress(
+                index_id,
+                progress=p,
+                current_step=s,
+                processed_chunks=pc,
+                total_chunks=tc,
+                db=db,
+            ),
         )
         # Update index status to ready on successful completion
         await update_index_status(index_id, "ready", db)
     except Exception as e:
         logger.error(f"Error processing vector index: {e}")
         await update_index_status(index_id, "failed", db)
-        await update_index_progress(
-            index_id,
-            status="failed",
-            error_message=str(e),
-            db=db
-        )
+        await update_index_progress(index_id, status="failed", error_message=str(e), db=db)
 
 
 async def update_collection_status(collection_id: str, status: str, db: Session) -> None:
@@ -226,7 +226,10 @@ async def update_collection_status(collection_id: str, status: str, db: Session)
         )
         if collection:
             # Convert string status to DocumentStatus enum
-            new_status = cast(DocumentStatus, "ready" if status == "ready" else "failed" if status == "failed" else "processing")
+            new_status = cast(
+                DocumentStatus,
+                "ready" if status == "ready" else "failed" if status == "failed" else "processing",
+            )
             collection.status = new_status
             collection.updated_at = datetime.now(timezone.utc)
             db.commit()
@@ -245,9 +248,7 @@ async def process_document_collection(
         doc_store = DocumentStore(collection_id)
 
         # Create progress callback
-        async def progress_callback(
-            progress: float, step: str, processed: int, total: int
-        ) -> None:
+        async def progress_callback(progress: float, step: str, processed: int, total: int) -> None:
             await update_collection_progress(
                 collection_id,
                 progress=progress,
@@ -269,10 +270,7 @@ async def process_document_collection(
         logger.error(f"Error processing document collection: {e}")
         await update_collection_status(collection_id, "failed", db)
         await update_collection_progress(
-            collection_id,
-            status="failed",
-            error_message=str(e),
-            db=db
+            collection_id, status="failed", error_message=str(e), db=db
         )
 
 
@@ -296,9 +294,7 @@ async def create_document_collection(
         if collection_config.text_processing.use_vision_model:
             vision_config = collection_config.text_processing.get_vision_config()
             if not vision_config:
-                raise HTTPException(
-                    status_code=400, detail="Invalid vision model configuration"
-                )
+                raise HTTPException(status_code=400, detail="Invalid vision model configuration")
 
         # Get current timestamp
         now = datetime.now(timezone.utc)
@@ -458,9 +454,7 @@ async def delete_vector_index(index_id: str, db: Session = Depends(get_db)):
     """Delete a vector index"""
     try:
         # Get the vector index from the database
-        index = (
-            db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
-        )
+        index = db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
         if not index:
             raise HTTPException(status_code=404, detail="Vector index not found")
 
@@ -468,9 +462,7 @@ async def delete_vector_index(index_id: str, db: Session = Depends(get_db)):
         vector_index = VectorIndex(index.id)
         success = await vector_index.delete()
         if not success:
-            raise HTTPException(
-                status_code=500, detail="Failed to delete vector index data"
-            )
+            raise HTTPException(status_code=500, detail="Failed to delete vector index data")
 
         # Remove from tracking database
         db.delete(index)
@@ -507,7 +499,8 @@ async def list_document_collections(db: Session = Depends(get_db)):
 
 
 @router.get(
-    "/collections/{collection_id}/", response_model=DocumentCollectionResponseSchema
+    "/collections/{collection_id}/",
+    response_model=DocumentCollectionResponseSchema,
 )
 async def get_document_collection(collection_id: str, db: Session = Depends(get_db)):
     """Get document collection details"""
@@ -598,9 +591,7 @@ async def list_vector_indices(db: Session = Depends(get_db)):
 async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
     """Get vector index details"""
     try:
-        index = (
-            db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
-        )
+        index = db.query(VectorIndexModel).filter(VectorIndexModel.id == index_id).first()
         if not index:
             raise HTTPException(status_code=404, detail="Vector index not found")
 
@@ -626,7 +617,8 @@ async def get_vector_index(index_id: str, db: Session = Depends(get_db)):
 
 # Add progress tracking endpoints
 @router.get(
-    "/collections/{collection_id}/progress/", response_model=ProcessingProgressSchema
+    "/collections/{collection_id}/progress/",
+    response_model=ProcessingProgressSchema,
 )
 async def get_collection_progress(collection_id: str):
     """Get document collection processing progress"""
@@ -661,9 +653,7 @@ async def get_index_progress(index_id: str, db: Session = Depends(get_db)):
         total_chunks=int(progress_record.total_chunks),
         processed_chunks=int(progress_record.processed_chunks),
         error_message=(
-            str(progress_record.error_message)
-            if progress_record.error_message
-            else None
+            str(progress_record.error_message) if progress_record.error_message else None
         ),
         created_at=progress_record.created_at.isoformat(),
         updated_at=progress_record.updated_at.isoformat(),
@@ -780,9 +770,7 @@ async def delete_document_from_collection(
         # Check if document exists
         doc = doc_store.get_document(document_id)
         if not doc:
-            raise HTTPException(
-                status_code=404, detail="Document not found in collection"
-            )
+            raise HTTPException(status_code=404, detail="Document not found in collection")
 
         # Delete document
         success = doc_store.delete_document(document_id)
@@ -804,9 +792,12 @@ async def delete_document_from_collection(
 
 
 @router.get(
-    "/collections/{collection_id}/documents/", response_model=List[DocumentWithChunksSchema]
+    "/collections/{collection_id}/documents/",
+    response_model=List[DocumentWithChunksSchema],
 )
-async def get_collection_documents(collection_id: str) -> List[DocumentWithChunksSchema]:
+async def get_collection_documents(
+    collection_id: str,
+) -> List[DocumentWithChunksSchema]:
     """Get all documents and their chunks for a collection"""
     try:
         doc_store = DocumentStore(collection_id)
@@ -835,16 +826,10 @@ async def preview_chunk(
 
         # Get preview using chunker module
         preview_chunks, total_chunks = await preview_document_chunk(
-            file.file,
-            file.filename,
-            file.content_type or "text/plain",
-            config
+            file.file, file.filename, file.content_type or "text/plain", config
         )
 
-        return {
-            "chunks": preview_chunks,
-            "total_chunks": total_chunks
-        }
+        return {"chunks": preview_chunks, "total_chunks": total_chunks}
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -870,7 +855,7 @@ async def retrieve_from_index(
         if index.status != "ready":
             raise HTTPException(
                 status_code=400,
-                detail=f"Vector index is not ready (current status: {index.status})"
+                detail=f"Vector index is not ready (current status: {index.status})",
             )
 
         # Initialize vector index
@@ -900,13 +885,12 @@ async def retrieve_from_index(
                         document_title=metadata.get("document_title"),
                         page_number=metadata.get("page_number"),
                         chunk_number=metadata.get("chunk_number"),
-                    )
+                    ),
                 )
             )
 
         return RetrievalResponseSchema(
-            results=formatted_results,
-            total_results=len(formatted_results)
+            results=formatted_results, total_results=len(formatted_results)
         )
 
     except HTTPException:

@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field, create_model
 from typing import Any, Dict, List, Optional, Type
+
+from pydantic import BaseModel, Field, create_model
 
 
 def get_nested_field(field_name_with_dots: str, model: BaseModel) -> Any:

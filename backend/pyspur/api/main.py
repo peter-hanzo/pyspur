@@ -1,26 +1,26 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from ..nodes.registry import NodeRegistry
+
 NodeRegistry.discover_nodes()
 
+from ..integrations.google.auth import router as google_auth_router
+from .dataset_management import router as dataset_management_router
+from .evals_management import router as evals_management_router
+from .file_management import router as file_management_router
+from .key_management import router as key_management_router
 from .node_management import router as node_management_router
+from .openai_compatible_api import router as openai_compatible_api_router
+from .output_file_management import router as output_file_management_router
+from .rag_management import router as rag_management_router
+from .run_management import router as run_management_router
+from .template_management import router as template_management_router
 from .workflow_management import router as workflow_management_router
 from .workflow_run import router as workflow_run_router
-from .dataset_management import router as dataset_management_router
-from .run_management import router as run_management_router
-from .output_file_management import router as output_file_management_router
-from .key_management import router as key_management_router
-from .template_management import router as template_management_router
-from .openai_compatible_api import router as openai_compatible_api_router
-from .evals_management import router as evals_management_router
-from ..integrations.google.auth import router as google_auth_router
-from .rag_management import router as rag_management_router
-from .file_management import router as file_management_router
-
 
 load_dotenv()
-
 
 
 app = FastAPI(root_path="/api")

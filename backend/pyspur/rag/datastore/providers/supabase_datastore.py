@@ -1,9 +1,9 @@
 import os
 from typing import Any, List
 
-from ...schemas.document_schemas import DocumentMetadataFilterSchema
 from supabase import Client
 
+from ...schemas.document_schemas import DocumentMetadataFilterSchema
 from ..providers.pgvector_datastore import PGClient, PgVectorDataStore
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -11,9 +11,9 @@ assert SUPABASE_URL is not None, "SUPABASE_URL is not set"
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 # use service role key if you want this app to be able to bypass your Row Level Security policies
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-assert (
-    SUPABASE_ANON_KEY is not None or SUPABASE_SERVICE_ROLE_KEY is not None
-), "SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY must be set"
+assert SUPABASE_ANON_KEY is not None or SUPABASE_SERVICE_ROLE_KEY is not None, (
+    "SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY must be set"
+)
 
 
 # class that implements the DataStore interface for Supabase Datastore provider

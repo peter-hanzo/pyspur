@@ -1,4 +1,5 @@
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 from ..embedder import EmbeddingModels
@@ -26,7 +27,7 @@ def get_vector_stores() -> Dict[str, VectorStoreConfig]:
                 "CHROMA_PERSISTENCE_DIR",
                 "CHROMA_HOST",
                 "CHROMA_PORT",
-                "CHROMA_COLLECTION"
+                "CHROMA_COLLECTION",
             ],
         ),
         "pinecone": VectorStoreConfig(
@@ -38,7 +39,7 @@ def get_vector_stores() -> Dict[str, VectorStoreConfig]:
                 "PINECONE_API_KEY",
                 "PINECONE_INDEX",
                 "PINECONE_CLOUD",
-                "PINECONE_REGION"
+                "PINECONE_REGION",
             ],
         ),
         "weaviate": VectorStoreConfig(
@@ -49,7 +50,7 @@ def get_vector_stores() -> Dict[str, VectorStoreConfig]:
             required_env_vars=[
                 "WEAVIATE_API_KEY",
                 "WEAVIATE_URL",
-                "WEAVIATE_CLASS"
+                "WEAVIATE_CLASS",
             ],
         ),
         "supabase": VectorStoreConfig(
@@ -59,7 +60,7 @@ def get_vector_stores() -> Dict[str, VectorStoreConfig]:
             required_env_vars=[
                 "SUPABASE_URL",
                 "SUPABASE_ANON_KEY",
-                "SUPABASE_SERVICE_ROLE_KEY"
+                "SUPABASE_SERVICE_ROLE_KEY",
             ],
         ),
         "qdrant": VectorStoreConfig(
@@ -72,7 +73,7 @@ def get_vector_stores() -> Dict[str, VectorStoreConfig]:
                 "QDRANT_URL",
                 "QDRANT_COLLECTION",
                 "QDRANT_PORT",
-                "QDRANT_GRPC_PORT"
+                "QDRANT_GRPC_PORT",
             ],
         ),
     }
@@ -100,22 +101,27 @@ async def get_datastore(datastore: str, embedding_model: Optional[str] = None) -
     match datastore:
         case "chroma":
             from .providers.chroma_datastore import ChromaDataStore
+
             return ChromaDataStore(embedding_dimension=embedding_dimension)
 
         case "pinecone":
             from .providers.pinecone_datastore import PineconeDataStore
+
             return PineconeDataStore(embedding_dimension=embedding_dimension)
 
         case "weaviate":
             from .providers.weaviate_datastore import WeaviateDataStore
+
             return WeaviateDataStore(embedding_dimension=embedding_dimension)
 
         case "qdrant":
             from .providers.qdrant_datastore import QdrantDataStore
+
             return QdrantDataStore(embedding_dimension=embedding_dimension)
 
         case "supabase":
             from .providers.supabase_datastore import SupabaseDataStore
+
             return SupabaseDataStore(embedding_dimension=embedding_dimension)
 
         case _:

@@ -1,8 +1,11 @@
 import json
 import logging
-from pydantic import BaseModel, Field  # type: ignore
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+
 from phi.tools.github import GithubTools
+from pydantic import BaseModel, Field  # type: ignore
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+
 
 class GitHubSearchRepositoriesNodeInput(BaseNodeInput):
     """Input for the GitHubSearchRepositories node"""
@@ -13,20 +16,18 @@ class GitHubSearchRepositoriesNodeInput(BaseNodeInput):
 
 class GitHubSearchRepositoriesNodeOutput(BaseNodeOutput):
     repositories: str = Field(
-        ..., description="A JSON string of repositories matching the search query."
+        ...,
+        description="A JSON string of repositories matching the search query.",
     )
 
+
 class GitHubSearchRepositoriesNodeConfig(BaseNodeConfig):
-    query: str = Field(
-        ..., description="The search query keywords (e.g. 'machine learning')."
-    )
+    query: str = Field(..., description="The search query keywords (e.g. 'machine learning').")
     sort: str = Field(
         "stars",
         description="The field to sort results by. Can be 'stars', 'forks', or 'updated'.",
     )
-    order: str = Field(
-        "desc", description="The order of results. Can be 'asc' or 'desc'."
-    )
+    order: str = Field("desc", description="The order of results. Can be 'asc' or 'desc'.")
     per_page: int = Field(5, description="Number of results per page.")
     has_fixed_output: bool = True
     output_json_schema: str = Field(

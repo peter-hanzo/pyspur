@@ -1,10 +1,12 @@
 from enum import Enum
 from typing import Set
+
 from pydantic import BaseModel
+
 from ...utils.mime_types_utils import (
+    MIME_TYPES_BY_CATEGORY,
     MimeCategory,
     RecognisedMimeType,
-    MIME_TYPES_BY_CATEGORY,
 )
 
 
@@ -24,9 +26,7 @@ class ModelConstraints(BaseModel):
     supports_JSON_output: bool = True
     supports_max_tokens: bool = True
     supports_temperature: bool = True
-    supported_mime_types: Set[RecognisedMimeType] = (
-        set()
-    )  # Empty set means no multimodal support
+    supported_mime_types: Set[RecognisedMimeType] = set()  # Empty set means no multimodal support
 
     def add_mime_categories(self, categories: Set[MimeCategory]) -> "ModelConstraints":
         """Add MIME type support for entire categories.
@@ -377,7 +377,9 @@ class LLMModels(str, Enum):
                 provider=LLMProvider.DEEPSEEK,
                 name="Deepseek Chat",
                 constraints=ModelConstraints(
-                    max_tokens=8192, max_temperature=2.0, supports_JSON_output=False
+                    max_tokens=8192,
+                    max_temperature=2.0,
+                    supports_JSON_output=False,
                 ),
             ),
             cls.DEEPSEEK_REASONER.value: LLMModel(

@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from jinja2 import Template
 
 
@@ -30,9 +31,7 @@ def render_template_or_get_first_string(
             for _, value in input_dict.items():
                 if isinstance(value, str):
                     return value
-            raise ValueError(
-                f"No string type found in the input dictionary: {input_dict}"
-            )
+            raise ValueError(f"No string type found in the input dictionary: {input_dict}")
 
         return rendered
 

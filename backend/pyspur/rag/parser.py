@@ -1,17 +1,18 @@
+import asyncio
 import csv
 import mimetypes
 import os
-import asyncio
 from io import BufferedReader
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import docx2txt
 import pptx
-from .schemas.document_schemas import DocumentSchema, DocumentMetadataSchema
 from fastapi import UploadFile
 from loguru import logger
 from pypdf import PdfReader
 from pyzerox import zerox
+
+from .schemas.document_schemas import DocumentMetadataSchema, DocumentSchema
 
 
 async def get_document_from_file(
@@ -47,7 +48,11 @@ def extract_text_from_filepath(filepath: str, mimetype: Optional[str] = None) ->
     return extracted_text
 
 
-def extract_text_from_file(file: BufferedReader, mimetype: str, vision_config: Optional[Dict[str, Any]] = None) -> str:
+def extract_text_from_file(
+    file: BufferedReader,
+    mimetype: str,
+    vision_config: Optional[Dict[str, Any]] = None,
+) -> str:
     if vision_config and mimetype == "application/pdf":
         # Save to temporary file for vision model processing
         temp_file_path = "/tmp/temp_vision_file.pdf"
@@ -56,13 +61,15 @@ def extract_text_from_file(file: BufferedReader, mimetype: str, vision_config: O
 
         try:
             # Process with vision model
-            extracted_text = asyncio.run(extract_text_with_vision_model(
-                file_path=temp_file_path,
-                model=vision_config.get("model", "gpt-4o-mini"),
-                api_key=vision_config.get("api_key"),
-                provider=vision_config.get("provider"),
-                system_prompt=vision_config.get("system_prompt")
-            ))
+            extracted_text = asyncio.run(
+                extract_text_with_vision_model(
+                    file_path=temp_file_path,
+                    model=vision_config.get("model", "gpt-4o-mini"),
+                    api_key=vision_config.get("api_key"),
+                    provider=vision_config.get("provider"),
+                    system_prompt=vision_config.get("system_prompt"),
+                )
+            )
         finally:
             # Clean up temporary file
             if os.path.exists(temp_file_path):
@@ -78,10 +85,7 @@ def extract_text_from_file(file: BufferedReader, mimetype: str, vision_config: O
     elif mimetype == "text/plain" or mimetype == "text/markdown":
         # Read text from plain text file
         extracted_text = file.read().decode("utf-8")
-    elif (
-        mimetype
-        == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ):
+    elif mimetype == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         # Extract text from docx using docx2txt
         extracted_text = docx2txt.process(file)
     elif mimetype == "text/csv":
@@ -91,10 +95,7 @@ def extract_text_from_file(file: BufferedReader, mimetype: str, vision_config: O
         reader = csv.reader(decoded_buffer)
         for row in reader:
             extracted_text += " ".join(row) + "\n"
-    elif (
-        mimetype
-        == "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    ):
+    elif mimetype == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         # Extract text from pptx using python-pptx
         extracted_text = ""
         presentation = pptx.Presentation(file)
@@ -172,7 +173,7 @@ async def extract_text_with_vision_model(
             output_dir="/tmp/zerox_output",  # Temporary output directory
             custom_system_prompt=system_prompt,
             cleanup=True,  # Clean up temporary files
-            **kwargs
+            **kwargs,
         )
         return str(result)
     except Exception as e:

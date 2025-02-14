@@ -3,14 +3,13 @@ from typing import Dict, List
 
 from pydantic import Field
 
-from ....utils.pydantic_utils import json_schema_to_simple_schema
-
 from ....nodes.base import BaseNodeInput, BaseNodeOutput
 from ....schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowLinkSchema,
     WorkflowNodeSchema,
 )
+from ....utils.pydantic_utils import json_schema_to_simple_schema
 from ...subworkflow.base_subworkflow_node import (
     BaseSubworkflowNode,
     BaseSubworkflowNodeConfig,
@@ -20,9 +19,7 @@ from ..single_llm_call import SingleLLMCallNodeConfig
 
 
 class BestOfNNodeConfig(SingleLLMCallNodeConfig, BaseSubworkflowNodeConfig):
-    samples: int = Field(
-        default=3, ge=1, le=10, description="Number of samples to generate"
-    )
+    samples: int = Field(default=3, ge=1, le=10, description="Number of samples to generate")
     rating_prompt: str = Field(
         default=(
             "Rate the following response on a scale from 0 to 10, where 0 is poor "
@@ -125,9 +122,7 @@ class BestOfNNode(BaseSubworkflowNode):
         # Create a PickOneNode to select the JSON string with the highest rating
         pick_one_node_id = "pick_one_node"
         if self.config.output_json_schema:
-            output_schema = json_schema_to_simple_schema(
-                json.loads(self.config.output_json_schema)
-            )
+            output_schema = json_schema_to_simple_schema(json.loads(self.config.output_json_schema))
         else:
             output_schema = self.config.output_schema
         pick_one_node = WorkflowNodeSchema(
@@ -173,9 +168,7 @@ class BestOfNNode(BaseSubworkflowNode):
             id=output_node_id,
             node_type="OutputNode",
             config={
-                "output_map": {
-                    f"{k}": f"pick_one_node.{k}" for k in output_schema.keys()
-                },
+                "output_map": {f"{k}": f"pick_one_node.{k}" for k in output_schema.keys()},
                 "output_schema": output_schema,
                 "output_json_schema": self.config.output_json_schema,
             },

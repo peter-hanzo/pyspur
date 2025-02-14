@@ -5,19 +5,19 @@ import uuid
 from typing import Dict, List, Optional
 
 import weaviate
+from loguru import logger
+from weaviate import Client
+from weaviate.util import generate_uuid5
+
 from ...schemas.document_schemas import (
-    DocumentChunkSchema,
     DocumentChunkMetadataSchema,
+    DocumentChunkSchema,
     DocumentChunkWithScoreSchema,
     DocumentMetadataFilterSchema,
     QueryResultSchema,
     QueryWithEmbeddingSchema,
     Source,
 )
-from loguru import logger
-from weaviate import Client
-from weaviate.util import generate_uuid5
-
 from ..datastore import DataStore
 
 WEAVIATE_URL_DEFAULT = "http://localhost:8080"
@@ -167,9 +167,7 @@ class WeaviateDataStore(DataStore):
                         doc_chunk_dict[key] = value
                     doc_chunk_dict["chunk_id"] = doc_chunk_dict.pop("id")
                     doc_chunk_dict["source"] = (
-                        doc_chunk_dict.pop("source").value
-                        if doc_chunk_dict["source"]
-                        else None
+                        doc_chunk_dict.pop("source").value if doc_chunk_dict["source"] else None
                     )
                     embedding = doc_chunk_dict.pop("embedding")
 
@@ -192,7 +190,9 @@ class WeaviateDataStore(DataStore):
         Takes in a list of queries with embeddings and filters and returns a list of query results with matching document chunks and scores.
         """
 
-        async def _single_query(query: QueryWithEmbeddingSchema) -> QueryResultSchema:
+        async def _single_query(
+            query: QueryWithEmbeddingSchema,
+        ) -> QueryResultSchema:
             logger.debug(f"Query: {query.query}")
             if not hasattr(query, "filter") or not query.filter:
                 result = (
@@ -278,7 +278,11 @@ class WeaviateDataStore(DataStore):
 
         if ids:
             operands = [
-                {"path": ["document_id"], "operator": "Equal", "valueString": id}
+                {
+                    "path": ["document_id"],
+                    "operator": "Equal",
+                    "valueString": id,
+                }
                 for id in ids
             ]
 
@@ -297,12 +301,8 @@ class WeaviateDataStore(DataStore):
         if filter:
             where_clause = self.build_filters(filter)
 
-            logger.debug(
-                f"Deleting vectors from index {WEAVIATE_CLASS} with filter {where_clause}"
-            )
-            result = self.client.batch.delete_objects(
-                class_name=WEAVIATE_CLASS, where=where_clause
-            )
+            logger.debug(f"Deleting vectors from index {WEAVIATE_CLASS} with filter {where_clause}")
+            result = self.client.batch.delete_objects(class_name=WEAVIATE_CLASS, where=where_clause)
 
             if not bool(result["results"]["successful"]):
                 logger.debug(
@@ -323,25 +323,22 @@ class WeaviateDataStore(DataStore):
                 "value": "query.filter.source.value",
                 "value_key": "valueString",
             },
-            "start_date": {"operator": "GreaterThanEqual", "value_key": "valueDate"},
+            "start_date": {
+                "operator": "GreaterThanEqual",
+                "value_key": "valueDate",
+            },
             "end_date": {"operator": "LessThanEqual", "value_key": "valueDate"},
             "default": {"operator": "Equal", "value_key": "valueString"},
         }
 
         for attr, value in filter.__dict__.items():
             if value is not None:
-                filter_condition = filter_conditions.get(
-                    attr, filter_conditions["default"]
-                )
+                filter_condition = filter_conditions.get(attr, filter_conditions["default"])
                 value_key = filter_condition["value_key"]
 
                 operand = {
                     "path": [
-                        (
-                            attr
-                            if not (attr == "start_date" or attr == "end_date")
-                            else "created_at"
-                        )
+                        (attr if not (attr == "start_date" or attr == "end_date") else "created_at")
                     ],
                     "operator": filter_condition["operator"],
                     value_key: value,

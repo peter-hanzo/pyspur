@@ -1,19 +1,21 @@
+from datetime import datetime, timezone
+from enum import Enum as PyEnum
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy import (
-    Computed,
-    Integer,
-    ForeignKey,
-    Enum,
     JSON,
+    Computed,
     DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
     String,
 )
-from sqlalchemy.orm import relationship, Mapped, mapped_column
-from enum import Enum as PyEnum
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .base_model import BaseModel
-from .task_model import TaskModel
 from .output_file_model import OutputFileModel
+from .task_model import TaskModel
 
 
 class RunStatus(PyEnum):
@@ -27,9 +29,7 @@ class RunModel(BaseModel):
     __tablename__ = "runs"
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
-    id: Mapped[str] = mapped_column(
-        String, Computed("'R' || _intid"), nullable=False, unique=True
-    )
+    id: Mapped[str] = mapped_column(String, Computed("'R' || _intid"), nullable=False, unique=True)
     workflow_id: Mapped[str] = mapped_column(
         String, ForeignKey("workflows.id"), nullable=False, index=True
     )
@@ -43,9 +43,7 @@ class RunModel(BaseModel):
         Enum(RunStatus), default=RunStatus.PENDING, nullable=False
     )
     run_type: Mapped[str] = mapped_column(String, nullable=False)
-    initial_inputs: Mapped[Optional[Dict[str, Dict[str, Any]]]] = mapped_column(
-        JSON, nullable=True
-    )
+    initial_inputs: Mapped[Optional[Dict[str, Dict[str, Any]]]] = mapped_column(JSON, nullable=True)
     input_dataset_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("datasets.id"), nullable=True, index=True
     )
@@ -57,9 +55,7 @@ class RunModel(BaseModel):
     output_file_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("output_files.id"), nullable=True
     )
-    tasks: Mapped[List["TaskModel"]] = relationship(
-        "TaskModel", cascade="all, delete-orphan"
-    )
+    tasks: Mapped[List["TaskModel"]] = relationship("TaskModel", cascade="all, delete-orphan")
     parent_run: Mapped[Optional["RunModel"]] = relationship(
         "RunModel",
         remote_side=[id],
@@ -86,12 +82,6 @@ class RunModel(BaseModel):
             # return percentage of subruns completed
             return (
                 1.0
-                * len(
-                    [
-                        subrun
-                        for subrun in self.subruns
-                        if subrun.status == RunStatus.COMPLETED
-                    ]
-                )
+                * len([subrun for subrun in self.subruns if subrun.status == RunStatus.COMPLETED])
                 / (1.0 * len(self.subruns))
             )

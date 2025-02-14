@@ -126,9 +126,7 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
                 "llm_info": self.config.llm_info.model_dump(),
                 "system_message": self.config.branch_system_message,
                 "user_message": "",
-                "output_schema": {
-                    "subtasks": "List[str]"
-                },  # Expecting list of subtasks
+                "output_schema": {"subtasks": "List[str]"},  # Expecting list of subtasks
             },
         )
         nodes.append(branch_node)
@@ -238,10 +236,7 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
                 "llm_info": self.config.llm_info.model_dump(),
                 "system_message": self.config.merge_system_message,
                 "user_message": "\n".join(
-                    [
-                        f"{{{{solve_node_{i}.solution_{i}}}}}"
-                        for i in range(len(subtasks))
-                    ]
+                    [f"{{{{solve_node_{i}.solution_{i}}}}}" for i in range(len(subtasks))]
                 ),
                 "output_schema": self.config.output_schema,
             },
@@ -265,8 +260,7 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
             config={
                 "output_schema": self.config.output_schema,
                 "output_map": {
-                    key: f"{merge_node_id}.{key}"
-                    for key in self.config.output_schema.keys()
+                    key: f"{merge_node_id}.{key}" for key in self.config.output_schema.keys()
                 },
             },
         )
@@ -306,12 +300,8 @@ class BranchSolveMergeNode(BaseSubworkflowNode):
         precomputed_outputs = self.subworkflow_output or {}
 
         # Execute the subworkflow
-        workflow_executor = WorkflowExecutor(
-            workflow=self.subworkflow, context=self.context
-        )
-        outputs = await workflow_executor.run(
-            input_dict, precomputed_outputs=precomputed_outputs
-        )
+        workflow_executor = WorkflowExecutor(workflow=self.subworkflow, context=self.context)
+        outputs = await workflow_executor.run(input_dict, precomputed_outputs=precomputed_outputs)
 
         # Store outputs for potential reuse
         if self.subworkflow_output is None:

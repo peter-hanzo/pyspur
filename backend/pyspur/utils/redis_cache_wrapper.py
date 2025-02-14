@@ -249,9 +249,7 @@ async def test_all_funcs(i):
     write_read_val = {"hello": f"world_{i}"}
     await client.write(key, write_read_val)
     read_val = await client.read(key)
-    assert (
-        read_val == write_read_val
-    ), f"read_val: {read_val}, write_read_val: {write_read_val}"
+    assert read_val == write_read_val, f"read_val: {read_val}, write_read_val: {write_read_val}"
 
     await asyncio.sleep(random.random())
 

@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field
 import json
 
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
+from pydantic import BaseModel, Field
+
 from ....integrations.google.client import GoogleSheetsClient
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class GoogleSheetsReadNodeInput(BaseNodeInput):
@@ -17,11 +18,10 @@ class GoogleSheetsReadNodeOutput(BaseNodeOutput):
 
 
 class GoogleSheetsReadNodeConfig(BaseNodeConfig):
-    spreadsheet_id: str = Field(
-        "", description="The ID of the Google Sheet to read from."
-    )
+    spreadsheet_id: str = Field("", description="The ID of the Google Sheet to read from.")
     range: str = Field(
-        "", description="The range of cells to read from (e.g. 'Sheet1!A1:B10')."
+        "",
+        description="The range of cells to read from (e.g. 'Sheet1!A1:B10').",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

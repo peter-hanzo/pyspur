@@ -2,18 +2,18 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from loguru import logger
+
 from ...schemas.document_schemas import (
-    DocumentChunkSchema,
     DocumentChunkMetadataSchema,
+    DocumentChunkSchema,
     DocumentChunkWithScoreSchema,
     DocumentMetadataFilterSchema,
     QueryResultSchema,
     QueryWithEmbeddingSchema,
 )
-from loguru import logger
-from ..services.date import to_unix_timestamp
-
 from ..datastore import DataStore
+from ..services.date import to_unix_timestamp
 
 
 # interface for Postgres client to implement pg based Datastore providers
@@ -47,9 +47,7 @@ class PGClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def delete_by_filters(
-        self, table: str, filter: DocumentMetadataFilterSchema
-    ) -> None:
+    async def delete_by_filters(self, table: str, filter: DocumentMetadataFilterSchema) -> None:
         """
         Deletes rows in the table that match the filter.
         """
@@ -91,9 +89,7 @@ class PgVectorDataStore(DataStore):
                 }
                 if chunk.metadata.created_at:
                     json["created_at"] = (
-                        datetime.fromtimestamp(
-                            to_unix_timestamp(chunk.metadata.created_at)
-                        ),
+                        datetime.fromtimestamp(to_unix_timestamp(chunk.metadata.created_at)),
                     )
                 await self.client.upsert("documents", json)
 

@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 from pydantic import BaseModel
 
@@ -43,7 +43,6 @@ class PythonFuncNode(BaseNode):
         return super().setup()
 
     async def run(self, input: BaseModel) -> BaseModel:
-
         self.output_model = self.create_output_model_class(self.config.output_schema)
         # Prepare the execution environment
         exec_globals: Dict[str, Any] = {}
@@ -64,8 +63,9 @@ class PythonFuncNode(BaseNode):
 
 
 if __name__ == "__main__":
-    from pydantic import BaseModel, create_model
     import asyncio
+
+    from pydantic import BaseModel, create_model
 
     config = PythonFuncNodeConfig(
         code="\n".join(
@@ -79,9 +79,9 @@ if __name__ == "__main__":
         ),
         output_schema={"output": "int"},
     )
-    A = create_model(
-        "Input", number=(int, ...), __base__=BaseNodeOutput
-    ).model_validate({"number": 5})
+    A = create_model("Input", number=(int, ...), __base__=BaseNodeOutput).model_validate(
+        {"number": 5}
+    )
     input = {"Input": A}
     node = PythonFuncNode(config=config, name="PythonFuncTest")
 

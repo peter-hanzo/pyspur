@@ -1,28 +1,29 @@
-from typing import Dict, List
-from fastapi import (
-    APIRouter,
-    HTTPException,
-    Depends,
-    status,
-    UploadFile,
-    File,
-    Form,
-    Query,
-)
-from sqlalchemy.orm import Session
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-import shutil
+from typing import Dict, List
 
-from ..schemas.workflow_schemas import (
-    WorkflowCreateRequestSchema,
-    WorkflowNodeSchema,
-    WorkflowResponseSchema,
-    WorkflowDefinitionSchema,
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
 )
+from sqlalchemy.orm import Session
+
 from ..database import get_db
 from ..models.workflow_model import WorkflowModel as WorkflowModel
 from ..nodes.primitives.input import InputNodeConfig
+from ..schemas.workflow_schemas import (
+    WorkflowCreateRequestSchema,
+    WorkflowDefinitionSchema,
+    WorkflowNodeSchema,
+    WorkflowResponseSchema,
+)
 
 router = APIRouter()
 
@@ -44,9 +45,7 @@ def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
 
 
 def generate_unique_workflow_name(db: Session, base_name: str) -> str:
-    existing_workflow = (
-        db.query(WorkflowModel).filter(WorkflowModel.name == base_name).first()
-    )
+    existing_workflow = db.query(WorkflowModel).filter(WorkflowModel.name == base_name).first()
     if existing_workflow:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return f"{base_name} {timestamp}"
@@ -54,16 +53,16 @@ def generate_unique_workflow_name(db: Session, base_name: str) -> str:
 
 
 @router.post(
-    "/", response_model=WorkflowResponseSchema, description="Create a new workflow"
+    "/",
+    response_model=WorkflowResponseSchema,
+    description="Create a new workflow",
 )
 def create_workflow(
     workflow_request: WorkflowCreateRequestSchema, db: Session = Depends(get_db)
 ) -> WorkflowResponseSchema:
     if not workflow_request.definition:
         workflow_request.definition = create_a_new_workflow_definition()
-    workflow_name = generate_unique_workflow_name(
-        db, workflow_request.name or "Untitled Workflow"
-    )
+    workflow_name = generate_unique_workflow_name(db, workflow_request.name or "Untitled Workflow")
     new_workflow = WorkflowModel(
         name=workflow_name,
         description=workflow_request.description,
@@ -105,7 +104,9 @@ def update_workflow(
 
 
 @router.get(
-    "/", response_model=List[WorkflowResponseSchema], description="List all workflows"
+    "/",
+    response_model=List[WorkflowResponseSchema],
+    description="List all workflows",
 )
 def list_workflows(
     page: int = Query(default=1, ge=1),
@@ -135,9 +136,7 @@ def list_workflows(
     response_model=WorkflowResponseSchema,
     description="Get a workflow by ID",
 )
-def get_workflow(
-    workflow_id: str, db: Session = Depends(get_db)
-) -> WorkflowResponseSchema:
+def get_workflow(workflow_id: str, db: Session = Depends(get_db)) -> WorkflowResponseSchema:
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -149,9 +148,7 @@ def get_workflow(
     response_model=WorkflowResponseSchema,
     description="Reset a workflow to its initial state",
 )
-def reset_workflow(
-    workflow_id: str, db: Session = Depends(get_db)
-) -> WorkflowResponseSchema:
+def reset_workflow(workflow_id: str, db: Session = Depends(get_db)) -> WorkflowResponseSchema:
     # Fetch the workflow by ID
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
 
@@ -207,9 +204,7 @@ def delete_workflow(workflow_id: str, db: Session = Depends(get_db)):
     response_model=WorkflowResponseSchema,
     description="Duplicate a workflow by ID",
 )
-def duplicate_workflow(
-    workflow_id: str, db: Session = Depends(get_db)
-) -> WorkflowResponseSchema:
+def duplicate_workflow(workflow_id: str, db: Session = Depends(get_db)) -> WorkflowResponseSchema:
     # Fetch the workflow by ID
     workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
 
@@ -296,9 +291,7 @@ async def upload_test_files(
     """Upload files for test inputs and return their paths"""
     try:
         # Get the workflow
-        workflow = (
-            db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
-        )
+        workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
