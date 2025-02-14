@@ -11,13 +11,6 @@ import { ComparisonOperator, RouteConditionRule, RouteConditionGroup } from '../
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import NodeOutputModal from '../NodeOutputModal'
 
-interface RouterNodeData {
-    title?: string
-    color?: string
-    acronym?: string
-    run?: Record<string, any>
-    taskStatus?: string
-}
 
 export interface RouterNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
@@ -254,7 +247,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {/* Routes */}
                         <div className="flex flex-col gap-4">
                             {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
-                                
+
                                 <Card
                                     key={routeKey}
                                     classNames={{
