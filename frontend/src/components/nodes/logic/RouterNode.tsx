@@ -11,13 +11,6 @@ import { ComparisonOperator, RouteConditionRule, RouteConditionGroup } from '../
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import NodeOutputModal from '../NodeOutputModal'
 
-interface RouterNodeData {
-    title?: string
-    color?: string
-    acronym?: string
-    run?: Record<string, any>
-    taskStatus?: string
-}
 
 export interface RouterNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
@@ -50,19 +43,14 @@ const DEFAULT_ROUTE: RouteConditionGroup = {
 }
 
 export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false, positionAbsoluteX, positionAbsoluteY }) => {
-    // console.log('id',id)
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
-    // const [nodeWidth, setNodeWidth] = useState<string>('auto')
     const nodeRef = useRef<HTMLDivElement | null>(null)
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const edges = useSelector((state: RootState) => state.flow.edges)
     const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[id])
-    // console.log(nodeConfig.route_map)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
-
-    // const nodeData = data
     const updateNodeInternals = useUpdateNodeInternals()
 
     const connection = useConnection()
@@ -231,30 +219,34 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
             isCollapsed={isCollapsed}
             setIsCollapsed={setIsCollapsed}
             data={nodeData}
-            style={{ width: 'auto' }}
+            style={{ width: 'auto', maxHeight: '1200px', display: 'flex', flexDirection: 'column' }}
             handleOpenModal={setIsModalOpen}
             positionAbsoluteX={positionAbsoluteX}
             positionAbsoluteY={positionAbsoluteY}
             className="hover:!bg-background"
         >
-            <div className="p-3" ref={nodeRef}>
-                {/* Input handles */}
-                {/* {renderHandles()} */}
-
+            <div className="flex flex-col flex-grow overflow-hidden" ref={nodeRef}>
                 {!isCollapsed && nodeConfig?.route_map && (
-                    <>
-                        <Divider className="my-2" />
-
-                        {/* Expressions Header */}
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="text-sm font-medium text-foreground">Expressions</span>
-                            <Divider className="flex-grow" />
+                    <div
+                        className="p-5 overflow-y-auto"
+                        style={{ touchAction: 'none' }}
+                        onWheelCapture={(e) => {
+                            e.stopPropagation()
+                        }}
+                    >
+                        {/* Expressions Header - Now sticky */}
+                        <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 pb-4">
+                            <Divider className="my-2" />
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-sm font-medium text-foreground">Expressions</span>
+                                <Divider className="flex-grow" />
+                            </div>
                         </div>
 
                         {/* Routes */}
                         <div className="flex flex-col gap-4">
                             {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
-                                
+
                                 <Card
                                     key={routeKey}
                                     classNames={{
@@ -500,7 +492,7 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                                 </Button>
                             )}
                         </div>
-                    </>
+                    </div>
                 )}
 
                 {/* Output handles when collapsed */}

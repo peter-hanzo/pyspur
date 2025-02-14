@@ -1,25 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react'
-import {
-    Handle,
-    // useNodeConnections,
-    NodeProps,
-    useConnection,
-    Position,
-    // useUpdateNodeInternals,
-    // NodeResizer,
-} from '@xyflow/react'
-// import { useSelector } from 'react-redux'
+import { NodeProps } from '@xyflow/react'
 import BaseNode from './BaseNode'
 import styles from './DynamicNode.module.css'
-// import { CardBody, Input } from '@heroui/react'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-// import { selectPropertyMetadata } from '../../store/nodeTypesSlice'
-// import { RootState } from '../../store/store'
-import NodeOutputDisplay from './NodeOutputDisplay'
 import NodeOutputModal from './NodeOutputModal'
-// import isEqual from 'lodash/isEqual'
-import NodeErrorDisplay from './NodeErrorDisplay'
-// import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { OutputHandleRow } from './shared/OutputHandleRow'
 
 const baseNodeStyle = {
@@ -34,17 +18,6 @@ const baseNodeStyle = {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
 }
 
-// const nodeResizerHandleStyle = {
-//     width: '12px',
-//     height: '12px',
-//     borderRadius: '4px',
-// }
-// interface SchemaMetadata {
-//     required?: boolean
-//     title?: string
-//     type?: string
-//     [key: string]: any
-// }
 export interface DynamicNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
     readOnly?: boolean
@@ -69,7 +42,7 @@ const DynamicNode: React.FC<DynamicNodeProps> = ({
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
 
     const nodeData = data
-    
+
     const renderOutputHandles = () => {
         return (
             <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">

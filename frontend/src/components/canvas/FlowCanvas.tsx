@@ -252,7 +252,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
         [reactFlowInstance]
     )
 
-    const { onNodesChange, onEdgesChange, onConnect } = useFlowEventHandlers({
+    const { onNodesChange, onEdgesChange, onConnect, onNodeDragStop: onNodeDragStopThrottled } = useFlowEventHandlers({
         dispatch,
         nodes,
         setHelperLines,
@@ -427,8 +427,9 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     const onNodeDragStop = useCallback(
         (event: ReactMouseEvent, node: Node) => {
             onNodeDragStopOverGroupNode(event, node, nodes, edges, dispatch, getIntersectingNodes, getNodes, updateNode)
+            onNodeDragStopThrottled(event, node)
         },
-        [nodes, dispatch, getIntersectingNodes]
+        [nodes, edges, dispatch, getIntersectingNodes, getNodes, updateNode, onNodeDragStopThrottled]
     )
 
     const toggleIntegration = (integration: string) => {

@@ -215,6 +215,7 @@ const APIKeys = (props: CardProps): React.ReactElement => {
 
             // Other Integrations
             'solar:spider-bold': 'solar:spider-bold',  // For Firecrawl
+            'logos:slack-icon': 'logos:slack-icon',  // For Slack
         }
         return iconMap[iconName] || iconMap.database
     }

@@ -184,6 +184,18 @@ PROVIDER_CONFIGS = [
             ProviderParameter(name="FIRECRAWL_API_KEY", description="Firecrawl API Key"),
         ],
     ),
+    # Add Slack Provider
+    ProviderConfig(
+        id="slack",
+        name="Slack",
+        description="Slack messaging and notification service",
+        category="messaging",
+        icon="logos:slack-icon",
+        parameters=[
+            ProviderParameter(name="SLACK_BOT_TOKEN", description="Slack Bot User OAuth Token"),
+            ProviderParameter(name="SLACK_USER_TOKEN", description="Slack User OAuth Token", required=False),
+        ],
+    ),
 ]
 
 # For backward compatibility, create a flat list of all parameter names
@@ -208,10 +220,22 @@ def get_env_variable(name: str) -> Optional[str]:
 
 
 def set_env_variable(name: str, value: str):
+    """
+    Sets an environment variable both in the .env file and in the current process.
+    Also ensures the value is properly quoted if it contains special characters.
+    """
+    # Ensure the value is properly quoted if it contains spaces or special characters
+    if any(c in value for c in ' \'"$&()|<>'):
+        value = f'"{value}"'
+
     # Update the .env file using set_key
     set_key(".env", name, value)
+
     # Update the os.environ dictionary
     os.environ[name] = value
+
+    # Force reload of environment variables
+    load_dotenv(".env", override=True)
 
 
 def delete_env_variable(name: str):

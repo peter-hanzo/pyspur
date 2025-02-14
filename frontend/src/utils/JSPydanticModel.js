@@ -83,7 +83,11 @@ class JSPydanticModel {
                                     // For config, include all properties defined in the schema, even without defaults
                                     if (key === 'config' && node[key].properties) {
                                         Object.keys(node[key].properties).forEach(propKey => {
-                                            if (!(propKey in obj)) {
+                                            // Check if property has an enum and default value
+                                            const prop = node[key].properties[propKey]
+                                            if (prop.enum && prop.default) {
+                                                obj[propKey] = prop.default
+                                            } else if (!(propKey in obj)) {
                                                 obj[propKey] = null;
                                             }
                                         });

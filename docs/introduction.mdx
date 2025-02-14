@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: 'PySpur is a Python based AI Agents Builder with Graph UI.'
+description: 'PySpur is a Graph UI for building and testing AI agents.'
 ---
 
 <video
@@ -11,35 +11,23 @@ description: 'PySpur is a Python based AI Agents Builder with Graph UI.'
   Your browser does not support the video tag.
 </video>
 
-# PySpur's Design Principles
-
-Pyspur encompasses three design principles:
+# Three Design Principles
 
 ## 1. Rapid Feedback Loops
 
-* **Build and test in one place:** Build and test your workflow in real-time within the canvas editor, providing you with instant feedback on your changes.
-* **Vendor abstraction**: Not 20 different nodes for 20 different vendors. For example, a unified LLM call node that is vendor-agnostic, enabling you to jump between models quickly to see which one is best for your use case.
+* **Build and test in one place**: Run the workflow within the canvas editor and observe each node's outputs to get instant feedback.
+* **Drag-and-drop**: Add new nodes that *just* work off-the-shelf within seconds.
+* **Vendor unification**: Instead of 20 nodes for 20 vendors, unified nodes enable you to jump between eg. models quickly to see which one is best for your use case.
 
-## 2. Built-In AI components
+## 2. AI-Native
 
-As AI capabilities improve, agentic workflows involve more AI-native components. For example:
-* Larger context windows enabled *multi-document RAG*
-* Reasoning models enabled *tool calling*
-* Vision models enabled *web browsing*
+Unlike traditional workflow platforms, PySpur is AI-Native and comes with batteries included.
 
-Unlike traditional workflow platforms that rely on external integrations, PySpur's batteries-included approach gives you more control.
-
-### RAG Example
-
-Imagine you spot a problematic document chunk in your vector index during run time. You can delete it directly inside PySpur.
-
-<video
-  width="100%"
-  controls
->
-  <source src="/images/rag1.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+* **RAG**: Parse, chunk, embed, upsert data and maintain vector indices.
+* **Loops**: Workflow graphs can include cycles for iterative tool calling.
+* **Evals**: Score the performance of your agents to improve their robustness.
+* **Tools**: >10 Popular integrations available as tools, with more to come.
+* **Multimodal**: Support for video, images, audio, texts, code.
 
 ## 3. Easy Extensibility
 
