@@ -118,6 +118,29 @@ class WorkflowDefinitionSchema(BaseModel):
             raise ValueError("Workflow must have at most one output node.")
         return v
 
+    @model_validator(mode="after")
+    def validate_router_node_links(self):
+        """
+        Validates that links connected to RouterNodes have correctly formatted target handles.
+        For RouterNodes, the target handle should match the format: source_node_id.handle_id
+        """
+        for link in self.links:
+            source_node = next(
+                (node for node in self.nodes if node.id == link.source_id), None
+            )
+            if source_node and source_node.node_type == "RouterNode":
+                target_handle = link.target_handle or link.source_id
+
+                # If target_handle contains a dot, take only what's after the dot
+                if target_handle.find(".") != -1:
+                    target_handle = target_handle.split(".")[-1]
+
+                # Ensure it has the correct prefix
+                if not target_handle.startswith(f"{link.source_id}."):
+                    link.target_handle = f"{link.source_id}.{target_handle}"
+
+        return self
+
     class Config:
         from_attributes = True
 

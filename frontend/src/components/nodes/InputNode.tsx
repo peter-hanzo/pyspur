@@ -253,7 +253,7 @@ const InputNode: React.FC<InputNodeProps> = ({ id, data, readOnly = false, ...pr
                     <Handle
                         type="source"
                         position={Position.Right}
-                        id={nodeConfig?.title || id}
+                        id={String(id)}
                         className={`${styles.handle} ${styles.handleRight} ${
                             isCollapsed ? styles.collapsedHandleOutput : ''
                         }`}

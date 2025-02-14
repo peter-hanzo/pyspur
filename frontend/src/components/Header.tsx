@@ -149,7 +149,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
             if (testCase) {
                 const { id, ...inputValues } = testCase
                 const inputNode = nodes.find((node) => node.type === 'InputNode')
-                const inputNodeId = inputNode?.data?.title || inputNode?.id
+                const inputNodeId = inputNode?.id
 
                 if (inputNodeId) {
                     const initialInputs = {
