@@ -461,17 +461,39 @@ interface FlowEventHandlersOptions {
 }
 
 export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEventHandlersOptions) => {
+    // Create throttled position handler
+    const throttledPosition = useMemo(() => createThrottledPositionChange(), [])
+
     const onNodesChange: OnNodesChange = useCallback(
         (changes: NodeChange[]) => {
+            // Clear helper lines if not a position change
             if (!changes.some((c) => c.type === 'position')) {
                 setHelperLines?.({ horizontal: null, vertical: null })
                 dispatch(nodesChange({ changes }))
                 return
             }
-            dispatch(nodesChange({ changes }))
+
+            // Handle position changes with throttling
+            const positionChanges = changes.filter(c => c.type === 'position')
+            const otherChanges = changes.filter(c => c.type !== 'position')
+
+            // Immediately dispatch non-position changes
+            if (otherChanges.length > 0) {
+                dispatch(nodesChange({ changes: otherChanges }))
+            }
+
+            // Throttle position changes
+            if (positionChanges.length > 0) {
+                throttledPosition.handlePositionChange(positionChanges, dispatch)
+            }
         },
-        [dispatch, nodes, setHelperLines]
+        [dispatch, nodes, setHelperLines, throttledPosition]
     )
+
+    // Handle drag end to flush any pending position changes
+    const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
+        throttledPosition.flushChanges(dispatch)
+    }, [dispatch, throttledPosition])
 
     const onEdgesChange: OnEdgesChange = useCallback(
         (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
@@ -521,6 +543,7 @@ export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEv
         onNodesChange,
         onEdgesChange,
         onConnect,
+        onNodeDragStop
     }
 }
 
@@ -554,4 +577,68 @@ export const getPredecessorFields = (nodeId: string, nodes: FlowWorkflowNode[], 
     })
 
     return fields.sort()
+}
+
+// Add throttled position update utilities
+export const createThrottledPositionChange = () => {
+    let lastUpdate = 0
+    const throttleInterval = 16 // Reduced to 16ms (roughly 60fps) for more responsive updates
+    let pendingChanges: NodeChange[] = []
+    let animationFrame: number | null = null
+
+    return {
+        handlePositionChange: (changes: NodeChange[], dispatch: AppDispatch) => {
+            const now = Date.now()
+
+            // Always collect changes
+            pendingChanges = [...pendingChanges, ...changes]
+
+            // If animation frame is already scheduled, don't schedule another one
+            if (animationFrame !== null) {
+                return
+            }
+
+            // If enough time has passed, schedule update on next animation frame
+            if (now - lastUpdate >= throttleInterval) {
+                animationFrame = requestAnimationFrame(() => {
+                    // Only take the latest position for each node
+                    const latestPositions = new Map<string, NodeChange>()
+                    pendingChanges.forEach(change => {
+                        if (change.type === 'position' && change.id) {
+                            latestPositions.set(change.id, change)
+                        }
+                    })
+
+                    const optimizedChanges = [...latestPositions.values()]
+                    dispatch(nodesChange({ changes: optimizedChanges }))
+                    pendingChanges = []
+                    lastUpdate = now
+                    animationFrame = null
+                })
+            }
+        },
+
+        flushChanges: (dispatch: AppDispatch) => {
+            // Cancel any pending animation frame
+            if (animationFrame !== null) {
+                cancelAnimationFrame(animationFrame)
+                animationFrame = null
+            }
+
+            if (pendingChanges.length > 0) {
+                // Optimize final update
+                const latestPositions = new Map<string, NodeChange>()
+                pendingChanges.forEach(change => {
+                    if (change.type === 'position' && change.id) {
+                        latestPositions.set(change.id, change)
+                    }
+                })
+
+                const optimizedChanges = [...latestPositions.values()]
+                dispatch(nodesChange({ changes: optimizedChanges }))
+                pendingChanges = []
+                lastUpdate = Date.now()
+            }
+        }
+    }
 }

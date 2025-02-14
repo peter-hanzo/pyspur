@@ -1,5 +1,6 @@
 import json
 from enum import Enum
+from jinja2 import Template
 
 from pydantic import BaseModel, Field
 
@@ -32,6 +33,10 @@ class SlackNotifyNodeConfig(BaseNodeConfig):
         ModeEnum.BOT,
         description="The mode to send the message in. Can be 'bot' or 'user'.",
     )
+    message: str = Field(
+        default="",
+        description="The message template to send to Slack. Use {{variable}} syntax to include data from input nodes.",
+    )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(SlackNotifyNodeOutput.model_json_schema()),
@@ -53,9 +58,18 @@ class SlackNotifyNode(BaseNode):
         """
         Sends a message to the specified Slack channel.
         """
-
         # convert data to a string and send it to the Slack channel
-        message = json.dumps(input.model_dump())
+        if not self.config.message.strip():
+            # If no template is provided, dump the entire input as JSON
+            message = json.dumps(input.model_dump(), indent=2)
+        else:
+            # Render the message template with input variables
+            try:
+                message = Template(self.config.message).render(**input.model_dump())
+            except Exception as e:
+                print(f"[ERROR] Failed to render message template in {self.name}")
+                print(f"[ERROR] Template: {self.config.message} with input: {input.model_dump()}")
+                raise e
 
         client = SlackClient()
         ok, status = client.send_message(

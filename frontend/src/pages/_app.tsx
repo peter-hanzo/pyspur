@@ -15,7 +15,7 @@ const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
                 <link rel="icon" type="image/png" href="/pyspur-white.png" media="(prefers-color-scheme: dark)" />
             </Head>
             <HeroUIProvider>
-                <NextThemesProvider attribute="class" defaultTheme="light">
+                <NextThemesProvider attribute="class" defaultTheme="system">
                     <Component {...pageProps} />
                 </NextThemesProvider>
             </HeroUIProvider>
