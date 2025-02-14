@@ -10,7 +10,7 @@ class NodeTypeSchema(BaseModel):
 
     @property
     def node_class(self):
-        module = importlib.import_module(name=f"{self.module}", package="app")
+        module = importlib.import_module(name=f"{self.module}", package="pyspur")
         return getattr(module, self.class_name)
 
     @property
@@ -22,13 +22,13 @@ class NodeTypeSchema(BaseModel):
         """Get the display name for the node type, falling back to class name if not set."""
         node_class = self.node_class
         return node_class.display_name or node_class.__name__
-    
+
     @property
     def logo(self) -> str:
         """Get the logo for the node type, falling back to None if not set."""
         node_class = self.node_class
         return node_class.logo or ""
-    
+
     @property
     def category(self) -> str:
         """Get the category for the node type, falling back to None if not set."""

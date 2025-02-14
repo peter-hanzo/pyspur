@@ -48,7 +48,7 @@ class NodeFactory:
                 schema = NodeTypeSchema(
                     node_type_name=node["node_type_name"],
                     module=node["module"],
-                    class_name=node["class_name"]
+                    class_name=node["class_name"],
                 )
                 converted_nodes[category].append(schema)
 
@@ -101,6 +101,6 @@ class NodeFactory:
         if not module_name or not class_name:
             raise ValueError(f"Node type '{node_type_name}' not found.")
 
-        module = importlib.import_module(module_name, package="app")
+        module = importlib.import_module(module_name, package="pyspur")
         node_class = getattr(module, class_name)
         return node_class(name=node_name, config=node_class.config_model(**config))
