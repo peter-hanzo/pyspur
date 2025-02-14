@@ -7,6 +7,12 @@ name = "pyspur"
 version = "0.0.21"
 description = "PySpur is a Python library for building and deploying AI Agents."
 requires-python = ">=3.12"
+license = "Apache-2.0"
+maintainers = [
+    {name = "Srijan Patel", email = "srijan@pyspur.dev"},
+    {name = "Jean Kaddour", email = "jean@pyspur.dev"},
+    {name = "Parshva Bhadra", email = "parshva.bhadra@pyspur.dev"},
+]
 dependencies = [
     "alembic==1.14.0",
     "arrow==1.3.0",
@@ -27,7 +33,7 @@ dependencies = [
     "ollama==0.4.5",
     "pandas==2.2.3",
     "pinecone==5.4.2",
-    "psycopg2==2.9.10",
+    # "psycopg2==2.9.10",
     "pydantic==2.10.5",
     "pypdf==5.1.0",
     "python-dotenv==1.0.1",
@@ -44,6 +50,7 @@ dependencies = [
     "retrying==1.3.4",
     "slack_sdk==3.34.0",
     "SQLAlchemy==2.0.36",
+    "psycopg2-binary==2.9.10",
     "supabase==2.11.0",
     "six==1.17.0",
     "tenacity==8.3.0",
@@ -60,6 +67,10 @@ dependencies = [
     "resend==2.6.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/pyspur-dev/pyspur"
+Documentation = "https://docs.pyspur.dev"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
@@ -69,6 +80,10 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+universal = false
+packages = ["pyspur"]
 
 [tool.ruff]
 line-length = 100
