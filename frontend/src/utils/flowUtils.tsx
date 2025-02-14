@@ -461,17 +461,39 @@ interface FlowEventHandlersOptions {
 }
 
 export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEventHandlersOptions) => {
+    // Create throttled position handler
+    const throttledPosition = useMemo(() => createThrottledPositionChange(), [])
+
     const onNodesChange: OnNodesChange = useCallback(
         (changes: NodeChange[]) => {
+            // Clear helper lines if not a position change
             if (!changes.some((c) => c.type === 'position')) {
                 setHelperLines?.({ horizontal: null, vertical: null })
                 dispatch(nodesChange({ changes }))
                 return
             }
-            dispatch(nodesChange({ changes }))
+
+            // Handle position changes with throttling
+            const positionChanges = changes.filter(c => c.type === 'position')
+            const otherChanges = changes.filter(c => c.type !== 'position')
+
+            // Immediately dispatch non-position changes
+            if (otherChanges.length > 0) {
+                dispatch(nodesChange({ changes: otherChanges }))
+            }
+
+            // Throttle position changes
+            if (positionChanges.length > 0) {
+                throttledPosition.handlePositionChange(positionChanges, dispatch)
+            }
         },
-        [dispatch, nodes, setHelperLines]
+        [dispatch, nodes, setHelperLines, throttledPosition]
     )
+
+    // Handle drag end to flush any pending position changes
+    const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
+        throttledPosition.flushChanges(dispatch)
+    }, [dispatch, throttledPosition])
 
     const onEdgesChange: OnEdgesChange = useCallback(
         (changes: EdgeChange[]) => dispatch(edgesChange({ changes })),
@@ -521,6 +543,7 @@ export const useFlowEventHandlers = ({ dispatch, nodes, setHelperLines }: FlowEv
         onNodesChange,
         onEdgesChange,
         onConnect,
+        onNodeDragStop
     }
 }
 
@@ -554,4 +577,53 @@ export const getPredecessorFields = (nodeId: string, nodes: FlowWorkflowNode[], 
     })
 
     return fields.sort()
+}
+
+// Add throttled position update utilities
+export const createThrottledPositionChange = () => {
+    let lastUpdate = 0
+    const throttleInterval = 50 // Reduced from 100ms to 50ms for smoother updates
+    let pendingChanges: NodeChange[] = []
+
+    return {
+        handlePositionChange: (changes: NodeChange[], dispatch: AppDispatch) => {
+            const now = Date.now()
+
+            // Collect changes
+            pendingChanges = [...pendingChanges, ...changes]
+
+            // If enough time has passed, dispatch changes
+            if (now - lastUpdate >= throttleInterval) {
+                // Only take the latest position for each node to avoid position lag
+                const latestPositions = new Map<string, NodeChange>()
+                pendingChanges.forEach(change => {
+                    if (change.type === 'position' && change.id) {
+                        latestPositions.set(change.id, change)
+                    }
+                })
+
+                const optimizedChanges = [...latestPositions.values()]
+                dispatch(nodesChange({ changes: optimizedChanges }))
+                pendingChanges = []
+                lastUpdate = now
+            }
+        },
+
+        flushChanges: (dispatch: AppDispatch) => {
+            if (pendingChanges.length > 0) {
+                // Optimize final update too
+                const latestPositions = new Map<string, NodeChange>()
+                pendingChanges.forEach(change => {
+                    if (change.type === 'position' && change.id) {
+                        latestPositions.set(change.id, change)
+                    }
+                })
+
+                const optimizedChanges = [...latestPositions.values()]
+                dispatch(nodesChange({ changes: optimizedChanges }))
+                pendingChanges = []
+                lastUpdate = Date.now()
+            }
+        }
+    }
 }
