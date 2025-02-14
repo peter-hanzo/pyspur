@@ -65,6 +65,7 @@
     {
       "group": "Essentials",
       "pages": [
+        "essentials/spurs",
         "essentials/nodes"
       ]
     },
