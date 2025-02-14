@@ -173,6 +173,19 @@ PROVIDER_CONFIGS = [
             ProviderParameter(name="SUPABASE_SERVICE_ROLE_KEY", description="Supabase Service Role Key", type="password", required=False),
         ],
     ),
+    # Add Reddit Provider
+    ProviderConfig(
+        id="reddit",
+        name="Reddit",
+        description="Reddit API integration",
+        category="social",
+        icon="logos:reddit-icon",
+        parameters=[
+            ProviderParameter(name="REDDIT_CLIENT_ID", description="Reddit API Client ID"),
+            ProviderParameter(name="REDDIT_CLIENT_SECRET", description="Reddit API Client Secret"),
+            ProviderParameter(name="REDDIT_USER_AGENT", description="Reddit API User Agent", type="text", required=False),
+        ],
+    ),
     # Add Firecrawl Provider
     ProviderConfig(
         id="firecrawl",
