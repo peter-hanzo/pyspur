@@ -420,7 +420,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
     const onNodeDrag = useCallback(
         throttle((event: ReactMouseEvent, node: Node) => {
             onNodeDragOverGroupNode(event, node, nodes, dispatch, getIntersectingNodes, getNodes, updateNode)
-        }, 32),
+        }, 16),
         [nodes, dispatch, getIntersectingNodes]
     )
 

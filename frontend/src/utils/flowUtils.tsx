@@ -582,36 +582,51 @@ export const getPredecessorFields = (nodeId: string, nodes: FlowWorkflowNode[], 
 // Add throttled position update utilities
 export const createThrottledPositionChange = () => {
     let lastUpdate = 0
-    const throttleInterval = 50 // Reduced from 100ms to 50ms for smoother updates
+    const throttleInterval = 16 // Reduced to 16ms (roughly 60fps) for more responsive updates
     let pendingChanges: NodeChange[] = []
+    let animationFrame: number | null = null
 
     return {
         handlePositionChange: (changes: NodeChange[], dispatch: AppDispatch) => {
             const now = Date.now()
 
-            // Collect changes
+            // Always collect changes
             pendingChanges = [...pendingChanges, ...changes]
 
-            // If enough time has passed, dispatch changes
-            if (now - lastUpdate >= throttleInterval) {
-                // Only take the latest position for each node to avoid position lag
-                const latestPositions = new Map<string, NodeChange>()
-                pendingChanges.forEach(change => {
-                    if (change.type === 'position' && change.id) {
-                        latestPositions.set(change.id, change)
-                    }
-                })
+            // If animation frame is already scheduled, don't schedule another one
+            if (animationFrame !== null) {
+                return
+            }
 
-                const optimizedChanges = [...latestPositions.values()]
-                dispatch(nodesChange({ changes: optimizedChanges }))
-                pendingChanges = []
-                lastUpdate = now
+            // If enough time has passed, schedule update on next animation frame
+            if (now - lastUpdate >= throttleInterval) {
+                animationFrame = requestAnimationFrame(() => {
+                    // Only take the latest position for each node
+                    const latestPositions = new Map<string, NodeChange>()
+                    pendingChanges.forEach(change => {
+                        if (change.type === 'position' && change.id) {
+                            latestPositions.set(change.id, change)
+                        }
+                    })
+
+                    const optimizedChanges = [...latestPositions.values()]
+                    dispatch(nodesChange({ changes: optimizedChanges }))
+                    pendingChanges = []
+                    lastUpdate = now
+                    animationFrame = null
+                })
             }
         },
 
         flushChanges: (dispatch: AppDispatch) => {
+            // Cancel any pending animation frame
+            if (animationFrame !== null) {
+                cancelAnimationFrame(animationFrame)
+                animationFrame = null
+            }
+
             if (pendingChanges.length > 0) {
-                // Optimize final update too
+                // Optimize final update
                 const latestPositions = new Map<string, NodeChange>()
                 pendingChanges.forEach(change => {
                     if (change.type === 'position' && change.id) {
