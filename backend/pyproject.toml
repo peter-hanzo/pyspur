@@ -73,17 +73,20 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "B", "C", "D"]
-ignore = ["D100", "D104", "D107"]
+ignore = [
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+    "D107",  # Missing docstring in __init__
+    "D203",  # Ignore 'incorrect-blank-line-before-class' in favor of D211
+    "D213",  # Ignore 'multi-line-summary-second-line' in favor of D212
+]
 
 [tool.black]
 line-length = 100
 target-version = ["py312"]
-
-[tool.isort]
-profile = "black"
-line_length = 100
-multi_line_output = 3
 
 [tool.mypy]
 python_version = "3.12"
