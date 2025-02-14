@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from ..nodes.registry import NodeRegistry
 
@@ -23,7 +25,7 @@ from .workflow_run import router as workflow_run_router
 load_dotenv()
 
 
-app = FastAPI(root_path="/api")
+app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
@@ -34,16 +36,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(node_management_router, prefix="/node")
-app.include_router(workflow_management_router, prefix="/wf")
-app.include_router(workflow_run_router, prefix="/wf")
-app.include_router(dataset_management_router, prefix="/ds")
-app.include_router(run_management_router, prefix="/run")
-app.include_router(output_file_management_router, prefix="/of")
-app.include_router(key_management_router, prefix="/env-mgmt")
-app.include_router(template_management_router, prefix="/templates")
-app.include_router(openai_compatible_api_router, prefix="/api")
-app.include_router(evals_management_router, prefix="/evals")
-app.include_router(google_auth_router, prefix="/google")
-app.include_router(rag_management_router, prefix="/rag")
-app.include_router(file_management_router, prefix="/files")
+# Create a sub-application for API routes
+api_app = FastAPI(
+    docs_url="/docs",
+    redoc_url="/redoc",
+    title="PySpur API",
+    description="API for PySpur application",
+    version="1.0.0",
+)
+api_app.include_router(node_management_router, prefix="/node")
+api_app.include_router(workflow_management_router, prefix="/wf")
+api_app.include_router(workflow_run_router, prefix="/wf")
+api_app.include_router(dataset_management_router, prefix="/ds")
+api_app.include_router(run_management_router, prefix="/run")
+api_app.include_router(output_file_management_router, prefix="/of")
+api_app.include_router(key_management_router, prefix="/env-mgmt")
+api_app.include_router(template_management_router, prefix="/templates")
+api_app.include_router(openai_compatible_api_router, prefix="/api")
+api_app.include_router(evals_management_router, prefix="/evals")
+api_app.include_router(google_auth_router, prefix="/google")
+api_app.include_router(rag_management_router, prefix="/rag")
+api_app.include_router(file_management_router, prefix="/files")
+
+# Mount the API routes under /api
+app.mount("/api", api_app, name="api")
+
+# Mount static files to serve frontend
+static_dir = Path(__file__).parent.parent / "static"
+app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="frontend")
