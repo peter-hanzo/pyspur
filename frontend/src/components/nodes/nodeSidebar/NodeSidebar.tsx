@@ -540,10 +540,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
-        console.log('fieldMetadata', fieldMetadata);
-        console.log('key', key);
-        console.log('node?.type', node?.type);
-        console.log('value', value);
 
         // Special handling for vector_index_id field in RetrieverNode
         if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
