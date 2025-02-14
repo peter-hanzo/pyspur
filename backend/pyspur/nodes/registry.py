@@ -58,8 +58,8 @@ class NodeRegistry:
             # Create node registration info
             # Remove 'app.' prefix from module path if present
             module_path = node_class.__module__
-            if module_path.startswith("app."):
-                module_path = module_path[4:]  # Remove 'app.' prefix
+            if module_path.startswith("pyspur."):
+                module_path = module_path.replace("pyspur.", "", 1)
 
             node_info: Dict[str, Union[str, Optional[str]]] = {
                 "node_type_name": node_class.__name__,
@@ -135,7 +135,7 @@ class NodeRegistry:
                 cls._discover_in_directory(item, subpackage)
 
     @classmethod
-    def discover_nodes(cls, package_path: str = "app.nodes") -> None:
+    def discover_nodes(cls, package_path: str = "pyspur.nodes") -> None:
         """
         Automatically discover and register nodes from the package.
         Only nodes with the @NodeRegistry.register decorator will be registered.
