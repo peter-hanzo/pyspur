@@ -33,7 +33,6 @@ class SlackNotifyNodeConfig(BaseNodeConfig):
     message: str = Field(
         default="",
         description="The message template to send to Slack. Use {{variable}} syntax to include data from input nodes.",
-        json_schema_extra={"template": True},  # Mark this field as template-enabled
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(

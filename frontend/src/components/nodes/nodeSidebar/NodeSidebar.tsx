@@ -205,7 +205,7 @@ const isTemplateField = (key: string, fieldMetadata?: FieldMetadata): boolean =>
     }
 
     // Finally check template-related suffixes
-    const templateSuffixes = ['_template', '_message', '_prompt']
+    const templateSuffixes = ['template', 'message', 'prompt']
     return templateSuffixes.some(suffix => key.endsWith(suffix))
 }
 
@@ -546,6 +546,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     const renderField = (key: string, field: any, value: any, parentPath: string = '', isLast: boolean = false) => {
         const fullPath = `${parentPath ? `${parentPath}.` : ''}${key}`
         const fieldMetadata = getFieldMetadata(fullPath) as FieldMetadata
+        console.log('fieldMetadata', fieldMetadata);
+        console.log('key', key);
+        console.log('node?.type', node?.type);
+        console.log('value', value);
 
         // Special handling for vector_index_id field in RetrieverNode
         if (key === 'vector_index_id' && node?.type === 'RetrieverNode') {
@@ -728,52 +732,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
-        // Handle template fields
-        if (isTemplateField(key, fieldMetadata)) {
-            let tooltipContent = fieldMetadata?.description
-
-            // Use specific tooltips for well-known template fields
-            if (key === 'system_message') {
-                tooltipContent = "The System Message sets the AI's behavior, role, and constraints. It's like giving the AI its job description and rules to follow. Use it to define the tone, format, and any specific requirements for the responses."
-            } else if (key === 'user_message') {
-                tooltipContent = "The User Message is your main prompt template. Use variables like {{input.variable}} to make it dynamic. This is where you specify what you want the AI to do with each input it receives."
-            } else {
-                tooltipContent = tooltipContent || "Use variables like {{input.variable}} to make the content dynamic. This template will be rendered with data from connected nodes."
-            }
-
-            return (
-                <div key={key}>
-                    <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">{fieldMetadata?.title || key}</h3>
-                        <Tooltip
-                            content={tooltipContent}
-                            placement="left-start"
-                            showArrow={true}
-                            className="max-w-xs"
-                        >
-                            <Icon
-                                icon="solar:question-circle-linear"
-                                className="text-default-400 cursor-help"
-                                width={20}
-                            />
-                        </Tooltip>
-                    </div>
-                    <TextEditor
-                        key={`text-editor-${nodeID}-${key}`}
-                        nodeID={nodeID}
-                        fieldName={key}
-                        inputSchema={incomingSchema}
-                        fieldTitle={key}
-                        content={currentNodeConfig[key] || ''}
-                        setContent={(value) => handleInputChange(key, value)}
-                        disableFormatting={key.endsWith('_template')}  // Disable formatting for pure template fields
-                    />
-                    {key === 'user_message' && renderFewShotExamples()}
-                    {!isLast && <hr className="my-2" />}
-                </div>
-            )
-        }
-
         if (key === 'input_map') {
             return renderInputMapField(key, value, incomingSchema, handleInputChange)
         }
@@ -798,16 +756,37 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
             )
         }
 
-        // Remove redundant template field checks
-        if (key.endsWith('_template')) {
-            const title = key
-                .slice(0, -9)
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (char) => char.toUpperCase())
+        // Handle template fields
+        if (isTemplateField(key, fieldMetadata)) {
+            let tooltipContent = fieldMetadata?.description
+
+            // Use specific tooltips for well-known template fields
+            if (key === 'system_message') {
+                tooltipContent = "The System Message sets the AI's behavior, role, and constraints. It's like giving the AI its job description and rules to follow. Use it to define the tone, format, and any specific requirements for the responses."
+            } else if (key === 'user_message') {
+                tooltipContent = "The User Message is your main prompt template. Use variables like {{input.variable}} to make it dynamic. This is where you specify what you want the AI to do with each input it receives."
+            } else {
+                tooltipContent = tooltipContent || "Use variables like {{input.variable}} to make the content dynamic. This template will be rendered with data from connected nodes."
+            }
+
             return (
                 <div key={key}>
                     <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">{title}</h3>
+                        <h3 className="font-semibold">{fieldMetadata?.title || key}</h3>
+                        {tooltipContent && tooltipContent.length > 0 && (
+                            <Tooltip
+                                content={tooltipContent}
+                                placement="left-start"
+                                showArrow={true}
+                                className="max-w-xs"
+                            >
+                                <Icon
+                                    icon="solar:question-circle-linear"
+                                    className="text-default-400 cursor-help"
+                                    width={20}
+                                />
+                            </Tooltip>
+                        )}
                     </div>
                     <TextEditor
                         key={`text-editor-${nodeID}-${key}`}
@@ -817,8 +796,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         fieldTitle={key}
                         content={currentNodeConfig[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
-                        disableFormatting={true}
+                        disableFormatting={key.endsWith('_template')}  // Disable formatting for pure template fields
                     />
+                    {key === 'user_message' && renderFewShotExamples()}
                     {!isLast && <hr className="my-2" />}
                 </div>
             )
