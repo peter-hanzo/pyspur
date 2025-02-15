@@ -14,8 +14,18 @@ FROM base AS development
 ENV PYTHONPATH=/pyspur/backend
 # Development-specific instructions here
 
+# Frontend build stage
+FROM node:23-alpine AS frontend-builder
+WORKDIR /pyspur/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
+
 # Production stage
 FROM base AS production
 ENV PYTHONPATH=/pyspur/backend
 COPY backend/ .
+# Copy frontend static files from frontend build stage
+COPY --from=frontend-builder /pyspur/frontend/out/ /pyspur/backend/pyspur/static/
 # Production-specific instructions here 
