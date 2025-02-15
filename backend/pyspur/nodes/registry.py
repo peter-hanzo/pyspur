@@ -148,7 +148,7 @@ class NodeRegistry:
             if not hasattr(package, "__file__") or package.__file__ is None:
                 raise ImportError(f"Cannot find package {package_path}")
 
-            base_path = Path(package.__file__).parent
+            base_path = Path(package.__file__).resolve().parent
             logger.info(f"Discovering nodes in: {base_path}")
 
             # Start recursive discovery
