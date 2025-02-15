@@ -27,5 +27,7 @@ FROM base AS production
 ENV PYTHONPATH=/pyspur/backend
 COPY backend/ .
 # Copy frontend static files from frontend build stage
+RUN mkdir -p /pyspur/backend/pyspur/static
+RUN rm -rf /pyspur/backend/pyspur/static/*
 COPY --from=frontend-builder /pyspur/frontend/out/ /pyspur/backend/pyspur/static/
 # Production-specific instructions here 
