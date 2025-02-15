@@ -62,12 +62,13 @@ api_app.include_router(file_management_router, prefix="/files")
 app.mount("/api", api_app, name="api")
 
 # Mount static files to serve frontend
-static_dir = Path(__file__).parent.parent / "static"
+static_dir = Path(__file__).parent.parent.joinpath("static")
 
 # Optionally, mount directories for assets that you want served directly:
-app.mount("/_next", StaticFiles(directory=str(static_dir / "_next")), name="_next")
-app.mount("/images", StaticFiles(directory=str(static_dir / "images")), name="images")
-# (Mount any other folders that need no rewriting.)
+if Path.joinpath(static_dir, "images").exists():
+    app.mount("/images", StaticFiles(directory=str(static_dir.joinpath("images"))), name="images")
+if Path.joinpath(static_dir, "_next").exists():
+    app.mount("/_next", StaticFiles(directory=str(static_dir.joinpath("_next"))), name="_next")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
@@ -75,25 +76,25 @@ async def serve_frontend(full_path: str):
     print("Serving frontend for path:", full_path)
     # If the request is empty, serve index.html
     if full_path == "":
-        return FileResponse(static_dir / "index.html")
+        return FileResponse(static_dir.joinpath("index.html"))
 
     # remove trailing slash
     if full_path[-1] == "/":
         full_path = full_path[:-1]
 
     # Build a candidate file path from the request.
-    candidate = static_dir / full_path
+    candidate = static_dir.joinpath(full_path)
 
     # If candidate is a directory, try its index.html.
     print("Checking if candidate is a directory:", candidate)
     if candidate.is_dir():
-        candidate_index = candidate / "index.html"
+        candidate_index = candidate.joinpath("index.html")
         if candidate_index.exists():
             print("Serving index.html from directory:", candidate)
             return FileResponse(candidate_index)
 
     # If no direct file, try appending ".html" (for files like dashboard.html)
-    candidate_html = static_dir / (full_path + ".html")
+    candidate_html = static_dir.joinpath(full_path + ".html")
     print("Checking if candidate HTML file exists:", candidate_html)
     if candidate_html.exists():
         print("Serving candidate HTML file:", candidate_html)
@@ -110,11 +111,11 @@ async def serve_frontend(full_path: str):
     print("Checking if parent directory contains dynamic file:", parts)
     if len(parts) >= 2:
         parent = static_dir.joinpath(*parts[:-1])
-        dynamic_file = parent / "[id].html"
+        dynamic_file = parent.joinpath("[id].html")
         print("Checking if dynamic file exists:", dynamic_file)
         if dynamic_file.exists():
             return FileResponse(dynamic_file)
 
     # Fallback: serve the main index.html for client‑side routing.
     print("Falling back to serving index.html")
-    return FileResponse(static_dir / "index.html")
+    return FileResponse(static_dir.joinpath("index.html"))
