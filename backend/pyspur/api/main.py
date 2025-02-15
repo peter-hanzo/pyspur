@@ -73,7 +73,6 @@ if Path.joinpath(static_dir, "_next").exists():
 
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_frontend(full_path: str):
-    print("Serving frontend for path:", full_path)
     # If the request is empty, serve index.html
     if full_path == "":
         return FileResponse(static_dir.joinpath("index.html"))
@@ -86,36 +85,27 @@ async def serve_frontend(full_path: str):
     candidate = static_dir.joinpath(full_path)
 
     # If candidate is a directory, try its index.html.
-    print("Checking if candidate is a directory:", candidate)
     if candidate.is_dir():
         candidate_index = candidate.joinpath("index.html")
         if candidate_index.exists():
-            print("Serving index.html from directory:", candidate)
             return FileResponse(candidate_index)
 
     # If no direct file, try appending ".html" (for files like dashboard.html)
     candidate_html = static_dir.joinpath(full_path + ".html")
-    print("Checking if candidate HTML file exists:", candidate_html)
     if candidate_html.exists():
-        print("Serving candidate HTML file:", candidate_html)
         return FileResponse(candidate_html)
 
     # If a file exists at that candidate, serve it.
-    print("Checking if candidate file exists:", candidate)
     if candidate.exists():
-        print("Serving candidate file:", candidate)
         return FileResponse(candidate)
 
     # Check if the parent directory contains a file named "[id].html"
     parts = full_path.split("/")
-    print("Checking if parent directory contains dynamic file:", parts)
     if len(parts) >= 2:
         parent = static_dir.joinpath(*parts[:-1])
         dynamic_file = parent.joinpath("[id].html")
-        print("Checking if dynamic file exists:", dynamic_file)
         if dynamic_file.exists():
             return FileResponse(dynamic_file)
 
     # Fallback: serve the main index.html for client‑side routing.
-    print("Falling back to serving index.html")
     return FileResponse(static_dir.joinpath("index.html"))
