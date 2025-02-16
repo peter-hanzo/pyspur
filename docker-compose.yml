@@ -2,7 +2,7 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "${NGINX_PORT:-6080}:80"
+      - "${PYSPUR_PORT:-6080}:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
