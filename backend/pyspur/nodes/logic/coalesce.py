@@ -74,7 +74,9 @@ class CoalesceNode(BaseNode):
                 # Return the first non-None value immediately
                 output_model = create_model(
                     f"{self.name}",
-                    **{key: (type(value), ...)},  # Only include the first non-null key
+                    **{
+                        k: (type(v), ...) for k, v in value.items()
+                    },  # Only include the first non-null key
                     __base__=CoalesceNodeOutput,
                     __config__=None,
                     __module__=self.__module__,
@@ -83,8 +85,7 @@ class CoalesceNode(BaseNode):
                     __cls_kwargs__=None,
                 )
                 self.output_model = output_model
-                first_non_null_output[key] = value
-                return self.output_model(**first_non_null_output)
+                return self.output_model(**value)
 
         # If all values are None, return an empty output
         return None  # type: ignore
