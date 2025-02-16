@@ -99,6 +99,9 @@ jobs:
           # Create a temporary container from the production image
           CONTAINER_ID=$(docker create ${{ needs.build-and-push-docker.outputs.image_name }})
           
+          # Start the container
+          docker start $CONTAINER_ID
+          
           # Create dist directory
           mkdir -p dist
           
@@ -110,7 +113,7 @@ jobs:
           docker cp $CONTAINER_ID:/pyspur/backend/dist/. dist/
           
           # Clean up
-          docker rm $CONTAINER_ID
+          docker rm -f $CONTAINER_ID
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
