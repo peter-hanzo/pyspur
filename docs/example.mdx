@@ -1,111 +1,23 @@
 ---
 title: Example Walkthrough
-description: 'PySpur is a drag-and-drop AI agent builder.'
+description: 'A walkthrough of a simple spur we use internally'
 ---
 
-<video
-  width="100%"
-  controls
->
-  <source src="/images/hero.mp4" type="video/mp4" />
-  Your browser does not support the video tag.
-</video>
+# Overview
 
+<img
+  style={{ borderRadius: '0.5rem' }}
+  src="/images/example_walkthrough/1.png"
+/>
 
-# Why PySpur?
+Let's explore a practical example: a spur we use to summarize technical content and share it in Slack. Click the image above to view it in full size.
 
-## 1. Rapid Feedback Loops
+1) A router splits the flow based on the input type - either a blog post URL or research paper PDF.
+2) Blog posts are scraped via FireCrawl and summarized using an LLM.
+3) Research papers are converted to markdown with Gemini 2.0 and summarized by Claude 3.5 Sonnet for a more conversational style.
+4) The routes merge, selecting whichever branch produced output.
+5) Finally, the summary is posted to Slack.
 
-* **Build and test in one place**: Run the workflow within the canvas editor and observe each node's outputs to get instant feedback.
-* **Drag-and-drop**: Add new nodes that *just* work off-the-shelf within seconds.
-* **Vendor unification**: Instead of 20 nodes for 20 vendors, unified nodes enable you to jump between eg. models quickly to see which one is best for your use case.
+Now, let's recreate that spur step-by-step.
 
-## 2. AI-Native
-
-Unlike traditional workflow platforms, PySpur is AI-Native and comes with batteries included.
-
-* **RAG**: Parse, chunk, embed, upsert data and maintain vector indices.
-* **Loops**: Workflow graphs can include cycles for iterative tool calling.
-* **Evals**: Score the performance of your agents to improve their robustness.
-* **Tools**: >10 Popular integrations available as tools, with more to come.
-* **Multimodal**: Support for video, images, audio, texts, code.
-
-## 3. Easy Extensibility
-
-You can add custom nodes with a simple Python decorator:
-
-```python
-@NodeRegistry.register(
-    category="Integrations",
-    display_name="Firecrawl Scrape",
-    logo="/images/firecrawl.png"
-)
-class FirecrawlScrapeNode(BaseNode):
-    name = "firecrawl_scrape_node"
-    config_model = FirecrawlScrapeNodeConfig
-    input_model = FirecrawlScrapeNodeInput
-    output_model = FirecrawlScrapeNodeOutput
-    category = "Firecrawl"  # This will be used by the frontend for subcategory grouping
-
-    async def run(self, input: BaseModel) -> BaseModel:
-        """
-        Scrapes a URL and returns the content in markdown or structured format.
-        """
-        pass
-```
-
-## Setting up
-
-The first step to documentation is setting up your editing environments.
-
-<CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
-  </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
-  </Card>
-</CardGroup>
-
-## Make it yours
-
-Update your docs to your brand and add valuable content for the best user conversion.
-
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
-  </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
-  </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/components/accordion"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
-  </Card>
-</CardGroup>
+# 
