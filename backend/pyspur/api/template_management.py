@@ -23,7 +23,7 @@ class TemplateSchema(BaseModel):
 
 router = APIRouter()
 
-TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
 print(f"TEMPLATES_DIR resolved to: {TEMPLATES_DIR.resolve()}")
 
