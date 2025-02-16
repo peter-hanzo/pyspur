@@ -1,5 +1,5 @@
 ---
-title: Example Walkthrough
+title: Example
 description: 'A walkthrough of a simple spur we use internally'
 ---
 
@@ -27,35 +27,32 @@ Let's explore a practical example: a spur we use to summarize technical content 
 4) The routes merge, selecting whichever branch produced output.
 5) Finally, the summary is posted to Slack.
 
-
 # Step by Step Tutorial
 
 Now, let's recreate that spur step by step.
 
 ## Input Node
 
-Every new spur has exactly one input node. It will be there by default and can't be deleted.
-
-Its input variables define the data that can be used inside the spur.
+Each new spur includes a default, non-deletable input node. Its variables define the data used within the spur.
 
 <img className="block dark:hidden" src="/images/example_walkthrough/2_light.png" />
 <img className="hidden dark:block" src="/images/example_walkthrough/2_dark.png" />
 
-When deploying a spur as API, those variables will define the endpoint's input schema.
+When deployed as an API, these variables define the endpoint's input schema.
 
-<img className="block h-32 dark:hidden" src="/images/example_walkthrough/3_light.png" />
-<img className="hidden h-32 dark:block" src="/images/example_walkthrough/3_dark.png" />
+<img className="block dark:hidden" src="/images/example_walkthrough/3_light.png" />
+<img className="hidden dark:block" src="/images/example_walkthrough/3_dark.png" />
 
 ## Router Node
 
-Next, we want to split the pipeline into two branches depending on the input. Specifically, depending on the input type, we want to
+The router node splits the pipeline based on input type:
 
-1) extract the relevant information in different ways (either by web scraping or PDF-to-markdown conversion), and
-2) summarize the content in different ways according to different preferences (more on this later).
+1) Extract information via web scraping or PDF-to-markdown conversion.
+2) Summarize content according to different preferences.
 
-The router node allows us to do so by directing input data to different routes based on conditional rules we define. Each route is evaluated in order until a match is found.
+The router directs data to routes based on defined conditions, evaluating each route in order until a match is found.
 
-<img className="block h-24 dark:hidden" src="/images/example_walkthrough/4_light.png" />
-<img className="hidden h-24 dark:block" src="/images/example_walkthrough/4_dark.png" />
+<img className="block dark:hidden" src="/images/example_walkthrough/4_light.png" />
+<img className="hidden dark:block" src="/images/example_walkthrough/4_dark.png" />
 
 ## Route 1: Summarizing blog post
