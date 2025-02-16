@@ -80,7 +80,37 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 
 # ⚡ Quick start
 
-You can launch PySpur using pre-built docker images in the following steps:
+## Option A: Using `pyspur` Python Package
+
+This is the quickest way to get started and is suitable for prototyping:
+
+1. **Prerequisites:**
+    - Python 3.12 or higher is required
+
+2. **Install PySpur:**
+    ```sh
+    pip install pyspur
+    ```
+
+3. **Initialize a new project:**
+    ```sh
+    pyspur init my-project
+    cd my-project
+    ```
+    This will create a new directory with a `.env` file.
+
+4. **Configure environment:**
+    Review and update the `.env` file with your configuration. If you plan to use third-party model providers, add their API keys here.
+
+5. **Start the server:**
+    ```sh
+    pyspur serve
+    ```
+    By default, this will start PySpur at `http://localhost:6080`.
+
+## Option B: Using Docker (Recommended)
+
+This is the recommended way for production deployments:
 
 1. **Clone the repository:**
     ```sh
@@ -126,7 +156,6 @@ Set up is completed. Click on "New Spur" to create a workflow, or start with one
    Enter your provider's key and click save (save button will appear after you add/modify a key)
 
    <img width="451" alt="image" src="https://github.com/user-attachments/assets/e35ba2bb-4c60-4b13-9a8d-cc47cac45375" />
-
 
 # 🛠️ PySpur Development Setup
 #### [ Instructions for development on Unix-like systems. Development on Windows/PC not tested ]
