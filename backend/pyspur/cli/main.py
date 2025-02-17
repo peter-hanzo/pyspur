@@ -45,6 +45,12 @@ def init(
             shutil.copy2(target_dir / ".env.example", env_path)
             print("[green]✓[/green] Created .env from template")
 
+        # Create a data directory
+        data_dir = target_dir / "data"
+        if not data_dir.exists():
+            data_dir.mkdir()
+            print("[green]✓[/green] Created data directory")
+
         print("\n[bold green]PySpur project initialized successfully! 🚀[/bold green]")
         print("\nNext steps:")
         print("1. Review and update the .env file with your configuration")
