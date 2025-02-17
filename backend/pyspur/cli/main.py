@@ -58,7 +58,7 @@ def init(
 
     except Exception as e:
         print(f"[red]Error initializing project: {str(e)}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command()
@@ -103,8 +103,9 @@ def serve(
 
     except Exception as e:
         print(f"[red]Error starting server: {str(e)}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def main() -> None:
+    """PySpur CLI."""
     app()
