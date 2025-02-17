@@ -4,10 +4,13 @@ RUN apt-get update && apt-get install -y \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
-
+RUN pip install uv
 WORKDIR /pyspur/backend
 COPY backend/pyproject.toml .
-RUN pip install .
+RUN uv pip compile pyproject.toml > requirements.txt && \
+    uv pip install --system --no-cache-dir -r requirements.txt && \
+    rm requirements.txt
+
 
 # Development stage
 FROM base AS development
