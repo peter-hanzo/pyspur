@@ -165,7 +165,23 @@ class SingleLLMCallNode(BaseNode):
                 )
             raise e
 
-        assistant_message_dict = json.loads(assistant_message_str)
+        try:
+            assistant_message_dict = json.loads(assistant_message_str)
+        except Exception as e:
+            error_str = str(e)
+            error_message = "An error occurred while parsing the assistant message"
+            error_type = "json_parse_error"
+            raise Exception(
+                json.dumps(
+                    {
+                        "type": "parsing_error",
+                        "error_type": error_type,
+                        "message": error_message,
+                        "original_error": error_str,
+                        "assistant_message_str": assistant_message_str,
+                    }
+                )
+            )
 
         # Validate and return
         assistant_message = self.output_model.model_validate(assistant_message_dict)

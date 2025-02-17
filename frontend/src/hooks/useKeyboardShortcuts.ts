@@ -38,7 +38,7 @@ export const useKeyboardShortcuts = (
                             dispatch(addNode({ node: newNode.node }))
                         }
                         break
-                    case 'l': // CMD + L or CTRL + L
+                    case 'i': // CMD + I or CTRL + I
                         if (handleLayout) {
                             event.preventDefault()
                             handleLayout()
