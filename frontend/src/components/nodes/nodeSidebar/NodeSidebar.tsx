@@ -787,6 +787,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         content={currentNodeConfig[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
                         disableFormatting={key.endsWith('_template')}  // Disable formatting for pure template fields
+                        isTemplateEditor={true}  // This is a template editor in NodeSidebar
                     />
                     {key === 'user_message' && renderFewShotExamples()}
                     {!isLast && <hr className="my-2" />}

@@ -23,6 +23,7 @@ interface TextEditorProps {
     inputSchema?: string[]
     fieldTitle?: string
     disableFormatting?: boolean
+    isTemplateEditor?: boolean
 }
 
 interface TextEditorRef {
@@ -31,7 +32,7 @@ interface TextEditorRef {
 
 const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
     (
-        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle, disableFormatting = false },
+        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle, disableFormatting = false, isTemplateEditor = false },
         ref
     ) => {
         const [localContent, setLocalContent] = React.useState(initialContent)
@@ -142,6 +143,9 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         }, [isOpen, modalEditor, editor])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
+            // Only show variable buttons if this is a template editor
+            if (!isTemplateEditor) return null;
+
             // Show message when no input schema is available (undefined or empty array)
             if (!inputSchema || !Array.isArray(inputSchema) || inputSchema.length === 0) {
                 return (
