@@ -92,6 +92,7 @@ packages = ["pyspur"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "pyspur/templates/*" = "pyspur/templates/"
+"pyspur/static/*" = "pyspur/static/"
 
 [tool.ruff]
 line-length = 100
