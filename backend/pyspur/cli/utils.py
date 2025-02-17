@@ -1,13 +1,12 @@
 """Utility functions for the PySpur CLI."""
 
-import os
 from pathlib import Path
 import shutil
 
 from rich import print
 import typer
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
@@ -47,11 +46,7 @@ def load_environment() -> None:
 def run_migrations() -> None:
     """Run database migrations using SQLAlchemy."""
     try:
-        # Construct database URL from environment variables
-        db_url = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
-
-        # Create engine
-        engine = create_engine(db_url)
+        from ..database import engine, database_url
 
         # Test connection
         with engine.connect() as conn:
@@ -77,7 +72,7 @@ def run_migrations() -> None:
             # Create Alembic config programmatically
             config = Config()
             config.set_main_option("script_location", str(script_location))
-            config.set_main_option("sqlalchemy.url", db_url)
+            config.set_main_option("sqlalchemy.url", database_url)
 
             # Run upgrade to head
             command.upgrade(config, "head")
