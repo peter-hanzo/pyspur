@@ -89,6 +89,7 @@ dev = [
 [tool.hatch.build.targets.wheel]
 universal = false
 packages = ["pyspur"]
+zip-safe = false
 
 [tool.hatch.build.targets.wheel.force-include]
 "pyspur/templates/*" = "pyspur/templates/"
