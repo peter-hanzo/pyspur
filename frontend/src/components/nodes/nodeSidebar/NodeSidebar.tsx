@@ -1028,10 +1028,24 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type')
 
-        // Prioritize system_message and user_message to appear first
+        // Prioritize system_message, user_message, and template fields to appear first
         const priorityFields = ['system_message', 'user_message']
-        const remainingKeys = keys.filter((key) => !priorityFields.includes(key))
-        const orderedKeys = [...priorityFields.filter((key) => keys.includes(key)), ...remainingKeys]
+        const templateFields = keys.filter(key =>
+            key.includes('template') ||
+            key.includes('message') ||
+            key.includes('prompt')
+        ).filter(key => !priorityFields.includes(key))
+
+        const remainingKeys = keys.filter((key) =>
+            !priorityFields.includes(key) &&
+            !templateFields.includes(key)
+        )
+
+        const orderedKeys = [
+            ...priorityFields.filter((key) => keys.includes(key)),
+            ...templateFields,
+            ...remainingKeys
+        ]
 
         return (
             <React.Fragment>
@@ -1039,9 +1053,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     const field = properties[key]
                     const value = currentNodeConfig[key]
                     const isLast = index === orderedKeys.length - 1
-                    return renderField(key, field, value, `${nodeType}.config`, isLast)
+                    const result = renderField(key, field, value, `${nodeType}.config`, isLast)
+
+                    // Insert URL variable config after template/message fields
+                    if (index === priorityFields.length + templateFields.length - 1) {
+                        return (
+                            <React.Fragment key={key}>
+                                {result}
+                                {renderUrlVariableConfig()}
+                            </React.Fragment>
+                        )
+                    }
+
+                    return result
                 })}
-                {renderUrlVariableConfig()}
             </React.Fragment>
         )
     }
