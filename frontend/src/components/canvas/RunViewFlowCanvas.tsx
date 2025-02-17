@@ -272,7 +272,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         )
 
         toPng(document.querySelector('.react-flow__viewport'), {
-            backgroundColor: '#1a365d',
+            backgroundColor: 'transparent',
             width: imageWidth,
             height: imageHeight,
             style: {

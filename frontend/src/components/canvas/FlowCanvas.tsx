@@ -420,7 +420,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = ({ workflowData, workflowID
         )
 
         toPng(document.querySelector('.react-flow__viewport'), {
-            backgroundColor: '#1a365d',
+            backgroundColor: 'transparent',
             width: imageWidth,
             height: imageHeight,
             style: {
