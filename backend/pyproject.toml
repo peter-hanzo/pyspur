@@ -102,10 +102,14 @@ target-version = "py312"
 select = ["E", "F", "I", "N", "W", "B", "C", "D"]
 ignore = [
     "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
     "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
     "D107",  # Missing docstring in __init__
-    "D203",  # Ignore 'incorrect-blank-line-before-class' in favor of D211
-    "D213",  # Ignore 'multi-line-summary-second-line' in favor of D212
+    "I001",  # Import block is un-sorted or un-formatted
+    "E402",  # Module level import not at top of file
 ]
 
 [tool.black]
