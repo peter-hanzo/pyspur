@@ -98,9 +98,9 @@ This is the quickest way to get started. Python 3.12 or higher is required.
 
 3. **Start the server:**
     ```sh
-    pyspur serve
+    pyspur serve --sqlite
     ```
-    By default, this will start PySpur app at `http://localhost:6080`.
+    By default, this will start PySpur app at `http://localhost:6080` using a sqlite database.
 
 4. **[Optional] Customize Your Deployment:**
     You can customize your PySpur deployment in two ways:
@@ -112,10 +112,8 @@ This is the quickest way to get started. Python 3.12 or higher is required.
 
     b. **Manual Configuration**:
        - Edit the `.env` file in your project directory
-       - Restart the app with:
-         ```sh
-         pyspur serve
-         ```
+       - It is recommended to configure a postgres database in .env for more reliability
+       - Restart the app with `pyspur serve`. Add `--sqlite` if you are not using postgres
 
 ## Option B: Using Docker (Recommended)
 

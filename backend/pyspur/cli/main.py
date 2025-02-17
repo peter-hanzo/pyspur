@@ -65,6 +65,10 @@ def serve(
         None,
         help="Port to bind the server to. Defaults to PYSPUR_PORT from environment or 6080",
     ),
+    sqlite: bool = typer.Option(
+        False,
+        help="Use SQLite database instead of PostgreSQL. Useful for local development.",
+    ),
 ) -> None:
     """Start the PySpur server."""
     try:
@@ -74,6 +78,10 @@ def serve(
         # Use environment variables as defaults if not provided via CLI
         host = host or os.getenv("PYSPUR_HOST", "0.0.0.0")
         port = port or int(os.getenv("PYSPUR_PORT", "6080"))
+
+        if sqlite:
+            print("[yellow]Using SQLite database for local development...[/yellow]")
+            os.environ["SQLITE_OVERRIDE_DATABASE_URL"] = "sqlite:///./pyspur.db"
 
         # Run database migrations
         print("[yellow]Running database migrations...[/yellow]")
