@@ -48,7 +48,7 @@ def init(
         print("\n[bold green]PySpur project initialized successfully! 🚀[/bold green]")
         print("\nNext steps:")
         print("1. Review and update the .env file with your configuration")
-        print("2. Visit https://docs.pyspur.dev to learn more about PySpur")
+        print("2. Start the PySpur server with 'pyspur serve'")
 
     except Exception as e:
         print(f"[red]Error initializing project: {str(e)}[/red]")
