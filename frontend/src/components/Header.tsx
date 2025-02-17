@@ -23,10 +23,10 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
+import { useDownloadImage } from '../hooks/useDownloadImage'
 import { setProjectName } from '../store/flowSlice'
 import { AlertState } from '../types/alert'
 import { getRunStatus, getWorkflow } from '../utils/api'
-import { handleDownloadImage } from './canvas/FlowCanvas'
 import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
 import RunModal from './modals/RunModal'
@@ -60,6 +60,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     const router = useRouter()
     const { id } = router.query
     const isRun = id && id[0] == 'R'
+
+    const { handleDownloadImage } = useDownloadImage()
 
     const showAlert = (message: string, color: AlertState['color']) => {
         setAlert({ message, color, isVisible: true })
