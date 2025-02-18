@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { runPartialWorkflow } from '../utils/api'
-import { AppDispatch } from '@/store/store'
 import { updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
+import { AppDispatch, RootState } from '@/store/store'
+import { useState } from 'react'
+import { useSelector } from 'react-redux'
+import { runPartialWorkflow } from '../utils/api'
 
 interface PartialRunResult {
     // Add specific result type properties based on your API response
@@ -17,7 +18,7 @@ interface PartialRunError {
 export interface PartialRunParams {
     workflowId: string
     nodeId: string
-    initialInputs: Record<string, any>
+    initialInputs?: Record<string, any>
     partialOutputs: Record<string, any>
     rerunPredecessors: boolean
 }
@@ -26,6 +27,9 @@ const usePartialRun = (dispatch: AppDispatch) => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<PartialRunError | null>(null)
     const [result, setResult] = useState<PartialRunResult | null>(null)
+    const selectedTestInputId = useSelector((state: RootState) => state.flow.selectedTestInputId)
+    const testInputs = useSelector((state: RootState) => state.flow.testInputs)
+    const nodes = useSelector((state: RootState) => state.flow.nodes)
 
     const executePartialRun = async ({
         workflowId,
@@ -38,7 +42,28 @@ const usePartialRun = (dispatch: AppDispatch) => {
         setError(null)
 
         try {
-            const data = await runPartialWorkflow(workflowId, nodeId, initialInputs, partialOutputs, rerunPredecessors)
+            // If no initialInputs provided, use the selected test input
+            let effectiveInitialInputs = initialInputs
+            if (!effectiveInitialInputs) {
+                const testCase = testInputs.find((row) => row.id.toString() === selectedTestInputId) ?? testInputs[0]
+                if (testCase) {
+                    const { id, ...inputValues } = testCase
+                    const inputNode = nodes.find((node) => node.type === 'InputNode')
+                    if (inputNode?.id) {
+                        effectiveInitialInputs = {
+                            [inputNode.id]: inputValues,
+                        }
+                    }
+                }
+            }
+
+            const data = await runPartialWorkflow(
+                workflowId,
+                nodeId,
+                effectiveInitialInputs || {},
+                partialOutputs,
+                rerunPredecessors
+            )
             setResult(data)
 
             // Update nodes with their outputs using the action creator
