@@ -3,21 +3,16 @@ title: Example
 description: 'A walkthrough of a simple spur we use internally'
 ---
 
-
-
 # The spur in action
 
 <img className="block dark:hidden" src="/images/example_walkthrough/0_light.png" />
 <img className="hidden dark:block" src="/images/example_walkthrough/0_dark.png" />
 
+Let's look at a practical example: a tool we use to summarize technical content and share it on Slack. Click the image above to see a full-size view of the tool in action, or click [here](https://assets.sevn.ai/website_assets/Slack_Summarizer.json) to download it.
 
-Let's explore a practical example: a spur we use to summarize technical content and share it in Slack. Click the image above to view a spur run in full size or click [here](/images/SlackSummarizer.json) to download the spur.
-
-1) A router splits the flow based on the input - either a blog post URL or research paper PDF.
-2) Blog posts are scraped via FireCrawl and summarized using an LLM (Claude 3.5 Sonnet).
-3) Research papers are converted to markdown with Gemini 2.0 and summarized by Claude 3.5 Sonnet for a more conversational style.
-4) The routes merge, selecting whichever branch produced output.
-5) Finally, the summary is posted to Slack.
+1) The input can be either a blog post URL or a research paper PDF.
+2) We convert the input URL/PDF to markdown.
+3) We summarize the markdown content and post it on Slack.
 
 # Step by Step Tutorial
 
@@ -46,15 +41,14 @@ The router directs data to routes based on defined conditions, evaluating each r
 
 <img className="block dark:hidden" src="/images/example_walkthrough/4_light.png" />
 <img className="hidden dark:block" src="/images/example_walkthrough/4_dark.png" />
+## Route 1: Summarizing a Blog Post
 
-## Route 1: Summarizing blog post
-
-First, we want to scrape the post's URL and turn it into markdown. For this, we use the [Firecrawl](https://www.firecrawl.dev/) tool.
+First, we need to scrape the blog post's URL and convert it into markdown. We use the [Firecrawl](https://www.firecrawl.dev/) tool for this purpose.
 
 <img className="block dark:hidden" src="/images/example_walkthrough/5_light.gif" />
 <img className="hidden dark:block" src="/images/example_walkthrough/5_dark.gif" />
 
-Now, we want to pass that markdown to an LLM and write a prompt that captures our taste of summaries.
+Next, we pass the markdown to a LLM and create a prompt that reflects our preferred style of summaries.
 
 <video
 controls
@@ -68,9 +62,9 @@ controls
   loop
   playsInline className="hidden dark:block w-full aspect-video" src="/images/example_walkthrough/6_dark.mp4" />
 
-### Quick Iterations == Success
+### Quick Iterations Lead to Success
 
-We can now define test cases (blog posts), run them, review outputs at each node, and iterate until the results meet expectations.
+We can now create test cases with real URLs and PDF files, execute them, review the outputs at each node, and make adjustments until the results meet our expectations.
 
 <video
 controls
@@ -84,7 +78,68 @@ controls
   loop
   playsInline className="hidden dark:block w-full aspect-video" src="/images/example_walkthrough/7_dark.mp4" />
 
-## Route 2: Extracting markdown from PDF and summarizing it
+## Route 2: Extracting Markdown from PDF and Summarizing It
 
-Next, we want to take care of the route that takes care of research papers to be summarized.
+Next, we will handle the route for summarizing research papers.
 
+For this step, we add two LLM call nodes:
+1. `MarkdownExtractor`: extracts markdown from a PDF using Gemini 2.0 Flash.
+2. `PaperSummarizer`: summarizes the extracted markdown using Claude Sonnet 3.5.
+
+<video
+controls
+  muted
+  loop
+  playsInline
+  className="block dark:hidden w-full aspect-video" src="/images/example_walkthrough/8_light.mp4" />
+<video
+controls
+  muted
+  loop
+  playsInline className="hidden dark:block w-full aspect-video" src="/images/example_walkthrough/8_dark.mp4" />
+
+## Final Step: Merging Routes and Sending to Slack Bot
+
+## Bringing It All Together
+
+This process is called `coalescing`: the `CoalesceNode` will return the value from one route, even if both routes are executed. In contrast, a `merge` would combine the results from both routes.
+
+Once the routes are coalesced, we add a Slack bot node to send the results.
+
+To test this setup, we use a test case involving a PDF.
+
+<video
+controls
+  muted
+  loop
+  playsInline
+  className="block dark:hidden w-full aspect-video" src="/images/example_walkthrough/9_light.mp4" />
+<video
+controls
+  muted
+  loop
+  playsInline className="hidden dark:block w-full aspect-video" src="/images/example_walkthrough/9_dark.mp4" />
+
+# General Tips
+
+Now that you've built the workflow, here are some tips to make you more efficient:
+
+## Keyboard Shortcuts
+- `⌘/CTRL + ENTER`: Run the workflow with your last test case
+- `⌘/CTRL + I`: Re-organize the layout automatically
+- `Arrow Keys`: Move around on the canvas
+
+## Advanced Tips
+- **Jinja Templates**: Under the hood, we use [Jinja](https://jinja.palletsprojects.com/en/stable/) to create strings (e.g., messages) with data from previous nodes.
+  - The text editor provides buttons to insert data variables from incoming nodes, but you can also write custom Jinja code.
+- **Test Cases**: Create different test cases for URLs and PDFs to ensure everything works
+- **Experiment with different models**: Each model has its own unique style and personality.
+
+# Next Steps
+
+If you want to now try PySpur yourself, you can clone the workflow and try:
+1. Customizing the summary prompt for your team's needs
+2. Add another route for a different input type
+3. Create different summary styles for different Slack channels
+
+Download the workflow [here](https://assets.sevn.ai/website_assets/Slack_Summarizer.json) to get started!
