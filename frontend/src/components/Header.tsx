@@ -30,6 +30,10 @@ import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
 import RunModal from './modals/RunModal'
 import SettingsCard from './modals/SettingsModal'
+import { initializeFlow } from '../store/flowSlice'
+import { RootState } from '../store/store'
+import { useWorkflowFileOperations } from '../hooks/useWorkflowFileOperations'
+import ConfirmationModal from './modals/ConfirmationModal'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -38,12 +42,11 @@ interface HeaderProps {
     handleDownloadImage?: () => void
 }
 
-import { RootState } from '../store/store'
-
 const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId, handleDownloadImage }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const projectName = useSelector((state: RootState) => state.flow.projectName)
+    const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data)
     const [isDebugModalOpen, setIsDebugModalOpen] = useState<boolean>(false)
     const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
@@ -77,6 +80,14 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     } = useWorkflowExecution({ onAlert: showAlert })
 
     const saveWorkflow = useSaveWorkflow()
+
+    const {
+        handleFileUpload,
+        isConfirmationOpen,
+        setIsConfirmationOpen,
+        handleConfirmOverwrite,
+        pendingWorkflowData
+    } = useWorkflowFileOperations({ showAlert })
 
     useEffect(() => {
         if (testInputs.length > 0 && !selectedRow) {
@@ -225,6 +236,15 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     <Alert color={alert.color}>{alert.message}</Alert>
                 </div>
             )}
+            <ConfirmationModal
+                isOpen={isConfirmationOpen}
+                onClose={() => setIsConfirmationOpen(false)}
+                onConfirm={handleConfirmOverwrite}
+                title="Overwrite Workflow"
+                message={`Are you sure you want to overwrite the current workflow with "${pendingWorkflowData?.name}"? This action cannot be undone.`}
+                confirmText="Overwrite"
+                isDanger
+            />
             <Navbar
                 classNames={{
                     base: 'lg:bg-background lg:backdrop-filter-none h-12 shadow-sm',
@@ -442,6 +462,18 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                     </DropdownItem>
                                 </DropdownMenu>
                             </Dropdown>
+                        </NavbarItem>
+                        <NavbarItem className="hidden sm:flex">
+                            <Tooltip content="Upload Workflow JSON">
+                                <Button
+                                    isIconOnly
+                                    radius="full"
+                                    variant="light"
+                                    onPress={handleFileUpload}
+                                >
+                                    <Icon className="text-foreground/60" icon="solar:upload-linear" width={24} />
+                                </Button>
+                            </Tooltip>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Button isIconOnly radius="full" variant="light" onPress={handleDeploy}>
