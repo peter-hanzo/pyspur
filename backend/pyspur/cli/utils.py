@@ -67,14 +67,38 @@ def run_migrations() -> None:
                 tempfile.TemporaryDirectory() as script_temp_dir,
                 resources.as_file(script_location) as script_location_path,
             ):
-                shutil.copytree(script_location_path, Path(script_temp_dir))
+                print("[yellow]![/yellow] Temporary migration directory: ", script_temp_dir)
+                print("[yellow]![/yellow] Migration scripts location: ", script_location_path)
+                shutil.copytree(script_location_path, Path(script_temp_dir), dirs_exist_ok=True)
+                print("[green]✓[/green] Copied migration scripts to temporary directory")
+                from rich.tree import Tree
+
+                print("[yellow]![/yellow] Migration directory structure:")
+                tree = Tree(script_temp_dir)
+                for path in Path(script_temp_dir).rglob("*"):
+                    if path.is_file():
+                        tree.add(str(path.relative_to(script_temp_dir)))
+                print(tree)
                 # Create Alembic config programmatically
                 config = Config()
                 config.set_main_option("script_location", str(script_temp_dir))
                 config.set_main_option("sqlalchemy.url", database_url)
 
+                # Add SQLite-specific configuration
+                if database_url.startswith("sqlite"):
+                    config.set_section_option("alembic", "use_batch_alter", "True")
+
+                    # Add SQLite-specific compiler for column comments
+                    from sqlalchemy.ext.compiler import compiles
+                    from alembic.ddl.base import ColumnComment
+
+                    @compiles(ColumnComment, "sqlite")
+                    def compile_column_comment(element, compiler, **kw):  # type: ignore
+                        # SQLite does not support column comments.
+                        return ""
+
                 # Run upgrade to head
-                command.upgrade(config, "head")
+                command.upgrade(config, "head", sql=True)
                 print("[green]✓[/green] Database schema is up to date")
 
     except Exception as e:
