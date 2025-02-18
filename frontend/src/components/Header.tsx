@@ -24,7 +24,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { useWorkflowFileOperations } from '../hooks/useWorkflowFileOperations'
-import { setProjectName } from '../store/flowSlice'
+import { setProjectName, setRunModalOpen } from '../store/flowSlice'
 import { RootState } from '../store/store'
 import { AlertState } from '../types/alert'
 import { getRunStatus, getWorkflow } from '../utils/api'
@@ -58,6 +58,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
     const selectedTestInputId = useSelector((state: RootState) => state.flow.selectedTestInputId)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false)
+    const isRunModalOpen = useSelector((state: RootState) => state.flow.isRunModalOpen)
 
     const router = useRouter()
     const { id } = router.query
@@ -84,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
         useWorkflowFileOperations({ showAlert })
 
     const handleRunWorkflow = async (): Promise<void> => {
-        setIsDebugModalOpen(true)
+        dispatch(setRunModalOpen(true))
     }
 
     const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -535,11 +536,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                 </NavbarContent>
             </Navbar>
             <RunModal
-                isOpen={isDebugModalOpen}
-                onOpenChange={setIsDebugModalOpen}
+                isOpen={isRunModalOpen}
+                onOpenChange={(isOpen) => dispatch(setRunModalOpen(isOpen))}
                 onRun={async (selectedInputs) => {
                     await executeWorkflow(selectedInputs)
-                    setIsDebugModalOpen(false)
+                    dispatch(setRunModalOpen(false))
                 }}
             />
             <DeployModal
