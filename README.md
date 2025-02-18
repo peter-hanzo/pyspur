@@ -176,75 +176,11 @@ For development, follow these steps:
 3. **Customize your setup:**
     Edit the `.env` file to configure your environment. By default, PySpur uses a local PostgreSQL database. To use an external database, modify the `POSTGRES_*` variables in `.env`.
 
-# 🦙 Using PySpur with Ollama (Local Models)
-
-PySpur can work with local models served using Ollama.
-
-Steps to configure PySpur to work with Ollama running on the same host.
-
-### 1. Configure Ollama
-To ensure Ollama API is reachable from PySpur, we need to start the Ollama service with environment variable `OLLAMA_HOST=0.0.0.0` . This allows requests coming from PySpur docker's bridge network to get through to Ollama.
-An easy way to do this is to launch the ollama service with the following command:
-```sh
-OLLAMA_HOST="0.0.0.0" ollama serve
-```
-
-### 2. Update the PySpur .env file
-Next up we need to update the `OLLAMA_BASE_URL` environment value in the `.env` file.
-If your Ollama port is 11434 (the default port), then the entry in `.env` file should look like this:
-```sh
-OLLAMA_BASE_URL=http://host.docker.internal:11434
-```
-(Please make sure that there is no trailing slash in the end!)
-
-In PySpur's set up, `host.docker.internal` refers to the host machine where both PySpur and Ollama are running.
-
-### 3. Launch the PySpur app
-Follow the usual steps to launch the PySpur app, starting with the command:
-```sh
-docker compose -f docker-compose.prod.yml up --build -d
-```
-
-If you wish to do PySpur development with ollama please run the following command instead of above:
-```sh
-docker compose -f docker-compose.yml up --build -d
-```
-
-
-### 4. Using Ollama models in the app
-You will be able to select Ollama models [`ollama/llama3.2`, `ollama/llama3`, ...] from the sidebar for LLM nodes.
-Please make sure the model you select is explicitly downloaded in ollama. That is, you will need to manually manage these models via ollama. To download a model you can simply run `ollama pull <model-name>`.
-
-## Note on supported models
-PySpur only works with models that support structured-output and json mode. Most newer models should be good, but it would still be good to confirm this from Ollama documentation for the model you wish to use.
-
 # ⭐ Support us
 
 You can support us in our work by leaving a star! Thank you!
 
 ![star](https://github.com/user-attachments/assets/71f65273-6755-469d-be44-087bb89d5e76)
-
-# 🗺️ Roadmap
-
-- [X] Canvas
-- [X] Async/Batch Execution
-- [X] Evals
-- [X] Spur API
-- [x] Support Ollama
-- [ ] New Nodes
-    - [X] LLM Nodes
-    - [X] If-Else
-    - [X] Merge Branches
-    - [X] Tools
-    - [ ] Loops
-- [X] RAG
-- [ ] Pipeline optimization via DSPy and related methods
-- [ ] Templates
-- [ ] Compile Spurs to Code
-- [ ] Multimodal support
-- [ ] Containerization of Code Verifiers
-- [ ] Leaderboard
-- [ ] Generate Spurs via AI
 
 Your feedback will be massively appreciated.
 Please [tell us](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) which features on that list you like to see next or request entirely new ones.
