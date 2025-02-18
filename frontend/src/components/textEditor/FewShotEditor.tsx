@@ -54,12 +54,12 @@ interface FewShotEditorProps {
 
 const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const dispatch = useDispatch()
-    const node = useSelector((state: RootState) => state.flow.nodes.find((n: Node) => n.id === nodeID))
+    const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID])
     const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
 
     const handleContentChange = (content: string) => {
         // Use lodash's cloneDeep to deep clone the few_shot_examples array
-        const updatedExamples = _.cloneDeep(node?.data?.config?.few_shot_examples || [])
+        const updatedExamples = _.cloneDeep(nodeConfig?.few_shot_examples || [])
 
         if (!updatedExamples[exampleIndex]) {
             updatedExamples[exampleIndex] = {}
@@ -88,7 +88,7 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
             </div>
             <TextEditor
                 key={`${activeTab}-${exampleIndex}`}
-                content={node?.data?.config?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
+                content={nodeConfig?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
                 setContent={handleContentChange}
                 isEditable={true}
                 fieldTitle={`Example ${exampleIndex + 1} ${activeTab}`}
