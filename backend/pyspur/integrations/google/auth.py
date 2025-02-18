@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 # Import the logger
@@ -13,7 +14,11 @@ logger = getLogger(__name__)
 # Define a router for Google OAuth
 router = APIRouter()
 
-TOKEN_FILE_PATH = Path(__file__).parent / "token.json"
+PROJECT_ROOT = os.getenv("PROJECT_ROOT", os.getcwd())
+BASE_DIR = Path(PROJECT_ROOT) / "credentials" / "google"
+
+# Default file paths for credentials and tokens.
+TOKEN_FILE_PATH = BASE_DIR / "token.json"
 
 
 class TokenInput(BaseModel):
