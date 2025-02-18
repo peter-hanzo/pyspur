@@ -40,12 +40,39 @@ def run_migrations() -> None:
     """Run database migrations using SQLAlchemy."""
     try:
         from ..database import engine, database_url
+        from ..models.base_model import BaseModel
 
         # Test connection
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
             print("[green]✓[/green] Connected to database")
 
+            # If using SQLite, create the database file if it doesn't exist
+            if database_url.startswith("sqlite"):
+                try:
+                    BaseModel.metadata.create_all(engine)
+                    print("[yellow]![/yellow] SQLite database is not recommended for production")
+                    print("[yellow]![/yellow] Please use a postgres instance instead")
+                    return
+                except Exception as e:
+                    print("[yellow]![/yellow] SQLite database out of sync, recreating from scratch")
+                    # Ask for confirmation before dropping all tables
+                    confirm = input(
+                        "This will delete all data in the SQLite database. Are you sure? (y/N): "
+                    )
+                    if confirm.lower() != "y":
+                        print("[yellow]![/yellow] Database recreation cancelled")
+                        print(
+                            "[yellow]![/yellow] Please revert pyspur to the original version that was used to create the database"
+                        )
+                        print("[yellow]![/yellow] OR use a postgres instance to support migrations")
+                        return
+                    BaseModel.metadata.drop_all(engine)
+                    BaseModel.metadata.create_all(engine)
+                    print("[green]✓[/green] Created SQLite database from scratch")
+                    return
+
+            # For other databases, use Alembic migrations
             # Get migration context
             context = MigrationContext.configure(conn)
 
@@ -67,40 +94,16 @@ def run_migrations() -> None:
                 tempfile.TemporaryDirectory() as script_temp_dir,
                 resources.as_file(script_location) as script_location_path,
             ):
-                print("[yellow]![/yellow] Temporary migration directory: ", script_temp_dir)
-                print("[yellow]![/yellow] Migration scripts location: ", script_location_path)
                 shutil.copytree(script_location_path, Path(script_temp_dir), dirs_exist_ok=True)
-                print("[green]✓[/green] Copied migration scripts to temporary directory")
-                from rich.tree import Tree
-
-                print("[yellow]![/yellow] Migration directory structure:")
-                tree = Tree(script_temp_dir)
-                for path in Path(script_temp_dir).rglob("*"):
-                    if path.is_file():
-                        tree.add(str(path.relative_to(script_temp_dir)))
-                print(tree)
                 # Create Alembic config programmatically
                 config = Config()
                 config.set_main_option("script_location", str(script_temp_dir))
                 config.set_main_option("sqlalchemy.url", database_url)
 
-                # Add SQLite-specific configuration
-                if database_url.startswith("sqlite"):
-                    config.set_section_option("alembic", "use_batch_alter", "True")
-
-                    # Add SQLite-specific compiler for column comments
-                    from sqlalchemy.ext.compiler import compiles
-                    from alembic.ddl.base import ColumnComment
-
-                    @compiles(ColumnComment, "sqlite")
-                    def compile_column_comment(element, compiler, **kw):  # type: ignore
-                        # SQLite does not support column comments.
-                        return ""
-
                 # Run upgrade to head
-                command.upgrade(config, "head", sql=True)
+                command.upgrade(config, "head")
                 print("[green]✓[/green] Database schema is up to date")
 
     except Exception as e:
         print(f"[red]Error running migrations: {str(e)}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
