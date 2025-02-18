@@ -1,4 +1,4 @@
-import { updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
+import { setRunModalOpen, updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
 import { AppDispatch, RootState } from '@/store/store'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
@@ -44,7 +44,7 @@ const usePartialRun = (dispatch: AppDispatch) => {
         try {
             // If no initialInputs provided, use the selected test input
             let effectiveInitialInputs = initialInputs
-            if (!effectiveInitialInputs) {
+            if (!effectiveInitialInputs && testInputs.length > 0) {
                 const testCase = testInputs.find((row) => row.id.toString() === selectedTestInputId) ?? testInputs[0]
                 if (testCase) {
                     const { id, ...inputValues } = testCase
@@ -55,6 +55,12 @@ const usePartialRun = (dispatch: AppDispatch) => {
                         }
                     }
                 }
+            }
+
+            // If no effectiveInitialInputs and no test inputs, open the RunModal
+            if (!effectiveInitialInputs && testInputs.length === 0) {
+                dispatch(setRunModalOpen(true))
+                return
             }
 
             const data = await runPartialWorkflow(
