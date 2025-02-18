@@ -25,7 +25,7 @@
   </a>
 </p>
 
-https://github.com/user-attachments/assets/fd92af05-1d25-47f6-a2bf-0f276b9e777c
+https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 
 # 🕸️ Why PySpur?
 
