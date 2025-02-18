@@ -100,7 +100,7 @@ controls
 
 ## Final Step: Merging Routes and Sending to Slack Bot
 
-Finally, we need to combine both routes and send the results to a Slack channel named `learning`.
+## Bringing It All Together (1 minute)
 
 This process is called `coalescing`: the `CoalesceNode` will return the value from one route, even if both routes are executed. In contrast, a `merge` would combine the results from both routes.
 
@@ -120,11 +120,26 @@ controls
   loop
   playsInline className="hidden dark:block w-full aspect-video" src="/images/example_walkthrough/9_dark.mp4" />
 
-## Tips and More
+# General Tips
 
-- **Keyboard shortcuts:**
-  - `⌘/CTRL + ENTER` for running the workflow on the most recent test case.
-  - `⌘/CTRL + I` for re-ordering the layout.
-- **Jinja Templates**
-  - Under the hood, we use [Jinja](https://jinja.palletsprojects.com/en/stable/) to create strings (e.g., messages) with data from previous nodes.
+Now that you've built the workflow, here are some tips to make you more efficient:
+
+## Keyboard Shortcuts
+- `⌘/CTRL + ENTER`: Run the workflow with your last test case
+- `⌘/CTRL + I`: Re-organize the layout automatically
+- `Arrow Keys`: Move around on the canvas
+
+## Advanced Tips
+- **Jinja Templates**: Under the hood, we use [Jinja](https://jinja.palletsprojects.com/en/stable/) to create strings (e.g., messages) with data from previous nodes.
   - The text editor provides buttons to insert data variables from incoming nodes, but you can also write custom Jinja code.
+- **Test Cases**: Create different test cases for URLs and PDFs to ensure everything works
+- **Experiment with different models**: Each model has its own unique style and personality.
+
+# Next Steps
+
+If you want to now try PySpur yourself, you can clone the workflow and try:
+1. Customizing the summary prompt for your team's needs
+2. Add another route for a different input type
+3. Create different summary styles for different Slack channels
+
+Download the workflow [here](https://assets.sevn.ai/website_assets/Slack_Summarizer.json) to get started!
