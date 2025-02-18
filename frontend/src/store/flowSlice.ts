@@ -28,6 +28,7 @@ const initialState: FlowState = {
     workflowInputVariables: {},
     testInputs: [],
     inputNodeValues: {},
+    selectedTestInputId: null,
     history: {
         past: [],
         future: [],
@@ -45,10 +46,8 @@ const saveToHistory = (state: FlowState) => {
 const generateJsonSchema = (schema: Record<string, any>): string => {
     const jsonSchema = {
         type: 'object',
-        properties: Object.fromEntries(
-            Object.entries(schema).map(([key, type]) => [key, { type }])
-        ),
-        required: Object.keys(schema)
+        properties: Object.fromEntries(Object.entries(schema).map(([key, type]) => [key, { type }])),
+        required: Object.keys(schema),
     }
     return JSON.stringify(jsonSchema, null, 2)
 }
@@ -247,25 +246,25 @@ const flowSlice = createSlice({
 
         updateNodeConfigOnly: (state, action: PayloadAction<{ id: string; data: any }>) => {
             const { id, data } = action.payload
-            const currentConfig = state.nodeConfigs[id] || {};
+            const currentConfig = state.nodeConfigs[id] || {}
             if (data.few_shot_examples) {
-                const oldExamples = currentConfig.few_shot_examples || [];
-                const newExamples = data.few_shot_examples;
-                const maxLength = Math.max(oldExamples.length, newExamples.length);
-                const mergedExamples = [];
+                const oldExamples = currentConfig.few_shot_examples || []
+                const newExamples = data.few_shot_examples
+                const maxLength = Math.max(oldExamples.length, newExamples.length)
+                const mergedExamples = []
                 for (let i = 0; i < maxLength; i++) {
-                    mergedExamples[i] = { ...(oldExamples[i] || {}), ...(newExamples[i] || {}) };
+                    mergedExamples[i] = { ...(oldExamples[i] || {}), ...(newExamples[i] || {}) }
                 }
                 state.nodeConfigs[id] = {
                     ...currentConfig,
                     ...data,
-                    few_shot_examples: mergedExamples
-                };
+                    few_shot_examples: mergedExamples,
+                }
             } else {
                 state.nodeConfigs[id] = {
                     ...currentConfig,
                     ...data,
-                };
+                }
             }
 
             // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas
@@ -753,6 +752,10 @@ const flowSlice = createSlice({
                 return node // Return unchanged node if no output found
             })
         },
+
+        setSelectedTestInputId: (state, action: PayloadAction<string | null>) => {
+            state.selectedTestInputId = action.payload
+        },
     },
 })
 
@@ -791,6 +794,7 @@ export const {
     addNodeWithConfig,
     updateNodeParentAndCoordinates,
     updateNodesFromPartialRun,
+    setSelectedTestInputId,
 } = flowSlice.actions
 
 export default flowSlice.reducer

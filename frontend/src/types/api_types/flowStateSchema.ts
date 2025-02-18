@@ -1,6 +1,10 @@
-import { NodeTypes, FlowWorkflowNode, FlowWorkflowEdge, FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas';
-import { TestInput } from '@/types/api_types/workflowSchemas';
-
+import {
+    FlowWorkflowEdge,
+    FlowWorkflowNode,
+    FlowWorkflowNodeConfig,
+    NodeTypes,
+} from '@/types/api_types/nodeTypeSchemas'
+import { TestInput } from '@/types/api_types/workflowSchemas'
 
 export interface FlowState {
     nodeTypes: NodeTypes
@@ -15,8 +19,9 @@ export interface FlowState {
     workflowInputVariables: Record<string, any>
     testInputs: TestInput[]
     inputNodeValues: Record<string, any>
+    selectedTestInputId: string | null
     history: {
-        past: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[]} >
-        future: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[]} >
+        past: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
+        future: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
     }
 }
