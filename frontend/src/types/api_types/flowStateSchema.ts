@@ -24,4 +24,5 @@ export interface FlowState {
         past: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
         future: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
     }
+    isRunModalOpen: boolean
 }

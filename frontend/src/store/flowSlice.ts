@@ -33,6 +33,7 @@ const initialState: FlowState = {
         past: [],
         future: [],
     },
+    isRunModalOpen: false,
 }
 
 const saveToHistory = (state: FlowState) => {
@@ -756,6 +757,10 @@ const flowSlice = createSlice({
         setSelectedTestInputId: (state, action: PayloadAction<string | null>) => {
             state.selectedTestInputId = action.payload
         },
+
+        setRunModalOpen: (state, action: PayloadAction<boolean>) => {
+            state.isRunModalOpen = action.payload
+        },
     },
 })
 
@@ -795,6 +800,7 @@ export const {
     updateNodeParentAndCoordinates,
     updateNodesFromPartialRun,
     setSelectedTestInputId,
+    setRunModalOpen,
 } = flowSlice.actions
 
 export default flowSlice.reducer
