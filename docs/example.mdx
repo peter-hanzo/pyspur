@@ -25,11 +25,6 @@ Each new spur includes a default, non-deletable input node. Its variables define
 <img className="block dark:hidden" src="/images/example_walkthrough/2_light.png" />
 <img className="hidden dark:block" src="/images/example_walkthrough/2_dark.png" />
 
-When deployed as an API, these variables define the endpoint's input schema.
-
-<img className="block dark:hidden" src="/images/example_walkthrough/3_light.png" />
-<img className="hidden dark:block" src="/images/example_walkthrough/3_dark.png" />
-
 ## Router Node
 
 The router node splits the pipeline based on input type:
@@ -122,10 +117,10 @@ controls
 
 # General Tips
 
-Now that you've built the workflow, here are some tips to make you more efficient:
+Now that you've built the spur, here are some tips to make you more efficient:
 
 ## Keyboard Shortcuts
-- `⌘/CTRL + ENTER`: Run the workflow with your last test case
+- `⌘/CTRL + ENTER`: Run the spur with your last test case
 - `⌘/CTRL + I`: Re-organize the layout automatically
 - `Arrow Keys`: Move around on the canvas
 
@@ -135,11 +130,18 @@ Now that you've built the workflow, here are some tips to make you more efficien
 - **Test Cases**: Create different test cases for URLs and PDFs to ensure everything works
 - **Experiment with different models**: Each model has its own unique style and personality.
 
+## Deploy as an API Endpoint
+
+With just one click, you can deploy the spur as an API endpoint and trigger it from anywhere. The outputs of all nodes will be returned.
+
+<img className="block dark:hidden" src="/images/example_walkthrough/3_light.png" />
+<img className="hidden dark:block" src="/images/example_walkthrough/3_dark.png" />
+
 # Next Steps
 
-If you want to now try PySpur yourself, you can clone the workflow and try:
+If you want to now try PySpur yourself, you can clone the spur and try:
 1. Customizing the summary prompt for your team's needs
 2. Add another route for a different input type
 3. Create different summary styles for different Slack channels
 
-Download the workflow [here](https://assets.sevn.ai/website_assets/Slack_Summarizer.json) to get started!
+Download the spur [here](https://assets.sevn.ai/website_assets/Slack_Summarizer.json) to get started!

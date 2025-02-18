@@ -1,6 +1,5 @@
-<h1 align="center">
-  PySpur - Graph UI for AI Agents
-</h1>
+![Langflow](./docs/images/hero.png)
+
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
   <a href="./README_CN.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-blue"></a>
@@ -12,19 +11,21 @@
 </p>
 
 <p align="center">
+<a href="https://docs.pyspur.dev/" target="_blank">
+  <img alt="Docs" src="https://img.shields.io/badge/Docs-green.svg?style=for-the-badge&logo=readthedocs&logoColor=white">
+</a>
 <a href="https://calendly.com/d/cnf9-57m-bv3/pyspur-founders" target="_blank">
-  <img alt="Talk to the creators" src="https://img.shields.io/badge/Talk%20to%20the%20creators-blue.svg?style=for-the-badge&logo=calendly&logoColor=white">
+  <img alt="Meet us" src="https://img.shields.io/badge/Meet%20us-blue.svg?style=for-the-badge&logo=calendly&logoColor=white">
 </a>
 <a href="https://forms.gle/5wHRctedMpgfNGah7" target="_blank">
-  <img alt="Get PySpur Cloud" src="https://img.shields.io/badge/Get%20PySpur%20Cloud-orange.svg?style=for-the-badge">
+  <img alt="Cloud" src="https://img.shields.io/badge/Cloud-orange.svg?style=for-the-badge&logo=cloud&logoColor=white">
 </a>
   <a href="https://discord.gg/7Spn7C8A5F">
     <img alt="Join Our Discord" src="https://img.shields.io/badge/Discord-7289DA.svg?style=for-the-badge&logo=discord&logoColor=white">
   </a>
 </p>
 
-https://github.com/user-attachments/assets/9128885b-47ba-4fc6-ab6b-d567f52e332c
-
+https://github.com/user-attachments/assets/fd92af05-1d25-47f6-a2bf-0f276b9e777c
 
 # 🕸️ Why PySpur?
 
@@ -80,7 +81,7 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 
 # ⚡ Quick start
 
-## Option A: Using `pyspur` Python Package
+## Option A: Using `pyspur` Python Package (Experimental)
 
 This is the quickest way to get started. Python 3.12 or higher is required.
 
@@ -101,6 +102,7 @@ This is the quickest way to get started. Python 3.12 or higher is required.
     pyspur serve --sqlite
     ```
     By default, this will start PySpur app at `http://localhost:6080` using a sqlite database.
+    We recommend you configure a postgres instance URL in the `.env` file to get a more stable experience.
 
 4. **[Optional] Customize Your Deployment:**
     You can customize your PySpur deployment in two ways:
