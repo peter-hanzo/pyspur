@@ -58,25 +58,27 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
     const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
 
     const handleContentChange = (content: string) => {
-        // Use lodash's cloneDeep to deep clone the few_shot_examples array
-        const updatedExamples = _.cloneDeep(nodeConfig?.few_shot_examples || [])
+        (dispatch as any)((dispatch: any, getState: any) => {
+            const currentNodeConfig = getState().flow.nodeConfigs[nodeID] || {};
+            const updatedExamples = _.cloneDeep(currentNodeConfig.few_shot_examples || []);
 
-        if (!updatedExamples[exampleIndex]) {
-            updatedExamples[exampleIndex] = {}
-        }
+            if (!updatedExamples[exampleIndex]) {
+                updatedExamples[exampleIndex] = {};
+            }
 
-        // Update the content for the active tab (input/output)
-        updatedExamples[exampleIndex][activeTab] = content
+            // Update the content for the active tab (input/output)
+            updatedExamples[exampleIndex][activeTab] = content;
 
-        // Dispatch the updated data to Redux
-        dispatch(
-            updateNodeConfigOnly({
-                id: nodeID,
-                data: {
-                    few_shot_examples: updatedExamples,
-                },
-            })
-        )
+            // Dispatch the updated data to Redux
+            dispatch(
+                updateNodeConfigOnly({
+                    id: nodeID,
+                    data: {
+                        few_shot_examples: updatedExamples
+                    }
+                })
+            );
+        });
     }
 
     return (
