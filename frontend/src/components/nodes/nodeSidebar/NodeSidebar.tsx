@@ -1089,7 +1089,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 ) : (
                     <div>
                         <div className="flex items-center gap-2 my-2">
-                            <h3 className="font-semibold">Few Shot Examples</h3>
+                            <h3 className="font-semibold text-foreground">Few Shot Examples</h3>
                             <Tooltip
                                 content="Few-Shot prompting is a powerful technique where you provide example input-output pairs to help the AI understand the pattern you want it to follow. This significantly improves the quality and consistency of responses, especially for specific formats or complex tasks."
                                 placement="left-start"
@@ -1107,10 +1107,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             {fewShotExamples.map((example, index) => (
                                 <div
                                     key={`few-shot-${index}`}
-                                    className="flex items-center space-x-2 p-2 bg-gray-100 rounded-full cursor-pointer"
+                                    className="flex items-center space-x-2 p-2 bg-content2 dark:bg-content2 hover:bg-content3 dark:hover:bg-content3 rounded-full cursor-pointer transition-colors"
                                     onClick={() => setFewShotIndex(index)}
                                 >
-                                    <span>Example {index + 1}</span>
+                                    <span className="text-foreground">Example {index + 1}</span>
                                     <Button
                                         isIconOnly
                                         radius="full"

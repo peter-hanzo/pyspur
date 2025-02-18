@@ -80,7 +80,7 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
     }
 
     return (
-        <div className="w-full px-4 py-10 my-10">
+        <div className="w-full px-4 py-10 my-10 bg-content1 dark:bg-content1 rounded-lg shadow-sm">
             <InputOutputTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <div className="mb-2 font-medium text-foreground">
@@ -96,7 +96,7 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
                 fieldName={`few_shot_examples[${exampleIndex}][${activeTab}]`}
             />
 
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
                 <Button onPress={onDiscard} color="primary" variant="flat">
                     Discard
                 </Button>
