@@ -45,6 +45,11 @@ def init(
             shutil.copy2(target_dir / ".env.example", env_path)
             print("[green]✓[/green] Created .env from template")
 
+        # add PROJECT_ROOT to .env
+        with open(env_path, "a") as f:
+            f.write("""\nDO NOT CHANGE THIS VALUE\n""")
+            f.write("\nPROJECT_ROOT=" + str(target_dir) + "\n")
+
         # Create a data directory
         data_dir = target_dir / "data"
         if not data_dir.exists():
