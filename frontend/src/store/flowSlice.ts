@@ -247,11 +247,25 @@ const flowSlice = createSlice({
 
         updateNodeConfigOnly: (state, action: PayloadAction<{ id: string; data: any }>) => {
             const { id, data } = action.payload
-
-            // Only update nodeConfigs
-            state.nodeConfigs[id] = {
-                ...state.nodeConfigs[id],
-                ...data,
+            const currentConfig = state.nodeConfigs[id] || {};
+            if (data.few_shot_examples) {
+                const oldExamples = currentConfig.few_shot_examples || [];
+                const newExamples = data.few_shot_examples;
+                const maxLength = Math.max(oldExamples.length, newExamples.length);
+                const mergedExamples = [];
+                for (let i = 0; i < maxLength; i++) {
+                    mergedExamples[i] = { ...(oldExamples[i] || {}), ...(newExamples[i] || {}) };
+                }
+                state.nodeConfigs[id] = {
+                    ...currentConfig,
+                    ...data,
+                    few_shot_examples: mergedExamples
+                };
+            } else {
+                state.nodeConfigs[id] = {
+                    ...currentConfig,
+                    ...data,
+                };
             }
 
             // If output_schema changed, rebuild connected RouterNode/CoalesceNode schemas

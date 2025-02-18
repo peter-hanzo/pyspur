@@ -26,10 +26,7 @@
     "url": "https://github.com/PySpur-Dev/pyspur"
   },
   "tabs": [
-    {
-      "name": "API Reference",
-      "url": "api-reference"
-    }
+
   ],
   "anchors": [
     {
@@ -61,27 +58,6 @@
         "introduction",
         "example",
         "quickstart"
-      ]
-    },
-    {
-      "group": "Essentials",
-      "pages": [
-        "essentials/spurs",
-        "essentials/nodes"
-      ]
-    },
-    {
-      "group": "API Documentation",
-      "pages": [
-        "api-reference/introduction"
-      ]
-    },
-    {
-      "group": "Endpoint Examples",
-      "pages": [
-        "api-reference/endpoint/get",
-        "api-reference/endpoint/create",
-        "api-reference/endpoint/delete"
       ]
     }
   ],

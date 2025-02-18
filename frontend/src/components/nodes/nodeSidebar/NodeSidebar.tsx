@@ -787,6 +787,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         content={currentNodeConfig[key] || ''}
                         setContent={(value) => handleInputChange(key, value)}
                         disableFormatting={key.endsWith('_template')}  // Disable formatting for pure template fields
+                        isTemplateEditor={true}  // This is a template editor in NodeSidebar
                     />
                     {key === 'user_message' && renderFewShotExamples()}
                     {!isLast && <hr className="my-2" />}
@@ -1028,10 +1029,24 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
         const keys = Object.keys(properties).filter((key) => key !== 'title' && key !== 'type')
 
-        // Prioritize system_message and user_message to appear first
+        // Prioritize system_message, user_message, and template fields to appear first
         const priorityFields = ['system_message', 'user_message']
-        const remainingKeys = keys.filter((key) => !priorityFields.includes(key))
-        const orderedKeys = [...priorityFields.filter((key) => keys.includes(key)), ...remainingKeys]
+        const templateFields = keys.filter(key =>
+            key.includes('template') ||
+            key.includes('message') ||
+            key.includes('prompt')
+        ).filter(key => !priorityFields.includes(key))
+
+        const remainingKeys = keys.filter((key) =>
+            !priorityFields.includes(key) &&
+            !templateFields.includes(key)
+        )
+
+        const orderedKeys = [
+            ...priorityFields.filter((key) => keys.includes(key)),
+            ...templateFields,
+            ...remainingKeys
+        ]
 
         return (
             <React.Fragment>
@@ -1039,9 +1054,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     const field = properties[key]
                     const value = currentNodeConfig[key]
                     const isLast = index === orderedKeys.length - 1
-                    return renderField(key, field, value, `${nodeType}.config`, isLast)
+                    const result = renderField(key, field, value, `${nodeType}.config`, isLast)
+
+                    // Insert URL variable config after template/message fields
+                    if (index === priorityFields.length + templateFields.length - 1) {
+                        return (
+                            <React.Fragment key={key}>
+                                {result}
+                                {renderUrlVariableConfig()}
+                            </React.Fragment>
+                        )
+                    }
+
+                    return result
                 })}
-                {renderUrlVariableConfig()}
             </React.Fragment>
         )
     }
@@ -1063,7 +1089,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 ) : (
                     <div>
                         <div className="flex items-center gap-2 my-2">
-                            <h3 className="font-semibold">Few Shot Examples</h3>
+                            <h3 className="font-semibold text-foreground">Few Shot Examples</h3>
                             <Tooltip
                                 content="Few-Shot prompting is a powerful technique where you provide example input-output pairs to help the AI understand the pattern you want it to follow. This significantly improves the quality and consistency of responses, especially for specific formats or complex tasks."
                                 placement="left-start"
@@ -1081,10 +1107,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             {fewShotExamples.map((example, index) => (
                                 <div
                                     key={`few-shot-${index}`}
-                                    className="flex items-center space-x-2 p-2 bg-gray-100 rounded-full cursor-pointer"
+                                    className="flex items-center space-x-2 p-2 bg-content2 dark:bg-content2 hover:bg-content3 dark:hover:bg-content3 rounded-full cursor-pointer transition-colors"
                                     onClick={() => setFewShotIndex(index)}
                                 >
-                                    <span>Example {index + 1}</span>
+                                    <span className="text-foreground">Example {index + 1}</span>
                                     <Button
                                         isIconOnly
                                         radius="full"

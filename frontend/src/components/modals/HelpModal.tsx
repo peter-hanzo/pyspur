@@ -45,7 +45,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                                     </li>
                                     <li className="flex items-center justify-between">
                                         <span>Layout Workflow</span>
-                                        <kbd className="px-2 py-1 bg-default-100 rounded">⌘/Ctrl + L</kbd>
+                                        <kbd className="px-2 py-1 bg-default-100 rounded">⌘/Ctrl + I</kbd>
                                     </li>
                                 </ul>
                             </div>

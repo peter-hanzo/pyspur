@@ -54,33 +54,35 @@ interface FewShotEditorProps {
 
 const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
     const dispatch = useDispatch()
-    const node = useSelector((state: RootState) => state.flow.nodes.find((n: Node) => n.id === nodeID))
+    const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID])
     const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
 
     const handleContentChange = (content: string) => {
-        // Use lodash's cloneDeep to deep clone the few_shot_examples array
-        const updatedExamples = _.cloneDeep(node?.data?.config?.few_shot_examples || [])
+        (dispatch as any)((dispatch: any, getState: any) => {
+            const currentNodeConfig = getState().flow.nodeConfigs[nodeID] || {};
+            const updatedExamples = _.cloneDeep(currentNodeConfig.few_shot_examples || []);
 
-        if (!updatedExamples[exampleIndex]) {
-            updatedExamples[exampleIndex] = {}
-        }
+            if (!updatedExamples[exampleIndex]) {
+                updatedExamples[exampleIndex] = {};
+            }
 
-        // Update the content for the active tab (input/output)
-        updatedExamples[exampleIndex][activeTab] = content
+            // Update the content for the active tab (input/output)
+            updatedExamples[exampleIndex][activeTab] = content;
 
-        // Dispatch the updated data to Redux
-        dispatch(
-            updateNodeConfigOnly({
-                id: nodeID,
-                data: {
-                    few_shot_examples: updatedExamples,
-                },
-            })
-        )
+            // Dispatch the updated data to Redux
+            dispatch(
+                updateNodeConfigOnly({
+                    id: nodeID,
+                    data: {
+                        few_shot_examples: updatedExamples
+                    }
+                })
+            );
+        });
     }
 
     return (
-        <div className="w-full px-4 py-10 my-10">
+        <div className="w-full px-4 py-10 my-10 bg-content1 dark:bg-content1 rounded-lg shadow-sm">
             <InputOutputTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <div className="mb-2 font-medium text-foreground">
@@ -88,7 +90,7 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
             </div>
             <TextEditor
                 key={`${activeTab}-${exampleIndex}`}
-                content={node?.data?.config?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
+                content={nodeConfig?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
                 setContent={handleContentChange}
                 isEditable={true}
                 fieldTitle={`Example ${exampleIndex + 1} ${activeTab}`}
@@ -96,7 +98,7 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
                 fieldName={`few_shot_examples[${exampleIndex}][${activeTab}]`}
             />
 
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
                 <Button onPress={onDiscard} color="primary" variant="flat">
                     Discard
                 </Button>

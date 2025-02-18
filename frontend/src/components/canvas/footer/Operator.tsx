@@ -7,7 +7,12 @@ import { useModeStore } from '../../../store/modeStore'
 import UndoRedo from './UndoRedo'
 import ZoomInOut from './ZoomInOut'
 
-function Operator({ handleLayout }) {
+interface OperatorProps {
+    handleLayout: () => void
+    handleDownloadImage: () => void
+}
+
+const Operator: React.FC<OperatorProps> = ({ handleLayout, handleDownloadImage }) => {
     const mode = useModeStore((state) => state.mode)
     const setMode = useModeStore((state) => state.setMode)
     const { theme } = useTheme()

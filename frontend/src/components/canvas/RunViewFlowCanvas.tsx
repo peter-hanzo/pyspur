@@ -9,7 +9,11 @@ import {
     ReactFlowInstance,
     SelectionMode,
     ConnectionMode,
+    useReactFlow,
+    getNodesBounds,
+    getViewportForBounds,
 } from '@xyflow/react'
+import { toPng } from 'html-to-image'
 
 import '@xyflow/react/dist/style.css'
 import { useSelector, useDispatch } from 'react-redux'
@@ -43,6 +47,8 @@ interface RunViewFlowCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
     workflowID?: string
     nodeOutputs?: Record<string, any>
+    onDownloadImageInit?: (handler: () => void) => void
+    projectName?: string
 }
 
 interface HelperLines {
@@ -50,7 +56,7 @@ interface HelperLines {
     vertical: number | null
 }
 
-const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
+const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs, onDownloadImageInit, projectName = 'workflow' }) => {
     const dispatch = useDispatch()
 
     const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data)
@@ -113,6 +119,8 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     const showHelperLines = false
 
     const mode = useModeStore((state) => state.mode)
+
+    const { getIntersectingNodes, getNodes, updateNode } = useReactFlow()
 
     const { onNodesChange, onEdgesChange, onConnect } = useFlowEventHandlers({
         dispatch,
@@ -236,6 +244,60 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
         setHoveredNode(null)
     }, [])
 
+    const handleDownloadImage = useCallback(() => {
+        const imageWidth = 1200
+        const imageHeight = 675
+
+        const nodes = getNodes()
+        const nodesBounds = getNodesBounds(nodes)
+
+        // Calculate the aspect ratio of the nodes' bounding box
+        const boundsWidth = nodesBounds.width || 1
+        const boundsHeight = nodesBounds.height || 1
+        const boundsRatio = boundsWidth / boundsHeight
+        const viewportRatio = imageWidth / imageHeight
+
+        // Calculate optimal zoom based on both dimensions
+        const zoomX = (imageWidth * 0.9) / boundsWidth
+        const zoomY = (imageHeight * 0.9) / boundsHeight
+        const optimalZoom = Math.min(zoomX, zoomY)
+
+        const transform = getViewportForBounds(
+            nodesBounds,
+            imageWidth,
+            imageHeight,
+            optimalZoom,
+            optimalZoom,
+            Math.min(boundsWidth, boundsHeight) * 0.05  // Reduced padding from 10% to 5%
+        )
+
+        toPng(document.querySelector('.react-flow__viewport'), {
+            backgroundColor: 'transparent',
+            width: imageWidth,
+            height: imageHeight,
+            style: {
+                width: `${imageWidth}px`,
+                height: `${imageHeight}px`,
+                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
+            },
+        })
+            .then((dataUrl) => {
+                const a = document.createElement('a')
+                a.href = dataUrl
+                a.download = `${projectName}_trace.png`
+                a.click()
+            })
+            .catch((err) => {
+                console.error('Failed to download image', err)
+            })
+    }, [getNodes, projectName])
+
+    useEffect(() => {
+        if (onDownloadImageInit) {
+            onDownloadImageInit(handleDownloadImage)
+        }
+    }, [handleDownloadImage, onDownloadImageInit])
+
     if (isLoading) {
         return <LoadingSpinner />
     }
@@ -297,7 +359,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
                                 vertical={helperLines.vertical}
                             />
                         )}
-                        <Operator key="operator" handleLayout={handleLayout} />
+                        <Operator key="operator" handleLayout={handleLayout} handleDownloadImage={handleDownloadImage} />
                     </ReactFlow>
                 </div>
                 {selectedNodeID && (
@@ -313,7 +375,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({ workflowDa
     )
 }
 
-const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs }) => {
+const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, workflowID, nodeOutputs, onDownloadImageInit, projectName }) => {
     return (
         <ReactFlowProvider>
             <RunViewFlowCanvasContent
@@ -321,6 +383,8 @@ const RunViewFlowCanvas: React.FC<RunViewFlowCanvasProps> = ({ workflowData, wor
                 workflowData={workflowData}
                 workflowID={workflowID}
                 nodeOutputs={nodeOutputs}
+                onDownloadImageInit={onDownloadImageInit}
+                projectName={projectName}
             />
         </ReactFlowProvider>
     )

@@ -44,79 +44,10 @@ import { throttle } from 'lodash'
 import { Icon } from '@iconify/react'
 import { toPng } from 'html-to-image'
 
-// Type definitions
-
-// Create a utility function for downloading the image
-const downloadImage = (dataUrl: string): void => {
-    const a = document.createElement('a')
-    a.href = dataUrl
-    a.download = 'reactflow.png'
-    a.click()
-}
-
-// Update the handleDownloadImage function to use ReactFlow instance
-export const handleDownloadImage = (): void => {
-    // Get the ReactFlow instance
-    const flow = document.querySelector('.react-flow') as HTMLElement
-    const viewportEl = document.querySelector('.react-flow__viewport') as HTMLElement
-    if (!flow || !viewportEl) {
-        console.error('Unable to locate the flow canvas elements!')
-        return
-    }
-
-    // Get the flow dimensions
-    const flowBounds = flow.getBoundingClientRect()
-    const imageWidth = flowBounds.width
-    const imageHeight = flowBounds.height
-
-    // Get all nodes from the DOM to calculate bounds
-    const nodeElements = document.querySelectorAll('.react-flow__node')
-    const nodes = Array.from(nodeElements).map(el => {
-        const bounds = el.getBoundingClientRect()
-        return {
-            id: el.getAttribute('data-id') || '',
-            position: {
-                x: bounds.x - flowBounds.x,
-                y: bounds.y - flowBounds.y
-            },
-            width: bounds.width,
-            height: bounds.height,
-            data: {},
-            type: 'default'
-        } as Node
-    })
-
-    // Calculate the bounds and viewport transform
-    const nodesBounds = getNodesBounds(nodes)
-    const transform = getViewportForBounds(
-        nodesBounds,
-        imageWidth,
-        imageHeight,
-        0.5,
-        2,
-        0 // Adding the missing padding parameter
-    )
-
-    // Generate the image with the calculated transform
-    toPng(viewportEl, {
-        backgroundColor: '#1a365d',
-        width: imageWidth,
-        height: imageHeight,
-        style: {
-            width: `${imageWidth}px`,
-            height: `${imageHeight}px`,
-            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
-        },
-    })
-    .then(downloadImage)
-    .catch((err) => {
-        console.error('Failed to download image', err)
-    })
-}
-
 interface FlowCanvasProps {
     workflowData?: WorkflowCreateRequest
     workflowID?: string
+    onDownloadImageInit?: (handler: () => void) => void
 }
 
 interface HelperLines {
@@ -133,6 +64,11 @@ interface CategoryGroup {
 
 interface GroupedNodes {
     [subcategory: string]: CategoryGroup
+}
+
+interface OperatorProps {
+    handleLayout: () => void
+    handleDownloadImage: () => void
 }
 
 const edgeTypes: EdgeTypes = {
@@ -157,9 +93,9 @@ const groupNodesBySubcategory = (nodes: FlowWorkflowNodeType[]): GroupedNodes =>
 }
 
 // Create a wrapper component that includes ReactFlow logic
-const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
-    const { workflowData, workflowID } = props
+const FlowCanvasContent: React.FC<FlowCanvasProps> = ({ workflowData, workflowID, onDownloadImageInit }) => {
     const dispatch = useDispatch()
+    const projectName = useSelector((state: RootState) => state.flow.projectName)
 
     const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data)
 
@@ -220,7 +156,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 
     const mode = useModeStore((state) => state.mode)
 
-    const { getIntersectingNodes, getNodes, updateNode } = useReactFlow()
+    const { getIntersectingNodes, getNodes, updateNode, getViewport } = useReactFlow()
 
     const handlePopoverOpen = useCallback(
         ({
@@ -455,6 +391,60 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
             return newSet
         })
     }
+
+    const handleDownloadImage = useCallback(() => {
+        const imageWidth = 1200
+        const imageHeight = 675
+
+        const nodes = getNodes()
+        const nodesBounds = getNodesBounds(nodes)
+
+        // Calculate the aspect ratio of the nodes' bounding box
+        const boundsWidth = nodesBounds.width || 1
+        const boundsHeight = nodesBounds.height || 1
+        const boundsRatio = boundsWidth / boundsHeight
+        const viewportRatio = imageWidth / imageHeight
+
+        // Calculate optimal zoom based on both dimensions
+        const zoomX = (imageWidth * 0.9) / boundsWidth
+        const zoomY = (imageHeight * 0.9) / boundsHeight
+        const optimalZoom = Math.min(zoomX, zoomY)
+
+        const transform = getViewportForBounds(
+            nodesBounds,
+            imageWidth,
+            imageHeight,
+            optimalZoom,
+            optimalZoom,
+            Math.min(boundsWidth, boundsHeight) * 0.05  // Reduced padding from 10% to 5%
+        )
+
+        toPng(document.querySelector('.react-flow__viewport'), {
+            backgroundColor: 'transparent',
+            width: imageWidth,
+            height: imageHeight,
+            style: {
+                width: `${imageWidth}px`,
+                height: `${imageHeight}px`,
+                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`,
+            },
+        })
+            .then((dataUrl) => {
+                const a = document.createElement('a')
+                a.href = dataUrl
+                a.download = `${projectName}.png`
+                a.click()
+            })
+            .catch((err) => {
+                console.error('Failed to download image', err)
+            })
+    }, [getNodes, projectName])
+
+    useEffect(() => {
+        if (onDownloadImageInit) {
+            onDownloadImageInit(handleDownloadImage)
+        }
+    }, [handleDownloadImage, onDownloadImageInit])
 
     if (isLoading) {
         return <LoadingSpinner />
@@ -693,7 +683,7 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
                         {showHelperLines && (
                             <HelperLinesRenderer horizontal={helperLines.horizontal} vertical={helperLines.vertical} />
                         )}
-                        <Operator handleLayout={handleLayout} />
+                        <Operator handleLayout={handleLayout} handleDownloadImage={handleDownloadImage} />
                     </ReactFlow>
                 </div>
                 {selectedNodeID && (
@@ -713,10 +703,14 @@ const FlowCanvasContent: React.FC<FlowCanvasProps> = (props) => {
 }
 
 // Main component that provides the ReactFlow context
-const FlowCanvas: React.FC<FlowCanvasProps> = ({ workflowData, workflowID }) => {
+const FlowCanvas: React.FC<FlowCanvasProps> = ({ workflowData, workflowID, onDownloadImageInit }) => {
     return (
         <ReactFlowProvider>
-            <FlowCanvasContent workflowData={workflowData} workflowID={workflowID} />
+            <FlowCanvasContent
+                workflowData={workflowData}
+                workflowID={workflowID}
+                onDownloadImageInit={onDownloadImageInit}
+            />
         </ReactFlowProvider>
     )
 }
