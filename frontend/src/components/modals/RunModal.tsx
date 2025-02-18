@@ -22,7 +22,7 @@ import { Icon } from '@iconify/react'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
-import { addTestInput, deleteTestInput, updateTestInput } from '../../store/flowSlice'
+import { addTestInput, deleteTestInput, setSelectedTestInputId, updateTestInput } from '../../store/flowSlice'
 import { getNodeMissingRequiredFields } from '../../store/nodeTypesSlice'
 import { AppDispatch, RootState } from '../../store/store'
 import FileUploadBox from '../FileUploadBox'
@@ -33,8 +33,6 @@ interface RunModalProps {
     onOpenChange: (isOpen: boolean) => void
     onRun: (initialInputs: Record<string, any>, files?: Record<string, string[]>) => void
     onSave?: () => void
-    selectedRow?: string | null
-    onSelectedRowChange?: (rowId: string | null) => void
 }
 
 interface EditingCell {
@@ -42,18 +40,12 @@ interface EditingCell {
     field: string
 }
 
-const RunModal: React.FC<RunModalProps> = ({
-    isOpen,
-    onOpenChange,
-    onRun,
-    onSave,
-    selectedRow: externalSelectedRow,
-    onSelectedRowChange,
-}) => {
+const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave }) => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
     const nodeTypesMetadata = useSelector((state: RootState) => state.nodeTypes).metadata
     const workflowID = useSelector((state: RootState) => state.flow.workflowID)
+    const selectedTestInputId = useSelector((state: RootState) => state.flow.selectedTestInputId)
     const inputNode = nodes.find((node) => node.type === 'InputNode')
     const workflowInputVariables = inputNode ? nodeConfigs[inputNode.id]?.output_schema || {} : {}
     const workflowInputVariableNames = Object.keys(workflowInputVariables)
@@ -69,7 +61,6 @@ const RunModal: React.FC<RunModalProps> = ({
 
     const [testData, setTestData] = useState<TestInput[]>([])
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
-    const [selectedRow, setSelectedRow] = useState<string | null>(externalSelectedRow || null)
     const [editorContents, setEditorContents] = useState<Record<string, string>>({})
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({})
     const [filePaths, setFilePaths] = useState<Record<string, string[]>>({})
@@ -84,18 +75,11 @@ const RunModal: React.FC<RunModalProps> = ({
     }, [testInputs])
 
     useEffect(() => {
-        if (isOpen && testData.length > 0 && !selectedRow) {
+        if (isOpen && testData.length > 0 && !selectedTestInputId) {
             const newSelectedRow = testData[0].id.toString()
-            setSelectedRow(newSelectedRow)
-            onSelectedRowChange?.(newSelectedRow)
+            dispatch(setSelectedTestInputId(newSelectedRow))
         }
-    }, [isOpen, testData, selectedRow])
-
-    useEffect(() => {
-        if (externalSelectedRow !== selectedRow) {
-            setSelectedRow(externalSelectedRow)
-        }
-    }, [externalSelectedRow])
+    }, [isOpen, testData, selectedTestInputId, dispatch])
 
     const getNextId = () => {
         const maxId = testData.reduce((max, row) => Math.max(max, row.id), 0)
@@ -114,13 +98,15 @@ const RunModal: React.FC<RunModalProps> = ({
         }
         setTestData([...testData, newTestInput])
         setEditorContents({}) // Clear editor contents
-        setSelectedRow(newId.toString()) // Convert to string for selection
         dispatch(addTestInput(newTestInput))
         saveWorkflow()
     }
 
     const handleDeleteRow = (id: number) => {
         setTestData(testData.filter((row) => row.id !== id))
+        if (selectedTestInputId === id.toString()) {
+            dispatch(setSelectedTestInputId(null))
+        }
         dispatch(deleteTestInput({ id }))
         saveWorkflow()
     }
@@ -278,11 +264,11 @@ const RunModal: React.FC<RunModalProps> = ({
             }
             setTestData([...testData, newTestInput])
             dispatch(addTestInput(newTestInput))
-            setSelectedRow(newId.toString())
+            dispatch(setSelectedTestInputId(newId.toString()))
             setEditorContents({})
             testCaseToRun = newTestInput
         } else {
-            testCaseToRun = testData.find((row) => row.id.toString() === selectedRow)
+            testCaseToRun = testData.find((row) => row.id.toString() === selectedTestInputId)
         }
 
         if (!testCaseToRun) return false
@@ -308,7 +294,7 @@ const RunModal: React.FC<RunModalProps> = ({
         }
         setTestData([...testData, newTestInput])
         dispatch(addTestInput(newTestInput))
-        setSelectedRow(newId.toString())
+        dispatch(setSelectedTestInputId(newId.toString()))
         setEditorContents({}) // Clear editor contents
         saveWorkflow()
     }
@@ -353,11 +339,10 @@ const RunModal: React.FC<RunModalProps> = ({
                                             disabledKeys={
                                                 editingCell ? new Set([editingCell.rowId.toString()]) : new Set()
                                             }
-                                            selectedKeys={selectedRow ? [selectedRow] : new Set()}
+                                            selectedKeys={selectedTestInputId ? [selectedTestInputId] : new Set()}
                                             onSelectionChange={(selection) => {
                                                 const selectedKey = Array.from(selection)[0]?.toString() || null
-                                                setSelectedRow(selectedKey)
-                                                onSelectedRowChange?.(selectedKey)
+                                                dispatch(setSelectedTestInputId(selectedKey))
                                             }}
                                             classNames={{
                                                 base: 'min-w-[800px]',
@@ -525,7 +510,9 @@ const RunModal: React.FC<RunModalProps> = ({
                                             onClose()
                                         }
                                     }}
-                                    isDisabled={!selectedRow && !Object.values(editorContents).some((v) => v?.trim())}
+                                    isDisabled={
+                                        !selectedTestInputId && !Object.values(editorContents).some((v) => v?.trim())
+                                    }
                                     startContent={<Icon icon="material-symbols:play-arrow" />}
                                 >
                                     Run

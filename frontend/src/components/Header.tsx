@@ -23,17 +23,16 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
-import { setProjectName } from '../store/flowSlice'
+import { useWorkflowFileOperations } from '../hooks/useWorkflowFileOperations'
+import { setProjectName, setRunModalOpen } from '../store/flowSlice'
+import { RootState } from '../store/store'
 import { AlertState } from '../types/alert'
 import { getRunStatus, getWorkflow } from '../utils/api'
+import ConfirmationModal from './modals/ConfirmationModal'
 import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
 import RunModal from './modals/RunModal'
 import SettingsCard from './modals/SettingsModal'
-import { initializeFlow } from '../store/flowSlice'
-import { RootState } from '../store/store'
-import { useWorkflowFileOperations } from '../hooks/useWorkflowFileOperations'
-import ConfirmationModal from './modals/ConfirmationModal'
 
 interface HeaderProps {
     activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
@@ -57,8 +56,9 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
         isVisible: false,
     })
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
-    const [selectedRow, setSelectedRow] = useState<string | null>(null)
+    const selectedTestInputId = useSelector((state: RootState) => state.flow.selectedTestInputId)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false)
+    const isRunModalOpen = useSelector((state: RootState) => state.flow.isRunModalOpen)
 
     const router = useRouter()
     const { id } = router.query
@@ -81,22 +81,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
 
     const saveWorkflow = useSaveWorkflow()
 
-    const {
-        handleFileUpload,
-        isConfirmationOpen,
-        setIsConfirmationOpen,
-        handleConfirmOverwrite,
-        pendingWorkflowData
-    } = useWorkflowFileOperations({ showAlert })
-
-    useEffect(() => {
-        if (testInputs.length > 0 && !selectedRow) {
-            setSelectedRow(testInputs[0].id.toString())
-        }
-    }, [testInputs])
+    const { handleFileUpload, isConfirmationOpen, setIsConfirmationOpen, handleConfirmOverwrite, pendingWorkflowData } =
+        useWorkflowFileOperations({ showAlert })
 
     const handleRunWorkflow = async (): Promise<void> => {
-        setIsDebugModalOpen(true)
+        dispatch(setRunModalOpen(true))
     }
 
     const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -155,7 +144,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                 return
             }
 
-            const testCase = testInputs.find((row) => row.id.toString() === selectedRow) ?? testInputs[0]
+            const testCase = testInputs.find((row) => row.id.toString() === selectedTestInputId) ?? testInputs[0]
 
             if (testCase) {
                 const { id, ...inputValues } = testCase
@@ -465,12 +454,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Tooltip content="Upload Workflow JSON">
-                                <Button
-                                    isIconOnly
-                                    radius="full"
-                                    variant="light"
-                                    onPress={handleFileUpload}
-                                >
+                                <Button isIconOnly radius="full" variant="light" onPress={handleFileUpload}>
                                     <Icon className="text-foreground/60" icon="solar:upload-linear" width={24} />
                                 </Button>
                             </Tooltip>
@@ -552,20 +536,18 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                 </NavbarContent>
             </Navbar>
             <RunModal
-                isOpen={isDebugModalOpen}
-                onOpenChange={setIsDebugModalOpen}
+                isOpen={isRunModalOpen}
+                onOpenChange={(isOpen) => dispatch(setRunModalOpen(isOpen))}
                 onRun={async (selectedInputs) => {
                     await executeWorkflow(selectedInputs)
-                    setIsDebugModalOpen(false)
+                    dispatch(setRunModalOpen(false))
                 }}
-                selectedRow={selectedRow}
-                onSelectedRowChange={setSelectedRow}
             />
             <DeployModal
                 isOpen={isDeployModalOpen}
                 onOpenChange={setIsDeployModalOpen}
                 workflowId={workflowId}
-                testInput={testInputs.find((row) => row.id.toString() === selectedRow) ?? testInputs[0]}
+                testInput={testInputs.find((row) => row.id.toString() === selectedTestInputId) ?? testInputs[0]}
             />
             <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
         </>
