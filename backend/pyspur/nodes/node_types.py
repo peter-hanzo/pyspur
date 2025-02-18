@@ -114,11 +114,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.github.github_create_issue",
             "class_name": "GitHubCreateIssueNode",
         },
-        {
-            "node_type_name": "FirecrawlCrawlNode",
-            "module": ".nodes.integrations.firecrawl.firecrawl_crawl",
-            "class_name": "FirecrawlCrawlNode",
-        },
+        # {
+        #     "node_type_name": "FirecrawlCrawlNode",
+        #     "module": ".nodes.integrations.firecrawl.firecrawl_crawl",
+        #     "class_name": "FirecrawlCrawlNode",
+        # },
         # {
         #     "node_type_name": "FirecrawlScrapeNode",
         #     "module": ".nodes.integrations.firecrawl.firecrawl_scrape",
@@ -194,9 +194,7 @@ DEPRECATED_NODE_TYPES = [
 
 
 def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
-    """
-    Returns a dictionary of all available node types grouped by category.
-    """
+    """Return a dictionary of all available node types grouped by category."""
     node_type_groups: Dict[str, List[NodeTypeSchema]] = {}
     for group_name, node_types in SUPPORTED_NODE_TYPES.items():
         node_type_groups[group_name] = []
@@ -207,9 +205,7 @@ def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
 
 
 def is_valid_node_type(node_type_name: str) -> bool:
-    """
-    Checks if a node type is valid (supported, deprecated, or registered via decorator).
-    """
+    """Check if a node type is valid (supported, deprecated, or registered via decorator)."""
     # Check configured nodes first
     for node_types in SUPPORTED_NODE_TYPES.values():
         for node_type in node_types:
