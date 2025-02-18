@@ -16,6 +16,70 @@ from ._utils import LLMModels, ModelInfo, create_messages, generate_text
 
 load_dotenv()
 
+def repair_json(broken_json_str: str) -> str:
+    import re
+    from re import Match
+    from typing import Dict
+
+    # Handle empty or non-string input
+    if not broken_json_str or not broken_json_str.strip():
+        return "{}"
+
+    repaired = broken_json_str
+
+    # Convert single quotes to double quotes, but not within already double-quoted strings
+    # First, temporarily replace valid double-quoted strings
+    placeholder = "PLACEHOLDER"
+    quoted_strings: Dict[str, str] = {}
+    counter = 0
+
+    def replace_quoted(match: Match[str]) -> str:
+        nonlocal counter
+        key = f"{placeholder}{counter}"
+        quoted_strings[key] = match.group(0)
+        counter += 1
+        return key
+
+    # Temporarily store valid double-quoted strings
+    repaired = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', replace_quoted, repaired)
+
+    # Now convert remaining single quotes to double quotes
+    repaired = repaired.replace("'", '"')
+
+    # Restore original double-quoted strings
+    for key, value in quoted_strings.items():
+        repaired = repaired.replace(key, value)
+
+    # Remove trailing commas before closing brackets/braces
+    repaired = re.sub(r",\s*([}\]])", r'\1', repaired)
+
+    # Add missing commas between elements
+    repaired = re.sub(r"([}\"])\s*([{\[])", r'\1,\2', repaired)
+
+    # Fix unquoted string values
+    repaired = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', repaired)
+
+    # Remove any extra whitespace around colons
+    repaired = re.sub(r'\s*:\s*', ':', repaired)
+
+    # If the string is wrapped in extra quotes, remove them
+    if repaired.startswith('"') and repaired.endswith('"'):
+        repaired = repaired[1:-1]
+
+    # Extract the substring from the first { to the last }
+    start = repaired.find('{')
+    end = repaired.rfind('}')
+    if start != -1 and end != -1:
+        repaired = repaired[start:end+1]
+    else:
+        # If no valid JSON object found, return empty object
+        return "{}"
+
+    # Final cleanup of whitespace
+    repaired = re.sub(r'\s+', ' ', repaired)
+
+    return repaired
+
 
 class SingleLLMCallNodeConfig(BaseNodeConfig):
     llm_info: ModelInfo = Field(
@@ -168,20 +232,22 @@ class SingleLLMCallNode(BaseNode):
         try:
             assistant_message_dict = json.loads(assistant_message_str)
         except Exception as e:
-            error_str = str(e)
-            error_message = "An error occurred while parsing the assistant message"
-            error_type = "json_parse_error"
-            raise Exception(
-                json.dumps(
-                    {
+            try:
+                repaired_str = repair_json(assistant_message_str)
+                assistant_message_dict = json.loads(repaired_str)
+            except Exception as inner_e:
+                error_str = str(inner_e)
+                error_message = "An error occurred while parsing and repairing the assistant message"
+                error_type = "json_parse_error"
+                raise Exception(
+                    json.dumps({
                         "type": "parsing_error",
                         "error_type": error_type,
                         "message": error_message,
                         "original_error": error_str,
                         "assistant_message_str": assistant_message_str,
-                    }
+                    })
                 )
-            )
 
         # Validate and return
         assistant_message = self.output_model.model_validate(assistant_message_dict)
