@@ -14,6 +14,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # needed for PyPI publishing
     outputs:
       image_name: ${{ steps.meta-backend.outputs.tags }}
 
@@ -49,46 +50,15 @@ jobs:
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
 
-  publish-to-pypi:
-    needs: [build-and-push-docker]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      packages: read
-    defaults:
-      run:
-        working-directory: ./backend
-
-    steps:
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build package in Docker
+      - name: Build Python package
         run: |
-          # Create a temporary container from the production image
-          CONTAINER_ID=$(docker create ${{ needs.build-and-push-docker.outputs.image_name }})
-          
-          # Start the container
-          docker start $CONTAINER_ID
-          
           # Create dist directory
           mkdir -p dist
           
-          # Build the package inside the container
-          docker exec $CONTAINER_ID pip install build
-          docker exec $CONTAINER_ID python -m build
-          
-          # Copy the built package from the container
-          docker cp $CONTAINER_ID:/pyspur/backend/dist/. dist/
-          
-          # Clean up
-          docker rm -f $CONTAINER_ID
+          # Build package using the container we just built
+          docker run --rm -v $(pwd)/dist:/dist ${{ steps.meta-backend.outputs.tags }} sh -c "cd /pyspur/backend && uv build && cp dist/* /dist/"
 
-      - name: Publish package distributions to PyPI
+      - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/ 
