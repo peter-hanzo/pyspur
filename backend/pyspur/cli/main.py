@@ -62,7 +62,7 @@ def init(
         print("2. For quick protoype: start the PySpur server with 'pyspur serve --sqlite'")
         print(
             "3. For production:\n"
-            "    a. Provide a PostgreSQL database URL in the .env file\n"
+            "    a. Provide a PostgreSQL database details in the .env file\n"
             "    b. Start the server with 'pyspur serve'"
         )
 
