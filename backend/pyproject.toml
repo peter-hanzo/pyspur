@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pyspur"
 version = "0.1.0"
-description = "PySpur is a Python library for building and deploying AI Agents."
+description = "PySpur is a Graph UI for building AI Agents in Python"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 maintainers = [
