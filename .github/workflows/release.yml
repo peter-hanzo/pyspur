@@ -55,8 +55,8 @@ jobs:
           # Create dist directory
           mkdir -p dist
           
-          # Build package using the container we just built
-          DOCKER_TAG=$(echo "${{ steps.meta-backend.outputs.tags }}" | cut -d' ' -f1)
+          # Build package using the container we just built - use first tag
+          DOCKER_TAG=$(echo "${{ steps.meta-backend.outputs.tags }}" | head -n1)
           docker run --rm -v "$(pwd)/dist:/dist" "$DOCKER_TAG" sh -c "cd /pyspur/backend && uv build && cp dist/* /dist/"
 
       - name: Publish package to PyPI
