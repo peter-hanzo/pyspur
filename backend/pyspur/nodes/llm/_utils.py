@@ -232,6 +232,8 @@ async def generate_text(
     api_base: Optional[str] = None,
     url_variables: Optional[Dict[str, str]] = None,
     output_json_schema: Optional[str] = None,
+    functions: Optional[List[Dict[str, Any]]] = None,
+    function_call: Optional[str] = None,
 ) -> str:
     kwargs = {
         "model": model_name,
@@ -239,6 +241,13 @@ async def generate_text(
         "messages": messages,
         "temperature": temperature,
     }
+
+    # Add function calling parameters if provided
+    if functions:
+        kwargs["functions"] = functions
+        if function_call:
+            kwargs["function_call"] = function_call
+
     if model_name == "deepseek/deepseek-reasoner":
         kwargs.pop("temperature")
 

@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Tuple
 
@@ -6,8 +7,8 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build  # type: ignore
 from googleapiclient.errors import HttpError  # type: ignore
 
-# Retrieve the current directory using pathlib for better path handling.
-BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = os.getenv("PROJECT_ROOT", os.getcwd())
+BASE_DIR = Path(PROJECT_ROOT) / "credentials" / "google"
 
 # Default file paths for credentials and tokens.
 TOKEN_FILE = BASE_DIR / "token.json"
@@ -47,9 +48,7 @@ class GoogleSheetsClient:
 
             result = (
                 sheet.values()
-                .get(  # type: ignore
-                    spreadsheetId=spreadsheet_id, range=range_name
-                )
+                .get(spreadsheetId=spreadsheet_id, range=range_name)  # type: ignore
                 .execute()
             )
 
