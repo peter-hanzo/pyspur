@@ -59,7 +59,12 @@ def init(
         print("\n[bold green]PySpur project initialized successfully! 🚀[/bold green]")
         print("\nNext steps:")
         print("1. Review and update the .env file with your configuration")
-        print("2. Start the PySpur server with 'pyspur serve'")
+        print("2. For quick protoype: start the PySpur server with 'pyspur serve --sqlite'")
+        print(
+            "3. For production:\n"
+            "    a. Provide a PostgreSQL database URL in the .env file\n"
+            "    b. Start the server with 'pyspur serve'"
+        )
 
     except Exception as e:
         print(f"[red]Error initializing project: {str(e)}[/red]")
