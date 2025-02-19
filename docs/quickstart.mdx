@@ -3,58 +3,87 @@ title: 'Quickstart'
 description: 'Install PySpur in under 2 minutes'
 ---
 
-## Setup your development
+## Setup Options
 
-Learn how to set up PySpur locally and start building powerful AI workflows.
+Choose the installation method that best suits your needs:
 
-### Installation Steps
+### Option A: Using `pyspur` Python Package
+
+This is the quickest way to get started. Python 3.12 or higher is required.
 
 <AccordionGroup>
-  <Accordion icon="github" title="Clone the repository">
+  <Accordion icon="python" title="1. Install PySpur">
     ```sh
-    git clone https://github.com/PySpur-com/pyspur.git
-    cd pyspur
+    pip install pyspur
     ```
   </Accordion>
-  <Accordion icon="gear" title="Configure environment">
-    1. Create a `.env` file by copying the example:
+  <Accordion icon="folder" title="2. Initialize a new project">
     ```sh
-    cp .env.example .env
+    pyspur init my-project
+    cd my-project
     ```
-    2. Review and update the configurations in `.env` as needed
-    3. If you plan to use third-party model providers, add their API keys in the `.env` file
+    This will create a new directory with a `.env` file.
   </Accordion>
-  <Accordion icon="docker" title="Launch PySpur">
-    Start the docker services:
+  <Accordion icon="play" title="3. Start the server">
     ```sh
-    docker compose -f ./docker-compose.prod.yml up --build -d
+    pyspur serve --sqlite
     ```
-    Once complete, access PySpur at `http://localhost:6080/` in your browser
+    By default, this will start PySpur app at `http://localhost:6080` using a sqlite database.
+    We recommend you configure a postgres instance URL in the `.env` file to get a more stable experience.
+  </Accordion>
+  <Accordion icon="gear" title="4. Customize Your Deployment">
+    You can customize your PySpur deployment in two ways:
+
+    a. **Through the app** (Recommended):
+       - Navigate to the API Keys tab in the app
+       - Add your API keys for various providers (OpenAI, Anthropic, etc.)
+       - Changes take effect immediately
+
+    b. **Manual Configuration**:
+       - Edit the `.env` file in your project directory
+       - It is recommended to configure a postgres database in .env for more reliability
+       - Restart the app with `pyspur serve`. Add `--sqlite` if you are not using postgres
   </Accordion>
 </AccordionGroup>
 
-### Development Setup
+### Option B: Using Docker (Recommended for Scalable, In-Production Systems)
+
+This is the recommended way for production deployments:
 
 <AccordionGroup>
-<Accordion icon="code" title="Development Mode">
-  For development purposes, use this command instead:
-  ```sh
-  docker compose up --build -d
-  ```
-  This will start PySpur in development mode with additional debugging features.
-</Accordion>
-</AccordionGroup>
+  <Accordion icon="docker" title="1. Install Docker">
+    First, install Docker by following the official installation guide for your operating system:
+    - [Docker for Linux](https://docs.docker.com/engine/install/)
+    - [Docker Desktop for Mac](https://docs.docker.com/desktop/install/mac-install/)
+  </Accordion>
+  <Accordion icon="terminal" title="2. Create a PySpur Project">
+    Once Docker is installed, create a new PySpur project with:
+    ```sh
+    curl -fsSL https://raw.githubusercontent.com/PySpur-com/pyspur/main/start_pyspur_docker.sh | bash -s pyspur-project
+    ```
+    This will:
+    - Start a new PySpur project in a new directory called `pyspur-project`
+    - Set up the necessary configuration files
+    - Start PySpur app automatically backed by a local postgres docker instance
+  </Accordion>
+  <Accordion icon="browser" title="3. Access PySpur">
+    Go to `http://localhost:6080` in your browser.
+  </Accordion>
+  <Accordion icon="gear" title="4. Customize Your Deployment">
+    You can customize your PySpur deployment in two ways:
 
-### Managing API Keys
+    a. **Through the app** (Recommended):
+       - Navigate to the API Keys tab in the app
+       - Add your API keys for various providers (OpenAI, Anthropic, etc.)
+       - Changes take effect immediately
 
-<AccordionGroup>
-<Accordion icon="key" title="Configure API Keys">
-  1. Access PySpur at `http://localhost:6080/`
-  2. Click the settings icon (⚙️) in the top right corner
-  3. Navigate to the API keys tab
-  4. Enter your provider's API keys
-  5. Click save to store your changes
-</Accordion>
+    b. **Manual Configuration**:
+       - Edit the `.env` file in your project directory
+       - Restart the services with:
+         ```sh
+         docker compose up -d
+         ```
+  </Accordion>
 </AccordionGroup>
 
 ### Using Local Models with Ollama
