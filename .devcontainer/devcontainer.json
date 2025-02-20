@@ -25,8 +25,6 @@
                 "github.copilot-chat",
                 // Backend extensions
                 "ms-python.python",
-                "ms-python.black-formatter",
-                "ms-python.pylance",
                 "charliermarsh.ruff",
                 "tamasfe.even-better-toml",
                 // Frontend extensions
@@ -44,7 +42,7 @@
                 
                 // Python linting and formatting
                 "python.linting.enabled": true,
-                "python.linting.mypyEnabled": true,
+                "python.linting.mypyEnabled": false,
                 "python.linting.ruffEnabled": true,
 
                 // TypeScript settings
@@ -57,7 +55,7 @@
                 "[python]": {
                     "editor.formatOnType": true,
                     "editor.formatOnSave": true,
-                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.codeActionsOnSave": {
                         "source.organizeImports": "always",
                         "source.fixAll.ruff": "always"
