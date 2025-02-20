@@ -1,6 +1,6 @@
 ![PySpur](./docs/images/hero.png)
 
-PySpur is a Python package that provides an interactive graph UI for visualizing agentic workflows. AI engineers use it to modify workflows at runtime with a clear and concrete view of system interactions.
+PySpur is a graph UI for visualizing agent trajectories in Python. AI engineers use it to find out what happened in past runs and execute agents step-by-step.
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
