@@ -11,7 +11,7 @@ interface NodeOutputDisplayProps {
 const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
     const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-    const copyToClipboard = async (text: string, key: string) => {
+    const copyToClipboard = async (text: string | any, key: string) => {
         try {
             await navigator.clipboard.writeText(typeof text === 'string' ? text : JSON.stringify(text, null, 2))
             setCopiedKey(key)
