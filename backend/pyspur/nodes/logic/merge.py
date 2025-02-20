@@ -39,7 +39,7 @@ class MergeNode(BaseNode):
         self.output_model = create_model(
             f"{self.name}_output",
             **{
-                k: (type(v), ...) for k, v in data.items()
+                k: (Optional[type(v)], ...) for k, v in data.items()
             },
             __base__=MergeNodeOutput,
             __config__=None,
