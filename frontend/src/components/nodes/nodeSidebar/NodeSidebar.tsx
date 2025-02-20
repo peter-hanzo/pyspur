@@ -37,7 +37,7 @@ import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelM
 import { listVectorIndices } from '../../../utils/api'
 import CodeEditor from '../../CodeEditor'
 import NumberInput from '../../NumberInput'
-import FewShotEditor from '../../textEditor/FewShotEditor'
+import FewShotExamplesEditor from '../../textEditor/FewShotExamplesEditor'
 import TextEditor from '../../textEditor/TextEditor'
 import NodeOutput from '../NodeOutputDisplay'
 import OutputSchemaEditor from './OutputSchemaEditor'
@@ -1074,72 +1074,22 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Update the `renderFewShotExamples` function
     const renderFewShotExamples = () => {
-        const fewShotExamples = nodeConfig?.few_shot_examples || []
-
         return (
-            <div>
-                {fewShotIndex !== null ? (
-                    <FewShotEditor
-                        key={`few-shot-editor-${nodeID}-${fewShotIndex}`}
-                        nodeID={nodeID}
-                        exampleIndex={fewShotIndex}
-                        onSave={() => setFewShotIndex(null)}
-                        onDiscard={() => setFewShotIndex(null)}
-                    />
-                ) : (
-                    <div>
-                        <div className="flex items-center gap-2 my-2">
-                            <h3 className="font-semibold text-foreground">Few Shot Examples</h3>
-                            <Tooltip
-                                content="Few-Shot prompting is a powerful technique where you provide example input-output pairs to help the AI understand the pattern you want it to follow. This significantly improves the quality and consistency of responses, especially for specific formats or complex tasks."
-                                placement="left-start"
-                                showArrow={true}
-                                className="max-w-xs"
-                            >
-                                <Icon
-                                    icon="solar:question-circle-linear"
-                                    className="text-default-400 cursor-help"
-                                    width={20}
-                                />
-                            </Tooltip>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {fewShotExamples.map((example, index) => (
-                                <div
-                                    key={`few-shot-${index}`}
-                                    className="flex items-center space-x-2 p-2 bg-content2 dark:bg-content2 hover:bg-content3 dark:hover:bg-content3 rounded-full cursor-pointer transition-colors"
-                                    onClick={() => setFewShotIndex(index)}
-                                >
-                                    <span className="text-foreground">Example {index + 1}</span>
-                                    <Button
-                                        isIconOnly
-                                        radius="full"
-                                        variant="light"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDeleteExample(index)
-                                        }}
-                                        color="primary"
-                                    >
-                                        <Icon icon="solar:trash-bin-trash-linear" width={22} />
-                                    </Button>
-                                </div>
-                            ))}
-
-                            <Button
-                                key={`add-example-${nodeID}`}
-                                isIconOnly
-                                radius="full"
-                                variant="light"
-                                onClick={handleAddNewExample}
-                                color="primary"
-                            >
-                                <Icon icon="solar:add-circle-linear" width={22} />
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </div>
+            <FewShotExamplesEditor
+                nodeID={nodeID}
+                examples={nodeConfig?.few_shot_examples || []}
+                onChange={(examples) => {
+                    dispatch(
+                        updateNodeConfigOnly({
+                            id: nodeID,
+                            data: {
+                                few_shot_examples: examples
+                            }
+                        })
+                    )
+                }}
+                readOnly={false}
+            />
         )
     }
 
