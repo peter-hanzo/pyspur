@@ -1,97 +1,59 @@
 import React, { useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import TextEditor from './TextEditor'
-import { updateNodeConfigOnly } from '../../store/flowSlice'
-import { Button, Tabs, Tab } from '@heroui/react'
+import { Button, Card, CardBody, Tab, Tabs } from '@heroui/react'
 import _ from 'lodash'
-import { RootState } from '../../store/store'
+import { Icon } from '@iconify/react'
+import { FewShotExamplesProps } from '../../types/fewShot'
+import ExampleEditor from './ExampleEditor'
 
 interface FewShotExample {
     input?: string
     output?: string
 }
 
-interface NodeData {
-    config?: {
-        few_shot_examples?: FewShotExample[]
-    }
-    [key: string]: any
-}
-
-interface Node {
-    id: string
-    data: NodeData
-}
-
-interface InputOutputTabsProps {
-    activeTab: 'input' | 'output'
-    setActiveTab: (tab: 'input' | 'output') => void
-}
-
-const InputOutputTabs: React.FC<InputOutputTabsProps> = ({ activeTab, setActiveTab }) => {
-    return (
-        <div className="mb-5">
-            <div className="flex w-full flex-col items-center">
-                <Tabs
-                    aria-label="Input/Output Options"
-                    selectedKey={activeTab}
-                    onSelectionChange={(key) => setActiveTab(key as 'input' | 'output')}
-                >
-                    <Tab key="input" title="Input" />
-                    <Tab key="output" title="Output" />
-                </Tabs>
-            </div>
-        </div>
-    )
-}
-
-interface FewShotEditorProps {
+// Individual Example Editor Component
+interface ExampleEditorModalProps {
     nodeID: string
     exampleIndex: number
+    example: FewShotExample
     onSave: () => void
     onDiscard: () => void
+    onContentChange: (content: string, tab: 'input' | 'output') => void
 }
 
-const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onSave, onDiscard }) => {
-    const dispatch = useDispatch()
-    const nodeConfig = useSelector((state: RootState) => state.flow.nodeConfigs[nodeID])
+const ExampleEditorModal: React.FC<ExampleEditorModalProps> = ({
+    nodeID,
+    exampleIndex,
+    example,
+    onSave,
+    onDiscard,
+    onContentChange,
+}) => {
     const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
-
-    const handleContentChange = (content: string) => {
-        (dispatch as any)((dispatch: any, getState: any) => {
-            const currentNodeConfig = getState().flow.nodeConfigs[nodeID] || {};
-            const updatedExamples = _.cloneDeep(currentNodeConfig.few_shot_examples || []);
-
-            if (!updatedExamples[exampleIndex]) {
-                updatedExamples[exampleIndex] = {};
-            }
-
-            // Update the content for the active tab (input/output)
-            updatedExamples[exampleIndex][activeTab] = content;
-
-            // Dispatch the updated data to Redux
-            dispatch(
-                updateNodeConfigOnly({
-                    id: nodeID,
-                    data: {
-                        few_shot_examples: updatedExamples
-                    }
-                })
-            );
-        });
-    }
 
     return (
         <div className="w-full px-4 py-10 my-10 bg-content1 dark:bg-content1 rounded-lg shadow-sm">
-            <InputOutputTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <div className="mb-5">
+                <div className="flex w-full flex-col items-center">
+                    <Tabs
+                        aria-label="Input/Output Options"
+                        selectedKey={activeTab}
+                        onSelectionChange={(key) => setActiveTab(key as 'input' | 'output')}
+                    >
+                        <Tab key="input" title="Input" />
+                        <Tab key="output" title="Output" />
+                    </Tabs>
+                </div>
+            </div>
 
             <div className="mb-2 font-medium text-foreground">
                 Example {exampleIndex + 1} {activeTab}
             </div>
             <TextEditor
                 key={`${activeTab}-${exampleIndex}`}
-                content={nodeConfig?.few_shot_examples?.[exampleIndex]?.[activeTab] || ''}
-                setContent={handleContentChange}
+                content={example[activeTab] || ''}
+                setContent={(content) => onContentChange(content, activeTab)}
                 isEditable={true}
                 fieldTitle={`Example ${exampleIndex + 1} ${activeTab}`}
                 nodeID={nodeID}
@@ -110,4 +72,78 @@ const FewShotEditor: React.FC<FewShotEditorProps> = ({ nodeID, exampleIndex, onS
     )
 }
 
-export default FewShotEditor
+// Main Few Shot Examples Component
+const FewShotExamples: React.FC<FewShotExamplesProps> = ({ nodeID, examples, onChange }) => {
+    const [selectedExampleIndex, setSelectedExampleIndex] = useState<number | null>(null)
+
+    const handleAddExample = () => {
+        const updatedExamples = [...examples, { input: '', output: '' }]
+        onChange(updatedExamples)
+    }
+
+    const handleDeleteExample = (index: number) => {
+        const updatedExamples = examples.filter((_, idx) => idx !== index)
+        onChange(updatedExamples)
+    }
+
+    const handleContentChange = (content: string, tab: 'input' | 'output', index: number) => {
+        const updatedExamples = _.cloneDeep(examples)
+        if (!updatedExamples[index]) {
+            updatedExamples[index] = {}
+        }
+        updatedExamples[index][tab] = content
+        onChange(updatedExamples)
+    }
+
+    return (
+        <div>
+            <div className="grid grid-cols-2 gap-4">
+                {examples.map((example, index) => (
+                    <Card
+                        key={index}
+                        isPressable
+                        onPress={() => setSelectedExampleIndex(index)}
+                        className="bg-content2 dark:bg-content2"
+                    >
+                        <CardBody className="flex justify-between items-center p-4">
+                            <span>Example {index + 1}</span>
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                    isIconOnly
+                                    color="danger"
+                                    variant="light"
+                                    onPress={() => handleDeleteExample(index)}
+                                >
+                                    <Icon icon="solar:trash-bin-trash-linear" width={20} />
+                                </Button>
+                            </div>
+                        </CardBody>
+                    </Card>
+                ))}
+                <Card
+                    isPressable
+                    onPress={handleAddExample}
+                    className="bg-content2 dark:bg-content2 border-2 border-dashed"
+                >
+                    <CardBody className="flex justify-center items-center p-4">
+                        <Icon icon="solar:add-circle-linear" width={24} />
+                        <span className="ml-2">Add Example</span>
+                    </CardBody>
+                </Card>
+            </div>
+
+            {selectedExampleIndex !== null && (
+                <ExampleEditor
+                    nodeID={nodeID}
+                    exampleIndex={selectedExampleIndex}
+                    example={examples[selectedExampleIndex]}
+                    onSave={() => setSelectedExampleIndex(null)}
+                    onDiscard={() => setSelectedExampleIndex(null)}
+                    onContentChange={(content, tab) => handleContentChange(content, tab, selectedExampleIndex)}
+                />
+            )}
+        </div>
+    )
+}
+
+export default FewShotExamples
