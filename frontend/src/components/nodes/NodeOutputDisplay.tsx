@@ -8,6 +8,17 @@ interface NodeOutputDisplayProps {
     output: Record<string, any>
 }
 
+// Add a helper function to generate a simple hash for content
+const generateContentHash = (content: string): string => {
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+        const char = content.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+};
+
 const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
     const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
@@ -234,6 +245,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         // Handle code blocks
         if (isCodeBlock(value)) {
             const language = detectLanguage(value)
+            const codeKey = `code-${generateContentHash(value)}`
             return (
                 <div className="group">
                     <SyntaxHighlighter
@@ -247,14 +259,14 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                copyToClipboard(value, 'code');
+                                copyToClipboard(value, codeKey);
                             }}
                             className="px-3 py-1.5 rounded-md bg-white/10 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                             title="Copy to clipboard"
                         >
                             <Icon
-                                icon={copiedKey === 'code' ? 'solar:check-circle-bold' : 'solar:copy-linear'}
-                                className={copiedKey === 'code' ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
+                                icon={copiedKey === codeKey ? 'solar:check-circle-bold' : 'solar:copy-linear'}
+                                className={copiedKey === codeKey ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
                                 width={16}
                             />
                         </button>
@@ -434,6 +446,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         };
 
         const content = processValue(value);
+        const textKey = `text-${generateContentHash(content)}`;
         return (
             <div className="group">
                 <Markdown>{content}</Markdown>
@@ -441,14 +454,14 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            copyToClipboard(content, 'text');
+                            copyToClipboard(content, textKey);
                         }}
                         className="px-3 py-1.5 rounded-md bg-white/10 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                         title="Copy to clipboard"
                     >
                         <Icon
-                            icon={copiedKey === 'text' ? 'solar:check-circle-bold' : 'solar:copy-linear'}
-                            className={copiedKey === 'text' ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
+                            icon={copiedKey === textKey ? 'solar:check-circle-bold' : 'solar:copy-linear'}
+                            className={copiedKey === textKey ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
                             width={16}
                         />
                     </button>
