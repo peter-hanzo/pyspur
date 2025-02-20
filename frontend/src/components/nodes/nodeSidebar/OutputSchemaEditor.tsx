@@ -1,5 +1,5 @@
 import { Alert, Card, CardBody, Tab, Tabs } from '@heroui/react'
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { jsonOptions } from '../../../constants/jsonOptions'
 import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '../../../utils/schemaUtils'
 import CodeEditor from '../../CodeEditor'
@@ -21,6 +21,13 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
     onChange,
 }) => {
     const { schema: parsedSchema } = extractSchemaFromJsonSchema(schema || '')
+    const [selectedTab, setSelectedTab] = useState(error ? 'json' : 'simple')
+
+    useEffect(() => {
+        if (error) {
+            setSelectedTab('json')
+        }
+    }, [error])
 
     const handleSchemaEditorChange = (newValue: any) => {
         if (!readOnly) {
@@ -53,7 +60,13 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
             <Tabs
                 aria-label="Schema Editor Options"
                 disabledKeys={readOnly ? ['simple', 'json'] : error ? ['simple'] : []}
-                selectedKey={error ? 'json' : 'simple'}
+                selectedKey={selectedTab}
+                onSelectionChange={(key) => {
+                    if (error && key === 'simple') {
+                        return // Prevent switching to simple editor when there are errors
+                    }
+                    setSelectedTab(key as string)
+                }}
             >
                 <Tab key="simple" title="Simple Editor">
                     {parsedSchema && (
