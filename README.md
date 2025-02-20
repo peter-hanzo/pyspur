@@ -1,7 +1,6 @@
 ![PySpur](./docs/images/hero.png)
 
-PySpur is a graph UI for visualizing agent trajectories in Python. AI engineers use it to find out what happened in past runs and execute agents step-by-step.
-
+PySpur is a graph UI for visualizing agent trajectories in Python. AI engineers use it to inspect past runs and execute agents step-by-step.
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
   <a href="./README_CN.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-blue"></a>
