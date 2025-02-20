@@ -10,6 +10,7 @@ import ExampleEditor from './ExampleEditor'
 interface FewShotExample {
     input?: string
     output?: string
+    isExpanded?: boolean
 }
 
 // Individual Example Editor Component
@@ -74,16 +75,18 @@ const ExampleEditorModal: React.FC<ExampleEditorModalProps> = ({
 
 // Main Few Shot Examples Component
 const FewShotExamples: React.FC<FewShotExamplesProps> = ({ nodeID, examples, onChange }) => {
-    const [selectedExampleIndex, setSelectedExampleIndex] = useState<number | null>(null)
+    const [expandedExampleIndex, setExpandedExampleIndex] = useState<number | null>(null)
 
     const handleAddExample = () => {
-        const updatedExamples = [...examples, { input: '', output: '' }]
+        const updatedExamples = [...examples, { input: '', output: '', isExpanded: true }]
         onChange(updatedExamples)
+        setExpandedExampleIndex(examples.length) // Expand the newly added example
     }
 
     const handleDeleteExample = (index: number) => {
         const updatedExamples = examples.filter((_, idx) => idx !== index)
         onChange(updatedExamples)
+        setExpandedExampleIndex(null)
     }
 
     const handleContentChange = (content: string, tab: 'input' | 'output', index: number) => {
@@ -95,53 +98,94 @@ const FewShotExamples: React.FC<FewShotExamplesProps> = ({ nodeID, examples, onC
         onChange(updatedExamples)
     }
 
+    const toggleExample = (index: number) => {
+        setExpandedExampleIndex(expandedExampleIndex === index ? null : index)
+    }
+
     return (
-        <div>
-            <div className="grid grid-cols-2 gap-4">
-                {examples.map((example, index) => (
-                    <Card
-                        key={index}
-                        isPressable
-                        onPress={() => setSelectedExampleIndex(index)}
-                        className="bg-content2 dark:bg-content2"
-                    >
-                        <CardBody className="flex justify-between items-center p-4">
-                            <span>Example {index + 1}</span>
-                            <div onClick={(e) => e.stopPropagation()}>
+        <div className="space-y-4">
+            {examples.map((example, index) => (
+                <Card key={index} className="bg-content2 dark:bg-content2">
+                    <CardBody className="p-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-2">
                                 <Button
                                     isIconOnly
-                                    color="danger"
                                     variant="light"
-                                    onPress={() => handleDeleteExample(index)}
+                                    onPress={() => toggleExample(index)}
                                 >
-                                    <Icon icon="solar:trash-bin-trash-linear" width={20} />
+                                    <Icon
+                                        icon={expandedExampleIndex === index ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"}
+                                        width={20}
+                                    />
                                 </Button>
+                                <span className="font-medium">Example {index + 1}</span>
                             </div>
-                        </CardBody>
-                    </Card>
-                ))}
-                <Card
-                    isPressable
-                    onPress={handleAddExample}
-                    className="bg-content2 dark:bg-content2 border-2 border-dashed"
-                >
-                    <CardBody className="flex justify-center items-center p-4">
-                        <Icon icon="solar:add-circle-linear" width={24} />
-                        <span className="ml-2">Add Example</span>
+                            <Button
+                                isIconOnly
+                                color="danger"
+                                variant="light"
+                                onPress={() => handleDeleteExample(index)}
+                            >
+                                <Icon icon="solar:trash-bin-trash-linear" width={20} />
+                            </Button>
+                        </div>
+
+                        {/* Preview when collapsed */}
+                        {expandedExampleIndex !== index && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-sm text-default-500">
+                                    <div className="font-medium mb-1">Input</div>
+                                    <div className="truncate">{example.input || 'No input'}</div>
+                                </div>
+                                <div className="text-sm text-default-500">
+                                    <div className="font-medium mb-1">Output</div>
+                                    <div className="truncate">{example.output || 'No output'}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Expanded editor */}
+                        {expandedExampleIndex === index && (
+                            <div className="mt-4">
+                                <Tabs aria-label="Input/Output Options">
+                                    <Tab key="input" title="Input">
+                                        <TextEditor
+                                            content={example.input || ''}
+                                            setContent={(content) => handleContentChange(content, 'input', index)}
+                                            isEditable={true}
+                                            fieldTitle={`Example ${index + 1} Input`}
+                                            nodeID={nodeID}
+                                            fieldName={`few_shot_examples[${index}][input]`}
+                                        />
+                                    </Tab>
+                                    <Tab key="output" title="Output">
+                                        <TextEditor
+                                            content={example.output || ''}
+                                            setContent={(content) => handleContentChange(content, 'output', index)}
+                                            isEditable={true}
+                                            fieldTitle={`Example ${index + 1} Output`}
+                                            nodeID={nodeID}
+                                            fieldName={`few_shot_examples[${index}][output]`}
+                                        />
+                                    </Tab>
+                                </Tabs>
+                            </div>
+                        )}
                     </CardBody>
                 </Card>
-            </div>
+            ))}
 
-            {selectedExampleIndex !== null && (
-                <ExampleEditor
-                    nodeID={nodeID}
-                    exampleIndex={selectedExampleIndex}
-                    example={examples[selectedExampleIndex]}
-                    onSave={() => setSelectedExampleIndex(null)}
-                    onDiscard={() => setSelectedExampleIndex(null)}
-                    onContentChange={(content, tab) => handleContentChange(content, tab, selectedExampleIndex)}
-                />
-            )}
+            <Card
+                isPressable
+                onPress={handleAddExample}
+                className="bg-content2 dark:bg-content2 border-2 border-dashed"
+            >
+                <CardBody className="flex justify-center items-center p-4">
+                    <Icon icon="solar:add-circle-linear" width={24} />
+                    <span className="ml-2">Add Example</span>
+                </CardBody>
+            </Card>
         </div>
     )
 }

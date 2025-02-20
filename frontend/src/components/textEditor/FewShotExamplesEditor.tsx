@@ -37,7 +37,7 @@ const FewShotExamplesEditor: React.FC<FewShotExamplesEditorProps> = ({ nodeID, e
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col gap-4 mb-4">
                 <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold">Few Shot Examples</h3>
                     <Tooltip
