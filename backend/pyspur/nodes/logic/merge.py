@@ -8,7 +8,7 @@ from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 logger = logging.getLogger(__name__)
 
 class MergeNodeConfig(BaseNodeConfig):
-    has_fixed_output:bool = True
+    has_fixed_output: bool = False
 
 
 class MergeNodeInput(BaseNodeInput):
@@ -32,10 +32,9 @@ class MergeNode(BaseNode):
     input_model = MergeNodeInput
     config_model = MergeNodeConfig
 
-    async def run(self, input: BaseModel) -> BaseModel:
-        self.output_model = MergeNodeOutput
+    async def run(self, input_data: BaseModel) -> BaseModel:
 
-        data = input.model_dump()
+        data = input_data.model_dump()
 
         self.output_model = create_model(
             f"{self.name}_output",
