@@ -2,13 +2,14 @@
 
 import os
 import shutil
+from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Optional
 
 import typer
+import uvicorn
 from rich import print
 from rich.console import Console
-import uvicorn
 
 from .utils import copy_template_file, load_environment, run_migrations
 
@@ -19,6 +20,16 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+@app.command(name="version")
+def show_version() -> None:
+    """Display the current version of PySpur."""
+    try:
+        ver = get_version("pyspur")
+        print(f"PySpur version: [bold green]{ver}[/bold green]")
+    except ImportError:
+        print("[yellow]PySpur version: unknown (package not installed)[/yellow]")
 
 
 @app.command()
@@ -119,3 +130,7 @@ def serve(
 def main() -> None:
     """PySpur CLI."""
     app()
+
+
+if __name__ == "__main__":
+    main()
