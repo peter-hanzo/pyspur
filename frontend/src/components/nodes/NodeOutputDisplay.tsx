@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Markdown from 'react-markdown'
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
@@ -8,7 +8,30 @@ interface NodeOutputDisplayProps {
     output: Record<string, any>
 }
 
+// Add a helper function to generate a simple hash for content
+const generateContentHash = (content: string): string => {
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+        const char = content.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+};
+
 const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
+    const [copiedKey, setCopiedKey] = useState<string | null>(null)
+
+    const copyToClipboard = async (text: string | any, key: string) => {
+        try {
+            await navigator.clipboard.writeText(typeof text === 'string' ? text : JSON.stringify(text, null, 2))
+            setCopiedKey(key)
+            setTimeout(() => setCopiedKey(null), 2000) // Reset after 2 seconds
+        } catch (err) {
+            console.error('Failed to copy:', err)
+        }
+    }
+
     const detectLanguage = (code: string): string => {
         // Count occurrences of language-specific patterns
         let pythonScore = 0
@@ -123,15 +146,26 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                 {Object.entries(obj).map(([key, val]) => (
                     <div
                         key={key}
-                        style={{
-                            marginBottom: '8px',
-                            marginLeft: '0.5rem',
-                            borderLeft: '2px solid #ccc',
-                            paddingLeft: '0.5rem',
-                        }}
+                        className="group mb-2 ml-2 border-l-2 border-gray-200 dark:border-gray-700/50 pl-2"
                     >
-                        <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>{key}:</div>
-                        <div style={{ marginLeft: '10px' }}>{renderValue(val)}</div>
+                        <div className="text-lg font-semibold mb-1">{key}:</div>
+                        <div className="ml-2">{renderValue(val)}</div>
+                        <div className="flex justify-end mt-3">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(val, key);
+                                }}
+                                className="px-3 py-1.5 rounded-md bg-white/10 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                                title="Copy to clipboard"
+                            >
+                                <Icon
+                                    icon={copiedKey === key ? 'solar:check-circle-bold' : 'solar:copy-linear'}
+                                    className={copiedKey === key ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
+                                    width={16}
+                                />
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -211,14 +245,33 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         // Handle code blocks
         if (isCodeBlock(value)) {
             const language = detectLanguage(value)
+            const codeKey = `code-${generateContentHash(value)}`
             return (
-                <SyntaxHighlighter
-                    language={language}
-                    style={oneDark}
-                    customStyle={{ borderRadius: '8px', padding: '12px' }}
-                >
-                    {value}
-                </SyntaxHighlighter>
+                <div className="group">
+                    <SyntaxHighlighter
+                        language={language}
+                        style={oneDark}
+                        customStyle={{ borderRadius: '8px', padding: '12px' }}
+                    >
+                        {value}
+                    </SyntaxHighlighter>
+                    <div className="flex justify-end mt-3">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(value, codeKey);
+                            }}
+                            className="px-3 py-1.5 rounded-md bg-white/10 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                            title="Copy to clipboard"
+                        >
+                            <Icon
+                                icon={copiedKey === codeKey ? 'solar:check-circle-bold' : 'solar:copy-linear'}
+                                className={copiedKey === codeKey ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
+                                width={16}
+                            />
+                        </button>
+                    </div>
+                </div>
             )
         }
         // Handle data URIs
@@ -392,7 +445,29 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
             return String(val);
         };
 
-        return <Markdown>{processValue(value)}</Markdown>;
+        const content = processValue(value);
+        const textKey = `text-${generateContentHash(content)}`;
+        return (
+            <div className="group">
+                <Markdown>{content}</Markdown>
+                <div className="flex justify-end mt-3">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(content, textKey);
+                        }}
+                        className="px-3 py-1.5 rounded-md bg-white/10 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                        title="Copy to clipboard"
+                    >
+                        <Icon
+                            icon={copiedKey === textKey ? 'solar:check-circle-bold' : 'solar:copy-linear'}
+                            className={copiedKey === textKey ? 'text-green-500 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}
+                            width={16}
+                        />
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
