@@ -44,6 +44,14 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
         checkOpenAIKey()
     }, [])
 
+    // Helper function to reset modal state
+    const resetModalState = () => {
+        setDescription('')
+        setGenerationError('')
+        setGenerationType('new')
+        onClose()
+    }
+
     const handleSchemaEditorChange = (newValue: any) => {
         if (!readOnly) {
             if (typeof newValue === 'object' && !('type' in newValue)) {
@@ -80,8 +88,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
 
             const newSchema = JSON.stringify(response.data, null, 2)
             onChange(newSchema)
-            onClose()
-            setDescription('')
+            resetModalState()
         } catch (error: any) {
             setGenerationError(error.response?.data?.detail || 'Failed to generate schema')
         } finally {
@@ -141,12 +148,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
 
             <Modal
                 isOpen={isOpen}
-                onClose={() => {
-                    onClose()
-                    setDescription('')
-                    setGenerationError('')
-                    setGenerationType('new')
-                }}
+                onClose={resetModalState}
                 size="2xl"
             >
                 <ModalContent>
@@ -202,12 +204,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
                         <Button
                             size="sm"
                             variant="light"
-                            onClick={() => {
-                                onClose()
-                                setDescription('')
-                                setGenerationError('')
-                                setGenerationType('new')
-                            }}
+                            onClick={resetModalState}
                         >
                             Cancel
                         </Button>

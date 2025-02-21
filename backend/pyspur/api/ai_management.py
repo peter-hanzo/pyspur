@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import json
 import re
+from loguru import logger
 
 from ..nodes.llm._utils import generate_text
 
@@ -14,6 +15,7 @@ class SchemaGenerationRequest(BaseModel):
 
 @router.post("/generate_schema/")
 async def generate_schema(request: SchemaGenerationRequest) -> Dict[str, Any]:
+    response: str = ""
     try:
         # Prepare the system message
         system_message = """You are a JSON Schema expert. Your task is to generate a JSON Schema based on a text description.
@@ -140,4 +142,8 @@ async def generate_schema(request: SchemaGenerationRequest) -> Dict[str, Any]:
         return schema
 
     except Exception as e:
+        # Log the raw response if it exists and is not empty
+        if response:
+            truncated_response = response[:1000] + '...' if len(response) > 1000 else response
+            logger.error(f"Schema generation failed. Raw response (truncated): {truncated_response}. Error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
