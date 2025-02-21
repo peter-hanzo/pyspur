@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyspur"
-version = "0.1.0"
+version = "0.1.4"
 description = "PySpur is a Graph UI for building AI Agents in Python"
 requires-python = ">=3.12"
 license = "Apache-2.0"
@@ -83,7 +83,6 @@ dev = [
     "black>=23.0",
     "isort>=5.0",
     "ruff>=0.1.0",
-    "mypy>=1.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -100,7 +99,7 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "B", "C", "D"]
+select = ["E", "F", "I", "N", "W", "B", "C", "D", "PYI"]
 ignore = [
     "D100",  # Missing docstring in public module
     "D101",  # Missing docstring in public class

@@ -1,4 +1,6 @@
-![Langflow](./docs/images/hero.png)
+![PySpur](./docs/images/hero.png)
+
+<p align="center"><strong>PySpur is a graph UI for visualizing agent trajectories in Python. AI engineers use it to build agents, execute them step-by-step and inspect past runs.</strong></p>
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
