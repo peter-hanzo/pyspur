@@ -262,13 +262,13 @@ async def generate_text(
     # Only process JSON schema if the model supports it
     if supports_json:
         if output_json_schema is None:
-            output_json_schema = json.dumps(
-                {
-                    "type": "object",
-                    "properties": {"output": {"type": "string"}},
-                    "required": ["output"],
-                }
-            )
+            output_json_schema = {
+                "type": "object",
+                "properties": {
+                    "output": {"type": "string"}
+                },
+                "required": ["output"],
+            }
         elif output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
             output_json_schema = sanitize_json_schema(output_json_schema)

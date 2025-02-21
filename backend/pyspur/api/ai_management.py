@@ -109,8 +109,7 @@ async def generate_schema(request: SchemaGenerationRequest) -> Dict[str, Any]:
 
         response = await generate_text(
             messages=messages,
-            model_name="gpt-4o-mini",
-            temperature=0.3,
+            model_name="openai/o3-mini",
             json_mode=True
         )
 
