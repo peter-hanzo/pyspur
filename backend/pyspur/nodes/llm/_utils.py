@@ -228,7 +228,7 @@ async def generate_text(
     model_name: str,
     temperature: float = 0.5,
     json_mode: bool = False,
-    max_tokens: int = 100000,
+    max_tokens: int = 16384,
     api_base: Optional[str] = None,
     url_variables: Optional[Dict[str, str]] = None,
     output_json_schema: Optional[str] = None,
