@@ -1,16 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { Handle, useConnection, Position, useUpdateNodeInternals, NodeProps } from '@xyflow/react'
-import BaseNode from '../BaseNode'
-import { Input, Card, Divider, Button, Select, SelectItem, RadioGroup, Radio } from '@heroui/react'
-import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeConfigOnly, deleteEdgeByHandle } from '../../../store/flowSlice'
-import styles from '../DynamicNode.module.css'
-import { Icon } from '@iconify/react'
-import { RootState } from '../../../store/store'
-import { ComparisonOperator, RouteConditionRule, RouteConditionGroup } from '../../../types/api_types/routerSchemas'
 import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { Button, Card, Divider, Input, Radio, RadioGroup, Select, SelectItem } from '@heroui/react'
+import { Icon } from '@iconify/react'
+import { Handle, NodeProps, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { deleteEdgeByHandle, updateNodeConfigOnly } from '../../../store/flowSlice'
+import { RootState } from '../../../store/store'
+import { ComparisonOperator, RouteConditionGroup, RouteConditionRule } from '../../../types/api_types/routerSchemas'
+import BaseNode from '../BaseNode'
+import styles from '../DynamicNode.module.css'
 import NodeOutputModal from '../NodeOutputModal'
-
 
 export interface RouterNodeProps extends NodeProps<FlowWorkflowNode> {
     displayOutput?: boolean
@@ -18,7 +17,6 @@ export interface RouterNodeProps extends NodeProps<FlowWorkflowNode> {
     displaySubflow?: boolean
     displayResizer?: boolean
 }
-
 
 const OPERATORS: { value: ComparisonOperator; label: string }[] = [
     { value: ComparisonOperator.CONTAINS, label: 'Contains' },
@@ -42,7 +40,13 @@ const DEFAULT_ROUTE: RouteConditionGroup = {
     conditions: [{ ...DEFAULT_CONDITION }],
 }
 
-export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = false, positionAbsoluteX, positionAbsoluteY }) => {
+export const RouterNode: React.FC<RouterNodeProps> = ({
+    id,
+    data,
+    readOnly = false,
+    positionAbsoluteX,
+    positionAbsoluteY,
+}) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const nodeRef = useRef<HTMLDivElement | null>(null)
@@ -100,11 +104,20 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
 
             const predNodeConfig = nodeConfigs[node.id]
             const nodeTitle = predNodeConfig?.title || node.id
-            const outputSchema = predNodeConfig?.output_schema || {}
 
-            return Object.entries(outputSchema).map(([key, type]) => ({
+            let schemaProperties = {}
+            try {
+                const parsedSchema = predNodeConfig?.output_json_schema
+                    ? JSON.parse(predNodeConfig.output_json_schema)
+                    : {}
+                schemaProperties = parsedSchema.properties || {}
+            } catch (error) {
+                console.error('Error parsing output_json_schema:', error)
+            }
+
+            return Object.entries(schemaProperties).map(([key, value]) => ({
                 value: `${nodeTitle}.${key}`,
-                label: `${nodeTitle}.${key} (${type})`,
+                label: `${nodeTitle}.${key} (${(value as any).type || 'unknown'})`,
             }))
         })
     }, [finalPredecessors, nodeConfigs])
@@ -246,7 +259,6 @@ export const RouterNode: React.FC<RouterNodeProps> = ({ id, data, readOnly = fal
                         {/* Routes */}
                         <div className="flex flex-col gap-4">
                             {Object.entries(nodeConfig.route_map).map(([routeKey, route]) => (
-
                                 <Card
                                     key={routeKey}
                                     classNames={{
