@@ -32,12 +32,12 @@ class MergeNode(BaseNode):
     input_model = MergeNodeInput
     config_model = MergeNodeConfig
 
-    async def run(self, input_data: BaseModel) -> BaseModel:
+    async def run(self, input: BaseModel) -> BaseModel:
 
-        data = input_data.model_dump()
+        data = input.model_dump()
 
         self.output_model = create_model(
-            f"{self.name}_output",
+            f"{self.name}",
             **{
                 k: (Optional[type(v)], ...) for k, v in data.items()
             },
