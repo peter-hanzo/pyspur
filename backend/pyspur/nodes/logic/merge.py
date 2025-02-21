@@ -42,11 +42,8 @@ class MergeNode(BaseNode):
                 k: (Optional[type(v)], ...) for k, v in data.items()
             },
             __base__=MergeNodeOutput,
-            __config__=None,
             __module__=self.__module__,
             __doc__=f"Output model for {self.name} node",
-            __validators__=None,
-            __cls_kwargs__=None,
         )
         return self.output_model(**data)
 
