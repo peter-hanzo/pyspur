@@ -1,23 +1,21 @@
-import axios from 'axios'
-import JSPydanticModel from './JSPydanticModel' // Import the JSPydanticModel class
-import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
-import { DatasetResponse, DatasetListResponse } from '@/types/api_types/datasetSchemas'
+import { DatasetListResponse, DatasetResponse } from '@/types/api_types/datasetSchemas'
 import { EvalRunRequest, EvalRunResponse } from '@/types/api_types/evalSchemas'
-import { NodeTypeSchema, MinimumNodeConfigSchema } from '@/types/api_types/nodeTypeSchemas'
+import { NodeTypeSchema } from '@/types/api_types/nodeTypeSchemas'
 import { OutputFileResponse } from '@/types/api_types/outputFileSchemas'
-import { RunResponse } from '@/types/api_types/runSchemas'
 import {
-    DocumentChunkSchema,
-    DocumentWithChunksSchema,
-    ChunkPreviewSchema,
     ChunkPreviewResponseSchema,
     ChunkTemplateSchema,
     DocumentCollectionCreateRequestSchema,
     DocumentCollectionResponseSchema,
+    DocumentWithChunksSchema,
+    ProcessingProgressSchema,
     VectorIndexCreateRequestSchema,
     VectorIndexResponseSchema,
-    ProcessingProgressSchema
 } from '@/types/api_types/ragSchemas'
+import { RunResponse } from '@/types/api_types/runSchemas'
+import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
+import axios from 'axios'
+import JSPydanticModel from './JSPydanticModel' // Import the JSPydanticModel class
 
 const API_BASE_URL =
     typeof window !== 'undefined'
@@ -992,6 +990,30 @@ export const uploadTestFiles = async (
         return response.data
     } catch (error) {
         console.error('Error uploading test files:', error)
+        throw error
+    }
+}
+
+export interface OpenAPIEndpoint {
+    path: string
+    method: string
+    summary?: string
+    operationId?: string
+}
+
+export const createNodesFromOpenAPI = async (endpoints: OpenAPIEndpoint[], fullSpec: any): Promise<any> => {
+    try {
+        // For now, just log both the selected endpoints and the full spec
+        console.log('Selected endpoints:', endpoints)
+        console.log('Full OpenAPI spec:', fullSpec)
+
+        const response = await axios.post(`${API_BASE_URL}/nodes/create_from_openapi/`, {
+            endpoints,
+            spec: fullSpec
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error creating nodes from OpenAPI:', error)
         throw error
     }
 }

@@ -35,7 +35,7 @@ import RunModal from './modals/RunModal'
 import SettingsCard from './modals/SettingsModal'
 
 interface HeaderProps {
-    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
+    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag' | 'nodes'
     associatedWorkflowId?: string
     runId?: string
     handleDownloadImage?: () => void
@@ -310,6 +310,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     <NavbarItem isActive={activePage === 'rag'}>
                         <Link className="flex gap-2 text-inherit" href="/rag">
                             RAG
+                        </Link>
+                    </NavbarItem>
+                    <NavbarItem isActive={activePage === 'nodes'}>
+                        <Link className="flex gap-2 text-inherit" href="/nodes">
+                            Nodes
                         </Link>
                     </NavbarItem>
                 </NavbarContent>
