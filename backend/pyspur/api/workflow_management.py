@@ -24,6 +24,48 @@ from ..schemas.workflow_schemas import (
     WorkflowNodeSchema,
     WorkflowResponseSchema,
 )
+from ..schemas.pause_schemas import (
+    PausedWorkflowResponseSchema,
+    ResumeActionRequestSchema,
+    PauseHistoryResponseSchema,
+)
+from ..schemas.run_schemas import RunResponseSchema
+from .paused_workflows import get_paused_workflows, get_run_pause_history, process_pause_action
+
+# Create a separate router for paused workflows
+paused_workflows_router = APIRouter(tags=["paused-workflows"])
+
+@paused_workflows_router.get(
+    "/",
+    response_model=List[PausedWorkflowResponseSchema],
+    description="List all paused workflows",
+)
+def list_paused_workflows(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> List[PausedWorkflowResponseSchema]:
+    return get_paused_workflows(db, page, page_size)
+
+@paused_workflows_router.get(
+    "/{run_id}/history/",
+    response_model=List[PauseHistoryResponseSchema],
+    description="Get pause history for a run",
+)
+def get_pause_history(run_id: str, db: Session = Depends(get_db)) -> List[PauseHistoryResponseSchema]:
+    return get_run_pause_history(db, run_id)
+
+@paused_workflows_router.post(
+    "/{run_id}/action/",
+    response_model=RunResponseSchema,
+    description="Take action on a paused workflow",
+)
+def take_pause_action(
+    run_id: str,
+    action_request: ResumeActionRequestSchema,
+    db: Session = Depends(get_db),
+) -> RunResponseSchema:
+    return process_pause_action(db, run_id, action_request)
 
 router = APIRouter()
 

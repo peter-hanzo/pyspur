@@ -15,7 +15,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import BaseModel
 from .output_file_model import OutputFileModel
+from .pause_model import PauseHistoryModel
 from .task_model import TaskModel
+from .workflow_model import WorkflowModel
 
 
 class RunStatus(PyEnum):
@@ -23,6 +25,7 @@ class RunStatus(PyEnum):
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    PAUSED = "PAUSED"  # Added for human intervention nodes
 
 
 class RunModel(BaseModel):
@@ -67,6 +70,24 @@ class RunModel(BaseModel):
     output_file: Mapped[Optional["OutputFileModel"]] = relationship(
         "OutputFileModel", back_populates="run"
     )
+    pause_history: Mapped[List["PauseHistoryModel"]] = relationship(
+        "PauseHistoryModel",
+        backref="run",
+        cascade="all, delete-orphan",
+    )
+    workflow: Mapped["WorkflowModel"] = relationship("WorkflowModel", foreign_keys=[workflow_id])
+
+    @property
+    def current_pause(self) -> Optional["PauseHistoryModel"]:
+        """Get the current pause record if the run is paused."""
+        if self.status != RunStatus.PAUSED:
+            return None
+        # Get the most recent pause record without a resume time
+        return next(
+            (ph for ph in sorted(self.pause_history, key=lambda x: x.pause_time, reverse=True)
+            if ph.resume_time is None),
+            None
+        )
 
     @property
     def percentage_complete(self) -> Optional[float]:

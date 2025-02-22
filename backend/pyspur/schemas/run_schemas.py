@@ -47,6 +47,14 @@ class PartialRunRequestSchema(BaseModel):
     partial_outputs: Optional[Dict[str, Dict[str, Any] | List[Dict[str, Any]]]] = None
 
 
+class ResumeRunRequestSchema(BaseModel):
+    """
+    Schema for resuming a paused workflow run.
+    """
+    node_id: str  # ID of the paused node
+    inputs: Dict[str, Any]  # Human-provided inputs for the paused node
+
+
 class BatchRunRequestSchema(BaseModel):
     dataset_id: str
     mini_batch_size: int = 10

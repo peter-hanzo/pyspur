@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
+from ..nodes.logic.human_intervention import HumanInterventionNode
 from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowNodeSchema,
@@ -21,6 +22,14 @@ class UpstreamFailure(Exception):
 
 class UnconnectedNode(Exception):
     pass
+
+
+class PauseException(Exception):
+    """Raised when a workflow execution needs to pause for human intervention."""
+    def __init__(self, node_id: str, message: str = "Human intervention required"):
+        self.node_id = node_id
+        self.message = message
+        super().__init__(f"Workflow paused at node {node_id}: {message}")
 
 
 class WorkflowExecutor:
@@ -53,6 +62,16 @@ class WorkflowExecutor:
         self._failed_nodes: Set[str] = set()
         self._build_node_dict()
         self._build_dependencies()
+
+    @property
+    def outputs(self) -> Dict[str, Optional[BaseNodeOutput]]:
+        """Get the current outputs of the workflow execution."""
+        return self._outputs
+
+    @outputs.setter
+    def outputs(self, value: Dict[str, Optional[BaseNodeOutput]]):
+        """Set the outputs of the workflow execution."""
+        self._outputs = value
 
     def _process_subworkflows(self, workflow: WorkflowDefinitionSchema) -> WorkflowDefinitionSchema:
         # Group nodes by parent_id
@@ -217,14 +236,6 @@ class WorkflowExecutor:
             if node.node_type == "InputNode":
                 node_input = self._initial_inputs.get(node_id, {})
 
-            # Only fail early for None inputs if it is NOT a CoalesceNode
-            if node.node_type != "CoalesceNode" and any([v is None for v in node_input.values()]):
-                self._outputs[node_id] = None
-                return None
-            elif node.node_type == "CoalesceNode" and all([v is None for v in node_input.values()]):
-                self._outputs[node_id] = None
-                return None
-
             # Remove None values from input
             node_input = {k: v for k, v in node_input.items() if v is not None}
 
@@ -251,6 +262,30 @@ class WorkflowExecutor:
                 config=node.config,
             )
             self.node_instances[node_id] = node_instance
+
+            # Handle HumanInterventionNode
+            if isinstance(node_instance, HumanInterventionNode):
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.PAUSED,
+                        inputs=node_input,
+                        end_time=datetime.now(),
+                    )
+                # Create pause history record if we have a context
+                if self.context and self.context.db_session:
+                    from ..models.run_model import PauseHistoryModel
+                    pause_record = PauseHistoryModel(
+                        run_id=self.context.run_id,
+                        node_id=node_id,
+                        pause_message=node.config.get("message", "Human intervention required"),
+                    )
+                    self.context.db_session.add(pause_record)
+                    self.context.db_session.commit()
+                # Store current state
+                self._outputs[node_id] = None
+                raise PauseException(node_id, node.config.get("message", "Human intervention required"))
+
             # Update task recorder
             if self.task_recorder:
                 self.task_recorder.update_task(

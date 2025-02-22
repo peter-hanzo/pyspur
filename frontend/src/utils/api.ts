@@ -995,3 +995,69 @@ export const uploadTestFiles = async (
         throw error
     }
 }
+
+// Add new types for paused workflows
+export interface PauseHistoryResponse {
+    id: string
+    run_id: string
+    node_id: string
+    pause_message: string | null
+    pause_time: string
+    resume_time: string | null
+    resume_user_id: string | null
+    resume_action: 'APPROVE' | 'DECLINE' | 'OVERRIDE' | null
+    input_data: Record<string, any> | null
+    comments: string | null
+}
+
+export interface PausedWorkflowResponse {
+    run: RunResponse
+    current_pause: PauseHistoryResponse
+    workflow: WorkflowResponse
+}
+
+export interface ResumeActionRequest {
+    action: 'APPROVE' | 'DECLINE' | 'OVERRIDE'
+    input_data?: Record<string, any>
+    comments?: string
+    user_id: string
+}
+
+// Add new functions for paused workflows
+export const listPausedWorkflows = async (
+    page: number = 1,
+    pageSize: number = 10
+): Promise<PausedWorkflowResponse[]> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/paused-workflows/`, {
+            params: { page, page_size: pageSize },
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error listing paused workflows:', error)
+        throw error
+    }
+}
+
+export const getPauseHistory = async (runId: string): Promise<PauseHistoryResponse[]> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/paused-workflows/${runId}/history/`)
+        return response.data
+    } catch (error) {
+        console.error('Error getting pause history:', error)
+        throw error
+    }
+}
+
+export const takePauseAction = async (
+    runId: string,
+    actionRequest: ResumeActionRequest
+): Promise<RunResponse> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/paused-workflows/${runId}/action/`, actionRequest)
+        return response.data
+    } catch (error) {
+        console.error('Error taking pause action:', error)
+        throw error
+    }
+}

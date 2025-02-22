@@ -6,9 +6,10 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path  # Import Path for directory handling
-from typing import Any, Awaitable, Dict, List, Optional
+from typing import Any, Awaitable, Dict, List, Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -18,13 +19,21 @@ from ..execution.workflow_execution_context import WorkflowExecutionContext
 from ..execution.workflow_executor import WorkflowExecutor
 from ..models.dataset_model import DatasetModel
 from ..models.output_file_model import OutputFileModel
-from ..models.run_model import RunModel as RunModel
-from ..models.run_model import RunStatus
+from ..models.pause_model import PauseHistoryModel
+from ..models.run_model import RunModel, RunStatus
 from ..models.task_model import TaskStatus
 from ..models.workflow_model import WorkflowModel as WorkflowModel
+from ..nodes.factory import NodeFactory
+from ..nodes.logic.human_intervention import HumanInterventionNodeOutput
+from ..schemas.pause_schemas import (
+    PauseHistoryResponseSchema,
+    PausedWorkflowResponseSchema,
+    ResumeActionRequestSchema,
+)
 from ..schemas.run_schemas import (
     BatchRunRequestSchema,
     PartialRunRequestSchema,
+    ResumeRunRequestSchema,
     RunResponseSchema,
     StartRunRequestSchema,
 )
@@ -446,3 +455,203 @@ def save_embedded_file(data_uri: str, workflow_id: str) -> str:
         f.write(file_data)
 
     return f"run_files/{workflow_id}/{filename}"
+
+
+@router.post(
+    "/{workflow_id}/resume_run/{run_id}/",
+    response_model=RunResponseSchema,
+    description="Resume a paused workflow run after human intervention",
+)
+async def resume_workflow(
+    workflow_id: str,
+    run_id: str,
+    resume_request: ResumeRunRequestSchema,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> RunResponseSchema:
+    # Get the workflow and run
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    if run.status != RunStatus.PAUSED:
+        raise HTTPException(status_code=400, detail="Run is not in a paused state")
+
+    workflow_version = fetch_workflow_version(workflow_id, workflow, db)
+    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
+
+    # Update run status to RUNNING
+    run.status = RunStatus.RUNNING
+    db.commit()
+
+    # Create a new task recorder and context
+    task_recorder = TaskRecorder(db, run.id)
+    context = WorkflowExecutionContext(
+        workflow_id=workflow.id,
+        run_id=run.id,
+        parent_run_id=run.parent_run_id,
+        run_type=run.run_type,
+        db_session=db,
+    )
+
+    # Create executor with the existing workflow definition
+    executor = WorkflowExecutor(
+        workflow=workflow_definition,
+        task_recorder=task_recorder,
+        context=context,
+    )
+
+    # Update the outputs with the human intervention input
+    if run.outputs:
+        executor.outputs = {
+            k: NodeFactory.create_node(
+                node_name=node.title,
+                node_type_name=node.node_type,
+                config=node.config,
+            ).output_model.model_validate(v)
+            for k, v in run.outputs.items()
+            for node in workflow_definition.nodes
+            if node.id == k
+        }
+
+    # Add the human intervention input
+    executor.outputs[resume_request.node_id] = HumanInterventionNodeOutput(data=resume_request.inputs)
+
+    # Resume execution from the paused node
+    async def resume_workflow_task():
+        try:
+            # Convert outputs to dict format for precomputed_outputs
+            precomputed: Dict[str, Union[Dict[str, Any], List[Dict[str, Any]]]] = {}
+            for k, v in executor.outputs.items():
+                if v is not None:
+                    try:
+                        precomputed[k] = v.model_dump()
+                    except Exception:
+                        continue
+
+            outputs = await executor.run(
+                input={},  # Input already provided in initial run
+                node_ids=[n.id for n in workflow_definition.nodes],  # Run all remaining nodes
+                precomputed_outputs=precomputed,  # Use existing outputs
+            )
+            run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+            run.status = RunStatus.COMPLETED
+            run.end_time = datetime.now(timezone.utc)
+        except Exception as e:
+            run.status = RunStatus.FAILED
+            run.end_time = datetime.now(timezone.utc)
+            print(f"Error resuming workflow: {e}")
+        db.commit()
+
+    background_tasks.add_task(resume_workflow_task)
+    return run
+
+
+@router.get(
+    "/paused/",
+    response_model=List[PausedWorkflowResponseSchema],
+    description="List all paused workflows",
+)
+async def list_paused_workflows(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> List[PausedWorkflowResponseSchema]:
+    # Get paused runs with pagination
+    paused_runs = (
+        db.query(RunModel)
+        .filter(RunModel.status == RunStatus.PAUSED)
+        .order_by(desc(RunModel.start_time))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    # Build response with workflow definitions and pause history
+    result: List[PausedWorkflowResponseSchema] = []
+    for run in paused_runs:
+        workflow = db.query(WorkflowModel).filter(WorkflowModel.id == run.workflow_id).first()
+        if not workflow:
+            continue
+
+        workflow_version = fetch_workflow_version(run.workflow_id, workflow, db)
+        workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
+
+        result.append(
+            PausedWorkflowResponseSchema(
+                run=RunResponseSchema.model_validate(run),
+                current_pause=PauseHistoryResponseSchema.model_validate(run.current_pause),
+                workflow=workflow_definition,
+            )
+        )
+
+    return result
+
+
+@router.get(
+    "/paused/{run_id}/history/",
+    response_model=List[PauseHistoryResponseSchema],
+    description="Get pause history for a workflow run",
+)
+async def get_pause_history(
+    run_id: str,
+    db: Session = Depends(get_db),
+) -> List[PauseHistoryResponseSchema]:
+    # Get all pause history records for the run
+    history = (
+        db.query(PauseHistoryModel)
+        .filter(PauseHistoryModel.run_id == run_id)
+        .order_by(desc(PauseHistoryModel.pause_time))
+        .all()
+    )
+    return [PauseHistoryResponseSchema.model_validate(record) for record in history]
+
+
+@router.post(
+    "/paused/{run_id}/action/",
+    response_model=RunResponseSchema,
+    description="Take action on a paused workflow",
+)
+async def take_pause_action(
+    run_id: str,
+    action_request: ResumeActionRequestSchema,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> RunResponseSchema:
+    # Get the run and verify it's paused
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    if run.status != RunStatus.PAUSED:
+        raise HTTPException(status_code=400, detail="Run is not in a paused state")
+
+    # Get current pause record
+    current_pause = run.current_pause
+    if not current_pause:
+        raise HTTPException(status_code=400, detail="No active pause record found")
+
+    # Update pause record with action details
+    current_pause.resume_time = datetime.now(timezone.utc)
+    current_pause.resume_user_id = action_request.user_id
+    current_pause.resume_action = action_request.action
+    current_pause.input_data = action_request.input_data
+    current_pause.comments = action_request.comments
+    db.commit()
+
+    # Resume the workflow with the provided input
+    resume_request = ResumeRunRequestSchema(
+        node_id=current_pause.node_id,
+        inputs=action_request.input_data or {},
+    )
+    return await resume_workflow(
+        workflow_id=run.workflow_id,
+        run_id=run_id,
+        resume_request=resume_request,
+        background_tasks=background_tasks,
+        db=db,
+    )

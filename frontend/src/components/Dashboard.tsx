@@ -33,9 +33,14 @@ import {
     getWorkflows,
     instantiateTemplate,
     listApiKeys,
+    listPausedWorkflows,
+    takePauseAction,
+    PausedWorkflowResponse,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import WelcomeModal from './modals/WelcomeModal'
+import HumanInputModal from './modals/HumanInputModal'
+import { formatDistanceToNow } from 'date-fns'
 
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
@@ -114,6 +119,10 @@ const Dashboard: React.FC = () => {
     const [workflowPage, setWorkflowPage] = useState(1)
     const [hasMoreWorkflows, setHasMoreWorkflows] = useState(true)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [pausedWorkflows, setPausedWorkflows] = useState<PausedWorkflowResponse[]>([])
+    const [selectedWorkflow, setSelectedWorkflow] = useState<PausedWorkflowResponse | null>(null)
+    const [isHumanInputModalOpen, setIsHumanInputModalOpen] = useState(false)
+    const [isLoadingPaused, setIsLoadingPaused] = useState(false)
 
     useEffect(() => {
         const fetchWorkflows = async () => {
@@ -175,6 +184,22 @@ const Dashboard: React.FC = () => {
         }
 
         fetchApiKeys()
+    }, [])
+
+    useEffect(() => {
+        const fetchPausedWorkflows = async () => {
+            setIsLoadingPaused(true)
+            try {
+                const paused = await listPausedWorkflows()
+                setPausedWorkflows(paused)
+            } catch (error) {
+                console.error('Error fetching paused workflows:', error)
+            } finally {
+                setIsLoadingPaused(false)
+            }
+        }
+
+        fetchPausedWorkflows()
     }, [])
 
     const formatDate = (dateString: string) => {
@@ -339,6 +364,29 @@ const Dashboard: React.FC = () => {
         }
     }
 
+    const handleHumanInputSubmit = async (
+        action: 'APPROVE' | 'DECLINE' | 'OVERRIDE',
+        inputData: Record<string, any>,
+        comments: string
+    ) => {
+        if (!selectedWorkflow) return
+
+        try {
+            await takePauseAction(selectedWorkflow.run.id, {
+                action,
+                input_data: inputData,
+                comments,
+                user_id: 'current-user', // Replace with actual user ID from auth
+            })
+
+            // Refresh paused workflows
+            const paused = await listPausedWorkflows()
+            setPausedWorkflows(paused)
+        } catch (error) {
+            console.error('Error submitting human input:', error)
+        }
+    }
+
     return (
         <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <Head>
@@ -391,7 +439,7 @@ const Dashboard: React.FC = () => {
                 </header>
 
                 {/* Wrap sections in Accordion */}
-                <Accordion defaultExpandedKeys={['workflows', 'templates']} selectionMode="multiple">
+                <Accordion defaultExpandedKeys={new Set(['workflows', 'templates', 'human-tasks'])} selectionMode="multiple">
                     <AccordionItem
                         key="workflows"
                         aria-label="Recent Spurs"
@@ -575,8 +623,78 @@ const Dashboard: React.FC = () => {
                             ))}
                         </div>
                     </AccordionItem>
+                    <AccordionItem
+                        key="human-tasks"
+                        aria-label="Human Tasks"
+                        title={
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xl font-semibold">Human Tasks</h3>
+                                {pausedWorkflows.length > 0 && (
+                                    <Chip color="warning" variant="flat" size="sm">
+                                        {pausedWorkflows.length}
+                                    </Chip>
+                                )}
+                            </div>
+                        }
+                    >
+                        {isLoadingPaused ? (
+                            <div className="flex justify-center p-4">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : pausedWorkflows.length > 0 ? (
+                            <div className="space-y-4">
+                                {pausedWorkflows.map((workflow) => (
+                                    <div
+                                        key={workflow.run.id}
+                                        className="flex items-center justify-between p-4 bg-content2 rounded-lg border border-border"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-medium">{(workflow.workflow as WorkflowResponse).name}</h4>
+                                                <Chip size="sm" color="warning">Paused</Chip>
+                                            </div>
+                                            <p className="text-sm text-default-500 mb-2">
+                                                {workflow.current_pause.pause_message}
+                                            </p>
+                                            <div className="flex items-center gap-4 text-xs text-default-400">
+                                                <span>Run ID: {workflow.run.id}</span>
+                                                <span>•</span>
+                                                <span>
+                                                    Paused {formatDistanceToNow(new Date(workflow.current_pause.pause_time))} ago
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            color="primary"
+                                            onPress={() => {
+                                                setSelectedWorkflow(workflow)
+                                                setIsHumanInputModalOpen(true)
+                                            }}
+                                        >
+                                            Review & Action
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-default-500">
+                                No workflows currently require human input.
+                            </div>
+                        )}
+                    </AccordionItem>
                 </Accordion>
             </div>
+            {selectedWorkflow && (
+                <HumanInputModal
+                    isOpen={isHumanInputModalOpen}
+                    onClose={() => {
+                        setIsHumanInputModalOpen(false)
+                        setSelectedWorkflow(null)
+                    }}
+                    workflow={selectedWorkflow}
+                    onSubmit={handleHumanInputSubmit}
+                />
+            )}
         </div>
     )
 }
