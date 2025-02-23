@@ -44,7 +44,6 @@ class RunModel(BaseModel):
     status: Mapped[RunStatus] = mapped_column(
         Enum(RunStatus), default=RunStatus.PENDING, nullable=False
     )
-    current_node_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     run_type: Mapped[str] = mapped_column(String, nullable=False)
     initial_inputs: Mapped[Optional[Dict[str, Dict[str, Any]]]] = mapped_column(JSON, nullable=True)
     input_dataset_id: Mapped[Optional[str]] = mapped_column(

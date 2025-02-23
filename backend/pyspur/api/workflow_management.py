@@ -26,10 +26,12 @@ from ..schemas.workflow_schemas import (
 )
 from ..schemas.pause_schemas import (
     PausedWorkflowResponseSchema,
-    ResumeActionRequestSchema,
     PauseHistoryResponseSchema,
 )
-from ..schemas.run_schemas import RunResponseSchema
+from ..schemas.run_schemas import (
+    RunResponseSchema,
+    ResumeRunRequestSchema,
+)
 from .paused_workflows import get_paused_workflows, get_run_pause_history, process_pause_action
 
 # Create a separate router for paused workflows
@@ -62,7 +64,7 @@ def get_pause_history(run_id: str, db: Session = Depends(get_db)) -> List[PauseH
 )
 def take_pause_action(
     run_id: str,
-    action_request: ResumeActionRequestSchema,
+    action_request: ResumeRunRequestSchema,
     db: Session = Depends(get_db),
 ) -> RunResponseSchema:
     return process_pause_action(db, run_id, action_request)

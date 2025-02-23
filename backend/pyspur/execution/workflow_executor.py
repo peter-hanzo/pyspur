@@ -285,7 +285,6 @@ class WorkflowExecutor:
                     ).first()
                     if run:
                         run.status = RunStatus.PAUSED
-                        run.current_node_id = node_id
                         self.context.db_session.commit()
 
                 # Store output and raise pause exception
