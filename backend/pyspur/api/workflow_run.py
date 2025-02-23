@@ -19,16 +19,14 @@ from ..execution.workflow_execution_context import WorkflowExecutionContext
 from ..execution.workflow_executor import WorkflowExecutor
 from ..models.dataset_model import DatasetModel
 from ..models.output_file_model import OutputFileModel
-from ..models.pause_model import PauseHistoryModel
 from ..models.run_model import RunModel, RunStatus
 from ..models.task_model import TaskStatus
-from ..models.workflow_model import WorkflowModel as WorkflowModel
+from ..models.workflow_model import WorkflowModel
 from ..nodes.factory import NodeFactory
 from ..nodes.logic.human_intervention import HumanInterventionNodeOutput
 from ..schemas.pause_schemas import (
     PauseHistoryResponseSchema,
     PausedWorkflowResponseSchema,
-    ResumeActionRequestSchema,
 )
 from ..schemas.run_schemas import (
     BatchRunRequestSchema,
@@ -518,8 +516,21 @@ async def resume_workflow(
             if node.id == k
         }
 
-    # Add the human intervention input
-    executor.outputs[resume_request.node_id] = HumanInterventionNodeOutput(data=resume_request.inputs)
+    # Update the paused node's output with resume information
+    if run.current_node_id and run.current_node_id in executor.outputs:
+        node_output = executor.outputs[run.current_node_id]
+        if isinstance(node_output, HumanInterventionNodeOutput):
+            # Create new output with updated fields
+            updated_output = HumanInterventionNodeOutput(
+                data=resume_request.inputs,
+                pause_message=node_output.pause_message,
+                pause_time=node_output.pause_time,
+                resume_time=datetime.now(timezone.utc),
+                resume_user_id=resume_request.user_id,
+                resume_action=resume_request.action,
+                comments=resume_request.comments
+            )
+            executor.outputs[run.current_node_id] = updated_output
 
     # Resume execution from the paused node
     async def resume_workflow_task():
@@ -571,7 +582,7 @@ async def list_paused_workflows(
         .all()
     )
 
-    # Build response with workflow definitions and pause history
+    # Build response with workflow definitions
     result: List[PausedWorkflowResponseSchema] = []
     for run in paused_runs:
         workflow = db.query(WorkflowModel).filter(WorkflowModel.id == run.workflow_id).first()
@@ -581,77 +592,31 @@ async def list_paused_workflows(
         workflow_version = fetch_workflow_version(run.workflow_id, workflow, db)
         workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
 
-        result.append(
-            PausedWorkflowResponseSchema(
-                run=RunResponseSchema.model_validate(run),
-                current_pause=PauseHistoryResponseSchema.model_validate(run.current_pause),
-                workflow=workflow_definition,
+        # Get the current pause information from the node output
+        current_pause = None
+        if run.outputs and run.current_node_id:
+            node_output = run.outputs.get(run.current_node_id)
+            if node_output:
+                current_pause = PauseHistoryResponseSchema(
+                    id=f"PH_{run.id}_{run.current_node_id}",  # Generate a synthetic ID
+                    run_id=run.id,
+                    node_id=run.current_node_id,
+                    pause_message=node_output.get("pause_message"),
+                    pause_time=datetime.fromisoformat(node_output.get("pause_time")),
+                    resume_time=datetime.fromisoformat(node_output.get("resume_time")) if node_output.get("resume_time") else None,
+                    resume_user_id=node_output.get("resume_user_id"),
+                    resume_action=node_output.get("resume_action"),
+                    input_data=node_output.get("data"),
+                    comments=node_output.get("comments"),
+                )
+
+        if current_pause:
+            result.append(
+                PausedWorkflowResponseSchema(
+                    run=RunResponseSchema.model_validate(run),
+                    current_pause=current_pause,
+                    workflow=workflow_definition,
+                )
             )
-        )
 
     return result
-
-
-@router.get(
-    "/paused/{run_id}/history/",
-    response_model=List[PauseHistoryResponseSchema],
-    description="Get pause history for a workflow run",
-)
-async def get_pause_history(
-    run_id: str,
-    db: Session = Depends(get_db),
-) -> List[PauseHistoryResponseSchema]:
-    # Get all pause history records for the run
-    history = (
-        db.query(PauseHistoryModel)
-        .filter(PauseHistoryModel.run_id == run_id)
-        .order_by(desc(PauseHistoryModel.pause_time))
-        .all()
-    )
-    return [PauseHistoryResponseSchema.model_validate(record) for record in history]
-
-
-@router.post(
-    "/paused/{run_id}/action/",
-    response_model=RunResponseSchema,
-    description="Take action on a paused workflow",
-)
-async def take_pause_action(
-    run_id: str,
-    action_request: ResumeActionRequestSchema,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-) -> RunResponseSchema:
-    # Get the run and verify it's paused
-    run = db.query(RunModel).filter(RunModel.id == run_id).first()
-    if not run:
-        raise HTTPException(status_code=404, detail="Run not found")
-
-    if run.status != RunStatus.PAUSED:
-        raise HTTPException(status_code=400, detail="Run is not in a paused state")
-
-    # Get current pause record
-    current_pause = run.current_pause
-    if not current_pause:
-        raise HTTPException(status_code=400, detail="No active pause record found")
-
-    # Update pause record with action details
-    current_pause.resume_time = datetime.now(timezone.utc)
-    current_pause.resume_user_id = action_request.user_id
-    current_pause.resume_action = action_request.action
-    current_pause.input_data = action_request.input_data
-    current_pause.comments = action_request.comments
-    db.commit()
-
-    # Resume the workflow with the provided input
-    resume_request = ResumeRunRequestSchema(
-        node_id=current_pause.node_id,
-        inputs=action_request.input_data or {},
-    )
-    return await resume_workflow(
-        workflow_id=run.workflow_id,
-        run_id=run_id,
-        resume_request=resume_request,
-        background_tasks=background_tasks,
-        db=db,
-    )

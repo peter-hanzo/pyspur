@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, computed_field
 
 from ..models.run_model import RunStatus
+from ..nodes.logic.human_intervention import PauseAction
 from .task_schemas import TaskResponseSchema, TaskStatus
 from .workflow_schemas import WorkflowVersionResponseSchema
 
@@ -51,8 +52,10 @@ class ResumeRunRequestSchema(BaseModel):
     """
     Schema for resuming a paused workflow run.
     """
-    node_id: str  # ID of the paused node
     inputs: Dict[str, Any]  # Human-provided inputs for the paused node
+    user_id: str  # ID of the user resuming the workflow
+    action: PauseAction  # Action taken (APPROVE/DECLINE/OVERRIDE)
+    comments: Optional[str] = None  # Optional comments about the decision
 
 
 class BatchRunRequestSchema(BaseModel):

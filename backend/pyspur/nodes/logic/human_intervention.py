@@ -1,9 +1,18 @@
-from typing import Any, Dict
+from datetime import datetime
+from typing import Any, Dict, Optional
+from enum import Enum as PyEnum
 
 from pydantic import BaseModel, Field
 
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ..registry import NodeRegistry
+
+
+class PauseAction(PyEnum):
+    """Actions that can be taken on a paused workflow."""
+    APPROVE = "APPROVE"
+    DECLINE = "DECLINE"
+    OVERRIDE = "OVERRIDE"
 
 
 class HumanInterventionNodeConfig(BaseNodeConfig):
@@ -33,18 +42,41 @@ class HumanInterventionNodeInput(BaseNodeInput):
 
 class HumanInterventionNodeOutput(BaseNodeOutput):
     """
-    Output model for the human intervention node.
-    The output fields are dynamically set based on the output_schema in the config.
+    Output model for the human intervention node including pause/resume information.
     """
     data: Dict[str, Any] = Field(
         default_factory=dict,
         description="Dynamic output fields based on output_schema"
     )
+    pause_time: datetime = Field(
+        default_factory=lambda: datetime.now(),
+        description="Time when the workflow was paused"
+    )
+    pause_message: str = Field(
+        default="Human intervention required",
+        description="Message displayed to the user"
+    )
+    resume_time: Optional[datetime] = Field(
+        default=None,
+        description="Time when the workflow was resumed"
+    )
+    resume_user_id: Optional[str] = Field(
+        default=None,
+        description="ID of the user who resumed the workflow"
+    )
+    resume_action: Optional[PauseAction] = Field(
+        default=None,
+        description="Action taken to resume the workflow"
+    )
+    comments: Optional[str] = Field(
+        default=None,
+        description="Comments provided during resume"
+    )
 
     class Config:
         json_schema_extra = {
             "title": "Human Intervention Output",
-            "description": "Dynamic output fields based on output_schema"
+            "description": "Output including pause/resume information"
         }
 
 
@@ -66,13 +98,10 @@ class HumanInterventionNode(BaseNode):
 
     async def run(self, input: BaseModel) -> HumanInterventionNodeOutput:
         """
-        This node doesn't actually run - it's handled specially by the workflow executor
-        to pause execution. When execution resumes, the human-provided input is used
-        as the output.
+        Creates initial output with pause information.
+        The workflow executor will handle the actual pause/resume logic.
         """
-        # The actual pause/resume logic is handled by the workflow executor
-        # This method should never be called directly
-        raise NotImplementedError(
-            "HumanInterventionNode.run() should never be called directly. "
-            "The node is handled specially by the workflow executor."
+        return HumanInterventionNodeOutput(
+            pause_message=self.config.message,
+            data={}  # Will be populated with human input on resume
         )

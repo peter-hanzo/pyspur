@@ -3,13 +3,14 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
-from ..models.pause_model import PauseAction
+from ..nodes.logic.human_intervention import PauseAction
 from .run_schemas import RunResponseSchema
 from .workflow_schemas import WorkflowDefinitionSchema
 
 
 class PauseHistoryResponseSchema(BaseModel):
-    id: str
+    """Schema for pause information from a node's output."""
+    id: str  # Synthetic ID for API compatibility
     run_id: str
     node_id: str
     pause_message: Optional[str]
@@ -20,21 +21,9 @@ class PauseHistoryResponseSchema(BaseModel):
     input_data: Optional[Dict[str, Any]]
     comments: Optional[str]
 
-    class Config:
-        from_attributes = True
-
 
 class PausedWorkflowResponseSchema(BaseModel):
+    """Schema for a paused workflow, including its current pause state."""
     run: RunResponseSchema
     current_pause: PauseHistoryResponseSchema
     workflow: WorkflowDefinitionSchema
-
-    class Config:
-        from_attributes = True
-
-
-class ResumeActionRequestSchema(BaseModel):
-    action: PauseAction
-    input_data: Optional[Dict[str, Any]] = None
-    comments: Optional[str] = None
-    user_id: str

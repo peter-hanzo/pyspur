@@ -1,6 +1,6 @@
 import asyncio
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import ValidationError
@@ -26,9 +26,10 @@ class UnconnectedNode(Exception):
 
 class PauseException(Exception):
     """Raised when a workflow execution needs to pause for human intervention."""
-    def __init__(self, node_id: str, message: str = "Human intervention required"):
+    def __init__(self, node_id: str, message: str = "Human intervention required", output: Optional[BaseNodeOutput] = None):
         self.node_id = node_id
         self.message = message
+        self.output = output
         super().__init__(f"Workflow paused at node {node_id}: {message}")
 
 
@@ -265,6 +266,9 @@ class WorkflowExecutor:
 
             # Handle HumanInterventionNode
             if isinstance(node_instance, HumanInterventionNode):
+                # Create initial output with pause information
+                output = await node_instance(node_input)
+
                 if self.task_recorder:
                     self.task_recorder.update_task(
                         node_id=node_id,
@@ -272,19 +276,21 @@ class WorkflowExecutor:
                         inputs=node_input,
                         end_time=datetime.now(),
                     )
-                # Create pause history record if we have a context
+
+                # Update run status if we have a context
                 if self.context and self.context.db_session:
-                    from ..models.run_model import PauseHistoryModel
-                    pause_record = PauseHistoryModel(
-                        run_id=self.context.run_id,
-                        node_id=node_id,
-                        pause_message=node.config.get("message", "Human intervention required"),
-                    )
-                    self.context.db_session.add(pause_record)
-                    self.context.db_session.commit()
-                # Store current state
-                self._outputs[node_id] = None
-                raise PauseException(node_id, node.config.get("message", "Human intervention required"))
+                    from ..models.run_model import RunModel, RunStatus
+                    run = self.context.db_session.query(RunModel).filter(
+                        RunModel.id == self.context.run_id
+                    ).first()
+                    if run:
+                        run.status = RunStatus.PAUSED
+                        run.current_node_id = node_id
+                        self.context.db_session.commit()
+
+                # Store output and raise pause exception
+                self._outputs[node_id] = output
+                raise PauseException(node_id, node.config.get("message", "Human intervention required"), output)
 
             # Update task recorder
             if self.task_recorder:
