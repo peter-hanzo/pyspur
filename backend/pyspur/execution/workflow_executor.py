@@ -1,6 +1,6 @@
 import asyncio
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from pydantic import ValidationError
@@ -269,12 +269,17 @@ class WorkflowExecutor:
                 # Create initial output with pause information
                 output = await node_instance(node_input)
 
+                # Serialize inputs to ensure they are JSON serializable
+                serialized_inputs = {dep_id: (output_value.model_dump() if hasattr(output_value, 'model_dump') else output_value) for dep_id, output_value in node_input.items()}
+
                 if self.task_recorder:
+                    current_time = datetime.now()
                     self.task_recorder.update_task(
                         node_id=node_id,
                         status=TaskStatus.PAUSED,
-                        inputs=node_input,
-                        end_time=datetime.now(),
+                        inputs=serialized_inputs,
+                        end_time=current_time,
+                        outputs=self._serialize_output(output),
                     )
 
                 # Update run status if we have a context
@@ -287,7 +292,7 @@ class WorkflowExecutor:
                         run.status = RunStatus.PAUSED
                         self.context.db_session.commit()
 
-                # Store output and raise pause exception
+                # Store output
                 self._outputs[node_id] = output
                 raise PauseException(node_id, node.config.get("message", "Human intervention required"), output)
 
@@ -304,11 +309,12 @@ class WorkflowExecutor:
 
             # Update task recorder
             if self.task_recorder:
+                current_time = datetime.now()
                 self.task_recorder.update_task(
                     node_id=node_id,
                     status=TaskStatus.COMPLETED,
-                    outputs=output.model_dump(),
-                    end_time=datetime.now(),
+                    outputs=self._serialize_output(output),
+                    end_time=current_time,
                     subworkflow=node_instance.subworkflow,
                     subworkflow_output=node_instance.subworkflow_output,
                 )
@@ -316,14 +322,29 @@ class WorkflowExecutor:
             # Store output
             self._outputs[node_id] = output
             return output
+        except PauseException as e:
+            # Don't mark the node as failed, just propagate the pause
+            if self.task_recorder:
+                current_time = datetime.now()
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.PAUSED,
+                    end_time=current_time,
+                    outputs=self._serialize_output(e.output) if e.output else None,
+                )
+            # Store the output before raising the pause exception
+            self._outputs[node_id] = e.output
+            # Don't add to failed nodes since this is a pause state
+            raise e
         except UpstreamFailure as e:
             self._failed_nodes.add(node_id)
             self._outputs[node_id] = None
             if self.task_recorder:
+                current_time = datetime.now()
                 self.task_recorder.update_task(
                     node_id=node_id,
                     status=TaskStatus.CANCELED,
-                    end_time=datetime.now(),
+                    end_time=current_time,
                     error="Upstream failure",
                 )
             raise e
@@ -339,13 +360,33 @@ class WorkflowExecutor:
             print(error_msg)
             self._failed_nodes.add(node_id)
             if self.task_recorder:
+                current_time = datetime.now()
                 self.task_recorder.update_task(
                     node_id=node_id,
                     status=TaskStatus.FAILED,
-                    end_time=datetime.now(),
+                    end_time=current_time,
                     error=traceback.format_exc(limit=5),
                 )
             raise e
+
+    def _serialize_output(self, output: Optional[BaseNodeOutput]) -> Optional[Dict[str, Any]]:
+        """Helper method to serialize node outputs, handling datetime objects."""
+        if output is None:
+            return None
+
+        data = output.model_dump()
+
+        def _serialize_value(val: Any) -> Any:
+            """Recursively serialize values, handling datetime objects."""
+            if isinstance(val, datetime):
+                return val.isoformat()
+            elif isinstance(val, dict):
+                return {str(key): _serialize_value(value) for key, value in val.items()}
+            elif isinstance(val, list):
+                return [_serialize_value(item) for item in val]
+            return val
+
+        return {str(key): _serialize_value(value) for key, value in data.items()}
 
     async def run(
         self,
@@ -419,11 +460,48 @@ class WorkflowExecutor:
         results = await asyncio.gather(*self._node_tasks.values(), return_exceptions=True)
 
         # Process results to handle any exceptions
+        paused_node_id = None
         for node_id, result in zip(self._node_tasks.keys(), results):
-            if isinstance(result, Exception):
+            if isinstance(result, PauseException):
+                # Handle pause state - don't mark as failed
+                paused_node_id = result.node_id
+                print(f"Node {node_id} paused: {str(result)}")
+                # Don't add to failed nodes since this is a pause state
+                continue
+            elif isinstance(result, Exception):
                 print(f"Node {node_id} failed with error: {str(result)}")
+                if paused_node_id and self.task_recorder:
+                    # Check if this node is downstream of the paused node
+                    is_downstream = False
+                    current_node = node_id
+                    while current_node in self._dependencies:
+                        if paused_node_id in self._dependencies[current_node]:
+                            is_downstream = True
+                            break
+                        # Check next level of dependencies
+                        deps = self._dependencies[current_node]
+                        if not deps:
+                            break
+                        current_node = next(iter(deps))
+
+                    if is_downstream:
+                        # Update task status without marking as failed
+                        self.task_recorder.update_task(
+                            node_id=node_id,
+                            status=TaskStatus.PENDING,
+                            end_time=datetime.now(),
+                            is_downstream_of_pause=True
+                        )
+                        continue
+
                 self._failed_nodes.add(node_id)
                 self._outputs[node_id] = None
+
+        # If we have a paused node, re-raise the pause exception
+        if paused_node_id:
+            for result in results:
+                if isinstance(result, PauseException) and result.node_id == paused_node_id:
+                    raise result
 
         # return the non-None outputs
         return {node_id: output for node_id, output in self._outputs.items() if output is not None}

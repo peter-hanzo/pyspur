@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional, Any, Dict, List, Tuple, TypeVar, Mapping
 from enum import Enum as PyEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ..registry import NodeRegistry
-
 
 class PauseAction(PyEnum):
     """Actions that can be taken on a paused workflow."""
@@ -24,13 +23,9 @@ class HumanInterventionNodeConfig(BaseNodeConfig):
         default="Human intervention required",
         description="Message to display to the user when workflow is paused"
     )
-    input_schema: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Schema for the expected human input"
-    )
-    output_schema: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Schema for the node's output after human input"
+    output_json_schema: str = Field(
+        default='{"type": "object", "properties": {"output": {"type": "string"}}, "required": ["output"]}',
+        description="JSON schema for the node's output"
     )
 
 
@@ -44,9 +39,8 @@ class HumanInterventionNodeOutput(BaseNodeOutput):
     """
     Output model for the human intervention node including pause/resume information.
     """
-    data: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Dynamic output fields based on output_schema"
+    node_id: str = Field(
+        description="ID of the node that triggered the pause"
     )
     pause_time: datetime = Field(
         default_factory=lambda: datetime.now(),
@@ -72,11 +66,31 @@ class HumanInterventionNodeOutput(BaseNodeOutput):
         default=None,
         description="Comments provided during resume"
     )
+    data: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Input data that triggered the pause"
+    )
+
+    def model_dump(self, *, mode: Optional[str] = None, include: Optional[Any] = None,
+                  exclude: Optional[Any] = None, by_alias: bool = False,
+                  exclude_unset: bool = False, exclude_defaults: bool = False,
+                  exclude_none: bool = False, **kwargs: Any) -> Dict[str, Any]:
+        """Override model_dump to ensure datetime fields are serialized."""
+        data = super().model_dump(mode=mode, include=include, exclude=exclude,
+                                by_alias=by_alias, exclude_unset=exclude_unset,
+                                exclude_defaults=exclude_defaults,
+                                exclude_none=exclude_none, **kwargs)
+        # Convert datetime objects to ISO format strings
+        if data.get('pause_time'):
+            data['pause_time'] = data['pause_time'].isoformat()
+        if data.get('resume_time'):
+            data['resume_time'] = data['resume_time'].isoformat()
+        return data
 
     class Config:
-        json_schema_extra = {
-            "title": "Human Intervention Output",
-            "description": "Output including pause/resume information"
+        arbitrary_types_allowed = True
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat()
         }
 
 
@@ -96,12 +110,64 @@ class HumanInterventionNode(BaseNode):
     input_model = HumanInterventionNodeInput
     output_model = HumanInterventionNodeOutput
 
-    async def run(self, input: BaseModel) -> HumanInterventionNodeOutput:
+    def setup(self) -> None:
+        """
+        Setup method to define output_model based on config.
+        Creates a dynamic output model that includes both the pause information
+        and the input fields.
+        """
+        super().setup()
+        if self.config.output_json_schema:
+            # Create a dynamic output model that includes both pause info and input fields
+            output_model = create_model(
+                f"{self.name}_output",
+                __base__=HumanInterventionNodeOutput,
+                __config__=None,
+                __module__=self.__module__,
+                __validators__=None,
+                __cls_kwargs__=None,
+            )
+            self.output_model = output_model
+
+    async def run(self, input: BaseModel) -> BaseModel:
         """
         Creates initial output with pause information.
         The workflow executor will handle the actual pause/resume logic.
         """
-        return HumanInterventionNodeOutput(
-            pause_message=self.config.message,
-            data={}  # Will be populated with human input on resume
-        )
+        # Get input data and ensure it's JSON serializable
+        input_data: Dict[str, Any] = {}
+        if input:
+            # Get the raw input data as a dict
+            raw_data = input.model_dump()
+
+            # Process each input node's data, ensuring everything is serializable
+            for key, value in raw_data.items():
+                if isinstance(value, BaseModel):
+                    # If it's a Pydantic model, convert to dict
+                    input_data[key] = value.model_dump()
+                elif isinstance(value, dict):
+                    # If it's already a dict, check if it contains any models
+                    serialized_dict: Dict[str, Any] = {}
+                    items: List[Tuple[str, Any]] = list(value.items())
+                    for k, v in items:
+                        if isinstance(v, BaseModel):
+                            serialized_dict[k] = v.model_dump()
+                        else:
+                            serialized_dict[k] = v
+                    input_data[key] = serialized_dict
+                else:
+                    input_data[key] = value
+
+        # Create base output with pause information
+        output_data: Dict[str, Any] = {
+            "node_id": self.name,  # Set the node ID
+            "pause_message": self.config.message,
+            "pause_time": datetime.now(),
+            "resume_time": None,
+            "resume_user_id": None,
+            "resume_action": None,
+            "comments": None,
+            "data": input_data  # Store the input data
+        }
+
+        return self.output_model(**output_data)

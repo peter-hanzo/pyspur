@@ -103,12 +103,17 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                     // Clear all intervals
                     statusIntervals.current.forEach((interval) => clearInterval(interval))
                     clearInterval(currentStatusInterval)
-                    onAlert('Workflow run completed.', 'success')
+
+                    if (statusResponse.status === 'PAUSED') {
+                        onAlert('Workflow paused for human intervention.', 'warning')
+                    } else {
+                        onAlert('Workflow run completed.', 'success')
+                    }
                 }
                 if (
                     statusResponse.status === 'FAILED' ||
                     (tasks.some((task) => task.status === 'FAILED') &&
-                        !tasks.some((task) => task.status === 'RUNNING' || task.status === 'PENDING'))
+                        !tasks.some((task) => task.status === 'RUNNING' || task.status === 'PENDING' || task.status === 'PAUSED'))
                 ) {
                     setIsRunning(false)
                     setCompletionPercentage(0)
