@@ -1,11 +1,19 @@
 from datetime import datetime
-from typing import Optional, Any, Dict, List, Tuple, TypeVar, Mapping
+from typing import Optional, Any, Dict, List, Tuple, TypeVar, Mapping, Set
 from enum import Enum as PyEnum
 
 from pydantic import BaseModel, Field, create_model
 
 from ..base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 from ..registry import NodeRegistry
+
+class PauseException(Exception):
+    """Raised when a workflow execution needs to pause for human intervention."""
+    def __init__(self, node_id: str, message: str = "Human intervention required", output: Optional[BaseNodeOutput] = None):
+        self.node_id = node_id
+        self.message = message
+        self.output = output
+        super().__init__(f"Workflow paused at node {node_id}: {message}")
 
 class PauseAction(PyEnum):
     """Actions that can be taken on a paused workflow."""
@@ -26,6 +34,10 @@ class HumanInterventionNodeConfig(BaseNodeConfig):
     output_json_schema: str = Field(
         default='{"type": "object", "properties": {"output": {"type": "string"}}, "required": ["output"]}',
         description="JSON schema for the node's output"
+    )
+    block_only_dependent_nodes: bool = Field(
+        default=True,
+        description="If True, only nodes that depend on this node's output will be blocked. If False, all downstream nodes will be blocked."
     )
 
 
@@ -69,6 +81,10 @@ class HumanInterventionNodeOutput(BaseNodeOutput):
     data: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Input data that triggered the pause"
+    )
+    blocked_nodes: Set[str] = Field(
+        default_factory=set,
+        description="Set of node IDs that are blocked by this pause"
     )
 
     def model_dump(self, *, mode: Optional[str] = None, include: Optional[Any] = None,
@@ -129,6 +145,36 @@ class HumanInterventionNode(BaseNode):
             )
             self.output_model = output_model
 
+    def get_blocked_nodes(self, workflow_definition: Dict[str, Any], node_id: str) -> Set[str]:
+        """Get the set of node IDs that should be blocked by this pause."""
+        blocked_nodes = set()
+        if not self.config.block_only_dependent_nodes:
+            # If not selective blocking, block all nodes after this one
+            found_current = False
+            for node in workflow_definition['nodes']:
+                if node['id'] == node_id:
+                    found_current = True
+                elif found_current:
+                    blocked_nodes.add(node['id'])
+            return blocked_nodes
+
+        # Get all nodes that depend on this node's output
+        links = workflow_definition.get('links', [])
+        nodes = workflow_definition.get('nodes', [])
+
+        def get_downstream_nodes(current_id: str, visited: Set[str]) -> Set[str]:
+            if current_id in visited:
+                return set()
+            visited.add(current_id)
+            downstream = set()
+            for link in links:
+                if link['source_id'] == current_id:
+                    downstream.add(link['target_id'])
+                    downstream.update(get_downstream_nodes(link['target_id'], visited))
+            return downstream
+
+        return get_downstream_nodes(node_id, set())
+
     async def run(self, input: BaseModel) -> BaseModel:
         """
         Creates initial output with pause information.
@@ -158,6 +204,14 @@ class HumanInterventionNode(BaseNode):
                 else:
                     input_data[key] = value
 
+        # Get workflow definition from context if available
+        workflow_definition = {}
+        if hasattr(self, 'context') and self.context:
+            workflow_definition = self.context.workflow_definition
+
+        # Get blocked nodes
+        blocked_nodes = self.get_blocked_nodes(workflow_definition, self.name)
+
         # Create base output with pause information
         output_data: Dict[str, Any] = {
             "node_id": self.name,  # Set the node ID
@@ -167,7 +221,9 @@ class HumanInterventionNode(BaseNode):
             "resume_user_id": None,
             "resume_action": None,
             "comments": None,
-            "data": input_data  # Store the input data
+            "data": input_data,  # Store the input data
+            "blocked_nodes": blocked_nodes
         }
 
-        return self.output_model(**output_data)
+        output = self.output_model(**output_data)
+        raise PauseException(self.name, self.config.message, output)

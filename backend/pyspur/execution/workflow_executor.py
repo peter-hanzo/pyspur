@@ -1,19 +1,26 @@
 import asyncio
 import traceback
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from pydantic import ValidationError
 
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
-from ..nodes.logic.human_intervention import HumanInterventionNode
+from ..nodes.logic.human_intervention import HumanInterventionNode, HumanInterventionNodeOutput, PauseException
 from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowNodeSchema,
 )
 from .task_recorder import TaskRecorder, TaskStatus
+from ..models.task_model import TaskStatus
+from ..models.workflow_model import WorkflowModel
 from .workflow_execution_context import WorkflowExecutionContext
+from ..models.run_model import RunModel, RunStatus
+
+if TYPE_CHECKING:
+    from .task_recorder import TaskRecorder
+    from sqlalchemy.orm import Session
 
 
 class UpstreamFailure(Exception):
@@ -24,15 +31,6 @@ class UnconnectedNode(Exception):
     pass
 
 
-class PauseException(Exception):
-    """Raised when a workflow execution needs to pause for human intervention."""
-    def __init__(self, node_id: str, message: str = "Human intervention required", output: Optional[BaseNodeOutput] = None):
-        self.node_id = node_id
-        self.message = message
-        self.output = output
-        super().__init__(f"Workflow paused at node {node_id}: {message}")
-
-
 class WorkflowExecutor:
     """
     Handles the execution of a workflow.
@@ -40,27 +38,35 @@ class WorkflowExecutor:
 
     def __init__(
         self,
-        workflow: WorkflowDefinitionSchema,
-        task_recorder: Optional[TaskRecorder] = None,
+        workflow: Union[WorkflowModel, WorkflowDefinitionSchema],
+        initial_inputs: Optional[Dict[str, Dict[str, Any]]] = None,
+        task_recorder: Optional["TaskRecorder"] = None,
         context: Optional[WorkflowExecutionContext] = None,
     ):
-        # Process subworkflows before initializing other attributes
-        self.workflow = self._process_subworkflows(workflow)
-        if task_recorder:
-            self.task_recorder = task_recorder
-        elif context and context.run_id and context.db_session:
-            print("Creating task recorder from context")
-            self.task_recorder = TaskRecorder(context.db_session, context.run_id)
+        # Convert WorkflowModel to WorkflowDefinitionSchema if needed
+        if isinstance(workflow, WorkflowModel):
+            self.workflow = WorkflowDefinitionSchema.model_validate(workflow.definition)
         else:
-            self.task_recorder = None
+            self.workflow = workflow
+        self._initial_inputs = initial_inputs or {}
+        self.task_recorder = task_recorder
         self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
-        self.node_instances: Dict[str, BaseNode] = {}
         self._dependencies: Dict[str, Set[str]] = {}
-        self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
-        self._initial_inputs: Dict[str, Dict[str, Any]] = {}
         self._outputs: Dict[str, Optional[BaseNodeOutput]] = {}
         self._failed_nodes: Set[str] = set()
+        self.node_instances: Dict[str, BaseNode] = {}
+
+        # Build node dictionary and dependencies
+        for node in self.workflow.nodes:
+            self._node_dict[node.id] = node
+            self._dependencies[node.id] = set()
+
+        for link in self.workflow.links:
+            if link.target_id in self._dependencies:
+                self._dependencies[link.target_id].add(link.source_id)
+
+        self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._build_node_dict()
         self._build_dependencies()
 
@@ -187,6 +193,20 @@ class WorkflowExecutor:
                 except Exception:
                     raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
+            # Check if this node is blocked by any paused nodes
+            for dep_id in dependency_ids:
+                output = self._outputs.get(dep_id)
+                if output is not None and isinstance(output, HumanInterventionNodeOutput):
+                    if not output.resume_time and node_id in output.blocked_nodes:
+                        if self.task_recorder:
+                            self.task_recorder.update_task(
+                                node_id=node_id,
+                                status=TaskStatus.PENDING,
+                                end_time=datetime.now(),
+                                is_downstream_of_pause=True
+                            )
+                        return None
+
             if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
                 print(f"Node {node_id} skipped due to upstream failure")
                 self._failed_nodes.add(node_id)
@@ -264,37 +284,16 @@ class WorkflowExecutor:
             )
             self.node_instances[node_id] = node_instance
 
-            # Handle HumanInterventionNode
-            if isinstance(node_instance, HumanInterventionNode):
-                # Create initial output with pause information
-                output = await node_instance(node_input)
-
-                # Serialize inputs to ensure they are JSON serializable
-                serialized_inputs = {dep_id: (output_value.model_dump() if hasattr(output_value, 'model_dump') else output_value) for dep_id, output_value in node_input.items()}
-
-                if self.task_recorder:
-                    current_time = datetime.now()
-                    self.task_recorder.update_task(
-                        node_id=node_id,
-                        status=TaskStatus.PAUSED,
-                        inputs=serialized_inputs,
-                        end_time=current_time,
-                        outputs=self._serialize_output(output),
-                    )
-
-                # Update run status if we have a context
-                if self.context and self.context.db_session:
-                    from ..models.run_model import RunModel, RunStatus
-                    run = self.context.db_session.query(RunModel).filter(
-                        RunModel.id == self.context.run_id
-                    ).first()
-                    if run:
-                        run.status = RunStatus.PAUSED
-                        self.context.db_session.commit()
-
-                # Store output
-                self._outputs[node_id] = output
-                raise PauseException(node_id, node.config.get("message", "Human intervention required"), output)
+            # Set workflow definition in node context if available
+            if hasattr(node_instance, 'context'):
+                node_instance.context = WorkflowExecutionContext(
+                    workflow_id=self.context.workflow_id if self.context else "",
+                    run_id=self.context.run_id if self.context else "",
+                    parent_run_id=self.context.parent_run_id if self.context else None,
+                    run_type=self.context.run_type if self.context else "interactive",
+                    db_session=self.context.db_session if self.context else None,
+                    workflow_definition=self.workflow.model_dump()
+                )
 
             # Update task recorder
             if self.task_recorder:
@@ -305,37 +304,49 @@ class WorkflowExecutor:
                 )
 
             # Execute node
-            output = await node_instance(node_input)
+            try:
+                output = await node_instance(node_input)
 
-            # Update task recorder
-            if self.task_recorder:
-                current_time = datetime.now()
-                self.task_recorder.update_task(
-                    node_id=node_id,
-                    status=TaskStatus.COMPLETED,
-                    outputs=self._serialize_output(output),
-                    end_time=current_time,
-                    subworkflow=node_instance.subworkflow,
-                    subworkflow_output=node_instance.subworkflow_output,
-                )
+                # Update task recorder
+                if self.task_recorder:
+                    current_time = datetime.now()
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.COMPLETED,
+                        outputs=self._serialize_output(output),
+                        end_time=current_time,
+                        subworkflow=node_instance.subworkflow,
+                        subworkflow_output=node_instance.subworkflow_output,
+                    )
 
-            # Store output
-            self._outputs[node_id] = output
-            return output
-        except PauseException as e:
-            # Don't mark the node as failed, just propagate the pause
-            if self.task_recorder:
-                current_time = datetime.now()
-                self.task_recorder.update_task(
-                    node_id=node_id,
-                    status=TaskStatus.PAUSED,
-                    end_time=current_time,
-                    outputs=self._serialize_output(e.output) if e.output else None,
-                )
-            # Store the output before raising the pause exception
-            self._outputs[node_id] = e.output
-            # Don't add to failed nodes since this is a pause state
-            raise e
+                # Store output
+                self._outputs[node_id] = output
+                return output
+            except PauseException as e:
+                # Store the output and update status
+                self._outputs[node_id] = e.output
+                if self.task_recorder:
+                    current_time = datetime.now()
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.PAUSED,
+                        end_time=current_time,
+                        outputs=self._serialize_output(e.output) if e.output else None,
+                    )
+
+                # Update run status if we have a context
+                if self.context and self.context.db_session:
+                    run = self.context.db_session.query(RunModel).filter(
+                        RunModel.id == self.context.run_id
+                    ).first()
+                    if run:
+                        run.status = RunStatus.PAUSED
+                        self.context.db_session.commit()
+
+                # Return the output but don't raise the exception
+                # This allows other branches to continue running
+                return e.output
+
         except UpstreamFailure as e:
             self._failed_nodes.add(node_id)
             self._outputs[node_id] = None
@@ -377,9 +388,11 @@ class WorkflowExecutor:
         data = output.model_dump()
 
         def _serialize_value(val: Any) -> Any:
-            """Recursively serialize values, handling datetime objects."""
+            """Recursively serialize values, handling datetime objects and sets."""
             if isinstance(val, datetime):
                 return val.isoformat()
+            elif isinstance(val, set):
+                return list(val)  # Convert sets to lists
             elif isinstance(val, dict):
                 return {str(key): _serialize_value(value) for key, value in val.items()}
             elif isinstance(val, list):
