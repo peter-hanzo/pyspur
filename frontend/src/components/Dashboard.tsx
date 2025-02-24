@@ -660,7 +660,7 @@ const Dashboard: React.FC = () => {
                                                 <span>Run ID: {workflow.run.id}</span>
                                                 <span>•</span>
                                                 <span>
-                                                    Paused {formatDistanceToNow(new Date(workflow.current_pause.pause_time))} ago
+                                                    Paused {formatDistanceToNow(new Date(workflow.current_pause.pause_time), { addSuffix: true })}
                                                 </span>
                                             </div>
                                         </div>

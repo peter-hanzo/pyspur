@@ -71,19 +71,27 @@ def get_paused_workflows(
             # Find the most recently paused task
             paused_tasks = [task for task in run.tasks if task.status == TaskStatus.PAUSED]
             if paused_tasks:
-                # Sort by start_time descending to get the most recent pause
-                paused_tasks.sort(key=lambda x: x.start_time or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+                # Sort by end_time descending to get the most recent pause
+                paused_tasks.sort(
+                    key=lambda x: (x.end_time or x.start_time or datetime.min).replace(tzinfo=timezone.utc),
+                    reverse=True
+                )
                 latest_paused_task = paused_tasks[0]
 
-                # Only create pause history if we have a start time
-                if latest_paused_task.start_time:
+                # Only create pause history if we have a pause time
+                pause_time = latest_paused_task.end_time or latest_paused_task.start_time
+                if pause_time:
+                    # Ensure timezone is set
+                    if pause_time.tzinfo is None:
+                        pause_time = pause_time.replace(tzinfo=timezone.utc)
+
                     current_pause = PauseHistoryResponseSchema(
                         id=f"PH_{run.id}_{latest_paused_task.node_id}",
                         run_id=run.id,
                         node_id=latest_paused_task.node_id,
                         pause_message=latest_paused_task.error or "Human intervention required",
-                        pause_time=latest_paused_task.start_time,
-                        resume_time=latest_paused_task.end_time,
+                        pause_time=pause_time,
+                        resume_time=latest_paused_task.end_time.replace(tzinfo=timezone.utc) if latest_paused_task.end_time else None,
                         resume_user_id=None,  # This would come from task metadata if needed
                         resume_action=None,  # This would come from task metadata if needed
                         input_data=latest_paused_task.inputs or {},
@@ -115,17 +123,23 @@ def get_run_pause_history(db: Session, run_id: str) -> List[PauseHistoryResponse
         # Get all tasks that were ever paused
         paused_tasks = [task for task in run.tasks if task.status == TaskStatus.PAUSED]
         for task in paused_tasks:
-            # Skip if no start time
-            if not task.start_time:
+            # Skip if no pause time
+            pause_time = task.end_time or task.start_time
+            if not pause_time:
                 continue
+
+            # Ensure timezone is set
+            if pause_time.tzinfo is None:
+                pause_time = pause_time.replace(tzinfo=timezone.utc)
+
             history.append(
                 PauseHistoryResponseSchema(
                     id=f"PH_{run.id}_{task.node_id}",
                     run_id=run.id,
                     node_id=task.node_id,
                     pause_message=task.error or "Human intervention required",
-                    pause_time=task.start_time,
-                    resume_time=task.end_time,
+                    pause_time=pause_time,
+                    resume_time=task.end_time.replace(tzinfo=timezone.utc) if task.end_time else None,
                     resume_user_id=None,  # This would come from task metadata if needed
                     resume_action=None,  # This would come from task metadata if needed
                     input_data=task.inputs or {},
