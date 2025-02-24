@@ -2,6 +2,7 @@ import asyncio
 import traceback
 from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from collections import defaultdict, deque
 
 from pydantic import ValidationError
 
@@ -165,56 +166,70 @@ class WorkflowExecutor:
             self.task_recorder.create_task(node_id, {})
         return task
 
-    def get_blocked_nodes(self, workflow_definition: Dict[str, Any], node_id: str) -> Set[str]:
-        """Get the set of node IDs that should be blocked by this pause."""
-        blocked_nodes = set()
-        if not self._node_dict[node_id].config.get('block_only_dependent_nodes', True):
-            # If not selective blocking, block all nodes after this one
-            found_current = False
-            for node in workflow_definition['nodes']:
-                if node['id'] == node_id:
-                    found_current = True
-                elif found_current:
-                    blocked_nodes.add(node['id'])
-            return blocked_nodes
-
-        # Get all nodes that depend on this node's output
-        links = workflow_definition.get('links', [])
-
-        def get_downstream_nodes(current_id: str, visited: Set[str]) -> Set[str]:
-            if current_id in visited:
-                return set()
-            visited.add(current_id)
-            downstream = set()
-            for link in links:
-                if link['source_id'] == current_id:
-                    downstream.add(link['target_id'])
-                    downstream.update(get_downstream_nodes(link['target_id'], visited))
-            return downstream
-
-        return get_downstream_nodes(node_id, set())
-
-    def is_downstream_of_pause(self, node_id: str, visited: Optional[Set[str]] = None) -> bool:
+    def get_blocked_nodes(self, workflow_definition: Dict[str, Any], paused_node_id: str) -> Set[str]:
         """
-        Check if a node is downstream of any paused nodes by traversing up the dependency graph.
+        Find all nodes that are blocked by the paused node.
+        These are nodes that directly or indirectly depend on the paused node.
+
+        Args:
+            workflow_definition: The workflow definition containing node information
+            paused_node_id: The ID of the node that is paused
+
+        Returns:
+            Set of node IDs that are blocked by the paused node
         """
-        if visited is None:
-            visited = set()
+        blocked_nodes: Set[str] = set()
 
-        if node_id in visited:
-            return False
-        visited.add(node_id)
+        # Build a dependency graph (which nodes depend on which)
+        dependents: Dict[str, Set[str]] = defaultdict(set)
+        for node_id, deps in self._dependencies.items():
+            for dep_id in deps:
+                dependents[dep_id].add(node_id)
 
-        # Check if any direct dependencies are paused
-        dependency_ids = self._dependencies.get(node_id, set())
-        for dep_id in dependency_ids:
-            if self.task_recorder and self.task_recorder.tasks.get(dep_id):
-                task = self.task_recorder.tasks[dep_id]
+        # Start with the paused node and find all nodes that depend on it
+        queue: deque[str] = deque([paused_node_id])
+        visited: Set[str] = set()
+
+        while queue:
+            current_node_id: str = queue.popleft()
+            visited.add(current_node_id)
+
+            # Get all nodes that depend on this node
+            for dependent in dependents.get(current_node_id, set()):
+                if dependent not in visited:
+                    blocked_nodes.add(dependent)
+                    queue.append(dependent)
+
+        return blocked_nodes
+
+    def is_downstream_of_pause(self, node_id: str) -> bool:
+        """
+        Check if a node is downstream of any paused node
+
+        Args:
+            node_id: The ID of the node to check
+
+        Returns:
+            True if the node is downstream of a paused node, False otherwise
+        """
+        # Check if we have paused nodes in the workflow
+        paused_nodes: Set[str] = set()
+        if self.task_recorder:
+            # Find paused nodes from tasks
+            for task in self.task_recorder.tasks.values():
                 if task.status == TaskStatus.PAUSED:
+                    paused_nodes.add(task.node_id)
+
+        if not paused_nodes:
+            return False
+
+        # Check if this node is downstream of any paused node
+        for paused_node_id in paused_nodes:
+            if workflow_definition := getattr(self.context, "workflow_definition", None):
+                blocked_nodes = self.get_blocked_nodes(workflow_definition, paused_node_id)
+                if node_id in blocked_nodes:
                     return True
-                # Recursively check upstream nodes
-                if self.is_downstream_of_pause(dep_id, visited):
-                    return True
+
         return False
 
     async def _execute_node(self, node_id: str) -> Optional[BaseNodeOutput]:
@@ -255,16 +270,53 @@ class WorkflowExecutor:
                 self._failed_nodes.add(node_id)
                 raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
 
+            # Before checking for None outputs, check if any dependencies are paused
+            has_paused_dependencies = False
+            if self.task_recorder:
+                for dep_id in dependency_ids:
+                    task = self.task_recorder.tasks.get(dep_id)
+                    if task and task.status == TaskStatus.PAUSED:
+                        has_paused_dependencies = True
+                        break
+
+            # If a dependency is paused, mark this node as PENDING instead of CANCELED
+            if has_paused_dependencies:
+                self._outputs[node_id] = None
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.PENDING,
+                        end_time=datetime.now(),
+                        is_downstream_of_pause=True
+                    )
+                return None
+
             if node.node_type != "CoalesceNode" and any(
                 [output is None for output in predecessor_outputs]
             ):
                 self._outputs[node_id] = None
                 if self.task_recorder:
-                    self.task_recorder.update_task(
-                        node_id=node_id,
-                        status=TaskStatus.CANCELED,
-                        end_time=datetime.now(),
-                    )
+                    # Check if any dependencies are paused before marking as CANCELED
+                    has_paused_dependencies = False
+                    for dep_id in dependency_ids:
+                        task = self.task_recorder.tasks.get(dep_id)
+                        if task and task.status == TaskStatus.PAUSED:
+                            has_paused_dependencies = True
+                            break
+
+                    if has_paused_dependencies:
+                        self.task_recorder.update_task(
+                            node_id=node_id,
+                            status=TaskStatus.PENDING,
+                            end_time=datetime.now(),
+                            is_downstream_of_pause=True
+                        )
+                    else:
+                        self.task_recorder.update_task(
+                            node_id=node_id,
+                            status=TaskStatus.CANCELED,
+                            end_time=datetime.now(),
+                        )
                 return None
 
             # Get source handles mapping
@@ -380,8 +432,6 @@ class WorkflowExecutor:
                             end_time=current_time,
                             is_downstream_of_pause=True
                         )
-                        # Also mark the node as failed to prevent execution
-                        self._failed_nodes.add(blocked_node_id)
 
                 # Update run status if we have a context
                 if self.context and self.context.db_session:
@@ -400,12 +450,40 @@ class WorkflowExecutor:
             self._outputs[node_id] = None
             if self.task_recorder:
                 current_time = datetime.now()
-                self.task_recorder.update_task(
-                    node_id=node_id,
-                    status=TaskStatus.CANCELED,
-                    end_time=current_time,
-                    error="Upstream failure",
-                )
+
+                # Check if this node is downstream of a paused node
+                has_paused_upstream = False
+                if hasattr(self, 'context') and self.context:
+                    workflow_definition = getattr(self.context, "workflow_definition", {})
+
+                    # Find any paused nodes
+                    paused_node_ids: List[str] = []
+                    for _, task in self.task_recorder.tasks.items():
+                        if task.status == TaskStatus.PAUSED:
+                            paused_node_ids.append(task.node_id)
+
+                    # Check if this node is blocked by any paused node
+                    for paused_node_id in paused_node_ids:
+                        blocked_nodes = self.get_blocked_nodes(workflow_definition, paused_node_id)
+                        if node_id in blocked_nodes:
+                            has_paused_upstream = True
+                            break
+
+                if has_paused_upstream:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.PENDING,
+                        end_time=current_time,
+                        error=None,
+                        is_downstream_of_pause=True
+                    )
+                else:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.CANCELED,
+                        end_time=current_time,
+                        error="Upstream failure",
+                    )
             raise e
         except Exception as e:
             error_msg = (
@@ -440,11 +518,11 @@ class WorkflowExecutor:
             if isinstance(val, datetime):
                 return val.isoformat()
             elif isinstance(val, set):
-                return list(val)  # Convert sets to lists
+                return list(val)  # type: ignore # Convert sets to lists
             elif isinstance(val, dict):
-                return {str(key): _serialize_value(value) for key, value in val.items()}
+                return {str(key): _serialize_value(value) for key, value in val.items()}  # type: ignore
             elif isinstance(val, list):
-                return [_serialize_value(item) for item in val]
+                return [_serialize_value(item) for item in val]  # type: ignore
             return val
 
         return {str(key): _serialize_value(value) for key, value in data.items()}
@@ -522,10 +600,12 @@ class WorkflowExecutor:
 
         # Process results to handle any exceptions
         paused_node_id = None
+        paused_exception = None
         for node_id, result in zip(self._node_tasks.keys(), results):
             if isinstance(result, PauseException):
                 # Handle pause state - don't mark as failed
                 paused_node_id = result.node_id
+                paused_exception = result
                 print(f"Node {node_id} paused: {str(result)}")
                 # Don't add to failed nodes since this is a pause state
                 continue
@@ -536,11 +616,11 @@ class WorkflowExecutor:
                     is_downstream = False
                     current_node = node_id
                     while current_node in self._dependencies:
-                        if paused_node_id in self._dependencies[current_node]:
+                        deps = self._dependencies[current_node]
+                        if paused_node_id in deps:
                             is_downstream = True
                             break
                         # Check next level of dependencies
-                        deps = self._dependencies[current_node]
                         if not deps:
                             break
                         current_node = next(iter(deps))
@@ -558,11 +638,72 @@ class WorkflowExecutor:
                 self._failed_nodes.add(node_id)
                 self._outputs[node_id] = None
 
+        # Handle any downstream nodes of paused nodes that might not have been processed yet
+        if paused_node_id and self.task_recorder:
+            # Get workflow definition from context
+            workflow_definition = {}
+            if hasattr(self, 'context') and self.context:
+                workflow_definition = self.context.workflow_definition or {}
+
+            # Find all downstream nodes of the paused node
+            blocked_nodes = self.get_blocked_nodes(workflow_definition, paused_node_id)
+            for node_id in self._node_tasks.keys():
+                if node_id in blocked_nodes:
+                    # Update any node that might not have been properly marked yet
+                    # Also fix any nodes that were incorrectly marked as CANCELED
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.PENDING,
+                        end_time=datetime.now(),
+                        is_downstream_of_pause=True
+                    )
+                    # Ensure it's not in the failed nodes
+                    if node_id in self._failed_nodes:
+                        self._failed_nodes.remove(node_id)
+
+        # Final pass: fix any CANCELED tasks that should be PENDING
+        if paused_node_id and self.task_recorder and hasattr(self.context, 'run_id') and self.context.run_id and self.context.db_session:
+            # Find any CANCELED tasks
+            run = self.context.db_session.query(RunModel).filter(
+                RunModel.id == self.context.run_id
+            ).first()
+
+            if run:
+                # Get workflow definition from context
+                workflow_definition = {}
+                if hasattr(self, 'context') and self.context:
+                    workflow_definition = self.context.workflow_definition or {}
+
+                # Find all downstream nodes of any paused node
+                all_blocked_nodes = set()
+                for task in run.tasks:
+                    if task.status == TaskStatus.PAUSED:
+                        blocked_nodes = self.get_blocked_nodes(workflow_definition, task.node_id)
+                        all_blocked_nodes.update(blocked_nodes)
+
+                # Update any CANCELED tasks that should be PENDING
+                for task in run.tasks:
+                    if task.status == TaskStatus.CANCELED and task.node_id in all_blocked_nodes:
+                        self.task_recorder.update_task(
+                            node_id=task.node_id,
+                            status=TaskStatus.PENDING,
+                            end_time=datetime.now(),
+                            is_downstream_of_pause=True
+                        )
+
+        # Ensure workflow status is updated to PAUSED if any node is paused
+        if paused_node_id and self.context and self.context.db_session:
+            run = self.context.db_session.query(RunModel).filter(
+                RunModel.id == self.context.run_id
+            ).first()
+            if run:
+                run.status = RunStatus.PAUSED
+                self.context.db_session.commit()
+
         # If we have a paused node, re-raise the pause exception
-        if paused_node_id:
-            for result in results:
-                if isinstance(result, PauseException) and result.node_id == paused_node_id:
-                    raise result
+        if paused_exception:
+            # This must be raised for API endpoints to catch it
+            raise paused_exception
 
         # return the non-None outputs
         return {node_id: output for node_id, output in self._outputs.items() if output is not None}
