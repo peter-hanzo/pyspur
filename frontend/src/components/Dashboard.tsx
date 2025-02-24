@@ -374,7 +374,7 @@ const Dashboard: React.FC = () => {
         try {
             await takePauseAction(selectedWorkflow.run.id, {
                 action,
-                input_data: inputData,
+                inputs: inputData,
                 comments,
                 user_id: 'current-user', // Replace with actual user ID from auth
             })

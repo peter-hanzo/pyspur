@@ -2,10 +2,10 @@ from datetime import datetime, timezone
 from typing import List
 
 from fastapi import HTTPException
-from sqlalchemy import and_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from ..models.run_model import RunModel, RunStatus
+from ..models.task_model import TaskStatus, TaskModel
 from ..models.workflow_model import WorkflowModel
 from ..schemas.pause_schemas import (
     PauseHistoryResponseSchema,
@@ -24,10 +24,32 @@ def get_paused_workflows(
     page_size: int = 10,
 ) -> List[PausedWorkflowResponseSchema]:
     """Get all currently paused workflows."""
-    # Get paused runs with pagination
+    # First get runs with paused tasks
+    paused_task_runs = (
+        db.query(TaskModel.run_id)
+        .filter(TaskModel.status == TaskStatus.PAUSED)
+        .distinct()
+    )
+
+    # Then get runs with running tasks
+    running_task_runs = (
+        db.query(TaskModel.run_id)
+        .filter(TaskModel.status == TaskStatus.RUNNING)
+        .distinct()
+    )
+
+    # Main query to get paused runs
     paused_runs = (
         db.query(RunModel)
-        .filter(RunModel.status == RunStatus.PAUSED)
+        .filter(
+            # Either the run is marked as paused
+            (RunModel.status == RunStatus.PAUSED) |
+            # Or has paused tasks but no running tasks
+            (
+                RunModel.id.in_(paused_task_runs.scalar_subquery()) &
+                ~RunModel.id.in_(running_task_runs.scalar_subquery())
+            )
+        )
         .order_by(RunModel.start_time.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
@@ -43,26 +65,30 @@ def get_paused_workflows(
 
         workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
 
-        # Find the current pause information from node outputs
+        # Find the current pause information from tasks
         current_pause = None
-        if run.outputs:
-            # Find the most recently paused node that hasn't been resumed
-            for node_id, output in run.outputs.items():
-                if isinstance(output, dict) and output.get("pause_time"):
-                    if not output.get("resume_time"):  # Node hasn't been resumed
-                        current_pause = PauseHistoryResponseSchema(
-                            id=f"PH_{run.id}_{node_id}",
-                            run_id=run.id,
-                            node_id=node_id,
-                            pause_message=output.get("pause_message"),
-                            pause_time=datetime.fromisoformat(output.get("pause_time")),
-                            resume_time=None,
-                            resume_user_id=None,
-                            resume_action=None,
-                            input_data=output.get("data"),
-                            comments=None,
-                        )
-                        break
+        if run.tasks:
+            # Find the most recently paused task
+            paused_tasks = [task for task in run.tasks if task.status == TaskStatus.PAUSED]
+            if paused_tasks:
+                # Sort by start_time descending to get the most recent pause
+                paused_tasks.sort(key=lambda x: x.start_time or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+                latest_paused_task = paused_tasks[0]
+
+                # Only create pause history if we have a start time
+                if latest_paused_task.start_time:
+                    current_pause = PauseHistoryResponseSchema(
+                        id=f"PH_{run.id}_{latest_paused_task.node_id}",
+                        run_id=run.id,
+                        node_id=latest_paused_task.node_id,
+                        pause_message=latest_paused_task.error or "Human intervention required",
+                        pause_time=latest_paused_task.start_time,
+                        resume_time=latest_paused_task.end_time,
+                        resume_user_id=None,  # This would come from task metadata if needed
+                        resume_action=None,  # This would come from task metadata if needed
+                        input_data=latest_paused_task.inputs or {},
+                        comments=None,  # This would come from task metadata if needed
+                    )
 
         if current_pause:
             result.append(
@@ -82,25 +108,28 @@ def get_run_pause_history(db: Session, run_id: str) -> List[PauseHistoryResponse
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    if not run.outputs:
-        return []
-
-    # Build pause history from node outputs
+    # Build pause history from tasks
     history: List[PauseHistoryResponseSchema] = []
-    for node_id, output in run.outputs.items():
-        if isinstance(output, dict) and output.get("pause_time"):
+
+    if run.tasks:
+        # Get all tasks that were ever paused
+        paused_tasks = [task for task in run.tasks if task.status == TaskStatus.PAUSED]
+        for task in paused_tasks:
+            # Skip if no start time
+            if not task.start_time:
+                continue
             history.append(
                 PauseHistoryResponseSchema(
-                    id=f"PH_{run.id}_{node_id}",
+                    id=f"PH_{run.id}_{task.node_id}",
                     run_id=run.id,
-                    node_id=node_id,
-                    pause_message=output.get("pause_message"),
-                    pause_time=datetime.fromisoformat(output.get("pause_time")),
-                    resume_time=datetime.fromisoformat(output.get("resume_time")) if output.get("resume_time") else None,
-                    resume_user_id=output.get("resume_user_id"),
-                    resume_action=output.get("resume_action"),
-                    input_data=output.get("data"),
-                    comments=output.get("comments"),
+                    node_id=task.node_id,
+                    pause_message=task.error or "Human intervention required",
+                    pause_time=task.start_time,
+                    resume_time=task.end_time,
+                    resume_user_id=None,  # This would come from task metadata if needed
+                    resume_action=None,  # This would come from task metadata if needed
+                    input_data=task.inputs or {},
+                    comments=None,  # This would come from task metadata if needed
                 )
             )
 
@@ -117,33 +146,31 @@ def process_pause_action(
         raise HTTPException(status_code=404, detail="Run not found")
 
     if run.status != RunStatus.PAUSED:
-        raise HTTPException(status_code=400, detail="Run is not in a paused state")
+        # Check if there are any paused tasks
+        has_paused_tasks = any(task.status == TaskStatus.PAUSED for task in run.tasks)
+        if not has_paused_tasks:
+            raise HTTPException(status_code=400, detail="Run is not in a paused state")
 
-    # Find the paused node from outputs
-    paused_node_id = None
-    if run.outputs:
-        for node_id, output in run.outputs.items():
-            if isinstance(output, dict) and output.get("pause_time"):
-                if not output.get("resume_time"):  # Node hasn't been resumed
-                    paused_node_id = node_id
-                    break
+    # Find the paused task
+    paused_task = None
+    for task in run.tasks:
+        if task.status == TaskStatus.PAUSED:
+            paused_task = task
+            break
 
-    if not paused_node_id:
-        raise HTTPException(status_code=400, detail="No paused node found for this run")
+    if not paused_task:
+        raise HTTPException(status_code=400, detail="No paused task found for this run")
 
-    # Update the node output with the action
-    node_output = run.outputs[paused_node_id]
-    node_output.update({
-        'resume_time': datetime.now(timezone.utc).isoformat(),
-        'resume_user_id': action_request.user_id,
-        'resume_action': action_request.action,
-        'data': action_request.inputs,
-        'comments': action_request.comments
-    })
-    run.outputs[paused_node_id] = node_output
+    # Update the task with the action
+    paused_task.end_time = datetime.now(timezone.utc)
+    paused_task.status = TaskStatus.RUNNING
+    paused_task.error = None  # Clear any error message
+    paused_task.outputs = action_request.inputs  # Store new inputs as outputs
 
-    # Update run status
-    run.status = RunStatus.RUNNING
+    # Update run status to RUNNING if it was PAUSED
+    if run.status == RunStatus.PAUSED:
+        run.status = RunStatus.RUNNING
+
     db.commit()
     db.refresh(run)
 

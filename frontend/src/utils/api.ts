@@ -1018,7 +1018,7 @@ export interface PausedWorkflowResponse {
 
 export interface ResumeActionRequest {
     action: 'APPROVE' | 'DECLINE' | 'OVERRIDE'
-    input_data?: Record<string, any>
+    inputs?: Record<string, any>
     comments?: string
     user_id: string
 }

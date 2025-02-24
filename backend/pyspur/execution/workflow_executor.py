@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
-from ..nodes.logic.human_intervention import HumanInterventionNode, HumanInterventionNodeOutput, PauseException
+from ..nodes.logic.human_intervention import PauseException
 from ..schemas.workflow_schemas import (
     WorkflowDefinitionSchema,
     WorkflowNodeSchema,
@@ -15,12 +15,11 @@ from ..schemas.workflow_schemas import (
 from .task_recorder import TaskRecorder, TaskStatus
 from ..models.task_model import TaskStatus
 from ..models.workflow_model import WorkflowModel
-from .workflow_execution_context import WorkflowExecutionContext
 from ..models.run_model import RunModel, RunStatus
+from .workflow_execution_context import WorkflowExecutionContext
 
 if TYPE_CHECKING:
     from .task_recorder import TaskRecorder
-    from sqlalchemy.orm import Session
 
 
 class UpstreamFailure(Exception):
@@ -47,26 +46,22 @@ class WorkflowExecutor:
         if isinstance(workflow, WorkflowModel):
             self.workflow = WorkflowDefinitionSchema.model_validate(workflow.definition)
         else:
-            self.workflow = workflow
+            self.workflow = self._process_subworkflows(workflow)
         self._initial_inputs = initial_inputs or {}
-        self.task_recorder = task_recorder
+        if task_recorder:
+            self.task_recorder = task_recorder
+        elif context and context.run_id and context.db_session:
+            print("Creating task recorder from context")
+            self.task_recorder = TaskRecorder(context.db_session, context.run_id)
+        else:
+            self.task_recorder = None
         self.context = context
         self._node_dict: Dict[str, WorkflowNodeSchema] = {}
+        self.node_instances: Dict[str, BaseNode] = {}
         self._dependencies: Dict[str, Set[str]] = {}
+        self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._outputs: Dict[str, Optional[BaseNodeOutput]] = {}
         self._failed_nodes: Set[str] = set()
-        self.node_instances: Dict[str, BaseNode] = {}
-
-        # Build node dictionary and dependencies
-        for node in self.workflow.nodes:
-            self._node_dict[node.id] = node
-            self._dependencies[node.id] = set()
-
-        for link in self.workflow.links:
-            if link.target_id in self._dependencies:
-                self._dependencies[link.target_id].add(link.source_id)
-
-        self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._build_node_dict()
         self._build_dependencies()
 
@@ -170,12 +165,74 @@ class WorkflowExecutor:
             self.task_recorder.create_task(node_id, {})
         return task
 
+    def get_blocked_nodes(self, workflow_definition: Dict[str, Any], node_id: str) -> Set[str]:
+        """Get the set of node IDs that should be blocked by this pause."""
+        blocked_nodes = set()
+        if not self._node_dict[node_id].config.get('block_only_dependent_nodes', True):
+            # If not selective blocking, block all nodes after this one
+            found_current = False
+            for node in workflow_definition['nodes']:
+                if node['id'] == node_id:
+                    found_current = True
+                elif found_current:
+                    blocked_nodes.add(node['id'])
+            return blocked_nodes
+
+        # Get all nodes that depend on this node's output
+        links = workflow_definition.get('links', [])
+
+        def get_downstream_nodes(current_id: str, visited: Set[str]) -> Set[str]:
+            if current_id in visited:
+                return set()
+            visited.add(current_id)
+            downstream = set()
+            for link in links:
+                if link['source_id'] == current_id:
+                    downstream.add(link['target_id'])
+                    downstream.update(get_downstream_nodes(link['target_id'], visited))
+            return downstream
+
+        return get_downstream_nodes(node_id, set())
+
+    def is_downstream_of_pause(self, node_id: str, visited: Optional[Set[str]] = None) -> bool:
+        """
+        Check if a node is downstream of any paused nodes by traversing up the dependency graph.
+        """
+        if visited is None:
+            visited = set()
+
+        if node_id in visited:
+            return False
+        visited.add(node_id)
+
+        # Check if any direct dependencies are paused
+        dependency_ids = self._dependencies.get(node_id, set())
+        for dep_id in dependency_ids:
+            if self.task_recorder and self.task_recorder.tasks.get(dep_id):
+                task = self.task_recorder.tasks[dep_id]
+                if task.status == TaskStatus.PAUSED:
+                    return True
+                # Recursively check upstream nodes
+                if self.is_downstream_of_pause(dep_id, visited):
+                    return True
+        return False
+
     async def _execute_node(self, node_id: str) -> Optional[BaseNodeOutput]:
         node = self._node_dict[node_id]
         node_input = {}
         try:
             if node_id in self._outputs:
                 return self._outputs[node_id]
+
+            # Check if this node is downstream of any paused nodes
+            if self.is_downstream_of_pause(node_id):
+                if self.task_recorder:
+                    self.task_recorder.update_task(
+                        node_id=node_id,
+                        status=TaskStatus.PENDING,
+                        end_time=datetime.now()
+                    )
+                return None
 
             # Check if any predecessor nodes failed
             dependency_ids = self._dependencies.get(node_id, set())
@@ -192,20 +249,6 @@ class WorkflowExecutor:
                     )
                 except Exception:
                     raise UpstreamFailure(f"Node {node_id} skipped due to upstream failure")
-
-            # Check if this node is blocked by any paused nodes
-            for dep_id in dependency_ids:
-                output = self._outputs.get(dep_id)
-                if output is not None and isinstance(output, HumanInterventionNodeOutput):
-                    if not output.resume_time and node_id in output.blocked_nodes:
-                        if self.task_recorder:
-                            self.task_recorder.update_task(
-                                node_id=node_id,
-                                status=TaskStatus.PENDING,
-                                end_time=datetime.now(),
-                                is_downstream_of_pause=True
-                            )
-                        return None
 
             if any(dep_id in self._failed_nodes for dep_id in dependency_ids):
                 print(f"Node {node_id} skipped due to upstream failure")
@@ -229,33 +272,32 @@ class WorkflowExecutor:
 
             # Build node input, handling router outputs specially
             for dep_id, output in zip(dependency_ids, predecessor_outputs):
+                if output is None:
+                    continue
                 predecessor_node = self._node_dict[dep_id]
                 if predecessor_node.node_type == "RouterNode":
-                    # For router nodes, we must have a source handle
                     source_handle = source_handles.get((dep_id, node_id))
                     if not source_handle:
                         raise ValueError(
                             f"Missing source_handle in link from router node {dep_id} to {node_id}"
                         )
-                    # Get the specific route's output from the router
                     route_output = getattr(output, source_handle, None)
                     if route_output is not None:
                         node_input[dep_id] = route_output
-                    else:
-                        self._outputs[node_id] = None
-                        if self.task_recorder:
-                            self.task_recorder.update_task(
-                                node_id=node_id,
-                                status=TaskStatus.CANCELED,
-                                end_time=datetime.now(),
-                            )
-                        return None
                 else:
                     node_input[dep_id] = output
 
             # Special handling for InputNode - use initial inputs
             if node.node_type == "InputNode":
                 node_input = self._initial_inputs.get(node_id, {})
+
+            # Only fail early for None inputs if it is NOT a CoalesceNode
+            if node.node_type != "CoalesceNode" and any([v is None for v in node_input.values()]):
+                self._outputs[node_id] = None
+                return None
+            elif node.node_type == "CoalesceNode" and all([v is None for v in node_input.values()]):
+                self._outputs[node_id] = None
+                return None
 
             # Remove None values from input
             node_input = {k: v for k, v in node_input.items() if v is not None}
@@ -295,26 +337,16 @@ class WorkflowExecutor:
                     workflow_definition=self.workflow.model_dump()
                 )
 
-            # Update task recorder
-            if self.task_recorder:
-                self.task_recorder.update_task(
-                    node_id=node_id,
-                    status=TaskStatus.RUNNING,
-                    subworkflow=node_instance.subworkflow,
-                )
-
-            # Execute node
             try:
                 output = await node_instance(node_input)
 
                 # Update task recorder
                 if self.task_recorder:
-                    current_time = datetime.now()
                     self.task_recorder.update_task(
                         node_id=node_id,
                         status=TaskStatus.COMPLETED,
                         outputs=self._serialize_output(output),
-                        end_time=current_time,
+                        end_time=datetime.now(),
                         subworkflow=node_instance.subworkflow,
                         subworkflow_output=node_instance.subworkflow_output,
                     )
@@ -334,6 +366,23 @@ class WorkflowExecutor:
                         outputs=self._serialize_output(e.output) if e.output else None,
                     )
 
+                    # Get workflow definition from context
+                    workflow_definition = {}
+                    if hasattr(self, 'context') and self.context:
+                        workflow_definition = self.context.workflow_definition or {}
+
+                    # Block downstream nodes
+                    blocked_nodes = self.get_blocked_nodes(workflow_definition, node_id)
+                    for blocked_node_id in blocked_nodes:
+                        self.task_recorder.update_task(
+                            node_id=blocked_node_id,
+                            status=TaskStatus.PENDING,
+                            end_time=current_time,
+                            is_downstream_of_pause=True
+                        )
+                        # Also mark the node as failed to prevent execution
+                        self._failed_nodes.add(blocked_node_id)
+
                 # Update run status if we have a context
                 if self.context and self.context.db_session:
                     run = self.context.db_session.query(RunModel).filter(
@@ -343,9 +392,8 @@ class WorkflowExecutor:
                         run.status = RunStatus.PAUSED
                         self.context.db_session.commit()
 
-                # Return the output but don't raise the exception
-                # This allows other branches to continue running
-                return e.output
+                # Return None to prevent downstream execution
+                return None
 
         except UpstreamFailure as e:
             self._failed_nodes.add(node_id)
