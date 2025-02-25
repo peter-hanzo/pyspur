@@ -34,7 +34,6 @@ import {
     instantiateTemplate,
     listApiKeys,
     listPausedWorkflows,
-    takePauseAction,
     resumeWorkflow,
     PausedWorkflowResponse,
 } from '../utils/api'
@@ -124,6 +123,21 @@ const Dashboard: React.FC = () => {
     const [selectedWorkflow, setSelectedWorkflow] = useState<PausedWorkflowResponse | null>(null)
     const [isHumanInputModalOpen, setIsHumanInputModalOpen] = useState(false)
     const [isLoadingPaused, setIsLoadingPaused] = useState(false)
+    const [alertMessage, setAlertMessage] = useState<string | null>(null)
+    const [alertColor, setAlertColor] = useState<'success' | 'danger' | 'warning' | 'default'>('default')
+    const [showAlert, setShowAlert] = useState(false)
+
+    // Function to show alerts
+    const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
+        setAlertMessage(message);
+        setAlertColor(color);
+        setShowAlert(true);
+
+        // Auto-hide the alert after 5 seconds
+        setTimeout(() => {
+            setShowAlert(false);
+        }, 5000);
+    };
 
     useEffect(() => {
         const fetchWorkflows = async () => {
@@ -373,34 +387,47 @@ const Dashboard: React.FC = () => {
         if (!selectedWorkflow) return;
 
         try {
-            // Take the pause action
-            await takePauseAction(selectedWorkflow.run.id, {
-                action,
-                inputs: inputData,
-                comments,
-                user_id: 'current-user', // Replace with actual user ID from auth
-            });
+            // Log the workflow object structure for debugging
+            console.log("Selected workflow:", selectedWorkflow);
+            console.log("Input data:", inputData);
 
-            // Resume the workflow - make sure we have a valid workflow ID
-            const workflowId = selectedWorkflow.workflow.id;
+            // Get run ID - this should always be available
             const runId = selectedWorkflow.run.id;
+
+            // Get workflow ID directly from the run object
+            const workflowId = selectedWorkflow.run.workflow_id;
+
+            console.log("Workflow ID:", workflowId);
+            console.log("Run ID:", runId);
 
             if (workflowId) {
                 try {
-                    // Pass all the parameters properly to the resume function
+                    // Call resumeWorkflow with the properly structured input data
+                    // inputData should be a flat object with key-value pairs
+                    // that can be accessed in downstream nodes via HumanInterventionNode_1.<field_name>
                     await resumeWorkflow(
                         workflowId,
                         runId,
-                        inputData,  // Use the same input data
-                        action,     // Pass the action (APPROVE/DECLINE/OVERRIDE)
-                        'current-user', // User ID
-                        comments    // Any comments
+                        inputData,
+                        action,
+                        'current-user',
+                        comments
                     );
+
+                    // Show success message
+                    onAlert(`Workflow resumed with action: ${action}`, 'success');
+
+                    // Close the modal
+                    setIsHumanInputModalOpen(false);
+                    setSelectedWorkflow(null);
+
                 } catch (resumeError) {
                     console.error('Error resuming workflow:', resumeError);
+                    onAlert('Failed to resume workflow', 'danger');
                 }
             } else {
                 console.error('Cannot resume workflow: Workflow ID is missing or invalid');
+                onAlert('Cannot resume workflow: missing workflow ID', 'danger');
             }
 
             // Refresh paused workflows
@@ -408,6 +435,7 @@ const Dashboard: React.FC = () => {
             setPausedWorkflows(paused);
         } catch (error) {
             console.error('Error submitting human input:', error);
+            onAlert('Error submitting human input', 'danger');
         }
     };
 
@@ -416,6 +444,19 @@ const Dashboard: React.FC = () => {
             <Head>
                 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet" />
             </Head>
+
+            {/* Alert message */}
+            {showAlert && alertMessage && (
+                <Alert
+                    className="mb-4"
+                    variant="solid"
+                    color={alertColor}
+                    onClose={() => setShowAlert(false)}
+                >
+                    {alertMessage}
+                </Alert>
+            )}
+
             <CalendlyWidget />
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
             <div>

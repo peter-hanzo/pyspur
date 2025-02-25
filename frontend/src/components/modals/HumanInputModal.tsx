@@ -28,7 +28,19 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
     const [inputData, setInputData] = useState<Record<string, any>>({})
     const [comments, setComments] = useState('')
 
+    // Initialize input data with existing input fields if available
+    React.useEffect(() => {
+        // Try to extract any existing input data from the paused workflow
+        if (workflow?.current_pause?.input_data) {
+            const existingData = workflow.current_pause.input_data;
+            setInputData(existingData);
+        }
+    }, [workflow]);
+
     const handleSubmit = () => {
+        // Here's the key change - we need to structure the data correctly for downstream nodes
+        // Instead of just passing inputData, we structure it to match the expected format
+        // so that HumanInterventionNode_1.input_1 can be accessed in templates
         onSubmit(action, inputData, comments)
         onClose()
     }

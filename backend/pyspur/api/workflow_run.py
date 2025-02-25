@@ -6,7 +6,7 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path  # Import Path for directory handling
-from typing import Any, Awaitable, Dict, List, Optional, Union, Set
+from typing import Any, Awaitable, Dict, List, Optional, Union, Set, cast
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -810,10 +810,26 @@ def process_pause_action(
         if paused_task.node_id and paused_task.node_id in executor.outputs:
             node_output = executor.outputs[paused_task.node_id]
             if isinstance(node_output, HumanInterventionNodeOutput):
-                # Create new output with updated data
-                updated_output = HumanInterventionNodeOutput(
-                    data=action_request.inputs or {}
-                )
+                # Create a properly structured output for the HumanInterventionNode
+                # First, gather the action request inputs
+                inputs_data = {}
+
+                # If we have task inputs, include them in the structure
+                if paused_task.inputs and isinstance(paused_task.inputs, dict):
+                    inputs_data.update(paused_task.inputs)
+
+                # Add the new inputs from the action request
+                # This ensures downstream nodes can access values via HumanInterventionNode_1.input_1
+                if action_request.inputs:
+                    inputs_data.update(action_request.inputs)
+
+                # Create the output with the proper structure - don't nest under input_node
+                # This makes fields directly accessible in templates like {{HumanInterventionNode_1.input_1}}
+                updated_output = HumanInterventionNodeOutput(**inputs_data)
+
+                # For debugging
+                print(f"Updated HumanInterventionNodeOutput structure: {updated_output}")
+
                 executor.outputs[paused_task.node_id] = updated_output
 
         async def resume_workflow_task():
@@ -821,7 +837,15 @@ def process_pause_action(
                 # Find any PENDING tasks that were blocked by the paused node
                 blocked_node_ids: set[str] = set()
                 if workflow_definition := getattr(context, "workflow_definition", None):
-                    blocked_node_ids = executor.get_blocked_nodes(workflow_definition, paused_task.node_id)
+                    # Convert to dict because get_blocked_nodes expects Dict[str, Any]
+                    if isinstance(workflow_definition, WorkflowDefinitionSchema):
+                        workflow_definition_dict = workflow_definition.model_dump()
+                    elif isinstance(workflow_definition, dict):
+                        workflow_definition_dict = workflow_definition
+                    else:
+                        workflow_definition_dict = {}
+
+                    blocked_node_ids = executor.get_blocked_nodes(workflow_definition_dict, paused_task.node_id)
 
                 # Update their status to RUNNING
                 for task in run.tasks:
@@ -839,21 +863,40 @@ def process_pause_action(
                         except Exception:
                             continue
 
-                # Also get all the nodes that were blocked by the paused node
-                blocked_nodes: set[str] = set()
-                if workflow_definition := getattr(context, "workflow_definition", None):
-                    blocked_nodes = executor.get_blocked_nodes(workflow_definition, paused_task.node_id)
-
                 # Get all nodes including blocked nodes and the resumed node
-                nodes_to_run: set[str] = {paused_task.node_id}.union(blocked_nodes)
+                # We specifically don't include the paused node in nodes_to_run since it's already been completed
+                nodes_to_run: set[str] = blocked_node_ids
 
+                # Make sure we include any necessary node inputs in the precomputed outputs
+                if action_request.inputs and paused_task.node_id:
+                    # Set the action_request.inputs as the output for the paused task
+                    # When we updated the paused node's output above, we already
+                    # created the proper HumanInterventionNodeOutput structure
+                    # So we just need to make sure it's formatted properly for precomputed_outputs
+                    node_output = executor.outputs.get(paused_task.node_id)
+                    if node_output:
+                        # Use model_dump to get the flat structure of fields
+                        precomputed[paused_task.node_id] = node_output.model_dump()
+                    else:
+                        # Fallback - use the inputs directly
+                        precomputed[paused_task.node_id] = action_request.inputs
+
+                # Run the workflow with the precomputed outputs
                 outputs = await executor.run(
                     input={},  # Input already provided in initial run
-                    node_ids=list(nodes_to_run),  # Run the resumed node and all its downstream nodes
-                    precomputed_outputs=precomputed,  # Use existing outputs
+                    node_ids=list(nodes_to_run),  # Run the blocked nodes
+                    precomputed_outputs=precomputed,  # Use existing outputs plus our human input
                 )
-                # Create a dictionary of outputs
-                run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+
+                # Create a dictionary of outputs - keep existing outputs and add new ones
+                if run.outputs:
+                    combined_outputs = run.outputs
+                    for k, v in outputs.items():
+                        combined_outputs[k] = v.model_dump()
+                    run.outputs = combined_outputs
+                else:
+                    run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+
                 run.status = RunStatus.COMPLETED
                 run.end_time = datetime.now(timezone.utc)
             except Exception as e:

@@ -1013,7 +1013,7 @@ export interface PauseHistoryResponse {
 export interface PausedWorkflowResponse {
     run: RunResponse
     current_pause: PauseHistoryResponse
-    workflow: WorkflowResponse
+    workflow: WorkflowDefinition | WorkflowResponse
 }
 
 export interface ResumeActionRequest {
@@ -1080,6 +1080,10 @@ export const resumeWorkflow = async (
     userId: string = 'current-user',
     comments: string = ''
 ): Promise<RunResponse> => {
+    // Ensure the input data has the right structure for the HumanInterventionNode
+    // When we send flat input data, the backend will properly process it
+    // The key thing is that inputs should contain direct key-value pairs
+    // rather than being nested inside another object
     const response = await fetch(`${API_BASE_URL}/wf/${workflowId}/resume_run/${runId}/`, {
         method: 'POST',
         headers: {

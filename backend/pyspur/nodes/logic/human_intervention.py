@@ -1,4 +1,4 @@
-from typing import Optional, Any, Dict
+from typing import Optional
 from enum import Enum as PyEnum
 
 from pydantic import BaseModel, Field
@@ -30,10 +30,6 @@ class HumanInterventionNodeConfig(BaseNodeConfig):
         default="Human intervention required",
         description="Message to display to the user when workflow is paused"
     )
-    output_json_schema: str = Field(
-        default='{"type": "object", "properties": {"output": {"type": "string"}}, "required": ["output"]}',
-        description="JSON schema for the node's output"
-    )
     block_only_dependent_nodes: bool = Field(
         default=True,
         description="If True, only nodes that depend on this node's output will be blocked. If False, all downstream nodes will be blocked."
@@ -49,13 +45,10 @@ class HumanInterventionNodeInput(BaseNodeInput):
 class HumanInterventionNodeOutput(BaseNodeOutput):
     """
     Output model for the human intervention node that passes through input data.
+    This base model allows all extra fields from the input to pass through.
     """
-    data: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Passed through input data"
-    )
     class Config:
-        extra = "allow"
+        extra = "allow"  # Allow extra fields from the input to pass through
 
 
 @NodeRegistry.register(
@@ -68,6 +61,7 @@ class HumanInterventionNode(BaseNode):
     """
     A node that pauses workflow execution and waits for human input.
     The workflow will resume once the required input is provided.
+    All input data is passed through to the output directly after approval.
     """
     name = "human_intervention_node"
     config_model = HumanInterventionNodeConfig
@@ -76,17 +70,29 @@ class HumanInterventionNode(BaseNode):
 
     def setup(self) -> None:
         """
-        Setup method to define output_model based on config.
-        For this minimal passthrough node, we simply call the base setup.
+        Setup method for the human intervention node.
         """
         super().setup()
-        # Remove dynamic output model creation to preserve the minimal output model.
 
     async def run(self, input: BaseModel) -> BaseModel:
         """
-        Pass through the input data as output data and pause the workflow.
+        Pass through all input fields directly and pause the workflow.
         """
-        output_data = input.model_dump() if input else {}
-        output = self.output_model(**{'data': output_data})
-        # Raise PauseException to trigger workflow pause, but keep our simplified output model
+        # Create a flat output structure where fields are directly accessible
+        # This ensures templates like {{HumanInterventionNode_1.input_1}} will work
+        input_dict = input.model_dump()
+
+        # Flatten the structure if needed - extract values from any nested node inputs
+        flat_input = {}
+        for key, value in input_dict.items():
+            if isinstance(value, dict):
+                # Add each field from nested dicts directly to the output
+                flat_input.update(value)
+            else:
+                flat_input[key] = value
+
+        # Create output with all input fields directly accessible
+        output = HumanInterventionNodeOutput(**flat_input)
+
+        # Raise PauseException to trigger workflow pause
         raise PauseException(self.name, self.config.message, output)
