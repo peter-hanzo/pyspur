@@ -376,6 +376,10 @@ async def generate_text(
             raw_response = await completion_with_backoff(**kwargs)
             response = raw_response
     else:
+        if model_name.startswith("ollama"):
+            if api_base is None:
+                api_base = os.getenv("OLLAMA_BASE_URL")
+            kwargs['api_base'] = api_base
         raw_response = await completion_with_backoff(**kwargs)
         response = raw_response
 

@@ -463,7 +463,12 @@ class LLMModels(str, Enum):
                 id=cls.OLLAMA_DEEPSEEK_R1.value,
                 provider=LLMProvider.OLLAMA,
                 name="Deepseek R1",
-                constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0),
+                constraints=ModelConstraints(
+                    max_tokens=8192,
+                    max_temperature=2.0,
+                    supports_JSON_output=False,
+                    supports_max_tokens=False,
+                )
             ),
             cls.OLLAMA_MISTRAL_SMALL.value: LLMModel(
                 id=cls.OLLAMA_MISTRAL_SMALL.value,
