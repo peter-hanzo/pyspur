@@ -42,6 +42,7 @@ class WorkflowExecutor:
         initial_inputs: Optional[Dict[str, Dict[str, Any]]] = None,
         task_recorder: Optional["TaskRecorder"] = None,
         context: Optional[WorkflowExecutionContext] = None,
+        resumed_node_ids: Optional[List[str]] = None,
     ):
         # Convert WorkflowModel to WorkflowDefinitionSchema if needed
         if isinstance(workflow, WorkflowModel):
@@ -63,6 +64,7 @@ class WorkflowExecutor:
         self._node_tasks: Dict[str, asyncio.Task[Optional[BaseNodeOutput]]] = {}
         self._outputs: Dict[str, Optional[BaseNodeOutput]] = {}
         self._failed_nodes: Set[str] = set()
+        self._resumed_node_ids: Set[str] = set(resumed_node_ids or [])
         self._build_node_dict()
         self._build_dependencies()
 
@@ -217,7 +219,8 @@ class WorkflowExecutor:
         if self.task_recorder:
             # Find paused nodes from tasks
             for task in self.task_recorder.tasks.values():
-                if task.status == TaskStatus.PAUSED:
+                # Only consider nodes that are still paused and not being resumed
+                if task.status == TaskStatus.PAUSED and task.node_id not in self._resumed_node_ids:
                     paused_nodes.add(task.node_id)
 
         if not paused_nodes:

@@ -18,17 +18,28 @@ class StartRunRequestSchema(BaseModel):
 class RunResponseSchema(BaseModel):
     id: str
     workflow_id: str
-    workflow_version_id: str
-    workflow_version: WorkflowVersionResponseSchema
+    workflow_version_id: Optional[str] = None
+    workflow_version: Optional[WorkflowVersionResponseSchema] = None
     status: RunStatus
-    run_type: str
-    initial_inputs: Optional[Dict[str, Dict[str, Any]]]
-    input_dataset_id: Optional[str]
-    outputs: Optional[Dict[str, Any]]
-    output_file_id: Optional[str]
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    tasks: List[TaskResponseSchema]
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    initial_inputs: Optional[Dict[str, Dict[str, Any]]] = None
+    outputs: Optional[Dict[str, Dict[str, Any]]] = None
+    tasks: List[TaskResponseSchema] = []
+    parent_run_id: Optional[str] = None
+    run_type: str = "interactive"
+    output_file_id: Optional[str] = None
+    input_dataset_id: Optional[str] = None
+    message: Optional[str] = None  # Add message field for additional info
+
+    @computed_field
+    def duration(self) -> Optional[float]:
+        if self.start_time and self.end_time:
+            return (self.end_time - self.start_time).total_seconds()
+        elif self.start_time:
+            now = datetime.now(self.start_time.tzinfo)
+            return (now - self.start_time).total_seconds()
+        return None
 
     @computed_field(return_type=float)
     def percentage_complete(self):

@@ -35,6 +35,7 @@ import {
     listApiKeys,
     listPausedWorkflows,
     takePauseAction,
+    resumeWorkflow,
     PausedWorkflowResponse,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
@@ -369,23 +370,46 @@ const Dashboard: React.FC = () => {
         inputData: Record<string, any>,
         comments: string
     ) => {
-        if (!selectedWorkflow) return
+        if (!selectedWorkflow) return;
 
         try {
+            // Take the pause action
             await takePauseAction(selectedWorkflow.run.id, {
                 action,
                 inputs: inputData,
                 comments,
                 user_id: 'current-user', // Replace with actual user ID from auth
-            })
+            });
+
+            // Resume the workflow - make sure we have a valid workflow ID
+            const workflowId = selectedWorkflow.workflow.id;
+            const runId = selectedWorkflow.run.id;
+
+            if (workflowId) {
+                try {
+                    // Pass all the parameters properly to the resume function
+                    await resumeWorkflow(
+                        workflowId,
+                        runId,
+                        inputData,  // Use the same input data
+                        action,     // Pass the action (APPROVE/DECLINE/OVERRIDE)
+                        'current-user', // User ID
+                        comments    // Any comments
+                    );
+                } catch (resumeError) {
+                    console.error('Error resuming workflow:', resumeError);
+                }
+            } else {
+                console.error('Cannot resume workflow: Workflow ID is missing or invalid');
+            }
 
             // Refresh paused workflows
-            const paused = await listPausedWorkflows()
-            setPausedWorkflows(paused)
+            const paused = await listPausedWorkflows();
+            setPausedWorkflows(paused);
         } catch (error) {
-            console.error('Error submitting human input:', error)
+            console.error('Error submitting human input:', error);
         }
-    }
+    };
 
     return (
         <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">

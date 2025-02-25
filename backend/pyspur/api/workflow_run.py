@@ -9,7 +9,6 @@ from pathlib import Path  # Import Path for directory handling
 from typing import Any, Awaitable, Dict, List, Optional, Union, Set
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -20,7 +19,7 @@ from ..execution.workflow_executor import WorkflowExecutor
 from ..models.dataset_model import DatasetModel
 from ..models.output_file_model import OutputFileModel
 from ..models.run_model import RunModel, RunStatus
-from ..models.task_model import TaskStatus
+from ..models.task_model import TaskModel, TaskStatus
 from ..models.workflow_model import WorkflowModel
 from ..nodes.factory import NodeFactory
 from ..nodes.logic.human_intervention import HumanInterventionNodeOutput, PauseException
@@ -590,117 +589,43 @@ async def resume_workflow(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> RunResponseSchema:
-    # Get the workflow and run
-    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
-    if not workflow:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-
-    run = db.query(RunModel).filter(RunModel.id == run_id).first()
-    if not run:
-        raise HTTPException(status_code=404, detail="Run not found")
-
-    if run.status != RunStatus.PAUSED:
-        raise HTTPException(status_code=400, detail="Run is not in a paused state")
-
-    # Find the paused node by looking at the tasks
-    paused_task = next((task for task in run.tasks if task.status == TaskStatus.PAUSED), None)
-    if not paused_task:
-        raise HTTPException(status_code=400, detail="No paused task found for this run")
-
-    paused_node_id = paused_task.node_id
-
-    workflow_version = fetch_workflow_version(workflow_id, workflow, db)
-    workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
-
-    # Update run status to RUNNING
-    run.status = RunStatus.RUNNING
-    db.commit()
-
-    # Create a new task recorder and context
-    task_recorder = TaskRecorder(db, run.id)
-    context = WorkflowExecutionContext(
-        workflow_id=workflow.id,
-        run_id=run.id,
-        parent_run_id=run.parent_run_id,
-        run_type=run.run_type,
-        db_session=db,
-    )
-
-    # Create executor with the existing workflow definition
-    executor = WorkflowExecutor(
-        workflow=workflow_definition,
-        task_recorder=task_recorder,
-        context=context,
-    )
-
-    # Update the outputs with the human intervention input
-    if run.outputs:
-        executor.outputs = {
-            k: NodeFactory.create_node(
-                node_name=node.title,
-                node_type_name=node.node_type,
-                config=node.config,
-            ).output_model.model_validate(v)
-            for k, v in run.outputs.items()
-            for node in workflow_definition.nodes
-            if node.id == k
-        }
-
-    # Update the paused node's output with resume information
-    if paused_node_id and paused_node_id in executor.outputs:
-        node_output = executor.outputs[paused_node_id]
-        if isinstance(node_output, HumanInterventionNodeOutput):
-            # Create new output with updated data
-            updated_output = HumanInterventionNodeOutput(
-                data=resume_request.inputs or {}
-            )
-            executor.outputs[paused_node_id] = updated_output
-
-    # Resume execution from the paused node
-    async def resume_workflow_task():
-        try:
-            # Convert outputs to dict format for precomputed_outputs
-            precomputed: Dict[str, Union[Dict[str, Any], List[Dict[str, Any]]]] = {}
-            for k, v in executor.outputs.items():
-                if v is not None:
-                    try:
-                        precomputed[k] = v.model_dump()
-                    except Exception:
-                        continue
-
-            outputs = await executor.run(
-                input={},  # Input already provided in initial run
-                node_ids=[n.id for n in workflow_definition.nodes],  # Run all remaining nodes
-                precomputed_outputs=precomputed,  # Use existing outputs
-            )
-            run.outputs = {k: v.model_dump() for k, v in outputs.items()}
-            run.status = RunStatus.COMPLETED
-            run.end_time = datetime.now(timezone.utc)
-        except Exception as e:
-            run.status = RunStatus.FAILED
-            run.end_time = datetime.now(timezone.utc)
-            print(f"Error resuming workflow: {e}")
-        db.commit()
-
-    background_tasks.add_task(resume_workflow_task)
-    return run
+    # Use the shared process_pause_action function
+    return process_pause_action(db, run_id, resume_request, background_tasks)
 
 
-@router.get(
-    "/paused/",
-    response_model=List[PausedWorkflowResponseSchema],
-    description="List all paused workflows",
-)
-async def list_paused_workflows(
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=10, ge=1, le=100),
-    db: Session = Depends(get_db),
+def get_paused_workflows(
+    db: Session,
+    page: int = 1,
+    page_size: int = 10,
 ) -> List[PausedWorkflowResponseSchema]:
-    # Get paused runs with pagination
+    """Get all currently paused workflows."""
+    # First get runs with paused tasks
+    paused_task_runs = (
+        db.query(TaskModel.run_id)
+        .filter(TaskModel.status == TaskStatus.PAUSED)
+        .distinct()
+    )
+
+    # Then get runs with running tasks
+    running_task_runs = (
+        db.query(TaskModel.run_id)
+        .filter(TaskModel.status == TaskStatus.RUNNING)
+        .distinct()
+    )
+
+    # Main query to get paused runs
     paused_runs = (
         db.query(RunModel)
-        .filter(RunModel.status == RunStatus.PAUSED)
-        .order_by(desc(RunModel.start_time))
+        .filter(
+            # Either the run is marked as paused
+            (RunModel.status == RunStatus.PAUSED) |
+            # Or has paused tasks but no running tasks
+            (
+                RunModel.id.in_(paused_task_runs.scalar_subquery()) &
+                ~RunModel.id.in_(running_task_runs.scalar_subquery())
+            )
+        )
+        .order_by(RunModel.start_time.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -713,33 +638,40 @@ async def list_paused_workflows(
         if not workflow:
             continue
 
-        workflow_version = fetch_workflow_version(run.workflow_id, workflow, db)
-        workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
+        workflow_definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
 
-        # Find the paused node by looking at the tasks
-        paused_task = next((task for task in run.tasks if task.status == TaskStatus.PAUSED), None)
-        if not paused_task:
-            continue
-
-        paused_node_id = paused_task.node_id
-
-        # Get the current pause information from the node output
+        # Find the current pause information from tasks
         current_pause = None
-        if run.outputs and paused_node_id:
-            node_output = run.outputs.get(paused_node_id)
-            if node_output:
-                current_pause = PauseHistoryResponseSchema(
-                    id=f"PH_{run.id}_{paused_node_id}",  # Generate a synthetic ID
-                    run_id=run.id,
-                    node_id=paused_node_id,
-                    pause_message=node_output.get("message", "Human intervention required"),
-                    pause_time=datetime.fromisoformat(node_output.get("pause_time", datetime.now().isoformat())),
-                    resume_time=None,
-                    resume_user_id=None,
-                    resume_action=None,
-                    input_data=node_output.get("data", {}),
-                    comments=None,
+        if run.tasks:
+            # Find the most recently paused task
+            paused_tasks = [task for task in run.tasks if task.status == TaskStatus.PAUSED]
+            if paused_tasks:
+                # Sort by end_time descending to get the most recent pause
+                paused_tasks.sort(
+                    key=lambda x: (x.end_time or x.start_time or datetime.min).replace(tzinfo=timezone.utc),
+                    reverse=True
                 )
+                latest_paused_task = paused_tasks[0]
+
+                # Only create pause history if we have a pause time
+                pause_time = latest_paused_task.end_time or latest_paused_task.start_time
+                if pause_time:
+                    # Ensure timezone is set
+                    if pause_time.tzinfo is None:
+                        pause_time = pause_time.replace(tzinfo=timezone.utc)
+
+                    current_pause = PauseHistoryResponseSchema(
+                        id=f"PH_{run.id}_{latest_paused_task.node_id}",
+                        run_id=run.id,
+                        node_id=latest_paused_task.node_id,
+                        pause_message=latest_paused_task.error or "Human intervention required",
+                        pause_time=pause_time,
+                        resume_time=latest_paused_task.end_time.replace(tzinfo=timezone.utc) if latest_paused_task.end_time else None,
+                        resume_user_id=None,  # This would come from task metadata if needed
+                        resume_action=None,  # This would come from task metadata if needed
+                        input_data=latest_paused_task.inputs or {},
+                        comments=None,  # This would come from task metadata if needed
+                    )
 
         if current_pause:
             result.append(
@@ -751,3 +683,191 @@ async def list_paused_workflows(
             )
 
     return result
+
+def get_run_pause_history(db: Session, run_id: str) -> List[PauseHistoryResponseSchema]:
+    """Get the pause history for a specific run."""
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    # Build pause history from tasks
+    history: List[PauseHistoryResponseSchema] = []
+
+    if run.tasks:
+        # Get all tasks that were ever paused
+        paused_tasks = [task for task in run.tasks if task.status == TaskStatus.PAUSED]
+        for task in paused_tasks:
+            # Skip if no pause time
+            pause_time = task.end_time or task.start_time
+            if not pause_time:
+                continue
+
+            # Ensure timezone is set
+            if pause_time.tzinfo is None:
+                pause_time = pause_time.replace(tzinfo=timezone.utc)
+
+            history.append(
+                PauseHistoryResponseSchema(
+                    id=f"PH_{run.id}_{task.node_id}",
+                    run_id=run.id,
+                    node_id=task.node_id,
+                    pause_message=task.error or "Human intervention required",
+                    pause_time=pause_time,
+                    resume_time=task.end_time.replace(tzinfo=timezone.utc) if task.end_time else None,
+                    resume_user_id=None,  # This would come from task metadata if needed
+                    resume_action=None,  # This would come from task metadata if needed
+                    input_data=task.inputs or {},
+                    comments=None,  # This would come from task metadata if needed
+                )
+            )
+
+    return sorted(history, key=lambda x: x.pause_time, reverse=True)
+
+def process_pause_action(
+    db: Session,
+    run_id: str,
+    action_request: ResumeRunRequestSchema,
+    bg_tasks: Optional[BackgroundTasks] = None
+) -> RunResponseSchema:
+    """Process an action on a paused workflow."""
+    # Get the run
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    if run.status != RunStatus.PAUSED:
+        # Check if there are any paused tasks
+        has_paused_tasks = any(task.status == TaskStatus.PAUSED for task in run.tasks)
+        if not has_paused_tasks:
+            raise HTTPException(status_code=400, detail="Run is not in a paused state")
+
+    # Find the paused task
+    paused_task = None
+    for task in run.tasks:
+        if task.status == TaskStatus.PAUSED:
+            paused_task = task
+            break
+
+    if not paused_task:
+        raise HTTPException(status_code=400, detail="No paused task found for this run")
+
+    # Update the task with the action
+    paused_task.end_time = datetime.now(timezone.utc)
+    paused_task.status = TaskStatus.COMPLETED  # Mark as COMPLETED instead of RUNNING
+    paused_task.error = None  # Clear any error message
+    paused_task.outputs = action_request.inputs  # Store new inputs as outputs
+
+    db.commit()
+    db.refresh(run)
+
+    # If background_tasks is provided, automatically resume the workflow
+    if bg_tasks:
+        # Get the workflow
+        workflow = db.query(WorkflowModel).filter(WorkflowModel.id == run.workflow_id).first()
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        workflow_version = fetch_workflow_version(run.workflow_id, workflow, db)
+        workflow_definition = WorkflowDefinitionSchema.model_validate(workflow_version.definition)
+
+        # Update run status to RUNNING
+        run.status = RunStatus.RUNNING
+        db.commit()
+
+        # Create a new task recorder and context
+        task_recorder = TaskRecorder(db, run.id)
+        context = WorkflowExecutionContext(
+            workflow_id=workflow.id,
+            run_id=run.id,
+            parent_run_id=run.parent_run_id,
+            run_type=run.run_type,
+            db_session=db,
+            workflow_definition=workflow_version.definition
+        )
+
+        # Create executor with the existing workflow definition - pass the paused node ID as resumed
+        executor = WorkflowExecutor(
+            workflow=workflow_definition,
+            task_recorder=task_recorder,
+            context=context,
+            resumed_node_ids=[paused_task.node_id],  # Tell executor which node was resumed
+        )
+
+        # Update the outputs with existing outputs
+        if run.outputs:
+            executor.outputs = {
+                k: NodeFactory.create_node(
+                    node_name=node.title,
+                    node_type_name=node.node_type,
+                    config=node.config,
+                ).output_model.model_validate(v)
+                for k, v in run.outputs.items()
+                for node in workflow_definition.nodes
+                if node.id == k
+            }
+
+        # Update the paused node's output with resume information
+        if paused_task.node_id and paused_task.node_id in executor.outputs:
+            node_output = executor.outputs[paused_task.node_id]
+            if isinstance(node_output, HumanInterventionNodeOutput):
+                # Create new output with updated data
+                updated_output = HumanInterventionNodeOutput(
+                    data=action_request.inputs or {}
+                )
+                executor.outputs[paused_task.node_id] = updated_output
+
+        async def resume_workflow_task():
+            try:
+                # Find any PENDING tasks that were blocked by the paused node
+                blocked_node_ids: set[str] = set()
+                if workflow_definition := getattr(context, "workflow_definition", None):
+                    blocked_node_ids = executor.get_blocked_nodes(workflow_definition, paused_task.node_id)
+
+                # Update their status to RUNNING
+                for task in run.tasks:
+                    if task.status == TaskStatus.PENDING and task.node_id in blocked_node_ids:
+                        task.status = TaskStatus.RUNNING
+                        task.start_time = datetime.now(timezone.utc)
+                db.commit()
+
+                # Convert outputs to dict format for precomputed_outputs
+                precomputed: Dict[str, Union[Dict[str, Any], List[Dict[str, Any]]]] = {}
+                for k, v in executor.outputs.items():
+                    if v is not None:
+                        try:
+                            precomputed[k] = v.model_dump()
+                        except Exception:
+                            continue
+
+                # Also get all the nodes that were blocked by the paused node
+                blocked_nodes: set[str] = set()
+                if workflow_definition := getattr(context, "workflow_definition", None):
+                    blocked_nodes = executor.get_blocked_nodes(workflow_definition, paused_task.node_id)
+
+                # Get all nodes including blocked nodes and the resumed node
+                nodes_to_run: set[str] = {paused_task.node_id}.union(blocked_nodes)
+
+                outputs = await executor.run(
+                    input={},  # Input already provided in initial run
+                    node_ids=list(nodes_to_run),  # Run the resumed node and all its downstream nodes
+                    precomputed_outputs=precomputed,  # Use existing outputs
+                )
+                # Create a dictionary of outputs
+                run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+                run.status = RunStatus.COMPLETED
+                run.end_time = datetime.now(timezone.utc)
+            except Exception as e:
+                run.status = RunStatus.FAILED
+                run.end_time = datetime.now(timezone.utc)
+                print(f"Error resuming workflow: {e}")
+            db.commit()
+
+        bg_tasks.add_task(resume_workflow_task)
+        response = RunResponseSchema.model_validate(run)
+        response.message = "Task completed and workflow execution resumed automatically."
+    else:
+        # If no background_tasks, just return as before
+        response = RunResponseSchema.model_validate(run)
+        response.message = "Task marked as completed. Please call the resume endpoint to continue workflow execution."
+
+    return response

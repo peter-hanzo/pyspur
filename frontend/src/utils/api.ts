@@ -1029,23 +1029,23 @@ export const listPausedWorkflows = async (
     pageSize: number = 10
 ): Promise<PausedWorkflowResponse[]> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/paused-workflows/`, {
+        const response = await axios.get(`${API_BASE_URL}/wf/paused_workflows/`, {
             params: { page, page_size: pageSize },
-        })
-        return response.data
+        });
+        return response.data;
     } catch (error) {
-        console.error('Error listing paused workflows:', error)
-        throw error
+        console.error('Error listing paused workflows:', error);
+        throw error;
     }
 }
 
 export const getPauseHistory = async (runId: string): Promise<PauseHistoryResponse[]> => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/paused-workflows/${runId}/history/`)
-        return response.data
+        const response = await axios.get(`${API_BASE_URL}/wf/pause_history/${runId}/`);
+        return response.data;
     } catch (error) {
-        console.error('Error getting pause history:', error)
-        throw error
+        console.error('Error getting pause history:', error);
+        throw error;
     }
 }
 
@@ -1053,11 +1053,50 @@ export const takePauseAction = async (
     runId: string,
     actionRequest: ResumeActionRequest
 ): Promise<RunResponse> => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/paused-workflows/${runId}/action/`, actionRequest)
-        return response.data
-    } catch (error) {
-        console.error('Error taking pause action:', error)
-        throw error
+    const response = await fetch(`${API_BASE_URL}/wf/process_pause_action/${runId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(actionRequest),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to take action on paused workflow: ${errorText}`);
     }
+
+    return await response.json();
+};
+
+/**
+ * Resumes a paused workflow run
+ */
+export const resumeWorkflow = async (
+    workflowId: string,
+    runId: string,
+    inputs: Record<string, any> = {},
+    action: 'APPROVE' | 'DECLINE' | 'OVERRIDE' = 'APPROVE',
+    userId: string = 'current-user',
+    comments: string = ''
+): Promise<RunResponse> => {
+    const response = await fetch(`${API_BASE_URL}/wf/${workflowId}/resume_run/${runId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            inputs,
+            user_id: userId,
+            action,
+            comments
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to resume workflow: ${errorText}`);
+    }
+
+    return await response.json();
 }

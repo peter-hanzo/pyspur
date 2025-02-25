@@ -12,6 +12,7 @@ from fastapi import (
     Query,
     UploadFile,
     status,
+    BackgroundTasks,
 )
 from sqlalchemy.orm import Session
 
@@ -32,15 +33,17 @@ from ..schemas.run_schemas import (
     RunResponseSchema,
     ResumeRunRequestSchema,
 )
-from .paused_workflows import get_paused_workflows, get_run_pause_history, process_pause_action
+from .workflow_run import get_paused_workflows, get_run_pause_history, process_pause_action
 
-# Create a separate router for paused workflows
-paused_workflows_router = APIRouter(tags=["paused-workflows"])
+# Main router for workflow management
+router = APIRouter()
 
-@paused_workflows_router.get(
-    "/",
+# Paused workflow endpoints
+@router.get(
+    "/paused_workflows/",
     response_model=List[PausedWorkflowResponseSchema],
     description="List all paused workflows",
+    tags=["workflows"],
 )
 def list_paused_workflows(
     page: int = Query(default=1, ge=1),
@@ -49,27 +52,28 @@ def list_paused_workflows(
 ) -> List[PausedWorkflowResponseSchema]:
     return get_paused_workflows(db, page, page_size)
 
-@paused_workflows_router.get(
-    "/{run_id}/history/",
+@router.get(
+    "/pause_history/{run_id}/",
     response_model=List[PauseHistoryResponseSchema],
     description="Get pause history for a run",
+    tags=["workflows"],
 )
 def get_pause_history(run_id: str, db: Session = Depends(get_db)) -> List[PauseHistoryResponseSchema]:
     return get_run_pause_history(db, run_id)
 
-@paused_workflows_router.post(
-    "/{run_id}/action/",
+@router.post(
+    "/process_pause_action/{run_id}/",
     response_model=RunResponseSchema,
     description="Take action on a paused workflow",
+    tags=["workflows"],
 )
 def take_pause_action(
     run_id: str,
     action_request: ResumeRunRequestSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> RunResponseSchema:
-    return process_pause_action(db, run_id, action_request)
-
-router = APIRouter()
+    return process_pause_action(db, run_id, action_request, background_tasks)
 
 
 def create_a_new_workflow_definition() -> WorkflowDefinitionSchema:
