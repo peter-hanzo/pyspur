@@ -388,7 +388,7 @@ async def generate_text(
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
         if model_info and model_info.constraints.supports_reasoning:
             separator = model_info.constraints.reasoning_separator
-            sanitized_response = re.sub(separator, '', sanitized_response)
+            sanitized_response = re.sub(separator, '', sanitized_response, flags=re.DOTALL)
 
         # Check for provider-specific fields
         if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
