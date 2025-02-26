@@ -1024,7 +1024,7 @@ export const getPauseHistory = async (runId: string): Promise<PauseHistoryRespon
 }
 
 /**
- * Take action on a paused workflow - primary function for handling paused workflows
+ * Take action on a paused workflow
  */
 export const takePauseAction = async (
     runId: string,
