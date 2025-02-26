@@ -6,6 +6,7 @@ import { EvalRunRequest, EvalRunResponse } from '@/types/api_types/evalSchemas'
 import { NodeTypeSchema, MinimumNodeConfigSchema } from '@/types/api_types/nodeTypeSchemas'
 import { OutputFileResponse } from '@/types/api_types/outputFileSchemas'
 import { RunResponse } from '@/types/api_types/runSchemas'
+import { PauseHistoryResponse, PausedWorkflowResponse, ResumeActionRequest } from '@/types/api_types/pausedWorkflowSchemas'
 import {
     DocumentChunkSchema,
     DocumentWithChunksSchema,
@@ -994,33 +995,6 @@ export const uploadTestFiles = async (
         console.error('Error uploading test files:', error)
         throw error
     }
-}
-
-// Add new types for paused workflows
-export interface PauseHistoryResponse {
-    id: string
-    run_id: string
-    node_id: string
-    pause_message: string | null
-    pause_time: string
-    resume_time: string | null
-    resume_user_id: string | null
-    resume_action: 'APPROVE' | 'DECLINE' | 'OVERRIDE' | null
-    input_data: Record<string, any> | null
-    comments: string | null
-}
-
-export interface PausedWorkflowResponse {
-    run: RunResponse
-    current_pause: PauseHistoryResponse
-    workflow: WorkflowDefinition | WorkflowResponse
-}
-
-export interface ResumeActionRequest {
-    action: 'APPROVE' | 'DECLINE' | 'OVERRIDE'
-    inputs?: Record<string, any>
-    comments?: string
-    user_id: string
 }
 
 // Add new functions for paused workflows
