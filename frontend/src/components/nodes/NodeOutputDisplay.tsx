@@ -32,37 +32,6 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         }
     }
 
-    // Add special handling for paused state
-    const isPaused = (value: any): boolean => {
-        return value && typeof value === 'object' &&
-               'pause_time' in value &&
-               'pause_message' in value &&
-               !value.resume_time
-    }
-
-    const renderPausedState = (value: any) => {
-        return (
-            <div className="p-4 bg-warning-50 border border-warning-200 rounded-lg">
-                <div className="flex items-center mb-2">
-                    <Icon icon="solar:clock-circle-linear" className="text-warning-500 mr-2" width={24} />
-                    <span className="font-semibold text-warning-700">
-                        Workflow Paused
-                    </span>
-                </div>
-                <p className="text-warning-700 mb-2">{value.pause_message}</p>
-                <p className="text-warning-600 text-sm">
-                    Paused at: {new Date(value.pause_time).toLocaleString()}
-                </p>
-                {value.data && (
-                    <div className="mt-4">
-                        <h4 className="font-semibold mb-2">Input Data:</h4>
-                        {renderValue(value.data)}
-                    </div>
-                )}
-            </div>
-        )
-    }
-
     const detectLanguage = (code: string): string => {
         // Count occurrences of language-specific patterns
         let pythonScore = 0
@@ -203,11 +172,6 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
         )
     }
     const renderValue = (value: any) => {
-        // Check for paused state first
-        if (isPaused(value)) {
-            return renderPausedState(value)
-        }
-
         // Handle model provider errors
         if (typeof value === 'string') {
             try {
