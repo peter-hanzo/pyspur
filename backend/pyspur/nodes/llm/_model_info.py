@@ -27,6 +27,8 @@ class ModelConstraints(BaseModel):
     supports_max_tokens: bool = True
     supports_temperature: bool = True
     supported_mime_types: Set[RecognisedMimeType] = set()  # Empty set means no multimodal support
+    supports_reasoning: bool = False
+    reasoning_separator: str = r'<think>.*?</think>'
 
     def add_mime_categories(self, categories: Set[MimeCategory]) -> "ModelConstraints":
         """Add MIME type support for entire categories.
@@ -468,6 +470,7 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_JSON_output=False,
                     supports_max_tokens=False,
+                    supports_reasoning=True
                 )
             ),
             cls.OLLAMA_MISTRAL_SMALL.value: LLMModel(

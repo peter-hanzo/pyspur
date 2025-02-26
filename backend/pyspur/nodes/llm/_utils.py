@@ -386,6 +386,10 @@ async def generate_text(
     # For models that don't support JSON output, wrap the response in a JSON structure
     if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+        if model_info and model_info.constraints.supports_reasoning:
+            separator = model_info.constraints.reasoning_separator
+            sanitized_response = re.sub(separator, '', sanitized_response)
+
         # Check for provider-specific fields
         if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
             if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
