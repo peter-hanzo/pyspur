@@ -577,22 +577,6 @@ def save_embedded_file(data_uri: str, workflow_id: str) -> str:
     return f"run_files/{workflow_id}/{filename}"
 
 
-@router.post(
-    "/{workflow_id}/resume_run/{run_id}/",
-    response_model=RunResponseSchema,
-    description="Resume a paused workflow run after human intervention",
-)
-async def resume_workflow(
-    workflow_id: str,
-    run_id: str,
-    resume_request: ResumeRunRequestSchema,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-) -> RunResponseSchema:
-    # Use the shared process_pause_action function
-    return process_pause_action(db, run_id, resume_request, background_tasks)
-
-
 def get_paused_workflows(
     db: Session,
     page: int = 1,
@@ -729,7 +713,26 @@ def process_pause_action(
     action_request: ResumeRunRequestSchema,
     bg_tasks: Optional[BackgroundTasks] = None
 ) -> RunResponseSchema:
-    """Process an action on a paused workflow."""
+    """
+    Process an action on a paused workflow.
+
+    This is the common function used by the take_pause_action endpoint.
+    It handles the core logic for processing human intervention in paused workflows.
+
+    The workflow_id is retrieved from the run object, so it doesn't need to be passed as a parameter.
+
+    Args:
+        db: Database session
+        run_id: The ID of the paused run
+        action_request: The details of the action to take
+        bg_tasks: Optional background tasks handler to resume the workflow asynchronously
+
+    Returns:
+        Information about the resumed run
+
+    Raises:
+        HTTPException: If the run is not found or not in a paused state
+    """
     # Get the run
     run = db.query(RunModel).filter(RunModel.id == run_id).first()
     if not run:

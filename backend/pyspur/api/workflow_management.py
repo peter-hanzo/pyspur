@@ -64,7 +64,7 @@ def get_pause_history(run_id: str, db: Session = Depends(get_db)) -> List[PauseH
 @router.post(
     "/process_pause_action/{run_id}/",
     response_model=RunResponseSchema,
-    description="Take action on a paused workflow",
+    description="Take action on a paused workflow (preferred endpoint)",
     tags=["workflows"],
 )
 def take_pause_action(
@@ -73,6 +73,22 @@ def take_pause_action(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> RunResponseSchema:
+    """
+    Process an action on a paused workflow.
+
+    This is the preferred endpoint for handling paused workflows.
+    It allows approving, declining, or overriding a workflow that has been paused
+    for human intervention.
+
+    Args:
+        run_id: The ID of the paused run
+        action_request: The details of the action to take
+        background_tasks: FastAPI background tasks handler to resume the workflow asynchronously
+        db: Database session
+
+    Returns:
+        Information about the resumed run
+    """
     return process_pause_action(db, run_id, action_request, background_tasks)
 
 

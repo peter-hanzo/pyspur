@@ -1023,6 +1023,9 @@ export const getPauseHistory = async (runId: string): Promise<PauseHistoryRespon
     }
 }
 
+/**
+ * Take action on a paused workflow - primary function for handling paused workflows
+ */
 export const takePauseAction = async (
     runId: string,
     actionRequest: ResumeActionRequest
@@ -1042,39 +1045,3 @@ export const takePauseAction = async (
 
     return await response.json();
 };
-
-/**
- * Resumes a paused workflow run
- */
-export const resumeWorkflow = async (
-    workflowId: string,
-    runId: string,
-    inputs: Record<string, any> = {},
-    action: 'APPROVE' | 'DECLINE' | 'OVERRIDE' = 'APPROVE',
-    userId: string = 'current-user',
-    comments: string = ''
-): Promise<RunResponse> => {
-    // Ensure the input data has the right structure for the HumanInterventionNode
-    // When we send flat input data, the backend will properly process it
-    // The key thing is that inputs should contain direct key-value pairs
-    // rather than being nested inside another object
-    const response = await fetch(`${API_BASE_URL}/wf/${workflowId}/resume_run/${runId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            inputs,
-            user_id: userId,
-            action,
-            comments
-        }),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to resume workflow: ${errorText}`);
-    }
-
-    return await response.json();
-}

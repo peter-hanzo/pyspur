@@ -1,5 +1,6 @@
 import { RunResponse } from '@/types/api_types/runSchemas'
 import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
+import { PausedWorkflowResponse, ResumeActionRequest } from '@/types/api_types/pausedWorkflowSchemas'
 import {
     Accordion,
     AccordionItem,
@@ -34,8 +35,7 @@ import {
     instantiateTemplate,
     listApiKeys,
     listPausedWorkflows,
-    resumeWorkflow,
-    PausedWorkflowResponse,
+    takePauseAction,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import WelcomeModal from './modals/WelcomeModal'
@@ -394,25 +394,24 @@ const Dashboard: React.FC = () => {
             // Get run ID - this should always be available
             const runId = selectedWorkflow.run.id;
 
-            // Get workflow ID directly from the run object
+            // Get workflow ID directly from the run object (not needed for takePauseAction but keeping for logs)
             const workflowId = selectedWorkflow.run.workflow_id;
 
             console.log("Workflow ID:", workflowId);
             console.log("Run ID:", runId);
 
-            if (workflowId) {
+            if (runId) {
                 try {
-                    // Call resumeWorkflow with the properly structured input data
-                    // inputData should be a flat object with key-value pairs
-                    // that can be accessed in downstream nodes via HumanInterventionNode_1.<field_name>
-                    await resumeWorkflow(
-                        workflowId,
-                        runId,
-                        inputData,
+                    // Create the action request object
+                    const actionRequest: ResumeActionRequest = {
+                        inputs: inputData,
+                        user_id: 'current-user',
                         action,
-                        'current-user',
                         comments
-                    );
+                    };
+
+                    // Call takePauseAction with the request
+                    await takePauseAction(runId, actionRequest);
 
                     // Show success message
                     onAlert(`Workflow resumed with action: ${action}`, 'success');
@@ -426,8 +425,8 @@ const Dashboard: React.FC = () => {
                     onAlert('Failed to resume workflow', 'danger');
                 }
             } else {
-                console.error('Cannot resume workflow: Workflow ID is missing or invalid');
-                onAlert('Cannot resume workflow: missing workflow ID', 'danger');
+                console.error('Cannot resume workflow: Run ID is missing or invalid');
+                onAlert('Cannot resume workflow: missing run ID', 'danger');
             }
 
             // Refresh paused workflows
