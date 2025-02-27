@@ -47,7 +47,7 @@ import Operator from './footer/Operator'
 interface RunViewFlowCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
     workflowID?: string
-    tasksData?: any[]
+    tasksData?: Record<string, any>[]
     onDownloadImageInit?: (handler: () => void) => void
     projectName?: string
 }
