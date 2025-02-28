@@ -1,6 +1,6 @@
 ![PySpur](./docs/images/hero.png)
 
-<p align="center"><strong>PySpur 是一个基于 Python 的 AI 代理构建器。AI 工程师使用它来构建代理、逐步执行并检查过去的运行记录。</strong></p>
+<p align="center"><strong>PySpur 是一个基于 Python 编写的 AI 智能体构建器。AI 工程师使用它来构建智能体，逐步执行并检查过去的运行记录。</strong></p>
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -34,14 +34,14 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 - 🖐️ **拖拽式构建**：几秒内构建、测试并迭代。
 - 🔄 **循环**：具有记忆功能的迭代工具调用。
 - 📤 **文件上传**：上传文件或粘贴 URL 来处理文档。
-- 📋 **结构化输出**：用于 JSON Schema 的 UI 编辑器。
-- 🗃️ **RAG**：解析、分块、嵌入并将数据插入向量数据库。
+- 📋 **结构化输出**：JSON Schema UI 编辑器。
+- 🗃️ **RAG**：解析、分块、嵌入并将数据更新到向量数据库。
 - 🖼️ **多模态**：支持视频、图像、音频、文本、代码。
 - 🧰 **工具**：Slack、Firecrawl.dev、Google Sheets、GitHub 等。
 - 🧪 **评估**：在真实数据集上评估代理。
 - 🚀 **一键部署**：发布为 API 并在任意地方集成。
 - 🐍 **基于 Python**：通过创建单个 Python 文件来添加新节点。
-- 🎛️ **供应商通用支持**：支持超过 100 个 LLM 提供商、嵌入器和向量数据库。
+- 🎛️ **供应商支持**：支持超过 100 个 LLM 供应商、嵌入器和向量数据库。
 
 # ⚡ 快速开始
 
@@ -180,9 +180,9 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 
 # ⭐ 支持我们
 
-你可以通过给我们项目加星标来支持我们的工作！谢谢！
+你可以通过给我们项目 Star 来支持我们的工作！谢谢！
 
 ![star](https://github.com/user-attachments/assets/71f65273-6755-469d-be44-087bb89d5e76)
 
-我们非常感谢你的反馈。
-请 [告诉我们](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) 你希望下一个看到列表中的哪些功能，或请求全新的功能。
+我们非常重视你的反馈。
+请 [告诉我们](mailto:founders@pyspur.dev?subject=Feature%20Request&body=I%20want%20this%20feature%3Ai) 你想在下一次看到列表中的哪些功能或全新的功能。
