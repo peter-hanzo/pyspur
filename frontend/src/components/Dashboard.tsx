@@ -438,6 +438,39 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    // Handle quick actions (approve/decline) directly from the dashboard
+    const handleQuickAction = async (workflow: PausedWorkflowResponse, action: 'APPROVE' | 'DECLINE') => {
+        try {
+            const runId = workflow.run.id;
+
+            if (runId) {
+                // Create a simple action request with empty inputs and comments
+                const actionRequest: ResumeActionRequest = {
+                    inputs: {},
+                    user_id: 'current-user',
+                    action,
+                    comments: `Quick ${action.toLowerCase()} from dashboard`
+                };
+
+                // Call takePauseAction with the request
+                await takePauseAction(runId, actionRequest);
+
+                // Show success message
+                onAlert(`Workflow ${action.toLowerCase()}d successfully`, 'success');
+
+                // Refresh paused workflows
+                const paused = await listPausedWorkflows();
+                setPausedWorkflows(paused);
+            } else {
+                console.error('Cannot perform action: Run ID is missing or invalid');
+                onAlert('Cannot perform action: missing run ID', 'danger');
+            }
+        } catch (error) {
+            console.error(`Error performing ${action} action:`, error);
+            onAlert(`Failed to ${action.toLowerCase()} workflow`, 'danger');
+        }
+    };
+
     return (
         <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <Head>
@@ -728,15 +761,38 @@ const Dashboard: React.FC = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <Button
-                                            color="primary"
-                                            onPress={() => {
-                                                setSelectedWorkflow(workflow)
-                                                setIsHumanInputModalOpen(true)
-                                            }}
-                                        >
-                                            Review & Action
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                color="success"
+                                                variant="flat"
+                                                onPress={() => handleQuickAction(workflow, 'APPROVE')}
+                                                startContent={<Icon icon="lucide:check" width={16} />}
+                                                isIconOnly
+                                                size="sm"
+                                                aria-label="Approve"
+                                            />
+                                            <Button
+                                                color="danger"
+                                                variant="flat"
+                                                onPress={() => handleQuickAction(workflow, 'DECLINE')}
+                                                startContent={<Icon icon="lucide:x" width={16} />}
+                                                isIconOnly
+                                                size="sm"
+                                                aria-label="Decline"
+                                            />
+                                            <Button
+                                                color="primary"
+                                                variant="bordered"
+                                                onPress={() => {
+                                                    setSelectedWorkflow(workflow)
+                                                    setIsHumanInputModalOpen(true)
+                                                }}
+                                                startContent={<Icon icon="lucide:more-horizontal" width={16} />}
+                                                isIconOnly
+                                                size="sm"
+                                                aria-label="Details"
+                                            />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
