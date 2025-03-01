@@ -25,6 +25,7 @@ import { RootState } from '../store/store'
 import { Template } from '../types/workflow'
 import {
     ApiKey,
+    cancelWorkflow,
     createWorkflow,
     deleteWorkflow,
     duplicateWorkflow,
@@ -471,6 +472,33 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    // Handle cancellation of a workflow
+    const handleCancelWorkflow = async (workflow: PausedWorkflowResponse) => {
+        try {
+            const runId = workflow.run.id;
+
+            if (runId) {
+                if (window.confirm(`Are you sure you want to cancel this workflow? This action cannot be undone.`)) {
+                    // Call the cancelWorkflow API
+                    await cancelWorkflow(runId);
+
+                    // Show success message
+                    onAlert('Workflow canceled successfully', 'success');
+
+                    // Refresh paused workflows
+                    const paused = await listPausedWorkflows();
+                    setPausedWorkflows(paused);
+                }
+            } else {
+                console.error('Cannot cancel workflow: Run ID is missing or invalid');
+                onAlert('Cannot cancel workflow: missing run ID', 'danger');
+            }
+        } catch (error) {
+            console.error('Error canceling workflow:', error);
+            onAlert('Failed to cancel workflow', 'danger');
+        }
+    };
+
     return (
         <div className="flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <Head>
@@ -791,6 +819,15 @@ const Dashboard: React.FC = () => {
                                                 isIconOnly
                                                 size="sm"
                                                 aria-label="Details"
+                                            />
+                                            <Button
+                                                color="default"
+                                                variant="light"
+                                                onPress={() => handleCancelWorkflow(workflow)}
+                                                startContent={<Icon icon="lucide:trash-2" width={16} />}
+                                                isIconOnly
+                                                size="sm"
+                                                aria-label="Cancel Workflow"
                                             />
                                         </div>
                                     </div>

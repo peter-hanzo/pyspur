@@ -25,6 +25,7 @@ class RunStatus(PyEnum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     PAUSED = "PAUSED"  # Added for human intervention nodes
+    CANCELED = "CANCELED"  # Added for canceling workflows awaiting human approval
 
 
 class RunModel(BaseModel):

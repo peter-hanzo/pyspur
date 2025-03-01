@@ -917,3 +917,59 @@ def process_pause_action(
         response.message = "Task marked as completed. Please call the resume endpoint to continue workflow execution."
 
     return response
+
+@router.post(
+    "/cancel_workflow/{run_id}/",
+    response_model=RunResponseSchema,
+    description="Cancel a workflow that is awaiting human approval"
+)
+def cancel_workflow(
+    run_id: str,
+    db: Session = Depends(get_db),
+) -> RunResponseSchema:
+    """
+    Cancel a workflow that is currently paused or awaiting human approval.
+
+    This will mark the run as CANCELED in the database and update all pending tasks
+    to CANCELED as well.
+
+    Args:
+        run_id: The ID of the run to cancel
+
+    Returns:
+        Information about the canceled run
+
+    Raises:
+        HTTPException: If the run is not found or not in a state that can be canceled
+    """
+    # Get the run
+    run = db.query(RunModel).filter(RunModel.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    # Check if the run is in a state that can be canceled
+    if run.status not in [RunStatus.PAUSED, RunStatus.RUNNING]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Run is in state {run.status} and cannot be canceled. Only PAUSED or RUNNING runs can be canceled."
+        )
+
+    # Update the run status
+    run.status = RunStatus.CANCELED
+    run.end_time = datetime.now(timezone.utc)
+
+    # Update all pending and running tasks to canceled
+    for task in run.tasks:
+        if task.status in [TaskStatus.PENDING, TaskStatus.RUNNING, TaskStatus.PAUSED]:
+            task.status = TaskStatus.CANCELED
+            if not task.end_time:
+                task.end_time = datetime.now(timezone.utc)
+
+    # Commit the changes
+    db.commit()
+    db.refresh(run)
+
+    # Return the updated run
+    response = RunResponseSchema.model_validate(run)
+    response.message = "Workflow has been canceled successfully."
+    return response

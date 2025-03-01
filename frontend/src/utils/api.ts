@@ -1045,3 +1045,16 @@ export const takePauseAction = async (
 
     return await response.json();
 };
+
+/**
+ * Cancel a workflow that is awaiting human approval
+ */
+export const cancelWorkflow = async (runId: string): Promise<RunResponse> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/wf/cancel_workflow/${runId}/`);
+        return response.data;
+    } catch (error) {
+        console.error('Error canceling workflow:', error);
+        throw error;
+    }
+};
