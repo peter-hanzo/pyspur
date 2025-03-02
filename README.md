@@ -47,7 +47,7 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 
 ## Option A: Using `pyspur` Python Package
 
-This is the quickest way to get started. Python 3.12 or higher is required.
+This is the quickest way to get started. Python 3.11 or higher is required.
 
 1. **Install PySpur:**
     ```sh
