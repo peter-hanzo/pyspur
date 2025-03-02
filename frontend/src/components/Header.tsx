@@ -536,7 +536,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     justify="end"
                 >
                     <NavbarItem className="hidden sm:flex">
-                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsSettingsModalOpen(true)}>
+                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsSettingsModalOpen(true)} aria-label="Settings">
                             <Icon className="text-foreground/60" icon="solar:settings-linear" width={24} />
                         </Button>
                     </NavbarItem>
