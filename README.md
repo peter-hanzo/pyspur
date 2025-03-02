@@ -31,14 +31,14 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 
 # 🕸️ Why PySpur?
 
-- 🖐️ **Drag-and-Drop**: Build, Test and Iterate in Seconds.
-- 🔄 **Loops**: Iterative Tool Calling with Memory.
+- ✅ **Test-driven**: Build the workflow, run test cases, and iterate.
+- 🔄 **Loops**: Iterative tool calling with memory.
 - 📤 **File Upload**: Upload files or paste URLs to process documents.
 - 📋 **Structured Outputs**: UI editor for JSON Schemas.
 - 🗃️ **RAG**: Parse, Chunk, Embed, and Upsert Data into a Vector DB.
 - 🖼️ **Multimodal**: Support for Video, Images, Audio, Texts, Code.
 - 🧰 **Tools**: Slack, Firecrawl.dev, Google Sheets, GitHub, and more.
-- 🧪 **Evals**: Evaluate Agents on Real-World Datasets.
+- 🧪 **Evals**: Evaluate agents on real-world datasets.
 - 🚀 **One-Click Deploy**: Publish as an API and integrate wherever you want.
 - 🐍 **Python-Based**: Add new nodes by creating a single Python file.
 - 🎛️ **Any-Vendor-Support**: >100 LLM providers, embedders, and vector DBs.
