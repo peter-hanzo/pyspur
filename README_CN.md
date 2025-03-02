@@ -47,7 +47,7 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 
 ## 选项 A：使用 `pyspur` Python 包
 
-这是入门的最快方式。需要 Python 3.12 或更高版本。
+这是入门的最快方式。需要 Python 3.11 或更高版本。
 
 1. **安装 PySpur:**
     ```sh
