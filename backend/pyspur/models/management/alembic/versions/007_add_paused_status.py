@@ -19,8 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE runstatus ADD VALUE 'PAUSED' AFTER 'FAILED'")
-    op.execute("ALTER TYPE taskstatus ADD VALUE 'PAUSED' AFTER 'FAILED'")
+    op.execute("ALTER TYPE runstatus ADD VALUE IF NOT EXISTS 'PAUSED'")
+    op.execute("ALTER TYPE taskstatus ADD VALUE IF NOT EXISTS 'PAUSED'")
 
 
 def downgrade() -> None:
