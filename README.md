@@ -123,6 +123,13 @@ That's it! Click on "New Spur" to create a workflow, or start with one of the st
 
 # ✨ Core Benefits
 
+## Human-in-the-loop breakpoints:
+
+These breakpoints pause the workflow when reached and resume whenever a human approves it.
+They enable human oversight for workflows that require quality assurance: verify critical outputs before the workflow proceeds.
+
+https://github.com/user-attachments/assets/98cb2b4e-207c-4d97-965b-4fee47c94ce8
+
 ## Debug at Node Level:
 
 https://github.com/user-attachments/assets/6e82ad25-2a46-4c50-b030-415ea9994690
