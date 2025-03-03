@@ -44,10 +44,10 @@ import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
 import CustomEdge from './Edge'
 import Operator from './footer/Operator'
 import { TaskResponse } from '@/types/api_types/taskSchemas'
-
 interface RunViewFlowCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
     workflowID?: string
+    tasksData?: any[]
     tasksData?: TaskResponse[]
     onDownloadImageInit?: (handler: () => void) => void
     projectName?: string
