@@ -214,6 +214,10 @@ class WorkflowExecutor:
         Returns:
             True if the node is downstream of a paused node, False otherwise
         """
+        # If this node is being resumed, it's not considered downstream of a pause
+        if node_id in self._resumed_node_ids:
+            return False
+
         # Check if we have paused nodes in the workflow
         paused_nodes: Set[str] = set()
         if self.task_recorder:
@@ -369,6 +373,25 @@ class WorkflowExecutor:
         try:
             if node_id in self._outputs:
                 return self._outputs[node_id]
+
+            # Check if this node already has a completed task
+            if self.task_recorder and node_id in self.task_recorder.tasks:
+                task = self.task_recorder.tasks[node_id]
+                if task.status == TaskStatus.COMPLETED and task.outputs:
+                    # If the node already has a completed task, use its outputs
+                    try:
+                        # Create a node instance to get the output model
+                        node_instance = NodeFactory.create_node(
+                            node_name=node.title,
+                            node_type_name=node.node_type,
+                            config=node.config,
+                        )
+                        node_output = node_instance.output_model.model_validate(task.outputs)
+                        self._outputs[node_id] = node_output
+                        return node_output
+                    except Exception as e:
+                        print(f"Error validating outputs for completed task {node_id}: {e}")
+                        # Continue with normal execution if validation fails
 
             # Check if this node is downstream of any paused nodes
             if self.is_downstream_of_pause(node_id):
@@ -788,6 +811,10 @@ class WorkflowExecutor:
         if batch_tasks:
             results.extend(await asyncio.gather(*batch_tasks))
         return results
+
+    def add_resumed_node_id(self, node_id: str) -> None:
+        """Add a node ID to the set of resumed node IDs."""
+        self._resumed_node_ids.add(node_id)
 
 
 if __name__ == "__main__":

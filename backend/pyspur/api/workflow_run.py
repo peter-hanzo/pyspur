@@ -760,7 +760,19 @@ def process_pause_action(
     paused_task.error = None  # Clear any error message
     paused_task.outputs = action_request.inputs  # Store new inputs as outputs
 
+    # Delete any pending tasks for the same node
+    # This prevents duplicate tasks when the workflow is resumed
+    pending_tasks = db.query(TaskModel).filter(
+        TaskModel.run_id == run_id,
+        TaskModel.node_id == paused_task.node_id,
+        TaskModel.status == TaskStatus.PENDING
+    ).all()
+
+    for pending_task in pending_tasks:
+        db.delete(pending_task)
+
     db.commit()
+
     db.refresh(run)
 
     # If background_tasks is provided, automatically resume the workflow
@@ -869,6 +881,18 @@ def process_pause_action(
                 # Get all nodes including blocked nodes and the resumed node
                 # We specifically don't include the paused node in nodes_to_run since it's already been completed
                 nodes_to_run: set[str] = blocked_node_ids
+
+                # IMPORTANT: Add the paused node ID to the executor's resumed_node_ids set
+                # This prevents the executor from creating a new task for this node
+                executor.add_resumed_node_id(paused_task.node_id)
+
+                # Also add any node IDs that already have COMPLETED tasks
+                # This prevents the executor from creating new tasks for these nodes
+                completed_node_ids = set()
+                for task in run.tasks:
+                    if task.status == TaskStatus.COMPLETED:
+                        completed_node_ids.add(task.node_id)
+                        executor.add_resumed_node_id(task.node_id)
 
                 # Make sure we include any necessary node inputs in the precomputed outputs
                 if action_request.inputs and paused_task.node_id:

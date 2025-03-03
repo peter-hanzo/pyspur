@@ -45,10 +45,10 @@ import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
 import CustomEdge from './Edge'
 import Operator from './footer/Operator'
 import { TaskResponse } from '@/types/api_types/taskSchemas'
+
 interface RunViewFlowCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
     workflowID?: string
-    tasksData?: any[]
     tasksData?: TaskResponse[]
     onDownloadImageInit?: (handler: () => void) => void
     projectName?: string
@@ -185,11 +185,36 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({
 
     const nodesWithAdjustedZIndex = useAdjustGroupNodesZIndex({ nodes: nodesWithMode })
 
-    // Add status to nodes (especially marking pending nodes)
+    // Add nodeOutputs map for node status tracking
+    const nodeOutputs = useMemo(() => {
+        const outputs: Record<string, any> = {};
+        if (tasksData && tasksData.length > 0) {
+            tasksData.forEach((task) => {
+                // Handle both completed tasks with outputs and paused tasks
+                if (task.outputs) {
+                    outputs[task.node_id] = task.outputs;
+                } else if (task.status === 'PAUSED') {
+                    // For paused tasks (like human intervention), create an empty output object
+                    // to indicate the node exists but is paused
+                    outputs[task.node_id] = { __paused: true };
+                }
+
+                // Include any subworkflow outputs
+                if (task.subworkflow_output) {
+                    Object.entries(task.subworkflow_output).forEach(([subNodeId, subOutput]) => {
+                        outputs[subNodeId] = subOutput;
+                    });
+                }
+            });
+        }
+        return outputs;
+    }, [tasksData]);
+
+    // Use nodeOutputs with status hook
     const nodesWithStatus = useNodesWithStatus({
         nodes: nodesWithAdjustedZIndex,
         nodeOutputs
-    })
+    });
 
     const onEdgeMouseEnter = useCallback((_: React.MouseEvent, edge: Edge) => {
         setHoveredEdge(edge.id)
