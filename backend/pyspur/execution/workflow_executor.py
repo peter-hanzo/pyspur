@@ -237,10 +237,7 @@ class WorkflowExecutor:
 
     def _get_workflow_definition(self) -> Dict[str, Any]:
         """Get workflow definition from context"""
-        if hasattr(self, 'context') and self.context is not None:
-            if hasattr(self.context, 'workflow_definition'):
-                return self.context.workflow_definition or {}
-        return {}
+        return getattr(self.context, 'workflow_definition', {}) or {}
 
     def _mark_node_as_paused(self, node_id: str, pause_output: Optional[BaseNodeOutput] = None) -> None:
         """Mark a node as paused and store its output"""
