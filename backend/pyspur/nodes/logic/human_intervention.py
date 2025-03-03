@@ -75,30 +75,20 @@ class HumanInterventionNode(BaseNode):
         """
         super().setup()
 
-    async def run(self, input: BaseModel) -> BaseModel:
+    @property
+    def node_id(self) -> str:
+        # Return the node id from the instance dict if available, otherwise fallback to self.name
+        return str(self.__dict__.get('id', self.name))
+
+    async def run(self, input: BaseModel) -> BaseNodeOutput:
         """
-        Process input, create an output model, and pause the workflow.
-
-        This method passes through input data to the output and raises a
-        PauseException to trigger a workflow pause for human intervention.
-
-        Args:
-            input: The node input data
-
-        Returns:
-            Never returns normally - always raises PauseException
-
-        Raises:
-            PauseException: Always raised to pause workflow execution
+        Process input and pause the workflow execution,
+        preserving the nested structure so that downstream nodes can access outputs as {{HumanInterventionNode_1.input_node.input_1}}.
         """
-        # Flatten input structure for easier access in templates
-        flat_input = self._flatten_input(input.model_dump())
-
-        # Create output with all input fields directly accessible
-        output = HumanInterventionNodeOutput(**flat_input)
-
-        # Pause workflow execution
-        raise PauseException(self.name, self.config.message, output)
+        # Pass through the input data to preserve the nested structure
+        output_dict = input.model_dump()
+        output = HumanInterventionNodeOutput(**output_dict)
+        raise PauseException(str(self.node_id), self.config.message, output)
 
     def _flatten_input(self, input_dict: dict) -> dict:
         """

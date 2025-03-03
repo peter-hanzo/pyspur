@@ -273,8 +273,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             }
                         })
                     } else if (node.type === 'HumanInterventionNode') {
-                        // For HumanInterventionNode, we need to look for the input fields
-                        // that are being passed through
+                        // For HumanInterventionNode, we need to look for the input fields that are being passed through
 
                         // Find nodes that feed into the HumanInterventionNode
                         const humanNodeInputEdges = edges.filter((edge) => edge.target === node.id)
@@ -288,8 +287,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 const inputSchema = extractSchemaFromJsonSchema(inputConfig.output_json_schema)
                                 if (!inputSchema.error && inputSchema.schema && typeof inputSchema.schema === 'object') {
                                     Object.keys(inputSchema.schema).forEach((key) => {
-                                        // These fields will be available from the HumanInterventionNode output
-                                        acc.push(`${nodeTitle}.${key}`)
+                                        // Use the title of the predecessor node to suggest nested access, e.g., HumanInterventionNode_1.input_node.input_1
+                                        const predecessorTitle = inputNode.title || inputNode.id;
+                                        acc.push(`${nodeTitle}.${predecessorTitle}.${key}`);
                                     })
                                 }
                             }

@@ -493,6 +493,18 @@ class WorkflowExecutor:
                 else:
                     node_input[dep_id] = output
 
+                # Additional handling for HumanInterventionNode outputs
+                # Ensure inputs are keyed by node_id rather than output model name
+                if predecessor_node.node_type == "HumanInterventionNode":
+                    # Ensure the output is stored with the correct node ID
+                    if hasattr(output, 'model_dump'):
+                        # Get a dictionary representation of the output to examine its structure
+                        output_dict = output.model_dump()
+                        # Special transformation for HumanInterventionNode - modify node_input directly
+                        # This ensures downstream nodes can access by node ID like {{HumanInterventionNode_1.input_node.input_1}}
+                        # Store the raw output data directly in the node_input using dep_id as the key
+                        node_input[dep_id] = output_dict
+
             # Special handling for InputNode - use initial inputs
             if node.node_type == "InputNode":
                 node_input = self._initial_inputs.get(node_id, {})
@@ -514,7 +526,7 @@ class WorkflowExecutor:
                     node_id=node_id,
                     status=TaskStatus.RUNNING,
                     inputs={
-                        dep_id: output.model_dump()
+                        dep_id: output.model_dump() if hasattr(output, 'model_dump') else output
                         for dep_id, output in node_input.items()
                         if node.node_type != "InputNode"
                     },
