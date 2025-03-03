@@ -1030,20 +1030,16 @@ export const takePauseAction = async (
     runId: string,
     actionRequest: ResumeActionRequest
 ): Promise<RunResponse> => {
-    const response = await fetch(`${API_BASE_URL}/wf/process_pause_action/${runId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(actionRequest),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to take action on paused workflow: ${errorText}`);
+    try {
+        const response = await axios.post(
+            `${API_BASE_URL}/wf/process_pause_action/${runId}/`,
+            actionRequest
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error taking action on paused workflow:', error);
+        throw error;
     }
-
-    return await response.json();
 };
 
 /**

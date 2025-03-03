@@ -235,6 +235,137 @@ class WorkflowExecutor:
 
         return False
 
+    def _get_workflow_definition(self) -> Dict[str, Any]:
+        """Get workflow definition from context"""
+        if hasattr(self, 'context') and self.context is not None:
+            if hasattr(self.context, 'workflow_definition'):
+                return self.context.workflow_definition or {}
+        return {}
+
+    def _mark_node_as_paused(self, node_id: str, pause_output: Optional[BaseNodeOutput] = None) -> None:
+        """Mark a node as paused and store its output"""
+        # Store the output
+        self._outputs[node_id] = pause_output
+
+        # Update the task recorder if available
+        if self.task_recorder:
+            self.task_recorder.update_task(
+                node_id=node_id,
+                status=TaskStatus.PAUSED,
+                end_time=datetime.now(),
+                outputs=self._serialize_output(pause_output) if pause_output else None,
+            )
+
+    def _mark_downstream_nodes_as_pending(self, paused_node_id: str) -> Set[str]:
+        """Mark all downstream nodes of a paused node as pending"""
+        workflow_definition = self._get_workflow_definition()
+        # Use explicit typing to satisfy the linter
+        blocked_nodes: Set[str] = self.get_blocked_nodes(workflow_definition, paused_node_id)
+
+        # Record for the return value
+        all_updated_nodes = set(blocked_nodes)
+
+        # Update tasks if we have a recorder
+        if self.task_recorder:
+            current_time = datetime.now()
+            for blocked_node_id in blocked_nodes:
+                self.task_recorder.update_task(
+                    node_id=blocked_node_id,
+                    status=TaskStatus.PENDING,
+                    end_time=current_time,
+                    is_downstream_of_pause=True
+                )
+
+                # Remove from failed nodes if necessary
+                if blocked_node_id in self._failed_nodes:
+                    self._failed_nodes.remove(blocked_node_id)
+
+        return all_updated_nodes
+
+    def _update_run_status_to_paused(self) -> None:
+        """Update the run status to paused in the database"""
+        if self.context is None:
+            return
+
+        if not hasattr(self.context, 'db_session') or self.context.db_session is None:
+            return
+
+        if not hasattr(self.context, 'run_id') or self.context.run_id is None:
+            return
+
+        run = self.context.db_session.query(RunModel).filter(
+            RunModel.id == self.context.run_id
+        ).first()
+
+        if run:
+            run.status = RunStatus.PAUSED
+            # Note: We don't commit immediately - caller should commit when all updates are done
+
+    def _handle_pause_exception(self, node_id: str, pause_exception: PauseException) -> None:
+        """Handle a pause exception for a node"""
+        # Mark the node as paused
+        self._mark_node_as_paused(node_id, pause_exception.output)
+
+        # Mark downstream nodes as pending
+        self._mark_downstream_nodes_as_pending(node_id)
+
+        # Update run status
+        self._update_run_status_to_paused()
+
+        # Commit all changes at once
+        if self.context is not None and hasattr(self.context, 'db_session') and self.context.db_session is not None:
+            self.context.db_session.commit()
+
+    def _fix_canceled_tasks_after_pause(self, paused_node_id: str) -> None:
+        """Fix any tasks that were incorrectly marked as CANCELED but should be PENDING because they're downstream of a paused node"""
+        if self.task_recorder is None:
+            return
+
+        if self.context is None:
+            return
+
+        if not hasattr(self.context, 'run_id') or self.context.run_id is None:
+            return
+
+        if not hasattr(self.context, 'db_session') or self.context.db_session is None:
+            return
+
+        run = self.context.db_session.query(RunModel).filter(
+            RunModel.id == self.context.run_id
+        ).first()
+
+        if not run:
+            return
+
+        # Find all downstream nodes of any paused node
+        all_blocked_nodes: Set[str] = set()
+        for task in run.tasks:
+            if task.status == TaskStatus.PAUSED:
+                workflow_definition = self._get_workflow_definition()
+                # Use explicit typing to satisfy the linter
+                blocked_nodes: Set[str] = self.get_blocked_nodes(workflow_definition, task.node_id)
+                all_blocked_nodes.update(blocked_nodes)
+
+        # Batch update for database efficiency
+        tasks_to_update: List[str] = []
+        for task in run.tasks:
+            if task.status == TaskStatus.CANCELED and task.node_id in all_blocked_nodes:
+                tasks_to_update.append(task.node_id)
+
+        # Update all tasks at once
+        if tasks_to_update:
+            current_time = datetime.now()
+            for node_id in tasks_to_update:
+                self.task_recorder.update_task(
+                    node_id=node_id,
+                    status=TaskStatus.PENDING,
+                    end_time=current_time,
+                    is_downstream_of_pause=True
+                )
+
+            # Commit all changes at once
+            self.context.db_session.commit()
+
     async def _execute_node(self, node_id: str) -> Optional[BaseNodeOutput]:
         node = self._node_dict[node_id]
         node_input = {}
@@ -410,41 +541,7 @@ class WorkflowExecutor:
                 self._outputs[node_id] = output
                 return output
             except PauseException as e:
-                # Store the output and update status
-                self._outputs[node_id] = e.output
-                if self.task_recorder:
-                    current_time = datetime.now()
-                    self.task_recorder.update_task(
-                        node_id=node_id,
-                        status=TaskStatus.PAUSED,
-                        end_time=current_time,
-                        outputs=self._serialize_output(e.output) if e.output else None,
-                    )
-
-                    # Get workflow definition from context
-                    workflow_definition = {}
-                    if hasattr(self, 'context') and self.context:
-                        workflow_definition = self.context.workflow_definition or {}
-
-                    # Block downstream nodes
-                    blocked_nodes = self.get_blocked_nodes(workflow_definition, node_id)
-                    for blocked_node_id in blocked_nodes:
-                        self.task_recorder.update_task(
-                            node_id=blocked_node_id,
-                            status=TaskStatus.PENDING,
-                            end_time=current_time,
-                            is_downstream_of_pause=True
-                        )
-
-                # Update run status if we have a context
-                if self.context and self.context.db_session:
-                    run = self.context.db_session.query(RunModel).filter(
-                        RunModel.id == self.context.run_id
-                    ).first()
-                    if run:
-                        run.status = RunStatus.PAUSED
-                        self.context.db_session.commit()
-
+                self._handle_pause_exception(node_id, e)
                 # Return None to prevent downstream execution
                 return None
 
@@ -602,8 +699,8 @@ class WorkflowExecutor:
         results = await asyncio.gather(*self._node_tasks.values(), return_exceptions=True)
 
         # Process results to handle any exceptions
-        paused_node_id = None
-        paused_exception = None
+        paused_node_id: Optional[str] = None
+        paused_exception: Optional[PauseException] = None
         for node_id, result in zip(self._node_tasks.keys(), results):
             if isinstance(result, PauseException):
                 # Handle pause state - don't mark as failed
@@ -642,69 +739,22 @@ class WorkflowExecutor:
                 self._outputs[node_id] = None
 
         # Handle any downstream nodes of paused nodes that might not have been processed yet
-        if paused_node_id and self.task_recorder:
-            # Get workflow definition from context
-            workflow_definition = {}
-            if hasattr(self, 'context') and self.context:
-                workflow_definition = self.context.workflow_definition or {}
-
-            # Find all downstream nodes of the paused node
-            blocked_nodes = self.get_blocked_nodes(workflow_definition, paused_node_id)
-            for node_id in self._node_tasks.keys():
-                if node_id in blocked_nodes:
-                    # Update any node that might not have been properly marked yet
-                    # Also fix any nodes that were incorrectly marked as CANCELED
-                    self.task_recorder.update_task(
-                        node_id=node_id,
-                        status=TaskStatus.PENDING,
-                        end_time=datetime.now(),
-                        is_downstream_of_pause=True
-                    )
-                    # Ensure it's not in the failed nodes
-                    if node_id in self._failed_nodes:
-                        self._failed_nodes.remove(node_id)
+        if paused_node_id is not None and self.task_recorder:
+            self._mark_downstream_nodes_as_pending(paused_node_id)
 
         # Final pass: fix any CANCELED tasks that should be PENDING
-        if paused_node_id and self.task_recorder and hasattr(self.context, 'run_id') and self.context.run_id and self.context.db_session:
-            # Find any CANCELED tasks
-            run = self.context.db_session.query(RunModel).filter(
-                RunModel.id == self.context.run_id
-            ).first()
-
-            if run:
-                # Get workflow definition from context
-                workflow_definition = {}
-                if hasattr(self, 'context') and self.context:
-                    workflow_definition = self.context.workflow_definition or {}
-
-                # Find all downstream nodes of any paused node
-                all_blocked_nodes = set()
-                for task in run.tasks:
-                    if task.status == TaskStatus.PAUSED:
-                        blocked_nodes = self.get_blocked_nodes(workflow_definition, task.node_id)
-                        all_blocked_nodes.update(blocked_nodes)
-
-                # Update any CANCELED tasks that should be PENDING
-                for task in run.tasks:
-                    if task.status == TaskStatus.CANCELED and task.node_id in all_blocked_nodes:
-                        self.task_recorder.update_task(
-                            node_id=task.node_id,
-                            status=TaskStatus.PENDING,
-                            end_time=datetime.now(),
-                            is_downstream_of_pause=True
-                        )
+        if paused_node_id is not None:
+            self._fix_canceled_tasks_after_pause(paused_node_id)
 
         # Ensure workflow status is updated to PAUSED if any node is paused
-        if paused_node_id and self.context and self.context.db_session:
-            run = self.context.db_session.query(RunModel).filter(
-                RunModel.id == self.context.run_id
-            ).first()
-            if run:
-                run.status = RunStatus.PAUSED
+        if paused_node_id is not None:
+            self._update_run_status_to_paused()
+            # Commit all database changes
+            if self.context is not None and hasattr(self.context, 'db_session') and self.context.db_session is not None:
                 self.context.db_session.commit()
 
         # If we have a paused node, re-raise the pause exception
-        if paused_exception:
+        if paused_exception is not None:
             # This must be raised for API endpoints to catch it
             raise paused_exception
 
