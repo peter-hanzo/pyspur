@@ -1,5 +1,3 @@
-'use client'
-
 import type { CardProps, SwitchProps } from '@heroui/react'
 import React, { useState, useEffect } from 'react'
 import {
