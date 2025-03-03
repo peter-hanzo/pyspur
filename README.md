@@ -36,14 +36,14 @@ PySpur's primary purpose is to simplify the testing and debugging of agent workf
 
 Core features:
 
-- 👤 **Human in the Loop**: Persistent workflows that wait for human approval before continuation.
+- 👤 **Human in the Loop**: Persistent workflows that wait for human approval.
 - 🔄 **Loops**: Iterative tool calling with memory.
 - 📤 **File Upload**: Upload files or paste URLs to process documents.
 - 📋 **Structured Outputs**: UI editor for JSON Schemas.
 - 🗃️ **RAG**: Parse, Chunk, Embed, and Upsert Data into a Vector DB.
 - 🖼️ **Multimodal**: Support for Video, Images, Audio, Texts, Code.
 - 🧰 **Tools**: Slack, Firecrawl.dev, Google Sheets, GitHub, and more.
-- 📊 **Traces**: Automatically capture execution traces of deployed agents for monitoring and debugging.
+- 📊 **Traces**: Automatically capture execution traces of deployed agents.
 - 🧪 **Evals**: Evaluate agents on real-world datasets.
 - 🚀 **One-Click Deploy**: Publish as an API and integrate wherever you want.
 - 🐍 **Python-Based**: Add new nodes by creating a single Python file.
