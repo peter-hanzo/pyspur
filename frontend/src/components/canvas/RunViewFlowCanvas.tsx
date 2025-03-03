@@ -37,6 +37,7 @@ import {
     useNodesWithMode,
     useNodeTypes,
     useStyledEdges,
+    useNodesWithStatus,
 } from '../../utils/flowUtils'
 import HelperLinesRenderer from '../HelperLines'
 import LoadingSpinner from '../LoadingSpinner'
@@ -183,6 +184,12 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({
     })
 
     const nodesWithAdjustedZIndex = useAdjustGroupNodesZIndex({ nodes: nodesWithMode })
+
+    // Add status to nodes (especially marking pending nodes)
+    const nodesWithStatus = useNodesWithStatus({
+        nodes: nodesWithAdjustedZIndex,
+        nodeOutputs
+    })
 
     const onEdgeMouseEnter = useCallback((_: React.MouseEvent, edge: Edge) => {
         setHoveredEdge(edge.id)
@@ -360,7 +367,7 @@ const RunViewFlowCanvasContent: React.FC<RunViewFlowCanvasProps> = ({
                 >
                     <ReactFlow
                         key={`flow-${workflowID}`}
-                        nodes={nodesWithAdjustedZIndex}
+                        nodes={nodesWithStatus}
                         edges={styledEdges}
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}

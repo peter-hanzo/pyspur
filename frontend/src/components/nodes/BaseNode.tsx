@@ -307,6 +307,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         case 'CANCELED':
             outlineColor = 'gray'
             break
+        case 'PAUSED':
+            outlineColor = 'orange'
+            break
         default:
             if (status === 'completed') {
                 outlineColor = '#4CAF50'
