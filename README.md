@@ -46,8 +46,6 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 
 # ⚡ Quick start
 
-## Option A: Using `pyspur` Python Package
-
 This is the quickest way to get started. Python 3.11 or higher is required.
 
 1. **Install PySpur:**
@@ -69,57 +67,10 @@ This is the quickest way to get started. Python 3.11 or higher is required.
     By default, this will start PySpur app at `http://localhost:6080` using a sqlite database.
     We recommend you configure a postgres instance URL in the `.env` file to get a more stable experience.
 
-4. **[Optional] Customize Your Deployment:**
-    You can customize your PySpur deployment in two ways:
+4. **[Optional] Configure Your Environment and Add API Keys:**
+    - **App UI**: Navigate to API Keys tab to add provider keys (OpenAI, Anthropic, etc.)
+    - **Manual**: Edit `.env` file (recommended: configure postgres) and restart with `pyspur serve`
 
-    a. **Through the app** (Recommended):
-       - Navigate to the API Keys tab in the app
-       - Add your API keys for various providers (OpenAI, Anthropic, etc.)
-       - Changes take effect immediately
-
-    b. **Manual Configuration**:
-       - Edit the `.env` file in your project directory
-       - It is recommended to configure a postgres database in .env for more reliability
-       - Restart the app with `pyspur serve`. Add `--sqlite` if you are not using postgres
-
-## Option B: Using Docker (Recommended for Scalable, In-Production Systems)
-
-This is the recommended way for production deployments:
-
-1. **Install Docker:**
-    First, install Docker by following the official installation guide for your operating system:
-    - [Docker for Linux](https://docs.docker.com/engine/install/)
-    - [Docker Desktop for Mac](https://docs.docker.com/desktop/install/mac-install/)
-
-2. **Create a PySpur Project:**
-    Once Docker is installed, create a new PySpur project with:
-    ```sh
-    curl -fsSL https://raw.githubusercontent.com/PySpur-com/pyspur/main/start_pyspur_docker.sh | bash -s pyspur-project
-    ```
-    This will:
-    - Start a new PySpur project in a new directory called `pyspur-project`
-    - Set up the necessary configuration files
-    - Start PySpur app automatically backed by a local postgres docker instance
-
-3. **Access PySpur:**
-    Go to `http://localhost:6080` in your browser.
-
-4. **[Optional] Customize Your Deployment:**
-    You can customize your PySpur deployment in two ways:
-
-    a. **Through the app** (Recommended):
-       - Navigate to the API Keys tab in the app
-       - Add your API keys for various providers (OpenAI, Anthropic, etc.)
-       - Changes take effect immediately
-
-    b. **Manual Configuration**:
-       - Edit the `.env` file in your project directory
-       - Restart the services with:
-         ```sh
-         docker compose up -d
-         ```
-
-That's it! Click on "New Spur" to create a workflow, or start with one of the stock templates.
 
 # ✨ Core Benefits
 
