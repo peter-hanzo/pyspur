@@ -731,29 +731,11 @@ const Dashboard: React.FC = () => {
                         )}
                     </AccordionItem>
                     <AccordionItem
-                        key="templates"
-                        aria-label="Spur Templates"
-                        title={<h3 className="text-xl font-semibold mb-4">Spur Templates</h3>}
-                    >
-                        {/* Spur Templates Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
-                            {templates.map((template) => (
-                                <TemplateCard
-                                    key={template.file_name}
-                                    title={template.name}
-                                    description={template.description}
-                                    features={template.features}
-                                    onUse={() => handleUseTemplate(template)}
-                                />
-                            ))}
-                        </div>
-                    </AccordionItem>
-                    <AccordionItem
                         key="human-tasks"
                         aria-label="Human Tasks"
                         title={
                             <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-semibold">Human Tasks</h3>
+                                <h3 className="text-xl font-semibold">Spurs Awaiting Human Approval</h3>
                                 {pausedWorkflows.length > 0 && (
                                     <Chip color="warning" variant="flat" size="sm">
                                         {pausedWorkflows.length}
@@ -834,10 +816,28 @@ const Dashboard: React.FC = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-8 text-default-500">
-                                No workflows currently require human input.
+                            <div className="flex flex-col items-center justify-center p-8 text-center">
+                                <p className="text-muted-foreground">No tasks currently requiring human approval.</p>
                             </div>
                         )}
+                    </AccordionItem>
+                    <AccordionItem
+                        key="templates"
+                        aria-label="Spur Templates"
+                        title={<h3 className="text-xl font-semibold mb-4">Spur Templates</h3>}
+                    >
+                        {/* Spur Templates Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 px-1 mb-8">
+                            {templates.map((template) => (
+                                <TemplateCard
+                                    key={template.file_name}
+                                    title={template.name}
+                                    description={template.description}
+                                    features={template.features}
+                                    onUse={() => handleUseTemplate(template)}
+                                />
+                            ))}
+                        </div>
                     </AccordionItem>
                 </Accordion>
             </div>

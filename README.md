@@ -32,6 +32,7 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 # 🕸️ Why PySpur?
 
 - ✅ **Test-driven**: Build the workflow, run test cases, and iterate.
+- 👤 **Human in the Loop**: Persistent workflows that wait for human approval or rejection.
 - 🔄 **Loops**: Iterative tool calling with memory.
 - 📤 **File Upload**: Upload files or paste URLs to process documents.
 - 📋 **Structured Outputs**: UI editor for JSON Schemas.
