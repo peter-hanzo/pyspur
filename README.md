@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
 
 # 🕸️ Why PySpur?
 
-PySpur's primary purpose is to simplify the testing and debugging of agent workflows. You can set up test cases, execute them step-by-step, and visually inspect each run. Once an agent is deployed to production, execution traces become automatically available.
+PySpur's primary purpose is to simplify building **reliable** agents by making testing and debugging really easy. You can set up test cases, execute them step-by-step, and visually inspect each run. Once an agent is deployed to production, execution traces become automatically available.
 
 Core features:
 
