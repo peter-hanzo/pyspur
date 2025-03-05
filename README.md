@@ -125,8 +125,17 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 # 🛠️ PySpur Development Setup
 #### [ Instructions for development on Unix-like systems. Development on Windows/PC not supported ]
 
-For development, follow these steps:
+We recommend using Cursor/VS Code with our dev container (`.devcontainer/devcontainer.json`) for:
+- Consistent development environment with pre-configured tools and extensions
+- Optimized settings for Python and TypeScript development
+- Automatic hot-reloading and port forwarding
 
+**Option 1: Cursor/VS Code Dev Container (Recommended)**
+1. Install [Cursor](https://www.cursor.com/)/[VS Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Clone and open the repository
+3. Click "Reopen in Container" when prompted
+
+**Option 2: Manual Setup**
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/PySpur-com/pyspur.git
@@ -137,10 +146,11 @@ For development, follow these steps:
     ```sh
     docker compose -f docker-compose.dev.yml up --build -d
     ```
-    This will start a local instance of PySpur with hot-reloading enabled for development.
 
 3. **Customize your setup:**
-    Edit the `.env` file to configure your environment. By default, PySpur uses a local PostgreSQL database. To use an external database, modify the `POSTGRES_*` variables in `.env`.
+    Edit `.env` to configure your environment (e.g., PostgreSQL settings).
+
+Note: Manual setup requires additional configuration and may not include all dev container features.
 
 # ⭐ Support us
 
