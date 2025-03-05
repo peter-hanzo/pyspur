@@ -24,6 +24,7 @@ interface TextEditorProps {
     fieldTitle?: string
     disableFormatting?: boolean
     isTemplateEditor?: boolean
+    readOnly?: boolean
 }
 
 interface TextEditorRef {
@@ -32,7 +33,7 @@ interface TextEditorRef {
 
 const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
     (
-        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle, disableFormatting = false, isTemplateEditor = false },
+        { content: initialContent, setContent, isEditable = true, fullScreen = false, inputSchema = [], fieldTitle, disableFormatting = false, isTemplateEditor = false, readOnly = false },
         ref
     ) => {
         const [localContent, setLocalContent] = React.useState(initialContent)
@@ -86,7 +87,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                 attributes: {
                     class: [
                         'w-full bg-content2 hover:bg-content3 transition-colors min-h-[120px] max-h-[300px] overflow-y-auto resize-y rounded-medium px-3 py-2 text-foreground outline-none placeholder:text-foreground-500',
-                        isEditable ? '' : 'rounded-medium',
+                        isEditable && !readOnly ? '' : 'rounded-medium',
                         fullScreen ? styles.fullScreenEditor : styles.truncatedEditor,
                     ]
                         .filter(Boolean)
@@ -101,7 +102,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                 setLocalContent(newContent)
                 setContent(newContent)
             },
-            editable: isEditable,
+            editable: isEditable && !readOnly,
             autofocus: 'end',
             immediatelyRender: false,
         })
@@ -293,13 +294,13 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
 
         return (
             <div className="relative">
-                {!fullScreen && (
+                {!fullScreen && !readOnly && (
                     <Button onPress={onOpen} isIconOnly className="absolute top-0 right-0 z-10" size="sm">
                         <Icon icon="solar:full-screen-linear" className="w-4 h-4" />
                     </Button>
                 )}
 
-                {isEditable && renderToolbar(editor)}
+                {isEditable && !readOnly && renderToolbar(editor)}
                 <div className={styles.tiptap}>
                     <EditorContent editor={editor} />
                 </div>

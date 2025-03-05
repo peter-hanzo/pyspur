@@ -51,6 +51,7 @@ import { isReservedWord } from '../../../utils/schemaValidation'
 // Define types for props and state
 interface NodeSidebarProps {
     nodeID: string
+    readOnly?: boolean
 }
 
 // Update findNodeSchema to use imported types
@@ -210,7 +211,7 @@ const isTemplateField = (key: string, fieldMetadata?: FieldMetadata): boolean =>
     return templatePatterns.some((pattern) => key === pattern || key.endsWith(pattern))
 }
 
-const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
+const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
@@ -338,7 +339,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
     // Update the input change handler to use local state immediately but debounce Redux updates for Slider
     const handleInputChange = (key: string, value: any, isSlider: boolean = false) => {
         let updatedModel: FlowWorkflowNodeConfig
-
+        if (readOnly) return
         if (key.includes('.')) {
             updatedModel = updateNestedModel(currentNodeConfig, key, value) as FlowWorkflowNodeConfig
         } else {
@@ -361,7 +362,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
 
     // Simplify the title change handlers into a single function
     const handleTitleChangeComplete = (value: string) => {
+        if (readOnly) return
+
         const validTitle = convertToPythonVariableName(value)
+        if (validTitle !== value) {
+            setShowTitleError(true)
+            // Hide the error message after 3 seconds
+            setTimeout(() => setShowTitleError(false), 3000)
+        }
         dispatch(updateNodeTitle({ nodeId: nodeID, newTitle: validTitle }))
     }
 
@@ -414,6 +422,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         key={`select-${nodeID}-${key}`}
                         label={label}
                         selectedKeys={[currentValue]}
+                        isDisabled={readOnly}
                         onChange={(e) => {
                             const selectedModelId = e.target.value
                             // Get constraints for the selected model
@@ -475,6 +484,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     key={`select-${nodeID}-${key}`}
                     label={key}
                     selectedKeys={[currentValue]}
+                    isDisabled={readOnly}
                     onChange={(e) => handleInputChange(key, e.target.value)}
                     fullWidth
                 >
@@ -616,6 +626,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 </div>
                             )
                         }}
+                        isDisabled={readOnly}
                         onChange={(e) => handleInputChange(key, e.target.value)}
                         isLoading={isLoadingIndices}
                         fullWidth
@@ -661,6 +672,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         value={value || 'http://localhost:11434'}
                         onChange={(e) => handleInputChange(key, e.target.value)}
                         placeholder="Enter API base URL"
+                        isDisabled={readOnly}
                     />
                     {!isLast && <hr className="my-2" />}
                 </div>
@@ -683,6 +695,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                 (currentNodeConfig?.llm_info?.model && !currentModelConstraints?.supports_JSON_output) ||
                 node.type === 'RouterNode' ||
                 node.type === 'CoalesceNode' ||
+                readOnly ||
                 false
             return (
                 <div key={key}>
@@ -771,6 +784,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     code={value}
                     mode="python"
                     onChange={(newValue: string) => handleInputChange(key, newValue)}
+                    readOnly={readOnly}
                 />
             )
         }
@@ -821,6 +835,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         setContent={(value) => handleInputChange(key, value)}
                         disableFormatting={key.endsWith('_template')} // Disable formatting for pure template fields
                         isTemplateEditor={true} // This is a template editor in NodeSidebar
+                        readOnly={readOnly} // Pass through the readOnly prop
                     />
                     {key === 'user_message' && renderFewShotExamples()}
                     {!isLast && <hr className="my-2" />}
@@ -851,6 +866,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                             value={value}
                             onChange={(e) => handleInputChange(key, e.target.value)}
                             placeholder="Enter your input"
+                            isDisabled={readOnly}
                         />
                         {!isLast && <hr className="my-2" />}
                     </div>
@@ -973,6 +989,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 maxValue={max}
                                 step={fieldMetadata.type === 'integer' ? 1 : 0.1}
                                 className="w-full"
+                                isDisabled={readOnly}
                                 onChange={(newValue) => {
                                     const path = parentPath ? `${parentPath}.${key}` : key
                                     const lastTwoDots = path.split('.').slice(-2)
@@ -1004,6 +1021,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 const newValue = parseFloat(e.target.value)
                                 handleInputChange(key, isNaN(newValue) ? 0 : newValue)
                             }}
+                            disabled={readOnly}
                         />
                         {!isLast && <hr className="my-2" />}
                     </div>
@@ -1024,6 +1042,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 isSelected={value}
                                 onChange={(e) => handleInputChange(key, e.target.checked)}
                                 className={isMissingBooleanRequired ? 'border-warning' : ''}
+                                isDisabled={readOnly}
                             />
                         </div>
                         {isMissingBooleanRequired && (
@@ -1112,7 +1131,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                         })
                     )
                 }}
-                readOnly={false}
+                readOnly={readOnly}
             />
         )
     }
@@ -1219,6 +1238,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     options={jsonOptions}
                     nodeId={nodeID}
                     availableFields={incomingSchema}
+                    readOnly={readOnly}
                 />
             </div>
         )
@@ -1250,6 +1270,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                     options={jsonOptions}
                     nodeId={nodeID}
                     availableFields={incomingSchema}
+                    readOnly={readOnly}
                 />
             </div>
         )
@@ -1359,6 +1380,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID }) => {
                                 label="Node Title"
                                 fullWidth
                                 description="Use underscores instead of spaces"
+                                isDisabled={readOnly}
                             />
                             <hr className="my-2" />
                             {renderConfigFields()}
