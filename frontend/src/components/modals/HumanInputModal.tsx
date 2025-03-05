@@ -13,7 +13,7 @@ import {
     Chip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { PausedWorkflowResponse } from '@/utils/api'
+import { PausedWorkflowResponse } from '@/types/api_types/pausedWorkflowSchemas'
 import { formatDistanceToNow } from 'date-fns'
 
 interface HumanInputModalProps {
