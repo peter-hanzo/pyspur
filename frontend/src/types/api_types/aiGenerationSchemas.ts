@@ -3,6 +3,7 @@ export interface MessageGenerationRequest {
     message_type: 'system' | 'user'
     existing_message?: string
     context?: string
+    available_variables?: string[]
 }
 
 export interface MessageGenerationResponse {

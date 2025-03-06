@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from loguru import logger
@@ -21,6 +21,7 @@ class MessageGenerationRequest(BaseModel):
     message_type: str  # "system" or "user"
     existing_message: Optional[str] = None
     context: Optional[str] = None
+    available_variables: Optional[List[str]] = None
 
 
 @router.post("/generate_schema/")
@@ -204,27 +205,40 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
 
         if request.existing_message:
             user_message += f"\n\nPlease consider this existing message as a starting point:\n{request.existing_message}"
-            user_message += (
-                "\nModify it based on the description while preserving any compatible parts."
-            )
 
+        # Add context if provided
         if request.context:
-            user_message += f"\n\nAdditional context to consider:\n{request.context}"
+            user_message += f"\n\nAdditional context:\n{request.context}"
 
-        # Call the LLM
+        # Add information about available template variables if provided
+        if request.available_variables and len(request.available_variables) > 0:
+            variables_str = "\n".join([f"- {var}" for var in request.available_variables])
+
+            if request.message_type == "system":
+                user_message += f"\n\nThe message should appropriately incorporate the following template variables that the user has specifically selected for this message:\n{variables_str}\n\nThese variables will be replaced with actual values at runtime. Use them in the appropriate places to make the message dynamic and context-aware."
+            else:  # user message
+                user_message += f"\n\nThe prompt should appropriately incorporate the following template variables that the user has specifically selected for this message:\n{variables_str}\n\nThese variables will be replaced with actual values at runtime. Use them in the appropriate places to make the prompt dynamic and personalized."
+
+            # Additional guidance on template variable usage
+            user_message += "\n\nUse the variables in the format {{ variable_name }}. Only use the variables listed above - do not invent new variables."
+
+        # Prepare messages for the LLM
         messages = [
             {"role": "system", "content": system_message},
             {"role": "user", "content": user_message},
         ]
 
+        # Generate the message using OpenAI
         response = await generate_text(
-            messages=messages, model_name="openai/o3-mini", temperature=0.7
+            messages=messages,
+            model_name="openai/gpt-3.5-turbo",
+            temperature=0.7,
+            max_tokens=1000,
         )
 
         # Process the response to extract the message
-        message = ""
+        message: str = ""
         if isinstance(response, str):
-            # Try to parse as JSON if it looks like JSON
             if response.strip().startswith("{") and response.strip().endswith("}"):
                 try:
                     parsed_response = json.loads(response)
@@ -245,12 +259,8 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
             message = str(response)
 
         return {"message": message}
-
     except Exception as e:
-        # Log the raw response if it exists and is not empty
+        logger.error(f"Error generating message: {str(e)}")
         if response:
-            truncated_response = response[:1000] + "..." if len(response) > 1000 else response
-            logger.error(
-                f"Message generation failed. Raw response (truncated): {truncated_response}. Error: {str(e)}"
-            )
-        raise HTTPException(status_code=400, detail=str(e))
+            logger.error(f"Raw response: {response}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate message: {str(e)}")

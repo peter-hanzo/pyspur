@@ -11,7 +11,9 @@ import {
     Radio,
     RadioGroup,
     Textarea,
-    Tooltip
+    Tooltip,
+    CheckboxGroup,
+    Checkbox
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React, { useState, useEffect } from 'react'
@@ -24,6 +26,7 @@ interface MessageGeneratorProps {
     currentMessage: string
     onMessageGenerated: (newMessage: string) => void
     readOnly?: boolean
+    incomingSchema?: string[]
 }
 
 const MessageGenerator: React.FC<MessageGeneratorProps> = ({
@@ -32,6 +35,7 @@ const MessageGenerator: React.FC<MessageGeneratorProps> = ({
     currentMessage,
     onMessageGenerated,
     readOnly = false,
+    incomingSchema = [],
 }) => {
     const [isOpen, setIsOpen] = useState(false)
     const [description, setDescription] = useState('')
@@ -39,6 +43,7 @@ const MessageGenerator: React.FC<MessageGeneratorProps> = ({
     const [isGenerating, setIsGenerating] = useState(false)
     const [generationError, setGenerationError] = useState('')
     const [hasOpenAIKey, setHasOpenAIKey] = useState<boolean>(false)
+    const [selectedVariables, setSelectedVariables] = useState<string[]>([])
 
     // Check for OpenAI API key on mount
     useEffect(() => {
@@ -53,11 +58,19 @@ const MessageGenerator: React.FC<MessageGeneratorProps> = ({
         checkOpenAIKey()
     }, [])
 
+    // Select all variables by default when modal opens
+    useEffect(() => {
+        if (isOpen && incomingSchema && incomingSchema.length > 0) {
+            setSelectedVariables(incomingSchema)
+        }
+    }, [isOpen, incomingSchema])
+
     // Helper function to reset modal state
     const resetModalState = () => {
         setDescription('')
         setGenerationError('')
         setGenerationType('new')
+        setSelectedVariables([])
         setIsOpen(false)
     }
 
@@ -75,6 +88,7 @@ const MessageGenerator: React.FC<MessageGeneratorProps> = ({
                 description: description,
                 message_type: messageType,
                 existing_message: generationType === 'enhance' ? currentMessage : undefined,
+                available_variables: selectedVariables.length > 0 ? selectedVariables : undefined,
             })
 
             onMessageGenerated(response.message)
@@ -177,6 +191,61 @@ const MessageGenerator: React.FC<MessageGeneratorProps> = ({
                                     <div className="text-sm font-semibold mb-2">Current Message:</div>
                                     <div className="bg-default-100 p-3 rounded-md text-sm whitespace-pre-wrap">
                                         {currentMessage}
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        )}
+
+                        {incomingSchema && incomingSchema.length > 0 && (
+                            <Card className="mb-4">
+                                <CardBody>
+                                    <div className="text-sm font-semibold mb-2">Available Template Variables:</div>
+                                    <div className="mb-2 text-xs text-default-500">
+                                        Select which variables should be included in your generated message:
+                                    </div>
+
+                                    <div className="flex justify-between items-center gap-2 mb-2">
+                                        <div className="text-xs text-default-500">
+                                            {selectedVariables.length} of {incomingSchema.length} variables selected
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="flat"
+                                                onClick={() => setSelectedVariables([...incomingSchema])}
+                                                isDisabled={isGenerating}
+                                            >
+                                                Select All
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="flat"
+                                                onClick={() => setSelectedVariables([])}
+                                                isDisabled={isGenerating}
+                                            >
+                                                Deselect All
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <CheckboxGroup
+                                        value={selectedVariables}
+                                        onValueChange={setSelectedVariables}
+                                        className="mt-2"
+                                    >
+                                        {incomingSchema.map((variable) => (
+                                            <Checkbox
+                                                key={variable}
+                                                value={variable}
+                                                isDisabled={isGenerating}
+                                            >
+                                                <code className="text-primary">{`{{ ${variable} }}`}</code>
+                                            </Checkbox>
+                                        ))}
+                                    </CheckboxGroup>
+
+                                    <div className="mt-2 text-xs text-default-500">
+                                        These variables will be used in your message template and will be replaced with actual values at runtime.
                                     </div>
                                 </CardBody>
                             </Card>

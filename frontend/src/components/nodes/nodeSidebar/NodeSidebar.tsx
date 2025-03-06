@@ -835,6 +835,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                                     currentMessage={currentNodeConfig[key] || ''}
                                     onMessageGenerated={(newMessage) => handleInputChange(key, newMessage)}
                                     readOnly={readOnly}
+                                    incomingSchema={incomingSchema}
                                 />
                             </div>
                         )}
