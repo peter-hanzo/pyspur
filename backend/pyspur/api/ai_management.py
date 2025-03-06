@@ -175,12 +175,27 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
             system_message = """You are an expert at crafting effective system messages for AI assistants.
             Your task is to generate a clear, concise, and effective system message based on the provided description.
 
+            # INSTRUCTIONS
             A good system message should:
             1. Clearly define the AI's role and purpose
             2. Set appropriate boundaries and constraints
             3. Provide necessary context and background information
             4. Be concise but comprehensive
             5. Use clear, unambiguous language
+            6. Use XML tags when appropriate to structure information (e.g., <role>...</role>, <constraints>...</constraints>)
+
+            # EXAMPLES
+            Example 1 (Simple role definition):
+            ```
+            You are a helpful coding assistant that specializes in Python programming.
+            ```
+
+            Example 2 (With XML tags):
+            ```
+            <role>You are a data analysis expert specialized in interpreting financial data.</role>
+            <constraints>Only provide analysis based on the data provided. Do not make assumptions about data you cannot see.</constraints>
+            <format>Present your analysis with clear sections for Summary, Details, and Recommendations.</format>
+            ```
 
             Return ONLY the system message text without any additional explanation or formatting.
             """
@@ -188,12 +203,29 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
             system_message = """You are an expert at crafting effective user prompts for AI assistants.
             Your task is to generate a clear, specific, and effective user prompt based on the provided description.
 
+            # INSTRUCTIONS
             A good user prompt should:
             1. Clearly state what is being asked of the AI
             2. Provide necessary context and specific details
             3. Be structured in a way that guides the AI to produce the desired output
             4. Use clear, unambiguous language
             5. Include any relevant constraints or requirements
+            6. Use XML tags when appropriate to structure information (e.g., <context>...</context>, <request>...</request>)
+
+            # EXAMPLES
+            Example 1 (Simple request):
+            ```
+            Explain how JavaScript promises work with code examples.
+            ```
+
+            Example 2 (With XML tags):
+            ```
+            <context>I'm building a React application with a complex state management system.</context>
+            <request>Review the following code snippet and suggest improvements for performance and readability:</request>
+            <code>
+            // Code would go here
+            </code>
+            ```
 
             Return ONLY the user prompt text without any additional explanation or formatting.
             """
