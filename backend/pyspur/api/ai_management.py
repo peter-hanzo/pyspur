@@ -184,16 +184,33 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
             5. Use clear, unambiguous language
             6. Use XML tags when appropriate to structure information (e.g., <role>...</role>, <constraints>...</constraints>)
 
+            # FORMAT REQUIREMENTS
+            Your generated system message MUST include:
+            1. An "# Instructions" section with clearly enumerated instructions (1., 2., 3., etc.)
+            2. Clear organization with appropriate headings and structure
+
             # EXAMPLES
             Example 1 (Simple role definition):
             ```
             You are a helpful coding assistant that specializes in Python programming.
+
+            # Instructions
+            1. Provide accurate Python code examples when requested
+            2. Explain coding concepts clearly and concisely
+            3. Suggest best practices for Python development
             ```
 
             Example 2 (With XML tags):
             ```
             <role>You are a data analysis expert specialized in interpreting financial data.</role>
-            <constraints>Only provide analysis based on the data provided. Do not make assumptions about data you cannot see.</constraints>
+
+            # Instructions
+            1. Only provide analysis based on the data provided
+            2. Present findings with supporting evidence
+            3. Identify trends and patterns in the data
+            4. Suggest actionable insights when appropriate
+
+            <constraints>Do not make assumptions about data you cannot see.</constraints>
             <format>Present your analysis with clear sections for Summary, Details, and Recommendations.</format>
             ```
 
@@ -212,19 +229,37 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
             5. Include any relevant constraints or requirements
             6. Use XML tags when appropriate to structure information (e.g., <context>...</context>, <request>...</request>)
 
+            # FORMAT REQUIREMENTS
+            Your generated user prompt MUST include:
+            1. An "# Instructions" section with clearly enumerated instructions (1., 2., 3., etc.)
+            2. Clear organization with appropriate headings and structure
+
             # EXAMPLES
             Example 1 (Simple request):
             ```
             Explain how JavaScript promises work with code examples.
+
+            # Instructions
+            1. Explain the concept in simple terms first
+            2. Provide practical code examples
+            3. Include error handling patterns
             ```
 
             Example 2 (With XML tags):
             ```
             <context>I'm building a React application with a complex state management system.</context>
+
             <request>Review the following code snippet and suggest improvements for performance and readability:</request>
+
             <code>
             // Code would go here
             </code>
+
+            # Instructions
+            1. Identify performance bottlenecks in the code
+            2. Suggest specific refactoring approaches
+            3. Explain the reasoning behind each recommendation
+            4. Provide example code for key improvements
             ```
 
             Return ONLY the user prompt text without any additional explanation or formatting.
