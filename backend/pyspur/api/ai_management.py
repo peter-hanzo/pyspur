@@ -18,7 +18,7 @@ class SchemaGenerationRequest(BaseModel):
 
 class MessageGenerationRequest(BaseModel):
     description: str
-    message_type: str  # "system" or "user"
+    message_type: Literal['system', 'user']  # "system" or "user"
     existing_message: Optional[str] = None
     context: Optional[str] = None
     available_variables: Optional[List[str]] = None
