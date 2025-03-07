@@ -237,6 +237,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
     const [fewShotIndex, setFewShotIndex] = useState<number | null>(null)
     const [showTitleError, setShowTitleError] = useState(false)
     const [jsonSchemaError, setJsonSchemaError] = useState<string>('')
+    const [messageVersions, setMessageVersions] = useState<Record<string, number>>({})
 
     // Add state for vector indices
     const [vectorIndices, setVectorIndices] = useState<VectorIndexOption[]>([])
@@ -359,6 +360,18 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
         } else {
             dispatch(updateNodeConfigOnly({ id: nodeID, data: updatedModel }))
         }
+    }
+
+    // Function to handle message generation specifically
+    const handleMessageGenerated = (key: string, newMessage: string) => {
+        // Update the message version for this field
+        setMessageVersions(prev => ({
+            ...prev,
+            [key]: (prev[key] || 0) + 1
+        }))
+
+        // Call the regular input change handler
+        handleInputChange(key, newMessage)
     }
 
     // Simplify the title change handlers into a single function
@@ -833,14 +846,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                                     nodeID={nodeID}
                                     messageType={key === 'system_message' ? 'system' : 'user'}
                                     currentMessage={currentNodeConfig[key] || ''}
-                                    onMessageGenerated={(newMessage) => handleInputChange(key, newMessage)}
+                                    onMessageGenerated={(newMessage) => handleMessageGenerated(key, newMessage)}
                                     readOnly={readOnly}
                                     incomingSchema={incomingSchema}
                                 />
                             </div>
                         )}
                         <TextEditor
-                            key={`text-editor-${nodeID}-${key}`}
+                            key={`text-editor-${nodeID}-${key}-${messageVersions[key] || 0}`}
                             nodeID={nodeID}
                             fieldName={key}
                             inputSchema={incomingSchema}
