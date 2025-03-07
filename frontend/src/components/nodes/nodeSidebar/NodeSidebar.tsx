@@ -1115,7 +1115,16 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
             .filter((key) => key.includes('template') || key.includes('message') || key.includes('prompt'))
             .filter((key) => !priorityFields.includes(key))
 
-        const remainingKeys = keys.filter((key) => !priorityFields.includes(key) && !templateFields.includes(key))
+        // Filter out thinking-related fields if not using Claude 3.7 Sonnet
+        const isClaudeSonnet37 = currentNodeConfig?.llm_info?.model === 'anthropic/claude-3-7-sonnet-latest'
+        const remainingKeys = keys
+            .filter((key) => !priorityFields.includes(key) && !templateFields.includes(key))
+            .filter((key) => {
+                if (!isClaudeSonnet37 && (key === 'enable_thinking' || key === 'thinking_budget_tokens')) {
+                    return false
+                }
+                return true
+            })
 
         const orderedKeys = [...priorityFields.filter((key) => keys.includes(key)), ...templateFields, ...remainingKeys]
 
