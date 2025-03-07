@@ -308,7 +308,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                 <Modal
                     isOpen={isOpen}
                     onOpenChange={onOpenChange}
-                    size="5xl"
+                    size="full"
                     scrollBehavior="inside"
                     placement="center"
                 >
