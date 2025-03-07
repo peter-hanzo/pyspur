@@ -840,7 +840,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                             </div>
                         )}
                         <TextEditor
-                            key={`text-editor-${nodeID}-${key}-${currentNodeConfig[key]}`}
+                            key={`text-editor-${nodeID}-${key}`}
                             nodeID={nodeID}
                             fieldName={key}
                             inputSchema={incomingSchema}
