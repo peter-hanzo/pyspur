@@ -49,6 +49,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
         const [generationError, setGenerationError] = React.useState('')
         const [hasOpenAIKey, setHasOpenAIKey] = React.useState<boolean>(false)
         const [selectedVariables, setSelectedVariables] = React.useState<string[]>([])
+        const [isAIGenerated, setIsAIGenerated] = React.useState(false)
 
         // Check for OpenAI API key on mount
         useEffect(() => {
@@ -62,98 +63,6 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             }
             checkOpenAIKey()
         }, [])
-
-        // Select all variables by default when modal opens
-        useEffect(() => {
-            if (isOpen && inputSchema && inputSchema.length > 0) {
-                setSelectedVariables(inputSchema)
-            }
-        }, [isOpen, inputSchema])
-
-        // Helper function to reset modal state
-        const resetModalState = () => {
-            setDescription('')
-            setGenerationError('')
-            setGenerationType('new')
-            setSelectedVariables([])
-            setIsOpen(false)
-        }
-
-        const handleGenerateMessage = async () => {
-            if (!description.trim()) {
-                setGenerationError('Please enter a description')
-                return
-            }
-
-            setIsGenerating(true)
-            setGenerationError('')
-
-            try {
-                const response = await generateMessage({
-                    description: description,
-                    message_type: messageType,
-                    existing_message: generationType === 'enhance' ? localContent : undefined,
-                    available_variables: selectedVariables.length > 0 ? selectedVariables : undefined,
-                })
-
-                setLocalContent(response.message)
-                setContent(response.message)
-                resetModalState()
-            } catch (error: any) {
-                setGenerationError(error.response?.data?.detail || 'Failed to generate message')
-            } finally {
-                setIsGenerating(false)
-            }
-        }
-
-        const renderGenerateButton = () => {
-            if (readOnly || !enableAIGeneration) return null
-
-            const buttonLabel = `AI Generate ${messageType === 'system' ? 'System Message' : 'Prompt'}`
-
-            const button = (
-                <Button
-                    size="sm"
-                    color="primary"
-                    variant="light"
-                    startContent={<Icon icon="solar:magic-stick-linear" width={20} />}
-                    onClick={() => setIsOpen(true)}
-                    isDisabled={!hasOpenAIKey || readOnly}
-                >
-                    AI Generate
-                </Button>
-            )
-
-            if (!hasOpenAIKey) {
-                return (
-                    <Tooltip
-                        content="OpenAI API key is required for AI message generation. Please add your API key in the settings."
-                        placement="top"
-                    >
-                        {button}
-                    </Tooltip>
-                )
-            }
-
-            return button
-        }
-
-        // Get appropriate placeholder text based on message type
-        const getPlaceholderText = () => {
-            if (messageType === 'system') {
-                return generationType === 'new'
-                    ? "Example: Create a system message for a coding assistant that specializes in debugging JavaScript code"
-                    : "Example: Make the assistant more detailed in its explanations and add instructional guidance"
-            } else {
-                return generationType === 'new'
-                    ? "Example: Create a prompt that asks for a detailed analysis of quarterly financial data with trend identification"
-                    : "Example: Add a request for the response to include actionable recommendations"
-            }
-        }
-
-        useEffect(() => {
-            setLocalContent(initialContent)
-        }, [initialContent])
 
         const getEditorExtensions = () => {
             if (disableFormatting) {
@@ -193,6 +102,50 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             ]
         }
 
+        // Select all variables by default when modal opens
+        useEffect(() => {
+            if (isOpen && inputSchema && inputSchema.length > 0) {
+                setSelectedVariables(inputSchema)
+            }
+        }, [isOpen, inputSchema])
+
+        // Helper function to reset modal state
+        const resetModalState = () => {
+            setDescription('')
+            setGenerationError('')
+            setGenerationType('new')
+            setSelectedVariables([])
+            setIsOpen(false)
+        }
+
+        const handleGenerateMessage = async () => {
+            if (!description.trim()) {
+                setGenerationError('Please enter a description')
+                return
+            }
+
+            setIsGenerating(true)
+            setGenerationError('')
+
+            try {
+                const response = await generateMessage({
+                    description: description,
+                    message_type: messageType,
+                    existing_message: generationType === 'enhance' ? localContent : undefined,
+                    available_variables: selectedVariables.length > 0 ? selectedVariables : undefined,
+                })
+
+                setIsAIGenerated(true)
+                setLocalContent(response.message)
+                setContent(response.message)
+                resetModalState()
+            } catch (error: any) {
+                setGenerationError(error.response?.data?.detail || 'Failed to generate message')
+            } finally {
+                setIsGenerating(false)
+            }
+        }
+
         const editor = useEditor({
             extensions: getEditorExtensions(),
             content: localContent ? localContent : '',
@@ -220,14 +173,6 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             immediatelyRender: false,
         })
 
-        useImperativeHandle(ref, () => ({
-            insertAtCursor: (text: string) => {
-                if (editor) {
-                    editor.chain().focus().insertContent(text).run()
-                }
-            },
-        }))
-
         const { isOpen: modalIsOpen, onOpen: modalOnOpen, onOpenChange: modalOnOpenChange } = useDisclosure()
 
         const modalEditor = useEditor({
@@ -247,6 +192,27 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             autofocus: false,
             immediatelyRender: false,
         })
+
+        // Effect to update editor content after AI generation
+        useEffect(() => {
+            if (isAIGenerated) {
+                if (editor) {
+                    editor.commands.setContent(localContent)
+                }
+                if (modalEditor) {
+                    modalEditor.commands.setContent(localContent)
+                }
+                setIsAIGenerated(false)
+            }
+        }, [localContent, editor, modalEditor, isAIGenerated])
+
+        useImperativeHandle(ref, () => ({
+            insertAtCursor: (text: string) => {
+                if (editor) {
+                    editor.chain().focus().insertContent(text).run()
+                }
+            },
+        }))
 
         // Update effect to only sync modal editor content when modal opens
         useEffect(() => {
@@ -414,6 +380,55 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
             }
             onClose()
         }
+
+        const renderGenerateButton = () => {
+            if (readOnly || !enableAIGeneration) return null
+
+            const buttonLabel = `AI Generate ${messageType === 'system' ? 'System Message' : 'Prompt'}`
+
+            const button = (
+                <Button
+                    size="sm"
+                    color="primary"
+                    variant="light"
+                    startContent={<Icon icon="solar:magic-stick-linear" width={20} />}
+                    onClick={() => setIsOpen(true)}
+                    isDisabled={!hasOpenAIKey || readOnly}
+                >
+                    AI Generate
+                </Button>
+            )
+
+            if (!hasOpenAIKey) {
+                return (
+                    <Tooltip
+                        content="OpenAI API key is required for AI message generation. Please add your API key in the settings."
+                        placement="top"
+                    >
+                        {button}
+                    </Tooltip>
+                )
+            }
+
+            return button
+        }
+
+        // Get appropriate placeholder text based on message type
+        const getPlaceholderText = () => {
+            if (messageType === 'system') {
+                return generationType === 'new'
+                    ? "Example: Create a system message for a coding assistant that specializes in debugging JavaScript code"
+                    : "Example: Make the assistant more detailed in its explanations and add instructional guidance"
+            } else {
+                return generationType === 'new'
+                    ? "Example: Create a prompt that asks for a detailed analysis of quarterly financial data with trend identification"
+                    : "Example: Add a request for the response to include actionable recommendations"
+            }
+        }
+
+        useEffect(() => {
+            setLocalContent(initialContent)
+        }, [initialContent])
 
         return (
             <div className="relative">
