@@ -42,7 +42,6 @@ import TextEditor from '../../textEditor/TextEditor'
 import NodeOutput from '../NodeOutputDisplay'
 import OutputSchemaEditor from './OutputSchemaEditor'
 import SchemaEditor from './SchemaEditor'
-import MessageGenerator from './MessageGenerator'
 
 import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '@/utils/schemaUtils'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
@@ -840,18 +839,6 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                         )}
                     </div>
                     <div className="flex flex-col gap-2">
-                        {(key === 'system_message' || key === 'user_message') && !readOnly && (
-                            <div className="flex justify-end mb-1">
-                                <MessageGenerator
-                                    nodeID={nodeID}
-                                    messageType={key === 'system_message' ? 'system' : 'user'}
-                                    currentMessage={currentNodeConfig[key] || ''}
-                                    onMessageGenerated={(newMessage) => handleMessageGenerated(key, newMessage)}
-                                    readOnly={readOnly}
-                                    incomingSchema={incomingSchema}
-                                />
-                            </div>
-                        )}
                         <TextEditor
                             key={`text-editor-${nodeID}-${key}-${messageVersions[key] || 0}`}
                             nodeID={nodeID}
@@ -863,6 +850,8 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                             disableFormatting={key.endsWith('_template')} // Disable formatting for pure template fields
                             isTemplateEditor={true} // This is a template editor in NodeSidebar
                             readOnly={readOnly} // Pass through the readOnly prop
+                            enableAIGeneration={key === 'system_message' || key === 'user_message'}
+                            messageType={key === 'system_message' ? 'system' : 'user'}
                         />
                     </div>
                     {key === 'user_message' && renderFewShotExamples()}
