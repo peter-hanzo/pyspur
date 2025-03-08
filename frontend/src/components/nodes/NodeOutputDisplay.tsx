@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react'
 
 interface NodeOutputDisplayProps {
     output: Record<string, any>
+    maxHeight?: string | number
 }
 
 // Add a helper function to generate a simple hash for content
@@ -19,7 +20,7 @@ const generateContentHash = (content: string): string => {
     return Math.abs(hash).toString(36);
 };
 
-const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
+const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output, maxHeight = '500px' }) => {
     const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
     const copyToClipboard = async (text: string | any, key: string) => {
@@ -478,7 +479,7 @@ const NodeOutputDisplay: React.FC<NodeOutputDisplayProps> = ({ output }) => {
                     style={{
                         overflowY: 'auto',
                         touchAction: 'none',
-                        maxHeight: '500px'
+                        maxHeight: maxHeight
                     }}
                     onWheelCapture={(e) => {
                         e.stopPropagation()
