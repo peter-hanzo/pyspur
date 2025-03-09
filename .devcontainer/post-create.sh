@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Install pre-commit hooks
+pre-commit install
+
+# Check if package.json has changed and reinstall if needed
+if [ -f /pyspur/frontend/package.json ]; then
+    cd /pyspur/frontend && npm install
+fi
+
 # Add source command to main bashrc
 echo '
 # Source custom settings
