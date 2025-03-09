@@ -10,6 +10,7 @@ from typing import Any, Awaitable, Callable, Coroutine, Dict, List, Optional, Se
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from loguru import logger
 
 from ..database import get_db
 from ..dataset.ds_util import get_ds_column_names, get_ds_iterator
