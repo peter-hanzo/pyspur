@@ -1115,7 +1115,7 @@ def _create_resume_workflow_task(
         except Exception as e:
             run.status = RunStatus.FAILED
             run.end_time = datetime.now(timezone.utc)
-            print(f"Error resuming workflow: {e}")
+            logger.error(f"Error resuming workflow: {e}")
         db.commit()
 
     return resume_workflow_task
