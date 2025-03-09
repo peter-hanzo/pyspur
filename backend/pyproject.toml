@@ -89,8 +89,6 @@ pyspur = "pyspur.cli:main"
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "black>=23.0",
-    "isort>=5.0",
     "ruff>=0.1.0",
 ]
 
