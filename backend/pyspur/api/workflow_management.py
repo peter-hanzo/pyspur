@@ -385,7 +385,7 @@ async def upload_test_files(
 
         return {node_id: saved_paths}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get(
