@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Install pre-commit hooks
+uv pip install --system pre-commit==4.1.0
 pre-commit install
 
 # Check if package.json has changed and reinstall if needed
