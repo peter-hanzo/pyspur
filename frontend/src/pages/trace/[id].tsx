@@ -1,4 +1,4 @@
-import RunViewFlowCanvas from '@/components/canvas/RunViewFlowCanvas'
+import RunViewFlowCanvas from '@/components/canvas/TraceCanvas'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'

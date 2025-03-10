@@ -13,7 +13,7 @@ import { AppDispatch } from '../../store/store'
 import { WorkflowCreateRequest, WorkflowResponse } from '@/types/api_types/workflowSchemas'
 
 // Use dynamic import for FlowCanvas to avoid SSR issues
-const FlowCanvas = dynamic(() => import('../../components/canvas/FlowCanvas'), {
+const FlowCanvas = dynamic(() => import('../../components/canvas/EditorCanvas'), {
     ssr: false,
 })
 
