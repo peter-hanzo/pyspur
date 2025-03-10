@@ -1,30 +1,41 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
 
+class SpurType(str, Enum):
+    """Enum representing the type of spur.
+
+    Workflow: Standard workflow with nodes and edges
+    Chatbot: Essentially a workflow with chat compatible IO and session management
+    Agent: Autonomous agent node that calls tools, also has chat compatible IO
+        and session management
+    """
+
+    WORKFLOW = "workflow"
+    CHATBOT = "chatbot"
+    AGENT = "agent"
+
+
 class WorkflowNodeCoordinatesSchema(BaseModel):
-    """
-    Coordinates for a node in a workflow.
-    """
+    """Coordinates for a node in a workflow."""
 
     x: float
     y: float
 
 
 class WorkflowNodeDimensionsSchema(BaseModel):
-    """
-    Dimensions for a node in a workflow.
-    """
+    """Dimensions for a node in a workflow."""
 
     width: float
     height: float
 
 
 class WorkflowNodeSchema(BaseModel):
-    """
-    A node represents a single step in a workflow.
+    """A single step in a workflow.
+
     Each node receives a dictionary mapping predecessor node IDs to their outputs.
     For dynamic schema nodes, the output schema is defined in the config dictionary.
     For static schema nodes, the output schema is defined in the node class implementation.
@@ -69,8 +80,8 @@ class WorkflowNodeSchema(BaseModel):
 
 
 class WorkflowLinkSchema(BaseModel):
-    """
-    A link simply connects a source node to a target node.
+    """Connect a source node to a target node.
+
     The target node will receive the source node's output in its input dictionary.
     """
 
@@ -81,23 +92,22 @@ class WorkflowLinkSchema(BaseModel):
 
 
 class WorkflowDefinitionSchema(BaseModel):
-    """
-    A workflow is a DAG of nodes.
-    """
+    """A workflow is a DAG of nodes."""
 
     nodes: List[WorkflowNodeSchema]
     links: List[WorkflowLinkSchema]
     test_inputs: List[Dict[str, Any]] = []
+    spur_type: SpurType = SpurType.WORKFLOW
 
     @field_validator("nodes")
-    def nodes_must_have_unique_ids(cls, v: List[WorkflowNodeSchema]):
+    def nodes_must_have_unique_ids(self, v: List[WorkflowNodeSchema]):
         node_ids = [node.id for node in v]
         if len(node_ids) != len(set(node_ids)):
             raise ValueError("Node IDs must be unique.")
         return v
 
     @field_validator("nodes")
-    def must_have_one_and_only_one_input_node(cls, v: List[WorkflowNodeSchema]):
+    def must_have_one_and_only_one_input_node(self, v: List[WorkflowNodeSchema]):
         input_nodes = [
             node for node in v if node.node_type == "InputNode" and node.parent_id is None
         ]
@@ -106,7 +116,7 @@ class WorkflowDefinitionSchema(BaseModel):
         return v
 
     @field_validator("nodes")
-    def must_have_at_most_one_output_node(cls, v: List[WorkflowNodeSchema]):
+    def must_have_at_most_one_output_node(self, v: List[WorkflowNodeSchema]):
         output_nodes = [
             node for node in v if node.node_type == "OutputNode" and node.parent_id is None
         ]
@@ -116,14 +126,13 @@ class WorkflowDefinitionSchema(BaseModel):
 
     @model_validator(mode="after")
     def validate_router_node_links(self):
-        """
-        Validates that links connected to RouterNodes have correctly formatted target handles.
+        """Validate links connected to RouterNodes.
+
+        They must have correctly formatted target handles.
         For RouterNodes, the target handle should match the format: source_node_id.handle_id
         """
         for link in self.links:
-            source_node = next(
-                (node for node in self.nodes if node.id == link.source_id), None
-            )
+            source_node = next((node for node in self.nodes if node.id == link.source_id), None)
             if source_node and source_node.node_type == "RouterNode":
                 target_handle = link.target_handle or link.source_id
 
@@ -138,13 +147,13 @@ class WorkflowDefinitionSchema(BaseModel):
         return self
 
     class Config:
+        """Pydantic model configuration."""
+
         from_attributes = True
 
 
 class WorkflowCreateRequestSchema(BaseModel):
-    """
-    A request to create a new workflow.
-    """
+    """A request to create a new workflow."""
 
     name: str
     description: str = ""
@@ -152,9 +161,7 @@ class WorkflowCreateRequestSchema(BaseModel):
 
 
 class WorkflowResponseSchema(BaseModel):
-    """
-    A response containing the details of a workflow.
-    """
+    """A response containing the details of a workflow."""
 
     id: str
     name: str
@@ -164,13 +171,13 @@ class WorkflowResponseSchema(BaseModel):
     updated_at: datetime
 
     class Config:
+        """Pydantic model configuration."""
+
         from_attributes = True
 
 
 class WorkflowVersionResponseSchema(BaseModel):
-    """
-    A response containing the details of a workflow version.
-    """
+    """A response containing the details of a workflow version."""
 
     version: int
     name: str
@@ -181,4 +188,6 @@ class WorkflowVersionResponseSchema(BaseModel):
     updated_at: datetime
 
     class Config:
+        """Pydantic model configuration."""
+
         from_attributes = True
