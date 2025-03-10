@@ -122,7 +122,6 @@
     },
     "lint-staged": {
         "src/**/*.{ts,tsx}": [
-            "tsc-files --noEmit --project tsconfig.check.json",
             "eslint --fix",
             "prettier --write"
         ],

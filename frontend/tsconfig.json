@@ -36,7 +36,8 @@
         "tailwind.config.js",
         "src/types/*.d.ts",
         "**/*.css",
-        "**/*.module.css"
+        "**/*.module.css",
+        "src/types/**/*.d.ts"
     ],
     "exclude": ["node_modules"]
 }
