@@ -80,8 +80,7 @@
         "start": "next start",
         "lint": "next lint",
         "format": "prettier --write .",
-        "lint-fix": "next lint --fix",
-        "prepare": "husky install"
+        "lint-fix": "next lint --fix"
     },
     "eslintConfig": {
         "extends": [
