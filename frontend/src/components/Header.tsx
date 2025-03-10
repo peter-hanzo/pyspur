@@ -418,9 +418,25 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
                                 <DropdownTrigger>
-                                    <Button isIconOnly radius="full" variant="light">
-                                        <Icon className="text-foreground/60" icon="solar:playlist-linear" width={22} />
-                                    </Button>
+                                    <span>
+                                        <Tooltip
+                                            content={
+                                                <div className="px-1 py-2">
+                                                    <div className="text-small font-bold">Run History</div>
+                                                    <div className="text-tiny">View previous workflow runs</div>
+                                                </div>
+                                            }
+                                            placement="bottom"
+                                        >
+                                            <Button isIconOnly radius="full" variant="light">
+                                                <Icon
+                                                    className="text-foreground/60"
+                                                    icon="solar:playlist-linear"
+                                                    width={22}
+                                                />
+                                            </Button>
+                                        </Tooltip>
+                                    </span>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     {isUpdatingStatus ? (
@@ -456,78 +472,102 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                             </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Tooltip content="Version History">
-                                <Dropdown isOpen={isVersionHistoryOpen} onOpenChange={setIsVersionHistoryOpen}>
-                                    <DropdownTrigger>
-                                        <Button isIconOnly radius="full" variant="light">
-                                            <Icon
-                                                className="text-foreground/60"
-                                                icon="solar:history-linear"
-                                                width={22}
-                                            />
-                                        </Button>
-                                    </DropdownTrigger>
-                                    <DropdownMenu>
-                                        {isLoadingVersions ? (
-                                            <DropdownItem key={`fetching-latest-versions`}>
-                                                <div className="flex items-center gap-2">
-                                                    <Spinner size="sm" />
-                                                    <span>Fetching versions...</span>
+                            <Dropdown isOpen={isVersionHistoryOpen} onOpenChange={setIsVersionHistoryOpen}>
+                                <DropdownTrigger>
+                                    <span>
+                                        <Tooltip
+                                            content={
+                                                <div className="px-1 py-2">
+                                                    <div className="text-small font-bold">Version History</div>
+                                                    <div className="text-tiny">View and compare workflow versions</div>
                                                 </div>
-                                            </DropdownItem>
-                                        ) : workflowVersions.length === 0 ? (
-                                            <DropdownItem key="no-versions">No versions available</DropdownItem>
-                                        ) : (
-                                            <>
-                                                {workflowVersions.map((version, index) => (
-                                                    <DropdownItem
-                                                        key={version.version}
-                                                        textValue={`Version ${version.version}`}
-                                                        className="flex items-center justify-between"
-                                                    >
-                                                        <span>{`Version ${version.version} | ${formatDistanceStrict(Date.parse(version.created_at + 'Z'), new Date(), { addSuffix: true })}`}</span>
-                                                        {index > 0 && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="light"
-                                                                className="ml-2"
-                                                                startContent={
-                                                                    <Icon icon="solar:document-add-linear" width={16} />
-                                                                }
-                                                                onPress={(e) => {
-                                                                    router.push(
-                                                                        `/version-diff/${workflowId}?left=${version.version}&right=${workflowVersions[0].version}`
-                                                                    )
-                                                                }}
-                                                            >
-                                                                Compare with Latest
-                                                            </Button>
-                                                        )}
-                                                    </DropdownItem>
-                                                ))}
-                                                {workflowVersions.length >= 2 && (
-                                                    <DropdownItem
-                                                        key="compare-versions"
-                                                        onPress={() => router.push(`/version-diff/${workflowId}`)}
-                                                        startContent={
-                                                            <Icon icon="solar:document-add-linear" width={20} />
-                                                        }
-                                                    >
-                                                        Custom Compare
-                                                    </DropdownItem>
-                                                )}
-                                            </>
-                                        )}
-                                    </DropdownMenu>
-                                </Dropdown>
-                            </Tooltip>
+                                            }
+                                            placement="bottom"
+                                        >
+                                            <Button isIconOnly radius="full" variant="light">
+                                                <Icon
+                                                    className="text-foreground/60"
+                                                    icon="solar:history-linear"
+                                                    width={22}
+                                                />
+                                            </Button>
+                                        </Tooltip>
+                                    </span>
+                                </DropdownTrigger>
+                                <DropdownMenu>
+                                    {isLoadingVersions ? (
+                                        <DropdownItem key={`fetching-latest-versions`}>
+                                            <div className="flex items-center gap-2">
+                                                <Spinner size="sm" />
+                                                <span>Fetching versions...</span>
+                                            </div>
+                                        </DropdownItem>
+                                    ) : workflowVersions.length === 0 ? (
+                                        <DropdownItem key="no-versions">No versions available</DropdownItem>
+                                    ) : (
+                                        <>
+                                            {workflowVersions.map((version, index) => (
+                                                <DropdownItem
+                                                    key={version.version}
+                                                    textValue={`Version ${version.version}`}
+                                                    className="flex items-center justify-between"
+                                                >
+                                                    <span>{`Version ${version.version} | ${formatDistanceStrict(Date.parse(version.created_at + 'Z'), new Date(), { addSuffix: true })}`}</span>
+                                                    {index > 0 && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="light"
+                                                            className="ml-2"
+                                                            startContent={
+                                                                <Icon icon="solar:document-add-linear" width={16} />
+                                                            }
+                                                            onPress={(e) => {
+                                                                router.push(
+                                                                    `/version-diff/${workflowId}?left=${version.version}&right=${workflowVersions[0].version}`
+                                                                )
+                                                            }}
+                                                        >
+                                                            Compare with Latest
+                                                        </Button>
+                                                    )}
+                                                </DropdownItem>
+                                            ))}
+                                            {workflowVersions.length >= 2 && (
+                                                <DropdownItem
+                                                    key="compare-versions"
+                                                    onPress={() => router.push(`/version-diff/${workflowId}`)}
+                                                    startContent={<Icon icon="solar:document-add-linear" width={20} />}
+                                                >
+                                                    Custom Compare
+                                                </DropdownItem>
+                                            )}
+                                        </>
+                                    )}
+                                </DropdownMenu>
+                            </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown>
                                 <DropdownTrigger>
-                                    <Button isIconOnly radius="full" variant="light">
-                                        <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
-                                    </Button>
+                                    <span>
+                                        <Tooltip
+                                            content={
+                                                <div className="px-1 py-2">
+                                                    <div className="text-small font-bold">Download Options</div>
+                                                    <div className="text-tiny">Download workflow as JSON or image</div>
+                                                </div>
+                                            }
+                                            placement="bottom"
+                                        >
+                                            <Button isIconOnly radius="full" variant="light">
+                                                <Icon
+                                                    className="text-foreground/60"
+                                                    icon="solar:download-linear"
+                                                    width={24}
+                                                />
+                                            </Button>
+                                        </Tooltip>
+                                    </span>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     <DropdownItem
@@ -560,16 +600,34 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                             </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Tooltip content="Upload Workflow JSON">
+                            <Tooltip
+                                content={
+                                    <div className="px-1 py-2">
+                                        <div className="text-small font-bold">Upload Workflow</div>
+                                        <div className="text-tiny">Replaces the current workflow</div>
+                                    </div>
+                                }
+                                placement="bottom"
+                            >
                                 <Button isIconOnly radius="full" variant="light" onPress={handleFileUpload}>
                                     <Icon className="text-foreground/60" icon="solar:upload-linear" width={24} />
                                 </Button>
                             </Tooltip>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Button isIconOnly radius="full" variant="light" onPress={handleDeploy}>
-                                <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
-                            </Button>
+                            <Tooltip
+                                content={
+                                    <div className="px-1 py-2">
+                                        <div className="text-small font-bold">Deploy Workflow</div>
+                                        <div className="text-tiny">Deploy workflow to production</div>
+                                    </div>
+                                }
+                                placement="bottom"
+                            >
+                                <Button isIconOnly radius="full" variant="light" onPress={handleDeploy}>
+                                    <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
+                                </Button>
+                            </Tooltip>
                         </NavbarItem>
                     </NavbarContent>
                 )}
@@ -581,9 +639,25 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown>
                                 <DropdownTrigger>
-                                    <Button isIconOnly radius="full" variant="light">
-                                        <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
-                                    </Button>
+                                    <span>
+                                        <Tooltip
+                                            content={
+                                                <div className="px-1 py-2">
+                                                    <div className="text-small font-bold">Download Options</div>
+                                                    <div className="text-tiny">Download trace as JSON or image</div>
+                                                </div>
+                                            }
+                                            placement="bottom"
+                                        >
+                                            <Button isIconOnly radius="full" variant="light">
+                                                <Icon
+                                                    className="text-foreground/60"
+                                                    icon="solar:download-linear"
+                                                    width={24}
+                                                />
+                                            </Button>
+                                        </Tooltip>
+                                    </span>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     <DropdownItem
