@@ -34,7 +34,9 @@
         "src/**/*",
         "postcss.config.js",
         "tailwind.config.js",
-        "src/types/*.d.ts"
+        "src/types/*.d.ts",
+        "**/*.css",
+        "**/*.module.css"
     ],
     "exclude": ["node_modules"]
 }
