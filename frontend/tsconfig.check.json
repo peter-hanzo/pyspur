@@ -1,10 +1,10 @@
 {
     "extends": "./tsconfig.json",
-    "include": ["src/**/*.ts", "src/**/*.tsx"],
+    "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.css", "src/**/*.module.css"],
     "exclude": ["node_modules", "build", "dist", ".next", "coverage"],
     "compilerOptions": {
         "noEmit": true,
         "skipLibCheck": true,
         "jsx": "react-jsx"
     }
-} 
+}
