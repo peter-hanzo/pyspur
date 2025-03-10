@@ -478,14 +478,45 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                         ) : workflowVersions.length === 0 ? (
                                             <DropdownItem key="no-versions">No versions available</DropdownItem>
                                         ) : (
-                                            workflowVersions.map((version, index) => (
-                                                <DropdownItem
-                                                    key={version.version}
-                                                    textValue={`Version ${version.version}`}
-                                                >
-                                                    {`Version ${version.version} | ${formatDistanceStrict(Date.parse(version.created_at + 'Z'), new Date(), { addSuffix: true })}`}
-                                                </DropdownItem>
-                                            ))
+                                            <>
+                                                {workflowVersions.map((version, index) => (
+                                                    <DropdownItem
+                                                        key={version.version}
+                                                        textValue={`Version ${version.version}`}
+                                                        className="flex items-center justify-between"
+                                                    >
+                                                        <span>{`Version ${version.version} | ${formatDistanceStrict(Date.parse(version.created_at + 'Z'), new Date(), { addSuffix: true })}`}</span>
+                                                        {index > 0 && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="light"
+                                                                className="ml-2"
+                                                                startContent={
+                                                                    <Icon icon="solar:document-add-linear" width={16} />
+                                                                }
+                                                                onPress={(e) => {
+                                                                    router.push(
+                                                                        `/version-diff/${workflowId}?left=${version.version}&right=${workflowVersions[0].version}`
+                                                                    )
+                                                                }}
+                                                            >
+                                                                Compare with Latest
+                                                            </Button>
+                                                        )}
+                                                    </DropdownItem>
+                                                ))}
+                                                {workflowVersions.length >= 2 && (
+                                                    <DropdownItem
+                                                        key="compare-versions"
+                                                        onPress={() => router.push(`/version-diff/${workflowId}`)}
+                                                        startContent={
+                                                            <Icon icon="solar:document-add-linear" width={20} />
+                                                        }
+                                                    >
+                                                        Custom Compare
+                                                    </DropdownItem>
+                                                )}
+                                            </>
                                         )}
                                     </DropdownMenu>
                                 </Dropdown>
