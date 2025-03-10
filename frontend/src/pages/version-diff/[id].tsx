@@ -82,7 +82,9 @@ const WorkflowVersionDiff: React.FC = () => {
                                             <Select
                                                 label="Base Version"
                                                 placeholder="Select a version"
-                                                value={selectedVersions.left?.toString()}
+                                                selectedKeys={
+                                                    selectedVersions.left ? [selectedVersions.left.toString()] : []
+                                                }
                                                 onChange={(value) =>
                                                     setSelectedVersions((prev) => ({
                                                         ...prev,
@@ -90,16 +92,17 @@ const WorkflowVersionDiff: React.FC = () => {
                                                     }))
                                                 }
                                             >
-                                                {versions.map((version) => (
+                                                {versions.map((version, index) => (
                                                     <SelectItem
-                                                        key={version.version}
+                                                        key={version.version.toString()}
                                                         value={version.version.toString()}
                                                     >
-                                                        Version {version.version} (
-                                                        {formatDistanceToNow(new Date(version.created_at), {
-                                                            addSuffix: true,
-                                                        })}
-                                                        )
+                                                        {`${index === 0 ? 'Current Version' : `Version ${version.version}`} (${formatDistanceToNow(
+                                                            new Date(version.created_at),
+                                                            {
+                                                                addSuffix: true,
+                                                            }
+                                                        )})`}
                                                     </SelectItem>
                                                 ))}
                                             </Select>
@@ -108,7 +111,9 @@ const WorkflowVersionDiff: React.FC = () => {
                                             <Select
                                                 label="Compare Version"
                                                 placeholder="Select a version"
-                                                value={selectedVersions.right?.toString()}
+                                                selectedKeys={
+                                                    selectedVersions.right ? [selectedVersions.right.toString()] : []
+                                                }
                                                 onChange={(value) =>
                                                     setSelectedVersions((prev) => ({
                                                         ...prev,
@@ -116,16 +121,17 @@ const WorkflowVersionDiff: React.FC = () => {
                                                     }))
                                                 }
                                             >
-                                                {versions.map((version) => (
+                                                {versions.map((version, index) => (
                                                     <SelectItem
-                                                        key={version.version}
+                                                        key={version.version.toString()}
                                                         value={version.version.toString()}
                                                     >
-                                                        Version {version.version} (
-                                                        {formatDistanceToNow(new Date(version.created_at), {
-                                                            addSuffix: true,
-                                                        })}
-                                                        )
+                                                        {`${index === 0 ? 'Current Version' : `Version ${version.version}`} (${formatDistanceToNow(
+                                                            new Date(version.created_at),
+                                                            {
+                                                                addSuffix: true,
+                                                            }
+                                                        )})`}
                                                     </SelectItem>
                                                 ))}
                                             </Select>
