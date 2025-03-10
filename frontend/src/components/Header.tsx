@@ -1,3 +1,4 @@
+import { WorkflowVersionResponse } from '@/types/api_types/workflowSchemas'
 import {
     Alert,
     Button,
@@ -27,7 +28,7 @@ import { useWorkflowFileOperations } from '../hooks/useWorkflowFileOperations'
 import { setProjectName, setRunModalOpen } from '../store/flowSlice'
 import { RootState } from '../store/store'
 import { AlertState } from '../types/alert'
-import { getRunStatus, getWorkflow } from '../utils/api'
+import { getRunStatus, getWorkflow, getWorkflowVersions } from '../utils/api'
 import ConfirmationModal from './modals/ConfirmationModal'
 import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
@@ -49,6 +50,9 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     const [isDebugModalOpen, setIsDebugModalOpen] = useState<boolean>(false)
     const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
+    const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState<boolean>(false)
+    const [workflowVersions, setWorkflowVersions] = useState<WorkflowVersionResponse[]>([])
+    const [isLoadingVersions, setIsLoadingVersions] = useState<boolean>(false)
     const workflowId = useSelector((state: RootState) => state.flow.workflowID)
     const [alert, setAlert] = useState<AlertState>({
         message: '',
@@ -234,6 +238,25 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
         }
     }
 
+    useEffect(() => {
+        const fetchWorkflowVersions = async () => {
+            if (!workflowId || !isVersionHistoryOpen) return
+
+            setIsLoadingVersions(true)
+            try {
+                const versions = await getWorkflowVersions(workflowId)
+                setWorkflowVersions(versions)
+            } catch (error) {
+                console.error('Error fetching workflow versions:', error)
+                showAlert('Error fetching workflow versions', 'danger')
+            } finally {
+                setIsLoadingVersions(false)
+            }
+        }
+
+        fetchWorkflowVersions()
+    }, [workflowId, isVersionHistoryOpen])
+
     return (
         <>
             {alert.isVisible && (
@@ -396,7 +419,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                             <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
                                 <DropdownTrigger>
                                     <Button isIconOnly radius="full" variant="light">
-                                        <Icon className="text-foreground/60" icon="solar:history-linear" width={22} />
+                                        <Icon className="text-foreground/60" icon="solar:playlist-linear" width={22} />
                                     </Button>
                                 </DropdownTrigger>
                                 <DropdownMenu>
@@ -431,6 +454,42 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                     )}
                                 </DropdownMenu>
                             </Dropdown>
+                        </NavbarItem>
+                        <NavbarItem className="hidden sm:flex">
+                            <Tooltip content="Version History">
+                                <Dropdown isOpen={isVersionHistoryOpen} onOpenChange={setIsVersionHistoryOpen}>
+                                    <DropdownTrigger>
+                                        <Button isIconOnly radius="full" variant="light">
+                                            <Icon
+                                                className="text-foreground/60"
+                                                icon="solar:history-linear"
+                                                width={22}
+                                            />
+                                        </Button>
+                                    </DropdownTrigger>
+                                    <DropdownMenu>
+                                        {isLoadingVersions ? (
+                                            <DropdownItem key={`fetching-latest-versions`}>
+                                                <div className="flex items-center gap-2">
+                                                    <Spinner size="sm" />
+                                                    <span>Fetching versions...</span>
+                                                </div>
+                                            </DropdownItem>
+                                        ) : workflowVersions.length === 0 ? (
+                                            <DropdownItem key="no-versions">No versions available</DropdownItem>
+                                        ) : (
+                                            workflowVersions.map((version, index) => (
+                                                <DropdownItem
+                                                    key={version.version}
+                                                    textValue={`Version ${version.version}`}
+                                                >
+                                                    {`Version ${version.version} | ${formatDistanceStrict(Date.parse(version.created_at + 'Z'), new Date(), { addSuffix: true })}`}
+                                                </DropdownItem>
+                                            ))
+                                        )}
+                                    </DropdownMenu>
+                                </Dropdown>
+                            </Tooltip>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown>
@@ -537,7 +596,13 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     justify="end"
                 >
                     <NavbarItem className="hidden sm:flex">
-                        <Button isIconOnly radius="full" variant="light" onPress={() => setIsSettingsModalOpen(true)} aria-label="Settings">
+                        <Button
+                            isIconOnly
+                            radius="full"
+                            variant="light"
+                            onPress={() => setIsSettingsModalOpen(true)}
+                            aria-label="Settings"
+                        >
                             <Icon className="text-foreground/60" icon="solar:settings-linear" width={24} />
                         </Button>
                     </NavbarItem>
