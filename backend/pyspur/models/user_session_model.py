@@ -12,8 +12,8 @@ class UserModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(String, Computed("'U' || _intid"), nullable=False, unique=True)
-    external_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
-    metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    external_id: Mapped[str] = mapped_column(String, nullable=True, unique=True)
+    user_metadata: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.now(timezone.utc)
     )
