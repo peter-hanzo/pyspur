@@ -25,7 +25,7 @@ async def create_user(
     """Create a new user."""
     db_user = UserModel(
         external_id=user.external_id,
-        metadata=user.metadata,
+        metadata=user.user_metadata,
     )
 
     try:
