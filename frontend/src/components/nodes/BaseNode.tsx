@@ -673,7 +673,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     hasRun={data?.run !== undefined}
                     handlePartialRun={handlePartialRun}
                     handleDelete={handleDelete}
-                    handleDuplicate={handleDuplicate}
+                    handleDuplicate={!isInputNode ? handleDuplicate : undefined}
                     handleOpenModal={handleOpenModal}
                     handleDetach={parentId ? handleDetach : undefined}
                 />

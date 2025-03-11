@@ -491,43 +491,13 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
                 </div>
             </div>
 
-            {/* Chat Panel Resizer */}
+            {/* Memoized Chat Panel - only re-renders when props change */}
             {showChat && (
-                <div
-                    className="w-1 bg-border hover:bg-primary cursor-col-resize h-full relative z-10"
-                    onMouseDown={startResizing}
+                <ChatPanel
+                    workflowID={workflowID}
+                    width={chatWidth}
+                    onResizeStart={startResizing}
                 />
-            )}
-
-            {/* Chat Panel */}
-            {showChat && (
-                <div
-                    className="h-full bg-white border-l border-gray-200 overflow-hidden flex flex-col"
-                    style={{ width: `${chatWidth}px` }}
-                >
-                    <div className="w-full h-full overflow-auto">
-                        <Chat
-                            workflowID={workflowID}
-                            onSendMessage={async (message) => {
-                                console.log("Processing message through workflow:", message);
-
-                                // TODO: In the future, implement actual workflow execution:
-                                // 1. Create a session ID if none exists
-                                // 2. Collect message history
-                                // 3. Send to workflow execution engine with proper inputs
-                                // 4. Return the response
-
-                                // Simulate network delay for now
-                                return new Promise((resolve) => {
-                                    setTimeout(() => {
-                                        console.log("Message processed by workflow:", workflowID);
-                                        resolve();
-                                    }, 1500);
-                                });
-                            }}
-                        />
-                    </div>
-                </div>
             )}
         </div>
     )
@@ -545,5 +515,61 @@ const ChatCanvas: React.FC<ChatCanvasProps> = ({ workflowData, workflowID, onDow
         </ReactFlowProvider>
     )
 }
+
+// Memoized ChatPanel component to prevent re-renders when ReactFlow changes
+const ChatPanel = React.memo(({
+    workflowID,
+    width,
+    onResizeStart
+}: {
+    workflowID?: string;
+    width: number;
+    onResizeStart: (e: React.MouseEvent) => void
+}) => {
+    // This will only re-render when workflowID or width changes
+    const handleSendMessage = useCallback(async (message: string): Promise<void> => {
+        console.log("Processing message through workflow:", message);
+
+        // TODO: In the future, implement actual workflow execution:
+        // 1. Create a session ID if none exists
+        // 2. Collect message history
+        // 3. Send to workflow execution engine with proper inputs
+        // 4. Return the response
+
+        // Simulate network delay for now
+        return new Promise<void>((resolve) => {
+            setTimeout(() => {
+                console.log("Message processed by workflow:", workflowID);
+                resolve();
+            }, 1500);
+        });
+    }, [workflowID]);
+
+    return (
+        <>
+            {/* Chat Panel Resizer */}
+            <div
+                className="w-1 bg-border hover:bg-primary cursor-col-resize h-full relative z-10"
+                onMouseDown={onResizeStart}
+            />
+
+            {/* Chat Panel */}
+            <div
+                className="h-full bg-white border-l border-gray-200 overflow-hidden flex flex-col"
+                style={{ width: `${width}px` }}
+            >
+                <div className="w-full h-full overflow-auto">
+                    <Chat
+                        workflowID={workflowID}
+                        onSendMessage={handleSendMessage}
+                    />
+                </div>
+            </div>
+        </>
+    );
+});
+
+// Add display name for debugging
+ChatPanel.displayName = 'ChatPanel';
 
 export default ChatCanvas

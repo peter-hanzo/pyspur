@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ScrollShadow } from "@heroui/react";
 import Conversation from "./Conversation";
 import PromptInputWithRegenerateButton from "./PromptInputWithRegenerateButton";
@@ -12,13 +12,14 @@ interface ChatProps {
   onSendMessage?: (message: string) => Promise<void>;
 }
 
-export default function Chat({ workflowID, onSendMessage }: ChatProps) {
+// Use React.memo to prevent unnecessary re-renders
+const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) {
   const [customMessages, setCustomMessages] = useState<Array<{ role: string; message: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Function to handle sending a new message
-  const handleSendMessage = async (messageText: string) => {
+  // Function to handle sending a new message - use useCallback to make it stable
+  const handleSendMessage = useCallback(async (messageText: string) => {
     if (!messageText.trim()) return;
 
     // Add user message to local state
@@ -49,7 +50,7 @@ export default function Chat({ workflowID, onSendMessage }: ChatProps) {
       console.error("Error sending message:", error);
       setIsLoading(false);
     }
-  };
+  }, [onSendMessage]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function Chat({ workflowID, onSendMessage }: ChatProps) {
   }, [customMessages]);
 
   // Custom conversation component that extends the existing one
-  const CustomConversation = () => {
+  const CustomConversation = useCallback(() => {
     // Only show the existing demo messages if we have no custom messages
     if (customMessages.length === 0) {
       return <Conversation />;
@@ -89,17 +90,17 @@ export default function Chat({ workflowID, onSendMessage }: ChatProps) {
         )}
       </div>
     );
-  };
+  }, [customMessages, isLoading]);
 
   // Custom PromptInput with our handler
-  const CustomPromptInput = () => {
+  const CustomPromptInput = useCallback(() => {
     return (
       <PromptInputWithRegenerateButton
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
       />
     );
-  };
+  }, [handleSendMessage, isLoading]);
 
   return (
     <div className="flex h-full w-full max-w-full flex-col">
@@ -117,4 +118,6 @@ export default function Chat({ workflowID, onSendMessage }: ChatProps) {
       </div>
     </div>
   );
-}
+});
+
+export default Chat;

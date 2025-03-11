@@ -70,14 +70,16 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                         />
                     )}
                 </Button>
-                <Button key={`duplicate-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDuplicate}>
-                    <Icon
-                        key={`duplicate-icon-${id}`}
-                        className="text-default-600 dark:text-default-400"
-                        icon="solar:copy-linear"
-                        width={22}
-                    />
-                </Button>
+                {handleDuplicate && (
+                    <Button key={`duplicate-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDuplicate}>
+                        <Icon
+                            key={`duplicate-icon-${id}`}
+                            className="text-default-600 dark:text-default-400"
+                            icon="solar:copy-linear"
+                            width={22}
+                        />
+                    </Button>
+                )}
                 {handleDetach && (
                     <Button key={`detach-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDetach}>
                         <Icon
