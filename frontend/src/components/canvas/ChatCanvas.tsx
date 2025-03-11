@@ -1,46 +1,50 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { FlowWorkflowEdge, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
+import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
+import { Button, Tooltip } from '@heroui/react'
+import { Icon } from '@iconify/react'
 import {
-    ReactFlow,
     Background,
-    ReactFlowProvider,
+    ConnectionMode,
     Edge,
     EdgeTypes,
-    ReactFlowInstance,
-    SelectionMode,
-    ConnectionMode,
     Node,
+    Panel,
+    ReactFlow,
+    ReactFlowInstance,
+    ReactFlowProvider,
+    SelectionMode,
     useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useSelector, useDispatch } from 'react-redux'
-import { Panel } from '@xyflow/react'
-import Operator from './footer/Operator'
-import { setSelectedNode, deleteNode, setNodes, setSelectedEdgeId } from '../../store/flowSlice'
-import { FlowWorkflowNode, FlowWorkflowEdge } from '@/types/api_types/nodeTypeSchemas'
-import { Dropdown, DropdownMenu, DropdownItem, DropdownTrigger, Button, Tooltip } from '@heroui/react'
+import { toPng } from 'html-to-image'
+import { throttle } from 'lodash'
+import isEqual from 'lodash/isEqual'
+import React, { MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
-import CustomEdge from './Edge'
-import HelperLinesRenderer from '../HelperLines'
-import useCopyPaste from '../../utils/useCopyPaste'
-import { useModeStore } from '../../store/modeStore'
-import { initializeFlow } from '../../store/flowSlice'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
+import { deleteNode, initializeFlow, setNodes, setSelectedEdgeId, setSelectedNode } from '../../store/flowSlice'
+import { useModeStore } from '../../store/modeStore'
+import { setNodePanelExpanded } from '../../store/panelSlice'
+import { RootState } from '../../store/store'
+import {
+    insertNodeBetweenNodes,
+    useAdjustGroupNodesZIndex,
+    useFlowEventHandlers,
+    useNodesWithMode,
+    useNodeTypes,
+    useStyledEdges,
+} from '../../utils/flowUtils'
+import useCopyPaste from '../../utils/useCopyPaste'
+import Chat from '../chat/Chat'
+import HelperLinesRenderer from '../HelperLines'
 import LoadingSpinner from '../LoadingSpinner'
 import CollapsibleNodePanel from '../nodes/CollapsibleNodePanel'
-import { setNodePanelExpanded } from '../../store/panelSlice'
-import { insertNodeBetweenNodes, useAdjustGroupNodesZIndex } from '../../utils/flowUtils'
-import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
-import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
-import { RootState } from '../../store/store'
-import { useNodeTypes, useStyledEdges, useNodesWithMode, useFlowEventHandlers } from '../../utils/flowUtils'
-import isEqual from 'lodash/isEqual'
 import { onNodeDragOverGroupNode, onNodeDragStopOverGroupNode } from '../nodes/loops/groupNodeUtils'
-import { MouseEvent as ReactMouseEvent } from 'react'
-import { throttle } from 'lodash'
-import { Icon } from '@iconify/react'
-import { toPng } from 'html-to-image'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
-import Chat from '../chat/Chat'
+import CustomEdge from './Edge'
+import Operator from './footer/Operator'
 
 interface ChatCanvasProps {
     workflowData?: WorkflowCreateRequest
@@ -157,7 +161,12 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
         [reactFlowInstance]
     )
 
-    const { onNodesChange, onEdgesChange, onConnect, onNodeDragStop: onNodeDragStopThrottled } = useFlowEventHandlers({
+    const {
+        onNodesChange,
+        onEdgesChange,
+        onConnect,
+        onNodeDragStop: onNodeDragStopThrottled,
+    } = useFlowEventHandlers({
         dispatch,
         nodes,
         setHelperLines,
@@ -197,13 +206,17 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
     const onNodeClick = useCallback(
         (_: React.MouseEvent, node: FlowWorkflowNode) => {
             dispatch(setSelectedNode({ nodeId: node.id }))
+            setShowChat(false)
+        },
+        [dispatch, setShowChat]
+    )
+
+    const onEdgeClick = useCallback(
+        (_event: React.MouseEvent, edge: Edge) => {
+            dispatch(setSelectedEdgeId({ edgeId: edge.id }))
         },
         [dispatch]
     )
-
-    const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
-        dispatch(setSelectedEdgeId({ edgeId: edge.id }))
-    }, [dispatch])
 
     const onPaneClick = useCallback(() => {
         if (selectedNodeID) {
@@ -230,64 +243,64 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
 
     const handleKeyDown = useCallback(
         (event: KeyboardEvent) => {
-            const target = event.target as HTMLElement;
-            const tagName = target.tagName.toLowerCase();
+            const target = event.target as HTMLElement
+            const tagName = target.tagName.toLowerCase()
 
             // Don't intercept keyboard events when typing in the chat
             if (target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-                return;
+                return
             }
 
             // Don't handle keyboard events if we're focused in the chat panel
-            const chatPanelElement = document.querySelector('.h-full.bg-white.border-l.border-gray-200');
+            const chatPanelElement = document.querySelector('.h-full.bg-white.border-l.border-gray-200')
             if (chatPanelElement?.contains(document.activeElement)) {
-                return;
+                return
             }
 
             // Get the node panel state
-            const nodePanelElement = document.querySelector('[data-node-panel]');
-            const isNodePanelExpanded = nodePanelElement?.getAttribute('data-expanded') === 'true';
-            const isNodePanelFocused = nodePanelElement?.contains(document.activeElement);
+            const nodePanelElement = document.querySelector('[data-node-panel]')
+            const isNodePanelExpanded = nodePanelElement?.getAttribute('data-expanded') === 'true'
+            const isNodePanelFocused = nodePanelElement?.contains(document.activeElement)
 
             // Only handle delete/backspace regardless of panel state
             if (event.key === 'Delete' || event.key === 'Backspace') {
-                const selectedNodes = nodes.filter((node) => node.selected);
+                const selectedNodes = nodes.filter((node) => node.selected)
                 if (selectedNodes.length > 0) {
-                    onNodesDelete(selectedNodes);
+                    onNodesDelete(selectedNodes)
                 }
-                return;
+                return
             }
 
             // Don't handle arrow keys if node panel is expanded and focused
             if (isNodePanelExpanded && isNodePanelFocused) {
-                return;
+                return
             }
 
             // Pan amount per keypress (adjust this value to control pan speed)
-            const BASE_PAN_AMOUNT = 15;
-            const PAN_AMOUNT = event.shiftKey ? BASE_PAN_AMOUNT * 3 : BASE_PAN_AMOUNT;
+            const BASE_PAN_AMOUNT = 15
+            const PAN_AMOUNT = event.shiftKey ? BASE_PAN_AMOUNT * 3 : BASE_PAN_AMOUNT
 
             if (reactFlowInstance) {
-                const { x, y, zoom } = reactFlowInstance.getViewport();
+                const { x, y, zoom } = reactFlowInstance.getViewport()
 
                 switch (event.key) {
                     case 'ArrowLeft':
-                        reactFlowInstance.setViewport({ x: x + PAN_AMOUNT, y, zoom });
-                        break;
+                        reactFlowInstance.setViewport({ x: x + PAN_AMOUNT, y, zoom })
+                        break
                     case 'ArrowRight':
-                        reactFlowInstance.setViewport({ x: x - PAN_AMOUNT, y, zoom });
-                        break;
+                        reactFlowInstance.setViewport({ x: x - PAN_AMOUNT, y, zoom })
+                        break
                     case 'ArrowUp':
-                        reactFlowInstance.setViewport({ x, y: y + PAN_AMOUNT, zoom });
-                        break;
+                        reactFlowInstance.setViewport({ x, y: y + PAN_AMOUNT, zoom })
+                        break
                     case 'ArrowDown':
-                        reactFlowInstance.setViewport({ x, y: y - PAN_AMOUNT, zoom });
-                        break;
+                        reactFlowInstance.setViewport({ x, y: y - PAN_AMOUNT, zoom })
+                        break
                 }
             }
         },
         [nodes, onNodesDelete, reactFlowInstance]
-    );
+    )
 
     const handleLayout = useCallback(() => {
         const layoutedNodes = getLayoutedNodes(nodes as FlowWorkflowNode[], edges as FlowWorkflowEdge[])
@@ -388,7 +401,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
                 const newWidth = containerRect.right - e.clientX
 
                 // Set minimum and maximum width constraints
-                if (newWidth > 200 && newWidth < (containerRect.width * 0.8)) {
+                if (newWidth > 200 && newWidth < containerRect.width * 0.8) {
                     setChatWidth(newWidth)
                 }
             }
@@ -407,7 +420,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
     }, [resize, stopResizing])
 
     const toggleChatPanel = () => {
-        setShowChat(prev => !prev)
+        setShowChat((prev) => !prev)
     }
 
     if (isLoading) {
@@ -466,16 +479,16 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
 
                     {/* Toggle Chat Panel Button */}
                     <Panel position="top-right">
-                        <Tooltip content={showChat ? "Hide Chat" : "Show Chat"}>
+                        <Tooltip content={showChat ? 'Hide Chat' : 'Show Chat'}>
                             <Button
                                 isIconOnly
                                 variant="flat"
                                 size="sm"
                                 onPress={toggleChatPanel}
-                                aria-label={showChat ? "Hide Chat" : "Show Chat"}
+                                aria-label={showChat ? 'Hide Chat' : 'Show Chat'}
                             >
                                 <Icon
-                                    icon={showChat ? "lucide:panel-right-close" : "lucide:panel-right-open"}
+                                    icon={showChat ? 'lucide:panel-right-close' : 'lucide:panel-right-open'}
                                     width={20}
                                 />
                             </Button>
@@ -500,13 +513,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
             </div>
 
             {/* Memoized Chat Panel - only re-renders when props change */}
-            {showChat && (
-                <ChatPanel
-                    workflowID={workflowID}
-                    width={chatWidth}
-                    onResizeStart={startResizing}
-                />
-            )}
+            {showChat && <ChatPanel workflowID={workflowID} width={chatWidth} onResizeStart={startResizing} />}
         </div>
     )
 }
@@ -525,40 +532,40 @@ const ChatCanvas: React.FC<ChatCanvasProps> = ({ workflowData, workflowID, onDow
 }
 
 // Memoized ChatPanel component to prevent re-renders when ReactFlow changes
-const ChatPanel = React.memo(({
-    workflowID,
-    width,
-    onResizeStart
-}: {
-    workflowID?: string;
-    width: number;
-    onResizeStart: (e: React.MouseEvent) => void
-}) => {
-    // This will only re-render when workflowID or width changes
-    return (
-        <>
-            {/* Chat Panel Resizer */}
-            <div
-                className="w-1 bg-border hover:bg-primary cursor-col-resize h-full relative z-10"
-                onMouseDown={onResizeStart}
-            />
+const ChatPanel = React.memo(
+    ({
+        workflowID,
+        width,
+        onResizeStart,
+    }: {
+        workflowID?: string
+        width: number
+        onResizeStart: (e: React.MouseEvent) => void
+    }) => {
+        // This will only re-render when workflowID or width changes
+        return (
+            <>
+                {/* Chat Panel Resizer */}
+                <div
+                    className="w-1 bg-border hover:bg-primary cursor-col-resize h-full relative z-10"
+                    onMouseDown={onResizeStart}
+                />
 
-            {/* Chat Panel */}
-            <div
-                className="h-full bg-white border-l border-gray-200 overflow-hidden flex flex-col"
-                style={{ width: `${width}px` }}
-            >
-                <div className="w-full h-full overflow-auto">
-                    <Chat
-                        workflowID={workflowID}
-                    />
+                {/* Chat Panel */}
+                <div
+                    className="h-full bg-white border-l border-gray-200 overflow-hidden flex flex-col"
+                    style={{ width: `${width}px` }}
+                >
+                    <div className="w-full h-full overflow-auto">
+                        <Chat workflowID={workflowID} />
+                    </div>
                 </div>
-            </div>
-        </>
-    );
-});
+            </>
+        )
+    }
+)
 
 // Add display name for debugging
-ChatPanel.displayName = 'ChatPanel';
+ChatPanel.displayName = 'ChatPanel'
 
 export default ChatCanvas
