@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
+from typing_extensions import Self
 
 
 class SpurType(str, Enum):
@@ -57,18 +58,16 @@ class WorkflowNodeSchema(BaseModel):
     subworkflow: Optional["WorkflowDefinitionSchema"] = None  # Sub-workflow definition
 
     @model_validator(mode="after")
-    @classmethod
-    def default_title_to_id(cls, model):
-        if model.title.strip() == "":
-            model.title = model.id
-        return model
+    def default_title_to_id(self) -> Self:
+        if self.title.strip() == "":
+            self.title = self.id
+        return self
 
     @model_validator(mode="after")
-    @classmethod
-    def prefix_model_name_with_provider(cls, model):
+    def prefix_model_name_with_provider(self) -> Self:
         # We need this to handle spurs created earlier than the prefixing change
-        if model.node_type in ("SingleLLMCallNode", "BestOfNNode"):
-            llm_info = model.config.get("llm_info")
+        if self.node_type in ("SingleLLMCallNode", "BestOfNNode"):
+            llm_info = self.config.get("llm_info")
             assert llm_info is not None
             if (
                 llm_info["model"].startswith("gpt")
@@ -78,7 +77,7 @@ class WorkflowNodeSchema(BaseModel):
                 llm_info["model"] = f"openai/{llm_info['model']}"
             if llm_info["model"].startswith("claude"):
                 llm_info["model"] = f"anthropic/{llm_info['model']}"
-        return model
+        return self
 
 
 class WorkflowLinkSchema(BaseModel):
@@ -130,15 +129,14 @@ class WorkflowDefinitionSchema(BaseModel):
         return v
 
     @model_validator(mode="after")
-    @classmethod
-    def validate_router_node_links(cls, model):
+    def validate_router_node_links(self) -> Self:
         """Validate links connected to RouterNodes.
 
         They must have correctly formatted target handles.
         For RouterNodes, the target handle should match the format: source_node_id.handle_id
         """
-        for link in model.links:
-            source_node = next((node for node in model.nodes if node.id == link.source_id), None)
+        for link in self.links:
+            source_node = next((node for node in self.nodes if node.id == link.source_id), None)
             if source_node and source_node.node_type == "RouterNode":
                 target_handle = link.target_handle or link.source_id
 
@@ -150,7 +148,7 @@ class WorkflowDefinitionSchema(BaseModel):
                 if not target_handle.startswith(f"{link.source_id}."):
                     link.target_handle = f"{link.source_id}.{target_handle}"
 
-        return model
+        return self
 
     model_config = {"from_attributes": True}
 
