@@ -252,7 +252,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
             }
 
             // Don't handle keyboard events if we're focused in the chat panel
-            const chatPanelElement = document.querySelector('.h-full.bg-white.border-l.border-gray-200')
+            const chatPanelElement = document.querySelector('.h-full.bg-background.dark\\:bg-background\\/80.border-l.border-divider')
             if (chatPanelElement?.contains(document.activeElement)) {
                 return
             }
@@ -430,7 +430,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
     return (
         <div
             ref={containerRef}
-            className="relative flex h-full w-full overflow-hidden"
+            className="relative flex h-full w-full overflow-hidden bg-background dark:bg-background"
             style={{ cursor: isResizing ? 'col-resize' : 'default' }}
         >
             {/* React Flow Canvas */}
@@ -499,7 +499,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
                 {/* Node Sidebar */}
                 {selectedNodeID && (
                     <div
-                        className="absolute top-0 right-0 h-full bg-white border-l border-gray-200"
+                        className="absolute top-0 right-0 h-full bg-background dark:bg-background/80 border-l border-divider"
                         style={{ zIndex: 2 }}
                     >
                         <NodeSidebar nodeID={selectedNodeID} key={selectedNodeID} readOnly={false} />
@@ -507,7 +507,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
                 )}
 
                 {/* Node Panel */}
-                <div className="border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
+                <div className="border-divider absolute top-4 left-4" style={{ zIndex: 2 }}>
                     <CollapsibleNodePanel />
                 </div>
             </div>
@@ -553,7 +553,7 @@ const ChatPanel = React.memo(
 
                 {/* Chat Panel */}
                 <div
-                    className="h-full bg-white border-l border-gray-200 overflow-hidden flex flex-col"
+                    className="h-full bg-background dark:bg-background/80 border-l border-divider overflow-hidden flex flex-col"
                     style={{ width: `${width}px` }}
                 >
                     <div className="w-full h-full overflow-auto">
