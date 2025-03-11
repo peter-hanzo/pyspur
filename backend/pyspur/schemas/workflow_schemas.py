@@ -57,16 +57,18 @@ class WorkflowNodeSchema(BaseModel):
     subworkflow: Optional["WorkflowDefinitionSchema"] = None  # Sub-workflow definition
 
     @model_validator(mode="after")
-    def default_title_to_id(self):
-        if self.title.strip() == "":
-            self.title = self.id
-        return self
+    @classmethod
+    def default_title_to_id(cls, model):
+        if model.title.strip() == "":
+            model.title = model.id
+        return model
 
     @model_validator(mode="after")
-    def prefix_model_name_with_provider(self):
+    @classmethod
+    def prefix_model_name_with_provider(cls, model):
         # We need this to handle spurs created earlier than the prefixing change
-        if self.node_type in ("SingleLLMCallNode", "BestOfNNode"):
-            llm_info = self.config.get("llm_info")
+        if model.node_type in ("SingleLLMCallNode", "BestOfNNode"):
+            llm_info = model.config.get("llm_info")
             assert llm_info is not None
             if (
                 llm_info["model"].startswith("gpt")
@@ -76,7 +78,7 @@ class WorkflowNodeSchema(BaseModel):
                 llm_info["model"] = f"openai/{llm_info['model']}"
             if llm_info["model"].startswith("claude"):
                 llm_info["model"] = f"anthropic/{llm_info['model']}"
-        return self
+        return model
 
 
 class WorkflowLinkSchema(BaseModel):
@@ -99,15 +101,17 @@ class WorkflowDefinitionSchema(BaseModel):
     test_inputs: List[Dict[str, Any]] = []
     spur_type: SpurType = SpurType.WORKFLOW
 
+    @classmethod
     @field_validator("nodes")
-    def nodes_must_have_unique_ids(self, v: List[WorkflowNodeSchema]):
+    def nodes_must_have_unique_ids(cls, v: List[WorkflowNodeSchema]):
         node_ids = [node.id for node in v]
         if len(node_ids) != len(set(node_ids)):
             raise ValueError("Node IDs must be unique.")
         return v
 
+    @classmethod
     @field_validator("nodes")
-    def must_have_one_and_only_one_input_node(self, v: List[WorkflowNodeSchema]):
+    def must_have_one_and_only_one_input_node(cls, v: List[WorkflowNodeSchema]):
         input_nodes = [
             node for node in v if node.node_type == "InputNode" and node.parent_id is None
         ]
@@ -115,8 +119,9 @@ class WorkflowDefinitionSchema(BaseModel):
             raise ValueError("Workflow must have exactly one input node.")
         return v
 
+    @classmethod
     @field_validator("nodes")
-    def must_have_at_most_one_output_node(self, v: List[WorkflowNodeSchema]):
+    def must_have_at_most_one_output_node(cls, v: List[WorkflowNodeSchema]):
         output_nodes = [
             node for node in v if node.node_type == "OutputNode" and node.parent_id is None
         ]
@@ -125,14 +130,15 @@ class WorkflowDefinitionSchema(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_router_node_links(self):
+    @classmethod
+    def validate_router_node_links(cls, model):
         """Validate links connected to RouterNodes.
 
         They must have correctly formatted target handles.
         For RouterNodes, the target handle should match the format: source_node_id.handle_id
         """
-        for link in self.links:
-            source_node = next((node for node in self.nodes if node.id == link.source_id), None)
+        for link in model.links:
+            source_node = next((node for node in model.nodes if node.id == link.source_id), None)
             if source_node and source_node.node_type == "RouterNode":
                 target_handle = link.target_handle or link.source_id
 
@@ -144,12 +150,9 @@ class WorkflowDefinitionSchema(BaseModel):
                 if not target_handle.startswith(f"{link.source_id}."):
                     link.target_handle = f"{link.source_id}.{target_handle}"
 
-        return self
+        return model
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class WorkflowCreateRequestSchema(BaseModel):
@@ -170,10 +173,7 @@ class WorkflowResponseSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class WorkflowVersionResponseSchema(BaseModel):
@@ -187,7 +187,4 @@ class WorkflowVersionResponseSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = {"from_attributes": True}
