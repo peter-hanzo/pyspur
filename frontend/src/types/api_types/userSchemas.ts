@@ -1,13 +1,13 @@
 export interface UserBase {
     external_id: string
-    metadata: Record<string, any>
+    user_metadata: Record<string, any>
 }
 
 export interface UserCreate extends UserBase {}
 
 export interface UserUpdate {
     external_id?: string
-    metadata?: Record<string, any>
+    user_metadata?: Record<string, any>
 }
 
 export interface UserResponse extends UserBase {

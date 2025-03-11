@@ -1111,6 +1111,11 @@ export const generateMessage = async (request: MessageGenerationRequest): Promis
 // User Management Functions
 export const createUser = async (userData: UserCreate): Promise<UserResponse> => {
     try {
+        // Example usage:
+        // const user = await createUser({
+        //     external_id: "user123",
+        //     user_metadata: { name: "John Doe" }
+        // });
         const response = await axios.post(`${API_BASE_URL}/user/`, userData)
         return response.data
     } catch (error) {

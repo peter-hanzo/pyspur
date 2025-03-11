@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 
 class UserBase(BaseModel):
     external_id: str = Field(..., description="External ID for the user")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional user metadata")
+    user_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional user metadata"
+    )
 
 
 class UserCreate(UserBase):
@@ -15,7 +17,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     external_id: Optional[str] = Field(None, description="External ID for the user")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional user metadata")
+    user_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional user metadata")
 
 
 class UserResponse(UserBase):
