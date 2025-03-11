@@ -16,6 +16,9 @@ from ..schemas.session_schemas import (
 
 router = APIRouter()
 
+TEST_USER_EXTERNAL_ID = "test_user"
+TEST_USER_METADATA = {"is_test": True}
+
 
 @router.post("", response_model=SessionResponse)
 async def create_session(
@@ -115,3 +118,60 @@ async def delete_session(
 
     db.delete(session)
     db.commit()
+
+
+@router.post("/test", response_model=SessionResponse)
+async def create_test_session(
+    workflow_id: str,
+    db: Session = Depends(get_db),
+) -> SessionResponse:
+    """Create or reuse a test user and session.
+
+    If a test user exists, it will be reused.
+    If an empty test session exists for the same workflow, it will be reused.
+    Otherwise, a new session will be created.
+    """
+    # First verify workflow exists
+    workflow = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Get or create test user
+    test_user = db.query(UserModel).filter(UserModel.external_id == TEST_USER_EXTERNAL_ID).first()
+
+    if not test_user:
+        test_user = UserModel(
+            external_id=TEST_USER_EXTERNAL_ID,
+            user_metadata=TEST_USER_METADATA,
+        )
+        db.add(test_user)
+        db.commit()
+        db.refresh(test_user)
+
+    # Look for an existing empty session for this workflow
+    existing_session = (
+        db.query(SessionModel)
+        .filter(
+            SessionModel.user_id == test_user.id,
+            SessionModel.workflow_id == workflow_id,
+        )
+        .execution_options(join_depth=2)  # Include messages in response
+        .first()
+    )
+
+    if existing_session and not existing_session.messages:
+        return SessionResponse.model_validate(existing_session)
+
+    # Create new session
+    session = SessionModel(user_id=test_user.id, workflow_id=workflow_id)
+    try:
+        db.add(session)
+        db.commit()
+        db.refresh(session)
+        return SessionResponse.model_validate(session)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Could not create test session",
+        ) from None

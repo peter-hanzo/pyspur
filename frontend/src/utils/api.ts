@@ -1212,3 +1212,13 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
         throw error
     }
 }
+
+export const createTestSession = async (workflowId: string): Promise<SessionResponse> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/session/test?workflow_id=${workflowId}`)
+        return response.data
+    } catch (error) {
+        console.error('Error creating test session:', error)
+        throw error
+    }
+}
