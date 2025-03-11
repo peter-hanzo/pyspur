@@ -28,6 +28,7 @@ import { deleteNode, initializeFlow, setNodes, setSelectedEdgeId, setSelectedNod
 import { useModeStore } from '../../store/modeStore'
 import { setNodePanelExpanded } from '../../store/panelSlice'
 import { RootState } from '../../store/store'
+import { createTestSession } from '../../utils/api'
 import {
     insertNodeBetweenNodes,
     useAdjustGroupNodesZIndex,
@@ -130,6 +131,24 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
     const mode = useModeStore((state) => state.mode)
 
     const { getIntersectingNodes, getNodes, updateNode } = useReactFlow()
+
+    // Add state for test session
+    const [testSessionId, setTestSessionId] = useState<string | null>(null)
+
+    // Create test session when workflow ID is available
+    useEffect(() => {
+        const initTestSession = async () => {
+            if (workflowID) {
+                try {
+                    const session = await createTestSession(workflowID)
+                    setTestSessionId(session.id)
+                } catch (error) {
+                    console.error('Error creating test session:', error)
+                }
+            }
+        }
+        initTestSession()
+    }, [workflowID])
 
     const handlePopoverOpen = useCallback(
         ({
@@ -513,7 +532,14 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
             </div>
 
             {/* Memoized Chat Panel - only re-renders when props change */}
-            {showChat && <ChatPanel workflowID={workflowID} width={chatWidth} onResizeStart={startResizing} />}
+            {showChat && (
+                <ChatPanel
+                    workflowID={workflowID}
+                    width={chatWidth}
+                    onResizeStart={startResizing}
+                    testSessionId={testSessionId}
+                />
+            )}
         </div>
     )
 }
@@ -537,12 +563,13 @@ const ChatPanel = React.memo(
         workflowID,
         width,
         onResizeStart,
+        testSessionId,
     }: {
         workflowID?: string
         width: number
         onResizeStart: (e: React.MouseEvent) => void
+        testSessionId: string | null
     }) => {
-        // This will only re-render when workflowID or width changes
         return (
             <>
                 {/* Chat Panel Resizer */}
@@ -557,7 +584,7 @@ const ChatPanel = React.memo(
                     style={{ width: `${width}px` }}
                 >
                     <div className="w-full h-full overflow-auto">
-                        <Chat workflowID={workflowID} />
+                        <Chat workflowID={workflowID} sessionId={testSessionId} />
                     </div>
                 </div>
             </>
