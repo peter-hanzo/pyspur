@@ -154,12 +154,13 @@ class WorkflowDefinitionSchema(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_chatbot_input_node(self) -> Self:
+    def validate_chatbot_input_node(self) -> Self:  # noqa: C901
         """Validate that chatbot workflows have the required input fields.
 
         For chatbot workflows, the input node must have user_message and session_id fields.
         """
         if self.spur_type == SpurType.CHATBOT:
+            # chatbot workflows must have input node with user_message and session_id fields
             input_node = next(
                 (
                     node
@@ -193,6 +194,37 @@ class WorkflowDefinitionSchema(BaseModel):
                 except json.JSONDecodeError:
                     raise ValueError(
                         "Invalid JSON schema in input node output_json_schema"
+                    ) from None
+
+            # chatbot workflows must have output node with assistant_message field
+            output_node = next(
+                (
+                    node
+                    for node in self.nodes
+                    if node.node_type == "OutputNode" and node.parent_id is None
+                ),
+                None,
+            )
+            if output_node:
+                try:
+                    json_schema = json.loads(output_node.config.get("input_json_schema", "{}"))
+                    model = json_schema_to_model(json_schema)
+                    input_schema = model.model_fields
+                    missing_fields: List[str] = []
+
+                    if "assistant_message" not in input_schema:
+                        missing_fields.append("assistant_message")
+                    elif input_schema["assistant_message"].annotation is not str:
+                        missing_fields.append("assistant_message (must be of type str)")
+
+                    if missing_fields:
+                        raise ValueError(
+                            f"Chatbot output node must have the following mandatory fields: "
+                            f"{', '.join(missing_fields)}"
+                        )
+                except json.JSONDecodeError:
+                    raise ValueError(
+                        "Invalid JSON schema in output node input_json_schema"
                     ) from None
 
         return self
