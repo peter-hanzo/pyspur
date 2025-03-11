@@ -31,9 +31,13 @@ class SessionUpdate(SessionBase):
 class SessionResponse(SessionBase):
     id: str
     user_id: str
+    workflow_id: str
     created_at: datetime
     updated_at: datetime
     messages: List[MessageResponse]
+    model_config = {
+        "from_attributes": True,
+    }
 
 
 class SessionListResponse(BaseModel):

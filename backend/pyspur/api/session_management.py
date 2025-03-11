@@ -36,15 +36,13 @@ async def create_session(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     # Create session
-    db_session = SessionModel(
-        user_id=session_create.user_id, workflow_id=session_create.workflow_id
-    )
+    session = SessionModel(user_id=session_create.user_id, workflow_id=session_create.workflow_id)
 
     try:
-        db.add(db_session)
+        db.add(session)
         db.commit()
-        db.refresh(db_session)
-        return SessionResponse.model_validate(db_session)
+        db.refresh(session)
+        return SessionResponse.model_validate(session)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
