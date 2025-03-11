@@ -112,6 +112,16 @@ def create_a_new_workflow_definition(
                 "properties": {
                     "user_message": {"type": "string"},
                     "session_id": {"type": "string"},
+                    "message_history": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "role": {"type": "string"},
+                                "content": {"type": "string"},
+                            },
+                        },
+                    },
                 },
                 "required": ["user_message", "session_id"],
             }
