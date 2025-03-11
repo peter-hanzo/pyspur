@@ -48,6 +48,7 @@ export interface WorkflowCreateRequest {
     name: string
     description: string
     definition?: WorkflowDefinition
+    spur_type?: SpurType
 }
 
 export interface WorkflowResponse {

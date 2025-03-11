@@ -244,6 +244,7 @@ class WorkflowCreateRequestSchema(BaseModel):
     name: str
     description: str = ""
     definition: Optional[WorkflowDefinitionSchema] = None
+    spur_type: SpurType = SpurType.WORKFLOW
 
 
 class WorkflowResponseSchema(BaseModel):
