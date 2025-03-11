@@ -55,6 +55,7 @@ import {
     takePauseAction,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
+import SpurTypeChip from './chips/SpurTypeChip'
 import HumanInputModal from './modals/HumanInputModal'
 import WelcomeModal from './modals/WelcomeModal'
 
@@ -721,25 +722,7 @@ const Dashboard: React.FC = () => {
                                                                 {workflow.name}
                                                             </Chip>
                                                         ) : columnKey === 'spur_type' ? (
-                                                            <Chip
-                                                                size="sm"
-                                                                variant="flat"
-                                                                startContent={
-                                                                    <Icon
-                                                                        icon={
-                                                                            workflow.definition.spur_type ===
-                                                                            SpurType.CHATBOT
-                                                                                ? 'solar:chat-line-linear'
-                                                                                : 'solar:floor-lamp-linear'
-                                                                        }
-                                                                        width={16}
-                                                                    />
-                                                                }
-                                                            >
-                                                                {workflow.definition.spur_type === SpurType.CHATBOT
-                                                                    ? 'Chatbot'
-                                                                    : 'Workflow'}
-                                                            </Chip>
+                                                            <SpurTypeChip spurType={workflow.definition.spur_type} />
                                                         ) : columnKey === 'updated_at' ? (
                                                             <span className="text-default-500">
                                                                 {formatDate(getKeyValue(workflow, columnKey))}
