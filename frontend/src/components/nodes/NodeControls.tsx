@@ -9,8 +9,8 @@ interface NodeControlsProps {
     isInputNode: boolean
     hasRun: boolean
     handlePartialRun: () => void
-    handleDelete: () => void
-    handleDuplicate: () => void
+    handleDelete?: () => void
+    handleDuplicate?: () => void
     handleOpenModal?: (isModalOpen: boolean) => void
     handleDetach?: () => void
 }
@@ -32,7 +32,6 @@ const NodeControls: React.FC<NodeControlsProps> = ({
     id,
     isRunning,
     loading,
-    isInputNode,
     hasRun,
     handlePartialRun,
     handleDelete,
@@ -71,7 +70,13 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                     )}
                 </Button>
                 {handleDuplicate && (
-                    <Button key={`duplicate-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDuplicate}>
+                    <Button
+                        key={`duplicate-btn-${id}`}
+                        isIconOnly
+                        radius="lg"
+                        variant="light"
+                        onPress={handleDuplicate}
+                    >
                         <Icon
                             key={`duplicate-icon-${id}`}
                             className="text-default-600 dark:text-default-400"
@@ -106,7 +111,7 @@ const NodeControls: React.FC<NodeControlsProps> = ({
                         />
                     </Button>
                 )}
-                {!isInputNode && (
+                {handleDelete && (
                     <Button key={`delete-btn-${id}`} isIconOnly radius="lg" variant="light" onPress={handleDelete}>
                         <Icon
                             key={`delete-icon-${id}`}
