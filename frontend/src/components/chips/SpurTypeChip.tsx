@@ -5,18 +5,21 @@ import React from 'react'
 
 interface SpurTypeChipProps {
     spurType: SpurType
+    showText?: boolean
 }
 
-const SpurTypeChip: React.FC<SpurTypeChipProps> = ({ spurType }) => {
+const SpurTypeChip: React.FC<SpurTypeChipProps> = ({ spurType, showText = true }) => {
+    const text = spurType === SpurType.CHATBOT ? 'Chatbot' : 'Workflow'
     return (
         <Chip
             size="sm"
             variant="flat"
+            title={!showText ? text : undefined}
             startContent={
                 <Icon icon={spurType === SpurType.CHATBOT ? 'lucide:message-square' : 'lucide:workflow'} width={16} />
             }
         >
-            {spurType === SpurType.CHATBOT ? 'Chatbot' : 'Workflow'}
+            {showText && text}
         </Chip>
     )
 }

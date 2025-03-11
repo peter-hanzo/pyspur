@@ -316,6 +316,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         id="workflow-title"
                         justify="start"
                     >
+                        {spurType && <SpurTypeChip spurType={spurType} showText={false} />}
                         <Input
                             className="px-4"
                             type="text"
@@ -329,11 +330,6 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                 }
                             }}
                         />
-                        {spurType && (
-                            <div className="ml-2 flex items-center">
-                                <SpurTypeChip spurType={spurType} />
-                            </div>
-                        )}
                     </NavbarContent>
                 )}
                 <NavbarContent
