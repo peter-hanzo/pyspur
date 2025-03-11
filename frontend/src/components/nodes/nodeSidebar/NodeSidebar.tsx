@@ -19,7 +19,6 @@ import { cloneDeep, debounce, set } from 'lodash'
 import isEqual from 'lodash/isEqual'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { jsonOptions } from '../../../constants/jsonOptions'
 import {
     selectNodeById,
     setSelectedNode,
@@ -40,8 +39,8 @@ import NumberInput from '../../NumberInput'
 import FewShotExamplesEditor from '../../textEditor/FewShotExamplesEditor'
 import TextEditor from '../../textEditor/TextEditor'
 import NodeOutput from '../NodeOutputDisplay'
+import IOMapEditor from './IOMapEditor'
 import OutputSchemaEditor from './OutputSchemaEditor'
-import SchemaEditor from './SchemaEditor'
 
 import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '@/utils/schemaUtils'
 import { convertToPythonVariableName } from '@/utils/variableNameUtils'
@@ -211,6 +210,13 @@ const isTemplateField = (key: string, fieldMetadata?: FieldMetadata): boolean =>
     return templatePatterns.some((pattern) => key === pattern || key.endsWith(pattern))
 }
 
+interface JsonSchema {
+    type?: string
+    properties?: Record<string, any>
+    required?: string[]
+    items?: JsonSchema
+}
+
 const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes, nodesComparator)
@@ -279,19 +285,25 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
 
                         // Find nodes that feed into the HumanInterventionNode
                         const humanNodeInputEdges = edges.filter((edge) => edge.target === node.id)
-                        const humanNodeInputs = humanNodeInputEdges.map((edge) => nodes.find((n) => n.id === edge.source))
+                        const humanNodeInputs = humanNodeInputEdges.map((edge) =>
+                            nodes.find((n) => n.id === edge.source)
+                        )
 
                         // Collect the schema from those nodes as they will be passed through
-                        humanNodeInputs.forEach(inputNode => {
+                        humanNodeInputs.forEach((inputNode) => {
                             if (!inputNode) return
                             const inputConfig = allNodeConfigs[inputNode.id]
                             if (inputConfig?.output_json_schema) {
                                 const inputSchema = extractSchemaFromJsonSchema(inputConfig.output_json_schema)
-                                if (!inputSchema.error && inputSchema.schema && typeof inputSchema.schema === 'object') {
+                                if (
+                                    !inputSchema.error &&
+                                    inputSchema.schema &&
+                                    typeof inputSchema.schema === 'object'
+                                ) {
                                     Object.keys(inputSchema.schema).forEach((key) => {
                                         // Use the title of the predecessor node to suggest nested access, e.g., HumanInterventionNode_1.input_node.input_1
-                                        const predecessorTitle = inputNode.title || inputNode.id;
-                                        acc.push(`${nodeTitle}.${predecessorTitle}.${key}`);
+                                        const predecessorTitle = inputNode.title || inputNode.id
+                                        acc.push(`${nodeTitle}.${predecessorTitle}.${key}`)
                                     })
                                 }
                             }
@@ -364,9 +376,9 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
     // Function to handle message generation specifically
     const handleMessageGenerated = (key: string, newMessage: string) => {
         // Update the message version for this field
-        setMessageVersions(prev => ({
+        setMessageVersions((prev) => ({
             ...prev,
-            [key]: (prev[key] || 0) + 1
+            [key]: (prev[key] || 0) + 1,
         }))
 
         // Call the regular input change handler
@@ -1244,6 +1256,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
         incomingSchema: string[],
         handleInputChange: (key: string, value: any) => void
     ) => {
+        // Parse the output schema if it's a string
+        let outputSchemaProperties: string[] = []
+        try {
+            if (currentNodeConfig?.output_json_schema) {
+                const parsedSchema =
+                    typeof currentNodeConfig.output_json_schema === 'string'
+                        ? (JSON.parse(currentNodeConfig.output_json_schema) as JsonSchema)
+                        : (currentNodeConfig.output_json_schema as JsonSchema)
+                outputSchemaProperties = Object.keys(parsedSchema?.properties || {})
+            }
+        } catch (e) {
+            console.error('Failed to parse output schema:', e)
+        }
+
         return (
             <div key={key} className="my-2">
                 <div className="flex items-center gap-2 mb-2">
@@ -1257,14 +1283,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                         <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
                     </Tooltip>
                 </div>
-                <SchemaEditor
-                    key={`input-map-editor-${nodeID}`}
-                    jsonValue={value || {}}
+                <IOMapEditor
+                    leftOptions={incomingSchema}
+                    rightOptions={outputSchemaProperties}
+                    value={value || {}}
                     onChange={(newValue) => handleInputChange(key, newValue)}
-                    options={jsonOptions}
-                    nodeId={nodeID}
-                    availableFields={incomingSchema}
                     readOnly={readOnly}
+                    leftLabel="Incoming Field"
+                    rightLabel="Input Field"
                 />
             </div>
         )
@@ -1276,6 +1302,20 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
         incomingSchema: string[],
         handleInputChange: (key: string, value: any) => void
     ) => {
+        // Parse the output schema if it's a string
+        let outputSchemaProperties: string[] = []
+        try {
+            if (currentNodeConfig?.output_json_schema) {
+                const parsedSchema =
+                    typeof currentNodeConfig.output_json_schema === 'string'
+                        ? (JSON.parse(currentNodeConfig.output_json_schema) as JsonSchema)
+                        : (currentNodeConfig.output_json_schema as JsonSchema)
+                outputSchemaProperties = Object.keys(parsedSchema?.properties || {})
+            }
+        } catch (e) {
+            console.error('Failed to parse output schema:', e)
+        }
+
         return (
             <div key={key} className="my-2">
                 <div className="flex items-center gap-2 mb-2">
@@ -1289,14 +1329,14 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                         <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
                     </Tooltip>
                 </div>
-                <SchemaEditor
-                    key={`output-map-editor-${nodeID}`}
-                    jsonValue={value || {}}
+                <IOMapEditor
+                    leftOptions={outputSchemaProperties}
+                    rightOptions={incomingSchema}
+                    value={value || {}}
                     onChange={(newValue) => handleInputChange(key, newValue)}
-                    options={jsonOptions}
-                    nodeId={nodeID}
-                    availableFields={incomingSchema}
                     readOnly={readOnly}
+                    leftLabel="Output Field"
+                    rightLabel="Target Field"
                 />
             </div>
         )
