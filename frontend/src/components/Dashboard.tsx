@@ -324,6 +324,7 @@ const Dashboard: React.FC = () => {
                             name: uniqueName,
                             description: jsonContent.description,
                             definition: jsonContent.definition as WorkflowDefinition,
+                            spur_type: jsonContent.spur_type || (jsonContent.definition?.spur_type) || SpurType.WORKFLOW
                         }
                         const createdWorkflow = await createWorkflow(newWorkflow)
                         router.push(`/workflows/${createdWorkflow.id}`)
@@ -549,6 +550,7 @@ const Dashboard: React.FC = () => {
                     name: uniqueName,
                     description: jsonContent.description,
                     definition: jsonContent.definition as WorkflowDefinition,
+                    spur_type: jsonContent.spur_type || (jsonContent.definition?.spur_type) || SpurType.WORKFLOW
                 };
                 const createdWorkflow = await createWorkflow(newWorkflow);
                 router.push(`/workflows/${createdWorkflow.id}`);
