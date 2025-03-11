@@ -14,6 +14,9 @@ class MessageResponse(MessageBase):
     run_id: Optional[str]
     created_at: datetime
     updated_at: datetime
+    model_config = {
+        "from_attributes": True,
+    }
 
 
 class SessionBase(BaseModel):
