@@ -265,13 +265,9 @@ class WorkflowExecutor:
         if not session:
             return []
 
-        history: List[Dict[str, str]] = []
+        history: List[Dict[str, Any]] = []
         for message in session.messages:
-            content = message.content
-            if "user_message" in content:
-                history.append({"role": "user", "content": str(content["user_message"])})
-            if "assistant_message" in content:
-                history.append({"role": "assistant", "content": str(content["assistant_message"])})
+            history.append(message.content)
 
         return history
 
