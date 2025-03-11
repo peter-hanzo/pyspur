@@ -38,7 +38,7 @@ class SessionModel(BaseModel):
     __tablename__ = "sessions"
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
-    id: Mapped[str] = mapped_column(String, Computed("'S' || _intid"), nullable=False, unique=True)
+    id: Mapped[str] = mapped_column(String, Computed("'SN' || _intid"), nullable=False, unique=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False, index=True)
     workflow_id: Mapped[str] = mapped_column(
         String, ForeignKey("workflows.id"), nullable=False, index=True
