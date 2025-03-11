@@ -253,6 +253,7 @@ const Dashboard: React.FC = () => {
     const columns = [
         { key: 'id', label: 'ID' },
         { key: 'name', label: 'Name' },
+        { key: 'spur_type', label: 'Type' },
         { key: 'action', label: 'Action' },
         { key: 'recentRuns', label: 'Recent Runs' },
         { key: 'updated_at', label: 'Last Modified' },
@@ -718,6 +719,26 @@ const Dashboard: React.FC = () => {
                                                                 onClick={() => handleEditClick(workflow)}
                                                             >
                                                                 {workflow.name}
+                                                            </Chip>
+                                                        ) : columnKey === 'spur_type' ? (
+                                                            <Chip
+                                                                size="sm"
+                                                                variant="flat"
+                                                                startContent={
+                                                                    <Icon
+                                                                        icon={
+                                                                            workflow.definition.spur_type ===
+                                                                            SpurType.CHATBOT
+                                                                                ? 'solar:chat-line-linear'
+                                                                                : 'solar:floor-lamp-linear'
+                                                                        }
+                                                                        width={16}
+                                                                    />
+                                                                }
+                                                            >
+                                                                {workflow.definition.spur_type === SpurType.CHATBOT
+                                                                    ? 'Chatbot'
+                                                                    : 'Workflow'}
                                                             </Chip>
                                                         ) : columnKey === 'updated_at' ? (
                                                             <span className="text-default-500">
