@@ -15,6 +15,7 @@ from .openai_compatible_api import router as openai_compatible_api_router
 from .output_file_management import router as output_file_management_router
 from .rag_management import router as rag_management_router
 from .run_management import router as run_management_router
+from .session_management import router as session_management_router
 from .template_management import router as template_management_router
 from .user_management import router as user_management_router
 from .workflow_management import router as workflow_management_router
@@ -43,3 +44,4 @@ api_app.include_router(rag_management_router, prefix="/rag")
 api_app.include_router(file_management_router, prefix="/files")
 api_app.include_router(ai_management_router, prefix="/ai")
 api_app.include_router(user_management_router, prefix="/user")
+api_app.include_router(session_management_router, prefix="/session")
