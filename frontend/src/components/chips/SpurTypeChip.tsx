@@ -13,10 +13,7 @@ const SpurTypeChip: React.FC<SpurTypeChipProps> = ({ spurType }) => {
             size="sm"
             variant="flat"
             startContent={
-                <Icon
-                    icon={spurType === SpurType.CHATBOT ? 'solar:chat-line-linear' : 'solar:floor-lamp-linear'}
-                    width={16}
-                />
+                <Icon icon={spurType === SpurType.CHATBOT ? 'lucide:message-square' : 'lucide:workflow'} width={16} />
             }
         >
             {spurType === SpurType.CHATBOT ? 'Chatbot' : 'Workflow'}
