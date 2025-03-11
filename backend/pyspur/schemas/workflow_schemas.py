@@ -1,9 +1,12 @@
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 from typing_extensions import Self
+
+from ..utils.pydantic_utils import json_schema_to_model
 
 
 class SpurType(str, Enum):
@@ -147,6 +150,50 @@ class WorkflowDefinitionSchema(BaseModel):
                 # Ensure it has the correct prefix
                 if not target_handle.startswith(f"{link.source_id}."):
                     link.target_handle = f"{link.source_id}.{target_handle}"
+
+        return self
+
+    @model_validator(mode="after")
+    def validate_chatbot_input_node(self) -> Self:
+        """Validate that chatbot workflows have the required input fields.
+
+        For chatbot workflows, the input node must have user_message and session_id fields.
+        """
+        if self.spur_type == SpurType.CHATBOT:
+            input_node = next(
+                (
+                    node
+                    for node in self.nodes
+                    if node.node_type == "InputNode" and node.parent_id is None
+                ),
+                None,
+            )
+            if input_node:
+                try:
+                    json_schema = json.loads(input_node.config.get("output_json_schema", "{}"))
+                    model = json_schema_to_model(json_schema)
+                    output_schema = model.model_fields
+                    missing_fields: List[str] = []
+
+                    if "user_message" not in output_schema:
+                        missing_fields.append("user_message")
+                    elif output_schema["user_message"].annotation is not str:
+                        missing_fields.append("user_message (must be of type str)")
+
+                    if "session_id" not in output_schema:
+                        missing_fields.append("session_id")
+                    elif output_schema["session_id"].annotation is not str:
+                        missing_fields.append("session_id (must be of type str)")
+
+                    if missing_fields:
+                        raise ValueError(
+                            f"Chatbot input node must have the following mandatory fields: "
+                            f"{', '.join(missing_fields)}"
+                        )
+                except json.JSONDecodeError:
+                    raise ValueError(
+                        "Invalid JSON schema in input node output_json_schema"
+                    ) from None
 
         return self
 
