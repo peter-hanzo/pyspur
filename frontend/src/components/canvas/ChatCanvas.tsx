@@ -232,7 +232,15 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
         (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
             const tagName = target.tagName.toLowerCase();
+
+            // Don't intercept keyboard events when typing in the chat
             if (target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+                return;
+            }
+
+            // Don't handle keyboard events if we're focused in the chat panel
+            const chatPanelElement = document.querySelector('.h-full.bg-white.border-l.border-gray-200');
+            if (chatPanelElement?.contains(document.activeElement)) {
                 return;
             }
 
@@ -527,24 +535,6 @@ const ChatPanel = React.memo(({
     onResizeStart: (e: React.MouseEvent) => void
 }) => {
     // This will only re-render when workflowID or width changes
-    const handleSendMessage = useCallback(async (message: string): Promise<void> => {
-        console.log("Processing message through workflow:", message);
-
-        // TODO: In the future, implement actual workflow execution:
-        // 1. Create a session ID if none exists
-        // 2. Collect message history
-        // 3. Send to workflow execution engine with proper inputs
-        // 4. Return the response
-
-        // Simulate network delay for now
-        return new Promise<void>((resolve) => {
-            setTimeout(() => {
-                console.log("Message processed by workflow:", workflowID);
-                resolve();
-            }, 1500);
-        });
-    }, [workflowID]);
-
     return (
         <>
             {/* Chat Panel Resizer */}
@@ -561,7 +551,6 @@ const ChatPanel = React.memo(({
                 <div className="w-full h-full overflow-auto">
                     <Chat
                         workflowID={workflowID}
-                        onSendMessage={handleSendMessage}
                     />
                 </div>
             </div>

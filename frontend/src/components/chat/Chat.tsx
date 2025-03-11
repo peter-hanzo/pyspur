@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ScrollShadow } from "@heroui/react";
-import Conversation from "./Conversation";
 import PromptInputWithRegenerateButton from "./PromptInputWithRegenerateButton";
 import MessageCard from "./MessageCard";
-import { assistantMessages, userMessages } from "./Messages";
+import { useChatWorkflowExecution } from "../../hooks/useChatWorkflowExecution";
 
 interface ChatProps {
   workflowID?: string;
@@ -14,9 +13,38 @@ interface ChatProps {
 
 // Use React.memo to prevent unnecessary re-renders
 const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) {
-  const [customMessages, setCustomMessages] = useState<Array<{ role: string; message: string }>>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<Array<{ role: string; message: string }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Use our custom hook for workflow execution
+  const {
+    isLoading,
+    error,
+    executeWorkflow,
+    cleanup,
+    sessionId
+  } = useChatWorkflowExecution({ workflowID });
+
+  // Load messages from session storage on initial load
+  useEffect(() => {
+    if (workflowID) {
+      const storedMessages = sessionStorage.getItem(`chat_messages_${workflowID}`);
+      if (storedMessages) {
+        try {
+          setMessages(JSON.parse(storedMessages));
+        } catch (e) {
+          console.error('Error parsing stored messages:', e);
+        }
+      }
+    }
+  }, [workflowID]);
+
+  // Save messages to session storage when they change
+  useEffect(() => {
+    if (workflowID && messages.length > 0) {
+      sessionStorage.setItem(`chat_messages_${workflowID}`, JSON.stringify(messages));
+    }
+  }, [messages, workflowID]);
 
   // Function to handle sending a new message - use useCallback to make it stable
   const handleSendMessage = useCallback(async (messageText: string) => {
@@ -28,47 +56,94 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
       message: messageText,
     };
 
-    setCustomMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
+    setMessages(prev => [...prev, userMessage]);
 
     try {
-      // If onSendMessage prop exists, use it
+      // If onSendMessage prop exists, use it (for custom handlers)
       if (onSendMessage) {
         await onSendMessage(messageText);
       }
 
-      // Simulate a response for now - in production this would come from the workflow
-      setTimeout(() => {
-        const botMessage = {
-          role: "assistant",
-          message: `This is a simulated response to: "${messageText}"`,
-        };
-        setCustomMessages(prev => [...prev, botMessage]);
-        setIsLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setIsLoading(false);
+      // Execute the workflow with the message
+      if (workflowID) {
+        const response = await executeWorkflow(messageText);
+
+        // Add the assistant's response if we got one
+        if (response) {
+          setMessages(prev => [...prev, response]);
+        }
+      } else {
+        // Fallback for when no workflow is connected
+        setTimeout(() => {
+          const botMessage = {
+            role: "assistant",
+            message: `This is a simulated response (no workflow connected): "${messageText}"`,
+          };
+          setMessages(prev => [...prev, botMessage]);
+        }, 1000);
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+      // Add an error message
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        message: "Sorry, an error occurred while processing your message."
+      }]);
     }
-  }, [onSendMessage]);
+  }, [onSendMessage, workflowID, executeWorkflow]);
+
+  // Handle clearing the chat history
+  const handleClearChat = useCallback(() => {
+    if (workflowID) {
+      sessionStorage.removeItem(`chat_messages_${workflowID}`);
+    }
+    setMessages([]);
+  }, [workflowID]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [customMessages]);
+  }, [messages, isLoading]);
 
-  // Custom conversation component that extends the existing one
+  // Clean up intervals when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
+
+  // Custom conversation component
   const CustomConversation = useCallback(() => {
-    // Only show the existing demo messages if we have no custom messages
-    if (customMessages.length === 0) {
-      return <Conversation />;
+    if (messages.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[300px] h-full p-4 text-center">
+          <div className="mb-4">
+            <img
+              src="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+              alt="Chatbot"
+              className="w-16 h-16 rounded-full"
+            />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Welcome to the Workflow Chatbot</h3>
+          <p className="text-default-500 mb-4 max-w-md">
+            {workflowID
+              ? "This chatbot is powered by your workflow. Send a message to get started!"
+              : "No workflow is connected yet. Please connect a workflow to use this chatbot."}
+          </p>
+          {!workflowID && (
+            <p className="text-xs text-default-400 mb-2">
+              Tip: Build a workflow that takes a message input and produces a response output.
+            </p>
+          )}
+        </div>
+      );
     }
 
     return (
       <div className="flex flex-col gap-4 px-1">
-        {customMessages.map((message, index) => (
+        {messages.map((message, index) => (
           <MessageCard
             key={index}
             avatar={
@@ -88,9 +163,17 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
             status="loading"
           />
         )}
+
+        {error && (
+          <MessageCard
+            avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+            message={`Error: ${error}`}
+            messageClassName="bg-danger-100 text-danger-700"
+          />
+        )}
       </div>
     );
-  }, [customMessages, isLoading]);
+  }, [messages, isLoading, error, workflowID]);
 
   // Custom PromptInput with our handler
   const CustomPromptInput = useCallback(() => {
@@ -98,15 +181,30 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
       <PromptInputWithRegenerateButton
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+        placeholder={workflowID ? "Send a message..." : "No workflow connected"}
+        disabled={!workflowID}
       />
     );
-  }, [handleSendMessage, isLoading]);
+  }, [handleSendMessage, isLoading, workflowID]);
 
   return (
     <div className="flex h-full w-full max-w-full flex-col">
       <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-small border-divider py-2 px-4">
         <p className="text-base font-medium">Chatbot</p>
-        <p className="text-xs text-default-400">Workflow ID: {workflowID || 'Not connected'}</p>
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              className="text-xs text-default-500 hover:text-default-700"
+              aria-label="Clear chat history"
+            >
+              Clear history
+            </button>
+          )}
+          <p className="text-xs text-default-400">
+            {workflowID ? `Connected to workflow: ${workflowID}` : 'Not connected to a workflow'}
+          </p>
+        </div>
       </div>
 
       <ScrollShadow className="flex flex-1 flex-col p-4 overflow-y-auto" ref={scrollRef}>

@@ -10,11 +10,19 @@ import PromptInput from "./PromptInput";
 interface PromptInputWithRegenerateButtonProps {
   onSendMessage?: (message: string) => Promise<void>;
   isLoading?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
-export default function Component({ onSendMessage, isLoading = false }: PromptInputWithRegenerateButtonProps) {
+export default function Component({
+  onSendMessage,
+  isLoading = false,
+  placeholder = "Enter a prompt here",
+  disabled = false
+}: PromptInputWithRegenerateButtonProps) {
   const [isRegenerating, setIsRegenerating] = React.useState<boolean>(false);
   const [prompt, setPrompt] = React.useState<string>("");
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const onRegenerate = () => {
     setIsRegenerating(true);
@@ -31,11 +39,29 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
     }
   };
 
+  // Handle key events to support Enter for submit and Shift+Enter for new line
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // If the key pressed is Enter
+    if (event.key === 'Enter') {
+      // If Shift is held, allow the default behavior (new line)
+      if (event.shiftKey) {
+        return;
+      }
+
+      // Otherwise prevent default and send the message if possible
+      event.preventDefault();
+
+      if (prompt.trim() && !isLoading && !disabled) {
+        handleSendMessage();
+      }
+    }
+  };
+
   return (
     <div className="flex w-full flex-col gap-4">
       <div>
         <Button
-          isDisabled={isRegenerating || isLoading}
+          isDisabled={isRegenerating || isLoading || disabled}
           size="sm"
           startContent={
             <Icon
@@ -57,6 +83,7 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
         }}
       >
         <PromptInput
+          ref={textareaRef}
           classNames={{
             inputWrapper: "!bg-transparent shadow-none",
             innerWrapper: "relative",
@@ -68,7 +95,7 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
                 <Button
                   isIconOnly
                   color={!prompt ? "default" : "primary"}
-                  isDisabled={!prompt || isLoading}
+                  isDisabled={!prompt || isLoading || disabled}
                   radius="lg"
                   size="sm"
                   variant="solid"
@@ -92,7 +119,9 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
           value={prompt}
           variant="flat"
           onValueChange={setPrompt}
-          isDisabled={isLoading}
+          isDisabled={isLoading || disabled}
+          placeholder={placeholder}
+          onKeyDown={handleKeyDown}
         />
         <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4 pb-4">
           <div className="flex flex-wrap gap-3">
@@ -102,7 +131,7 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
                 <Icon className="text-default-500" icon="solar:paperclip-linear" width={18} />
               }
               variant="flat"
-              isDisabled={isLoading}
+              isDisabled={isLoading || disabled}
             >
               Attach
             </Button>
@@ -112,7 +141,7 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
                 <Icon className="text-default-500" icon="solar:soundwave-linear" width={18} />
               }
               variant="flat"
-              isDisabled={isLoading}
+              isDisabled={isLoading || disabled}
             >
               Voice Commands
             </Button>
@@ -122,12 +151,15 @@ export default function Component({ onSendMessage, isLoading = false }: PromptIn
                 <Icon className="text-default-500" icon="solar:notes-linear" width={18} />
               }
               variant="flat"
-              isDisabled={isLoading}
+              isDisabled={isLoading || disabled}
             >
               Templates
             </Button>
           </div>
-          <p className="py-1 text-tiny text-default-400">{prompt.length}/2000</p>
+          <div className="flex flex-col items-end">
+            <p className="py-1 text-tiny text-default-400">{prompt.length}/2000</p>
+            <span className="text-xs text-default-400">Enter to send, Shift+Enter for new line</span>
+          </div>
         </div>
       </form>
     </div>
