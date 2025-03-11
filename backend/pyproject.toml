@@ -108,6 +108,7 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "B", "C", "D", "PYI"]
 ignore = [
+    "B006",  # Do not use mutable default arguments
     "B008",  # Do not perform function call `Depends` in argument defaults
     "D100",  # Missing docstring in public module
     "D101",  # Missing docstring in public class
