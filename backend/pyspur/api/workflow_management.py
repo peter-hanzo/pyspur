@@ -126,16 +126,21 @@ def create_a_new_workflow_definition(
                 "required": ["user_message", "session_id"],
             }
         )
-
+        input_node_config["output_schema"] = {
+            "user_message": "string",
+            "session_id": "string",
+            "message_history": "List[Dict[str, str]]",
+        }
         # Create output node with required chatbot fields
         output_node_config = {
-            "input_json_schema": json.dumps(
+            "output_schema": {"assistant_message": "string"},
+            "output_json_schema": json.dumps(
                 {
                     "type": "object",
                     "properties": {"assistant_message": {"type": "string"}},
                     "required": ["assistant_message"],
                 }
-            )
+            ),
         }
 
         return WorkflowDefinitionSchema(
