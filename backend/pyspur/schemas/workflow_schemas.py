@@ -160,7 +160,8 @@ class WorkflowDefinitionSchema(BaseModel):
         For chatbot workflows, the input node must have user_message and session_id fields.
         """
         if self.spur_type == SpurType.CHATBOT:
-            # chatbot workflows must have input node with user_message and session_id fields
+            # chatbot workflows must have input node with the following fields:
+            # user_message, session_id
             input_node = next(
                 (
                     node

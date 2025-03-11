@@ -8,11 +8,13 @@ from pydantic import ValidationError
 
 from ..models.run_model import RunModel, RunStatus
 from ..models.task_model import TaskStatus
+from ..models.user_session_model import MessageModel, SessionModel
 from ..models.workflow_model import WorkflowModel
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
 from ..nodes.logic.human_intervention import PauseException
 from ..schemas.workflow_schemas import (
+    SpurType,
     WorkflowDefinitionSchema,
     WorkflowNodeSchema,
 )
@@ -241,6 +243,59 @@ class WorkflowExecutor:
     def _get_workflow_definition(self) -> Dict[str, Any]:
         """Get workflow definition from context."""
         return getattr(self.context, "workflow_definition", {}) or {}
+
+    def _get_message_history(self, session_id: str) -> List[Dict[str, str]]:
+        """Extract message history from a session.
+
+        For chatbot workflows, this extracts the history of user and assistant messages
+        from the session's message history.
+        """
+        if not self.context or not self.context.db_session:
+            return []
+
+        # Query the session and its messages
+        session = (
+            self.context.db_session.query(SessionModel)
+            .filter(SessionModel.id == session_id)
+            .first()
+        )
+
+        if not session:
+            return []
+
+        history: List[Dict[str, str]] = []
+        for message in session.messages:
+            content = message.content
+            if "user_message" in content:
+                history.append({"role": "user", "content": str(content["user_message"])})
+            if "assistant_message" in content:
+                history.append({"role": "assistant", "content": str(content["assistant_message"])})
+
+        return history
+
+    def _store_message_history(
+        self, session_id: str, user_message: str, assistant_message: str
+    ) -> None:
+        """Store the current turn's messages in the session history."""
+        if not self.context or not self.context.db_session:
+            return
+
+        # Create user message
+        user_msg = MessageModel(
+            session_id=session_id,
+            run_id=self.context.run_id if self.context else None,
+            content={"role": "user", "content": user_message},
+        )
+        self.context.db_session.add(user_msg)
+
+        # Create assistant message
+        assistant_msg = MessageModel(
+            session_id=session_id,
+            run_id=self.context.run_id if self.context else None,
+            content={"role": "assistant", "content": assistant_message},
+        )
+        self.context.db_session.add(assistant_msg)
+        self.context.db_session.commit()
 
     def _mark_node_as_paused(
         self, node_id: str, pause_output: Optional[BaseNodeOutput] = None
@@ -673,7 +728,7 @@ class WorkflowExecutor:
 
         return {str(key): _serialize_value(value) for key, value in data.items()}
 
-    async def run(  # noqa: C901
+    async def _execute_workflow(  # noqa: C901
         self,
         input: Dict[str, Any] = {},
         node_ids: List[str] = [],
@@ -814,6 +869,52 @@ class WorkflowExecutor:
 
         # return the non-None outputs
         return {node_id: output for node_id, output in self._outputs.items() if output is not None}
+
+    async def run(
+        self,
+        input: Dict[str, Any] = {},
+        node_ids: List[str] = [],
+        precomputed_outputs: Dict[str, Dict[str, Any] | List[Dict[str, Any]]] = {},
+    ) -> Dict[str, BaseNodeOutput]:
+        # For chatbot workflows, extract and inject message history
+        if self.workflow.spur_type == SpurType.CHATBOT:
+            session_id = input.get("session_id")
+            user_message = input.get("user_message")
+
+            if session_id and user_message:
+                # Get message history
+                message_history = self._get_message_history(session_id)
+
+                # Add message_history to input
+                input["message_history"] = message_history
+
+        # Run the workflow
+        outputs = await self._execute_workflow(input, node_ids, precomputed_outputs)
+
+        # For chatbot workflows, store the new messages
+        if self.workflow.spur_type == SpurType.CHATBOT:
+            session_id = input.get("session_id")
+            user_message = input.get("user_message")
+
+            # Find the output node to get assistant's message
+            output_node = next(
+                (node for node in self.workflow.nodes if node.node_type == "OutputNode"), None
+            )
+
+            if output_node and session_id and user_message:
+                # Get assistant's message from outputs
+                assistant_message = None
+                if output_node.id in outputs:
+                    output = outputs[output_node.id]
+                    # Get the output as a dict to safely access fields
+                    output_dict = output.model_dump()
+                    assistant_message = str(output_dict.get("assistant_message", ""))
+
+                if assistant_message:
+                    # Store the messages
+                    self._store_message_history(session_id, user_message, assistant_message)
+
+        return outputs
 
     async def __call__(
         self,
