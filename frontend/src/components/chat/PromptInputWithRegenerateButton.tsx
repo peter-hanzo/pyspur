@@ -135,26 +135,7 @@ export default function Component({
             >
               Attach
             </Button>
-            <Button
-              size="sm"
-              startContent={
-                <Icon className="text-default-500" icon="solar:soundwave-linear" width={18} />
-              }
-              variant="flat"
-              isDisabled={isLoading || disabled}
-            >
-              Voice Commands
-            </Button>
-            <Button
-              size="sm"
-              startContent={
-                <Icon className="text-default-500" icon="solar:notes-linear" width={18} />
-              }
-              variant="flat"
-              isDisabled={isLoading || disabled}
-            >
-              Templates
-            </Button>
+
           </div>
           <div className="flex flex-col items-end">
             <p className="py-1 text-tiny text-default-400">{prompt.length}/2000</p>
