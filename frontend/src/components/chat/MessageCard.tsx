@@ -11,7 +11,7 @@ export type MessageCardProps = React.HTMLAttributes<HTMLDivElement> & {
   showFeedback?: boolean;
   message?: React.ReactNode;
   currentAttempt?: number;
-  status?: "success" | "failed";
+  status?: "success" | "failed" | "loading";
   attempts?: number;
   messageClassName?: string;
   onAttemptChange?: (attempt: number) => void;
@@ -48,6 +48,8 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
 
     const failedMessageClassName =
       status === "failed" ? "bg-danger-100/50 border border-danger-100 text-foreground" : "";
+    const loadingMessageClassName =
+      status === "loading" ? "bg-default-100/50 border border-default-100 text-foreground" : "";
     const failedMessage = (
       <p>
         Something went wrong, if the issue persists please contact us through our help center
@@ -58,7 +60,15 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
       </p>
     );
 
+    const loadingMessage = (
+      <div className="flex items-center gap-2">
+        <Icon className="text-default-500 animate-spin" icon="gravity-ui:spinner" />
+        <p>Generating response...</p>
+      </div>
+    );
+
     const hasFailed = status === "failed";
+    const isLoading = status === "loading";
 
     const handleCopy = React.useCallback(() => {
       let stringValue = "";
@@ -121,13 +131,14 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
             className={cn(
               "relative w-full rounded-medium bg-content2 px-4 py-3 text-default-600",
               failedMessageClassName,
+              loadingMessageClassName,
               messageClassName,
             )}
           >
             <div ref={messageRef} className={"pr-20 text-small"}>
-              {hasFailed ? failedMessage : message}
+              {hasFailed ? failedMessage : isLoading ? loadingMessage : message}
             </div>
-            {showFeedback && !hasFailed && (
+            {showFeedback && !hasFailed && !isLoading && (
               <div className="absolute right-2 top-2 flex rounded-full bg-content2 shadow-small">
                 <Button isIconOnly radius="full" size="sm" variant="light" onPress={handleCopy}>
                   {copied ? (
@@ -164,7 +175,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                 </Button>
               </div>
             )}
-            {attempts > 1 && !hasFailed && (
+            {attempts > 1 && !hasFailed && !isLoading && (
               <div className="flex w-full items-center justify-end">
                 <button
                   onClick={() => onAttemptChange?.(currentAttempt > 1 ? currentAttempt - 1 : 1)}
@@ -190,7 +201,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
               </div>
             )}
           </div>
-          {showFeedback && attempts > 1 && (
+          {showFeedback && attempts > 1 && !hasFailed && !isLoading && (
             <div className="flex items-center justify-between rounded-medium border-small border-default-100 px-4 py-3 shadow-small">
               <p className="text-small text-default-600">Was this response better or worse?</p>
               <div className="flex gap-1">

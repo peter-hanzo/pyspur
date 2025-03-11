@@ -7,7 +7,12 @@ import {cn} from "@heroui/react";
 
 import PromptInput from "./PromptInput";
 
-export default function Component() {
+interface PromptInputWithRegenerateButtonProps {
+  onSendMessage?: (message: string) => Promise<void>;
+  isLoading?: boolean;
+}
+
+export default function Component({ onSendMessage, isLoading = false }: PromptInputWithRegenerateButtonProps) {
   const [isRegenerating, setIsRegenerating] = React.useState<boolean>(false);
   const [prompt, setPrompt] = React.useState<string>("");
 
@@ -19,11 +24,18 @@ export default function Component() {
     }, 1000);
   };
 
+  const handleSendMessage = () => {
+    if (prompt.trim() && onSendMessage) {
+      onSendMessage(prompt);
+      setPrompt("");
+    }
+  };
+
   return (
     <div className="flex w-full flex-col gap-4">
       <div>
         <Button
-          isDisabled={isRegenerating}
+          isDisabled={isRegenerating || isLoading}
           size="sm"
           startContent={
             <Icon
@@ -37,7 +49,13 @@ export default function Component() {
           Regenerate
         </Button>
       </div>
-      <form className="flex w-full flex-col items-start rounded-medium bg-default-100 transition-colors hover:bg-default-200/70">
+      <form
+        className="flex w-full flex-col items-start rounded-medium bg-default-100 transition-colors hover:bg-default-200/70"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSendMessage();
+        }}
+      >
         <PromptInput
           classNames={{
             inputWrapper: "!bg-transparent shadow-none",
@@ -50,10 +68,12 @@ export default function Component() {
                 <Button
                   isIconOnly
                   color={!prompt ? "default" : "primary"}
-                  isDisabled={!prompt}
+                  isDisabled={!prompt || isLoading}
                   radius="lg"
                   size="sm"
                   variant="solid"
+                  onPress={handleSendMessage}
+                  type="submit"
                 >
                   <Icon
                     className={cn(
@@ -72,6 +92,7 @@ export default function Component() {
           value={prompt}
           variant="flat"
           onValueChange={setPrompt}
+          isDisabled={isLoading}
         />
         <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4 pb-4">
           <div className="flex flex-wrap gap-3">
@@ -81,6 +102,7 @@ export default function Component() {
                 <Icon className="text-default-500" icon="solar:paperclip-linear" width={18} />
               }
               variant="flat"
+              isDisabled={isLoading}
             >
               Attach
             </Button>
@@ -90,6 +112,7 @@ export default function Component() {
                 <Icon className="text-default-500" icon="solar:soundwave-linear" width={18} />
               }
               variant="flat"
+              isDisabled={isLoading}
             >
               Voice Commands
             </Button>
@@ -99,6 +122,7 @@ export default function Component() {
                 <Icon className="text-default-500" icon="solar:notes-linear" width={18} />
               }
               variant="flat"
+              isDisabled={isLoading}
             >
               Templates
             </Button>

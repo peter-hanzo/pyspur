@@ -14,14 +14,7 @@ export default function Component() {
       role: "assistant",
       message: assistantMessages[0],
     },
-    {
-      role: "user",
-      message: userMessages[1],
-    },
-    {
-      role: "assistant",
-      message: assistantMessages[1],
-    },
+
   ];
 
   return (
@@ -38,7 +31,6 @@ export default function Component() {
           currentAttempt={index === 1 ? 2 : 1}
           message={message}
           messageClassName={role === "user" ? "bg-content3 text-content3-foreground" : ""}
-          showFeedback={role === "assistant"}
         />
       ))}
     </div>
