@@ -42,11 +42,16 @@ export const useChatWorkflowExecution = ({ workflowID }: UseChatWorkflowExecutio
       statusIntervals.current.forEach((interval) => clearInterval(interval))
 
       // Start the workflow run with the message as input and session ID
+      // Format the inputs according to what the backend expects for chat workflows
       const result = await startRun(
         workflowID,
         {
-          input: { message },
-          session_id: { id: sessionId }
+          input_node: {
+            user_message: message,
+            session_id: sessionId,
+            // Optional empty message history array
+            message_history: []
+          }
         },
         null,
         'interactive'
@@ -73,12 +78,13 @@ export const useChatWorkflowExecution = ({ workflowID }: UseChatWorkflowExecutio
               // Find the output task (typically the last node in the workflow)
               const outputTask = tasks.find(task =>
                 task.status === 'COMPLETED' && task.outputs &&
-                (task.outputs.output || task.outputs.response || task.outputs.message || task.outputs.result)
+                (task.outputs.output || task.outputs.response || task.outputs.message || task.outputs.result || task.outputs.assistant_message)
               )
 
               if (outputTask && outputTask.outputs) {
-                // Look for the output in common output field names
+                // Look for the output in common output field names, including assistant_message
                 const outputContent =
+                  outputTask.outputs.assistant_message ||
                   outputTask.outputs.output ||
                   outputTask.outputs.response ||
                   outputTask.outputs.message ||
