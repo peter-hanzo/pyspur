@@ -213,14 +213,14 @@ class WorkflowDefinitionSchema(BaseModel):
             )
             if output_node:
                 try:
-                    json_schema = json.loads(output_node.config.get("input_json_schema", "{}"))
+                    json_schema = json.loads(output_node.config.get("output_json_schema", "{}"))
                     model = json_schema_to_model(json_schema)
-                    input_schema = model.model_fields
+                    output_schema = model.model_fields
                     missing_fields: List[str] = []
 
-                    if "assistant_message" not in input_schema:
+                    if "assistant_message" not in output_schema:
                         missing_fields.append("assistant_message")
-                    elif input_schema["assistant_message"].annotation is not str:
+                    elif output_schema["assistant_message"].annotation is not str:
                         missing_fields.append("assistant_message (must be of type str)")
 
                     if missing_fields:
@@ -230,7 +230,7 @@ class WorkflowDefinitionSchema(BaseModel):
                         )
                 except json.JSONDecodeError:
                     raise ValueError(
-                        "Invalid JSON schema in output node input_json_schema"
+                        "Invalid JSON schema in output node output_json_schema"
                     ) from None
 
         return self
