@@ -121,17 +121,14 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
             return (
                 <div className="flex flex-col items-center justify-center min-h-[300px] h-full p-4 text-center">
                     <div className="mb-4">
-                        <img
-                            src="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
-                            alt="Chatbot"
-                            className="w-16 h-16 rounded-full"
-                        />
+                        <img src="/pyspur-white.png" alt="PySpur Chat" className="w-16 h-16 dark:block hidden" />
+                        <img src="/pyspur-black.png" alt="PySpur Chat" className="w-16 h-16 dark:hidden block" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">Welcome to the Workflow Chatbot</h3>
+                    <h3 className="text-lg font-semibold mb-2">Welcome to Spur Chat</h3>
                     <p className="text-default-500 mb-4 max-w-md">
                         {workflowID
-                            ? 'This chatbot is powered by your workflow. Send a message to get started!'
-                            : 'No workflow is connected yet. Please connect a workflow to use this chatbot.'}
+                            ? 'This chat is powered by your workflow. Send a message to get started!'
+                            : 'No workflow is connected yet. Please connect a workflow to use this chat interface.'}
                     </p>
                     {!workflowID && (
                         <p className="text-xs text-default-400 mb-2">
@@ -191,7 +188,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
     return (
         <div className="flex h-full w-full max-w-full flex-col">
             <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-small border-divider py-2 px-4">
-                <p className="text-base font-medium">Chatbot</p>
+                <p className="text-base font-medium">Chat with your Spur</p>
                 <div className="flex items-center gap-2">
                     {messages.length > 0 && (
                         <button
@@ -203,7 +200,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                         </button>
                     )}
                     <p className="text-xs text-default-400">
-                        {workflowID ? `Connected to workflow: ${workflowID}` : 'Not connected to a workflow'}
+                        {sessionId ? `Session ID: ${sessionId}` : 'No active session'}
                     </p>
                 </div>
             </div>
