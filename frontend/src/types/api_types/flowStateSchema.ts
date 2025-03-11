@@ -4,7 +4,7 @@ import {
     FlowWorkflowNodeConfig,
     NodeTypes,
 } from '@/types/api_types/nodeTypeSchemas'
-import { TestInput } from '@/types/api_types/workflowSchemas'
+import { SpurType, TestInput } from '@/types/api_types/workflowSchemas'
 
 export interface FlowState {
     nodeTypes: NodeTypes
@@ -25,4 +25,5 @@ export interface FlowState {
         future: Array<{ nodes: FlowWorkflowNode[]; edges: FlowWorkflowEdge[] }>
     }
     isRunModalOpen: boolean
+    spurType: SpurType
 }

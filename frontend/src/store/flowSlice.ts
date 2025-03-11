@@ -6,7 +6,7 @@ import {
     NodeTypesConfig,
     Position,
 } from '@/types/api_types/nodeTypeSchemas'
-import { TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
+import { SpurType, TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { computeJsonSchemaIntersection } from '@/utils/schemaUtils'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
@@ -34,6 +34,7 @@ const initialState: FlowState = {
         future: [],
     },
     isRunModalOpen: false,
+    spurType: SpurType.WORKFLOW,
 }
 
 const saveToHistory = (state: FlowState) => {
@@ -131,6 +132,7 @@ const flowSlice = createSlice({
             state.workflowID = workflowID
             state.projectName = name
             state.nodeTypes = action.payload.nodeTypes
+            state.spurType = definition.spur_type || SpurType.WORKFLOW
             const { nodes, links } = definition
             state.nodes = nodes.map((node) => {
                 const { node: nodeObj } = createNode(
