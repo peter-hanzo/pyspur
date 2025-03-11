@@ -130,6 +130,8 @@ class WorkflowExecutor:
                     if node.id in (link.source_id, link.target_id)
                 )
             ],
+            test_inputs=workflow.test_inputs,
+            spur_type=workflow.spur_type,
         )
 
     def _build_node_dict(self):
