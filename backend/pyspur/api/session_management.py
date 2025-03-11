@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models.user_session_model import SessionModel, UserModel
+from ..models.workflow_model import WorkflowModel
 from ..schemas.session_schemas import (
     SessionCreate,
     SessionListResponse,
@@ -27,8 +28,17 @@ async def create_session(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Verify workflow exists
+    workflow = (
+        db.query(WorkflowModel).filter(WorkflowModel.id == session_create.workflow_id).first()
+    )
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
     # Create session
-    db_session = SessionModel(user_id=session_create.user_id)
+    db_session = SessionModel(
+        user_id=session_create.user_id, workflow_id=session_create.workflow_id
+    )
 
     try:
         db.add(db_session)

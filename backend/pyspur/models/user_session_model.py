@@ -5,6 +5,7 @@ from sqlalchemy import JSON, Computed, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import BaseModel
+from .workflow_model import WorkflowModel
 
 
 class UserModel(BaseModel):
@@ -39,6 +40,9 @@ class SessionModel(BaseModel):
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(String, Computed("'S' || _intid"), nullable=False, unique=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False, index=True)
+    workflow_id: Mapped[str] = mapped_column(
+        String, ForeignKey("workflows.id"), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.now(timezone.utc)
     )
@@ -51,6 +55,9 @@ class SessionModel(BaseModel):
 
     # Relationship to user
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="sessions")
+
+    # Relationship to workflow
+    workflow: Mapped["WorkflowModel"] = relationship("WorkflowModel")
 
     # Relationship to messages, ordered chronologically
     messages: Mapped[List["MessageModel"]] = relationship(

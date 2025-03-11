@@ -17,7 +17,7 @@ class MessageResponse(MessageBase):
 
 
 class SessionBase(BaseModel):
-    pass
+    workflow_id: str
 
 
 class SessionCreate(SessionBase):
