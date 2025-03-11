@@ -29,6 +29,7 @@ import { setProjectName, setRunModalOpen } from '../store/flowSlice'
 import { RootState } from '../store/store'
 import { AlertState } from '../types/alert'
 import { getRunStatus, getWorkflow, getWorkflowVersions } from '../utils/api'
+import SpurTypeChip from './chips/SpurTypeChip'
 import ConfirmationModal from './modals/ConfirmationModal'
 import DeployModal from './modals/DeployModal'
 import HelpModal from './modals/HelpModal'
@@ -46,6 +47,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
     const projectName = useSelector((state: RootState) => state.flow.projectName)
+    const spurType = useSelector((state: RootState) => state.flow.spurType)
     const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data)
     const [isDebugModalOpen, setIsDebugModalOpen] = useState<boolean>(false)
     const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false)
@@ -327,6 +329,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                 }
                             }}
                         />
+                        {spurType && (
+                            <div className="ml-2 flex items-center">
+                                <SpurTypeChip spurType={spurType} />
+                            </div>
+                        )}
                     </NavbarContent>
                 )}
                 <NavbarContent

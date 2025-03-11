@@ -198,9 +198,17 @@ def generate_unique_workflow_name(db: Session, base_name: str) -> str:
 def create_workflow(
     workflow_request: WorkflowCreateRequestSchema, db: Session = Depends(get_db)
 ) -> WorkflowResponseSchema:
+    print(workflow_request)
     if not workflow_request.definition:
-        spur_type = getattr(workflow_request, "spur_type", SpurType.WORKFLOW)
-        workflow_request.definition = create_a_new_workflow_definition(spur_type=spur_type)
+        # If no definition is provided, create a new one with default WORKFLOW type
+        workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.WORKFLOW)
+    elif workflow_request.definition.spur_type == SpurType.CHATBOT:
+        # If the workflow type is CHATBOT, create a new definition with required fields
+        workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.CHATBOT)
+    else:
+        # If the workflow type is not CHATBOT, create a new definition with default WORKFLOW type
+        workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.WORKFLOW)
+    # Generate a unique name for the workflow
     workflow_name = generate_unique_workflow_name(db, workflow_request.name or "Untitled Workflow")
     new_workflow = WorkflowModel(
         name=workflow_name,

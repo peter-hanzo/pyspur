@@ -1,10 +1,10 @@
-import { useCallback, useRef, useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import { updateWorkflow } from '../utils/api'
-import { RootState } from '../store/store'
-import { debounce } from 'lodash'
-import { WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas'
 import { FlowWorkflowEdge as Edge } from '@/types/api_types/nodeTypeSchemas'
+import { SpurType, WorkflowCreateRequest, WorkflowNode } from '@/types/api_types/workflowSchemas'
+import { debounce } from 'lodash'
+import { useCallback, useEffect, useRef } from 'react'
+import { useSelector } from 'react-redux'
+import { RootState } from '../store/store'
+import { updateWorkflow } from '../utils/api'
 
 export const useSaveWorkflow = () => {
     const nodes = useSelector((state: RootState) => state.flow.nodes)
@@ -14,7 +14,7 @@ export const useSaveWorkflow = () => {
     const workflowInputVariables = useSelector((state: RootState) => state.flow.workflowInputVariables)
     const workflowName = useSelector((state: RootState) => state.flow.projectName)
     const testInputs = useSelector((state: RootState) => state.flow.testInputs)
-    const spurType = useSelector((state: RootState) => state.flow.spurType)
+    const spurType = useSelector((state: RootState) => state.flow.spurType) || SpurType.WORKFLOW
 
     // Create a ref to store the current values
     const valuesRef = useRef({
