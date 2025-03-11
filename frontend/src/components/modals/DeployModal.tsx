@@ -13,8 +13,8 @@ import {
     Switch,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import SyntaxHighlighter from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter'
 import { FlowState } from '@/types/api_types/flowStateSchema'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 
