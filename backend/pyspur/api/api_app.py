@@ -5,6 +5,7 @@ from ..nodes.registry import NodeRegistry
 NodeRegistry.discover_nodes()
 
 from ..integrations.google.auth import router as google_auth_router
+from .ai_management import router as ai_management_router
 from .dataset_management import router as dataset_management_router
 from .evals_management import router as evals_management_router
 from .file_management import router as file_management_router
@@ -15,9 +16,9 @@ from .output_file_management import router as output_file_management_router
 from .rag_management import router as rag_management_router
 from .run_management import router as run_management_router
 from .template_management import router as template_management_router
+from .user_management import router as user_management_router
 from .workflow_management import router as workflow_management_router
 from .workflow_run import router as workflow_run_router
-from .ai_management import router as ai_management_router
 
 # Create a sub-application for API routes
 api_app = FastAPI(
@@ -41,3 +42,4 @@ api_app.include_router(google_auth_router, prefix="/google")
 api_app.include_router(rag_management_router, prefix="/rag")
 api_app.include_router(file_management_router, prefix="/files")
 api_app.include_router(ai_management_router, prefix="/ai")
+api_app.include_router(user_management_router, prefix="/user")
