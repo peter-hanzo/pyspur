@@ -418,25 +418,14 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown isOpen={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
                                 <DropdownTrigger>
-                                    <span>
-                                        <Tooltip
-                                            content={
-                                                <div className="px-1 py-2">
-                                                    <div className="text-small font-bold">Run History</div>
-                                                    <div className="text-tiny">View previous workflow runs</div>
-                                                </div>
-                                            }
-                                            placement="bottom"
-                                        >
-                                            <Button isIconOnly radius="full" variant="light">
-                                                <Icon
-                                                    className="text-foreground/60"
-                                                    icon="solar:playlist-linear"
-                                                    width={22}
-                                                />
-                                            </Button>
-                                        </Tooltip>
-                                    </span>
+                                    <Button
+                                        isIconOnly
+                                        radius="full"
+                                        variant="light"
+                                        title="Run History - View previous workflow runs"
+                                    >
+                                        <Icon className="text-foreground/60" icon="solar:playlist-linear" width={22} />
+                                    </Button>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     {isUpdatingStatus ? (
@@ -474,25 +463,14 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown isOpen={isVersionHistoryOpen} onOpenChange={setIsVersionHistoryOpen}>
                                 <DropdownTrigger>
-                                    <span>
-                                        <Tooltip
-                                            content={
-                                                <div className="px-1 py-2">
-                                                    <div className="text-small font-bold">Version History</div>
-                                                    <div className="text-tiny">View and compare workflow versions</div>
-                                                </div>
-                                            }
-                                            placement="bottom"
-                                        >
-                                            <Button isIconOnly radius="full" variant="light">
-                                                <Icon
-                                                    className="text-foreground/60"
-                                                    icon="solar:history-linear"
-                                                    width={22}
-                                                />
-                                            </Button>
-                                        </Tooltip>
-                                    </span>
+                                    <Button
+                                        isIconOnly
+                                        radius="full"
+                                        variant="light"
+                                        title="Version History - View and compare workflow versions"
+                                    >
+                                        <Icon className="text-foreground/60" icon="solar:history-linear" width={22} />
+                                    </Button>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     {isLoadingVersions ? (
@@ -549,25 +527,14 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown>
                                 <DropdownTrigger>
-                                    <span>
-                                        <Tooltip
-                                            content={
-                                                <div className="px-1 py-2">
-                                                    <div className="text-small font-bold">Download Options</div>
-                                                    <div className="text-tiny">Download workflow as JSON or image</div>
-                                                </div>
-                                            }
-                                            placement="bottom"
-                                        >
-                                            <Button isIconOnly radius="full" variant="light">
-                                                <Icon
-                                                    className="text-foreground/60"
-                                                    icon="solar:download-linear"
-                                                    width={24}
-                                                />
-                                            </Button>
-                                        </Tooltip>
-                                    </span>
+                                    <Button
+                                        isIconOnly
+                                        radius="full"
+                                        variant="light"
+                                        title="Download Options - Download workflow as JSON or image"
+                                    >
+                                        <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
+                                    </Button>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     <DropdownItem
@@ -600,34 +567,26 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                             </Dropdown>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Tooltip
-                                content={
-                                    <div className="px-1 py-2">
-                                        <div className="text-small font-bold">Upload Workflow</div>
-                                        <div className="text-tiny">Replaces the current workflow</div>
-                                    </div>
-                                }
-                                placement="bottom"
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onPress={handleFileUpload}
+                                title="Upload Workflow - Replaces the current workflow"
                             >
-                                <Button isIconOnly radius="full" variant="light" onPress={handleFileUpload}>
-                                    <Icon className="text-foreground/60" icon="solar:upload-linear" width={24} />
-                                </Button>
-                            </Tooltip>
+                                <Icon className="text-foreground/60" icon="solar:upload-linear" width={24} />
+                            </Button>
                         </NavbarItem>
                         <NavbarItem className="hidden sm:flex">
-                            <Tooltip
-                                content={
-                                    <div className="px-1 py-2">
-                                        <div className="text-small font-bold">Deploy Workflow</div>
-                                        <div className="text-tiny">Deploy workflow to production</div>
-                                    </div>
-                                }
-                                placement="bottom"
+                            <Button
+                                isIconOnly
+                                radius="full"
+                                variant="light"
+                                onPress={handleDeploy}
+                                title="Deploy Workflow - Deploy workflow to production"
                             >
-                                <Button isIconOnly radius="full" variant="light" onPress={handleDeploy}>
-                                    <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
-                                </Button>
-                            </Tooltip>
+                                <Icon className="text-foreground/60" icon="solar:cloud-upload-linear" width={24} />
+                            </Button>
                         </NavbarItem>
                     </NavbarContent>
                 )}
@@ -639,25 +598,14 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                         <NavbarItem className="hidden sm:flex">
                             <Dropdown>
                                 <DropdownTrigger>
-                                    <span>
-                                        <Tooltip
-                                            content={
-                                                <div className="px-1 py-2">
-                                                    <div className="text-small font-bold">Download Options</div>
-                                                    <div className="text-tiny">Download trace as JSON or image</div>
-                                                </div>
-                                            }
-                                            placement="bottom"
-                                        >
-                                            <Button isIconOnly radius="full" variant="light">
-                                                <Icon
-                                                    className="text-foreground/60"
-                                                    icon="solar:download-linear"
-                                                    width={24}
-                                                />
-                                            </Button>
-                                        </Tooltip>
-                                    </span>
+                                    <Button
+                                        isIconOnly
+                                        radius="full"
+                                        variant="light"
+                                        title="Download Options - Download trace as JSON or image"
+                                    >
+                                        <Icon className="text-foreground/60" icon="solar:download-linear" width={24} />
+                                    </Button>
                                 </DropdownTrigger>
                                 <DropdownMenu>
                                     <DropdownItem
