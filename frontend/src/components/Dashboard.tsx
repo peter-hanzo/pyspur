@@ -1,5 +1,5 @@
 import { RunResponse } from '@/types/api_types/runSchemas'
-import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse } from '@/types/api_types/workflowSchemas'
+import { WorkflowCreateRequest, WorkflowDefinition, WorkflowResponse, SpurType } from '@/types/api_types/workflowSchemas'
 import { PausedWorkflowResponse, ResumeActionRequest } from '@/types/api_types/pausedWorkflowSchemas'
 import {
     Accordion,
@@ -15,6 +15,21 @@ import {
     TableHeader,
     TableRow,
     getKeyValue,
+    Card,
+    CardBody,
+    Tab,
+    Tabs,
+    Badge,
+    Input,
+    Textarea,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    useDisclosure,
+    RadioGroup,
+    Radio
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import Head from 'next/head'
@@ -129,6 +144,8 @@ const Dashboard: React.FC = () => {
     const [alertMessage, setAlertMessage] = useState<string | null>(null)
     const [alertColor, setAlertColor] = useState<'success' | 'danger' | 'warning' | 'default'>('default')
     const [showAlert, setShowAlert] = useState(false)
+    const { isOpen: isNewSpurModalOpen, onOpen: onOpenNewSpurModal, onClose: onCloseNewSpurModal } = useDisclosure()
+    const [selectedSpurType, setSelectedSpurType] = useState<SpurType>(SpurType.WORKFLOW)
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -259,17 +276,24 @@ const Dashboard: React.FC = () => {
     }
 
     const handleNewWorkflowClick = async () => {
+        onOpenNewSpurModal()
+    }
+
+    const handleCreateNewSpur = async () => {
         try {
-            const uniqueName = `New Spur ${new Date().toLocaleString()}`
+            const uniqueName = `New ${selectedSpurType === SpurType.CHATBOT ? 'Chatbot' : 'Workflow'} ${new Date().toLocaleString()}`
             const newWorkflow: WorkflowCreateRequest = {
                 name: uniqueName,
                 description: '',
+                spur_type: selectedSpurType
             }
 
             const createdWorkflow = await createWorkflow(newWorkflow)
+            onCloseNewSpurModal()
             router.push(`/workflows/${createdWorkflow.id}`)
         } catch (error) {
             console.error('Error creating new workflow:', error)
+            onAlert('Failed to create new spur', 'danger')
         }
     }
 
@@ -904,6 +928,40 @@ const Dashboard: React.FC = () => {
                     onSubmit={handleHumanInputSubmit}
                 />
             )}
+            {/* New Spur Type Modal */}
+            <Modal isOpen={isNewSpurModalOpen} onClose={onCloseNewSpurModal}>
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">Create New Spur</ModalHeader>
+                    <ModalBody>
+                        <RadioGroup
+                            label="Select the type of spur you want to create"
+                            value={selectedSpurType}
+                            onChange={(e) => setSelectedSpurType(e.target.value as SpurType)}
+                        >
+                            <Radio value={SpurType.WORKFLOW} description="Create a standard workflow with nodes and edges">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="lucide:workflow" width={20} />
+                                    <span>Workflow</span>
+                                </div>
+                            </Radio>
+                            <Radio value={SpurType.CHATBOT} description="Create a chatbot with session management and conversational I/O">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="lucide:message-square" width={20} />
+                                    <span>Chatbot</span>
+                                </div>
+                            </Radio>
+                        </RadioGroup>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button color="danger" variant="light" onPress={onCloseNewSpurModal}>
+                            Cancel
+                        </Button>
+                        <Button color="primary" onPress={handleCreateNewSpur}>
+                            Create
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }
