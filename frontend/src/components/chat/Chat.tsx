@@ -114,9 +114,6 @@ export default function Chat({ workflowID, onSendMessage }: ChatProps) {
 
       <div className="p-4 border-t border-divider">
         <CustomPromptInput />
-        <p className="mt-2 px-2 text-tiny text-default-400">
-          This chatbot is powered by your spur workflow. Messages are processed through the workflow.
-        </p>
       </div>
     </div>
   );
