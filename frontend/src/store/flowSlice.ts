@@ -251,18 +251,13 @@ const flowSlice = createSlice({
         updateNodeConfigOnly: (state, action: PayloadAction<{ id: string; data: any }>) => {
             const { id, data } = action.payload
             const currentConfig = state.nodeConfigs[id] || {}
-            if (data.few_shot_examples) {
-                const oldExamples = currentConfig.few_shot_examples || []
-                const newExamples = data.few_shot_examples
-                const maxLength = Math.max(oldExamples.length, newExamples.length)
-                const mergedExamples = []
-                for (let i = 0; i < maxLength; i++) {
-                    mergedExamples[i] = { ...(oldExamples[i] || {}), ...(newExamples[i] || {}) }
-                }
+
+            // Handle few_shot_examples directly without merging
+            if (data.few_shot_examples !== undefined) {
                 state.nodeConfigs[id] = {
                     ...currentConfig,
                     ...data,
-                    few_shot_examples: mergedExamples,
+                    few_shot_examples: data.few_shot_examples,
                 }
             } else {
                 state.nodeConfigs[id] = {
