@@ -1,6 +1,6 @@
 'use client'
 
-import { createTestSession } from '@/utils/api'
+import { createTestSession, getSession } from '@/utils/api'
 import { ScrollShadow } from '@heroui/react'
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -11,6 +11,7 @@ import PromptInputWithRegenerateButton from './PromptInputWithRegenerateButton'
 interface ChatProps {
     workflowID?: string
     onSendMessage?: (message: string) => Promise<void>
+    sessionId?: string
 }
 
 interface MessageCardProps {
@@ -21,16 +22,16 @@ interface MessageCardProps {
 }
 
 // Use React.memo to prevent unnecessary re-renders
-const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) {
+const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId: providedSessionId }: ChatProps) {
     const [messages, setMessages] = useState<Array<{ role: string; message: string; runId?: string }>>([])
     const scrollRef = useRef<HTMLDivElement>(null)
     const { theme } = useTheme()
     // Add state for test session
-    const [sessionId, setSessionId] = useState<string | null>(null)
+    const [sessionId, setSessionId] = useState<string | null>(providedSessionId || null)
 
-    // Create test session when workflow ID is available
+    // Create test session when workflow ID is available and no sessionId is provided
     const initTestSession = async () => {
-        if (workflowID) {
+        if (workflowID && !providedSessionId) {
             try {
                 const session = await createTestSession(workflowID)
                 setSessionId(session.id)
@@ -39,9 +40,52 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
             }
         }
     }
+
+    // Fetch session messages when providedSessionId exists
+    const fetchSessionMessages = async () => {
+        if (!providedSessionId) return
+
+        try {
+            const session = await getSession(providedSessionId)
+            const formattedMessages = session.messages.map((msg) => ({
+                role: msg.content.role,
+                message: msg.content.content,
+                runId: msg.run_id,
+            }))
+            setMessages(formattedMessages)
+        } catch (error) {
+            console.error('Error fetching session messages:', error)
+        }
+    }
+
     useEffect(() => {
-        initTestSession()
-    }, [workflowID])
+        if (providedSessionId) {
+            fetchSessionMessages()
+        } else {
+            initTestSession()
+        }
+    }, [workflowID, providedSessionId])
+
+    // Load messages from session storage on initial load - only for test sessions
+    useEffect(() => {
+        if (workflowID && !providedSessionId) {
+            const storedMessages = sessionStorage.getItem(`chat_messages_${sessionId || 'default'}`)
+            if (storedMessages) {
+                try {
+                    setMessages(JSON.parse(storedMessages))
+                } catch (e) {
+                    console.error('Error parsing stored messages:', e)
+                }
+            }
+        }
+    }, [sessionId, providedSessionId])
+
+    // Save messages to session storage when they change - only for test sessions
+    useEffect(() => {
+        if (workflowID && !providedSessionId && messages.length > 0) {
+            sessionStorage.setItem(`chat_messages_${sessionId}`, JSON.stringify(messages))
+        }
+    }, [messages, workflowID, providedSessionId])
 
     // Use our custom hook for workflow execution
     const { isLoading, error, executeWorkflow, cleanup } = useChatWorkflowExecution({
@@ -52,27 +96,6 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
     const getAssistantAvatar = () => {
         return '/pyspur-black.png'
     }
-
-    // Load messages from session storage on initial load
-    useEffect(() => {
-        if (workflowID) {
-            const storedMessages = sessionStorage.getItem(`chat_messages_${sessionId || 'default'}`)
-            if (storedMessages) {
-                try {
-                    setMessages(JSON.parse(storedMessages))
-                } catch (e) {
-                    console.error('Error parsing stored messages:', e)
-                }
-            }
-        }
-    }, [sessionId])
-
-    // Save messages to session storage when they change
-    useEffect(() => {
-        if (workflowID && messages.length > 0) {
-            sessionStorage.setItem(`chat_messages_${sessionId}`, JSON.stringify(messages))
-        }
-    }, [messages, workflowID])
 
     // Function to handle sending a new message - use useCallback to make it stable
     const handleSendMessage = useCallback(
