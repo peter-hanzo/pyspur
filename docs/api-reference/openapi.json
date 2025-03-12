@@ -545,7 +545,7 @@
             "post": {
                 "tags": ["workflows"],
                 "summary": "Upload Test Files",
-                "description": "Upload files for test inputs and return their paths.",
+                "description": "Upload test files for a specific node in a workflow",
                 "operationId": "upload_test_files_wf_upload_test_files__post",
                 "requestBody": {
                     "content": {
@@ -2012,7 +2012,7 @@
             "post": {
                 "tags": ["rag"],
                 "summary": "Create Document Collection",
-                "description": "Create a new document collection",
+                "description": "Create a new document collection from uploaded files and metadata",
                 "operationId": "create_document_collection_rag_collections__post",
                 "requestBody": {
                     "content": {
@@ -2114,7 +2114,7 @@
             "delete": {
                 "tags": ["rag"],
                 "summary": "Delete Vector Index",
-                "description": "Delete a vector index",
+                "description": "Delete a vector index and its associated data",
                 "operationId": "delete_vector_index_rag_indices__index_id___delete",
                 "parameters": [
                     {
@@ -2151,7 +2151,7 @@
             "get": {
                 "tags": ["rag"],
                 "summary": "Get Vector Index",
-                "description": "Get vector index details",
+                "description": "Get details of a specific vector index",
                 "operationId": "get_vector_index_rag_indices__index_id___get",
                 "parameters": [
                     {
@@ -2192,7 +2192,7 @@
             "get": {
                 "tags": ["rag"],
                 "summary": "Get Document Collection",
-                "description": "Get document collection details",
+                "description": "Get document collection details.",
                 "operationId": "get_document_collection_rag_collections__collection_id___get",
                 "parameters": [
                     {
@@ -2231,7 +2231,7 @@
             "delete": {
                 "tags": ["rag"],
                 "summary": "Delete Document Collection",
-                "description": "Delete a document collection",
+                "description": "Delete a document collection and its associated data",
                 "operationId": "delete_document_collection_rag_collections__collection_id___delete",
                 "parameters": [
                     {
@@ -2270,7 +2270,7 @@
             "get": {
                 "tags": ["rag"],
                 "summary": "Get Collection Progress",
-                "description": "Get document collection processing progress",
+                "description": "Get document collection processing progress.",
                 "operationId": "get_collection_progress_rag_collections__collection_id__progress__get",
                 "parameters": [
                     {
@@ -2311,7 +2311,7 @@
             "get": {
                 "tags": ["rag"],
                 "summary": "Get Index Progress",
-                "description": "Get vector index processing progress",
+                "description": "Get the processing progress of a vector index",
                 "operationId": "get_index_progress_rag_indices__index_id__progress__get",
                 "parameters": [
                     {
@@ -2352,7 +2352,7 @@
             "post": {
                 "tags": ["rag"],
                 "summary": "Add Documents To Collection",
-                "description": "Add documents to an existing collection",
+                "description": "Add documents to an existing collection.",
                 "operationId": "add_documents_to_collection_rag_collections__collection_id__documents__post",
                 "parameters": [
                     {
@@ -2401,7 +2401,7 @@
             "get": {
                 "tags": ["rag"],
                 "summary": "Get Collection Documents",
-                "description": "Get all documents and their chunks for a collection",
+                "description": "Get all documents and their chunks for a collection.",
                 "operationId": "get_collection_documents_rag_collections__collection_id__documents__get",
                 "parameters": [
                     {
@@ -2446,7 +2446,7 @@
             "delete": {
                 "tags": ["rag"],
                 "summary": "Delete Document From Collection",
-                "description": "Delete a document from a collection",
+                "description": "Delete a document from a collection.",
                 "operationId": "delete_document_from_collection_rag_collections__collection_id__documents__document_id___delete",
                 "parameters": [
                     {
@@ -2494,7 +2494,7 @@
             "post": {
                 "tags": ["rag"],
                 "summary": "Preview Chunk",
-                "description": "Preview how a file will be chunked and formatted with templates.",
+                "description": "Preview how a document would be chunked with given configuration",
                 "operationId": "preview_chunk_rag_collections_preview_chunk__post",
                 "requestBody": {
                     "content": {
@@ -2535,7 +2535,7 @@
             "post": {
                 "tags": ["rag"],
                 "summary": "Retrieve From Index",
-                "description": "Retrieve relevant documents from a vector index",
+                "description": "Retrieve relevant chunks from a vector index based on a query",
                 "operationId": "retrieve_from_index_rag_indices__index_id__retrieve__post",
                 "parameters": [
                     {
