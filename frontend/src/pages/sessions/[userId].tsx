@@ -191,9 +191,9 @@ const SessionsPage: React.FC = () => {
                     <Button
                         className="bg-foreground text-background"
                         startContent={<Icon icon="lucide:arrow-left" width={16} />}
-                        onPress={() => router.back()}
+                        onPress={() => router.push('/dashboard')}
                     >
-                        Back
+                        Back to Dashboard
                     </Button>
                 </div>
             </header>
