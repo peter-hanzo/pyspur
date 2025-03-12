@@ -23,6 +23,11 @@ async def create_user(
     db: Session = Depends(get_db),
 ) -> UserResponse:
     """Create a new user."""
+    # Check if user already exists with the given external_id
+    existing_user = db.query(UserModel).filter(UserModel.external_id == user.external_id).first()
+    if existing_user:
+        return UserResponse.model_validate(existing_user)
+
     db_user = UserModel(
         external_id=user.external_id,
         metadata=user.user_metadata,

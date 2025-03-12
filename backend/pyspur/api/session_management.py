@@ -26,6 +26,17 @@ async def create_session(
     db: Session = Depends(get_db),
 ) -> SessionResponse:
     """Create a new session."""
+    # Check if session already exists with the given external_id
+    if session_create.external_id:
+        existing_session = (
+            db.query(SessionModel)
+            .execution_options(join_depth=2)  # Include messages in response
+            .filter(SessionModel.external_id == session_create.external_id)
+            .first()
+        )
+        if existing_session:
+            return SessionResponse.model_validate(existing_session)
+
     # Verify user exists
     user = db.query(UserModel).filter(UserModel.id == session_create.user_id).first()
     if not user:
