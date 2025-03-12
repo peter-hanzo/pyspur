@@ -329,7 +329,6 @@ const Dashboard: React.FC = () => {
                             name: uniqueName,
                             description: jsonContent.description,
                             definition: jsonContent.definition as WorkflowDefinition,
-                            spur_type: jsonContent.spur_type || (jsonContent.definition?.spur_type) || SpurType.WORKFLOW
                         }
                         const createdWorkflow = await createWorkflow(newWorkflow)
                         router.push(`/workflows/${createdWorkflow.id}`)
@@ -538,31 +537,33 @@ const Dashboard: React.FC = () => {
         }
     }
 
-    const onJSONDrop = useCallback((acceptedFiles: File[]) => {
-        const file = acceptedFiles[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const result = e.target?.result;
-                if (typeof result !== 'string') return;
-                const jsonContent = JSON.parse(result);
-                const uniqueName = `Imported Spur ${new Date().toLocaleString()}`;
-                const newWorkflow: WorkflowCreateRequest = {
-                    name: uniqueName,
-                    description: jsonContent.description,
-                    definition: jsonContent.definition as WorkflowDefinition,
-                    spur_type: jsonContent.spur_type || (jsonContent.definition?.spur_type) || SpurType.WORKFLOW
-                };
-                const createdWorkflow = await createWorkflow(newWorkflow);
-                router.push(`/workflows/${createdWorkflow.id}`);
-            } catch (error) {
-                console.error('Error processing dropped JSON file:', error);
-                alert('Failed to import workflow. Please ensure the file is a valid JSON.');
+    const onJSONDrop = useCallback(
+        (acceptedFiles: File[]) => {
+            const file = acceptedFiles[0]
+            if (!file) return
+            const reader = new FileReader()
+            reader.onload = async (e) => {
+                try {
+                    const result = e.target?.result
+                    if (typeof result !== 'string') return
+                    const jsonContent = JSON.parse(result)
+                    const uniqueName = `Imported Spur ${new Date().toLocaleString()}`
+                    const newWorkflow: WorkflowCreateRequest = {
+                        name: uniqueName,
+                        description: jsonContent.description,
+                        definition: jsonContent.definition as WorkflowDefinition,
+                    }
+                    const createdWorkflow = await createWorkflow(newWorkflow)
+                    router.push(`/workflows/${createdWorkflow.id}`)
+                } catch (error) {
+                    console.error('Error processing dropped JSON file:', error)
+                    alert('Failed to import workflow. Please ensure the file is a valid JSON.')
+                }
             }
-        };
-        reader.readAsText(file);
-    }, [router]);
+            reader.readAsText(file)
+        },
+        [router]
+    )
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: onJSONDrop,
