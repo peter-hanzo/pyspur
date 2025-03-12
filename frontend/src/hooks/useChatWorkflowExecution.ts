@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getRunStatus, startRun } from '../utils/api'
+import { useDispatch, useSelector } from 'react-redux'
+import { updateNodeDataOnly, resetRun } from '../store/flowSlice'
+import { RootState } from '../store/store'
+import store from '../store/store'
 
 interface UseChatWorkflowExecutionProps {
     workflowID?: string
@@ -15,6 +19,8 @@ export const useChatWorkflowExecution = ({
     workflowID,
     sessionId: providedSessionId,
 }: UseChatWorkflowExecutionProps) => {
+    const dispatch = useDispatch()
+    const nodes = useSelector((state: RootState) => state.flow.nodes)
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
     const statusIntervals = useRef<NodeJS.Timeout[]>([])
@@ -38,6 +44,65 @@ export const useChatWorkflowExecution = ({
         }
     }, [])
 
+    // Function to update node status based on tasks
+    const updateNodeStatuses = useCallback((tasks: any[]) => {
+        if (tasks.length === 0) return
+
+        tasks.forEach((task) => {
+            const nodeId = task.node_id
+            let node = nodes.find((node) => node.id === nodeId || node.data.title === nodeId)
+
+            if (!node) {
+                // find the node by title in nodeConfigs
+                const state = store.getState()
+                const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(
+                    (key) => state.flow.nodeConfigs[key].title === nodeId
+                )
+                if (correspondingNodeId) {
+                    node = nodes.find((node) => node.id === correspondingNodeId)
+                }
+            }
+
+            if (!node) return
+
+            const output_values = task.outputs || {}
+            const nodeTaskStatus = task.status
+
+            // Handle subworkflow outputs if they exist
+            if (task.subworkflow_output) {
+                Object.entries(task.subworkflow_output).forEach(([subNodeId, outputs]) => {
+                    const subNode = nodes.find(
+                        (node) => node.id === subNodeId || node.data.title === subNodeId
+                    )
+                    if (subNode) {
+                        dispatch(
+                            updateNodeDataOnly({
+                                id: subNode.id,
+                                data: {
+                                    run: outputs,
+                                    taskStatus: 'COMPLETED',
+                                },
+                            })
+                        )
+                    }
+                })
+            }
+
+            if (node) {
+                dispatch(
+                    updateNodeDataOnly({
+                        id: node.id,
+                        data: {
+                            run: { ...output_values },
+                            error: task.error || null,
+                            taskStatus: nodeTaskStatus,
+                        },
+                    })
+                )
+            }
+        })
+    }, [nodes, dispatch])
+
     // Function to execute a workflow with a chat message
     const executeWorkflow = useCallback(
         async (message: string): Promise<ChatMessage | null> => {
@@ -52,6 +117,9 @@ export const useChatWorkflowExecution = ({
 
                 // Clear any existing intervals
                 statusIntervals.current.forEach((interval) => clearInterval(interval))
+
+                // Reset node states before starting a new run
+                dispatch(resetRun())
 
                 // Start the workflow run with the message as input and session ID
                 // Format the inputs according to what the backend expects for chat workflows
@@ -77,6 +145,9 @@ export const useChatWorkflowExecution = ({
                         try {
                             const statusResponse = await getRunStatus(runID)
                             const tasks = statusResponse.tasks
+
+                            // Update node statuses to visualize execution
+                            updateNodeStatuses(tasks)
 
                             // Check if the workflow is completed or has failed
                             if (statusResponse.status === 'COMPLETED' || statusResponse.status === 'FAILED') {
@@ -173,7 +244,7 @@ export const useChatWorkflowExecution = ({
                 }
             }
         },
-        [workflowID, sessionId]
+        [workflowID, sessionId, dispatch, updateNodeStatuses]
     )
 
     // Cleanup function
