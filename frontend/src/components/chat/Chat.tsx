@@ -22,7 +22,7 @@ interface MessageCardProps {
 
 // Use React.memo to prevent unnecessary re-renders
 const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) {
-    const [messages, setMessages] = useState<Array<{ role: string; message: string }>>([])
+    const [messages, setMessages] = useState<Array<{ role: string; message: string; runId?: string }>>([])
     const scrollRef = useRef<HTMLDivElement>(null)
     const { theme } = useTheme()
     // Add state for test session
@@ -186,6 +186,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
                         message={message.message}
                         messageClassName={message.role === 'user' ? 'bg-content3 text-content3-foreground' : ''}
                         className="py-0"
+                        runId={message.role === 'assistant' ? message.runId : undefined}
                     />
                 ))}
 

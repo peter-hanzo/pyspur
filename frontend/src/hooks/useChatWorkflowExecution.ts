@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getRunStatus, startRun } from '../utils/api'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeDataOnly, resetRun } from '../store/flowSlice'
-import { RootState } from '../store/store'
-import store from '../store/store'
+import { resetRun, updateNodeDataOnly } from '../store/flowSlice'
+import store, { RootState } from '../store/store'
+import { getRunStatus, startRun } from '../utils/api'
 
 interface UseChatWorkflowExecutionProps {
     workflowID?: string
@@ -13,6 +12,7 @@ interface UseChatWorkflowExecutionProps {
 interface ChatMessage {
     role: string
     message: string
+    runId?: string
 }
 
 export const useChatWorkflowExecution = ({
@@ -45,63 +45,64 @@ export const useChatWorkflowExecution = ({
     }, [])
 
     // Function to update node status based on tasks
-    const updateNodeStatuses = useCallback((tasks: any[]) => {
-        if (tasks.length === 0) return
+    const updateNodeStatuses = useCallback(
+        (tasks: any[]) => {
+            if (tasks.length === 0) return
 
-        tasks.forEach((task) => {
-            const nodeId = task.node_id
-            let node = nodes.find((node) => node.id === nodeId || node.data.title === nodeId)
+            tasks.forEach((task) => {
+                const nodeId = task.node_id
+                let node = nodes.find((node) => node.id === nodeId || node.data.title === nodeId)
 
-            if (!node) {
-                // find the node by title in nodeConfigs
-                const state = store.getState()
-                const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(
-                    (key) => state.flow.nodeConfigs[key].title === nodeId
-                )
-                if (correspondingNodeId) {
-                    node = nodes.find((node) => node.id === correspondingNodeId)
-                }
-            }
-
-            if (!node) return
-
-            const output_values = task.outputs || {}
-            const nodeTaskStatus = task.status
-
-            // Handle subworkflow outputs if they exist
-            if (task.subworkflow_output) {
-                Object.entries(task.subworkflow_output).forEach(([subNodeId, outputs]) => {
-                    const subNode = nodes.find(
-                        (node) => node.id === subNodeId || node.data.title === subNodeId
+                if (!node) {
+                    // find the node by title in nodeConfigs
+                    const state = store.getState()
+                    const correspondingNodeId = Object.keys(state.flow.nodeConfigs).find(
+                        (key) => state.flow.nodeConfigs[key].title === nodeId
                     )
-                    if (subNode) {
-                        dispatch(
-                            updateNodeDataOnly({
-                                id: subNode.id,
-                                data: {
-                                    run: outputs,
-                                    taskStatus: 'COMPLETED',
-                                },
-                            })
-                        )
+                    if (correspondingNodeId) {
+                        node = nodes.find((node) => node.id === correspondingNodeId)
                     }
-                })
-            }
+                }
 
-            if (node) {
-                dispatch(
-                    updateNodeDataOnly({
-                        id: node.id,
-                        data: {
-                            run: { ...output_values },
-                            error: task.error || null,
-                            taskStatus: nodeTaskStatus,
-                        },
+                if (!node) return
+
+                const output_values = task.outputs || {}
+                const nodeTaskStatus = task.status
+
+                // Handle subworkflow outputs if they exist
+                if (task.subworkflow_output) {
+                    Object.entries(task.subworkflow_output).forEach(([subNodeId, outputs]) => {
+                        const subNode = nodes.find((node) => node.id === subNodeId || node.data.title === subNodeId)
+                        if (subNode) {
+                            dispatch(
+                                updateNodeDataOnly({
+                                    id: subNode.id,
+                                    data: {
+                                        run: outputs,
+                                        taskStatus: 'COMPLETED',
+                                    },
+                                })
+                            )
+                        }
                     })
-                )
-            }
-        })
-    }, [nodes, dispatch])
+                }
+
+                if (node) {
+                    dispatch(
+                        updateNodeDataOnly({
+                            id: node.id,
+                            data: {
+                                run: { ...output_values },
+                                error: task.error || null,
+                                taskStatus: nodeTaskStatus,
+                            },
+                        })
+                    )
+                }
+            })
+        },
+        [nodes, dispatch]
+    )
 
     // Function to execute a workflow with a chat message
     const executeWorkflow = useCallback(
@@ -192,6 +193,7 @@ export const useChatWorkflowExecution = ({
                                             typeof outputContent === 'string'
                                                 ? outputContent
                                                 : JSON.stringify(outputContent),
+                                        runId: runID,
                                     })
                                 } else if (statusResponse.status === 'FAILED') {
                                     // Handle workflow failure
@@ -203,6 +205,7 @@ export const useChatWorkflowExecution = ({
                                     resolve({
                                         role: 'assistant',
                                         message: `Error: ${errorMessage}`,
+                                        runId: runID,
                                     })
                                 } else {
                                     // Handle case where workflow completed but no valid output was found
@@ -211,6 +214,7 @@ export const useChatWorkflowExecution = ({
                                     resolve({
                                         role: 'assistant',
                                         message: "Sorry, I couldn't generate a response.",
+                                        runId: runID,
                                     })
                                 }
                             }
