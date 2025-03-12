@@ -43,8 +43,7 @@
       "name": "Talk to founders",
       "icon": "calendar",
       "url": "https://calendly.com/d/cnf9-57m-bv3/pyspur-founders"
-    }
-  ,
+    },
     {
       "name": "Email",
       "icon": "envelope",
@@ -83,6 +82,46 @@
         "chatbots/concepts",
         "chatbots/example",
         "chatbots/slack"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/introduction",
+        {
+          "group": "Core",
+          "pages": [
+            "api-reference/workflow-management",
+            "api-reference/workflow-runs",
+            "api-reference/runs"
+          ]
+        },
+        {
+          "group": "RAG",
+          "pages": [
+            "api-reference/rag"
+          ]
+        },
+        {
+          "group": "AI & Evaluation",
+          "pages": [
+            "api-reference/ai",
+            "api-reference/evaluations"
+          ]
+        },
+        {
+          "group": "Data Management",
+          "pages": [
+            "api-reference/datasets"
+          ]
+        },
+        {
+          "group": "User Management",
+          "pages": [
+            "api-reference/users",
+            "api-reference/sessions"
+          ]
+        }
       ]
     }
   ],
