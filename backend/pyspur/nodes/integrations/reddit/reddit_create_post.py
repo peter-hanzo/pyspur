@@ -10,7 +10,7 @@ from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class RedditCreatePostNodeInput(BaseNodeInput):
-    """Input for the RedditCreatePost node"""
+    """Input for the RedditCreatePost node."""
 
     class Config:
         extra = "allow"

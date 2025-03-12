@@ -10,7 +10,7 @@ from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 
 class RedditGetTopPostsNodeInput(BaseNodeInput):
-    """Input for the RedditGetTopPosts node"""
+    """Input for the RedditGetTopPosts node."""
 
     class Config:
         extra = "allow"
@@ -54,6 +54,7 @@ class RedditGetTopPostsNodeConfig(BaseNodeConfig):
         "week", description="Time period to filter posts (hour, day, week, month, year, all)."
     )
     limit: int = Field(10, description="Number of posts to fetch (max 100).")
+    only_self_posts: bool = Field(False, description="When True, only return self (text) posts.")
     has_fixed_output: bool = True
 
     # Use a simple predefined schema
@@ -115,6 +116,7 @@ class RedditGetTopPostsNode(BaseNode):
                     selftext=post.selftext if post.is_self else None,
                 )
                 for post in posts
+                if not self.config.only_self_posts or post.is_self
             ]
 
             return RedditGetTopPostsNodeOutput(top_posts=top_posts)
