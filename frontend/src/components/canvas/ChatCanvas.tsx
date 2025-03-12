@@ -206,9 +206,8 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
     const onNodeClick = useCallback(
         (_: React.MouseEvent, node: FlowWorkflowNode) => {
             dispatch(setSelectedNode({ nodeId: node.id }))
-            setShowChat(false)
         },
-        [dispatch, setShowChat]
+        [dispatch]
     )
 
     const onEdgeClick = useCallback(
@@ -502,7 +501,7 @@ const ChatCanvasContent: React.FC<ChatCanvasProps> = ({ workflowData, workflowID
                 {selectedNodeID && (
                     <div
                         className="absolute top-0 right-0 h-full bg-background dark:bg-background/80 border-l border-divider"
-                        style={{ zIndex: 2 }}
+                        style={{ zIndex: 10 }}
                     >
                         <NodeSidebar nodeID={selectedNodeID} key={selectedNodeID} readOnly={false} />
                     </div>
@@ -548,14 +547,14 @@ const ChatPanel = React.memo(
             <>
                 {/* Chat Panel Resizer */}
                 <div
-                    className="w-1 bg-border hover:bg-primary cursor-col-resize h-[calc(100vh-48px)] relative z-10"
+                    className="w-1 bg-border hover:bg-primary cursor-col-resize h-[calc(100vh-48px)] relative z-5"
                     onMouseDown={onResizeStart}
                 />
 
                 {/* Chat Panel */}
                 <div
                     className="h-[calc(100vh-48px)] bg-background dark:bg-background/80 border-l border-divider overflow-hidden flex flex-col"
-                    style={{ width: `${width}px` }}
+                    style={{ width: `${width}px`, zIndex: 5 }}
                 >
                     <div className="w-full h-full overflow-hidden">
                         <Chat workflowID={workflowID} />

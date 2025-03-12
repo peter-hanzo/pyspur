@@ -1419,6 +1419,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                 boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
                 borderRadius: '10px',
                 backdropFilter: 'blur(8px)',
+                zIndex: 20, // Higher z-index to ensure it overlays the chat
             }}
         >
             {showTitleError && (
