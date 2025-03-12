@@ -87,27 +87,31 @@ export const useChatWorkflowExecution = ({
                                     statusIntervals.current.splice(indexOfInterval, 1)
                                 }
 
-                                // Find the output task (typically the last node in the workflow)
+                                // Find the output node in the workflow definition
+                                const outputNode = statusResponse.workflow_version.definition.nodes.find(
+                                    (node) => node.node_type === 'OutputNode'
+                                )
+
+                                if (!outputNode) {
+                                    setIsLoading(false)
+                                    setError('No output node found in workflow')
+                                    resolve({
+                                        role: 'assistant',
+                                        message: 'Error: No output node found in workflow',
+                                    })
+                                    return
+                                }
+
+                                // Find the corresponding task for the output node
                                 const outputTask = tasks.find(
                                     (task) =>
-                                        task.status === 'COMPLETED' &&
-                                        task.outputs &&
-                                        (task.outputs.output ||
-                                            task.outputs.response ||
-                                            task.outputs.message ||
-                                            task.outputs.result ||
-                                            task.outputs.assistant_message)
+                                        task.status === 'COMPLETED' && task.node_id === outputNode.id && task.outputs
                                 )
 
                                 if (outputTask && outputTask.outputs) {
-                                    // Look for the output in common output field names, including assistant_message
+                                    // For chat workflows, we expect the OutputNode to have assistant_message
                                     const outputContent =
-                                        outputTask.outputs.assistant_message ||
-                                        outputTask.outputs.output ||
-                                        outputTask.outputs.response ||
-                                        outputTask.outputs.message ||
-                                        outputTask.outputs.result ||
-                                        JSON.stringify(outputTask.outputs)
+                                        outputTask.outputs.assistant_message || JSON.stringify(outputTask.outputs)
 
                                     // Return the assistant message from the workflow output
                                     setIsLoading(false)
