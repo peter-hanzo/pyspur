@@ -1,5 +1,6 @@
 'use client'
 
+import { createTestSession } from '@/utils/api'
 import { ScrollShadow } from '@heroui/react'
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -10,7 +11,6 @@ import PromptInputWithRegenerateButton from './PromptInputWithRegenerateButton'
 interface ChatProps {
     workflowID?: string
     onSendMessage?: (message: string) => Promise<void>
-    sessionId?: string | null
 }
 
 interface MessageCardProps {
@@ -21,13 +21,33 @@ interface MessageCardProps {
 }
 
 // Use React.memo to prevent unnecessary re-renders
-const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: ChatProps) {
+const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) {
     const [messages, setMessages] = useState<Array<{ role: string; message: string }>>([])
     const scrollRef = useRef<HTMLDivElement>(null)
     const { theme } = useTheme()
+    // Add state for test session
+    const [sessionId, setSessionId] = useState<string | null>(null)
+
+    // Create test session when workflow ID is available
+    useEffect(() => {
+        const initTestSession = async () => {
+            if (workflowID) {
+                try {
+                    const session = await createTestSession(workflowID)
+                    setSessionId(session.id)
+                } catch (error) {
+                    console.error('Error creating test session:', error)
+                }
+            }
+        }
+        initTestSession()
+    }, [workflowID])
 
     // Use our custom hook for workflow execution
-    const { isLoading, error, executeWorkflow, cleanup } = useChatWorkflowExecution({ workflowID, sessionId })
+    const { isLoading, error, executeWorkflow, cleanup } = useChatWorkflowExecution({
+        workflowID,
+        sessionId,
+    })
 
     const getAssistantAvatar = () => {
         return '/pyspur-black.png'
