@@ -69,6 +69,15 @@
       ]
     },
     {
+      "group": "Evals",
+      "pages": [
+        "evals/concepts",
+        "evals/benchmarks",
+        "evals/interpreting-results",
+        "evals/best-practices"
+      ]
+    },
+    {
       "group": "Chatbots",
       "pages": [
         "chatbots/concepts",
