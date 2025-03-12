@@ -111,6 +111,7 @@ select = ["E", "F", "I", "N", "W", "B", "C", "D", "PYI"]
 ignore = [
     "B006",  # Do not use mutable default arguments
     "B008",  # Do not perform function call `Depends` in argument defaults
+    "C901",  # Function is too complex
     "D100",  # Missing docstring in public module
     "D101",  # Missing docstring in public class
     "D102",  # Missing docstring in public method

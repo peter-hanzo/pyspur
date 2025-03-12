@@ -429,7 +429,10 @@ def get_workflow_output_variables(
     return output_variables
 
 
-@router.post("/upload_test_files/")
+@router.post(
+    "/upload_test_files/",
+    description="Upload test files for a specific node in a workflow",
+)
 async def upload_test_files(
     workflow_id: str = Form(...),
     files: List[UploadFile] = File(...),

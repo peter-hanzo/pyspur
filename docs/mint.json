@@ -43,8 +43,7 @@
       "name": "Talk to founders",
       "icon": "calendar",
       "url": "https://calendly.com/d/cnf9-57m-bv3/pyspur-founders"
-    }
-  ,
+    },
     {
       "name": "Email",
       "icon": "envelope",
@@ -79,6 +78,19 @@
       "pages": [
         "evals/concepts",
         "evals/stock_benchmarks"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/introduction",
+        "api-reference/workflow-management",
+        "api-reference/workflow-execution",
+        "api-reference/run-management",
+        "api-reference/rag",
+        "api-reference/evaluations",
+        "api-reference/users",
+        "api-reference/sessions"
       ]
     }
 
