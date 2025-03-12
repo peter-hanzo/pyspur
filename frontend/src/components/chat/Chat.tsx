@@ -36,7 +36,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
     // Load messages from session storage on initial load
     useEffect(() => {
         if (workflowID) {
-            const storedMessages = sessionStorage.getItem(`chat_messages_${workflowID}`)
+            const storedMessages = sessionStorage.getItem(`chat_messages_${sessionId || 'default'}`)
             if (storedMessages) {
                 try {
                     setMessages(JSON.parse(storedMessages))
@@ -45,7 +45,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                 }
             }
         }
-    }, [workflowID])
+    }, [sessionId])
 
     // Save messages to session storage when they change
     useEffect(() => {
@@ -168,7 +168,14 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                     />
                 ))}
 
-                {isLoading && <MessageCard avatar={getAssistantAvatar()} message="Thinking..." status="loading" className="py-0" />}
+                {isLoading && (
+                    <MessageCard
+                        avatar={getAssistantAvatar()}
+                        message="Thinking..."
+                        status="loading"
+                        className="py-0"
+                    />
+                )}
 
                 {error && (
                     <MessageCard
