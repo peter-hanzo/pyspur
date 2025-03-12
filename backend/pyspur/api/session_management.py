@@ -87,7 +87,7 @@ async def list_sessions(
     return SessionListResponse(sessions=session_responses, total=total_count)
 
 
-@router.get("/{session_id}", response_model=SessionResponse)
+@router.get("/{session_id}/", response_model=SessionResponse)
 async def get_session(
     session_id: str,
     db: Session = Depends(get_db),
@@ -106,7 +106,7 @@ async def get_session(
     return SessionResponse.model_validate(session)
 
 
-@router.delete("/{session_id}", status_code=204)
+@router.delete("/{session_id}/", status_code=204)
 async def delete_session(
     session_id: str,
     db: Session = Depends(get_db),
