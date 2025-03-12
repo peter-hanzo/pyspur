@@ -878,10 +878,12 @@ class WorkflowExecutor:
         if self.workflow.spur_type == SpurType.CHATBOT:
             session_id = input.get("session_id")
             user_message = input.get("user_message")
+            message_history = input.get("message_history", [])
 
             if session_id and user_message:
-                # Get message history
-                message_history = self._get_message_history(session_id)
+                if len(message_history) == 0:
+                    # Get message history from the database
+                    message_history = self._get_message_history(session_id)
 
                 # Add message_history to input
                 input["message_history"] = message_history

@@ -202,10 +202,13 @@ def create_workflow(
     if not workflow_request.definition:
         # If no definition is provided, create a new one with default WORKFLOW type
         workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.WORKFLOW)
-    elif workflow_request.definition.spur_type == SpurType.CHATBOT:
+    elif (
+        workflow_request.definition.spur_type == SpurType.CHATBOT
+        and len(workflow_request.definition.nodes) == 0
+    ):
         # If the workflow type is CHATBOT, create a new definition with required fields
         workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.CHATBOT)
-    else:
+    elif len(workflow_request.definition.nodes) == 0:
         # If the workflow type is not CHATBOT, create a new definition with default WORKFLOW type
         workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.WORKFLOW)
     # Generate a unique name for the workflow
