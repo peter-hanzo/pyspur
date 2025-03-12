@@ -39,6 +39,7 @@ class SessionModel(BaseModel):
 
     _intid: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement="auto")
     id: Mapped[str] = mapped_column(String, Computed("'SN' || _intid"), nullable=False, unique=True)
+    external_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, unique=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False, index=True)
     workflow_id: Mapped[str] = mapped_column(
         String, ForeignKey("workflows.id"), nullable=False, index=True

@@ -25,6 +25,7 @@ class SessionBase(BaseModel):
 
 class SessionCreate(SessionBase):
     user_id: str
+    external_id: Optional[str] = None
 
 
 class SessionUpdate(SessionBase):

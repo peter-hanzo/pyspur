@@ -39,7 +39,11 @@ async def create_session(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     # Create session
-    session = SessionModel(user_id=session_create.user_id, workflow_id=session_create.workflow_id)
+    session = SessionModel(
+        user_id=session_create.user_id,
+        workflow_id=session_create.workflow_id,
+        external_id=session_create.external_id,
+    )
 
     try:
         db.add(session)
