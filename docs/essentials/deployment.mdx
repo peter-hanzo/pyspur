@@ -13,19 +13,44 @@ PySpur makes it incredibly easy to deploy your workflows as production-ready API
   </Step>
   <Step title="Click Deploy">
     Click the "Deploy" button in the top navigation bar to open the deployment modal.
-
-    <Frame>
-      <img src="/images/deploy-button.png" alt="Deploy Button" />
-    </Frame>
+    <img
+      className="block dark:hidden"
+      src="/images/deploy/deploy_header_light.png"
+      alt="Deploy Modal Light Mode"
+    />
+    <img
+      className="hidden dark:block"
+      src="/images/deploy/deploy_header_dark.png"
+      alt="Deploy Modal Dark Mode"
+    />
   </Step>
   <Step title="Choose deployment options">
     In the modal that appears, you can configure:
     - **API call type**: Choose between blocking (synchronous) or non-blocking (asynchronous) calls
     - **Programming language**: Select your preferred language for the code example
 
-    <Frame>
-      <img src="/images/deploy-modal.png" alt="Deploy Modal" />
-    </Frame>
+    For example, in Python:
+    <img
+      className="block dark:hidden"
+      src="/images/deploy/light_deploy_python.png"
+      alt="Deploy Modal Light Mode"
+    />
+    <img
+      className="hidden dark:block"
+      src="/images/deploy/dark_deploy_python.png"
+      alt="Deploy Modal Dark Mode"
+    />
+    Or in TypeScript:
+    <img
+      className="block dark:hidden"
+      src="/images/deploy/light_deploy_ts.png"
+      alt="Deploy Modal Light Mode"
+    />
+    <img
+      className="hidden dark:block"
+      src="/images/deploy/dark_deploy_ts.png"
+      alt="Deploy Modal Dark Mode"
+    />
   </Step>
   <Step title="Copy the code">
     Copy the generated code example to integrate with your application.
