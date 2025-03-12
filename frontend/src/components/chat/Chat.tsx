@@ -29,17 +29,17 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
     const [sessionId, setSessionId] = useState<string | null>(null)
 
     // Create test session when workflow ID is available
-    useEffect(() => {
-        const initTestSession = async () => {
-            if (workflowID) {
-                try {
-                    const session = await createTestSession(workflowID)
-                    setSessionId(session.id)
-                } catch (error) {
-                    console.error('Error creating test session:', error)
-                }
+    const initTestSession = async () => {
+        if (workflowID) {
+            try {
+                const session = await createTestSession(workflowID)
+                setSessionId(session.id)
+            } catch (error) {
+                console.error('Error creating test session:', error)
             }
         }
+    }
+    useEffect(() => {
         initTestSession()
     }, [workflowID])
 
@@ -127,11 +127,12 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
     )
 
     // Handle clearing the chat history
-    const handleClearChat = useCallback(() => {
+    const handleClearChat = useCallback(async () => {
         if (workflowID) {
             sessionStorage.removeItem(`chat_messages_${sessionId || 'default'}`)
         }
         setMessages([])
+        await initTestSession()
     }, [workflowID])
 
     // Scroll to bottom when new messages arrive
@@ -233,7 +234,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage }: ChatProps) 
                             className="text-xs text-default-500 hover:text-default-700"
                             aria-label="Clear chat history"
                         >
-                            Clear history
+                            Clear chat
                         </button>
                     )}
                     <p className="text-xs text-default-400">
