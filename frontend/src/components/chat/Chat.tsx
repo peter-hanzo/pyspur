@@ -153,7 +153,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
         }
 
         return (
-            <div className="flex flex-col gap-4 px-1">
+            <div className="flex flex-col gap-2 px-1">
                 {messages.map((message, index) => (
                     <MessageCard
                         key={index}
@@ -164,16 +164,18 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                         }
                         message={message.message}
                         messageClassName={message.role === 'user' ? 'bg-content3 text-content3-foreground' : ''}
+                        className="py-0"
                     />
                 ))}
 
-                {isLoading && <MessageCard avatar={getAssistantAvatar()} message="Thinking..." status="loading" />}
+                {isLoading && <MessageCard avatar={getAssistantAvatar()} message="Thinking..." status="loading" className="py-0" />}
 
                 {error && (
                     <MessageCard
                         avatar={getAssistantAvatar()}
                         message={`Error: ${error}`}
                         messageClassName="bg-danger-100 text-danger-700"
+                        className="py-0"
                     />
                 )}
             </div>
@@ -194,8 +196,8 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
 
     return (
         <div className="flex h-full w-full max-w-full flex-col">
-            <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-small border-divider py-2 px-4">
-                <p className="text-base font-medium">Chat with your Spur</p>
+            <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b-small border-divider py-1 px-4 flex-shrink-0">
+                <p className="text-sm font-medium">Chat with your Spur</p>
                 <div className="flex items-center gap-2">
                     {messages.length > 0 && (
                         <button
@@ -212,11 +214,11 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                 </div>
             </div>
 
-            <ScrollShadow className="flex flex-1 flex-col p-4 overflow-y-auto" ref={scrollRef}>
+            <ScrollShadow className="flex flex-col p-2 overflow-y-auto flex-grow" ref={scrollRef}>
                 <CustomConversation />
             </ScrollShadow>
 
-            <div className="p-4 border-t border-divider">
+            <div className="p-2 border-t border-divider flex-shrink-0">
                 <CustomPromptInput />
             </div>
         </div>

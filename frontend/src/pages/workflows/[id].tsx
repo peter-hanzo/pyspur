@@ -58,9 +58,9 @@ const WorkflowPage: React.FC = () => {
 
     return (
         <PersistGate loading={null} persistor={persistor}>
-            <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="h-screen flex flex-col overflow-hidden">
                 <Header activePage="workflow" handleDownloadImage={handleDownloadImage} />
-                <div style={{ flexGrow: 1 }}>
+                <div className="flex-grow overflow-hidden">
                     {isChatbot ? (
                         <ChatCanvas
                             workflowData={workflowData as WorkflowCreateRequest}

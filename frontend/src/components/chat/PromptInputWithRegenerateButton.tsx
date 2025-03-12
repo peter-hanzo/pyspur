@@ -58,21 +58,23 @@ export default function Component({
   };
 
   return (
-    <div className="flex w-full flex-col gap-4">
+    <div className="flex w-full flex-col gap-1">
       <div>
         <Button
           isDisabled={isRegenerating || isLoading || disabled}
           size="sm"
+          className="h-7 min-w-0 px-2"
           startContent={
             <Icon
               className={cn("text-medium", isRegenerating ? "origin-center animate-spin" : "")}
               icon="solar:restart-linear"
+              width={14}
             />
           }
           variant="flat"
           onPress={onRegenerate}
         >
-          Regenerate
+          <span className="text-xs">Regenerate</span>
         </Button>
       </div>
       <form
@@ -87,7 +89,7 @@ export default function Component({
           classNames={{
             inputWrapper: "!bg-transparent shadow-none",
             innerWrapper: "relative",
-            input: "pt-1 pl-2 pb-6 !pr-10 text-medium",
+            input: "pt-1 pl-2 pb-4 !pr-10 text-medium max-h-20",
           }}
           endContent={
             <div className="flex items-end gap-2">
@@ -114,7 +116,8 @@ export default function Component({
               </Tooltip>
             </div>
           }
-          minRows={3}
+          minRows={1}
+          maxRows={3}
           radius="lg"
           value={prompt}
           variant="flat"
@@ -123,23 +126,23 @@ export default function Component({
           placeholder={placeholder}
           onKeyDown={handleKeyDown}
         />
-        <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4 pb-4">
-          <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 px-2 pb-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
+              className="h-6 min-w-0 px-2"
               startContent={
-                <Icon className="text-default-500" icon="solar:paperclip-linear" width={18} />
+                <Icon className="text-default-500" icon="solar:paperclip-linear" width={14} />
               }
               variant="flat"
               isDisabled={isLoading || disabled}
             >
-              Attach
+              <span className="text-xs">Attach</span>
             </Button>
-
           </div>
-          <div className="flex flex-col items-end">
+          <div className="flex items-center justify-end gap-2">
             <p className="py-1 text-tiny text-default-400">{prompt.length}/2000</p>
-            <span className="text-xs text-default-400">Enter to send, Shift+Enter for new line</span>
+            <span className="text-xs text-default-400">⏎ to send, ⇧+⏎ for new line</span>
           </div>
         </div>
       </form>

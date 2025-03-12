@@ -574,16 +574,16 @@ const ChatPanel = React.memo(
             <>
                 {/* Chat Panel Resizer */}
                 <div
-                    className="w-1 bg-border hover:bg-primary cursor-col-resize h-full relative z-10"
+                    className="w-1 bg-border hover:bg-primary cursor-col-resize h-[calc(100vh-48px)] relative z-10"
                     onMouseDown={onResizeStart}
                 />
 
                 {/* Chat Panel */}
                 <div
-                    className="h-full bg-background dark:bg-background/80 border-l border-divider overflow-hidden flex flex-col"
+                    className="h-[calc(100vh-48px)] bg-background dark:bg-background/80 border-l border-divider overflow-hidden flex flex-col"
                     style={{ width: `${width}px` }}
                 >
-                    <div className="w-full h-full overflow-auto">
+                    <div className="w-full h-full overflow-hidden">
                         <Chat workflowID={workflowID} sessionId={testSessionId} />
                     </div>
                 </div>
