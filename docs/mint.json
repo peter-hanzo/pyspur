@@ -65,16 +65,13 @@
       "group": "Chatbots",
       "pages": [
         "chatbots/concepts",
-        "chatbots/example",
         "chatbots/slack"
       ]
     },
     {
       "group": "RAG",
       "pages": [
-        "rag/concepts",
-        "rag/quickstart",
-        "rag/examples"
+        "rag/concepts"
       ]
     },
     {
