@@ -156,10 +156,10 @@ async def create_test_session(
             SessionModel.workflow_id == workflow_id,
         )
         .execution_options(join_depth=2)  # Include messages in response
+        .order_by(SessionModel.created_at.desc())
         .first()
     )
-
-    if existing_session and not existing_session.messages:
+    if existing_session and len(existing_session.messages) == 0:
         return SessionResponse.model_validate(existing_session)
 
     # Create new session
