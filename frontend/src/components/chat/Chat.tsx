@@ -30,7 +30,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
     const { isLoading, error, executeWorkflow, cleanup } = useChatWorkflowExecution({ workflowID, sessionId })
 
     const getAssistantAvatar = () => {
-        return theme === 'dark' ? '/pyspur-white.png' : '/pyspur-black.png'
+        return '/pyspur-black.png'
     }
 
     // Load messages from session storage on initial load
