@@ -252,7 +252,7 @@ int main() {
     }
 
     return (
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
+        <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="full">
             <ModalContent>
                 <ModalHeader>
                     <div>API Endpoint Information</div>
