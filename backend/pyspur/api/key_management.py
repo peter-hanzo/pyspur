@@ -287,6 +287,17 @@ PROVIDER_CONFIGS = [
             ),
         ],
     ),
+    # Add Exa Provider
+    ProviderConfig(
+        id="exa",
+        name="Exa",
+        description="Exa web search API",
+        category="search",
+        icon="solar:search-bold",
+        parameters=[
+            ProviderParameter(name="EXA_API_KEY", description="Exa API Key"),
+        ],
+    ),
 ]
 
 # For backward compatibility, create a flat list of all parameter names

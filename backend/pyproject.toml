@@ -32,6 +32,7 @@ dependencies = [
     "datasets==3.2.0",
     "docx2txt==0.8",
     "docx2python==3.3.0",
+    "exa-py==1.9.0",
     "fastapi==0.115.6",
     "genanki==0.13.1",
     "google-api-python-client==2.159.0",
@@ -136,4 +137,4 @@ check_untyped_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=pyspur --cov-report=term-missing" 
+addopts = "-v --cov=pyspur --cov-report=term-missing"
