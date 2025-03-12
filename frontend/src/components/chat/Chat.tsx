@@ -50,7 +50,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
     // Save messages to session storage when they change
     useEffect(() => {
         if (workflowID && messages.length > 0) {
-            sessionStorage.setItem(`chat_messages_${workflowID}`, JSON.stringify(messages))
+            sessionStorage.setItem(`chat_messages_${sessionId}`, JSON.stringify(messages))
         }
     }, [messages, workflowID])
 
@@ -109,7 +109,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
     // Handle clearing the chat history
     const handleClearChat = useCallback(() => {
         if (workflowID) {
-            sessionStorage.removeItem(`chat_messages_${workflowID}`)
+            sessionStorage.removeItem(`chat_messages_${sessionId || 'default'}`)
         }
         setMessages([])
     }, [workflowID])
