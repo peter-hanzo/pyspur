@@ -134,7 +134,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
             return (
                 <div className="flex flex-col items-center justify-center min-h-[300px] h-full p-4 text-center">
                     <div className="mb-4">
-                        <img src="/pyspur-white.png" alt="PySpur Chat" className="w-16 h-16 dark:block hidden" />
+                        <img src="/pyspur_white.png" alt="PySpur Chat" className="w-16 h-16 dark:block hidden" />
                         <img src="/pyspur-black.png" alt="PySpur Chat" className="w-16 h-16 dark:hidden block" />
                     </div>
                     <h3 className="text-lg font-semibold mb-2">Welcome to Spur Chat</h3>
