@@ -45,7 +45,12 @@ const SessionsPage: React.FC = () => {
                 )
             case 'messages':
                 return (
-                    <Chip size="sm" variant="flat">
+                    <Chip
+                        size="sm"
+                        variant="flat"
+                        className="cursor-pointer"
+                        onClick={() => handleViewSession(session.id)}
+                    >
                         {session.messages.length.toString()} messages
                     </Chip>
                 )
