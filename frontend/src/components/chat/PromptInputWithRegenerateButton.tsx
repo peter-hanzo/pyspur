@@ -41,7 +41,7 @@ export default function PromptInputWithRegenerateButton({
     }
 
     // Handle key events to support Enter for submit and Shift+Enter for new line
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const handleKeyDown = (event: React.KeyboardEvent) => {
         // If the key pressed is Enter
         if (event.key === 'Enter') {
             // If Shift is held, allow the default behavior (new line)
