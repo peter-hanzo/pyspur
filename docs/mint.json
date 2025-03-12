@@ -59,6 +59,22 @@
         "example",
         "quickstart"
       ]
+    },
+    {
+      "group": "RAG",
+      "pages": [
+        "rag/concepts",
+        "rag/quickstart",
+        "rag/examples"
+      ]
+    },
+    {
+      "group": "Chatbots",
+      "pages": [
+        "chatbots/concepts",
+        "chatbots/example",
+        "chatbots/slack"
+      ]
     }
   ],
   "footerSocials": {
