@@ -7,12 +7,12 @@
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373",
+    "primary": "#333333",
+    "light": "#555555",
+    "dark": "#222222",
     "anchors": {
-      "from": "#0D9373",
-      "to": "#07C983"
+      "from": "#444444",
+      "to": "#666666"
     }
   },
   "topbarLinks": [
@@ -57,7 +57,16 @@
       "pages": [
         "introduction",
         "example",
-        "quickstart"
+        "quickstart",
+        "essentials/deployment"
+      ]
+    },
+    {
+      "group": "Chatbots",
+      "pages": [
+        "chatbots/concepts",
+        "chatbots/example",
+        "chatbots/slack"
       ]
     },
     {
@@ -72,19 +81,10 @@
       "group": "Evals",
       "pages": [
         "evals/concepts",
-        "evals/benchmarks",
-        "evals/interpreting-results",
-        "evals/best-practices"
-      ]
-    },
-    {
-      "group": "Chatbots",
-      "pages": [
-        "chatbots/concepts",
-        "chatbots/example",
-        "chatbots/slack"
+        "evals/stock_benchmarks"
       ]
     }
+
   ],
   "footerSocials": {
     "x": "https://x.com/pyspurdev",
