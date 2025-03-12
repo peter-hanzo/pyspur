@@ -17,7 +17,7 @@ from ..schemas.user_schemas import (
 router = APIRouter()
 
 
-@router.post("", response_model=UserResponse)
+@router.post("/", response_model=UserResponse)
 async def create_user(
     user: UserCreate,
     session: Session = Depends(get_db),
@@ -41,7 +41,7 @@ async def create_user(
         ) from None
 
 
-@router.get("", response_model=UserListResponse)
+@router.get("/", response_model=UserListResponse)
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -59,7 +59,7 @@ async def list_users(
     return UserListResponse(users=user_responses, total=total_count)
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}/", response_model=UserResponse)
 async def get_user(
     user_id: str,
     session: Session = Depends(get_db),
@@ -71,7 +71,7 @@ async def get_user(
     return UserResponse.model_validate(user)
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch("/{user_id}/", response_model=UserResponse)
 async def update_user(
     user_id: str,
     user_update: UserUpdate,
@@ -99,7 +99,7 @@ async def update_user(
         ) from None
 
 
-@router.delete("/{user_id}", status_code=204)
+@router.delete("/{user_id}/", status_code=204)
 async def delete_user(
     user_id: str,
     session: Session = Depends(get_db),
