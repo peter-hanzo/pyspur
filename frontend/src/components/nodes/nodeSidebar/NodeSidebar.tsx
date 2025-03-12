@@ -1103,7 +1103,62 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
         }
     }
 
-    // Update renderConfigFields to include URL variable configuration
+    // Add this function after renderUrlVariableConfig but before renderConfigFields
+    const renderMessageHistoryConfig = () => {
+        // Only show for SingleLLMCallNode
+        if (nodeType !== 'SingleLLMCallNode') {
+            return null
+        }
+
+        const incomingSchemaVars = collectIncomingSchema(nodeID)
+
+        // Default to false if not defined
+        const enableMessageHistory = currentNodeConfig.enable_message_history ?? false
+        const messageHistoryVariable = currentNodeConfig.message_history_variable || ''
+
+        return (
+            <div className="my-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">Message History</h3>
+                    <Tooltip
+                        content="Select an input variable containing message history. This should be an array of objects with 'role' and 'content' properties."
+                        placement="left-start"
+                        showArrow={true}
+                        className="max-w-xs"
+                    >
+                        <Icon icon="solar:question-circle-linear" className="text-default-400 cursor-help" width={20} />
+                    </Tooltip>
+                </div>
+                <div className="mb-2">
+                    <Switch
+                        isSelected={enableMessageHistory}
+                        onValueChange={(checked) => handleInputChange('enable_message_history', checked)}
+                        size="sm"
+                    >
+                        Enable Message History
+                    </Switch>
+                </div>
+                {enableMessageHistory && (
+                    <div className="mb-2">
+                        <Select
+                            label="Message History Variable"
+                            selectedKeys={[messageHistoryVariable]}
+                            onChange={(e) => handleInputChange('message_history_variable', e.target.value)}
+                            isDisabled={!enableMessageHistory}
+                        >
+                            {['', ...incomingSchemaVars].map((variable) => (
+                                <SelectItem key={variable} value={variable}>
+                                    {variable || 'None'}
+                                </SelectItem>
+                            ))}
+                        </Select>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // Update renderConfigFields to include URL variable config and message history config
     const renderConfigFields = (): React.ReactNode => {
         if (!nodeSchema || !nodeSchema.config || !currentNodeConfig) return null
         const properties = nodeSchema.config
@@ -1124,6 +1179,10 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                 if (!isClaudeSonnet37 && (key === 'enable_thinking' || key === 'thinking_budget_tokens')) {
                     return false
                 }
+                // Hide these fields as we'll render them separately
+                if (key === 'enable_message_history' || key === 'message_history_variable') {
+                    return false
+                }
                 return true
             })
 
@@ -1137,12 +1196,13 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
                     const isLast = index === orderedKeys.length - 1
                     const result = renderField(key, field, value, `${nodeType}.config`, isLast)
 
-                    // Insert URL variable config after template/message fields
+                    // Insert URL variable config and message history config after template/message fields
                     if (index === priorityFields.length + templateFields.length - 1) {
                         return (
                             <React.Fragment key={key}>
                                 {result}
                                 {renderUrlVariableConfig()}
+                                {renderMessageHistoryConfig()}
                             </React.Fragment>
                         )
                     }
