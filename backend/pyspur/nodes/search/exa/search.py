@@ -4,6 +4,7 @@ import os
 from typing import List, Optional
 
 from exa_py import Exa
+from jinja2 import Template
 from pydantic import BaseModel, Field
 
 from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
@@ -12,7 +13,8 @@ from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 class ExaSearchNodeInput(BaseNodeInput):
     """Input for the ExaSearch node."""
 
-    query: str = Field(..., description="The search query to execute")
+    # Input can come from various fields, we'll handle it in the run method
+    # No explicit query field needed here since we'll use a template
 
     class Config:
         extra = "allow"
@@ -58,6 +60,10 @@ class ExaSearchNodeConfig(BaseNodeConfig):
         1000,
         description="Maximum characters to fetch for each result's content (when include_content is True).",
     )
+    query_template: str = Field(
+        "{{input_1}}",
+        description="Template for the query string. Use {{variable}} syntax to reference input variables.",
+    )
     has_fixed_output: bool = True
 
     # Use a simple predefined schema
@@ -96,8 +102,12 @@ class ExaSearchNode(BaseNode):
             # Initialize Exa client
             exa = Exa(api_key=api_key)
 
-            # Extract query from input
-            query = input.query
+            # Extract query from input using the template
+            # This approach is more flexible and handles various input field names
+            raw_input_dict = input.model_dump()
+            query = Template(self.config.query_template).render(**raw_input_dict)
+
+            logging.info(f"Executing Exa search with query: {query}")
 
             # Configure content options based on config
             content_options = None
@@ -114,16 +124,14 @@ class ExaSearchNode(BaseNode):
             # Transform results to our model format
             results = []
             for result in search_results.results:
-                # Extract metadata and content
+                # Extract metadata and content with safer attribute access
                 result_data = ExaSearchResult(
-                    title=result.title,
-                    url=result.url,
-                    content=result.text if hasattr(result, "text") and result.text else None,
-                    score=result.score if hasattr(result, "score") else None,
-                    published_date=result.published_date
-                    if hasattr(result, "published_date")
-                    else None,
-                    author=result.author if hasattr(result, "author") else None,
+                    title=getattr(result, "title", "Untitled"),
+                    url=getattr(result, "url", ""),
+                    content=getattr(result, "text", None),
+                    score=getattr(result, "score", None),
+                    published_date=getattr(result, "published_date", None),
+                    author=getattr(result, "author", None),
                 )
                 results.append(result_data)
 
