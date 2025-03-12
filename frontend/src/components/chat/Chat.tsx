@@ -1,6 +1,7 @@
 'use client'
 
 import { ScrollShadow } from '@heroui/react'
+import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useChatWorkflowExecution } from '../../hooks/useChatWorkflowExecution'
 import MessageCard from './MessageCard'
@@ -12,13 +13,25 @@ interface ChatProps {
     sessionId?: string | null
 }
 
+interface MessageCardProps {
+    message: string
+    messageClassName?: string
+    status?: string
+    avatar: string
+}
+
 // Use React.memo to prevent unnecessary re-renders
 const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: ChatProps) {
     const [messages, setMessages] = useState<Array<{ role: string; message: string }>>([])
     const scrollRef = useRef<HTMLDivElement>(null)
+    const { theme } = useTheme()
 
     // Use our custom hook for workflow execution
     const { isLoading, error, executeWorkflow, cleanup } = useChatWorkflowExecution({ workflowID, sessionId })
+
+    const getAssistantAvatar = () => {
+        return theme === 'dark' ? '/pyspur-white.png' : '/pyspur-black.png'
+    }
 
     // Load messages from session storage on initial load
     useEffect(() => {
@@ -146,32 +159,26 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                         key={index}
                         avatar={
                             message.role === 'assistant'
-                                ? 'https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png'
-                                : 'https://d2u8k2ocievbld.cloudfront.net/memojis/male/6.png'
+                                ? getAssistantAvatar()
+                                : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjYiIHI9IjQiIGZpbGw9ImN1cnJlbnRDb2xvciIvPjxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTIwIDE3LjVjMCAyLjQ4NSAwIDQuNS04IDQuNXMtOC0yLjAxNS04LTQuNVM3LjU4MiAxMyAxMiAxM3M4IDIuMDE1IDggNC41Ii8+PC9zdmc+'
                         }
                         message={message.message}
                         messageClassName={message.role === 'user' ? 'bg-content3 text-content3-foreground' : ''}
                     />
                 ))}
 
-                {isLoading && (
-                    <MessageCard
-                        avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
-                        message="Thinking..."
-                        status="loading"
-                    />
-                )}
+                {isLoading && <MessageCard avatar={getAssistantAvatar()} message="Thinking..." status="loading" />}
 
                 {error && (
                     <MessageCard
-                        avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+                        avatar={getAssistantAvatar()}
                         message={`Error: ${error}`}
                         messageClassName="bg-danger-100 text-danger-700"
                     />
                 )}
             </div>
         )
-    }, [messages, isLoading, error, workflowID])
+    }, [messages, isLoading, error, workflowID, theme])
 
     // Custom PromptInput with our handler
     const CustomPromptInput = useCallback(() => {
