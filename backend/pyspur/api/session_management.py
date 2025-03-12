@@ -20,7 +20,7 @@ TEST_USER_EXTERNAL_ID = "test_user"
 TEST_USER_METADATA = {"is_test": True}
 
 
-@router.post("", response_model=SessionResponse)
+@router.post("/", response_model=SessionResponse)
 async def create_session(
     session_create: SessionCreate,
     db: Session = Depends(get_db),
@@ -54,7 +54,7 @@ async def create_session(
         ) from None
 
 
-@router.get("", response_model=SessionListResponse)
+@router.get("/", response_model=SessionListResponse)
 async def list_sessions(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -120,7 +120,7 @@ async def delete_session(
     db.commit()
 
 
-@router.post("/test", response_model=SessionResponse)
+@router.post("/test/", response_model=SessionResponse)
 async def create_test_session(
     workflow_id: str,
     db: Session = Depends(get_db),
