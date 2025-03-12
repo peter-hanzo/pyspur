@@ -169,7 +169,8 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.reddit.reddit_get_trending_subreddits",
             "class_name": "RedditGetTrendingSubredditsNode",
         },
-        # Exa search node
+    ],
+    "Search": [
         {
             "node_type_name": "ExaSearchNode",
             "module": ".nodes.search.exa.search",
