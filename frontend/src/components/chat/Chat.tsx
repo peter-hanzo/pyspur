@@ -197,6 +197,7 @@ const Chat = React.memo(function Chat({ workflowID, onSendMessage, sessionId }: 
                 isLoading={isLoading}
                 placeholder={workflowID ? 'Send a message...' : 'No workflow connected'}
                 disabled={!workflowID}
+                showRegenerateButton={false}
             />
         )
     }, [handleSendMessage, isLoading, workflowID])
