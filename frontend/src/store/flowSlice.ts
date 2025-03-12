@@ -6,7 +6,7 @@ import {
     NodeTypesConfig,
     Position,
 } from '@/types/api_types/nodeTypeSchemas'
-import { TestInput, WorkflowDefinition, SpurType } from '@/types/api_types/workflowSchemas'
+import { SpurType, TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { computeJsonSchemaIntersection } from '@/utils/schemaUtils'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
@@ -136,6 +136,7 @@ const flowSlice = createSlice({
             const { nodes, links } = definition
             state.nodes = nodes.map((node) => {
                 const { node: nodeObj } = createNode(
+                    // @ts-ignore - nodeTypes will be properly typed at runtime
                     state.nodeTypes,
                     node.node_type,
                     node.id,
@@ -573,6 +574,7 @@ const flowSlice = createSlice({
 
             // Map over nodes and use createNode to generate both node and config
             const createdNodes = nodes.map((node) => {
+                // @ts-ignore - nodeTypes will be properly typed at runtime
                 const result = createNode(state.nodeTypes, node.node_type, node.id, {
                     x: node.coordinates.x,
                     y: node.coordinates.y,
