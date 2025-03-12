@@ -60,6 +60,14 @@
         "quickstart"
       ]
     },
+        {
+      "group": "Chatbots",
+      "pages": [
+        "chatbots/concepts",
+        "chatbots/example",
+        "chatbots/slack"
+      ]
+    },
     {
       "group": "RAG",
       "pages": [
@@ -72,19 +80,10 @@
       "group": "Evals",
       "pages": [
         "evals/concepts",
-        "evals/benchmarks",
-        "evals/interpreting-results",
-        "evals/best-practices"
-      ]
-    },
-    {
-      "group": "Chatbots",
-      "pages": [
-        "chatbots/concepts",
-        "chatbots/example",
-        "chatbots/slack"
+        "evals/stock_benchmarks"
       ]
     }
+
   ],
   "footerSocials": {
     "x": "https://x.com/pyspurdev",
