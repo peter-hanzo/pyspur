@@ -14,7 +14,7 @@ interface PromptInputWithRegenerateButtonProps {
     showRegenerateButton?: boolean
 }
 
-export default function Component({
+export default function PromptInputWithRegenerateButton({
     onSendMessage,
     isLoading = false,
     placeholder = 'Enter a prompt here',
