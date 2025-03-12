@@ -88,40 +88,13 @@
       "group": "API Reference",
       "pages": [
         "api-reference/introduction",
-        {
-          "group": "Core",
-          "pages": [
-            "api-reference/workflow-management",
-            "api-reference/workflow-runs",
-            "api-reference/runs"
-          ]
-        },
-        {
-          "group": "RAG",
-          "pages": [
-            "api-reference/rag"
-          ]
-        },
-        {
-          "group": "AI & Evaluation",
-          "pages": [
-            "api-reference/ai",
-            "api-reference/evaluations"
-          ]
-        },
-        {
-          "group": "Data Management",
-          "pages": [
-            "api-reference/datasets"
-          ]
-        },
-        {
-          "group": "User Management",
-          "pages": [
-            "api-reference/users",
-            "api-reference/sessions"
-          ]
-        }
+        "api-reference/workflow-management",
+        "api-reference/workflow-execution",
+        "api-reference/run-management",
+        "api-reference/rag",
+        "api-reference/evaluations",
+        "api-reference/users",
+        "api-reference/sessions"
       ]
     }
   ],
