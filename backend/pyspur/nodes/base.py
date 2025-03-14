@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from hashlib import md5
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, cast
 
 from pydantic import BaseModel, Field, create_model
 
@@ -140,21 +140,21 @@ class BaseNode(ABC):
         )
 
     def create_composite_model_instance(
-        self, model_name: str, instances: List[BaseModel]
+        self, model_name: str, instances: Dict[str, BaseModel]
     ) -> Type[BaseNodeInput]:
         """Create a new Pydantic model that combines all the given models based on their instances.
 
         Args:
-            instances: A list of Pydantic model instances.
+            instances: A dictionary of Pydantic model instances.
 
         Returns:
-            A new Pydantic model with fields named after the class names of the instances.
+            A new Pydantic model with fields named after the keys of the dictionary.
 
         """
         # Create the new model class
         return create_model(
             model_name,
-            **{instance.__class__.__name__: (instance.__class__, ...) for instance in instances},
+            **{key: (instance.__class__, ...) for key, instance in instances.items()},
             __base__=BaseNodeInput,
             __config__=None,
             __doc__=f"Input model for {self.name} node",
@@ -185,15 +185,15 @@ class BaseNode(ABC):
             if all(isinstance(value, BaseNodeOutput) for value in input.values()) or all(
                 isinstance(value, BaseNodeInput) for value in input.values()
             ):
-                # Input is a dictionary of BaseNodeOutput instances, creating a composite model
+                # Input is a dictionary of BaseNodeOutput or BaseNodeInput instances, creating a composite model
+                composite_inputs: Dict[str, BaseModel] = cast(Dict[str, BaseModel], input)
                 self.input_model = self.create_composite_model_instance(
                     model_name=self.input_model.__name__,
-                    instances=list(input.values()),  # type: ignore we already checked that all values are BaseNodeOutput instances
+                    instances=composite_inputs,  # preserve original keys
                 )
-                data = {  # type: ignore
-                    instance.__class__.__name__: instance.model_dump()  # type: ignore
-                    for instance in input.values()
-                }
+                data: Dict[str, Any] = {}
+                for key, value in composite_inputs.items():
+                    data[key] = value.model_dump()
                 input = self.input_model.model_validate(data)
             else:
                 # Input is not a dictionary of BaseNodeOutput instances, validating as BaseNodeInput
