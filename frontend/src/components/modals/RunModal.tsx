@@ -230,6 +230,26 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                 )
             }
 
+            // Handle PDFs
+            if (extension === 'pdf') {
+                return (
+                    <div className="w-full">
+                        <iframe sandbox=""
+                            src={filePath}
+                            style={{ width: '100%', height: '240px', border: 'none' }}
+                            className="rounded-md"
+                            title={`PDF: ${fileName}`}
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                            <Icon icon="material-symbols:description" className="text-primary" />
+                            <Tooltip content={content} showArrow={true}>
+                                <span className="truncate text-xs">{fileName}</span>
+                            </Tooltip>
+                        </div>
+                    </div>
+                )
+            }
+
             // Handle audio
             if (['mp3', 'wav', 'ogg', 'm4a'].includes(extension)) {
                 return (
