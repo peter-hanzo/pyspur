@@ -153,7 +153,7 @@ class BaseNode(ABC):
 
         Args:
             model_name: The name of the new model.
-            instances: A list of Pydantic model instances.
+            instances: A dictionary of Pydantic model instances.
 
         Returns:
             A new Pydantic model with fields named after the keys of the dictionary.
