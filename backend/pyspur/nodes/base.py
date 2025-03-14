@@ -21,6 +21,7 @@ class VisualTag(BaseModel):
 
 class BaseNodeConfig(BaseModel):
     """Base class for node configuration models.
+
     Each node must define its output_schema.
     """
 
@@ -43,6 +44,7 @@ class BaseNodeConfig(BaseModel):
 
 class BaseNodeOutput(BaseModel):
     """Base class for all node outputs.
+
     Each node type will define its own output model that inherits from this.
     """
 
@@ -51,6 +53,7 @@ class BaseNodeOutput(BaseModel):
 
 class BaseNodeInput(BaseModel):
     """Base class for node inputs.
+
     Each node's input model will be dynamically created based on its predecessor nodes,
     with fields named after node IDs and types being the corresponding NodeOutputModels.
     """
@@ -60,6 +63,7 @@ class BaseNodeInput(BaseModel):
 
 class BaseNode(ABC):
     """Base class for all nodes.
+
     Each node receives inputs as a Pydantic model where:
     - Field names are predecessor node IDs
     - Field types are the corresponding NodeOutputModels
@@ -95,7 +99,8 @@ class BaseNode(ABC):
         self.setup()
 
     def setup(self) -> None:
-        """Setup method to define output_model and any other initialization.
+        """Define output_model and any other initialization.
+
         For dynamic schema nodes, these can be created based on self.config.
         """
         if self._config.has_fixed_output:
@@ -145,6 +150,7 @@ class BaseNode(ABC):
         """Create a new Pydantic model that combines all the given models based on their instances.
 
         Args:
+            model_name: The name of the new model.
             instances: A list of Pydantic model instances.
 
         Returns:
@@ -172,10 +178,11 @@ class BaseNode(ABC):
             | BaseNodeInput
         ),
     ) -> BaseNodeOutput:
-        """Validates inputs and runs the node's logic.
+        """Validate inputs and run the node's logic.
 
         Args:
-            inputs: Pydantic model containing predecessor outputs or a dictionary of node_id : NodeOutputModels
+            input: Pydantic model containing predecessor
+                outputs or a dictionary of node_id : NodeOutputModels
 
         Returns:
             The node's output model
@@ -196,7 +203,17 @@ class BaseNode(ABC):
                 }
                 input = self.input_model.model_validate(data)
             else:
-                # Input is not a dictionary of BaseNodeOutput instances, validating as BaseNodeInput
+                # Input is a dictionary of primitive types
+                self.input_model = pydantic_utils.create_model(
+                    f"{self.name}Input",
+                    **{field_name: (type(value), value) for field_name, value in input.items()},
+                    __base__=BaseNodeInput,
+                    __config__=None,
+                    __doc__=f"Input model for {self.name} node",
+                    __module__=self.__module__,
+                    __validators__=None,
+                    __cls_kwargs__=None,
+                )
                 input = self.input_model.model_validate(input)
 
         self._input = input
@@ -216,7 +233,7 @@ class BaseNode(ABC):
                     f"Validation failed for node {self.name}. Could not dump result: {dump_error}"
                 )
                 print(f"Result type: {type(result)}")
-            raise ValueError(f"Output validation error in {self.name}: {e}")
+            raise ValueError(f"Output validation error in {self.name}: {e}") from e
 
         self._output = output_validated
         return output_validated
@@ -226,7 +243,7 @@ class BaseNode(ABC):
         """Abstract method where the node's core logic is implemented.
 
         Args:
-            inputs: Pydantic model containing predecessor outputs
+            input: Pydantic model containing predecessor outputs
 
         Returns:
             An instance compatible with output_model
