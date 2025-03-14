@@ -234,7 +234,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             if (extension === 'pdf') {
                 return (
                     <div className="w-full">
-                        <iframe
+                        <iframe sandbox=""
                             src={filePath}
                             style={{ width: '100%', height: '240px', border: 'none' }}
                             className="rounded-md"
