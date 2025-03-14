@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
-import { ReactFlowProvider } from '@xyflow/react'
 import { Button, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import EditorCanvas from './EditorCanvas'
-import Chat from '../chat/Chat'
+import { ReactFlowProvider } from '@xyflow/react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store/store'
+import Chat from '../chat/Chat'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
+import EditorCanvas from './EditorCanvas'
 
 interface ChatCanvasProps {
     workflowData?: WorkflowCreateRequest
