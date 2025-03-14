@@ -547,7 +547,7 @@ class WorkflowExecutor:
                     # Get the specific route's output from the router
                     route_output = getattr(output, source_handle, None)
                     if route_output is not None:
-                        node_input[dep_id] = route_output
+                        node_input[self.node_instances[node_id].name] = route_output
                     else:
                         self._outputs[node_id] = None
                         if self.task_recorder:

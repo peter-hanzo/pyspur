@@ -184,7 +184,7 @@ class BaseNode(ABC):
 
         Args:
             input: Pydantic model containing predecessor
-                outputs or a dictionary of node_id : NodeOutputModels
+                outputs or a Dict[str<predecessor node name>, NodeOutputModel]
 
         Returns:
             The node's output model
