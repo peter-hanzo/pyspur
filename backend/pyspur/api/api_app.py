@@ -33,7 +33,7 @@ api_app = FastAPI(
 api_app.include_router(node_management_router, prefix="/node", tags=["nodes"])
 api_app.include_router(workflow_management_router, prefix="/wf", tags=["workflows"])
 api_app.include_router(workflow_run_router, prefix="/wf", tags=["workflow runs"])
-api_app.include_router(workflow_code_router, prefix="/code_convert", tags=["workflow code"])
+api_app.include_router(workflow_code_router, prefix="/code_convert", tags=["workflow code (beta)"])
 api_app.include_router(dataset_management_router, prefix="/ds", tags=["datasets"])
 api_app.include_router(run_management_router, prefix="/run", tags=["runs"])
 api_app.include_router(output_file_management_router, prefix="/of", tags=["output files"])
