@@ -12,8 +12,8 @@ from .registry import NodeRegistry
 
 
 class NodeFactory:
-    """
-    Factory for creating node instances from a configuration.
+    """Create node instances from a configuration.
+
     Supports both decorator-based registration and legacy configured registration.
 
     Conventions:
@@ -30,8 +30,8 @@ class NodeFactory:
 
     @staticmethod
     def get_all_node_types() -> Dict[str, List[NodeTypeSchema]]:
-        """
-        Returns a dictionary of all available node types grouped by category.
+        """Return a dictionary of all available node types grouped by category.
+
         Combines both decorator-registered and configured nodes.
         """
         # Get nodes from both sources
@@ -44,6 +44,12 @@ class NodeFactory:
             if category not in converted_nodes:
                 converted_nodes[category] = []
             for node in nodes:
+                if (
+                    node["node_type_name"] is None
+                    or node["module"] is None
+                    or node["class_name"] is None
+                ):
+                    continue
                 schema = NodeTypeSchema(
                     node_type_name=node["node_type_name"],
                     module=node["module"],
@@ -65,8 +71,8 @@ class NodeFactory:
 
     @staticmethod
     def create_node(node_name: str, node_type_name: str, config: Any) -> BaseNode:
-        """
-        Creates a node instance from a configuration.
+        """Create a node instance from a configuration.
+
         Checks both registration methods for the node type.
         """
         if not is_valid_node_type(node_type_name):
