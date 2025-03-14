@@ -24,8 +24,7 @@ class NodeRegistry:
         subcategory: Optional[str] = None,
         position: Optional[Union[int, str]] = None,
     ):
-        """
-        Decorator to register a node class with metadata.
+        """Register a node class with metadata.
 
         Args:
             category: The category this node belongs to
@@ -36,6 +35,10 @@ class NodeRegistry:
                      - Integer for absolute position
                      - "after:NodeName" for relative position after a node
                      - "before:NodeName" for relative position before a node
+
+        Returns:
+            A decorator that registers the node class with the specified metadata
+
         """
 
         def decorator(node_class: Type[BaseNode]) -> Type[BaseNode]:
@@ -49,7 +52,7 @@ class NodeRegistry:
 
             # Store subcategory as class attribute without type checking
             if subcategory:
-                setattr(node_class, "subcategory", subcategory)
+                node_class.subcategory = subcategory  # type: ignore
 
             # Initialize category if not exists
             if category not in cls._nodes:
@@ -113,8 +116,8 @@ class NodeRegistry:
 
     @classmethod
     def _discover_in_directory(cls, base_path: Path, package_prefix: str) -> None:
-        """
-        Recursively discover nodes in a directory and its subdirectories.
+        """Recursively discover nodes in a directory and its subdirectories.
+
         Only registers nodes that explicitly use the @NodeRegistry.register decorator.
         """
         # Get all Python files in current directory
@@ -136,12 +139,13 @@ class NodeRegistry:
 
     @classmethod
     def discover_nodes(cls, package_path: str = "pyspur.nodes") -> None:
-        """
-        Automatically discover and register nodes from the package.
+        """Automatically discover and register nodes from the package.
+
         Only nodes with the @NodeRegistry.register decorator will be registered.
 
         Args:
             package_path: The base package path to search for nodes
+
         """
         try:
             package = importlib.import_module(package_path)
@@ -155,7 +159,8 @@ class NodeRegistry:
             cls._discover_in_directory(base_path, package_path)
 
             logger.info(
-                f"Node discovery complete. Found {len(cls._decorator_registered_classes)} decorated nodes."
+                "Node discovery complete."
+                f" Found {len(cls._decorator_registered_classes)} decorated nodes."
             )
 
         except ImportError as e:
