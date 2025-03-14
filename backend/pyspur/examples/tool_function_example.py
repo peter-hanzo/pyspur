@@ -235,7 +235,7 @@ def test_tools_as_nodes():
     # Test math tool node with a custom output model
     print("\nMath Node (with custom output model):")
     config = math_tool.config_model()
-    config = config = config.model_validate(
+    config = config.model_validate(
         {"numbers": [1, 2, 3, 4, 5], "operation": "product", "has_fixed_output": True}
     )
 
