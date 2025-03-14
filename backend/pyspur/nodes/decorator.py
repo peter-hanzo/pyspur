@@ -227,8 +227,6 @@ def tool_function(
                 # config values can be jinja2 templates so we need to render them
                 for param_name, param_value in kwargs.items():
                     if isinstance(param_value, str):
-                        logger.debug(f"Rendering template for {param_name}: {param_value}")
-                        print(f"Input: {input}")
                         template = Template(param_value)
                         kwargs[param_name] = template.render(input=input)
 
