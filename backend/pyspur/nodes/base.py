@@ -39,7 +39,9 @@ class BaseNodeConfig(BaseModel):
         default=False,
         description="Whether the node has a fixed output schema defined in config",
     )
-    pass
+    model_config = {
+        "extra": "allow",
+    }
 
 
 class BaseNodeOutput(BaseModel):
