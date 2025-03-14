@@ -30,6 +30,11 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.llm.generative.best_of_n",
             "class_name": "BestOfNNode",
         },
+        {
+            "node_type_name": "RetrieverNode",
+            "module": ".nodes.llm.retriever",
+            "class_name": "RetrieverNode",
+        },
     ],
     "Code Execution": [
         {
@@ -65,12 +70,7 @@ SUPPORTED_NODE_TYPES = {
             "node_type_name": "ForLoopNode",
             "module": ".nodes.loops.for_loop_node",
             "class_name": "ForLoopNode",
-        },
-        {
-            "node_type_name": "RetrieverNode",
-            "module": ".nodes.llm.retriever",
-            "class_name": "RetrieverNode",
-        },
+        }
     ],
     "Integrations": [
         {
