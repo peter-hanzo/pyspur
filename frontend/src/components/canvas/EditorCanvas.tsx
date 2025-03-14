@@ -13,6 +13,7 @@ import {
     getNodesBounds,
     getViewportForBounds,
     Viewport,
+    Panel,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useSelector, useDispatch } from 'react-redux'
@@ -48,6 +49,8 @@ interface EditorCanvasProps {
     workflowData?: WorkflowCreateRequest
     workflowID?: string
     onDownloadImageInit?: (handler: () => void) => void
+    extraPanelButtons?: React.ReactNode
+    renderNodeSidebarExternally?: boolean
 }
 
 interface HelperLines {
@@ -93,7 +96,7 @@ const groupNodesBySubcategory = (nodes: FlowWorkflowNodeType[]): GroupedNodes =>
 }
 
 // Create a wrapper component that includes ReactFlow logic
-const EditorCanvasContent: React.FC<EditorCanvasProps> = ({ workflowData, workflowID, onDownloadImageInit }) => {
+const EditorCanvasContent: React.FC<EditorCanvasProps> = ({ workflowData, workflowID, onDownloadImageInit, extraPanelButtons, renderNodeSidebarExternally = false }) => {
     const dispatch = useDispatch()
     const projectName = useSelector((state: RootState) => state.flow.projectName)
 
@@ -684,17 +687,24 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({ workflowData, workfl
                             <HelperLinesRenderer horizontal={helperLines.horizontal} vertical={helperLines.vertical} />
                         )}
                         <Operator handleLayout={handleLayout} handleDownloadImage={handleDownloadImage} />
+
+                        {/* Extra Panel Buttons (from props) */}
+                        {extraPanelButtons && (
+                            <Panel position="top-right">
+                                {extraPanelButtons}
+                            </Panel>
+                        )}
                     </ReactFlow>
                 </div>
-                {selectedNodeID && (
+                {selectedNodeID && !renderNodeSidebarExternally && (
                     <div
-                        className="absolute top-0 right-0 h-full bg-white border-l border-gray-200"
-                        style={{ zIndex: 2 }}
+                        className="absolute top-0 right-0 h-full bg-background dark:bg-background/80 border-l border-divider"
+                        style={{ zIndex: 30 }}
                     >
                         <NodeSidebar nodeID={selectedNodeID} key={selectedNodeID} readOnly={false} />
                     </div>
                 )}
-                <div className="border-gray-200 absolute top-4 left-4" style={{ zIndex: 2 }}>
+                <div className="border-divider absolute top-4 left-4" style={{ zIndex: 15 }}>
                     <CollapsibleNodePanel />
                 </div>
             </div>
@@ -703,13 +713,21 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({ workflowData, workfl
 }
 
 // Main component that provides the ReactFlow context
-const EditorCanvas: React.FC<EditorCanvasProps> = ({ workflowData, workflowID, onDownloadImageInit }) => {
+const EditorCanvas: React.FC<EditorCanvasProps> = ({
+    workflowData,
+    workflowID,
+    onDownloadImageInit,
+    extraPanelButtons,
+    renderNodeSidebarExternally = false
+}) => {
     return (
         <ReactFlowProvider>
             <EditorCanvasContent
                 workflowData={workflowData}
                 workflowID={workflowID}
                 onDownloadImageInit={onDownloadImageInit}
+                extraPanelButtons={extraPanelButtons}
+                renderNodeSidebarExternally={renderNodeSidebarExternally}
             />
         </ReactFlowProvider>
     )
