@@ -393,9 +393,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                         <ModalBody>
                             <div className="flex flex-col gap-4 p-4 overflow-y-auto w-full">
                                 <div className="border rounded-lg w-full">
-                                    <div className="p-4 border-b bg-default-50">
-                                        <h3 className="text-lg font-semibold">Test Cases</h3>
-                                    </div>
                                     <div className="p-4 overflow-x-auto w-full">
                                         <Table
                                             aria-label="Test cases table"
