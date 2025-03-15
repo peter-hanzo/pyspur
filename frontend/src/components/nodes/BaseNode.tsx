@@ -112,7 +112,8 @@ const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
         prev.className === next.className &&
         prev.isResizable === next.isResizable &&
         prev.positionAbsoluteX === next.positionAbsoluteX &&
-        prev.positionAbsoluteY === next.positionAbsoluteY
+        prev.positionAbsoluteY === next.positionAbsoluteY &&
+        isEqual(prev.children, next.children)
     )
 }
 
