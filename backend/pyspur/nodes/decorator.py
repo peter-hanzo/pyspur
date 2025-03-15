@@ -1,5 +1,6 @@
 import inspect
 import json
+import sys
 from typing import (
     Any,
     Callable,
@@ -248,8 +249,18 @@ def tool_function(
         # Set the display name and logo
         FunctionToolNode.display_name = func_display_name
 
-        # Change the name of the class to the function name
-        new_class_name = type(f"{func_name}", (FunctionToolNode,), {})
+        # Change the name of the class to the function name and bind it to the module
+        new_class_name = type(
+            f"{func_name}",
+            (FunctionToolNode,),
+            {
+                "__module__": func.__module__  # Set the module to match the decorated func's module
+            },
+        )
+
+        # Bind the class to the module's namespace
+        module = sys.modules[func.__module__]
+        setattr(module, func_name, new_class_name)
 
         # Set NodeClass attribute to the function
         func.node_class = new_class_name  # type: ignore
