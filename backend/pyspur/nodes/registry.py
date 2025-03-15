@@ -263,7 +263,7 @@ class NodeRegistry:
                 nonlocal registered_tools
                 registered_tools += 1
                 logger.debug(
-                    f"Registered tool function node {node_class.__name__} in category {category}"
+                    f"Registered tool function {node_class.__name__} in category {category}"
                 )
 
         def _discover_tools_in_directory(path: Path) -> None:
@@ -272,7 +272,8 @@ class NodeRegistry:
                 if item.is_file() and item.suffix == ".py" and not item.name.startswith("_"):
                     try:
                         # Get the appropriate module path/name
-                        module_path = _get_module_path(item, tools_dir)
+                        module_path = _get_module_path(item, Path(project_root))
+                        print(f"Module path: {module_path}")
 
                         # Create a spec for the module
                         if module_path.endswith(".py"):
