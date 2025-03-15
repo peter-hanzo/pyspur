@@ -1,6 +1,6 @@
 ![PySpur](./docs/images/hero.png)
 
-<p align="center"><strong>PySpur is an AI agent builder in Python. AI engineers use it to build agents, execute them step-by-step and inspect past runs.</strong></p>
+<p align="center"><strong>Iterate over your agents 10x faster. AI engineers use PySpur to iterate over AI agents visually without reinventing the wheel.</strong></p>
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
