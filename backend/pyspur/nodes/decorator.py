@@ -245,8 +245,14 @@ def tool_function(
         # Update the class with the function's docstring
         FunctionToolNode.__doc__ = func_doc
 
+        # Set the display name and logo
+        FunctionToolNode.display_name = func_display_name
+
+        # Change the name of the class to the function name
+        new_class_name = type(f"{func_name}", (FunctionToolNode,), {})
+
         # Set NodeClass attribute to the function
-        func.node_class = FunctionToolNode  # type: ignore
+        func.node_class = new_class_name  # type: ignore
 
         # Set the config model to the config_model
         func.config_model = _config_model  # type: ignore
