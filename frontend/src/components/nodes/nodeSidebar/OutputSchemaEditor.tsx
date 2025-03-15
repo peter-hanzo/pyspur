@@ -115,30 +115,13 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
         }
     };
 
-    // Render AI Generate tab with tooltip if needed
-    const renderAIGenerateTab = () => {
-        if (readOnly) return null;
-
-        const tabTitle = (
-            <div className="flex items-center gap-1">
-                <Icon icon="solar:magic-stick-3-linear" width={16} />
-                <span>AI Generate</span>
-            </div>
-        );
-
-        if (!hasOpenAIKey) {
-            return (
-                <Tooltip
-                    content="OpenAI API key is required for AI schema generation. Please add your API key in the settings."
-                    placement="top"
-                >
-                    <Tab key="ai-generate" title={tabTitle} isDisabled={true} />
-                </Tooltip>
-            );
-        }
-
-        return <Tab key="ai-generate" title={tabTitle} />;
-    };
+    // Create the AI Generate tab title content
+    const aiGenerateTabTitle = (
+        <div className="flex items-center gap-1">
+            <Icon icon="solar:magic-stick-3-linear" width={16} />
+            <span>AI Generate</span>
+        </div>
+    );
 
     return (
         <div>
@@ -162,7 +145,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
                 onClose={() => {
                     resetModalState();
                 }}
-                size="2xl"
+                size="5xl"
                 isDismissable={!isGenerating}
                 hideCloseButton={isGenerating}
             >
@@ -241,7 +224,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
 
             <Tabs
                 aria-label="Schema Editor Options"
-                disabledKeys={readOnly ? ['simple', 'json', 'ai-generate'] : []}
+                disabledKeys={readOnly ? ['simple', 'json', 'ai-generate'] : (!hasOpenAIKey ? ['ai-generate'] : [])}
                 selectedKey={selectedTab}
                 onSelectionChange={handleTabChange}
             >
@@ -274,7 +257,11 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
                         </CardBody>
                     </Card>
                 </Tab>
-                {renderAIGenerateTab()}
+                {!readOnly && (
+                    <Tab key="ai-generate" title={aiGenerateTabTitle}>
+                        <div></div>
+                    </Tab>
+                )}
             </Tabs>
         </div>
     )
