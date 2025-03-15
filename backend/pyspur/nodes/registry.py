@@ -159,6 +159,9 @@ class NodeRegistry:
             # Start recursive discovery
             cls._discover_in_directory(base_path, package_path)
 
+            # Also discover tool function nodes
+            cls.discover_tool_functions()
+
             logger.info(
                 "Node discovery complete."
                 f" Found {len(cls._decorator_registered_classes)} decorated nodes."
@@ -174,6 +177,12 @@ class NodeRegistry:
         This method searches recursively through Python files in the PROJECT_ROOT/tools directory
         for functions decorated with @tool_function and registers their node classes.
         Works with both package (with __init__.py) and non-package Python files.
+
+        The method handles the following:
+        1. Discovers tool function decorated nodes
+        2. Ensures proper registration in the NodeRegistry
+        3. Handles both package and non-package Python files
+        4. Maintains separation between tool function nodes and regular nodes
         """
         # Get PROJECT_ROOT from environment variable
         project_root = os.getenv("PROJECT_ROOT")
@@ -230,9 +239,35 @@ class NodeRegistry:
                 # Fallback to absolute path if anything goes wrong
                 return str(file_path)
 
-        def _discover_tools_in_directory(path: Path) -> None:
-            nonlocal registered_tools
+        def _register_tool_function_node(node_class: Type[BaseNode], category: str) -> None:
+            """Register a tool function node in the NodeRegistry.
 
+            This function handles the specific registration logic for tool function nodes,
+            ensuring they are properly integrated into the registry while maintaining
+            separation from regular nodes.
+            """
+            if category not in cls._nodes:
+                cls._nodes[category] = []
+
+            # Create node registration info
+            node_info = {
+                "node_type_name": node_class.__name__,
+                "module": node_class.__module__,
+                "class_name": node_class.__name__,
+                "subcategory": getattr(node_class, "subcategory", None),
+            }
+
+            # Add to registry if not already present
+            if not any(n["node_type_name"] == node_class.__name__ for n in cls._nodes[category]):
+                cls._nodes[category].append(node_info)
+                nonlocal registered_tools
+                registered_tools += 1
+                logger.debug(
+                    f"Registered tool function node {node_class.__name__} in category {category}"
+                )
+
+        def _discover_tools_in_directory(path: Path) -> None:
+            """Recursively discover tool functions in a directory."""
             for item in path.iterdir():
                 if item.is_file() and item.suffix == ".py" and not item.name.startswith("_"):
                     try:
@@ -263,28 +298,7 @@ class NodeRegistry:
                                 node_class = attr.node_class
                                 # Register the node class if it has a category
                                 category = getattr(node_class, "category", "Uncategorized")
-                                if category not in cls._nodes:
-                                    cls._nodes[category] = []
-
-                                # Create node registration info
-                                node_info = {
-                                    "node_type_name": node_class.__name__,
-                                    "module": module_path,  # Use the full module path
-                                    "class_name": node_class.__name__,
-                                    "subcategory": getattr(node_class, "subcategory", None),
-                                }
-
-                                # Add to registry if not already present
-                                if not any(
-                                    n["node_type_name"] == node_class.__name__
-                                    for n in cls._nodes[category]
-                                ):
-                                    cls._nodes[category].append(node_info)
-                                    registered_tools += 1
-                                    logger.debug(
-                                        f"Registered tool function node {node_class.__name__}"
-                                        f" from {module_path} in category {category}"
-                                    )
+                                _register_tool_function_node(node_class, category)
 
                     except Exception as e:
                         logger.error(f"Failed to load module {item}: {e}")
