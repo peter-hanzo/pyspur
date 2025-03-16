@@ -279,10 +279,20 @@ PROVIDER_CONFIGS = [
         category="messaging",
         icon="logos:slack-icon",
         parameters=[
+            ProviderParameter(name="SLACK_CLIENT_ID", description="Slack Client ID for OAuth"),
+            ProviderParameter(
+                name="SLACK_CLIENT_SECRET", description="Slack Client Secret for OAuth"
+            ),
             ProviderParameter(name="SLACK_BOT_TOKEN", description="Slack Bot User OAuth Token"),
             ProviderParameter(
                 name="SLACK_USER_TOKEN",
                 description="Slack User OAuth Token",
+                required=False,
+            ),
+            ProviderParameter(
+                name="SLACK_REDIRECT_URI",
+                description="Redirect URI for OAuth flow",
+                type="text",
                 required=False,
             ),
         ],
