@@ -98,7 +98,10 @@ class SingleLLMCallNodeConfig(BaseNodeConfig):
     few_shot_examples: Optional[List[Dict[str, str]]] = None
     url_variables: Optional[Dict[str, str]] = Field(
         None,
-        description="Optional mapping of URL types (image, video, pdf) to input schema variables for Gemini models",
+        description=(
+            "Optional mapping of URL types (image, video, pdf)"
+            " to input schema variables for Gemini models"
+        ),
     )
     enable_thinking: bool = Field(
         False,
@@ -119,9 +122,7 @@ class SingleLLMCallNodeConfig(BaseNodeConfig):
 
 
 class SingleLLMCallNodeInput(BaseNodeInput):
-    """We allow any/all extra fields, so that the entire dictionary passed in
-    is available in `input.model_dump()`.
-    """
+    pass
 
     class Config:
         extra = "allow"
@@ -132,7 +133,14 @@ class SingleLLMCallNodeOutput(BaseNodeOutput):
 
 
 class SingleLLMCallNode(BaseNode):
-    """Node type for calling an LLM with structured i/o and support for params in system prompt and user_input."""
+    """Node for making a single LLM call with structured input/output.
+
+    Features:
+    - Supports variable substitution in system and user messages
+    - Handles JSON schema validation for outputs
+    - Supports message history for conversational contexts
+    - Compatible with various LLM providers through configuration
+    """
 
     name = "single_llm_call_node"
     display_name = "Single LLM Call"
@@ -168,7 +176,7 @@ class SingleLLMCallNode(BaseNode):
             raise e
 
         # Extract message history from input if enabled
-        history = None
+        history: Optional[List[Dict[str, str]]] = None
         if self.config.enable_message_history and self.config.message_history_variable:
             try:
                 # Try to get history from the specified variable
@@ -180,11 +188,9 @@ class SingleLLMCallNode(BaseNode):
                     # Direct field access
                     history = raw_input_dict.get(history_var)
 
-                if history is not None and not isinstance(history, list):
-                    print(
-                        f"[WARNING] Message history must be a list, but got {type(history).__name__}"
-                    )
-                    history = None
+                assert isinstance(history, list) or history is None, (
+                    f"Expected message history to be a list or None, got {type(history)}"
+                )
             except Exception as e:
                 print(f"[ERROR] Failed to extract message history: {e}")
                 history = None
@@ -252,7 +258,10 @@ class SingleLLMCallNode(BaseNode):
                     error_message = "Rate limit exceeded. Please try again in a few minutes."
                 elif "context length" in error_str.lower() or "maximum token" in error_str.lower():
                     error_type = "context_length"
-                    error_message = "Input is too long for the model's context window. Please reduce the input length."
+                    error_message = (
+                        "Input is too long for the model's context window."
+                        " Please reduce the input length."
+                    )
                 elif (
                     "invalid api key" in error_str.lower() or "authentication" in error_str.lower()
                 ):
@@ -276,7 +285,7 @@ class SingleLLMCallNode(BaseNode):
                             "original_error": error_str,
                         }
                     )
-                )
+                ) from e
             raise e
 
         try:
@@ -301,7 +310,7 @@ class SingleLLMCallNode(BaseNode):
                             "assistant_message_str": assistant_message_str,
                         }
                     )
-                )
+                ) from inner_e
 
         # Validate and return
         assistant_message = self.output_model.model_validate(assistant_message_dict)
@@ -360,7 +369,9 @@ if __name__ == "__main__":
             name="ChatBot",
             config=SingleLLMCallNodeConfig(
                 llm_info=ModelInfo(model=LLMModels.GPT_4O, temperature=0.7, max_tokens=100),
-                system_message="You are a helpful and friendly assistant. Maintain conversation context.",
+                system_message=(
+                    "You are a helpful and friendly assistant. Maintain conversation context."
+                ),
                 user_message="{{ user_message }}",
                 url_variables=None,
                 enable_thinking=False,
@@ -390,7 +401,10 @@ if __name__ == "__main__":
                     {"role": "user", "content": "Hello, can you help me with geography questions?"},
                     {
                         "role": "assistant",
-                        "content": "Of course! I'd be happy to help with geography questions. What would you like to know?",
+                        "content": (
+                            "Of course! I'd be happy to help with geography questions."
+                            " What would you like to know?"
+                        ),
                     },
                 ],
             }
