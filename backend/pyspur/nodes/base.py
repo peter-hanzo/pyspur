@@ -76,7 +76,7 @@ class BaseNode(ABC):
     category: str = "Uncategorized"
     subcategory: Optional[str] = None
     logo: Optional[str] = None
-    config_model: Type[BaseModel]
+    config_model: Type[BaseNodeConfig]
     output_model: Type[BaseNodeOutput]
     input_model: Type[BaseNodeInput]
     _config: BaseNodeConfig
