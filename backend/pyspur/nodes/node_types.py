@@ -262,7 +262,7 @@ def is_valid_node_type(node_type_name: str) -> bool:
     registered_nodes = NodeRegistry.get_registered_nodes()
     for nodes in registered_nodes.values():
         for node in nodes:
-            if node["node_type_name"] == node_type_name:
+            if node.node_type_name == node_type_name:
                 return True
 
     return False
