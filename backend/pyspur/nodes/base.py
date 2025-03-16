@@ -313,6 +313,23 @@ class BaseNode(ABC):
 
         return function_schema
 
+    async def call_as_tool(self, arguments: Dict[str, Any]) -> Any:
+        """Call the node as a tool with the given arguments.
+
+        Args:
+            arguments: The arguments to pass to the node
+
+        """
+        # generate the config model from the arguments
+        config_model = self.config_model.model_validate(arguments)
+
+        # create a new instance of the node with the config model
+        node_instance = self.__class__(self.name, config_model, self.context)
+        # run the node with the input model
+        input_model = self.input_model.model_validate(arguments)
+        node_instance._input = input_model
+        return await node_instance.run(input_model)
+
     def update_config(self, config: BaseNodeConfig) -> None:
         """Update the node's configuration."""
         self._config = config
