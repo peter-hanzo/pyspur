@@ -233,8 +233,8 @@ async def generate_text(
     api_base: Optional[str] = None,
     url_variables: Optional[Dict[str, str]] = None,
     output_json_schema: Optional[str] = None,
-    functions: Optional[List[Dict[str, Any]]] = None,
-    function_call: Optional[str] = None,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: Optional[str] = None,
     thinking: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Generate text using the specified LLM model.
@@ -248,8 +248,14 @@ async def generate_text(
         api_base: Base URL for the API
         url_variables: Dictionary of URL variables for file inputs
         output_json_schema: JSON schema for the output format
-        functions: List of function schemas for function calling
-        function_call: Function call configuration
+        tools: List of function schemas for function calling
+        tool_choice: By default the model will determine when and how many tools to use. You can
+            force specific behavior with the tool_choice parameter.
+            auto: (Default) Call zero, one, or multiple functions. tool_choice: "auto"
+            required: Call one or more functions. tool_choice: "required"
+            Forced Function: Call exactly one specific function.
+                tool_choice: {"type": "function", "function": {"name": "get_weather"}}
+
         thinking: Thinking parameters for the model
 
     """
@@ -261,10 +267,10 @@ async def generate_text(
     }
 
     # Add function calling parameters if provided
-    if functions:
-        kwargs["functions"] = functions
-        if function_call:
-            kwargs["function_call"] = function_call
+    if tools:
+        kwargs["tools"] = tools
+        if tool_choice:
+            kwargs["tool_choice"] = tool_choice
 
     # Get model info to check capabilities
     model_info = LLMModels.get_model_info(model_name)
