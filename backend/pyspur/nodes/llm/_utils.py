@@ -160,7 +160,8 @@ def async_retry(*dargs, **dkwargs):
     ),
 )
 async def completion_with_backoff(**kwargs) -> str:
-    """Calls the LLM completion endpoint with backoff.
+    """Call the LLM completion endpoint with backoff.
+
     Supports Azure OpenAI, standard OpenAI, or Ollama based on the model name.
     """
     try:
@@ -168,7 +169,8 @@ async def completion_with_backoff(**kwargs) -> str:
         logging.info("=== LLM Request Configuration ===")
         logging.info(f"Requested Model: {model}")
 
-        # Use Azure if either 'azure/' is prefixed or if an Azure API key is provided and not using Ollama
+        # Use Azure if either 'azure/' is prefixed or if an Azure API key
+        # is provided and not using Ollama
         if model.startswith("azure/") or (
             os.getenv("AZURE_OPENAI_API_KEY") and not model.startswith("ollama/")
         ):
@@ -205,7 +207,8 @@ async def completion_with_backoff(**kwargs) -> str:
 
 
 def sanitize_json_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
-    """Makes a JSON schema compatible with the LLM providers.
+    """Make a JSON schema compatible with the LLM providers.
+
     * sets "additionalProperties" to False
     * adds all properties to the "required" list recursively
     """
@@ -234,6 +237,22 @@ async def generate_text(
     function_call: Optional[str] = None,
     thinking: Optional[Dict[str, Any]] = None,
 ) -> str:
+    """Generate text using the specified LLM model.
+
+    Args:
+        messages: List of message dictionaries with 'role' and 'content'
+        model_name: Name of the LLM model to use
+        temperature: Temperature for randomness, between 0.0 and 1.0
+        json_mode: Flag to indicate if JSON output is required
+        max_tokens: Maximum number of tokens the model can generate
+        api_base: Base URL for the API
+        url_variables: Dictionary of URL variables for file inputs
+        output_json_schema: JSON schema for the output format
+        functions: List of function schemas for function calling
+        function_call: Function call configuration
+        thinking: Thinking parameters for the model
+
+    """
     kwargs = {
         "model": model_name,
         "max_tokens": max_tokens,
@@ -303,7 +322,9 @@ async def generate_text(
                     message for message in messages if message["role"] == "system"
                 )
                 system_message["content"] += (
-                    "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
+                    "\nYou must respond with valid JSON only."
+                    + " No other text before or after the JSON Object."
+                    + "The JSON Object must adhere to this schema: "
                     + schema_for_prompt
                 )
 
@@ -326,7 +347,10 @@ async def generate_text(
             mime_type = get_mime_type_for_url(url_variables["image"])
             if not model_info.constraints.is_mime_type_supported(mime_type):
                 raise ValueError(
-                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}. Supported types: {[mime.value for mime in model_info.constraints.supported_mime_types]}"""
+                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}."""
+                    f""" Supported types: {
+                        [mime.value for mime in model_info.constraints.supported_mime_types]
+                    }"""
                 )
 
             # Transform messages to include URL content
@@ -357,7 +381,9 @@ async def generate_text(
                                         # Convert DOCX to XML
                                         xml_content = convert_docx_to_xml(str(file_path))
                                         # Encode the XML content directly
-                                        data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
+                                        data_url = f"data:text/xml;base64,{
+                                            base64.b64encode(xml_content.encode()).decode()
+                                        }"
                                     else:
                                         data_url = encode_file_to_base64_data_url(str(file_path))
 
@@ -445,6 +471,7 @@ def convert_output_schema_to_json_schema(
     output_schema: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Convert a simple output schema to a JSON schema.
+
     Simple output schema is a dictionary with field names and types.
     Types can be one of 'str', 'int', 'float' or 'bool'.
     """
@@ -485,10 +512,9 @@ async def ollama_with_backoff(
     Args:
         model: The name of the Ollama model to use
         messages: List of message dictionaries with 'role' and 'content'
+        format: Format for the response, either 'json' or a dictionary
         options: OllamaOptions instance with model parameters
-        max_retries: Maximum number of retries
-        initial_wait: Initial wait time between retries in seconds
-        max_wait: Maximum wait time between retries in seconds
+        api_base: Base URL for the Ollama API
 
     Returns:
         Either a string response or a validated Pydantic model instance
