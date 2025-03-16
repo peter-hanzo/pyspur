@@ -44,16 +44,10 @@ class NodeFactory:
             if category not in converted_nodes:
                 converted_nodes[category] = []
             for node in nodes:
-                if (
-                    node["node_type_name"] is None
-                    or node["module"] is None
-                    or node["class_name"] is None
-                ):
-                    continue
                 schema = NodeTypeSchema(
-                    node_type_name=node["node_type_name"],
-                    module=node["module"],
-                    class_name=node["class_name"],
+                    node_type_name=node.node_type_name,
+                    module=node.module,
+                    class_name=node.class_name,
                 )
                 converted_nodes[category].append(schema)
 
@@ -96,9 +90,9 @@ class NodeFactory:
             registered_nodes = NodeRegistry.get_registered_nodes()
             for nodes in registered_nodes.values():
                 for node in nodes:
-                    if node["node_type_name"] == node_type_name:
-                        module_name = node["module"]
-                        class_name = node["class_name"]
+                    if node.node_type_name == node_type_name:
+                        module_name = node.module
+                        class_name = node.class_name
                         break
                 if module_name and class_name:
                     break
