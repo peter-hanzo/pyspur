@@ -73,7 +73,7 @@ class BaseNode(ABC):
 
     name: str = ""
     display_name: str = ""
-    category: str = "Uncategorized"
+    category: Optional[str] = None
     subcategory: Optional[str] = None
     logo: Optional[str] = None
     config_model: Type[BaseNodeConfig]
