@@ -7,30 +7,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Type, Union
 
 from loguru import logger
-from pydantic import BaseModel
 
+from ..schemas.node_type_schemas import NodeTypeSchema
 from .base import BaseNode
 from .decorator import FunctionToolNode, ToolFunction
 
 
-class NodeInfo(BaseModel):
-    """Schema for node registration information.
-
-    This schema is used to store metadata about nodes in the NodeRegistry.
-
-    Attributes:
-        node_type_name: The name of the node type
-        module: The module path (e.g. "tools.foo")
-        class_name: The attribute path within the module,
-        supporting dot notation for nested attributes
-                   (e.g. "MyClass" or "some_var.some_attr.target_class")
-        subcategory: Optional subcategory for organization
-
-    """
-
-    node_type_name: str
-    module: str
-    class_name: str  # Now supports dot notation for nested attributes
+class NodeInfo(NodeTypeSchema):
     subcategory: Optional[str] = None
 
 
