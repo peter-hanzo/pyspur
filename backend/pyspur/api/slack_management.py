@@ -55,11 +55,105 @@ def validate_redirect_uri() -> None:
             )
 
 
+@router.get("/config/status")
+async def get_slack_config_status():
+    """Check if Slack configuration is complete and return the status"""
+    # Check if the required environment variables are set
+    client_id = os.getenv("SLACK_CLIENT_ID", "")
+    client_secret = os.getenv("SLACK_CLIENT_SECRET", "")
+
+    # Return the configuration status
+    return {
+        "configured": bool(client_id and client_secret),
+        "missing_keys": [
+            key
+            for key, value in {
+                "SLACK_CLIENT_ID": client_id,
+                "SLACK_CLIENT_SECRET": client_secret,
+            }.items()
+            if not value
+        ],
+    }
+
+
+@router.get("/required-keys")
+async def get_slack_required_keys():
+    """Get information about the required Slack API keys and their current status"""
+    # Get current values (masked for security)
+    client_id = os.getenv("SLACK_CLIENT_ID", "")
+    client_secret = os.getenv("SLACK_CLIENT_SECRET", "")
+    bot_token = os.getenv("SLACK_BOT_TOKEN", "")
+
+    # Function to mask key values for display
+    def mask_value(value):
+        if not value:
+            return ""
+        if len(value) <= 8:
+            return "*" * len(value)
+        return value[:4] + "*" * (len(value) - 8) + value[-4:]
+
+    # Prepare the response with key information
+    keys_info = [
+        {
+            "name": "SLACK_CLIENT_ID",
+            "description": "Client ID from your Slack App's Basic Information page",
+            "configured": bool(client_id),
+            "masked_value": mask_value(client_id),
+            "required": True,
+            "purpose": "Used for initial OAuth authentication",
+            "help_url": "https://api.slack.com/authentication/basics",
+        },
+        {
+            "name": "SLACK_CLIENT_SECRET",
+            "description": "Client Secret from your Slack App's Basic Information page",
+            "configured": bool(client_secret),
+            "masked_value": mask_value(client_secret),
+            "required": True,
+            "purpose": "Used along with Client ID for OAuth authentication",
+            "help_url": "https://api.slack.com/authentication/basics",
+        },
+        {
+            "name": "SLACK_BOT_TOKEN",
+            "description": "Bot User OAuth Token (starts with xoxb-)",
+            "configured": bool(bot_token),
+            "masked_value": mask_value(bot_token),
+            "required": False,
+            "purpose": "Obtained after successful authentication, used for API operations",
+            "help_url": "https://api.slack.com/authentication/token-types",
+        },
+    ]
+
+    # Determine overall status
+    all_required_configured = all(key["configured"] for key in keys_info if key["required"])
+
+    return {
+        "configured": all_required_configured,
+        "keys": keys_info,
+        "redirect_uri": SLACK_REDIRECT_URI,
+        "scopes_needed": "channels:read,chat:write,team:read,app_mentions:read,im:read,im:history",
+    }
+
+
 @router.get("/oauth/authorize")
 async def authorize_slack():
     """Generate the Slack OAuth authorization URL"""
+    # Check for missing credentials and provide detailed feedback
+    missing_keys = []
     if not SLACK_CLIENT_ID:
-        raise HTTPException(status_code=500, detail="SLACK_CLIENT_ID is not configured")
+        missing_keys.append("SLACK_CLIENT_ID")
+    if not SLACK_CLIENT_SECRET:
+        missing_keys.append("SLACK_CLIENT_SECRET")
+
+    if missing_keys:
+        missing_keys_str = ", ".join(missing_keys)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "missing_credentials",
+                "message": f"Slack credentials not configured: {missing_keys_str}",
+                "missing_keys": missing_keys,
+            },
+        )
 
     try:
         validate_redirect_uri()

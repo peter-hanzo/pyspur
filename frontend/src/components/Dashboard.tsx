@@ -69,11 +69,18 @@ import {
     toggleSlackTrigger,
     testSlackConnection,
     AlertFunction,
+    getSlackRequiredKeys,
+    fetchSlackSetupInfo,
+    handleConnectToSlack,
+    handleShowSlackSetup,
+    getPauseHistory,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
 import HumanInputModal from './modals/HumanInputModal'
 import WelcomeModal from './modals/WelcomeModal'
+import SettingsModal from './modals/SettingsModal'
+import { SlackConfigErrorModal, SlackSetupGuide } from './slack'
 
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
@@ -138,6 +145,7 @@ const CalendlyWidget: React.FC = () => {
     return null
 }
 
+// Slack Setup Guide component
 const Dashboard: React.FC = () => {
     const router = useRouter()
     const [workflows, setWorkflows] = useState<WorkflowResponse[]>([])
@@ -164,6 +172,12 @@ const Dashboard: React.FC = () => {
     const [slackAgents, setSlackAgents] = useState<SlackAgent[]>([])
     const [isLoadingSlackAgents, setIsLoadingSlackAgents] = useState(false)
     const [slackConfigured, setSlackConfigured] = useState(false)
+    const [showSlackSetupGuide, setShowSlackSetupGuide] = useState(false)
+    const [slackSetupInfo, setSlackSetupInfo] = useState<any>(null)
+    const [showConfigErrorModal, setShowConfigErrorModal] = useState(false)
+    const [missingSlackKeys, setMissingSlackKeys] = useState<string[]>([])
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+    const [settingsActiveTab, setSettingsActiveTab] = useState<'appearance' | 'api-keys'>('api-keys')
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -610,6 +624,25 @@ const Dashboard: React.FC = () => {
         noKeyboard: true,
     })
 
+    const handleGoToSettings = () => {
+        // Open settings modal with API keys tab pre-selected
+        setSettingsActiveTab('api-keys')
+        setIsSettingsModalOpen(true)
+        setShowConfigErrorModal(false) // Close the error modal
+    }
+
+    const callHandleConnectToSlack = async () => {
+        await handleConnectToSlack(
+            onAlert,
+            setMissingSlackKeys,
+            setShowConfigErrorModal
+        )
+    }
+
+    const callHandleShowSlackSetup = async () => {
+        await handleShowSlackSetup(setShowSlackSetupGuide)
+    }
+
     return (
         <div {...getRootProps()} className="relative flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <input {...getInputProps()} />
@@ -971,21 +1004,46 @@ const Dashboard: React.FC = () => {
                                 <Spinner size="lg" />
                             </div>
                         ) : slackAgents.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-8 text-center">
-                                <div className="bg-default-100 rounded-full p-4 mb-4">
-                                    <Icon icon="logos:slack-icon" width={32} height={32} />
+                            <div className="flex flex-col items-center justify-center p-8">
+                                <div className="max-w-md w-full">
+                                    <div className="flex flex-col items-center mb-6">
+                                        <div className="bg-default-100 rounded-full p-4 mb-4">
+                                            <Icon icon="logos:slack-icon" width={32} height={32} />
+                                        </div>
+                                        <h4 className="text-lg font-medium mb-2 text-center">No Slack Agents Connected</h4>
+                                        <p className="text-default-500 mb-4 text-center">
+                                            Connect PySpur to your Slack workspace to create agents that can interact with your workflows.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <Button
+                                            color="primary"
+                                            startContent={<Icon icon="logos:slack-icon" width={20} />}
+                                            onPress={callHandleConnectToSlack}
+                                            isDisabled={isLoadingSlackAgents}
+                                            className="w-full"
+                                        >
+                                            Connect to Slack
+                                        </Button>
+                                        <Button
+                                            variant="bordered"
+                                            startContent={<Icon icon="lucide:help-circle" width={20} />}
+                                            onPress={callHandleShowSlackSetup}
+                                            className="w-full"
+                                        >
+                                            View Setup Guide
+                                        </Button>
+                                        <Button
+                                            variant="flat"
+                                            startContent={<Icon icon="lucide:settings" width={20} />}
+                                            onPress={handleGoToSettings}
+                                            className="w-full"
+                                        >
+                                            Configure API Keys
+                                        </Button>
+                                    </div>
                                 </div>
-                                <h4 className="text-lg font-medium mb-2">No Slack Agents Connected</h4>
-                                <p className="text-default-500 mb-4">
-                                    Connect PySpur to your Slack workspace to create agents that can interact with your workflows.
-                                </p>
-                                <Button
-                                    color="primary"
-                                    startContent={<Icon icon="logos:slack-icon" width={20} />}
-                                    onPress={() => connectToSlack(onAlert)}
-                                >
-                                    Connect to Slack
-                                </Button>
                             </div>
                         ) : (
                             <div className="flex flex-col gap-2">
@@ -1224,6 +1282,29 @@ const Dashboard: React.FC = () => {
                     </ModalFooter>
                 </ModalContent>
             </Modal>
+            {/* Slack Setup Guide Modal */}
+            {showSlackSetupGuide && (
+                <SlackSetupGuide
+                    onClose={() => setShowSlackSetupGuide(false)}
+                    onConnectClick={callHandleConnectToSlack}
+                    setupInfo={slackSetupInfo}
+                    onGoToSettings={handleGoToSettings}
+                />
+            )}
+            {/* Slack Configuration Error Modal */}
+            <SlackConfigErrorModal
+                isOpen={showConfigErrorModal}
+                onClose={() => setShowConfigErrorModal(false)}
+                missingKeys={missingSlackKeys}
+                onGoToSettings={handleGoToSettings}
+            />
+
+            {/* Settings Modal */}
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onOpenChange={setIsSettingsModalOpen}
+                initialTab={settingsActiveTab}
+            />
         </div>
     )
 }

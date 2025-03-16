@@ -1264,6 +1264,56 @@ export const getSlackAuthUrl = async (): Promise<{ auth_url: string }> => {
     }
 }
 
+export const getSlackRequiredKeys = async (): Promise<{
+    configured: boolean;
+    keys: Array<{
+        name: string;
+        description: string;
+        configured: boolean;
+        masked_value: string;
+        required: boolean;
+        purpose: string;
+        help_url: string;
+    }>;
+    redirect_uri: string;
+    scopes_needed: string;
+}> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/slack/required-keys`)
+        return response.data
+    } catch (error) {
+        console.error('Error getting Slack required keys:', error)
+        throw error
+    }
+}
+
+/**
+ * Fetches Slack setup information including required keys and their configuration status
+ * @returns The Slack setup information object or null if there was an error
+ */
+export const fetchSlackSetupInfo = async (): Promise<{
+    configured: boolean;
+    keys: Array<{
+        name: string;
+        description: string;
+        configured: boolean;
+        masked_value: string;
+        required: boolean;
+        purpose: string;
+        help_url: string;
+    }>;
+    redirect_uri: string;
+    scopes_needed: string;
+} | null> => {
+    try {
+        const info = await getSlackRequiredKeys()
+        return info
+    } catch (error) {
+        console.error('Error fetching Slack setup info:', error)
+        return null
+    }
+}
+
 export const getSlackAgents = async (): Promise<SlackAgent[]> => {
     try {
         const response = await axios.get(`${API_BASE_URL}/slack/agents`)
@@ -1344,6 +1394,7 @@ export interface AlertFunction {
 
 export const connectToSlack = async (onAlert?: AlertFunction): Promise<void> => {
     try {
+        // Get the Slack auth URL
         const response = await getSlackAuthUrl()
         if (response.auth_url) {
             // Open the auth URL in a new window/tab
@@ -1351,9 +1402,75 @@ export const connectToSlack = async (onAlert?: AlertFunction): Promise<void> => 
         } else {
             onAlert?.('Failed to get Slack authorization URL', 'danger')
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error connecting to Slack:', error)
-        onAlert?.('Failed to connect to Slack. Please check server configuration.', 'danger')
+        // Let the error propagate to the caller for custom handling
+        throw error
+    }
+}
+
+/**
+ * Handles the Slack connection process, checking for required keys first
+ * @param onAlert Optional function to display alerts to the user
+ * @param setMissingSlackKeys Function to set missing Slack keys in component state
+ * @param setShowConfigErrorModal Function to control visibility of the configuration error modal
+ */
+export const handleConnectToSlack = async (
+    onAlert?: AlertFunction,
+    setMissingSlackKeys?: (keys: string[]) => void,
+    setShowConfigErrorModal?: (show: boolean) => void
+): Promise<void> => {
+    try {
+        // Fetch the latest setup info first to ensure we have current status
+        const info = await fetchSlackSetupInfo()
+
+        // Check if we have all required keys
+        if (info && !info.configured && setMissingSlackKeys && setShowConfigErrorModal) {
+            // Extract the missing keys
+            const missing = info.keys
+                .filter((key) => key.required && !key.configured)
+                .map((key) => key.name)
+
+            // Show the error modal instead of an alert
+            setMissingSlackKeys(missing)
+            setShowConfigErrorModal(true)
+            return
+        }
+
+        // If we have all keys, proceed with normal flow
+        connectToSlack(onAlert)
+    } catch (error: any) {
+        console.error('Error connecting to Slack:', error)
+
+        // Check for specific missing credentials error from the backend
+        if (error.response?.status === 400 &&
+            error.response?.data?.detail?.error === 'missing_credentials' &&
+            setMissingSlackKeys &&
+            setShowConfigErrorModal) {
+
+            const missingKeys = error.response.data.detail.missing_keys || []
+            setMissingSlackKeys(missingKeys)
+            setShowConfigErrorModal(true)
+        } else {
+            // Generic error message for other errors
+            onAlert?.('Failed to connect to Slack. Please check server configuration.', 'danger')
+        }
+    }
+}
+
+/**
+ * Handles showing the Slack setup guide by fetching the latest setup information first
+ * @param fetchInfoFn Function to fetch Slack setup information
+ * @param setShowGuide Function to control visibility of the setup guide modal
+ */
+export const handleShowSlackSetup = async (
+    setShowGuide: (show: boolean) => void
+): Promise<void> => {
+    try {
+        await fetchSlackSetupInfo()
+        setShowGuide(true)
+    } catch (error) {
+        console.error('Error preparing Slack setup guide:', error)
     }
 }
 
