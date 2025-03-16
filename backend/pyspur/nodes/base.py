@@ -260,6 +260,59 @@ class BaseNode(ABC):
         """Return the node's configuration."""
         return self.config_model.model_validate(self._config.model_dump())
 
+    @property
+    def function_schema(self) -> Dict[str, Any]:
+        """Return the node's function schema.
+
+        Converts the config model's schema into a function schema format where
+        config fields become function parameters. If has_fixed_output is true,
+        both it and output_json_schema are excluded from the parameters.
+        """
+        config_schema = self.config_model.model_json_schema()
+
+        # Get description from the node's docstring if available
+        description = self.__class__.__doc__ or config_schema.get(
+            "description", f"Function schema for {self.name}"
+        )
+        # Clean up the docstring by removing extra whitespace and newlines
+        description = " ".join(line.strip() for line in description.split("\n")).strip()
+
+        # if has_fixed_output is true then no need to include it in the function schema
+        # and also remove output_json_schema from the parameters
+        properties = config_schema.get("properties", {})
+        if properties.get("has_fixed_output", {}).get("default", False):
+            properties = {
+                k: v
+                for k, v in properties.items()
+                if k not in ["has_fixed_output", "output_json_schema"]
+            }
+            # Also remove from required if present
+            required = [
+                r
+                for r in config_schema.get("required", [])
+                if r not in ["has_fixed_output", "output_json_schema"]
+            ]
+        else:
+            required = config_schema.get("required", [])
+
+        # Create function schema
+        function_schema = {
+            "type": "function",
+            "name": self.name,
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": properties,
+                "required": required,
+            },
+        }
+
+        # If there are any definitions in the original schema, preserve them
+        if "definitions" in config_schema:
+            function_schema["definitions"] = config_schema["definitions"]
+
+        return function_schema
+
     def update_config(self, config: BaseNodeConfig) -> None:
         """Update the node's configuration."""
         self._config = config
