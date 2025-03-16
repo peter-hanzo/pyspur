@@ -1,6 +1,5 @@
 import inspect
 import json
-import sys
 from typing import (
     Any,
     Callable,
@@ -97,6 +96,7 @@ class ToolFunction(Protocol):
     node_class: Type[BaseNode]
     config_model: Type[BaseNodeConfig]
     output_model: Type[BaseNodeOutput]
+    func_name: str
 
     def create_node(
         self,
@@ -289,10 +289,6 @@ def tool_function(
             },
         )
 
-        # Bind the class to the module's namespace
-        module = sys.modules[func.__module__]
-        setattr(module, func_name, new_class_name)
-
         # Set NodeClass attribute to the function
         func.node_class = new_class_name  # type: ignore
 
@@ -301,6 +297,9 @@ def tool_function(
 
         # Set the output model to the output_model
         func.output_model = _output_model  # type: ignore
+
+        # Set the func_name attribute to the function name
+        func.func_name = func.__name__  # type: ignore
 
         # Set the create_node function to the func
         def create_node(
