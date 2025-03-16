@@ -228,7 +228,7 @@ class SingleLLMCallNode(BaseNode):
                 }
 
         try:
-            assistant_message_str = await generate_text(
+            message_response = await generate_text(
                 messages=messages,
                 model_name=model_name,
                 temperature=self.config.llm_info.temperature,
@@ -238,6 +238,35 @@ class SingleLLMCallNode(BaseNode):
                 output_json_schema=self.config.output_json_schema,
                 thinking=thinking_params,
             )
+
+            # Extract content from Message object
+            assistant_message_content = message_response.content
+            if assistant_message_content is None:
+                raise ValueError("Assistant message content is None")
+
+            try:
+                assistant_message_dict = json.loads(assistant_message_content)
+            except Exception:
+                try:
+                    repaired_str = repair_json(assistant_message_content)
+                    assistant_message_dict = json.loads(repaired_str)
+                except Exception as inner_e:
+                    error_str = str(inner_e)
+                    error_message = (
+                        "An error occurred while parsing and repairing the assistant message"
+                    )
+                    error_type = "json_parse_error"
+                    raise Exception(
+                        json.dumps(
+                            {
+                                "type": "parsing_error",
+                                "error_type": error_type,
+                                "message": error_message,
+                                "original_error": error_str,
+                                "assistant_message_str": assistant_message_content,
+                            }
+                        )
+                    ) from inner_e
         except Exception as e:
             error_str = str(e)
 
@@ -287,30 +316,6 @@ class SingleLLMCallNode(BaseNode):
                     )
                 ) from e
             raise e
-
-        try:
-            assistant_message_dict = json.loads(assistant_message_str)
-        except Exception:
-            try:
-                repaired_str = repair_json(assistant_message_str)
-                assistant_message_dict = json.loads(repaired_str)
-            except Exception as inner_e:
-                error_str = str(inner_e)
-                error_message = (
-                    "An error occurred while parsing and repairing the assistant message"
-                )
-                error_type = "json_parse_error"
-                raise Exception(
-                    json.dumps(
-                        {
-                            "type": "parsing_error",
-                            "error_type": error_type,
-                            "message": error_message,
-                            "original_error": error_str,
-                            "assistant_message_str": assistant_message_str,
-                        }
-                    )
-                ) from inner_e
 
         # Validate and return
         assistant_message = self.output_model.model_validate(assistant_message_dict)

@@ -237,7 +237,7 @@ async def generate_text(
     tools: Optional[List[Dict[str, Any]]] = None,
     tool_choice: Optional[str] = "auto",
     thinking: Optional[Dict[str, Any]] = None,
-) -> str:
+) -> Message:
     """Generate text using the specified LLM model.
 
     Args:
@@ -348,6 +348,10 @@ async def generate_text(
                 api_base=api_base,
             )
             response = raw_response
+            message_response = Message(
+                content=json.dumps(raw_response),
+                tool_calls=[],
+            )
         # Handle inputs with URL variables
         elif url_variables:
             # check if the mime type is supported
@@ -408,9 +412,11 @@ async def generate_text(
             kwargs["messages"] = transformed_messages
             message_response: Message = await completion_with_backoff(**kwargs)
             response = message_response.content
+            raw_response = response
         else:
             message_response: Message = await completion_with_backoff(**kwargs)
             response = message_response.content
+            raw_response = response
     else:
         if model_name.startswith("ollama"):
             if api_base is None:
@@ -430,19 +436,26 @@ async def generate_text(
         if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
             if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
                 provider_fields = raw_response.choices[0].message.provider_specific_fields
-                return json.dumps(
+                message_response.content = json.dumps(
                     {
                         "output": sanitized_response,
                         "provider_specific_fields": provider_fields,
                     }
                 )
-        return f'{{"output": "{sanitized_response}"}}'
+                return message_response
+        message_response.content = f'{{"output": "{sanitized_response}"}}'
+        return message_response
 
     # Ensure response is valid JSON for models that support it
     if supports_json:
         try:
-            json.loads(response)
-            return response
+            if len(message_response.tool_calls) > 0:
+                # If the model made tool calls, return the raw response
+                return message_response
+            else:
+                # Attempt to parse the response as JSON to validate it
+                _ = json.loads(response)
+                return message_response
         except json.JSONDecodeError:
             logging.error(f"Response is not valid JSON: {response}")
             # Try to fix common json issues
@@ -453,7 +466,8 @@ async def generate_text(
                     response = json_match.group(0)
                     try:
                         json.loads(response)
-                        return response
+                        message_response.content = response
+                        return message_response
                     except json.JSONDecodeError:
                         pass
 
@@ -463,15 +477,17 @@ async def generate_text(
             if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
                 if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
                     provider_fields = raw_response.choices[0].message.provider_specific_fields
-                    return json.dumps(
+                    message_response.content = json.dumps(
                         {
                             "output": sanitized_response,
                             "provider_specific_fields": provider_fields,
                         }
                     )
-            return f'{{"output": "{sanitized_response}"}}'
+                    return message_response
+            message_response.content = f'{{"output": "{sanitized_response}"}}'
+            return message_response
 
-    return response
+    return message_response
 
 
 def convert_output_schema_to_json_schema(
