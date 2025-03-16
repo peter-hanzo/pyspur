@@ -28,6 +28,11 @@ import {
     TableRow,
     getKeyValue,
     useDisclosure,
+    Select,
+    SelectItem,
+    Switch,
+    Badge,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { formatDistanceToNow } from 'date-fns'
@@ -53,6 +58,17 @@ import {
     listApiKeys,
     listPausedWorkflows,
     takePauseAction,
+    getSlackAgents,
+    SlackAgent,
+    associateWorkflow,
+    updateTriggerConfig,
+    sendTestMessage,
+    getSlackAuthUrl,
+    connectToSlack,
+    associateSlackWorkflow,
+    toggleSlackTrigger,
+    testSlackConnection,
+    AlertFunction,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
@@ -145,6 +161,9 @@ const Dashboard: React.FC = () => {
     const [showAlert, setShowAlert] = useState(false)
     const { isOpen: isNewSpurModalOpen, onOpen: onOpenNewSpurModal, onClose: onCloseNewSpurModal } = useDisclosure()
     const [selectedSpurType, setSelectedSpurType] = useState<SpurType>(SpurType.WORKFLOW)
+    const [slackAgents, setSlackAgents] = useState<SlackAgent[]>([])
+    const [isLoadingSlackAgents, setIsLoadingSlackAgents] = useState(false)
+    const [slackConfigured, setSlackConfigured] = useState(false)
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -238,6 +257,25 @@ const Dashboard: React.FC = () => {
         }
 
         fetchPausedWorkflows()
+    }, [])
+
+    useEffect(() => {
+        const fetchSlackAgents = async () => {
+            setIsLoadingSlackAgents(true)
+            try {
+                const agents = await getSlackAgents()
+                setSlackAgents(agents)
+                setSlackConfigured(agents.length > 0)
+            } catch (error) {
+                console.error('Error fetching Slack agents:', error)
+                // Silently fail - it could mean Slack is not configured
+                setSlackConfigured(false)
+            } finally {
+                setIsLoadingSlackAgents(false)
+            }
+        }
+
+        fetchSlackAgents()
     }, [])
 
     const formatDate = (dateString: string) => {
@@ -641,7 +679,7 @@ const Dashboard: React.FC = () => {
 
                 {/* Wrap sections in Accordion */}
                 <Accordion
-                    defaultExpandedKeys={new Set(['workflows', 'templates', 'human-tasks'])}
+                    defaultExpandedKeys={new Set(['workflows', 'templates', 'human-tasks', 'slack-agents'])}
                     selectionMode="multiple"
                 >
                     <AccordionItem
@@ -906,6 +944,212 @@ const Dashboard: React.FC = () => {
                         ) : (
                             <div className="flex flex-col items-center justify-center p-8 text-center">
                                 <p className="text-muted-foreground">No tasks currently requiring human approval.</p>
+                            </div>
+                        )}
+                    </AccordionItem>
+                    <AccordionItem
+                        key="slack-agents"
+                        aria-label="Slack Agents"
+                        title={
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xl font-semibold">Slack Agents</h3>
+                                {slackAgents.length > 0 && (
+                                    <Chip color="primary" variant="flat" size="sm">
+                                        {slackAgents.length}
+                                    </Chip>
+                                )}
+                                {slackAgents.filter(a => a.is_active && a.trigger_enabled).length > 0 && (
+                                    <Chip color="success" variant="flat" size="sm">
+                                        {slackAgents.filter(a => a.is_active && a.trigger_enabled).length} Active
+                                    </Chip>
+                                )}
+                            </div>
+                        }
+                    >
+                        {isLoadingSlackAgents ? (
+                            <div className="flex justify-center p-4">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : slackAgents.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-8 text-center">
+                                <div className="bg-default-100 rounded-full p-4 mb-4">
+                                    <Icon icon="logos:slack-icon" width={32} height={32} />
+                                </div>
+                                <h4 className="text-lg font-medium mb-2">No Slack Agents Connected</h4>
+                                <p className="text-default-500 mb-4">
+                                    Connect PySpur to your Slack workspace to create agents that can interact with your workflows.
+                                </p>
+                                <Button
+                                    color="primary"
+                                    startContent={<Icon icon="logos:slack-icon" width={20} />}
+                                    onPress={() => connectToSlack(onAlert)}
+                                >
+                                    Connect to Slack
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-end mb-4">
+                                    <Button
+                                        color="primary"
+                                        size="sm"
+                                        startContent={<Icon icon="solar:refresh-linear" width={18} />}
+                                        onPress={() => {
+                                            setIsLoadingSlackAgents(true);
+                                            getSlackAgents()
+                                                .then(agents => setSlackAgents(agents))
+                                                .catch(err => console.error('Error refreshing agents:', err))
+                                                .finally(() => setIsLoadingSlackAgents(false));
+                                        }}
+                                    >
+                                        Refresh Agents
+                                    </Button>
+                                </div>
+                                <Table aria-label="Slack agents table" isHeaderSticky>
+                                    <TableHeader>
+                                        <TableColumn>NAME</TableColumn>
+                                        <TableColumn>WORKSPACE</TableColumn>
+                                        <TableColumn>TYPE</TableColumn>
+                                        <TableColumn>WORKFLOW</TableColumn>
+                                        <TableColumn>TRIGGERS</TableColumn>
+                                        <TableColumn>STATUS</TableColumn>
+                                        <TableColumn>ACTIONS</TableColumn>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {slackAgents.map((agent) => (
+                                            <TableRow key={agent.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon icon="solar:bot-bold" width={20} />
+                                                        <span>{agent.name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{agent.slack_team_name}</TableCell>
+                                                <TableCell>
+                                                    {agent.spur_type && (
+                                                        <SpurTypeChip spurType={agent.spur_type} />
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        size="sm"
+                                                        placeholder="Select a workflow"
+                                                        value={agent.workflow_id}
+                                                        onChange={(e) => associateSlackWorkflow(
+                                                            agent.id,
+                                                            e.target.value,
+                                                            setSlackAgents,
+                                                            onAlert
+                                                        )}
+                                                    >
+                                                        {workflows
+                                                            .filter(workflow => agent.spur_type ?
+                                                                workflow.definition.spur_type === agent.spur_type : true)
+                                                            .map((workflow) => (
+                                                                <SelectItem key={workflow.id} value={workflow.id}>
+                                                                    {workflow.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-1">
+                                                            <Switch
+                                                                size="sm"
+                                                                isSelected={agent.trigger_enabled}
+                                                                onValueChange={(value) => toggleSlackTrigger(
+                                                                    agent.id,
+                                                                    'trigger_enabled',
+                                                                    value,
+                                                                    slackAgents,
+                                                                    setSlackAgents,
+                                                                    onAlert
+                                                                )}
+                                                                aria-label="Enable triggers"
+                                                            />
+                                                            <span className="text-small">Enabled</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            <Tooltip content="Respond to @mentions">
+                                                                <Badge
+                                                                    size="sm"
+                                                                    color={agent.trigger_on_mention ? "primary" : "default"}
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => toggleSlackTrigger(
+                                                                        agent.id,
+                                                                        'trigger_on_mention',
+                                                                        !agent.trigger_on_mention,
+                                                                        slackAgents,
+                                                                        setSlackAgents,
+                                                                        onAlert
+                                                                    )}
+                                                                >
+                                                                    @mentions
+                                                                </Badge>
+                                                            </Tooltip>
+                                                            <Tooltip content="Respond to direct messages">
+                                                                <Badge
+                                                                    size="sm"
+                                                                    color={agent.trigger_on_direct_message ? "primary" : "default"}
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => toggleSlackTrigger(
+                                                                        agent.id,
+                                                                        'trigger_on_direct_message',
+                                                                        !agent.trigger_on_direct_message,
+                                                                        slackAgents,
+                                                                        setSlackAgents,
+                                                                        onAlert
+                                                                    )}
+                                                                >
+                                                                    DMs
+                                                                </Badge>
+                                                            </Tooltip>
+                                                            <Tooltip content="Respond to channel messages">
+                                                                <Badge
+                                                                    size="sm"
+                                                                    color={agent.trigger_on_channel_message ? "primary" : "default"}
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => toggleSlackTrigger(
+                                                                        agent.id,
+                                                                        'trigger_on_channel_message',
+                                                                        !agent.trigger_on_channel_message,
+                                                                        slackAgents,
+                                                                        setSlackAgents,
+                                                                        onAlert
+                                                                    )}
+                                                                >
+                                                                    channels
+                                                                </Badge>
+                                                            </Tooltip>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge color={agent.is_active ? "success" : "danger"}>
+                                                        {agent.is_active ? "Active" : "Inactive"}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            onPress={() => testSlackConnection(agent, onAlert)}
+                                                            isDisabled={!agent.workflow_id}
+                                                            aria-label="Test Connection"
+                                                        >
+                                                            <Tooltip content="Test Connection">
+                                                                <Icon icon="solar:test-tube-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </AccordionItem>

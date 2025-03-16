@@ -30,6 +30,7 @@ import {
     WorkflowDefinition,
     WorkflowResponse,
     WorkflowVersionResponse,
+    SpurType,
 } from '@/types/api_types/workflowSchemas'
 import axios from 'axios'
 import JSPydanticModel from './JSPydanticModel' // Import the JSPydanticModel class
@@ -1220,5 +1221,220 @@ export const createTestSession = async (workflowId: string): Promise<SessionResp
     } catch (error) {
         console.error('Error creating test session:', error)
         throw error
+    }
+}
+
+// Slack Integration Types
+export interface SlackAgent {
+    id: number
+    name: string
+    slack_team_id: string
+    slack_team_name: string
+    workflow_id?: string
+    spur_type: SpurType
+    is_active: boolean
+    trigger_enabled: boolean
+    trigger_on_mention: boolean
+    trigger_on_direct_message: boolean
+    trigger_on_channel_message: boolean
+    trigger_keywords?: string[]
+    created_at: string
+}
+
+export interface SlackOAuthResponse {
+    success: boolean
+    message: string
+    team_name?: string
+}
+
+export interface SlackMessageResponse {
+    success: boolean
+    message: string
+    ts?: string
+}
+
+// Slack Integration Functions
+export const getSlackAuthUrl = async (): Promise<{ auth_url: string }> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/slack/oauth/authorize`)
+        return response.data
+    } catch (error) {
+        console.error('Error getting Slack auth URL:', error)
+        throw error
+    }
+}
+
+export const getSlackAgents = async (): Promise<SlackAgent[]> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/slack/agents`)
+        return response.data
+    } catch (error) {
+        console.error('Error fetching Slack agents:', error)
+        throw error
+    }
+}
+
+export const associateWorkflow = async (agentId: number, workflowId: string): Promise<SlackAgent> => {
+    try {
+        const response = await axios.put(`${API_BASE_URL}/slack/agents/${agentId}/workflow`, {
+            workflow_id: workflowId
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error associating workflow with agent:', error)
+        throw error
+    }
+}
+
+export const updateTriggerConfig = async (
+    agentId: number,
+    config: {
+        trigger_on_mention: boolean,
+        trigger_on_direct_message: boolean,
+        trigger_on_channel_message: boolean,
+        trigger_keywords: string[],
+        trigger_enabled: boolean
+    }
+): Promise<SlackAgent> => {
+    try {
+        const response = await axios.put(`${API_BASE_URL}/slack/agents/${agentId}/trigger-config`, config)
+        return response.data
+    } catch (error) {
+        console.error('Error updating agent trigger configuration:', error)
+        throw error
+    }
+}
+
+export const sendTestMessage = async (channel: string, text: string): Promise<SlackMessageResponse> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/slack/test-message`, {
+            channel,
+            text
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error sending test message:', error)
+        throw error
+    }
+}
+
+export const handleSlackCallback = async (code: string): Promise<SlackOAuthResponse> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/slack/oauth/callback?code=${code}`)
+        return response.data
+    } catch (error) {
+        console.error('Error handling Slack callback:', error)
+        throw error
+    }
+}
+
+export const checkSlackConfig = async (): Promise<boolean> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/slack/config/status`)
+        return response.data.configured
+    } catch (error) {
+        return false
+    }
+}
+
+// Higher-level Slack handler functions
+export interface AlertFunction {
+    (message: string, color: 'success' | 'danger' | 'warning' | 'default'): void;
+}
+
+export const connectToSlack = async (onAlert?: AlertFunction): Promise<void> => {
+    try {
+        const response = await getSlackAuthUrl()
+        if (response.auth_url) {
+            // Open the auth URL in a new window/tab
+            window.open(response.auth_url, '_blank')
+        } else {
+            onAlert?.('Failed to get Slack authorization URL', 'danger')
+        }
+    } catch (error) {
+        console.error('Error connecting to Slack:', error)
+        onAlert?.('Failed to connect to Slack. Please check server configuration.', 'danger')
+    }
+}
+
+export const associateSlackWorkflow = async (
+    agentId: number,
+    workflowId: string,
+    updateAgentsCallback: (updater: (agents: SlackAgent[]) => SlackAgent[]) => void,
+    onAlert?: AlertFunction
+): Promise<void> => {
+    try {
+        const updatedAgent = await associateWorkflow(agentId, workflowId)
+
+        // Update local state using the provided callback
+        updateAgentsCallback(agents =>
+            agents.map(agent => agent.id === agentId ? updatedAgent : agent)
+        )
+
+        onAlert?.('Workflow associated with Slack agent successfully!', 'success')
+    } catch (error) {
+        console.error('Error associating workflow:', error)
+        onAlert?.('Failed to associate workflow with agent', 'danger')
+    }
+}
+
+export const toggleSlackTrigger = async (
+    agentId: number,
+    field: string,
+    value: boolean,
+    agents: SlackAgent[],
+    updateAgentsCallback: (updater: (agents: SlackAgent[]) => SlackAgent[]) => void,
+    onAlert?: AlertFunction
+): Promise<void> => {
+    try {
+        // Find the current agent
+        const agent = agents.find(a => a.id === agentId)
+        if (!agent) return
+
+        // Update trigger configuration
+        const config = {
+            trigger_on_mention: field === 'trigger_on_mention' ? value : agent.trigger_on_mention,
+            trigger_on_direct_message: field === 'trigger_on_direct_message' ? value : agent.trigger_on_direct_message,
+            trigger_on_channel_message: field === 'trigger_on_channel_message' ? value : agent.trigger_on_channel_message,
+            trigger_keywords: agent.trigger_keywords || [],
+            trigger_enabled: field === 'trigger_enabled' ? value : agent.trigger_enabled
+        }
+
+        const updatedAgent = await updateTriggerConfig(agentId, config)
+
+        // Update local state
+        updateAgentsCallback(agents =>
+            agents.map(a => a.id === agentId ? updatedAgent : a)
+        )
+
+        onAlert?.('Agent trigger settings updated successfully!', 'success')
+    } catch (error) {
+        console.error('Error updating agent trigger configuration:', error)
+        onAlert?.('Failed to update agent configuration', 'danger')
+    }
+}
+
+export const testSlackConnection = async (
+    agent: SlackAgent,
+    onAlert?: AlertFunction
+): Promise<void> => {
+    if (!agent.workflow_id) {
+        onAlert?.('Please associate a workflow with this agent first', 'warning')
+        return
+    }
+
+    try {
+        const channel = prompt('Enter a Slack channel ID to send a test message (e.g., C12345678)')
+        if (!channel) return
+
+        await sendTestMessage(
+            channel,
+            `Test message from PySpur agent "${agent.name}"`
+        )
+
+        onAlert?.('Test message sent successfully!', 'success')
+    } catch (error) {
+        console.error('Error sending test message:', error)
+        onAlert?.('Failed to send test message', 'danger')
     }
 }

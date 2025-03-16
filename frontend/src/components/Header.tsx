@@ -147,9 +147,9 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
         if (activePage === 'dashboard') {
             document.title = `Dashboard - PySpur`
         }
-        if (activePage === 'evals') {
-            document.title = `Evals - PySpur`
-        }
+        // if (activePage === 'evals') {
+        //     document.title = `Evals - PySpur`
+        // }
         if (activePage === 'rag') {
             document.title = `RAG - PySpur`
         }
@@ -343,11 +343,11 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     </NavbarItem>
                     {activePage === 'workflow' && <NavbarItem isActive={activePage === 'workflow'}>Editor</NavbarItem>}
                     {activePage === 'trace' && <NavbarItem isActive={activePage === 'trace'}>Trace</NavbarItem>}
-                    <NavbarItem isActive={activePage === 'evals'}>
+                    {/* <NavbarItem isActive={activePage === 'evals'}>
                         <Link className="flex gap-2 text-inherit" href="/evals">
                             Evals
                         </Link>
-                    </NavbarItem>
+                    </NavbarItem> */}
                     <NavbarItem isActive={activePage === 'rag'}>
                         <Link className="flex gap-2 text-inherit" href="/rag">
                             RAG
