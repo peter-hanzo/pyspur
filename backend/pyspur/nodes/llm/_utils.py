@@ -10,6 +10,7 @@ import litellm
 from docx2python import docx2python
 from dotenv import load_dotenv
 from litellm import acompletion
+from litellm.types.utils import Message
 from ollama import AsyncClient
 from pydantic import BaseModel, Field
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
@@ -159,7 +160,7 @@ def async_retry(*dargs, **dkwargs):
         ),
     ),
 )
-async def completion_with_backoff(**kwargs) -> str:
+async def completion_with_backoff(**kwargs) -> Message:
     """Call the LLM completion endpoint with backoff.
 
     Supports Azure OpenAI, standard OpenAI, or Ollama based on the model name.
@@ -186,11 +187,11 @@ async def completion_with_backoff(**kwargs) -> str:
         elif model.startswith("ollama/"):
             logging.info("=== Ollama Configuration ===")
             response = await acompletion(**kwargs, drop_params=True)
-            return response.choices[0].message.content
+            return response.choices[0].message
         else:
             logging.info("=== Standard Configuration ===")
             response = await acompletion(**kwargs, drop_params=True)
-            return response.choices[0].message.content
+            return response.choices[0].message
 
     except Exception as e:
         logging.error("=== LLM Request Error ===")
@@ -234,7 +235,7 @@ async def generate_text(
     url_variables: Optional[Dict[str, str]] = None,
     output_json_schema: Optional[str] = None,
     tools: Optional[List[Dict[str, Any]]] = None,
-    tool_choice: Optional[str] = None,
+    tool_choice: Optional[str] = "auto",
     thinking: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Generate text using the specified LLM model.
@@ -405,18 +406,18 @@ async def generate_text(
                     msg["content"] = content
                 transformed_messages.append(msg)
             kwargs["messages"] = transformed_messages
-            raw_response = await completion_with_backoff(**kwargs)
-            response = raw_response
+            message_response: Message = await completion_with_backoff(**kwargs)
+            response = message_response.content
         else:
-            raw_response = await completion_with_backoff(**kwargs)
-            response = raw_response
+            message_response: Message = await completion_with_backoff(**kwargs)
+            response = message_response.content
     else:
         if model_name.startswith("ollama"):
             if api_base is None:
                 api_base = os.getenv("OLLAMA_BASE_URL")
             kwargs["api_base"] = api_base
-        raw_response = await completion_with_backoff(**kwargs)
-        response = raw_response
+        message_response: Message = await completion_with_backoff(**kwargs)
+        response = message_response.content
 
     # For models that don't support JSON output, wrap the response in a JSON structure
     if not supports_json:
