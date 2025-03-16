@@ -4,15 +4,38 @@ import importlib.util
 import os
 import traceback
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Type, Union
+from typing import Any, Dict, List, Optional, Set, Type, Union
 
 from loguru import logger
+from pydantic import BaseModel
 
 from .base import BaseNode
+from .decorator import FunctionToolNode, ToolFunction
+
+
+class NodeInfo(BaseModel):
+    """Schema for node registration information.
+
+    This schema is used to store metadata about nodes in the NodeRegistry.
+
+    Attributes:
+        node_type_name: The name of the node type
+        module: The module path (e.g. "tools.foo")
+        class_name: The attribute path within the module,
+        supporting dot notation for nested attributes
+                   (e.g. "MyClass" or "some_var.some_attr.target_class")
+        subcategory: Optional subcategory for organization
+
+    """
+
+    node_type_name: str
+    module: str
+    class_name: str  # Now supports dot notation for nested attributes
+    subcategory: Optional[str] = None
 
 
 class NodeRegistry:
-    _nodes: Dict[str, List[Dict[str, Union[str, Optional[str]]]]] = {}
+    _nodes: Dict[str, List[NodeInfo]] = {}
     _decorator_registered_classes: Set[Type[BaseNode]] = (
         set()
     )  # Track classes registered via decorator
@@ -66,12 +89,12 @@ class NodeRegistry:
             if module_path.startswith("pyspur."):
                 module_path = module_path.replace("pyspur.", "", 1)
 
-            node_info: Dict[str, Union[str, Optional[str]]] = {
-                "node_type_name": node_class.__name__,
-                "module": f".{module_path}",
-                "class_name": node_class.__name__,
-                "subcategory": subcategory,
-            }
+            node_info = NodeInfo(
+                node_type_name=node_class.__name__,
+                module=f".{module_path}",
+                class_name=node_class.__name__,
+                subcategory=subcategory,
+            )
 
             # Handle positioning
             nodes_list = cls._nodes[category]
@@ -83,7 +106,7 @@ class NodeRegistry:
                 elif position.startswith("after:"):
                     target_node = position[6:]
                     for i, n in enumerate(nodes_list):
-                        if n["node_type_name"] == target_node:
+                        if n.node_type_name == target_node:
                             nodes_list.insert(i + 1, node_info)
                             break
                     else:
@@ -91,7 +114,7 @@ class NodeRegistry:
                 elif position.startswith("before:"):
                     target_node = position[7:]
                     for i, n in enumerate(nodes_list):
-                        if n["node_type_name"] == target_node:
+                        if n.node_type_name == target_node:
                             nodes_list.insert(i, node_info)
                             break
                     else:
@@ -100,7 +123,7 @@ class NodeRegistry:
                     nodes_list.append(node_info)
             else:
                 # Add to end if no position specified
-                if not any(n["node_type_name"] == node_class.__name__ for n in nodes_list):
+                if not any(n.node_type_name == node_class.__name__ for n in nodes_list):
                     nodes_list.append(node_info)
                     logger.debug(f"Registered node {node_class.__name__} in category {category}")
                     cls._decorator_registered_classes.add(node_class)
@@ -112,8 +135,9 @@ class NodeRegistry:
     @classmethod
     def get_registered_nodes(
         cls,
-    ) -> Dict[str, List[Dict[str, Union[str, Optional[str]]]]]:
+    ) -> Dict[str, List[NodeInfo]]:
         """Get all registered nodes."""
+        cls.discover_nodes()
         return cls._nodes
 
     @classmethod
@@ -198,25 +222,37 @@ class NodeRegistry:
             """Check if a directory is a Python package (has __init__.py)."""
             return (path / "__init__.py").exists()
 
-        def _register_tool_function_node(node_class: Type[BaseNode], category: str) -> None:
+        def _register_tool_function_node(func: ToolFunction, category: str) -> None:
             """Register a tool function node in the NodeRegistry."""
+            node_class = func.node_class
             if category not in cls._nodes:
                 cls._nodes[category] = []
 
-            node_info = {
-                "node_type_name": node_class.__name__,
-                "module": node_class.__module__,
-                "class_name": node_class.__name__,
-                "subcategory": getattr(node_class, "subcategory", None),
-            }
+            node_info = NodeInfo(
+                node_type_name=node_class.__name__,
+                module=node_class.__module__,
+                # Using dot notation for nested attribute
+                class_name=f"{func.func_name}.node_class",
+                subcategory=getattr(node_class, "subcategory", None),
+            )
 
-            if not any(n["node_type_name"] == node_class.__name__ for n in cls._nodes[category]):
+            if not any(n.node_type_name == node_class.__name__ for n in cls._nodes[category]):
                 cls._nodes[category].append(node_info)
                 nonlocal registered_tools
                 registered_tools += 1
                 logger.debug(
                     f"Registered tool function {node_class.__name__} in category {category}"
                 )
+
+        def _is_valid_tool_function(attr: Any) -> bool:
+            """Check if an attribute is a properly decorated tool function."""
+            if not isinstance(attr, ToolFunction):
+                return False
+            if not issubclass(attr.node_class, FunctionToolNode):
+                return False  # Skip regular functions
+            # Must have all required node attributes
+            required_attrs = {"display_name", "config_model", "input_model", "output_model"}
+            return all(hasattr(attr.node_class, attr_name) for attr_name in required_attrs)
 
         def _discover_tools_in_directory(path: Path, base_package: str = "tools") -> None:
             """Recursively discover tool functions in package directories."""
@@ -233,13 +269,13 @@ class NodeRegistry:
                         # Import the module using standard import_module
                         module = importlib.import_module(module_path)
 
-                        # Register any tool functions found in the module
+                        # Register any valid tool functions found in the module
                         for attr_name in dir(module):
                             attr = getattr(module, attr_name)
-                            if hasattr(attr, "node_class"):
+                            if _is_valid_tool_function(attr):
                                 node_class = attr.node_class
                                 category = getattr(node_class, "category", "Uncategorized")
-                                _register_tool_function_node(node_class, category)
+                                _register_tool_function_node(attr, category)
 
                     except Exception as e:
                         logger.error(f"Failed to load module {item}: {e}")
