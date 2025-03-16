@@ -225,6 +225,7 @@ class NodeRegistry:
         def _register_tool_function_node(func: ToolFunction, category: str) -> None:
             """Register a tool function node in the NodeRegistry."""
             node_class = func.node_class
+            category = "Custom Tools"
             if category not in cls._nodes:
                 cls._nodes[category] = []
 
