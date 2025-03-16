@@ -23,7 +23,7 @@ import '@xyflow/react/dist/style.css'
 import { toPng } from 'html-to-image'
 import { throttle } from 'lodash'
 import isEqual from 'lodash/isEqual'
-import React, { MouseEvent as ReactMouseEvent, useCallback, useEffect, useState } from 'react'
+import React, { MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
@@ -124,10 +124,34 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({
         isVisible: false,
     })
 
-    // Create a showAlert function
+    // Use a ref to store the timeout ID
+    const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Create a showAlert function with improved timeout handling
     const showAlert = useCallback((message: string, color: AlertState['color']) => {
+        // Clear any existing timeout to prevent race conditions
+        if (alertTimeoutRef.current) {
+            clearTimeout(alertTimeoutRef.current)
+            alertTimeoutRef.current = null
+        }
+
+        // Show the alert
         setAlert({ message, color, isVisible: true })
-        setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000)
+
+        // Set a new timeout and store its ID in the ref
+        alertTimeoutRef.current = setTimeout(() => {
+            setAlert((prev) => ({ ...prev, isVisible: false }))
+            alertTimeoutRef.current = null
+        }, 3000)
+    }, [])
+
+    // Clean up the timeout when the component unmounts
+    useEffect(() => {
+        return () => {
+            if (alertTimeoutRef.current) {
+                clearTimeout(alertTimeoutRef.current)
+            }
+        }
     }, [])
 
     const nodeTypesConfig = useSelector((state: RootState) => state.nodeTypes.data)
