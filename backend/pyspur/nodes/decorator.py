@@ -9,6 +9,7 @@ from typing import (
     Protocol,
     Set,
     Type,
+    cast,
     get_type_hints,
     runtime_checkable,
 )
@@ -311,7 +312,7 @@ def tool_function(
 
         func.create_node = create_node  # type: ignore
 
-        return func  # type: ignore
+        return cast(ToolFunction, func)
 
     return decorator
 
