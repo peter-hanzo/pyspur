@@ -1,5 +1,6 @@
 import asyncio
 import json
+import pprint
 from typing import Any, Dict, List, Optional, cast
 
 from jinja2 import Template
@@ -67,7 +68,7 @@ class AgentNode(SingleLLMCallNode):
         self.tools_dict: Dict[str, WorkflowNodeSchema] = {}
         tools: List[WorkflowNodeSchema] = self.config.tools or []
         for tool in tools:
-            self.tools_dict[tool.title] = tool
+            self.tools_dict[tool.title.lower()] = tool
 
         ## Create instances of the tools
         self.tools_instances: Dict[str, BaseNode] = {}
@@ -78,14 +79,17 @@ class AgentNode(SingleLLMCallNode):
                 node_type_name=tool.node_type,
                 config=tool.config,
             )
-            self.tools_instances[tool.title] = tool_node_instance
+            self.tools_instances[tool.title.lower()] = tool_node_instance
 
         ## Create list of tool schemas to pass to the LLM
         self.tools_schemas: List[Dict[str, Any]] = []
         for tool in tools:
-            tool_node_instance = self.tools_instances[tool.title]
+            tool_node_instance = self.tools_instances[tool.title.lower()]
             tool_schema = tool_node_instance.function_schema
             self.tools_schemas.append(tool_schema)
+
+        print(f"[DEBUG] AgentNode setup complete. Tools: {self.tools_schemas}")
+        print(f"[DEBUG] Tools dict: {self.tools_dict}")
 
     def _render_template(self, template_str: str, data: Dict[str, Any]) -> str:
         """Render a template with the given data."""
@@ -161,7 +165,7 @@ class AgentNode(SingleLLMCallNode):
         # Extract message history from input if enabled
         history: Optional[List[Dict[str, str]]] = None
 
-        messages = create_messages(
+        messages: List[Dict[str, Any]] = create_messages(
             system_message=system_message,
             user_message=user_message,
             few_shot_examples=self.config.few_shot_examples,
@@ -210,6 +214,15 @@ class AgentNode(SingleLLMCallNode):
                     thinking=thinking_params,
                     tools=self.tools_schemas,
                 )
+                print(f"[DEBUG] Iteration {num_iterations + 1} response: {message_response}")
+                # add the response to the messages
+                messages.append(
+                    {
+                        "role": message_response.role,
+                        "content": str(message_response.content),
+                        "tool_calls": message_response.tool_calls,
+                    }
+                )
                 num_iterations += 1
                 # Check if the response is a tool call
                 if message_response.tool_calls and len(message_response.tool_calls) > 0:
@@ -218,14 +231,22 @@ class AgentNode(SingleLLMCallNode):
                     )
 
                     messages.extend(cast(List[Dict[str, str]], tool_responses))
+                    pprint.pprint(messages)
                     # Add the tool responses to the messages and call the LLM for the next turn
                     continue
-
-                message = json.loads(str(message_response.content))
-                if message.get("role") == "assistant":
+                elif (
+                    message_response.tool_calls is None
+                    and message_response.role == "assistant"
+                    and message_response.content is not None
+                ):
+                    # If the response is not a tool call, break the loop
+                    # and process the assistant message
                     model_response = str(message_response.content)
                     break
-                    # Extract the assistant message
+                else:
+                    # If the response is not a tool call and not an assistant message,
+                    # continue to the next iteration
+                    continue
         except Exception as e:
             error_str = str(e)
 
@@ -313,8 +334,18 @@ if __name__ == "__main__":
         tool_schema = WorkflowNodeSchema(
             id="calculator",
             title="Calculator",
-            node_type="CalculatorNode",
-            config={"operations": ["add", "subtract", "multiply", "divide"]},
+            node_type="SingleLLMCallNode",
+            config={
+                "output_json_schema": '{"type": "object", \
+"properties": {"result": {"type": "number"} }, "required": ["result"] }',
+                "llm_info": {
+                    "model": "gpt-4o",
+                    "temperature": 0.7,
+                    "max_tokens": 1000,
+                },
+                "system_message": "You are a calculator.",
+                "user_message": "{{ expression }}",
+            },
         )
 
         # Create agent node
