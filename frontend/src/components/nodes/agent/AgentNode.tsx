@@ -1,3 +1,4 @@
+import CollapsibleNodePanel from '@/components/nodes/CollapsibleNodePanel'
 import { addToolToAgent, setSelectedNode } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
 import { Button } from '@heroui/react'
@@ -116,6 +117,19 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                     </div>
                 </div>
             </BaseNode>
+            {/* Node Panel for Adding Tools */}
+            {showNodePanel && (
+                <div className="absolute bottom-full left-0 mb-2">
+                    <CollapsibleNodePanel
+                        handleAddNode={handleAddNodeToAgent}
+                        isCustomAdd={true}
+                        controlledExpanded={showNodePanel}
+                        onExpandedChange={(expanded) => {
+                            setShowNodePanel(expanded)
+                        }}
+                    />
+                </div>
+            )}
         </div>
     )
 }
