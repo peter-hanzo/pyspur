@@ -294,7 +294,7 @@ const flowSlice = createSlice({
             if (node) {
                 // Generate a new ID following the same pattern as other nodes
                 const existingIds = state.nodes.map((node) => node.id)
-                const sanitizedType = nodeTypeName.replace(/\s+/g, '_')
+                const sanitizedType = nodeTypeName.replace(/\s+/g, '_').replace(/Node/g, 'Tool')
                 let counter = 1
                 let newId = `${sanitizedType}_${counter}`
                 while (existingIds.includes(newId)) {
