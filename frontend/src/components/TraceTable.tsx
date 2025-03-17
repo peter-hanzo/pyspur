@@ -6,6 +6,8 @@ import {
     Chip,
     DatePicker,
     Input,
+    Select,
+    SelectItem,
     Spinner,
     Table,
     TableBody,
@@ -185,6 +187,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     const [endDate, setEndDate] = useState<DateValue>(null)
     const [startTime, setStartTime] = useState<string>('00:00')
     const [endTime, setEndTime] = useState<string>('23:59')
+    const [numRuns, setNumRuns] = useState<string>('100')
 
     const createUTCDate = (date: Date, time: string): Date => {
         const [hours, minutes] = time.split(':').map(Number)
@@ -205,7 +208,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                 end = createUTCDate(new Date(endDate.toString()), endTime)
             }
 
-            const workflowRuns = await getWorkflowRuns(workflowId, 1, 100, start, end)
+            const workflowRuns = await getWorkflowRuns(workflowId, 1, parseInt(numRuns), start, end)
             // Sort runs by start time in descending order (newest first)
             const sortedRuns = workflowRuns.sort((a, b) => {
                 const dateA = a.start_time ? new Date(a.start_time).getTime() : 0
@@ -233,7 +236,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         }, 5000) // Poll every 5 seconds if there are active runs
 
         return () => clearInterval(intervalId)
-    }, [workflowId, startDate, endDate, startTime, endTime])
+    }, [workflowId, startDate, endDate, startTime, endTime, numRuns])
 
     const handleApplyFilter = () => {
         fetchRuns()
@@ -244,6 +247,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         setEndDate(null)
         setStartTime('00:00')
         setEndTime('23:59')
+        setNumRuns('100')
     }
 
     const handleRunClick = (runId: string) => {
@@ -294,6 +298,23 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                         onChange={(e) => setEndTime(e.target.value)}
                         className="min-w-[150px]"
                     />
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm text-default-600">Number of Runs</label>
+                    <Select value={numRuns} onChange={(e) => setNumRuns(e.target.value)} className="min-w-[120px]">
+                        <SelectItem key="10" value="10">
+                            10 runs
+                        </SelectItem>
+                        <SelectItem key="20" value="20">
+                            20 runs
+                        </SelectItem>
+                        <SelectItem key="100" value="100">
+                            100 runs
+                        </SelectItem>
+                        <SelectItem key="200" value="200">
+                            200 runs
+                        </SelectItem>
+                    </Select>
                 </div>
                 <div className="flex gap-2">
                     <Button color="primary" onClick={handleApplyFilter}>
