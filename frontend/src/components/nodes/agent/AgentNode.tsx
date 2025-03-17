@@ -1,9 +1,9 @@
-import { addToolToAgent, setSelectedNode, updateNodeConfigOnly } from '@/store/flowSlice'
+import { addToolToAgent, setSelectedNode } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
 import { Button, Card } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import isEqual from 'lodash/isEqual'
-import React, { memo, useEffect, useMemo, useState } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
 import CollapsibleNodePanel from '../CollapsibleNodePanel'
@@ -40,8 +40,8 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
 
     // Get tool nodes (nodes that are children of this agent node)
     const toolNodes = useMemo(() => {
-        return nodes.filter((n) => n.parentId === id)
-    }, [nodes, id])
+        return nodeConfig?.tools || []
+    }, [nodeConfig])
 
     // Handlers for tool management
     const handleAddTool = () => {
@@ -73,26 +73,6 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
             </div>
         )
     }
-
-    // Prevent tool nodes from being connected
-    useEffect(() => {
-        const toolNodeIds = new Set(toolNodes.map((n) => n.id))
-
-        // Update each tool node's config to prevent connections
-        toolNodes.forEach((toolNode) => {
-            if (toolNode.data?.isConnectable !== false) {
-                dispatch(
-                    updateNodeConfigOnly({
-                        id: toolNode.id,
-                        data: {
-                            ...toolNode.data,
-                            isConnectable: false,
-                        },
-                    })
-                )
-            }
-        })
-    }, [toolNodes, dispatch])
 
     return (
         <div className="w-full h-full relative">
@@ -126,7 +106,7 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                                 >
                                     <div className="flex items-center">
                                         {toolNode.data?.logo ? (
-                                            <img src={toolNode.data.logo} alt="Tool Logo" className="w-6 h-6 mr-2" />
+                                            <img src={toolNode.data?.logo} alt="Tool Logo" className="w-6 h-6 mr-2" />
                                         ) : (
                                             <div
                                                 className="w-6 h-6 rounded-full mr-2 flex items-center justify-center text-xs text-white"
