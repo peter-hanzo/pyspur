@@ -4,9 +4,14 @@ from pydantic import BaseModel, Field
 
 
 class SlackAgentCreate(BaseModel):
-    """Request schema for creating a Slack agent."""
+    """Request schema for creating a Slack agent.
+    Note: slack_team_id and slack_team_name will be set automatically based on the
+    currently configured Slack token if not provided.
+    """
 
     name: str
+    slack_team_id: Optional[str] = None  # Will be auto-filled from the Slack API if not provided
+    slack_team_name: Optional[str] = None  # Will be auto-filled from the Slack API if not provided
     slack_channel_id: Optional[str] = None
     slack_channel_name: Optional[str] = None
     workflow_id: Optional[str] = None

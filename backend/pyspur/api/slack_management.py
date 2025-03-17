@@ -251,11 +251,54 @@ async def get_agents(db: Session = Depends(get_db)):
 @router.post("/agents", response_model=SlackAgentResponse)
 async def create_agent(agent: SlackAgentCreate, db: Session = Depends(get_db)):
     """Create a new Slack agent"""
-    db_agent = SlackAgentModel(**agent.model_dump())
-    db.add(db_agent)
-    db.commit()
-    db.refresh(db_agent)
-    return db_agent
+    # Get the bot token from environment
+    bot_token = os.getenv("SLACK_BOT_TOKEN")
+    if not bot_token:
+        raise HTTPException(status_code=500, detail="SLACK_BOT_TOKEN is not configured")
+
+    try:
+        # Get team info from Slack API if not provided
+        if not agent.slack_team_id or not agent.slack_team_name:
+            response = requests.get(
+                "https://slack.com/api/team.info",
+                headers={"Authorization": f"Bearer {bot_token}"},
+                timeout=REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            team_data = response.json()
+
+            if not team_data.get("ok", False):
+                raise HTTPException(
+                    status_code=400, detail=f"Slack error: {team_data.get('error')}"
+                )
+
+            # Extract team information
+            team_id = team_data.get("team", {}).get("id")
+            team_name = team_data.get("team", {}).get("name")
+
+            if not team_id or not team_name:
+                raise HTTPException(
+                    status_code=400, detail="Team information not found in API response"
+                )
+
+            # Update the agent data with team info
+            agent_dict = agent.model_dump()
+            agent_dict["slack_team_id"] = team_id
+            agent_dict["slack_team_name"] = team_name
+            db_agent = SlackAgentModel(**agent_dict)
+        else:
+            # Use the provided team info
+            db_agent = SlackAgentModel(**agent.model_dump())
+
+        # Add the new agent to the database
+        db.add(db_agent)
+        db.commit()
+        db.refresh(db_agent)
+        return db_agent
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error communicating with Slack: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating agent: {str(e)}")
 
 
 @router.get("/agents/{agent_id}", response_model=SlackAgentResponse)

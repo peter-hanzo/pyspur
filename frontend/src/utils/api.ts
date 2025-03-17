@@ -1314,26 +1314,118 @@ export const fetchSlackSetupInfo = async (): Promise<{
     }
 }
 
-export const getSlackAgents = async (): Promise<SlackAgent[]> => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/slack/agents`)
-        return response.data
-    } catch (error) {
-        console.error('Error fetching Slack agents:', error)
-        throw error
+export const getSlackAgents = async (forceRefresh = false): Promise<SlackAgent[]> => {
+    const maxRetries = 2;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // Add cache-busting parameter to ensure we get fresh data
+            const cacheBuster = forceRefresh || attempt > 1 ? `?_=${Date.now()}` : '';
+            console.log(`Fetching Slack agents (attempt ${attempt}/${maxRetries})${forceRefresh ? ' with force refresh' : ''}`);
+
+            const response = await axios.get(`${API_BASE_URL}/slack/agents${cacheBuster}`);
+
+            if (!response.data) {
+                throw new Error('No data returned from server');
+            }
+
+            // Process agents to ensure proper spur_type values
+            const processedAgents = response.data.map(agent => {
+                // Log the original spur_type for debugging
+                console.log(`Agent ${agent.id} (${agent.name}) has spur_type:`, agent.spur_type);
+
+                // Ensure spur_type is a valid value
+                if (!agent.spur_type ||
+                    (agent.spur_type !== SpurType.AGENT &&
+                     agent.spur_type !== SpurType.CHATBOT &&
+                     agent.spur_type !== SpurType.WORKFLOW)) {
+                    console.warn(`Agent ${agent.id} has invalid spur_type:`, agent.spur_type);
+                    // Set a default spur_type
+                    return {
+                        ...agent,
+                        spur_type: SpurType.AGENT
+                    };
+                }
+
+                return agent;
+            });
+
+            console.log(`Retrieved ${processedAgents.length} Slack agents`);
+            return processedAgents;
+        } catch (error) {
+            console.error(`Error fetching Slack agents (attempt ${attempt}/${maxRetries}):`, error);
+            lastError = error;
+
+            if (attempt < maxRetries) {
+                // Wait before retrying with increasing delay
+                await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+            }
+        }
     }
+
+    // Return empty array instead of throwing to prevent UI crashes
+    console.warn('Returning empty array after failed Slack agents fetch attempts');
+    return [];
 }
 
 export const associateWorkflow = async (agentId: number, workflowId: string): Promise<SlackAgent> => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/slack/agents/${agentId}/workflow`, {
-            workflow_id: workflowId
-        })
-        return response.data
-    } catch (error) {
-        console.error('Error associating workflow with agent:', error)
-        throw error
+    const maxRetries = 3;
+    const waitBetweenRetries = 500; // ms
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Associating workflow (attempt ${attempt}/${maxRetries}):`, { agentId, workflowId, workflowIdType: typeof workflowId });
+
+            // Special handling for empty workflowId (dissociation)
+            if (!workflowId || workflowId === "null" || workflowId === "undefined") {
+                console.log('Workflow ID is empty, this will remove the workflow association');
+                workflowId = null; // Ensure null is sent if workflowId is falsy
+            }
+
+            // Send the API request
+            const response = await axios.put(`${API_BASE_URL}/slack/agents/${agentId}/workflow`, {
+                workflow_id: workflowId
+            });
+
+            console.log('Workflow association response:', response.data);
+
+            // Convert both IDs to strings for consistent comparison
+            const expectedIdStr = workflowId ? String(workflowId) : "";
+            const receivedIdStr = response.data.workflow_id ? String(response.data.workflow_id) : "";
+
+            if (expectedIdStr && receivedIdStr && expectedIdStr !== receivedIdStr) {
+                console.warn('Workflow association response mismatch:', {
+                    expected: expectedIdStr,
+                    received: receivedIdStr
+                });
+
+                // If it's the last attempt and we still have a mismatch, throw an error
+                if (attempt === maxRetries) {
+                    throw new Error('Server returned a different workflow ID than requested');
+                }
+
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, waitBetweenRetries));
+                continue;
+            }
+
+            console.log('Workflow association successful:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error(`Error associating workflow (attempt ${attempt}/${maxRetries}):`, error);
+            lastError = error;
+
+            if (attempt < maxRetries) {
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, waitBetweenRetries));
+            }
+        }
     }
+
+    // If we've exhausted all retries, throw the last error
+    throw lastError || new Error('Failed to associate workflow after multiple attempts');
 }
 
 export const updateTriggerConfig = async (
@@ -1494,12 +1586,20 @@ export const associateSlackWorkflow = async (
     onAlert?: AlertFunction
 ): Promise<void> => {
     try {
-        const updatedAgent = await associateWorkflow(agentId, workflowId)
+        console.log(`associateSlackWorkflow called with agentId=${agentId}, workflowId=${workflowId} (${typeof workflowId})`);
 
-        // Update local state using the provided callback
-        updateAgentsCallback(agents =>
-            agents.map(agent => agent.id === agentId ? updatedAgent : agent)
-        )
+        const updatedAgent = await associateWorkflow(agentId, workflowId)
+        console.log('associateSlackWorkflow received updated agent:', updatedAgent);
+
+        // Update local state using the provided callback with the new agent data
+        updateAgentsCallback(agents => {
+            console.log('Updating agents in state:', {
+                before: agents.find(a => a.id === agentId)?.workflow_id,
+                after: updatedAgent.workflow_id
+            });
+
+            return agents.map(agent => agent.id === agentId ? updatedAgent : agent);
+        });
 
         onAlert?.('Workflow associated with Slack agent successfully!', 'success')
     } catch (error) {
@@ -1600,6 +1700,39 @@ export const createDefaultSlackAgent = async (): Promise<SlackAgent | null> => {
         return response.data
     } catch (error) {
         console.error('Error creating default Slack agent:', error)
+        return null
+    }
+}
+
+/**
+ * Create a custom Slack agent with the specified name and configuration
+ */
+export const createSlackAgent = async (
+    name: string,
+    config: {
+        trigger_on_mention?: boolean;
+        trigger_on_direct_message?: boolean;
+        trigger_on_channel_message?: boolean;
+        trigger_keywords?: string[];
+        trigger_enabled?: boolean;
+        workflow_id?: string;
+        spur_type?: SpurType;
+    }
+): Promise<SlackAgent | null> => {
+    try {
+        console.log('Creating custom Slack agent:', name)
+
+        // Get the team information from the existing configuration
+        const response = await axios.post(`${API_BASE_URL}/slack/agents`, {
+            name,
+            spur_type: config.spur_type || SpurType.AGENT,
+            ...config
+        })
+
+        console.log('Created custom agent:', response.data)
+        return response.data
+    } catch (error) {
+        console.error('Error creating custom Slack agent:', error)
         return null
     }
 }
