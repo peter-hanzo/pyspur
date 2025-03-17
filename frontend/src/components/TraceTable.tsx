@@ -97,9 +97,23 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
 
     const formatDuration = (startTime?: string, endTime?: string) => {
         if (!startTime) return '-'
+
         const start = new Date(startTime)
         const end = endTime ? new Date(endTime) : new Date()
-        return formatDistanceToNow(start, { addSuffix: false })
+
+        // Calculate duration in seconds
+        const durationInSeconds = (end.getTime() - start.getTime()) / 1000
+
+        // Format the duration in a more readable way
+        if (durationInSeconds < 60) {
+            return `${Math.round(durationInSeconds)}s`
+        } else if (durationInSeconds < 3600) {
+            return `${Math.floor(durationInSeconds / 60)}m ${Math.round(durationInSeconds % 60)}s`
+        } else {
+            const hours = Math.floor(durationInSeconds / 3600)
+            const minutes = Math.floor((durationInSeconds % 3600) / 60)
+            return `${hours}h ${minutes}m`
+        }
     }
 
     const formatInputs = (inputs?: Record<string, Record<string, any>>) => {
