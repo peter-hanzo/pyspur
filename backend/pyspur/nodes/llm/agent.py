@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from ...schemas.workflow_schemas import WorkflowNodeSchema
 from ...utils.pydantic_utils import get_nested_field
-from ..base import BaseNode, BaseNodeInput, BaseNodeOutput
+from ..base import BaseNode, BaseNodeInput, BaseNodeOutput, VisualTag
 from ..factory import NodeFactory
 from ._utils import create_messages, generate_text
 from .single_llm_call import (
@@ -61,6 +61,7 @@ class AgentNode(SingleLLMCallNode):
     config_model = AgentNodeConfig
     input_model = AgentNodeInput
     output_model = AgentNodeOutput
+    visual_tag = VisualTag(acronym="AGNT", color="#fb8500")
 
     def setup(self) -> None:
         super().setup()
