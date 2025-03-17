@@ -111,7 +111,7 @@ class AgentNode(SingleLLMCallNode):
         assert tool_args is not None, "Tool arguments cannot be None"
 
         # Get the tool node from the dictionary
-        tool_node = self.tools_dict.get(tool_name)
+        tool_node = self.tools_dict.get(tool_name.lower())
         if not tool_node:
             raise ValueError(f"Tool {tool_name} not found in tools dictionary")
 
