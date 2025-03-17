@@ -26,14 +26,19 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "SingleLLMCallNode",
         },
         {
-            "node_type_name": "BestOfNNode",
-            "module": ".nodes.llm.generative.best_of_n",
-            "class_name": "BestOfNNode",
+            "node_type_name": "Agent",
+            "module": ".nodes.llm.agent",
+            "class_name": "AgentNode",
         },
         {
             "node_type_name": "RetrieverNode",
             "module": ".nodes.llm.retriever",
             "class_name": "RetrieverNode",
+        },
+        {
+            "node_type_name": "BestOfNNode",
+            "module": ".nodes.llm.generative.best_of_n",
+            "class_name": "BestOfNNode",
         },
     ],
     "Code Execution": [
