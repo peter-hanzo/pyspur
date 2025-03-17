@@ -1,12 +1,12 @@
 import { addToolToAgent, setSelectedNode } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
-import { Button, Card } from '@heroui/react'
+import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import { NodeResizer } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
-import CollapsibleNodePanel from '../CollapsibleNodePanel'
 import styles from '../DynamicNode.module.css'
 import { OutputHandleRow } from '../shared/OutputHandleRow'
 
@@ -76,6 +76,14 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
 
     return (
         <div className="w-full h-full relative">
+            <NodeResizer
+                nodeId={id}
+                isVisible={true}
+                minWidth={Number(baseNodeStyle.minWidth)}
+                minHeight={Number(baseNodeStyle.minHeight)}
+                lineStyle={{ borderColor: 'rgb(148 163 184)', display: 'none' }}
+                handleStyle={{ backgroundColor: 'rgb(148 163 184)', width: '1rem', height: '1rem', borderRadius: 2 }}
+            />
             <BaseNode
                 id={id}
                 data={node?.data}
@@ -87,40 +95,10 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                 isResizable={true}
                 handleOpenModal={() => {}}
                 renderOutputHandles={renderOutputHandles}
-                style={baseNodeStyle}
             >
                 <div className={`h-full ${styles.nodeWrapper}`}>
                     {/* Tool Management Section */}
                     <div className="mt-4 flex flex-col h-full">
-                        <div>
-                            <h3 className="text-sm font-medium mb-4">Tools</h3>
-                        </div>
-
-                        {/* Tool Cards */}
-                        <div className="space-y-2 flex-grow overflow-y-auto">
-                            {toolNodes.map((toolNode) => (
-                                <Card
-                                    key={toolNode.id}
-                                    className="p-2 cursor-pointer hover:bg-default-100"
-                                    onClick={() => handleToolClick(toolNode.id)}
-                                >
-                                    <div className="flex items-center">
-                                        {toolNode.data?.logo ? (
-                                            <img src={toolNode.data?.logo} alt="Tool Logo" className="w-6 h-6 mr-2" />
-                                        ) : (
-                                            <div
-                                                className="w-6 h-6 rounded-full mr-2 flex items-center justify-center text-xs text-white"
-                                                style={{ backgroundColor: toolNode.data?.color || '#ccc' }}
-                                            >
-                                                {toolNode.data?.acronym || 'T'}
-                                            </div>
-                                        )}
-                                        <span className="text-sm">{toolNode.data?.title || toolNode.id}</span>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-
                         {/* Add Tool Button */}
                         <Button
                             size="lg"
@@ -138,20 +116,6 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                     </div>
                 </div>
             </BaseNode>
-
-            {/* Node Panel for Adding Tools */}
-            {showNodePanel && (
-                <div className="absolute bottom-full left-0 mb-2">
-                    <CollapsibleNodePanel
-                        handleAddNode={handleAddNodeToAgent}
-                        isCustomAdd={true}
-                        controlledExpanded={showNodePanel}
-                        onExpandedChange={(expanded) => {
-                            setShowNodePanel(expanded)
-                        }}
-                    />
-                </div>
-            )}
         </div>
     )
 }
