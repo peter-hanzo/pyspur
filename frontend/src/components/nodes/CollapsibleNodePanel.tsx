@@ -24,9 +24,16 @@ interface GroupedNodes {
 interface CollapsibleNodePanelProps {
     handleAddNode?: (nodeName: string) => void
     isCustomAdd?: boolean
+    controlledExpanded?: boolean
+    onExpandedChange?: (expanded: boolean) => void
 }
 
-const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNode, isCustomAdd = false }) => {
+const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({
+    handleAddNode,
+    isCustomAdd = false,
+    controlledExpanded,
+    onExpandedChange,
+}) => {
     const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded)
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
@@ -39,34 +46,45 @@ const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNo
     const panelRef = useRef<HTMLDivElement>(null)
     const [selectedNodeIndex, setSelectedNodeIndex] = useState<number>(-1)
 
+    // Use controlled expansion state if provided, otherwise use Redux state
+    const effectiveIsExpanded = typeof controlledExpanded !== 'undefined' ? controlledExpanded : isExpanded
+
     useHotkeys(
         'mod+k',
         (event) => {
             event.preventDefault()
-            if (isExpanded && document.activeElement === searchInputRef.current) {
+            if (effectiveIsExpanded && document.activeElement === searchInputRef.current) {
                 searchInputRef.current?.blur()
             }
-            dispatch(setNodePanelExpanded(!isExpanded))
+            if (onExpandedChange) {
+                onExpandedChange(!effectiveIsExpanded)
+            } else {
+                dispatch(setNodePanelExpanded(!isExpanded))
+            }
         },
         { enableOnFormTags: true },
-        [isExpanded]
+        [effectiveIsExpanded, onExpandedChange]
     )
 
     useHotkeys(
         'esc',
         () => {
-            if (isExpanded && panelRef.current?.contains(document.activeElement)) {
-                dispatch(setNodePanelExpanded(false))
+            if (effectiveIsExpanded && panelRef.current?.contains(document.activeElement)) {
+                if (onExpandedChange) {
+                    onExpandedChange(false)
+                } else {
+                    dispatch(setNodePanelExpanded(false))
+                }
             }
         },
         { enableOnFormTags: true },
-        [isExpanded]
+        [effectiveIsExpanded, onExpandedChange]
     )
 
     // Handle arrow key navigation within the panel
     useEffect(() => {
         const handlePanelKeyDown = (event: KeyboardEvent) => {
-            if (!isExpanded || !panelRef.current?.contains(document.activeElement)) {
+            if (!effectiveIsExpanded || !panelRef.current?.contains(document.activeElement)) {
                 return
             }
 
@@ -92,32 +110,36 @@ const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNo
             }
         }
 
-        if (isExpanded) {
+        if (effectiveIsExpanded) {
             window.addEventListener('keydown', handlePanelKeyDown)
         }
 
         return () => {
             window.removeEventListener('keydown', handlePanelKeyDown)
         }
-    }, [isExpanded, selectedNodeIndex])
+    }, [effectiveIsExpanded, selectedNodeIndex])
 
     // Reset selected index when panel is closed
     useEffect(() => {
-        if (!isExpanded) {
+        if (!effectiveIsExpanded) {
             setSelectedNodeIndex(-1)
         }
-    }, [isExpanded])
+    }, [effectiveIsExpanded])
 
     useEffect(() => {
-        if (isExpanded && searchInputRef.current) {
+        if (effectiveIsExpanded && searchInputRef.current) {
             searchInputRef.current.focus()
         }
-    }, [isExpanded])
+    }, [effectiveIsExpanded])
 
     const defaultHandleAddNode = (nodeName: string): void => {
         if (reactFlowInstance) {
             createNodeAtCenter(nodes, nodeTypes, nodeName, reactFlowInstance, dispatch)
-            dispatch(setNodePanelExpanded(false))
+            if (onExpandedChange) {
+                onExpandedChange(false)
+            } else {
+                dispatch(setNodePanelExpanded(false))
+            }
         }
     }
 
@@ -127,7 +149,11 @@ const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNo
         } else {
             defaultHandleAddNode(nodeName)
         }
-        dispatch(setNodePanelExpanded(false))
+        if (onExpandedChange) {
+            onExpandedChange(false)
+        } else {
+            dispatch(setNodePanelExpanded(false))
+        }
     }
 
     useEffect(() => {
@@ -155,7 +181,11 @@ const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNo
     }, [nodeTypes, searchTerm])
 
     const handleToggleExpand = () => {
-        dispatch(setNodePanelExpanded(!isExpanded))
+        if (onExpandedChange) {
+            onExpandedChange(!effectiveIsExpanded)
+        } else {
+            dispatch(setNodePanelExpanded(!isExpanded))
+        }
     }
 
     const groupNodesBySubcategory = (nodes: FlowWorkflowNodeType[]): GroupedNodes => {
@@ -180,8 +210,8 @@ const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNo
         <div
             ref={panelRef}
             data-node-panel
-            data-expanded={isExpanded}
-            className={`${!isExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}
+            data-expanded={effectiveIsExpanded}
+            className={`${!effectiveIsExpanded ? 'w-auto h-auto' : 'w-64'} shadow-sm rounded-xl border border-solid border-default-200 bg-background transition-width duration-300 transition-height duration-300`}
         >
             <Tooltip
                 content={
@@ -197,13 +227,13 @@ const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNo
             >
                 <Button isIconOnly size="md" className="bg-background" onClick={handleToggleExpand}>
                     <Icon
-                        icon={isExpanded ? 'solar:minus-square-linear' : 'solar:widget-add-linear'}
+                        icon={effectiveIsExpanded ? 'solar:minus-square-linear' : 'solar:widget-add-linear'}
                         width={'80%'}
                         className="text-default-500"
                     />
                 </Button>
             </Tooltip>
-            {isExpanded && (
+            {effectiveIsExpanded && (
                 <>
                     <Input
                         ref={searchInputRef}

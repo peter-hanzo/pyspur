@@ -46,7 +46,6 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
     // Handlers for tool management
     const handleAddTool = () => {
         setShowNodePanel(true)
-        // dispatch(setNodePanelExpanded(true))
     }
 
     const handleToolClick = (toolId: string) => {
@@ -163,7 +162,14 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
             {/* Node Panel for Adding Tools */}
             {showNodePanel && (
                 <div className="absolute bottom-full left-0 mb-2">
-                    <CollapsibleNodePanel handleAddNode={handleAddNodeToAgent} isCustomAdd={true} />
+                    <CollapsibleNodePanel
+                        handleAddNode={handleAddNodeToAgent}
+                        isCustomAdd={true}
+                        controlledExpanded={showNodePanel}
+                        onExpandedChange={(expanded) => {
+                            setShowNodePanel(expanded)
+                        }}
+                    />
                 </div>
             )}
         </div>
