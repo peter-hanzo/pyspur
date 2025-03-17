@@ -532,3 +532,59 @@ async def slack_events(
     background_tasks.add_task(trigger_workflow, trigger_request, background_tasks, db)
 
     return {"ok": True}
+
+
+@router.post("/create-default-agent", response_model=SlackAgentResponse)
+async def create_default_agent(db: Session = Depends(get_db)):
+    """Create a default Slack agent using the stored bot token"""
+    # Get the bot token from environment
+    bot_token = os.getenv("SLACK_BOT_TOKEN")
+    if not bot_token:
+        raise HTTPException(status_code=500, detail="SLACK_BOT_TOKEN is not configured")
+
+    try:
+        # Get team info from Slack API
+        response = requests.get(
+            "https://slack.com/api/team.info",
+            headers={"Authorization": f"Bearer {bot_token}"},
+            timeout=REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        team_data = response.json()
+
+        if not team_data.get("ok", False):
+            raise HTTPException(status_code=400, detail=f"Slack error: {team_data.get('error')}")
+
+        # Extract team information
+        team_id = team_data.get("team", {}).get("id")
+        team_name = team_data.get("team", {}).get("name")
+
+        if not team_id or not team_name:
+            raise HTTPException(
+                status_code=400, detail="Team information not found in API response"
+            )
+
+        # Check if an agent for this team already exists
+        existing_agent = (
+            db.query(SlackAgentModel).filter(SlackAgentModel.slack_team_id == team_id).first()
+        )
+
+        if existing_agent:
+            # Return the existing agent
+            return existing_agent
+
+        # Create a default agent
+        agent = SlackAgentModel(
+            name=f"{team_name} Agent",
+            slack_team_id=team_id,
+            slack_team_name=team_name,
+        )
+        db.add(agent)
+        db.commit()
+        db.refresh(agent)
+        return agent
+
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error communicating with Slack: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating default agent: {str(e)}")

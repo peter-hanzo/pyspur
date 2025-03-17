@@ -74,13 +74,14 @@ import {
     handleConnectToSlack,
     handleShowSlackSetup,
     getPauseHistory,
+    createDefaultSlackAgent,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
 import HumanInputModal from './modals/HumanInputModal'
 import WelcomeModal from './modals/WelcomeModal'
 import SettingsModal from './modals/SettingsModal'
-import { SlackConfigErrorModal, SlackSetupGuide } from './slack'
+import { SlackConfigErrorModal, SlackSetupGuide, WorkflowAssociationModal } from './slack'
 
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
@@ -178,6 +179,8 @@ const Dashboard: React.FC = () => {
     const [missingSlackKeys, setMissingSlackKeys] = useState<string[]>([])
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
     const [settingsActiveTab, setSettingsActiveTab] = useState<'appearance' | 'api-keys'>('api-keys')
+    const [selectedSlackAgent, setSelectedSlackAgent] = useState<SlackAgent | null>(null)
+    const [showWorkflowAssociationModal, setShowWorkflowAssociationModal] = useState(false)
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -632,16 +635,128 @@ const Dashboard: React.FC = () => {
     }
 
     const callHandleConnectToSlack = async () => {
-        await handleConnectToSlack(
-            onAlert,
-            setMissingSlackKeys,
-            setShowConfigErrorModal
-        )
+        try {
+            const agents = await handleConnectToSlack(onAlert, setMissingSlackKeys, setShowConfigErrorModal)
+
+            if (agents && agents.length === 0) {
+                console.log('No agents found after connecting to Slack, creating a default agent...')
+                const newAgent = await createDefaultSlackAgent()
+
+                if (newAgent) {
+                    console.log('Successfully created default agent:', newAgent)
+                    // Update agents in state with the new agent
+                    setSlackAgents([newAgent])
+                    setSelectedSlackAgent(newAgent)
+                } else {
+                    onAlert('Connected to Slack, but failed to create an agent.', 'warning')
+                    return
+                }
+            } else if (agents && agents.length > 0) {
+                // Update the agents in state
+                setSlackAgents(agents)
+                setSelectedSlackAgent(agents[0])
+            } else {
+                // No agents and couldn't create one
+                return
+            }
+
+            // Force the modal to show
+            console.log('Forcing workflow association modal to show')
+            setShowWorkflowAssociationModal(true)
+
+            // Also try with a timeout as a fallback
+            setTimeout(() => {
+                if (!showWorkflowAssociationModal) {
+                    console.log('Showing workflow association modal via timeout')
+                    setShowWorkflowAssociationModal(true)
+                }
+            }, 1000)
+        } catch (error) {
+            console.error('Error connecting to Slack:', error)
+        }
     }
 
     const callHandleShowSlackSetup = async () => {
-        await handleShowSlackSetup(setShowSlackSetupGuide)
+        try {
+            const info = await fetchSlackSetupInfo()
+            setSlackSetupInfo(info)
+            setShowSlackSetupGuide(true)
+        } catch (error) {
+            console.error('Error preparing Slack setup:', error)
+            onAlert('Failed to prepare Slack setup. Please try again.', 'danger')
+        }
     }
+
+    const handleSlackTokenConfigured = async () => {
+        // Refresh the Slack agents after token is configured
+        try {
+            let agents = await getSlackAgents()
+
+            // If no agents exist, create a default one
+            if (agents.length === 0) {
+                console.log('No agents found after token configuration, creating a default agent...')
+                const newAgent = await createDefaultSlackAgent()
+
+                if (newAgent) {
+                    console.log('Successfully created default agent:', newAgent)
+                    // Refresh the agents list
+                    agents = await getSlackAgents()
+                } else {
+                    onAlert('Slack token configured, but failed to create an agent.', 'warning')
+                }
+            }
+
+            setSlackAgents(agents)
+
+            if (agents && agents.length > 0) {
+                // Show success message
+                onAlert('Slack token configured successfully!', 'success')
+
+                // Show the workflow association modal with the first agent
+                setSelectedSlackAgent(agents[0])
+
+                // Force the modal to show
+                console.log('Forcing workflow association modal to show after token config')
+                setShowWorkflowAssociationModal(true)
+
+                // Also try with a timeout as a fallback
+                setTimeout(() => {
+                    if (!showWorkflowAssociationModal) {
+                        console.log('Showing workflow association modal via timeout after token config')
+                        setShowWorkflowAssociationModal(true)
+                    }
+                }, 1000)
+            } else {
+                onAlert('Slack token configured successfully!', 'success')
+            }
+        } catch (error) {
+            console.error('Error fetching Slack agents:', error)
+            onAlert('Slack token configured, but there was an error setting up Slack integration.', 'warning')
+        }
+    }
+
+    const handleAssociateWorkflow = async (agentId: number, workflowId: string) => {
+        try {
+            await associateSlackWorkflow(agentId, workflowId, setSlackAgents, onAlert)
+
+            // Scroll to the Slack section to show the updated agent
+            const slackSection = document.getElementById('slack-section')
+            if (slackSection) {
+                slackSection.scrollIntoView({ behavior: 'smooth' })
+            }
+        } catch (error) {
+            console.error('Error associating workflow:', error)
+            throw error
+        }
+    }
+
+    // Debug log when workflow association modal state changes
+    useEffect(() => {
+        console.log('Workflow association modal state:', {
+            showWorkflowAssociationModal,
+            selectedSlackAgent
+        })
+    }, [showWorkflowAssociationModal, selectedSlackAgent])
 
     return (
         <div {...getRootProps()} className="relative flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
@@ -983,6 +1098,7 @@ const Dashboard: React.FC = () => {
                     <AccordionItem
                         key="slack-agents"
                         aria-label="Slack Agents"
+                        id="slack-section"
                         title={
                             <div className="flex items-center gap-2">
                                 <h3 className="text-xl font-semibold">Slack Agents</h3>
@@ -1093,12 +1209,7 @@ const Dashboard: React.FC = () => {
                                                         size="sm"
                                                         placeholder="Select a workflow"
                                                         value={agent.workflow_id}
-                                                        onChange={(e) => associateSlackWorkflow(
-                                                            agent.id,
-                                                            e.target.value,
-                                                            setSlackAgents,
-                                                            onAlert
-                                                        )}
+                                                        onChange={(e) => handleAssociateWorkflow(agent.id, e.target.value)}
                                                     >
                                                         {workflows
                                                             .filter(workflow => agent.spur_type ?
@@ -1289,6 +1400,7 @@ const Dashboard: React.FC = () => {
                     onConnectClick={callHandleConnectToSlack}
                     setupInfo={slackSetupInfo}
                     onGoToSettings={handleGoToSettings}
+                    onTokenConfigured={handleSlackTokenConfigured}
                 />
             )}
             {/* Slack Configuration Error Modal */}
@@ -1297,6 +1409,18 @@ const Dashboard: React.FC = () => {
                 onClose={() => setShowConfigErrorModal(false)}
                 missingKeys={missingSlackKeys}
                 onGoToSettings={handleGoToSettings}
+            />
+
+            {/* Workflow Association Modal */}
+            <WorkflowAssociationModal
+                isOpen={showWorkflowAssociationModal}
+                onClose={() => {
+                    console.log('Closing workflow association modal')
+                    setShowWorkflowAssociationModal(false)
+                }}
+                agent={selectedSlackAgent}
+                onAssociate={handleAssociateWorkflow}
+                onAlert={onAlert}
             />
 
             {/* Settings Modal */}

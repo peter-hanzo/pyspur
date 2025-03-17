@@ -32,7 +32,7 @@ const SlackConfigErrorModal: React.FC<SlackConfigErrorModalProps> = ({
                     </div>
 
                     <p className="mb-4">
-                        Slack integration requires API credentials to be configured. Please set up the following API keys in Settings:
+                        Slack integration requires a Bot Token to be configured. Please set up the following in Settings:
                     </p>
 
                     <div className="bg-default-50 p-3 rounded-lg mb-4">
@@ -44,7 +44,7 @@ const SlackConfigErrorModal: React.FC<SlackConfigErrorModalProps> = ({
                     </div>
 
                     <p className="text-sm text-default-500">
-                        You&apos;ll need to create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">api.slack.com</a> and copy the credentials to PySpur.
+                        You&apos;ll need to create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">api.slack.com</a> and copy your Bot Token to PySpur.
                     </p>
                 </ModalBody>
                 <ModalFooter>

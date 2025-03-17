@@ -37,6 +37,13 @@ class SlackAgentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SlackDirectTokenConfig(BaseModel):
+    """Request schema for configuring Slack with a direct token."""
+
+    bot_token: str
+    description: Optional[str] = "Manually configured Slack bot token"
+
+
 class SlackMessage(BaseModel):
     """Schema for Slack messages."""
 

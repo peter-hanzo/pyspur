@@ -3,31 +3,70 @@ import {
     AccordionItem,
     Badge,
     Button,
-    Icon,
+    Input,
     Modal,
     ModalBody,
     ModalContent,
     ModalFooter,
-    ModalHeader
+    ModalHeader,
+    Textarea
 } from '@heroui/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useRouter } from 'next/router'
-import React from 'react'
+import React, { useState } from 'react'
+import { setApiKey } from '../../utils/api'
 
 interface SlackSetupGuideProps {
     onClose: () => void;
     onConnectClick: () => void;
     setupInfo?: any;
     onGoToSettings?: () => void;
+    onTokenConfigured?: () => void;
 }
 
 const SlackSetupGuide: React.FC<SlackSetupGuideProps> = ({
     onClose,
     onConnectClick,
     setupInfo,
-    onGoToSettings
+    onGoToSettings,
+    onTokenConfigured
 }) => {
     const router = useRouter()
+    const [botToken, setBotToken] = useState('')
+    const [isConfiguring, setIsConfiguring] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
+
+    const handleSaveToken = async () => {
+        if (!botToken || !botToken.startsWith('xoxb-')) {
+            setErrorMessage('Please enter a valid bot token (must start with xoxb-)')
+            return
+        }
+
+        setIsConfiguring(true)
+        setErrorMessage('')
+
+        try {
+            console.log('Setting Slack token...')
+            // Set the API key directly
+            await setApiKey('SLACK_BOT_TOKEN', botToken)
+            console.log('Slack token set successfully')
+
+            // Call the token configured callback
+            if (onTokenConfigured) {
+                console.log('Calling onTokenConfigured callback')
+                onTokenConfigured()
+            }
+
+            // Close the modal
+            console.log('Closing SlackSetupGuide modal')
+            onClose()
+        } catch (error) {
+            console.error('Error saving Slack token:', error)
+            setErrorMessage('Failed to save token. Please check your token and try again.')
+        } finally {
+            setIsConfiguring(false)
+        }
+    }
 
     return (
         <Modal isOpen={true} onClose={onClose} size="2xl" scrollBehavior="inside">
@@ -38,7 +77,7 @@ const SlackSetupGuide: React.FC<SlackSetupGuideProps> = ({
                 </ModalHeader>
                 <ModalBody>
                     <p className="mb-4">
-                        Set up Slack integration by following these steps:
+                        Set up Slack integration by providing your Bot Token directly:
                     </p>
 
                     <Accordion>
@@ -66,136 +105,101 @@ const SlackSetupGuide: React.FC<SlackSetupGuideProps> = ({
                         </AccordionItem>
 
                         <AccordionItem
-                            key="oauth-setup"
-                            subtitle="Setting up OAuth and permissions"
+                            key="bot-permissions"
+                            subtitle="Setting up bot permissions"
                             title={
                                 <div className="flex items-center">
                                     <div className="bg-primary-50 dark:bg-primary-900 rounded-full h-6 w-6 flex items-center justify-center mr-2">
                                         <span className="text-primary font-semibold text-sm">2</span>
                                     </div>
-                                    <span className="font-medium">Configure OAuth & Permissions</span>
+                                    <span className="font-medium">Configure Bot Permissions</span>
                                 </div>
                             }
                         >
                             <div className="pl-8 text-sm space-y-2">
-                                <p>Configure the OAuth settings for your app:</p>
+                                <p>Configure the bot permissions for your app:</p>
                                 <ol className="list-decimal list-inside space-y-1 pl-2">
                                     <li>In your app settings, go to <strong>OAuth & Permissions</strong></li>
-                                    <li>Under <strong>Redirect URLs</strong>, add:
-                                        <div className="bg-default-100 p-2 rounded mt-1 font-mono text-xs break-all">
-                                            {setupInfo?.redirect_uri || `${window.location.origin}/api/slack/oauth/callback`}
-                                        </div>
-                                    </li>
                                     <li>Under <strong>Bot Token Scopes</strong>, add the following scopes:
                                         <div className="bg-default-100 p-2 rounded mt-1 font-mono text-xs">
-                                            {setupInfo?.scopes_needed || "channels:read, chat:write, team:read, app_mentions:read, im:read, im:history"}
+                                            channels:read, chat:write, team:read, app_mentions:read, im:read, im:history
                                         </div>
                                     </li>
+                                    <li>Click <strong>Install to Workspace</strong> at the top of the page</li>
+                                    <li>After installation, find your <strong>Bot User OAuth Token</strong> (starts with xoxb-)</li>
                                 </ol>
                             </div>
                         </AccordionItem>
 
                         <AccordionItem
-                            key="configure-keys"
-                            subtitle="Add your Client ID and Secret"
+                            key="enter-token"
+                            subtitle="Enter your bot token"
                             title={
                                 <div className="flex items-center">
                                     <div className="bg-primary-50 dark:bg-primary-900 rounded-full h-6 w-6 flex items-center justify-center mr-2">
                                         <span className="text-primary font-semibold text-sm">3</span>
                                     </div>
-                                    <span className="font-medium">Configure API Keys in PySpur</span>
+                                    <span className="font-medium">Enter Bot Token</span>
                                 </div>
                             }
                         >
-                            <div className="pl-8 text-sm space-y-2">
-                                <p>Add your Slack credentials to PySpur:</p>
-                                <ol className="list-decimal list-inside space-y-1 pl-2">
-                                    <li>In your Slack app settings, go to <strong>Basic Information</strong></li>
-                                    <li>Find the <strong>App Credentials</strong> section</li>
-                                    <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
-                                    <li>Add these values in PySpur Settings</li>
-                                </ol>
+                            <div className="pl-8 text-sm space-y-3">
+                                <p>Enter your Slack Bot User OAuth Token:</p>
 
-                                {setupInfo && (
-                                    <div className="mt-3 space-y-2">
-                                        <p className="font-medium">Current API Key Status:</p>
-                                        <div className="space-y-2">
-                                            {setupInfo.keys.map((key: any) => (
-                                                <div
-                                                    key={key.name}
-                                                    className={`p-2 rounded flex items-start ${
-                                                        key.configured ? 'bg-success-50 dark:bg-success-900/20' : 'bg-danger-50 dark:bg-danger-900/20'
-                                                    }`}
-                                                >
-                                                    <IconifyIcon
-                                                        icon={key.configured ? 'lucide:check-circle' : 'lucide:alert-circle'}
-                                                        className={key.configured ? 'text-success' : 'text-danger'}
-                                                        width={18}
-                                                    />
-                                                    <div className="ml-2">
-                                                        <p className="font-medium">{key.name}</p>
-                                                        <p className="text-xs text-default-500">{key.description}</p>
-                                                        {key.configured && <p className="text-xs mt-1">Value: {key.masked_value}</p>}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                <Input
+                                    label="Bot Token"
+                                    placeholder="xoxb-..."
+                                    value={botToken}
+                                    onChange={(e) => setBotToken(e.target.value)}
+                                    description="This token starts with 'xoxb-' and can be found in your Slack App's OAuth & Permissions page"
+                                    type="password"
+                                    className="max-w-lg"
+                                    isInvalid={!!errorMessage}
+                                    errorMessage={errorMessage}
+                                />
 
                                 <Button
                                     color="primary"
-                                    size="sm"
                                     className="mt-2"
-                                    onPress={() => {
-                                        onClose();
-                                        if (typeof onGoToSettings === 'function') {
-                                            onGoToSettings();
-                                        }
-                                    }}
-                                    startContent={<IconifyIcon icon="lucide:settings" width={16} />}
+                                    onPress={handleSaveToken}
+                                    isLoading={isConfiguring}
+                                    isDisabled={!botToken || isConfiguring}
                                 >
-                                    Go to Settings
+                                    Save Token and Configure Slack
                                 </Button>
                             </div>
                         </AccordionItem>
 
                         <AccordionItem
-                            key="connect"
-                            subtitle="Connect and authorize"
+                            key="event-subscription"
+                            subtitle="Setting up Events API"
                             title={
                                 <div className="flex items-center">
                                     <div className="bg-primary-50 dark:bg-primary-900 rounded-full h-6 w-6 flex items-center justify-center mr-2">
                                         <span className="text-primary font-semibold text-sm">4</span>
                                     </div>
-                                    <span className="font-medium">Connect to Slack</span>
+                                    <span className="font-medium">Configure Event Subscriptions (Optional)</span>
                                 </div>
                             }
                         >
                             <div className="pl-8 text-sm space-y-2">
-                                <p>Once you&apos;ve completed all the steps above:</p>
+                                <p>To enable automatic triggers from Slack events:</p>
                                 <ol className="list-decimal list-inside space-y-1 pl-2">
-                                    <li>Click the &quot;Connect to Slack&quot; button below</li>
-                                    <li>A new window will open with Slack&apos;s authorization page</li>
-                                    <li>Select the workspace where you want to install the app</li>
-                                    <li>Review and approve the permissions</li>
+                                    <li>In your app settings, go to <strong>Event Subscriptions</strong></li>
+                                    <li>Enable events and set the Request URL to your PySpur instance:
+                                        <div className="bg-default-100 p-2 rounded mt-1 font-mono text-xs">
+                                            {`${window.location.origin}/api/slack/events`}
+                                        </div>
+                                    </li>
+                                    <li>Under <strong>Subscribe to bot events</strong>, add:
+                                        <ul className="list-disc list-inside pl-4 mt-1">
+                                            <li>message.im (for direct messages)</li>
+                                            <li>message.channels (for channel messages)</li>
+                                            <li>app_mention (for @mentions)</li>
+                                        </ul>
+                                    </li>
+                                    <li>Save changes and reinstall the app if prompted</li>
                                 </ol>
-
-                                <Button
-                                    color="primary"
-                                    className="mt-2"
-                                    onPress={onConnectClick}
-                                    startContent={<IconifyIcon icon="logos:slack-icon" width={18} />}
-                                    isDisabled={setupInfo && !setupInfo.configured}
-                                >
-                                    Connect to Slack
-                                </Button>
-
-                                {setupInfo && !setupInfo.configured && (
-                                    <p className="text-danger text-xs mt-1">
-                                        Please configure all required keys before connecting
-                                    </p>
-                                )}
                             </div>
                         </AccordionItem>
                     </Accordion>

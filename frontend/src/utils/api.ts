@@ -1414,15 +1414,17 @@ export const connectToSlack = async (onAlert?: AlertFunction): Promise<void> => 
  * @param onAlert Optional function to display alerts to the user
  * @param setMissingSlackKeys Function to set missing Slack keys in component state
  * @param setShowConfigErrorModal Function to control visibility of the configuration error modal
+ * @returns The list of Slack agents if successful, undefined otherwise
  */
 export const handleConnectToSlack = async (
     onAlert?: AlertFunction,
     setMissingSlackKeys?: (keys: string[]) => void,
     setShowConfigErrorModal?: (show: boolean) => void
-): Promise<void> => {
+): Promise<SlackAgent[] | undefined> => {
     try {
         // Fetch the latest setup info first to ensure we have current status
         const info = await fetchSlackSetupInfo()
+        console.log('Slack setup info:', info)
 
         // Check if we have all required keys
         if (info && !info.configured && setMissingSlackKeys && setShowConfigErrorModal) {
@@ -1431,30 +1433,41 @@ export const handleConnectToSlack = async (
                 .filter((key) => key.required && !key.configured)
                 .map((key) => key.name)
 
+            console.log('Missing Slack keys:', missing)
+
             // Show the error modal instead of an alert
             setMissingSlackKeys(missing)
             setShowConfigErrorModal(true)
-            return
+            return undefined
         }
 
-        // If we have all keys, proceed with normal flow
-        connectToSlack(onAlert)
+        // If we have the token configured, make a test message call
+        try {
+            const response = await testSlackConnection({ id: 1, name: "Test Agent", slack_team_id: "", is_active: true } as SlackAgent, onAlert)
+
+            // Get the list of Slack agents to show to the user
+            const agents = await getSlackAgents()
+            console.log('Fetched Slack agents:', agents)
+
+            if (agents && agents.length > 0) {
+                // Success message with guidance for next steps
+                onAlert?.('Successfully connected to Slack!', 'success')
+                return agents
+            } else {
+                onAlert?.('Successfully connected to Slack!', 'success')
+                return []
+            }
+        } catch (error) {
+            console.error('Error testing Slack connection:', error)
+            onAlert?.('Failed to connect to Slack. Please check your token configuration.', 'danger')
+            return undefined
+        }
     } catch (error: any) {
         console.error('Error connecting to Slack:', error)
 
-        // Check for specific missing credentials error from the backend
-        if (error.response?.status === 400 &&
-            error.response?.data?.detail?.error === 'missing_credentials' &&
-            setMissingSlackKeys &&
-            setShowConfigErrorModal) {
-
-            const missingKeys = error.response.data.detail.missing_keys || []
-            setMissingSlackKeys(missingKeys)
-            setShowConfigErrorModal(true)
-        } else {
-            // Generic error message for other errors
-            onAlert?.('Failed to connect to Slack. Please check server configuration.', 'danger')
-        }
+        // Generic error message for other errors
+        onAlert?.('Failed to connect to Slack. Please check server configuration.', 'danger')
+        return undefined
     }
 }
 
@@ -1553,5 +1566,40 @@ export const testSlackConnection = async (
     } catch (error) {
         console.error('Error sending test message:', error)
         onAlert?.('Failed to send test message', 'danger')
+    }
+}
+
+/**
+ * Set a Slack token directly without using OAuth
+ * @param botToken The Slack bot token to configure
+ */
+export const setSlackToken = async (botToken: string): Promise<SlackOAuthResponse> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/slack/set-token`, {
+            bot_token: botToken
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error setting Slack token:', error)
+        throw error
+    }
+}
+
+/**
+ * Creates a default Slack agent when none exist after token configuration
+ */
+export const createDefaultSlackAgent = async (): Promise<SlackAgent | null> => {
+    try {
+        console.log('Creating default Slack agent...')
+
+        // Call our backend to create a default agent
+        // This will use the token stored in the backend
+        const response = await axios.post(`${API_BASE_URL}/slack/create-default-agent`)
+
+        console.log('Created default agent:', response.data)
+        return response.data
+    } catch (error) {
+        console.error('Error creating default Slack agent:', error)
+        return null
     }
 }
