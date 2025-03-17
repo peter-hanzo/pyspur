@@ -292,13 +292,36 @@ const flowSlice = createSlice({
             const { nodeId, nodeTypeName } = action.payload
             const node = state.nodes.find((n) => n.id === nodeId)
             if (node) {
-                //@ts-ignore
-                const newNode = createNode(state.nodeTypes, nodeTypeName, uuidv4(), {
-                    x: 0,
-                    y: 0,
-                })
-                if (newNode) {
-                    state.nodeConfigs[node.id].tools = [...(state.nodeConfigs[node.id].tools || []), newNode.node]
+                // Generate a new ID following the same pattern as other nodes
+                const existingIds = state.nodes.map((node) => node.id)
+                const sanitizedType = nodeTypeName.replace(/\s+/g, '_')
+                let counter = 1
+                let newId = `${sanitizedType}_${counter}`
+                while (existingIds.includes(newId)) {
+                    counter++
+                    newId = `${sanitizedType}_${counter}`
+                }
+
+                // Create the new node using createNode
+                const result = createNode(
+                    // @ts-ignore - nodeTypes will be properly typed at runtime
+                    state.nodeTypes,
+                    nodeTypeName,
+                    newId,
+                    { x: 0, y: 0 },
+                    nodeId // Set parentId to the agent node's ID
+                )
+
+                if (result) {
+                    // Add isTool flag to the node data
+                    result.node.data.isTool = true
+
+                    // Add the tool ID to the agent's config.tools array
+                    state.nodeConfigs[nodeId].tools = [...(state.nodeConfigs[nodeId].tools || []), newId]
+
+                    // Add the node and its config to the flow state
+                    state.nodes.push(result.node)
+                    state.nodeConfigs[result.node.id] = result.config
                 }
             }
         },
