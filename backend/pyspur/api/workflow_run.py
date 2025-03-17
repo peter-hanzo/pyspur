@@ -556,17 +556,25 @@ def list_runs(
     workflow_id: str,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
+    start_date: Optional[datetime] = Query(
+        default=None, description="Filter runs after this date (inclusive)"
+    ),
+    end_date: Optional[datetime] = Query(
+        default=None, description="Filter runs before this date (inclusive)"
+    ),
     db: Session = Depends(get_db),
 ):
     offset = (page - 1) * page_size
-    runs = (
-        db.query(RunModel)
-        .filter(RunModel.workflow_id == workflow_id)
-        .order_by(RunModel.start_time.desc())
-        .offset(offset)
-        .limit(page_size)
-        .all()
-    )
+    query = db.query(RunModel).filter(RunModel.workflow_id == workflow_id)
+
+    # Apply date filters if provided
+    if start_date:
+        query = query.filter(RunModel.start_time >= start_date)
+    if end_date:
+        query = query.filter(RunModel.start_time <= end_date)
+
+    # Order by start time descending and apply pagination
+    runs = query.order_by(RunModel.start_time.desc()).offset(offset).limit(page_size).all()
 
     # Update run status based on task status
     for run in runs:
