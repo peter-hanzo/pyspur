@@ -1,5 +1,4 @@
-import { setSelectedNode, updateNodeConfigOnly } from '@/store/flowSlice'
-import { setNodePanelExpanded } from '@/store/panelSlice'
+import { addToolToAgent, setSelectedNode, updateNodeConfigOnly } from '@/store/flowSlice'
 import { RootState } from '@/store/store'
 import { Button, Card } from '@heroui/react'
 import { Icon } from '@iconify/react'
@@ -7,6 +6,7 @@ import isEqual from 'lodash/isEqual'
 import React, { memo, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
+import CollapsibleNodePanel from '../CollapsibleNodePanel'
 import styles from '../DynamicNode.module.css'
 import { OutputHandleRow } from '../shared/OutputHandleRow'
 
@@ -28,6 +28,7 @@ const baseNodeStyle = {
 
 const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
+    const [showNodePanel, setShowNodePanel] = useState(false)
     const dispatch = useDispatch()
 
     // Select node data and associated config (if any)
@@ -44,11 +45,23 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
 
     // Handlers for tool management
     const handleAddTool = () => {
-        dispatch(setNodePanelExpanded(true))
+        setShowNodePanel(true)
+        // dispatch(setNodePanelExpanded(true))
     }
 
     const handleToolClick = (toolId: string) => {
         dispatch(setSelectedNode({ nodeId: toolId }))
+    }
+
+    // Custom handler for adding a tool to the agent
+    const handleAddNodeToAgent = (nodeName: string) => {
+        dispatch(
+            addToolToAgent({
+                nodeId: id,
+                nodeTypeName: nodeName,
+            })
+        )
+        setShowNodePanel(false)
     }
 
     // Render output handles
@@ -146,6 +159,13 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                     </div>
                 </div>
             </BaseNode>
+
+            {/* Node Panel for Adding Tools */}
+            {showNodePanel && (
+                <div className="absolute bottom-full left-0 mb-2">
+                    <CollapsibleNodePanel handleAddNode={handleAddNodeToAgent} isCustomAdd={true} />
+                </div>
+            )}
         </div>
     )
 }
