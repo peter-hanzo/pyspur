@@ -5,6 +5,7 @@ import { Icon } from '@iconify/react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+import NodeOutputDisplay from './nodes/NodeOutputDisplay'
 
 interface TraceTableProps {
     workflowId: string
@@ -84,9 +85,9 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     }, [workflowId])
 
     const columns = [
+        { key: 'run_id', label: 'Run ID' },
         { key: 'time', label: 'Time' },
         { key: 'inputs', label: 'Inputs' },
-        { key: 'run_id', label: 'Run ID' },
         { key: 'duration', label: 'Duration' },
         { key: 'status', label: 'Status' },
     ]
@@ -116,13 +117,6 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         }
     }
 
-    const formatInputs = (inputs?: Record<string, Record<string, any>>) => {
-        if (!inputs) return '-'
-        return Object.entries(inputs)
-            .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-            .join(', ')
-    }
-
     if (isLoading) {
         return (
             <div className="flex justify-center p-4">
@@ -150,8 +144,17 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                                         {formatDistanceToNow(new Date(run.start_time || ''), { addSuffix: true })}
                                     </span>
                                 ) : columnKey === 'inputs' ? (
-                                    <div className="max-w-md truncate" title={formatInputs(run.initial_inputs)}>
-                                        {formatInputs(run.initial_inputs)}
+                                    <div>
+                                        {run.initial_inputs ? (
+                                            <div className="border rounded-lg overflow-hidden">
+                                                <NodeOutputDisplay
+                                                    output={Object.values(run.initial_inputs)[0] || {}}
+                                                    maxHeight="300px"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <span className="text-default-400">No inputs</span>
+                                        )}
                                     </div>
                                 ) : columnKey === 'run_id' ? (
                                     <Chip
