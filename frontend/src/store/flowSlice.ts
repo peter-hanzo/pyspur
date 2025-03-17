@@ -288,6 +288,21 @@ const flowSlice = createSlice({
             }
         },
 
+        addToolToAgent: (state, action: PayloadAction<{ nodeId: string; nodeTypeName: string }>) => {
+            const { nodeId, nodeTypeName } = action.payload
+            const node = state.nodes.find((n) => n.id === nodeId)
+            if (node) {
+                //@ts-ignore
+                const newNode = createNode(state.nodeTypes, nodeTypeName, uuidv4(), {
+                    x: 0,
+                    y: 0,
+                })
+                if (newNode) {
+                    state.nodeConfigs[node.id].tools = [...(state.nodeConfigs[node.id].tools || []), newNode.node]
+                }
+            }
+        },
+
         setSelectedNode: (state, action: PayloadAction<{ nodeId: string | null }>) => {
             state.selectedNode = action.payload.nodeId
         },
@@ -773,6 +788,7 @@ export const {
     setEdges,
     updateNodeDataOnly,
     updateNodeConfigOnly,
+    addToolToAgent,
     setSelectedNode,
     setSelectedEdgeId,
     deleteNode,
