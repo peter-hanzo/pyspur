@@ -15,7 +15,7 @@ import {
     TableRow,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import NodeOutputDisplay from './nodes/NodeOutputDisplay'
@@ -76,8 +76,8 @@ const RunsTable: React.FC<{
     const formatDuration = (startTime?: string, endTime?: string) => {
         if (!startTime) return '-'
 
-        const start = new Date(startTime)
-        const end = endTime ? new Date(endTime) : new Date()
+        const start = parseISO(startTime)
+        const end = endTime ? parseISO(endTime) : new Date()
 
         // Calculate duration in seconds
         const durationInSeconds = (end.getTime() - start.getTime()) / 1000
@@ -92,6 +92,16 @@ const RunsTable: React.FC<{
             const minutes = Math.floor((durationInSeconds % 3600) / 60)
             return `${hours}h ${minutes}m`
         }
+    }
+
+    const formatTimestamp = (timestamp: string) => {
+        const date = parseISO(timestamp)
+        return (
+            <div className="flex flex-col">
+                <span>{format(date, 'MMM d, yyyy HH:mm:ss')}</span>
+                <span className="text-xs text-default-400">{formatDistanceToNow(date, { addSuffix: true })}</span>
+            </div>
+        )
     }
 
     if (isLoading) {
@@ -117,9 +127,11 @@ const RunsTable: React.FC<{
                         {(columnKey) => (
                             <TableCell>
                                 {columnKey === 'time' ? (
-                                    <span className="text-default-500">
-                                        {formatDistanceToNow(new Date(run.start_time || ''), { addSuffix: true })}
-                                    </span>
+                                    run.start_time ? (
+                                        formatTimestamp(run.start_time)
+                                    ) : (
+                                        '-'
+                                    )
                                 ) : columnKey === 'inputs' ? (
                                     <div>
                                         {run.initial_inputs ? (
@@ -174,6 +186,23 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     const [startTime, setStartTime] = useState<string>('00:00')
     const [endTime, setEndTime] = useState<string>('23:59')
 
+    const getUTCDate = (date: Date, time: string): Date => {
+        const [hours, minutes] = time.split(':').map(Number)
+        const localDate = new Date(date)
+        localDate.setHours(hours, minutes)
+
+        // Convert to UTC
+        return new Date(
+            Date.UTC(
+                localDate.getFullYear(),
+                localDate.getMonth(),
+                localDate.getDate(),
+                localDate.getHours(),
+                localDate.getMinutes()
+            )
+        )
+    }
+
     const fetchRuns = async () => {
         try {
             setIsLoading(true)
@@ -181,15 +210,11 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
             let end: Date | undefined
 
             if (startDate) {
-                const [hours, minutes] = startTime.split(':').map(Number)
-                start = new Date(startDate.toString())
-                start.setHours(hours, minutes, 0, 0)
+                start = getUTCDate(new Date(startDate.toString()), startTime)
             }
 
             if (endDate) {
-                const [hours, minutes] = endTime.split(':').map(Number)
-                end = new Date(endDate.toString())
-                end.setHours(hours, minutes, 59, 999)
+                end = getUTCDate(new Date(endDate.toString()), endTime)
             }
 
             const workflowRuns = await getWorkflowRuns(workflowId, 1, 100, start, end)
