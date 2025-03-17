@@ -37,7 +37,7 @@ import RunModal from './modals/RunModal'
 import SettingsModal from './modals/SettingsModal'
 
 interface HeaderProps {
-    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
+    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'runs' | 'rag'
     associatedWorkflowId?: string
     runId?: string
     handleDownloadImage?: () => void
@@ -141,7 +141,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     }, [isHistoryOpen])
 
     useEffect(() => {
-        if (activePage === 'workflow' || activePage === 'trace') {
+        if (activePage === 'workflow' || activePage === 'trace' || activePage === 'runs') {
             document.title = `${projectName} - PySpur`
         }
         if (activePage === 'dashboard') {
@@ -309,7 +309,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     )}
                 </NavbarBrand>
 
-                {(activePage === 'workflow' || activePage === 'trace') && (
+                {(activePage === 'workflow' || activePage === 'trace' || activePage === 'runs') && (
                     <NavbarContent
                         className="h-12 rounded-full bg-transparent sm:flex"
                         id="workflow-title"
@@ -343,6 +343,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     </NavbarItem>
                     {activePage === 'workflow' && <NavbarItem isActive={activePage === 'workflow'}>Editor</NavbarItem>}
                     {activePage === 'trace' && <NavbarItem isActive={activePage === 'trace'}>Trace</NavbarItem>}
+                    {activePage === 'runs' && <NavbarItem isActive={activePage === 'runs'}>Runs</NavbarItem>}
                     <NavbarItem isActive={activePage === 'evals'}>
                         <Link className="flex gap-2 text-inherit" href="/evals">
                             Evals
@@ -438,26 +439,37 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                             </div>
                                         </DropdownItem>
                                     ) : (
-                                        workflowRuns.map((run, index) => (
-                                            <DropdownItem
-                                                key={index}
-                                                onPress={() => window.open(`/trace/${run.id}`, '_blank')}
-                                                textValue={`Version ${index + 1}`}
-                                            >
-                                                {`${run.id} | ${run.status.toLowerCase()} ${
-                                                    (run.status.toLowerCase() === 'running' ||
-                                                        run.status.toLowerCase() === 'pending' ||
-                                                        run.status.toLowerCase() === 'paused') &&
-                                                    run.start_time
-                                                        ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
-                                                        : (run.status.toLowerCase() === 'failed' ||
-                                                                run.status.toLowerCase() === 'completed') &&
-                                                            run.end_time
-                                                          ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
-                                                          : ''
-                                                }`}
-                                            </DropdownItem>
-                                        ))
+                                        <>
+                                            {workflowRuns.map((run, index) => (
+                                                <DropdownItem
+                                                    key={index}
+                                                    onPress={() => window.open(`/trace/${run.id}`, '_blank')}
+                                                    textValue={`Version ${index + 1}`}
+                                                >
+                                                    {`${run.id} | ${run.status.toLowerCase()} ${
+                                                        (run.status.toLowerCase() === 'running' ||
+                                                            run.status.toLowerCase() === 'pending' ||
+                                                            run.status.toLowerCase() === 'paused') &&
+                                                        run.start_time
+                                                            ? `for last ${formatDistanceStrict(Date.parse(run.start_time + 'Z'), new Date(), { addSuffix: false })}`
+                                                            : (run.status.toLowerCase() === 'failed' ||
+                                                                    run.status.toLowerCase() === 'completed') &&
+                                                                run.end_time
+                                                              ? `${formatDistanceStrict(Date.parse(run.end_time + 'Z'), new Date(), { addSuffix: true })}`
+                                                              : ''
+                                                    }`}
+                                                </DropdownItem>
+                                            ))}
+                                            {workflowId && (
+                                                <DropdownItem
+                                                    key="see-all-runs"
+                                                    onPress={() => window.open(`/runs/${workflowId}`, '_blank')}
+                                                    startContent={<Icon icon="solar:playlist-linear" width={16} />}
+                                                >
+                                                    See All Runs
+                                                </DropdownItem>
+                                            )}
+                                        </>
                                     )}
                                 </DropdownMenu>
                             </Dropdown>
@@ -639,6 +651,18 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                 </DropdownMenu>
                             </Dropdown>
                         </NavbarItem>
+                        <NavbarItem>
+                            <Link href={`/workflows/${associatedWorkflowId}`}>
+                                <Button variant="light">Go To Workflow</Button>
+                            </Link>
+                        </NavbarItem>
+                    </NavbarContent>
+                )}
+                {activePage === 'runs' && (
+                    <NavbarContent
+                        className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+                        justify="end"
+                    >
                         <NavbarItem>
                             <Link href={`/workflows/${associatedWorkflowId}`}>
                                 <Button variant="light">Go To Workflow</Button>
