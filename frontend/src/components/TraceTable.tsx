@@ -67,7 +67,7 @@ const RunsTable: React.FC<{
 }> = React.memo(({ runs, isLoading, handleRunClick }) => {
     const columns = [
         { key: 'run_id', label: 'Run ID' },
-        { key: 'time', label: 'Time' },
+        { key: 'time', label: 'Time (UTC)' },
         { key: 'inputs', label: 'Inputs' },
         { key: 'duration', label: 'Duration' },
         { key: 'status', label: 'Status' },
@@ -98,7 +98,7 @@ const RunsTable: React.FC<{
         const date = parseISO(timestamp)
         return (
             <div className="flex flex-col">
-                <span>{format(date, 'MMM d, yyyy HH:mm:ss')}</span>
+                <span>{format(date, "MMM d, yyyy HH:mm:ss 'UTC'")}</span>
                 <span className="text-xs text-default-400">{formatDistanceToNow(date, { addSuffix: true })}</span>
             </div>
         )
@@ -186,21 +186,9 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     const [startTime, setStartTime] = useState<string>('00:00')
     const [endTime, setEndTime] = useState<string>('23:59')
 
-    const getUTCDate = (date: Date, time: string): Date => {
+    const createUTCDate = (date: Date, time: string): Date => {
         const [hours, minutes] = time.split(':').map(Number)
-        const localDate = new Date(date)
-        localDate.setHours(hours, minutes)
-
-        // Convert to UTC
-        return new Date(
-            Date.UTC(
-                localDate.getFullYear(),
-                localDate.getMonth(),
-                localDate.getDate(),
-                localDate.getHours(),
-                localDate.getMinutes()
-            )
-        )
+        return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes))
     }
 
     const fetchRuns = async () => {
@@ -210,11 +198,11 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
             let end: Date | undefined
 
             if (startDate) {
-                start = getUTCDate(new Date(startDate.toString()), startTime)
+                start = createUTCDate(new Date(startDate.toString()), startTime)
             }
 
             if (endDate) {
-                end = getUTCDate(new Date(endDate.toString()), endTime)
+                end = createUTCDate(new Date(endDate.toString()), endTime)
             }
 
             const workflowRuns = await getWorkflowRuns(workflowId, 1, 100, start, end)
@@ -266,7 +254,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4 items-end">
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm text-default-600">Start Date</label>
+                    <label className="text-sm text-default-600">Start Date (UTC)</label>
                     <DatePicker
                         value={startDate}
                         onChange={setStartDate}
@@ -278,7 +266,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                     />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm text-default-600">Start Time</label>
+                    <label className="text-sm text-default-600">Start Time (UTC)</label>
                     <Input
                         type="time"
                         value={startTime}
@@ -287,7 +275,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                     />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm text-default-600">End Date</label>
+                    <label className="text-sm text-default-600">End Date (UTC)</label>
                     <DatePicker
                         value={endDate}
                         onChange={setEndDate}
@@ -299,7 +287,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                     />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm text-default-600">End Time</label>
+                    <label className="text-sm text-default-600">End Time (UTC)</label>
                     <Input
                         type="time"
                         value={endTime}
