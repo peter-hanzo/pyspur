@@ -149,7 +149,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                                             <div className="border rounded-lg overflow-hidden">
                                                 <NodeOutputDisplay
                                                     output={Object.values(run.initial_inputs)[0] || {}}
-                                                    maxHeight="300px"
+                                                    maxHeight="200px"
                                                 />
                                             </div>
                                         ) : (
