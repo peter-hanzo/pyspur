@@ -59,6 +59,112 @@ const getStatusIcon = (status: RunStatus): string => {
     }
 }
 
+// Separate component for the table content
+const RunsTable: React.FC<{
+    runs: RunResponse[]
+    isLoading: boolean
+    handleRunClick: (runId: string) => void
+}> = React.memo(({ runs, isLoading, handleRunClick }) => {
+    const columns = [
+        { key: 'run_id', label: 'Run ID' },
+        { key: 'time', label: 'Time' },
+        { key: 'inputs', label: 'Inputs' },
+        { key: 'duration', label: 'Duration' },
+        { key: 'status', label: 'Status' },
+    ]
+
+    const formatDuration = (startTime?: string, endTime?: string) => {
+        if (!startTime) return '-'
+
+        const start = new Date(startTime)
+        const end = endTime ? new Date(endTime) : new Date()
+
+        // Calculate duration in seconds
+        const durationInSeconds = (end.getTime() - start.getTime()) / 1000
+
+        // Format the duration in a more readable way
+        if (durationInSeconds < 60) {
+            return `${Math.round(durationInSeconds)}s`
+        } else if (durationInSeconds < 3600) {
+            return `${Math.floor(durationInSeconds / 60)}m ${Math.round(durationInSeconds % 60)}s`
+        } else {
+            const hours = Math.floor(durationInSeconds / 3600)
+            const minutes = Math.floor((durationInSeconds % 3600) / 60)
+            return `${hours}h ${minutes}m`
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center p-4">
+                <Spinner size="lg" />
+            </div>
+        )
+    }
+
+    if (runs.length === 0) {
+        return <div className="flex justify-center p-8 text-default-500">No runs found for this spur</div>
+    }
+
+    return (
+        <Table aria-label="Spur Runs" isHeaderSticky>
+            <TableHeader columns={columns}>
+                {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
+            </TableHeader>
+            <TableBody items={runs}>
+                {(run) => (
+                    <TableRow key={run.id}>
+                        {(columnKey) => (
+                            <TableCell>
+                                {columnKey === 'time' ? (
+                                    <span className="text-default-500">
+                                        {formatDistanceToNow(new Date(run.start_time || ''), { addSuffix: true })}
+                                    </span>
+                                ) : columnKey === 'inputs' ? (
+                                    <div>
+                                        {run.initial_inputs ? (
+                                            <div className="border rounded-lg overflow-hidden">
+                                                <NodeOutputDisplay
+                                                    output={Object.values(run.initial_inputs)[0] || {}}
+                                                    maxHeight="100px"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <span className="text-default-400">No inputs</span>
+                                        )}
+                                    </div>
+                                ) : columnKey === 'run_id' ? (
+                                    <Chip
+                                        size="sm"
+                                        variant="flat"
+                                        className="cursor-pointer"
+                                        onClick={() => handleRunClick(run.id)}
+                                    >
+                                        {run.id}
+                                    </Chip>
+                                ) : columnKey === 'duration' ? (
+                                    <span>{formatDuration(run.start_time, run.end_time)}</span>
+                                ) : columnKey === 'status' ? (
+                                    <Chip
+                                        size="sm"
+                                        variant="flat"
+                                        color={getStatusColor(run.status)}
+                                        startContent={<Icon icon={getStatusIcon(run.status)} width={16} />}
+                                    >
+                                        {run.status}
+                                    </Chip>
+                                ) : null}
+                            </TableCell>
+                        )}
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    )
+})
+
+RunsTable.displayName = 'RunsTable'
+
 const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     const router = useRouter()
     const [runs, setRuns] = useState<RunResponse[]>([])
@@ -127,49 +233,8 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         setEndTime('23:59')
     }
 
-    const columns = [
-        { key: 'run_id', label: 'Run ID' },
-        { key: 'time', label: 'Time' },
-        { key: 'inputs', label: 'Inputs' },
-        { key: 'duration', label: 'Duration' },
-        { key: 'status', label: 'Status' },
-    ]
-
     const handleRunClick = (runId: string) => {
         router.push(`/trace/${runId}`)
-    }
-
-    const formatDuration = (startTime?: string, endTime?: string) => {
-        if (!startTime) return '-'
-
-        const start = new Date(startTime)
-        const end = endTime ? new Date(endTime) : new Date()
-
-        // Calculate duration in seconds
-        const durationInSeconds = (end.getTime() - start.getTime()) / 1000
-
-        // Format the duration in a more readable way
-        if (durationInSeconds < 60) {
-            return `${Math.round(durationInSeconds)}s`
-        } else if (durationInSeconds < 3600) {
-            return `${Math.floor(durationInSeconds / 60)}m ${Math.round(durationInSeconds % 60)}s`
-        } else {
-            const hours = Math.floor(durationInSeconds / 3600)
-            const minutes = Math.floor((durationInSeconds % 3600) / 60)
-            return `${hours}h ${minutes}m`
-        }
-    }
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center p-4">
-                <Spinner size="lg" />
-            </div>
-        )
-    }
-
-    if (runs.length === 0) {
-        return <div className="flex justify-center p-8 text-default-500">No runs found for this spur</div>
     }
 
     return (
@@ -227,59 +292,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                 </div>
             </div>
 
-            <Table aria-label="Spur Runs" isHeaderSticky>
-                <TableHeader columns={columns}>
-                    {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-                </TableHeader>
-                <TableBody items={runs}>
-                    {(run) => (
-                        <TableRow key={run.id}>
-                            {(columnKey) => (
-                                <TableCell>
-                                    {columnKey === 'time' ? (
-                                        <span className="text-default-500">
-                                            {formatDistanceToNow(new Date(run.start_time || ''), { addSuffix: true })}
-                                        </span>
-                                    ) : columnKey === 'inputs' ? (
-                                        <div>
-                                            {run.initial_inputs ? (
-                                                <div className="border rounded-lg overflow-hidden">
-                                                    <NodeOutputDisplay
-                                                        output={Object.values(run.initial_inputs)[0] || {}}
-                                                        maxHeight="100px"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <span className="text-default-400">No inputs</span>
-                                            )}
-                                        </div>
-                                    ) : columnKey === 'run_id' ? (
-                                        <Chip
-                                            size="sm"
-                                            variant="flat"
-                                            className="cursor-pointer"
-                                            onClick={() => handleRunClick(run.id)}
-                                        >
-                                            {run.id}
-                                        </Chip>
-                                    ) : columnKey === 'duration' ? (
-                                        <span>{formatDuration(run.start_time, run.end_time)}</span>
-                                    ) : columnKey === 'status' ? (
-                                        <Chip
-                                            size="sm"
-                                            variant="flat"
-                                            color={getStatusColor(run.status)}
-                                            startContent={<Icon icon={getStatusIcon(run.status)} width={16} />}
-                                        >
-                                            {run.status}
-                                        </Chip>
-                                    ) : null}
-                                </TableCell>
-                            )}
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
+            <RunsTable runs={runs} isLoading={isLoading} handleRunClick={handleRunClick} />
         </div>
     )
 }
