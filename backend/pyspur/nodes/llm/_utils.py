@@ -449,7 +449,7 @@ async def generate_text(
     # Ensure response is valid JSON for models that support it
     if supports_json:
         try:
-            if len(message_response.tool_calls) > 0:
+            if message_response.tool_calls and len(message_response.tool_calls) > 0:
                 # If the model made tool calls, return the raw response
                 return message_response
             else:
