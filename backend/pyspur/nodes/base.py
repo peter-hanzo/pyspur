@@ -298,12 +298,14 @@ class BaseNode(ABC):
         # Create function schema
         function_schema = {
             "type": "function",
-            "name": self.name,
-            "description": description,
-            "parameters": {
-                "type": "object",
-                "properties": properties,
-                "required": required,
+            "function": {
+                "name": self.name,
+                "description": description,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
             },
         }
 
