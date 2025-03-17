@@ -175,6 +175,15 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const parentPosition = useSelector((state: RootState) =>
         parentId ? state.flow.nodes.find((n) => n.id === parentId)?.position : undefined
     )
+    const isTool = useSelector((state: RootState) => {
+        const node = state.flow.nodes.find((n) => n.id === id)
+        if (node?.data?.isTool) return true
+
+        // Check if parent is an AgentNode
+        const parentNode = node?.parentId ? state.flow.nodes.find((n) => n.id === node.parentId) : undefined
+
+        return parentNode?.type === 'Agent'
+    })
 
     const initialInputs = useSelector(selectInitialInputs, isEqual)
 
@@ -475,7 +484,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     }, [finalPredecessors, predecessorNodes, id, updateNodeInternals])
 
     const renderHandles = () => {
-        if (!nodeData || hideHandles) {
+        if (!nodeData || hideHandles || isTool) {
             return null
         }
         const dedupedPredecessors = finalPredecessors.filter(
