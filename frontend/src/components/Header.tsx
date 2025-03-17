@@ -37,7 +37,7 @@ import RunModal from './modals/RunModal'
 import SettingsModal from './modals/SettingsModal'
 
 interface HeaderProps {
-    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'rag'
+    activePage: 'dashboard' | 'workflow' | 'evals' | 'trace' | 'runs' | 'rag'
     associatedWorkflowId?: string
     runId?: string
     handleDownloadImage?: () => void
@@ -141,7 +141,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
     }, [isHistoryOpen])
 
     useEffect(() => {
-        if (activePage === 'workflow' || activePage === 'trace') {
+        if (activePage === 'workflow' || activePage === 'trace' || activePage === 'runs') {
             document.title = `${projectName} - PySpur`
         }
         if (activePage === 'dashboard') {
@@ -309,7 +309,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     )}
                 </NavbarBrand>
 
-                {(activePage === 'workflow' || activePage === 'trace') && (
+                {(activePage === 'workflow' || activePage === 'trace' || activePage === 'runs') && (
                     <NavbarContent
                         className="h-12 rounded-full bg-transparent sm:flex"
                         id="workflow-title"
@@ -343,6 +343,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                     </NavbarItem>
                     {activePage === 'workflow' && <NavbarItem isActive={activePage === 'workflow'}>Editor</NavbarItem>}
                     {activePage === 'trace' && <NavbarItem isActive={activePage === 'trace'}>Trace</NavbarItem>}
+                    {activePage === 'runs' && <NavbarItem isActive={activePage === 'runs'}>Runs</NavbarItem>}
                     <NavbarItem isActive={activePage === 'evals'}>
                         <Link className="flex gap-2 text-inherit" href="/evals">
                             Evals
@@ -650,6 +651,18 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                                 </DropdownMenu>
                             </Dropdown>
                         </NavbarItem>
+                        <NavbarItem>
+                            <Link href={`/workflows/${associatedWorkflowId}`}>
+                                <Button variant="light">Go To Workflow</Button>
+                            </Link>
+                        </NavbarItem>
+                    </NavbarContent>
+                )}
+                {activePage === 'runs' && (
+                    <NavbarContent
+                        className="ml-auto flex h-12 max-w-fit items-center gap-0 rounded-full p-0 lg:bg-content2 lg:px-1 lg:dark:bg-content1"
+                        justify="end"
+                    >
                         <NavbarItem>
                             <Link href={`/workflows/${associatedWorkflowId}`}>
                                 <Button variant="light">Go To Workflow</Button>

@@ -4,6 +4,9 @@ import { Spinner } from '@heroui/react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+import { PersistGate } from 'redux-persist/integration/react'
+import Header from '../../components/Header'
+import { persistor } from '../../store/store'
 
 const RunsPage: React.FC = () => {
     const router = useRouter()
@@ -46,18 +49,21 @@ const RunsPage: React.FC = () => {
     }
 
     return (
-        <>
+        <PersistGate loading={null} persistor={persistor}>
             <Head>
                 <title>{workflowName ? `${workflowName} - Runs` : 'Spur Runs'}</title>
             </Head>
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-default-900">{workflowName}</h1>
-                    <p className="text-default-500">Run History</p>
+            <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <Header activePage="runs" associatedWorkflowId={id} />
+                <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-bold text-default-900">{workflowName}</h1>
+                        <p className="text-default-500">Run History</p>
+                    </div>
+                    <TraceTable workflowId={id} />
                 </div>
-                <TraceTable workflowId={id} />
             </div>
-        </>
+        </PersistGate>
     )
 }
 
