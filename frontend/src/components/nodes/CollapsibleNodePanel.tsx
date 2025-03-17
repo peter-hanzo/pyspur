@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { Accordion, AccordionItem, Button, Input, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { Button, Accordion, AccordionItem, Input, Tooltip } from '@heroui/react'
-import { useSelector, useDispatch } from 'react-redux'
-import { ReactFlowInstance, useReactFlow } from '@xyflow/react'
+import { useReactFlow } from '@xyflow/react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useDispatch, useSelector } from 'react-redux'
 
-import { AppDispatch, RootState } from '../../store/store'
 import type { FlowWorkflowNodeType, FlowWorkflowNodeTypesByCategory } from '../../store/nodeTypesSlice'
 import { setNodePanelExpanded } from '../../store/panelSlice'
+import { RootState } from '../../store/store'
 import { createNodeAtCenter } from '../../utils/flowUtils'
-
 
 interface CategoryGroup {
     nodes: FlowWorkflowNodeType[]
@@ -22,7 +21,12 @@ interface GroupedNodes {
     [subcategory: string]: CategoryGroup
 }
 
-const CollapsibleNodePanel: React.FC = () => {
+interface CollapsibleNodePanelProps {
+    handleAddNode?: (nodeName: string) => void
+    isCustomAdd?: boolean
+}
+
+const CollapsibleNodePanel: React.FC<CollapsibleNodePanelProps> = ({ handleAddNode, isCustomAdd = false }) => {
     const isExpanded = useSelector((state: RootState) => state.panel.isNodePanelExpanded)
     const dispatch = useDispatch()
     const nodes = useSelector((state: RootState) => state.flow.nodes)
@@ -63,52 +67,46 @@ const CollapsibleNodePanel: React.FC = () => {
     useEffect(() => {
         const handlePanelKeyDown = (event: KeyboardEvent) => {
             if (!isExpanded || !panelRef.current?.contains(document.activeElement)) {
-                return;
+                return
             }
 
             // Get all clickable elements in the panel
-            const clickableElements = panelRef.current.querySelectorAll(
-                'div[role="button"], button, [tabindex="0"]'
-            );
-            const elements = Array.from(clickableElements);
+            const clickableElements = panelRef.current.querySelectorAll('div[role="button"], button, [tabindex="0"]')
+            const elements = Array.from(clickableElements)
 
             switch (event.key) {
                 case 'ArrowDown':
-                    event.preventDefault();
-                    setSelectedNodeIndex((prev) =>
-                        prev < elements.length - 1 ? prev + 1 : prev
-                    );
-                    break;
+                    event.preventDefault()
+                    setSelectedNodeIndex((prev) => (prev < elements.length - 1 ? prev + 1 : prev))
+                    break
                 case 'ArrowUp':
-                    event.preventDefault();
-                    setSelectedNodeIndex((prev) =>
-                        prev > 0 ? prev - 1 : prev
-                    );
-                    break;
+                    event.preventDefault()
+                    setSelectedNodeIndex((prev) => (prev > 0 ? prev - 1 : prev))
+                    break
                 case 'Enter':
-                    event.preventDefault();
+                    event.preventDefault()
                     if (selectedNodeIndex >= 0 && selectedNodeIndex < elements.length) {
-                        (elements[selectedNodeIndex] as HTMLElement).click();
+                        ;(elements[selectedNodeIndex] as HTMLElement).click()
                     }
-                    break;
+                    break
             }
-        };
+        }
 
         if (isExpanded) {
-            window.addEventListener('keydown', handlePanelKeyDown);
+            window.addEventListener('keydown', handlePanelKeyDown)
         }
 
         return () => {
-            window.removeEventListener('keydown', handlePanelKeyDown);
-        };
-    }, [isExpanded, selectedNodeIndex]);
+            window.removeEventListener('keydown', handlePanelKeyDown)
+        }
+    }, [isExpanded, selectedNodeIndex])
 
     // Reset selected index when panel is closed
     useEffect(() => {
         if (!isExpanded) {
-            setSelectedNodeIndex(-1);
+            setSelectedNodeIndex(-1)
         }
-    }, [isExpanded]);
+    }, [isExpanded])
 
     useEffect(() => {
         if (isExpanded && searchInputRef.current) {
@@ -116,11 +114,20 @@ const CollapsibleNodePanel: React.FC = () => {
         }
     }, [isExpanded])
 
-    const handleAddNode = (nodeName: string): void => {
+    const defaultHandleAddNode = (nodeName: string): void => {
         if (reactFlowInstance) {
             createNodeAtCenter(nodes, nodeTypes, nodeName, reactFlowInstance, dispatch)
             dispatch(setNodePanelExpanded(false))
         }
+    }
+
+    const onAddNode = (nodeName: string): void => {
+        if (isCustomAdd && handleAddNode) {
+            handleAddNode(nodeName)
+        } else {
+            defaultHandleAddNode(nodeName)
+        }
+        dispatch(setNodePanelExpanded(false))
     }
 
     useEffect(() => {
@@ -180,7 +187,10 @@ const CollapsibleNodePanel: React.FC = () => {
                 content={
                     <div className="px-1 py-2">
                         <div className="text-small font-bold">Keyboard Shortcuts</div>
-                        <div className="text-tiny">Press {navigator.platform.includes('Mac') ? '⌘+K' : 'Ctrl+K'} or <kbd>K</kbd> to toggle panel</div>
+                        <div className="text-tiny">
+                            Press {navigator.platform.includes('Mac') ? '⌘+K' : 'Ctrl+K'} or <kbd>K</kbd> to toggle
+                            panel
+                        </div>
                     </div>
                 }
                 placement="right"
@@ -256,7 +266,7 @@ const CollapsibleNodePanel: React.FC = () => {
                                                                     <div
                                                                         key={node.name}
                                                                         className="flex items-center cursor-pointer p-2 hover:bg-default-100 ml-4"
-                                                                        onClick={() => handleAddNode(node.name)}
+                                                                        onClick={() => onAddNode(node.name)}
                                                                     >
                                                                         <span
                                                                             className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-foreground"
@@ -275,7 +285,7 @@ const CollapsibleNodePanel: React.FC = () => {
                                                     <div
                                                         key={node.name}
                                                         className="flex items-center cursor-pointer p-2 hover:bg-default-100"
-                                                        onClick={() => handleAddNode(node.name)}
+                                                        onClick={() => onAddNode(node.name)}
                                                     >
                                                         <div className="w-16 flex-shrink-0">
                                                             {node.logo ? (
