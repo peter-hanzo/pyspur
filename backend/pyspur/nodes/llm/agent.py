@@ -107,7 +107,7 @@ class AgentNode(SingleLLMCallNode):
             print(f"[ERROR] Failed to render template: {e}")
             return template_str
 
-    def add_tools(self, tools: List[WorkflowNodeSchema | BaseNode]) -> None:
+    def add_tools(self, tools: List[WorkflowNodeSchema] | List[BaseNode]) -> None:
         """Add tools to the agent node."""
         for tool in tools:
             if isinstance(tool, BaseNode):
