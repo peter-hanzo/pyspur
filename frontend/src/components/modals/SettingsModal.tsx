@@ -325,19 +325,23 @@ const APIKeys = (props: CardProps): React.ReactElement => {
                 <CardFooter className="px-0 pt-4">
                     <div className="flex gap-2 ml-auto">
                         <Button
+                            size="lg"
                             variant="light"
                             onPress={() => {
                                 setKeys(originalKeys)
                                 setSelectedProvider(null)
                             }}
                             startContent={<Icon icon="solar:close-circle-bold" width={20} />}
+                            endContent={<span className="text-xs opacity-70">ESC</span>}
                         >
                             Cancel
                         </Button>
                         <Button
+                            size="lg"
                             color="primary"
                             onPress={saveApiKeys}
                             startContent={<Icon icon="solar:disk-bold" width={20} />}
+                            endContent={<span className="text-xs opacity-70">⌘+↵</span>}
                         >
                             Save Changes
                         </Button>
@@ -356,6 +360,19 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onOpenChange }) => {
     const [activeTab, setActiveTab] = React.useState<'appearance' | 'api-keys'>('appearance')
     const { theme, setTheme } = useTheme()
+
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onOpenChange(false)
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, onOpenChange])
 
     return (
         <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="full" scrollBehavior="inside">
@@ -408,7 +425,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onOpenChange }) =
                 )}
             </ModalContent>
         </Modal>
-
     )
 }
 

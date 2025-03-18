@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Button,
     Modal,
@@ -36,6 +36,21 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
             setInputData(existingData);
         }
     }, [workflow]);
+
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                handleSubmit()
+            } else if (event.key === 'Escape') {
+                onClose()
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, action, inputData, comments])
 
     const handleSubmit = () => {
         onSubmit(action, inputData, comments)
@@ -184,8 +199,22 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                     </div>
                 </ModalBody>
                 <ModalFooter>
-                    <Button variant="bordered" onPress={onClose}>Cancel</Button>
-                    <Button color="primary" onPress={handleSubmit}>Submit Decision</Button>
+                    <Button
+                        size="lg"
+                        variant="bordered"
+                        onPress={onClose}
+                        endContent={<span className="text-xs opacity-70">ESC</span>}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        size="lg"
+                        color="primary"
+                        onPress={handleSubmit}
+                        endContent={<span className="text-xs opacity-70">⌘+↵</span>}
+                    >
+                        Submit Decision
+                    </Button>
                 </ModalFooter>
             </ModalContent>
         </Modal>

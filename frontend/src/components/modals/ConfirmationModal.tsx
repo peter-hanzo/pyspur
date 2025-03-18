@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import {
     Button,
     Modal,
@@ -29,23 +29,46 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     cancelText = 'Cancel',
     isDanger = false,
 }) => {
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+                onConfirm()
+                onClose()
+            } else if (event.key === 'Escape') {
+                onClose()
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, onConfirm, onClose])
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal isOpen={isOpen} onClose={onClose} size="2xl">
             <ModalContent>
                 <ModalHeader>{title}</ModalHeader>
                 <ModalBody>
                     <p>{message}</p>
                 </ModalBody>
                 <ModalFooter>
-                    <Button variant="light" onPress={onClose}>
+                    <Button
+                        size="lg"
+                        variant="light"
+                        onPress={onClose}
+                        endContent={<span className="text-xs opacity-70">ESC</span>}
+                    >
                         {cancelText}
                     </Button>
                     <Button
+                        size="lg"
                         color={isDanger ? 'danger' : 'primary'}
                         onPress={() => {
                             onConfirm()
                             onClose()
                         }}
+                        endContent={<span className="text-xs opacity-70">↵</span>}
                     >
                         {confirmText}
                     </Button>

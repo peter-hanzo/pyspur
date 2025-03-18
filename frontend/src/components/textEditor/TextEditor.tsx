@@ -458,10 +458,19 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                                     </div>
                                 </ModalBody>
                                 <ModalFooter>
-                                    <Button color="danger" variant="light" onPress={() => handleCancel(onClose)} size={buttonSize}>
+                                    <Button
+                                        color="danger"
+                                        variant="light"
+                                        onPress={() => handleCancel(onClose)}
+                                        size="lg"
+                                    >
                                         Cancel
                                     </Button>
-                                    <Button color="primary" onPress={() => handleSave(onClose)} size={buttonSize}>
+                                    <Button
+                                        color="primary"
+                                        onPress={() => handleSave(onClose)}
+                                        size="lg"
+                                    >
                                         Save
                                     </Button>
                                 </ModalFooter>
@@ -588,7 +597,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                                 </ModalBody>
                                 <ModalFooter>
                                     <Button
-                                        size={buttonSize}
+                                        size="lg"
                                         variant="light"
                                         onClick={resetModalState}
                                         isDisabled={isGenerating}
@@ -596,7 +605,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                                         Cancel
                                     </Button>
                                     <Button
-                                        size={buttonSize}
+                                        size="lg"
                                         color="primary"
                                         onClick={handleGenerateMessage}
                                         isLoading={isGenerating}
