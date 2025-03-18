@@ -165,7 +165,10 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
                 return
             }
 
-            const testCase = testInputs.find((row) => row.id.toString() === selectedTestInputId) ?? testInputs[0]
+            // If a test case is explicitly selected, use that
+            // Otherwise, use the most recent test case (last one in the array)
+            const testCase = testInputs.find((row) => row.id.toString() === selectedTestInputId) ||
+                             testInputs[testInputs.length - 1]
 
             if (testCase) {
                 const { id, ...inputValues } = testCase

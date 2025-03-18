@@ -86,22 +86,6 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         return maxId + 1
     }
 
-    const handleAddRow = () => {
-        // Check if we have any content to add
-        const hasContent = Object.values(editorContents).some((v) => v?.trim())
-        if (!hasContent) return
-
-        const newId = getNextId()
-        const newTestInput: TestInput = {
-            id: newId,
-            ...editorContents,
-        }
-        setTestData([...testData, newTestInput])
-        setEditorContents({}) // Clear editor contents
-        dispatch(addTestInput(newTestInput))
-        saveWorkflow()
-    }
-
     const handleDeleteRow = (id: number) => {
         setTestData(testData.filter((row) => row.id !== id))
         if (selectedTestInputId === id.toString()) {
