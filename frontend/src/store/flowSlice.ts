@@ -288,6 +288,38 @@ const flowSlice = createSlice({
             }
         },
 
+        addToolToAgent: (state, action: PayloadAction<{ nodeId: string; nodeTypeName: string }>) => {
+            const { nodeId, nodeTypeName } = action.payload
+            const node = state.nodes.find((n) => n.id === nodeId)
+            if (node) {
+                // Generate a new ID following the same pattern as other nodes
+                const existingIds = state.nodes.map((node) => node.id)
+                const sanitizedType = nodeTypeName.replace(/\s+/g, '_').replace(/Node/g, 'Tool')
+                let counter = 1
+                let newId = `${sanitizedType}_${counter}`
+                while (existingIds.includes(newId)) {
+                    counter++
+                    newId = `${sanitizedType}_${counter}`
+                }
+
+                // Create the new node using createNode
+                const result = createNode(
+                    // @ts-ignore - nodeTypes will be properly typed at runtime
+                    state.nodeTypes,
+                    nodeTypeName,
+                    newId,
+                    { x: 0, y: 0 },
+                    nodeId // Set parentId to the agent node's ID
+                )
+
+                if (result) {
+                    // Add the node and its config to the flow state
+                    state.nodes.push(result.node)
+                    state.nodeConfigs[result.node.id] = result.config
+                }
+            }
+        },
+
         setSelectedNode: (state, action: PayloadAction<{ nodeId: string | null }>) => {
             state.selectedNode = action.payload.nodeId
         },
@@ -773,6 +805,7 @@ export const {
     setEdges,
     updateNodeDataOnly,
     updateNodeConfigOnly,
+    addToolToAgent,
     setSelectedNode,
     setSelectedEdgeId,
     deleteNode,
