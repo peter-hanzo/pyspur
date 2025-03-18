@@ -27,9 +27,6 @@ class AgentNodeConfig(SingleLLMCallNodeConfig):
     Extends SingleLLMCallNodeConfig with support for tools.
     """
 
-    tools: Optional[List[WorkflowNodeSchema]] = Field(
-        None, description="List of tool nodes that the agent can use"
-    )
     max_iterations: int = Field(
         10, description="Maximum number of tool calls the agent can make in a single run"
     )
@@ -62,12 +59,25 @@ class AgentNode(SingleLLMCallNode):
     input_model = AgentNodeInput
     output_model = AgentNodeOutput
     visual_tag = VisualTag(acronym="AGNT", color="#fb8500")
+    tools: Optional[List[WorkflowNodeSchema]] = Field(
+        None, description="List of tool nodes that the agent can use"
+    )
+
+    def __init__(
+        self,
+        name: str,
+        config: AgentNodeConfig,
+        context: Optional[Any] = None,
+        tools: Optional[List[WorkflowNodeSchema]] = None,
+    ) -> None:
+        super().__init__(name, config, context)
+        self.tools = tools
 
     def setup(self) -> None:
         super().setup()
         # Create a dictionary of tool nodes for easy access
         self.tools_dict: Dict[str, WorkflowNodeSchema] = {}
-        tools: List[WorkflowNodeSchema] = self.config.tools or []
+        tools: List[WorkflowNodeSchema] = self.tools or []
         for tool in tools:
             self.tools_dict[tool.title.lower()] = tool
 
@@ -89,9 +99,6 @@ class AgentNode(SingleLLMCallNode):
             tool_schema = tool_node_instance.function_schema
             self.tools_schemas.append(tool_schema)
 
-        print(f"[DEBUG] AgentNode setup complete. Tools: {self.tools_schemas}")
-        print(f"[DEBUG] Tools dict: {self.tools_dict}")
-
     def _render_template(self, template_str: str, data: Dict[str, Any]) -> str:
         """Render a template with the given data."""
         try:
@@ -99,6 +106,20 @@ class AgentNode(SingleLLMCallNode):
         except Exception as e:
             print(f"[ERROR] Failed to render template: {e}")
             return template_str
+
+    def add_tools(self, tools: List[WorkflowNodeSchema | BaseNode]) -> None:
+        """Add tools to the agent node."""
+        for tool in tools:
+            if isinstance(tool, BaseNode):
+                tool_schema = tool.function_schema
+            else:
+                tool_node_instance = NodeFactory.create_node(
+                    node_name=tool.id,
+                    node_type_name=tool.node_type,
+                    config=tool.config,
+                )
+                tool_schema = tool_node_instance.function_schema
+            self.tools_schemas.append(tool_schema)
 
     async def _call_tool(self, tool_call: ChatCompletionMessageToolCall) -> Any:
         """Call a tool with the provided parameters."""
@@ -352,13 +373,13 @@ if __name__ == "__main__":
         # Create agent node
         agent_node = AgentNode(
             name="MathHelper",
+            tools=[tool_schema],
             config=AgentNodeConfig(
                 llm_info=ModelInfo(model=LLMModels.GPT_4O, temperature=0.7, max_tokens=1000),
                 system_message=(
                     "You are a helpful assistant that can use tools to solve math problems."
                 ),
                 user_message="I need help with this math problem: {{ problem }}",
-                tools=[tool_schema],
                 max_iterations=5,
                 url_variables=None,
                 enable_thinking=False,
