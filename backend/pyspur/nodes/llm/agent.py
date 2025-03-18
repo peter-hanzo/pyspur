@@ -193,6 +193,23 @@ class AgentNode(SingleLLMCallNode):
 
         # Extract message history from input if enabled
         history: Optional[List[Dict[str, str]]] = None
+        if self.config.enable_message_history and self.config.message_history_variable:
+            try:
+                # Try to get history from the specified variable
+                history_var = self.config.message_history_variable
+                if "." in history_var:
+                    # Handle nested fields (e.g., "input_node.message_history")
+                    history = get_nested_field(history_var, input)
+                else:
+                    # Direct field access
+                    history = raw_input_dict.get(history_var)
+
+                assert isinstance(history, list) or history is None, (
+                    f"Expected message history to be a list or None, got {type(history)}"
+                )
+            except Exception as e:
+                print(f"[ERROR] Failed to extract message history: {e}")
+                history = None
 
         messages: List[Dict[str, Any]] = create_messages(
             system_message=system_message,
@@ -391,8 +408,8 @@ if __name__ == "__main__":
                 url_variables=None,
                 enable_thinking=False,
                 thinking_budget_tokens=None,
-                enable_message_history=False,
-                message_history_variable=None,
+                enable_message_history=True,
+                message_history_variable="message_history",
                 output_json_schema=json.dumps(
                     {
                         "type": "object",
@@ -408,8 +425,22 @@ if __name__ == "__main__":
         )
         agent_node.add_tools([tool_schema])
 
-        # Create input
-        test_input = AgentNodeInput.model_validate({"problem": "What is 25 × 13?"})
+        # Create input with message history
+        test_input = AgentNodeInput.model_validate(
+            {
+                "problem": "What is 25 × 13?",
+                "message_history": [
+                    {"role": "user", "content": "Can you help me with some math problems?"},
+                    {
+                        "role": "assistant",
+                        "content": (
+                            "Of course! I'd be happy to help you solve math problems."
+                            " What would you like to calculate?"
+                        ),
+                    },
+                ],
+            }
+        )
 
         # Run the agent
         print("[DEBUG] Testing agent_node...")
