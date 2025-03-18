@@ -2,7 +2,7 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, cast
+from typing import Dict, List
 
 from fastapi import (
     APIRouter,
@@ -212,16 +212,12 @@ def create_workflow(
         # If the workflow type is not CHATBOT, create a new definition with default WORKFLOW type
         workflow_request.definition = create_a_new_workflow_definition(spur_type=SpurType.WORKFLOW)
 
-    # Process tool nodes before storage
-    if workflow_request.definition:
-        workflow_request.definition = _process_tool_nodes_for_storage(workflow_request.definition)
-
     # Generate a unique name for the workflow
     workflow_name = generate_unique_workflow_name(db, workflow_request.name or "Untitled Workflow")
     new_workflow = WorkflowModel(
         name=workflow_name,
         description=workflow_request.description,
-        definition=(workflow_request.definition.model_dump()),
+        definition=workflow_request.definition,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
@@ -229,10 +225,6 @@ def create_workflow(
     db.commit()
     db.refresh(new_workflow)
 
-    # Process tool nodes for response
-    new_workflow.definition = _process_tool_nodes_for_response(
-        WorkflowDefinitionSchema.model_validate(new_workflow.definition)
-    ).model_dump()
     return new_workflow
 
 
@@ -255,9 +247,6 @@ def update_workflow(
             detail="Workflow definition is required to update a workflow",
         )
 
-    # Process tool nodes before storage
-    workflow_request.definition = _process_tool_nodes_for_storage(workflow_request.definition)
-
     workflow.definition = workflow_request.definition.model_dump()
     workflow.name = workflow_request.name
     workflow.description = workflow_request.description
@@ -265,10 +254,6 @@ def update_workflow(
     db.commit()
     db.refresh(workflow)
 
-    # Process tool nodes for response
-    workflow.definition = _process_tool_nodes_for_response(
-        WorkflowDefinitionSchema.model_validate(workflow.definition)
-    ).model_dump()
     return workflow
 
 
@@ -310,10 +295,6 @@ def get_workflow(workflow_id: str, db: Session = Depends(get_db)) -> WorkflowRes
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Process tool nodes for response
-    workflow.definition = _process_tool_nodes_for_response(
-        WorkflowDefinitionSchema.model_validate(workflow.definition)
-    ).model_dump()
     return workflow
 
 
@@ -389,14 +370,10 @@ def duplicate_workflow(workflow_id: str, db: Session = Depends(get_db)) -> Workf
     # Create a new WorkflowModel instance by copying fields
     new_workflow_name = generate_unique_workflow_name(db, f"{workflow.name} (Copy)")
 
-    # Process tool nodes for storage
-    definition = WorkflowDefinitionSchema.model_validate(workflow.definition)
-    definition = _process_tool_nodes_for_storage(definition)
-
     new_workflow = WorkflowModel(
         name=new_workflow_name,
         description=workflow.description,
-        definition=definition.model_dump(),
+        definition=workflow.definition.model_dump(),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
@@ -405,11 +382,6 @@ def duplicate_workflow(workflow_id: str, db: Session = Depends(get_db)) -> Workf
     db.add(new_workflow)
     db.commit()
     db.refresh(new_workflow)
-
-    # Process tool nodes for response
-    new_workflow.definition = _process_tool_nodes_for_response(
-        WorkflowDefinitionSchema.model_validate(new_workflow.definition)
-    ).model_dump()
 
     # Return the duplicated workflow
     return new_workflow
@@ -549,73 +521,3 @@ def get_workflow_versions(
 
     # Convert models to response schemas
     return [WorkflowVersionResponseSchema.model_validate(version) for version in versions]
-
-
-def _process_tool_nodes_for_storage(
-    definition: WorkflowDefinitionSchema,
-) -> WorkflowDefinitionSchema:
-    """Process tool nodes before storing in the database.
-
-    For nodes with parent_id where parent is an AgentNode:
-    1. Move the node to the parent's tools array in config
-    2. Remove the node from the main nodes list
-    """
-    # First identify all agent nodes
-    agent_nodes: Dict[str, WorkflowNodeSchema] = {
-        node.id: node for node in definition.nodes if node.node_type == "Agent"
-    }
-
-    # Separate regular nodes and tool nodes
-    regular_nodes: List[WorkflowNodeSchema] = []
-    tool_nodes: List[WorkflowNodeSchema] = []
-
-    for node in definition.nodes:
-        if node.parent_id and node.parent_id in agent_nodes:
-            # This is a tool node
-            tool_nodes.append(node)
-        else:
-            regular_nodes.append(node)
-
-    # Add tool nodes to their respective agent's config
-    for agent_id, agent_node in agent_nodes.items():
-        # Ignore any existing tools array and create a new one
-        agent_tools = [node for node in tool_nodes if node.parent_id == agent_id]
-        # Always start with a fresh tools array
-        agent_node.config["tools"] = []
-        if agent_tools:
-            # Cast the tools list to List[Dict] since that's what the config expects
-            agent_node.config["tools"] = [tool.model_dump() for tool in agent_tools]
-
-    # Update the definition with regular nodes only
-    definition.nodes = regular_nodes
-    return definition
-
-
-def _process_tool_nodes_for_response(
-    definition: WorkflowDefinitionSchema,
-) -> WorkflowDefinitionSchema:
-    """Process tool nodes before sending to frontend.
-
-    For AgentNodes:
-    1. Move tools from config to main nodes list
-    2. Set parent_id on the tool nodes
-    """
-    # First identify all agent nodes and their tools
-    tool_nodes: List[WorkflowNodeSchema] = []
-    nodes_list: List[WorkflowNodeSchema] = list(definition.nodes)
-
-    for node in nodes_list:
-        if node.node_type == "Agent" and node.config.get("tools"):
-            tools = node.config.pop("tools", [])
-            for tool in tools:
-                # Convert dict to WorkflowNodeSchema if needed
-                if isinstance(tool, dict):
-                    tool_node = WorkflowNodeSchema.model_validate(tool)
-                else:
-                    tool_node = cast(WorkflowNodeSchema, tool)
-                tool_node.parent_id = node.id
-                tool_nodes.append(tool_node)
-
-    # Add all tool nodes to the main nodes list
-    definition.nodes = nodes_list + tool_nodes
-    return definition
