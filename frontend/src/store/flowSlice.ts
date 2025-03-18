@@ -313,12 +313,6 @@ const flowSlice = createSlice({
                 )
 
                 if (result) {
-                    // Add isTool flag to the node data
-                    result.node.data.isTool = true
-
-                    // Add the tool ID to the agent's config.tools array
-                    state.nodeConfigs[nodeId].tools = [...(state.nodeConfigs[nodeId].tools || []), newId]
-
                     // Add the node and its config to the flow state
                     state.nodes.push(result.node)
                     state.nodeConfigs[result.node.id] = result.config
