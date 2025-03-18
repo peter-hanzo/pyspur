@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react'
 import { useRouter } from 'next/router'
+import React, { useEffect } from 'react'
+
 import { validateGoogleAccessToken } from '@/utils/api'
 
 const GoogleAuthPage: React.FC = () => {

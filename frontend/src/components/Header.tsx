@@ -1,4 +1,3 @@
-import { WorkflowVersionResponse } from '@/types/api_types/workflowSchemas'
 import {
     Alert,
     Button,
@@ -22,6 +21,9 @@ import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { WorkflowVersionResponse } from '@/types/api_types/workflowSchemas'
+
 import { useSaveWorkflow } from '../hooks/useSaveWorkflow'
 import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
 import { useWorkflowFileOperations } from '../hooks/useWorkflowFileOperations'
@@ -167,8 +169,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, associatedWorkflowId, runId
 
             // If a test case is explicitly selected, use that
             // Otherwise, use the most recent test case (last one in the array)
-            const testCase = testInputs.find((row) => row.id.toString() === selectedTestInputId) ||
-                             testInputs[testInputs.length - 1]
+            const testCase =
+                testInputs.find((row) => row.id.toString() === selectedTestInputId) || testInputs[testInputs.length - 1]
 
             if (testCase) {
                 const { id, ...inputValues } = testCase

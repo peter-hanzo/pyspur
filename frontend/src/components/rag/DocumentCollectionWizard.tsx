@@ -1,28 +1,29 @@
-import React, { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/router'
 import {
+    Alert,
     Button,
     Card,
     CardBody,
+    Chip,
+    Divider,
     Input,
-    Textarea,
+    Progress,
+    Radio,
+    RadioGroup,
     Select,
     SelectItem,
-    Progress,
-    Divider,
-    Switch,
-    Tooltip,
-    Chip,
-    Alert,
-    Spinner,
-    RadioGroup,
-    Radio,
     Slider,
+    Switch,
+    Textarea,
+    Tooltip,
 } from '@heroui/react'
-import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
-import { createDocumentCollection } from '@/utils/api'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, ArrowRight, CheckCircle, Info } from 'lucide-react'
+import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
+
 import type { DocumentCollectionCreateRequest } from '@/utils/api'
-import { motion, AnimatePresence } from 'framer-motion'
+import { createDocumentCollection } from '@/utils/api'
+
 import FileUploadBox from '../FileUploadBox'
 import ChunkEditor from './ChunkEditor'
 

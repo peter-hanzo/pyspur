@@ -1,21 +1,16 @@
-import { updateNodeConfigOnly } from '@/store/flowSlice'
-import { RootState } from '@/store/store'
 import { Divider } from '@heroui/react'
-import {
-    Handle,
-    NodeResizer,
-    Position,
-    useConnection,
-    useStore,
-    useUpdateNodeInternals,
-} from '@xyflow/react'
+import { NodeResizer, useConnection, useStore, useUpdateNodeInternals } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { updateNodeConfigOnly } from '@/store/flowSlice'
+import { RootState } from '@/store/store'
+
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
-import { getRelativeNodesBounds } from './groupNodeUtils'
 import { OutputHandleRow } from '../shared/OutputHandleRow'
+import { getRelativeNodesBounds } from './groupNodeUtils'
 
 export interface DynamicGroupNodeProps {
     id: string
@@ -151,7 +146,9 @@ const DynamicGroupNode: React.FC<DynamicGroupNodeProps> = ({ id }) => {
     const renderOutputHandles = () => {
         return (
             <div className={`${styles.handlesColumn} ${styles.outputHandlesColumn}`} id="output-handle">
-                {nodeConfig?.title && <OutputHandleRow id={id} keyName={String(nodeConfig?.title)} isCollapsed={isCollapsed} />}
+                {nodeConfig?.title && (
+                    <OutputHandleRow id={id} keyName={String(nodeConfig?.title)} isCollapsed={isCollapsed} />
+                )}
             </div>
         )
     }

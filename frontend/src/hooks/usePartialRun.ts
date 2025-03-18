@@ -1,7 +1,9 @@
-import { setRunModalOpen, updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
-import { AppDispatch, RootState } from '@/store/store'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
+
+import { setRunModalOpen, updateNodeDataOnly, updateNodesFromPartialRun } from '@/store/flowSlice'
+import { AppDispatch, RootState } from '@/store/store'
+
 import { runPartialWorkflow } from '../utils/api'
 
 interface PartialRunResult {

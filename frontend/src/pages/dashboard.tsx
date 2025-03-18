@@ -1,6 +1,7 @@
 import React from 'react'
-import Header from '../components/Header'
+
 import Dashboard from '../components/Dashboard'
+import Header from '../components/Header'
 
 const DashboardPage: React.FC = () => {
     return (

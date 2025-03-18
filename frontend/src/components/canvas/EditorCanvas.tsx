@@ -1,7 +1,3 @@
-import { FlowWorkflowNodeType } from '@/store/nodeTypesSlice'
-import { FlowWorkflowEdge, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
-import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
 import { Alert, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import {
@@ -9,14 +5,14 @@ import {
     ConnectionMode,
     Edge,
     EdgeTypes,
-    getNodesBounds,
-    getViewportForBounds,
     Node,
     Panel,
     ReactFlow,
     ReactFlowInstance,
     ReactFlowProvider,
     SelectionMode,
+    getNodesBounds,
+    getViewportForBounds,
     useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -25,6 +21,13 @@ import { throttle } from 'lodash'
 import isEqual from 'lodash/isEqual'
 import React, { MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { FlowWorkflowNodeType } from '@/store/nodeTypesSlice'
+import { AlertState } from '@/types/alert'
+import { FlowWorkflowEdge, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
+import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
+
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import { deleteNode, initializeFlow, setNodes, setSelectedEdgeId, setSelectedNode } from '../../store/flowSlice'
@@ -35,8 +38,8 @@ import {
     insertNodeBetweenNodes,
     useAdjustGroupNodesZIndex,
     useFlowEventHandlers,
-    useNodesWithMode,
     useNodeTypes,
+    useNodesWithMode,
     useStyledEdges,
 } from '../../utils/flowUtils'
 import useCopyPaste from '../../utils/useCopyPaste'
@@ -47,14 +50,13 @@ import { onNodeDragOverGroupNode, onNodeDragStopOverGroupNode } from '../nodes/l
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
 import CustomEdge from './Edge'
 import Operator from './footer/Operator'
-import { AlertState } from '@/types/alert'
 
 // Create a context for the alert function
 export const AlertContext = React.createContext<{
-    showAlert: (message: string, color: AlertState['color']) => void;
+    showAlert: (message: string, color: AlertState['color']) => void
 }>({
     showAlert: () => {},
-});
+})
 
 interface EditorCanvasProps {
     workflowData?: WorkflowCreateRequest
@@ -636,11 +638,15 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({
                                                                                                   className="node-acronym-tag text-white px-2 py-1 rounded-full text-xs"
                                                                                                   style={{
                                                                                                       backgroundColor:
-                                                                                                          node.visual_tag
+                                                                                                          node
+                                                                                                              .visual_tag
                                                                                                               ?.color,
                                                                                                   }}
                                                                                               >
-                                                                                                  {node.visual_tag?.acronym}
+                                                                                                  {
+                                                                                                      node.visual_tag
+                                                                                                          ?.acronym
+                                                                                                  }
                                                                                               </div>
                                                                                           )
                                                                                       }
@@ -682,7 +688,10 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({
                                                                                                             ?.color,
                                                                                                 }}
                                                                                             >
-                                                                                                {node.visual_tag?.acronym}
+                                                                                                {
+                                                                                                    node.visual_tag
+                                                                                                        ?.acronym
+                                                                                                }
                                                                                             </div>
                                                                                         )
                                                                                     }
@@ -720,9 +729,9 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({
                                                                         {node.config.title}
                                                                     </DropdownItem>
                                                                 )))}
-                                            </React.Fragment>
-                                        )
-                                    })}
+                                                </React.Fragment>
+                                            )
+                                        })}
                             </DropdownMenu>
                         </Dropdown>
                     </div>
@@ -775,7 +784,10 @@ const EditorCanvasContent: React.FC<EditorCanvasProps> = ({
                         >
                             <Background />
                             {showHelperLines && (
-                                <HelperLinesRenderer horizontal={helperLines.horizontal} vertical={helperLines.vertical} />
+                                <HelperLinesRenderer
+                                    horizontal={helperLines.horizontal}
+                                    vertical={helperLines.vertical}
+                                />
                             )}
                             <Operator handleLayout={handleLayout} handleDownloadImage={handleDownloadImage} />
 

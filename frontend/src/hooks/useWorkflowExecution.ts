@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeDataOnly, resetRun } from '../store/flowSlice'
-import { getRunStatus, startRun, getWorkflowRuns, validateGoogleAccessToken } from '../utils/api'
-import { RootState } from '../store/store'
-import store from '../store/store'
+
+import { resetRun, updateNodeDataOnly } from '../store/flowSlice'
+import store, { RootState } from '../store/store'
 import { AlertColor } from '../types/alert'
+import { getRunStatus, getWorkflowRuns, startRun, validateGoogleAccessToken } from '../utils/api'
 
 interface UseWorkflowExecutionProps {
     onAlert: (message: string, color: AlertColor) => void
@@ -43,10 +43,10 @@ export const useWorkflowExecution = ({ onAlert }: UseWorkflowExecutionProps) => 
                 }
 
                 // Check if any task is paused
-                const hasPausedTask = tasks.some(task => task.status === 'PAUSED')
-                const hasRunningTask = tasks.some(task => task.status === 'RUNNING')
-                const hasFailedTask = tasks.some(task => task.status === 'FAILED')
-                const hasPendingTask = tasks.some(task => task.status === 'PENDING')
+                const hasPausedTask = tasks.some((task) => task.status === 'PAUSED')
+                const hasRunningTask = tasks.some((task) => task.status === 'RUNNING')
+                const hasFailedTask = tasks.some((task) => task.status === 'FAILED')
+                const hasPendingTask = tasks.some((task) => task.status === 'PENDING')
 
                 if (tasks.length > 0) {
                     tasks.forEach((task) => {

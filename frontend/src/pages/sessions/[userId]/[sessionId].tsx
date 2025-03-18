@@ -1,10 +1,11 @@
-import Chat from '@/components/chat/Chat'
-import { SessionResponse } from '@/types/api_types/sessionSchemas'
-import { getSession } from '@/utils/api'
 import { Button, Spinner } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+
+import Chat from '@/components/chat/Chat'
+import { SessionResponse } from '@/types/api_types/sessionSchemas'
+import { getSession } from '@/utils/api'
 
 const SessionChatPage: React.FC = () => {
     const router = useRouter()

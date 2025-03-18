@@ -1,7 +1,7 @@
+import { Button, Card, CardBody, Chip } from '@heroui/react'
+import { CheckCircle2, Upload, X } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Card, CardBody, Button, Chip } from '@heroui/react'
-import { Upload, X, CheckCircle2 } from 'lucide-react'
 
 interface FileUploadBoxProps {
     onFilesChange: (files: File[]) => void | Promise<void>

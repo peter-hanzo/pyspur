@@ -1,6 +1,7 @@
 import React from 'react'
-import { VectorIndexDetails } from '@/components/rag/VectorIndexDetails'
+
 import Header from '@/components/Header'
+import { VectorIndexDetails } from '@/components/rag/VectorIndexDetails'
 
 const VectorIndexPage: React.FC = () => {
     return (

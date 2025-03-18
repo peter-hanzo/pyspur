@@ -1,5 +1,3 @@
-import { FlowState } from '@/types/api_types/flowStateSchema'
-import { TestInput } from '@/types/api_types/workflowSchemas'
 import {
     Button,
     Modal,
@@ -12,9 +10,12 @@ import {
     Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import React, { Dispatch, SetStateAction, useState, useEffect } from 'react'
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import SyntaxHighlighter, { oneDark } from 'react-syntax-highlighter'
+
+import { FlowState } from '@/types/api_types/flowStateSchema'
+import { TestInput } from '@/types/api_types/workflowSchemas'
 
 interface DeployModalProps {
     isOpen: boolean

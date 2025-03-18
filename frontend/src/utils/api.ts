@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 import {
     MessageGenerationRequest,
     MessageGenerationResponse,
@@ -31,8 +33,10 @@ import {
     WorkflowResponse,
     WorkflowVersionResponse,
 } from '@/types/api_types/workflowSchemas'
-import axios from 'axios'
-import JSPydanticModel from './JSPydanticModel' // Import the JSPydanticModel class
+
+import JSPydanticModel from './JSPydanticModel'
+
+// Import the JSPydanticModel class
 
 const API_BASE_URL =
     typeof window !== 'undefined'

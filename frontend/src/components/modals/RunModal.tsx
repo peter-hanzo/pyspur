@@ -1,5 +1,3 @@
-import { TestInput } from '@/types/api_types/workflowSchemas'
-import { uploadTestFiles } from '@/utils/api'
 import {
     Alert,
     Button,
@@ -21,6 +19,10 @@ import {
 import { Icon } from '@iconify/react'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { TestInput } from '@/types/api_types/workflowSchemas'
+import { uploadTestFiles } from '@/utils/api'
+
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import { addTestInput, deleteTestInput, setSelectedTestInputId, updateTestInput } from '../../store/flowSlice'
 import { getNodeMissingRequiredFields } from '../../store/nodeTypesSlice'
@@ -439,11 +441,17 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                         >
                                             <TableHeader>
                                                 {[
-                                                    <TableColumn key="id" width={60}>ID</TableColumn>,
+                                                    <TableColumn key="id" width={60}>
+                                                        ID
+                                                    </TableColumn>,
                                                     ...workflowInputVariableNames.map((field) => (
-                                                        <TableColumn key={field} className="flex-1">{field}</TableColumn>
+                                                        <TableColumn key={field} className="flex-1">
+                                                            {field}
+                                                        </TableColumn>
                                                     )),
-                                                    <TableColumn key="actions" width={80}>Actions</TableColumn>,
+                                                    <TableColumn key="actions" width={80}>
+                                                        Actions
+                                                    </TableColumn>,
                                                 ]}
                                             </TableHeader>
                                             <TableBody>
@@ -593,12 +601,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                 >
                                     Cancel
                                 </Button>
-                                <Button
-                                    size="lg"
-                                    color="primary"
-                                    variant="bordered"
-                                    onPress={handleSave}
-                                >
+                                <Button size="lg" color="primary" variant="bordered" onPress={handleSave}>
                                     Save & Close
                                 </Button>
                                 <Button

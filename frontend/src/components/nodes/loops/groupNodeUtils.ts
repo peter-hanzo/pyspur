@@ -1,14 +1,16 @@
-import { type Node, type NodeOrigin, type Rect, Box, Edge } from '@xyflow/react'
 // @todo import from @xyflow/react when fixed
 import { Dispatch } from '@reduxjs/toolkit'
+import { Box, Edge, type Node, type NodeOrigin, type Rect } from '@xyflow/react'
 import { boxToRect, getNodePositionWithOrigin, rectToBox } from '@xyflow/system'
-import { updateNodeParentAndCoordinates } from '../../../store/flowSlice'
+import { MouseEvent as ReactMouseEvent } from 'react'
+
 // Add MouseEvent from React
 import { addNodeWithConfig } from '@/store/flowSlice'
 import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
 import { AppDispatch } from '@/store/store'
 import { createNode } from '@/utils/nodeFactory'
-import { MouseEvent as ReactMouseEvent } from 'react'
+
+import { updateNodeParentAndCoordinates } from '../../../store/flowSlice'
 
 export const GROUP_NODE_TYPES = ['ForLoopNode']
 

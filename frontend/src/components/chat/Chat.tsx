@@ -1,9 +1,11 @@
 'use client'
 
-import { createTestSession, getSession } from '@/utils/api'
 import { ScrollShadow } from '@heroui/react'
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
+import { createTestSession, getSession } from '@/utils/api'
+
 import { useChatWorkflowExecution } from '../../hooks/useChatWorkflowExecution'
 import MessageCard from './MessageCard'
 import PromptInputWithRegenerateButton from './PromptInputWithRegenerateButton'

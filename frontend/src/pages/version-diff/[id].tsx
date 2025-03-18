@@ -1,11 +1,12 @@
-import Header from '@/components/Header'
-import { WorkflowVersionResponse } from '@/types/api_types/workflowSchemas'
-import { getWorkflowVersions } from '@/utils/api'
 import { Button, Card, CardBody, Select, SelectItem, Spinner } from '@heroui/react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import ReactDiffViewer from 'react-diff-viewer-continued'
+
+import Header from '@/components/Header'
+import { WorkflowVersionResponse } from '@/types/api_types/workflowSchemas'
+import { getWorkflowVersions } from '@/utils/api'
 
 const WorkflowVersionDiff: React.FC = () => {
     const router = useRouter()

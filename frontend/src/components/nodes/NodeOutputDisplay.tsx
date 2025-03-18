@@ -1,10 +1,9 @@
 import { Icon } from '@iconify/react'
 import React, { useState } from 'react'
-import Markdown from 'react-markdown'
-import SyntaxHighlighter, { oneDark } from 'react-syntax-highlighter'
-
 import JsonView from 'react18-json-view'
 import 'react18-json-view/src/style.css'
+import Markdown from 'react-markdown'
+import SyntaxHighlighter, { oneDark } from 'react-syntax-highlighter'
 
 interface NodeOutputDisplayProps {
     output: Record<string, any>

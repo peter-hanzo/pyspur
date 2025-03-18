@@ -1,5 +1,6 @@
-import CodeEditor from '@/components/CodeEditor'
 import React, { useMemo } from 'react'
+
+import CodeEditor from '@/components/CodeEditor'
 
 interface NodeErrorDisplayProps {
     error: string
