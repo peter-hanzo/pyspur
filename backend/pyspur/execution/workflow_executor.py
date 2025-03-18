@@ -12,7 +12,7 @@ from ..models.user_session_model import MessageModel, SessionModel
 from ..models.workflow_model import WorkflowModel
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
-from ..nodes.logic.human_intervention import PauseException
+from ..nodes.logic.human_intervention import PauseError
 from ..schemas.workflow_schemas import (
     SpurType,
     WorkflowDefinitionSchema,
@@ -357,7 +357,7 @@ class WorkflowExecutor:
             run.status = RunStatus.PAUSED
             # Note: We don't commit immediately - caller should commit when all updates are done
 
-    def _handle_pause_exception(self, node_id: str, pause_exception: PauseException) -> None:
+    def _handle_pause_exception(self, node_id: str, pause_exception: PauseError) -> None:
         """Handle a pause exception for a node."""
         # Mark the node as paused
         self._mark_node_as_paused(node_id, pause_exception.output)
@@ -641,7 +641,7 @@ class WorkflowExecutor:
                 # Store output
                 self._outputs[node_id] = output
                 return output
-            except PauseException as e:
+            except PauseError as e:
                 self._handle_pause_exception(node_id, e)
                 # Return None to prevent downstream execution
                 return None
@@ -803,9 +803,9 @@ class WorkflowExecutor:
 
         # Process results to handle any exceptions
         paused_node_id: Optional[str] = None
-        paused_exception: Optional[PauseException] = None
+        paused_exception: Optional[PauseError] = None
         for node_id, result in zip(self._node_tasks.keys(), results, strict=False):
-            if isinstance(result, PauseException):
+            if isinstance(result, PauseError):
                 # Handle pause state - don't mark as failed
                 paused_node_id = result.node_id
                 paused_exception = result
