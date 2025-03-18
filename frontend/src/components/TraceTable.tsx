@@ -263,7 +263,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     }
 
     const handleRunClick = (runId: string) => {
-        router.push(`/trace/${runId}`)
+        window.open(`/trace/${runId}`, '_blank')
     }
 
     return (
