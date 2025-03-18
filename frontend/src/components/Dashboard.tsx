@@ -1329,6 +1329,41 @@ const Dashboard: React.FC = () => {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
+                                                    {agent.workflow_id ? (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            color="primary"
+                                                        >
+                                                            {agent.workflow_id}
+                                                        </Chip>
+                                                    ) : (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            color="warning"
+                                                        >
+                                                            Not Connected
+                                                        </Chip>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Switch
+                                                        size="sm"
+                                                        isSelected={agent.trigger_enabled}
+                                                        isDisabled={!agent.workflow_id}
+                                                        aria-label="Trigger Enabled"
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        color={agent.is_active ? "success" : "danger"}
+                                                        variant="flat"
+                                                    >
+                                                        {agent.is_active ? "Active" : "Inactive"}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <Button
                                                             isIconOnly
