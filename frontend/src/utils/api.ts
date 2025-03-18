@@ -207,18 +207,25 @@ export const getWorkflow = async (workflowID: string): Promise<WorkflowResponse>
     }
 }
 
-export const getWorkflowRuns = async (
-    workflowID: string,
+export async function getWorkflowRuns(
+    workflowId: string,
     page: number = 1,
-    pageSize: number = 10
-): Promise<RunResponse[]> => {
+    pageSize: number = 10,
+    startDate?: Date,
+    endDate?: Date
+): Promise<RunResponse[]> {
+    let url = `${API_BASE_URL}/wf/${workflowId}/runs/?page=${page}&page_size=${pageSize}`
+
+    // Add date filters if provided
+    if (startDate) {
+        url += `&start_date=${startDate.toISOString()}`
+    }
+    if (endDate) {
+        url += `&end_date=${endDate.toISOString()}`
+    }
+
     try {
-        const response = await axios.get(`${API_BASE_URL}/wf/${workflowID}/runs/`, {
-            params: {
-                page,
-                page_size: pageSize,
-            },
-        })
+        const response = await axios.get(url)
         return response.data
     } catch (error) {
         console.error('Error fetching workflow runs:', error)
