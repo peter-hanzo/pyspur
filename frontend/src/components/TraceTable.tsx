@@ -78,8 +78,13 @@ const RunsTable: React.FC<{
     const formatDuration = (startTime?: string, endTime?: string) => {
         if (!startTime) return '-'
 
-        const start = parseISO(startTime)
-        const end = endTime ? parseISO(endTime) : new Date()
+        // Ensure timestamps are treated as UTC
+        const utcStartTime = startTime.endsWith('Z') ? startTime : startTime + 'Z'
+        const start = parseISO(utcStartTime)
+
+        // For end time, use the provided time or current time
+        const utcEndTime = endTime ? (endTime.endsWith('Z') ? endTime : endTime + 'Z') : undefined
+        const end = utcEndTime ? parseISO(utcEndTime) : new Date()
 
         // Calculate duration in seconds
         const durationInSeconds = (end.getTime() - start.getTime()) / 1000
@@ -97,7 +102,9 @@ const RunsTable: React.FC<{
     }
 
     const formatTimestamp = (timestamp: string) => {
-        const date = parseISO(timestamp)
+        // Ensure the timestamp is treated as UTC by appending 'Z' if it's not already there
+        const utcTimestamp = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z'
+        const date = parseISO(utcTimestamp)
         return (
             <div className="flex flex-col">
                 <span>{format(date, "MMM d, yyyy HH:mm:ss 'UTC'")}</span>
@@ -188,15 +195,23 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     const [startTime, setStartTime] = useState<string>('00:00')
     const [endTime, setEndTime] = useState<string>('23:59')
     const [numRuns, setNumRuns] = useState<string>('100')
+    const [page, setPage] = useState(1)
+    const [hasMoreRuns, setHasMoreRuns] = useState(true)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
 
     const createUTCDate = (date: Date, time: string): Date => {
         const [hours, minutes] = time.split(':').map(Number)
         return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes))
     }
 
-    const fetchRuns = async () => {
+    const fetchRuns = async (isLoadMore: boolean = false) => {
         try {
-            setIsLoading(true)
+            const currentPage = isLoadMore ? page + 1 : 1
+            setIsLoading(!isLoadMore)
+            if (isLoadMore) {
+                setIsLoadingMore(true)
+            }
+
             let start: Date | undefined
             let end: Date | undefined
 
@@ -208,18 +223,32 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                 end = createUTCDate(new Date(endDate.toString()), endTime)
             }
 
-            const workflowRuns = await getWorkflowRuns(workflowId, 1, parseInt(numRuns), start, end)
+            const workflowRuns = await getWorkflowRuns(workflowId, currentPage, parseInt(numRuns), start, end)
+
             // Sort runs by start time in descending order (newest first)
             const sortedRuns = workflowRuns.sort((a, b) => {
-                const dateA = a.start_time ? new Date(a.start_time).getTime() : 0
-                const dateB = b.start_time ? new Date(b.start_time).getTime() : 0
+                const dateA = a.start_time
+                    ? new Date(a.start_time.endsWith('Z') ? a.start_time : a.start_time + 'Z').getTime()
+                    : 0
+                const dateB = b.start_time
+                    ? new Date(b.start_time.endsWith('Z') ? b.start_time : b.start_time + 'Z').getTime()
+                    : 0
                 return dateB - dateA
             })
-            setRuns(sortedRuns)
+
+            if (isLoadMore) {
+                setRuns((prevRuns) => [...prevRuns, ...sortedRuns])
+            } else {
+                setRuns(sortedRuns)
+            }
+
+            setPage(currentPage)
+            setHasMoreRuns(workflowRuns.length === parseInt(numRuns))
         } catch (error) {
             console.error('Error fetching workflow runs:', error)
         } finally {
             setIsLoading(false)
+            setIsLoadingMore(false)
         }
     }
 
@@ -239,6 +268,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     }, [workflowId, startDate, endDate, startTime, endTime, numRuns])
 
     const handleApplyFilter = () => {
+        setPage(1)
         fetchRuns()
     }
 
@@ -248,10 +278,15 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         setStartTime('00:00')
         setEndTime('23:59')
         setNumRuns('100')
+        setPage(1)
+    }
+
+    const handleLoadMore = () => {
+        fetchRuns(true)
     }
 
     const handleRunClick = (runId: string) => {
-        router.push(`/trace/${runId}`)
+        window.open(`/trace/${runId}`, '_blank')
     }
 
     return (
@@ -327,6 +362,19 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
             </div>
 
             <RunsTable runs={runs} isLoading={isLoading} handleRunClick={handleRunClick} />
+
+            {hasMoreRuns && (
+                <div className="flex justify-center mt-4">
+                    <Button
+                        variant="flat"
+                        onPress={handleLoadMore}
+                        isLoading={isLoadingMore}
+                        startContent={!isLoadingMore && <Icon icon="lucide:plus" width={16} />}
+                    >
+                        {isLoadingMore ? 'Loading...' : 'Load More'}
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

@@ -28,6 +28,17 @@ def repair_json(broken_json_str: str) -> str:
 
     repaired = broken_json_str
 
+    # Remove common LLM artifacts like XML/markdown tags that might be mixed in with JSON
+    repaired = re.sub(r"</?(invoke|function_call|thinking).*?>", "", repaired)
+
+    # Remove markdown code block markers if present
+    repaired = re.sub(r"^```(json)?|```$", "", repaired, flags=re.MULTILINE)
+
+    # Try to extract just the JSON part if it's mixed with other text
+    json_match = re.search(r"(\{[\s\S]*\})", repaired)
+    if json_match:
+        repaired = json_match.group(1)
+
     # Convert single quotes to double quotes, but not within already double-quoted strings
     # First, temporarily replace valid double-quoted strings
     placeholder = "PLACEHOLDER"
@@ -318,8 +329,34 @@ class SingleLLMCallNode(BaseNode):
             raise e
 
         # Validate and return
-        assistant_message = self.output_model.model_validate(assistant_message_dict)
-        return assistant_message
+        try:
+            assistant_message = self.output_model.model_validate(assistant_message_dict)
+            return assistant_message
+        except Exception as e:
+            # For better debugging, include the raw response
+            raw_response = assistant_message_content
+
+            # Also include what we attempted to validate
+            validation_input = json.dumps(assistant_message_dict, default=str)
+
+            error_message = (
+                f"The LLM did not return valid JSON that matches the expected schema.\n\n"
+                f"Raw LLM response:\n{raw_response}\n\n"
+                f"Attempted to validate:\n{validation_input}\n\n"
+                f"Validation error: {str(e)}"
+            )
+
+            raise Exception(
+                json.dumps(
+                    {
+                        "type": "invalid_json_format",
+                        "message": error_message,
+                        "original_response": raw_response,
+                        "validation_input": validation_input,
+                        "validation_error": str(e),
+                    }
+                )
+            ) from e
 
 
 if __name__ == "__main__":

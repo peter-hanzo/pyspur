@@ -1,9 +1,11 @@
 import TraceTable from '@/components/TraceTable'
+import { setProjectName } from '@/store/flowSlice'
 import { getWorkflow } from '@/utils/api'
 import { Spinner } from '@heroui/react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import Header from '../../components/Header'
 import { persistor } from '../../store/store'
@@ -13,6 +15,7 @@ const RunsPage: React.FC = () => {
     const { id } = router.query
     const [workflowName, setWorkflowName] = useState<string>('')
     const [isLoading, setIsLoading] = useState(true)
+    const dispatch = useDispatch()
 
     useEffect(() => {
         const fetchWorkflowName = async () => {
@@ -20,6 +23,7 @@ const RunsPage: React.FC = () => {
             try {
                 const workflow = await getWorkflow(id)
                 setWorkflowName(workflow.name)
+                dispatch(setProjectName(workflow.name))
             } catch (error) {
                 console.error('Error fetching workflow:', error)
             } finally {
@@ -56,10 +60,6 @@ const RunsPage: React.FC = () => {
             <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
                 <Header activePage="runs" associatedWorkflowId={id} />
                 <div className="max-w-7xl mx-auto px-4 py-6 flex-grow">
-                    <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-default-900">{workflowName}</h1>
-                        <p className="text-default-500">Run History</p>
-                    </div>
                     <TraceTable workflowId={id} />
                 </div>
             </div>
