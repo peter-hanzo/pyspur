@@ -53,6 +53,7 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
 
         // Define button styling constants at component level for consistent use
         const buttonSize = 'sm'
+        const largeButtonSize = 'lg'  // New constant for modal buttons
         const buttonClassName = 'w-4 h-4'
         const modalSize = 'full'
 
@@ -226,6 +227,47 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                 modalEditor.commands.setContent(content)
             }
         }, [modalIsOpen, modalEditor, editor])
+
+        useEffect(() => {
+            if (modalIsOpen) {
+                const handleKeyDown = (event: KeyboardEvent) => {
+                    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                        if (modalEditor && editor) {
+                            const content = modalEditor.storage.markdown?.getMarkdown() ?? ''
+                            editor.commands.setContent(content)
+                            setLocalContent(content)
+                            setContent(content)
+                            modalOnOpenChange(false)
+                        }
+                    } else if (event.key === 'Escape') {
+                        // The modal will be closed by the framework itself when ESC is pressed
+                        // We just need to handle content restoration
+                        if (modalEditor && editor) {
+                            const content = editor.storage.markdown?.getMarkdown() ?? ''
+                            modalEditor.commands.setContent(content)
+                        }
+                    }
+                }
+
+                window.addEventListener('keydown', handleKeyDown)
+                return () => window.removeEventListener('keydown', handleKeyDown)
+            }
+        }, [modalIsOpen, modalEditor, editor, setContent, modalOnOpenChange])
+
+        useEffect(() => {
+            if (isOpen) {
+                const handleKeyDown = (event: KeyboardEvent) => {
+                    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !isGenerating) {
+                        handleGenerateMessage()
+                    } else if (event.key === 'Escape' && !isGenerating) {
+                        resetModalState()
+                    }
+                }
+
+                window.addEventListener('keydown', handleKeyDown)
+                return () => window.removeEventListener('keydown', handleKeyDown)
+            }
+        }, [isOpen, isGenerating, description, localContent, selectedVariables, generationType])
 
         const renderVariableButtons = (editorInstance: Editor | null) => {
             // Only show variable buttons if this is a template editor
@@ -458,10 +500,21 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                                     </div>
                                 </ModalBody>
                                 <ModalFooter>
-                                    <Button color="danger" variant="light" onPress={() => handleCancel(onClose)} size={buttonSize}>
+                                    <Button
+                                        color="danger"
+                                        variant="light"
+                                        onPress={() => handleCancel(onClose)}
+                                        size={largeButtonSize}
+                                        endContent={<span className="text-xs opacity-70">ESC</span>}
+                                    >
                                         Cancel
                                     </Button>
-                                    <Button color="primary" onPress={() => handleSave(onClose)} size={buttonSize}>
+                                    <Button
+                                        color="primary"
+                                        onPress={() => handleSave(onClose)}
+                                        size={largeButtonSize}
+                                        endContent={<span className="text-xs opacity-70">⌘+↵</span>}
+                                    >
                                         Save
                                     </Button>
                                 </ModalFooter>
@@ -588,19 +641,21 @@ const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(
                                 </ModalBody>
                                 <ModalFooter>
                                     <Button
-                                        size={buttonSize}
+                                        size={largeButtonSize}
                                         variant="light"
                                         onClick={resetModalState}
                                         isDisabled={isGenerating}
+                                        endContent={<span className="text-xs opacity-70">ESC</span>}
                                     >
                                         Cancel
                                     </Button>
                                     <Button
-                                        size={buttonSize}
+                                        size={largeButtonSize}
                                         color="primary"
                                         onClick={handleGenerateMessage}
                                         isLoading={isGenerating}
                                         isDisabled={isGenerating}
+                                        endContent={<span className="text-xs opacity-70">⌘+↵</span>}
                                     >
                                         Generate
                                     </Button>
