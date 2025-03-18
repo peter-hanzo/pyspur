@@ -1,9 +1,11 @@
-import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import { Button, Card, Divider, Input, Radio, RadioGroup, Select, SelectItem } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { Handle, NodeProps, Position, useConnection, useUpdateNodeInternals } from '@xyflow/react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+
 import { deleteEdgeByHandle, updateNodeConfigOnly } from '../../../store/flowSlice'
 import { RootState } from '../../../store/store'
 import { ComparisonOperator, RouteConditionGroup, RouteConditionRule } from '../../../types/api_types/routerSchemas'

@@ -1,12 +1,14 @@
-import TraceTable from '@/components/TraceTable'
-import { setProjectName } from '@/store/flowSlice'
-import { getWorkflow } from '@/utils/api'
 import { Spinner } from '@heroui/react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
+
+import TraceTable from '@/components/TraceTable'
+import { setProjectName } from '@/store/flowSlice'
+import { getWorkflow } from '@/utils/api'
+
 import Header from '../../components/Header'
 import { persistor } from '../../store/store'
 

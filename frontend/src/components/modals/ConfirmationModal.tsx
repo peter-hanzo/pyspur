@@ -1,12 +1,5 @@
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import React, { useEffect } from 'react'
-import {
-    Button,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-} from '@heroui/react'
 
 interface ConfirmationModalProps {
     isOpen: boolean

@@ -60,9 +60,8 @@ class PartialRunRequestSchema(BaseModel):
 
 
 class ResumeRunRequestSchema(BaseModel):
-    """
-    Schema for resuming a paused workflow run.
-    """
+    """Schema for resuming a paused workflow run."""
+
     inputs: Dict[str, Any]  # Human-provided inputs for the paused node
     user_id: str  # ID of the user resuming the workflow
     action: PauseAction  # Action taken (APPROVE/DECLINE/OVERRIDE)

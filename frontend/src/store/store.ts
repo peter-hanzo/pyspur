@@ -1,12 +1,13 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
-import { persistStore, persistReducer } from 'redux-persist'
+import { persistReducer, persistStore } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
-import flowReducer from './flowSlice'
+
 import { FlowState } from '@/types/api_types/flowStateSchema'
+
+import flowReducer from './flowSlice'
 import nodeTypesReducer, { NodeTypesState } from './nodeTypesSlice'
-import userPreferencesReducer from './userPreferencesSlice'
 import panelReducer from './panelSlice'
-import type { Node, Edge } from '@xyflow/react'
+import userPreferencesReducer from './userPreferencesSlice'
 
 // Define the RootState type
 export interface RootState {

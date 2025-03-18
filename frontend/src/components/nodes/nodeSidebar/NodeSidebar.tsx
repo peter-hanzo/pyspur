@@ -1,4 +1,3 @@
-import { FlowWorkflowNode, FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
 import {
     Accordion,
     AccordionItem,
@@ -15,10 +14,16 @@ import {
     Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import Ajv from 'ajv'
 import { cloneDeep, debounce, set } from 'lodash'
 import isEqual from 'lodash/isEqual'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { FlowWorkflowNode, FlowWorkflowNodeConfig } from '@/types/api_types/nodeTypeSchemas'
+import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '@/utils/schemaUtils'
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+
 import {
     selectNodeById,
     setSelectedNode,
@@ -34,6 +39,7 @@ import {
 import { RootState } from '../../../store/store'
 import { FieldMetadata, ModelConstraints } from '../../../types/api_types/modelMetadataSchemas'
 import { listVectorIndices } from '../../../utils/api'
+import { isReservedWord } from '../../../utils/schemaValidation'
 import CodeEditor from '../../CodeEditor'
 import NumberInput from '../../NumberInput'
 import FewShotExamplesEditor from '../../textEditor/FewShotExamplesEditor'
@@ -41,11 +47,6 @@ import TextEditor from '../../textEditor/TextEditor'
 import NodeOutput from '../NodeOutputDisplay'
 import IOMapEditor from './IOMapEditor'
 import OutputSchemaEditor from './OutputSchemaEditor'
-
-import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '@/utils/schemaUtils'
-import { convertToPythonVariableName } from '@/utils/variableNameUtils'
-import Ajv from 'ajv'
-import { isReservedWord } from '../../../utils/schemaValidation'
 
 // Define types for props and state
 interface NodeSidebarProps {

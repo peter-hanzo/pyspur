@@ -1,5 +1,3 @@
-import { RunResponse, RunStatus } from '@/types/api_types/runSchemas'
-import { getWorkflowRuns } from '@/utils/api'
 import type { DateValue } from '@heroui/react'
 import {
     Button,
@@ -20,6 +18,10 @@ import { Icon } from '@iconify/react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+
+import { RunResponse, RunStatus } from '@/types/api_types/runSchemas'
+import { getWorkflowRuns } from '@/utils/api'
+
 import NodeOutputDisplay from './nodes/NodeOutputDisplay'
 
 interface TraceTableProps {

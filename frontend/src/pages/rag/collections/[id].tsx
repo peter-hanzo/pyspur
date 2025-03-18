@@ -1,6 +1,7 @@
 import React from 'react'
-import { DocumentCollectionDetails } from '@/components/rag/DocumentCollectionDetails'
+
 import Header from '@/components/Header'
+import { DocumentCollectionDetails } from '@/components/rag/DocumentCollectionDetails'
 
 const DocumentCollectionPage: React.FC = () => {
     return (

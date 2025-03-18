@@ -1,6 +1,6 @@
 'use client'
 
-import { Avatar, Badge, Button, Chip, cn, Link, Tooltip } from '@heroui/react'
+import { Avatar, Badge, Button, Chip, Link, Tooltip, cn } from '@heroui/react'
 import { useClipboard } from '@heroui/use-clipboard'
 import { Icon } from '@iconify/react'
 import React from 'react'

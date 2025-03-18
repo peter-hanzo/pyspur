@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react'
 import {
     Button,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
+    Chip,
     Input,
-    Textarea,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     Select,
     SelectItem,
-    Chip,
+    Textarea,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { PausedWorkflowResponse } from '@/types/api_types/pausedWorkflowSchemas'
 import { formatDistanceToNow } from 'date-fns'
+import React, { useEffect, useState } from 'react'
+
+import { PausedWorkflowResponse } from '@/types/api_types/pausedWorkflowSchemas'
 
 interface HumanInputModalProps {
     isOpen: boolean
@@ -32,10 +33,10 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
     React.useEffect(() => {
         // Try to extract any existing input data from the paused workflow
         if (workflow?.current_pause?.input_data) {
-            const existingData = workflow.current_pause.input_data;
-            setInputData(existingData);
+            const existingData = workflow.current_pause.input_data
+            setInputData(existingData)
         }
-    }, [workflow]);
+    }, [workflow])
 
     useEffect(() => {
         if (!isOpen) return
@@ -58,18 +59,16 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
     }
 
     const getInputSchema = () => {
-        const workflowDef = 'definition' in workflow.workflow
-            ? workflow.workflow.definition
-            : workflow.workflow
+        const workflowDef = 'definition' in workflow.workflow ? workflow.workflow.definition : workflow.workflow
 
-        const node = workflowDef.nodes.find(n => n.id === workflow.current_pause.node_id)
+        const node = workflowDef.nodes.find((n) => n.id === workflow.current_pause.node_id)
         return node?.config?.input_schema || {}
     }
 
     const renderInputField = (key: string, type: string) => {
         const value = inputData[key] || ''
         const handleChange = (newValue: any) => {
-            setInputData(prev => ({ ...prev, [key]: newValue }))
+            setInputData((prev) => ({ ...prev, [key]: newValue }))
         }
 
         switch (type.toLowerCase()) {
@@ -80,7 +79,7 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                         label={key}
                         placeholder={`Enter ${key}`}
                         value={value}
-                        onChange={e => handleChange(e.target.value)}
+                        onChange={(e) => handleChange(e.target.value)}
                     />
                 )
             case 'number':
@@ -91,7 +90,7 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                         label={key}
                         placeholder={`Enter ${key}`}
                         value={value}
-                        onChange={e => handleChange(Number(e.target.value))}
+                        onChange={(e) => handleChange(Number(e.target.value))}
                     />
                 )
             case 'boolean':
@@ -101,10 +100,14 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                         label={key}
                         placeholder={`Select ${key}`}
                         value={value}
-                        onChange={e => handleChange(e.target.value === 'true')}
+                        onChange={(e) => handleChange(e.target.value === 'true')}
                     >
-                        <SelectItem key="true" value="true">True</SelectItem>
-                        <SelectItem key="false" value="false">False</SelectItem>
+                        <SelectItem key="true" value="true">
+                            True
+                        </SelectItem>
+                        <SelectItem key="false" value="false">
+                            False
+                        </SelectItem>
                     </Select>
                 )
             default:
@@ -114,7 +117,7 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                         label={key}
                         placeholder={`Enter ${key}`}
                         value={value}
-                        onChange={e => handleChange(e.target.value)}
+                        onChange={(e) => handleChange(e.target.value)}
                     />
                 )
         }
@@ -126,7 +129,9 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                 <ModalHeader className="flex flex-col gap-1">
                     <h3 className="text-lg font-semibold">Human Input Required</h3>
                     <div className="flex items-center gap-2 text-sm text-default-500">
-                        <Chip size="sm" color="warning">Paused</Chip>
+                        <Chip size="sm" color="warning">
+                            Paused
+                        </Chip>
                         <span>•</span>
                         <span>Workflow: {'name' in workflow.workflow ? workflow.workflow.name : 'Unnamed'}</span>
                         <span>•</span>
@@ -182,7 +187,9 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                             <div>
                                 <h4 className="font-medium mb-2">Required Inputs</h4>
                                 <div className="space-y-3">
-                                    {Object.entries(getInputSchema()).map(([key, type]) => renderInputField(key, type as string))}
+                                    {Object.entries(getInputSchema()).map(([key, type]) =>
+                                        renderInputField(key, type as string)
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -193,7 +200,7 @@ const HumanInputModal: React.FC<HumanInputModalProps> = ({ isOpen, onClose, work
                             <Textarea
                                 placeholder="Add any comments about your decision..."
                                 value={comments}
-                                onChange={e => setComments(e.target.value)}
+                                onChange={(e) => setComments(e.target.value)}
                             />
                         </div>
                     </div>

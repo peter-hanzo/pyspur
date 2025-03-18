@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react'
-import { Card, CardBody, Button, Divider, Progress, Alert, Spinner, Chip, Tooltip } from '@heroui/react'
-import { useRouter } from 'next/router'
-import { Info, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Alert, Button, Card, CardBody, Chip, Divider, Progress, Spinner, Tooltip } from '@heroui/react'
 import { motion } from 'framer-motion'
-import FileUploadBox from '../FileUploadBox'
+import { ArrowLeft, CheckCircle, Info } from 'lucide-react'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
+
 import {
+    KnowledgeBaseCreationJob,
     addDocumentsToKnowledgeBase,
     getKnowledgeBase,
     getKnowledgeBaseJobStatus,
-    KnowledgeBaseCreationJob,
 } from '@/utils/api'
+
+import FileUploadBox from '../FileUploadBox'
 
 interface Step {
     title: string

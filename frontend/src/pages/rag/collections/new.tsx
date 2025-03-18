@@ -1,6 +1,5 @@
-import React from 'react'
-import { DocumentCollectionWizard } from '@/components/rag/DocumentCollectionWizard'
 import Header from '@/components/Header'
+import { DocumentCollectionWizard } from '@/components/rag/DocumentCollectionWizard'
 
 export default function NewDocumentCollectionPage() {
     return (

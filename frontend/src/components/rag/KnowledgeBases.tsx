@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
 import { Button, Card, CardBody, Spinner } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
+
+import type { DocumentCollectionResponseSchema, VectorIndexResponseSchema } from '@/types/api_types/ragSchemas'
 import { listDocumentCollections, listVectorIndices } from '@/utils/api'
-import type {
-    DocumentCollectionResponseSchema,
-    VectorIndexResponseSchema
-} from '@/types/api_types/ragSchemas'
+
 import DocumentCollectionCard from '../cards/DocumentCollectionCard'
 import VectorIndexCard from '../cards/VectorIndexCard'
 

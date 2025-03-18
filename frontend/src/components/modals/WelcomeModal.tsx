@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
+
 import { markWelcomeSeen } from '../../store/userPreferencesSlice'
 
 interface WelcomeModalProps {

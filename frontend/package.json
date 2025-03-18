@@ -106,13 +106,13 @@
     "devDependencies": {
         "@babel/core": "^7.26.0",
         "@babel/preset-react": "^7.26.3",
+        "@trivago/prettier-plugin-sort-imports": "^5.2.2",
         "autoprefixer": "^10.x",
         "eslint": "^8.57.1",
         "eslint-config-next": "^15.1.5",
         "husky": "^9.1.7",
         "lint-staged": "^15.4.3",
         "postcss": "^8.x",
-        "prettier-plugin-organize-imports": "^4.1.0",
         "tailwindcss": "^3.x",
         "tsc-files": "^1.1.4",
         "typescript": "^5.7.2"

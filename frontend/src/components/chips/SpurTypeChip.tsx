@@ -1,7 +1,8 @@
-import { SpurType } from '@/types/api_types/workflowSchemas'
 import { Chip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React from 'react'
+
+import { SpurType } from '@/types/api_types/workflowSchemas'
 
 interface SpurTypeChipProps {
     spurType: SpurType

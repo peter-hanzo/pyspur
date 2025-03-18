@@ -1,4 +1,4 @@
-import { Node, Edge } from '@xyflow/react'
+import { Edge, Node } from '@xyflow/react'
 
 export const isTargetAncestorOfSource = (sourceId: string, targetId: string, nodes: Node[], edges: Edge[]): boolean => {
     if (!sourceId || !targetId) {

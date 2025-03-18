@@ -3,23 +3,25 @@ import {
     ConnectionMode,
     Edge,
     EdgeTypes,
-    getNodesBounds,
-    getViewportForBounds,
     Node,
     ReactFlow,
     ReactFlowInstance,
     ReactFlowProvider,
     SelectionMode,
+    getNodesBounds,
+    getViewportForBounds,
     useReactFlow,
 } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import { toPng } from 'html-to-image'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 
 import { FlowWorkflowEdge, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { TaskResponse } from '@/types/api_types/taskSchemas'
 import { WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { getLayoutedNodes } from '@/utils/nodeLayoutUtils'
-import '@xyflow/react/dist/style.css'
-import { useDispatch, useSelector } from 'react-redux'
+
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import {
     deleteNode,
@@ -34,17 +36,16 @@ import { RootState } from '../../store/store'
 import {
     useAdjustGroupNodesZIndex,
     useFlowEventHandlers,
-    useNodesWithMode,
     useNodeTypes,
-    useStyledEdges,
+    useNodesWithMode,
     useNodesWithStatus,
+    useStyledEdges,
 } from '../../utils/flowUtils'
 import HelperLinesRenderer from '../HelperLines'
 import LoadingSpinner from '../LoadingSpinner'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
 import CustomEdge from './Edge'
 import Operator from './footer/Operator'
-import { TaskResponse } from '@/types/api_types/taskSchemas'
 
 interface TraceCanvasProps {
     workflowData?: { name: string; definition: WorkflowDefinition }
@@ -187,34 +188,34 @@ const TraceCanvasContent: React.FC<TraceCanvasProps> = ({
 
     // Add nodeOutputs map for node status tracking
     const nodeOutputs = useMemo(() => {
-        const outputs: Record<string, any> = {};
+        const outputs: Record<string, any> = {}
         if (tasksData && tasksData.length > 0) {
             tasksData.forEach((task) => {
                 // Handle both completed tasks with outputs and paused tasks
                 if (task.outputs) {
-                    outputs[task.node_id] = task.outputs;
+                    outputs[task.node_id] = task.outputs
                 } else if (task.status === 'PAUSED') {
                     // For paused tasks (like human intervention), create an empty output object
                     // to indicate the node exists but is paused
-                    outputs[task.node_id] = { __paused: true };
+                    outputs[task.node_id] = { __paused: true }
                 }
 
                 // Include any subworkflow outputs
                 if (task.subworkflow_output) {
                     Object.entries(task.subworkflow_output).forEach(([subNodeId, subOutput]) => {
-                        outputs[subNodeId] = subOutput;
-                    });
+                        outputs[subNodeId] = subOutput
+                    })
                 }
-            });
+            })
         }
-        return outputs;
-    }, [tasksData]);
+        return outputs
+    }, [tasksData])
 
     // Use nodeOutputs with status hook
     const nodesWithStatus = useNodesWithStatus({
         nodes: nodesWithAdjustedZIndex,
-        nodeOutputs
-    });
+        nodeOutputs,
+    })
 
     const onEdgeMouseEnter = useCallback((_: React.MouseEvent, edge: Edge) => {
         setHoveredEdge(edge.id)

@@ -1,9 +1,11 @@
-import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
 import { Button, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { ReactFlowProvider } from '@xyflow/react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
+
+import { WorkflowCreateRequest } from '@/types/api_types/workflowSchemas'
+
 import { RootState } from '../../store/store'
 import Chat from '../chat/Chat'
 import NodeSidebar from '../nodes/nodeSidebar/NodeSidebar'
