@@ -173,7 +173,7 @@ async def generate_message(request: MessageGenerationRequest) -> Dict[str, str]:
     try:
         # Prepare the system message based on the message type
         if request.message_type == "system":
-            system_message = """You are an expert at crafting effective\
+            system_message = """You are an expert at crafting effective \
 system messages for AI assistants.
             Your task is to generate a clear, concise, and effective system message based\
 on the provided description.
