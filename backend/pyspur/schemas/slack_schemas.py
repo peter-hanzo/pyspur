@@ -1,43 +1,77 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class SlackAgentCreate(BaseModel):
+class SlackAgentBase(BaseModel):
+    name: str
+    slack_team_id: str
+    slack_team_name: str
+    slack_channel_id: Optional[str] = None
+    slack_channel_name: Optional[str] = None
+    is_active: bool = True
+    spur_type: str = "workflow"  # "default", "spur-web", "spur-chat", etc.
+
+
+class SlackAgentCreate(SlackAgentBase):
     """Request schema for creating a Slack agent.
     Note: slack_team_id and slack_team_name will be set automatically based on the
     currently configured Slack token if not provided.
     """
 
-    name: str
-    slack_team_id: Optional[str] = None  # Will be auto-filled from the Slack API if not provided
-    slack_team_name: Optional[str] = None  # Will be auto-filled from the Slack API if not provided
-    slack_channel_id: Optional[str] = None
-    slack_channel_name: Optional[str] = None
     workflow_id: Optional[str] = None
     trigger_on_mention: bool = True
     trigger_on_direct_message: bool = True
     trigger_on_channel_message: bool = False
-    trigger_keywords: List[str] = Field(default_factory=list)
+    trigger_keywords: Optional[List[str]] = None
     trigger_enabled: bool = True
+    has_bot_token: bool = False
+    has_user_token: bool = False
+    last_token_update: Optional[str] = None
 
 
-class SlackAgentResponse(BaseModel):
-    """Response schema for Slack agent information."""
+class SlackAgentUpdate(BaseModel):
+    """Request schema for updating a Slack agent."""
 
-    id: int
-    name: str
+    name: Optional[str] = None
     slack_team_id: Optional[str] = None
     slack_team_name: Optional[str] = None
     slack_channel_id: Optional[str] = None
     slack_channel_name: Optional[str] = None
-    is_active: bool
+    is_active: Optional[bool] = None
     workflow_id: Optional[str] = None
-    trigger_on_mention: bool = True
-    trigger_on_direct_message: bool = True
-    trigger_on_channel_message: bool = False
-    trigger_keywords: List[str] = Field(default_factory=list)
-    trigger_enabled: bool = True
+    trigger_on_mention: Optional[bool] = None
+    trigger_on_direct_message: Optional[bool] = None
+    trigger_on_channel_message: Optional[bool] = None
+    trigger_keywords: Optional[List[str]] = None
+    trigger_enabled: Optional[bool] = None
+    has_bot_token: Optional[bool] = None
+    has_user_token: Optional[bool] = None
+    spur_type: Optional[str] = None
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        """Method to handle pydantic v2 compatibility"""
+        if hasattr(super(), "model_dump"):
+            return super().model_dump(*args, **kwargs)
+        return super().dict(*args, **kwargs)
+
+    # Keep backwards compatibility
+    dict = model_dump
+
+
+class SlackAgentResponse(SlackAgentBase):
+    """Response schema for Slack agent information."""
+
+    id: int
+    workflow_id: Optional[str] = None
+    trigger_on_mention: bool
+    trigger_on_direct_message: bool
+    trigger_on_channel_message: bool
+    trigger_keywords: Optional[List[str]] = None
+    trigger_enabled: bool
+    has_bot_token: bool = False
+    has_user_token: bool = False
+    last_token_update: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -65,11 +99,11 @@ class WorkflowAssociation(BaseModel):
 class SlackTriggerConfig(BaseModel):
     """Configuration schema for Slack triggers."""
 
-    trigger_on_mention: bool = True
-    trigger_on_direct_message: bool = True
-    trigger_on_channel_message: bool = False
-    trigger_keywords: List[str] = Field(default_factory=list)
-    trigger_enabled: bool = True
+    trigger_on_mention: bool
+    trigger_on_direct_message: bool
+    trigger_on_channel_message: bool
+    trigger_keywords: List[str]
+    trigger_enabled: bool
 
 
 class WorkflowTriggerRequest(BaseModel):
@@ -79,8 +113,8 @@ class WorkflowTriggerRequest(BaseModel):
     channel_id: str
     user_id: str
     team_id: str
-    event_type: str = "message"  # message, mention, etc.
-    event_data: Dict[str, Any] = Field(default_factory=dict)
+    event_type: str
+    event_data: Dict[str, Any]
 
 
 class SlackOAuthResponse(BaseModel):
@@ -104,15 +138,15 @@ class WorkflowTriggerResult(BaseModel):
 
     agent_id: int
     workflow_id: str
+    status: str  # "triggered", "skipped", "error"
     run_id: Optional[str] = None
-    status: str
     error: Optional[str] = None
 
 
 class WorkflowTriggersResponse(BaseModel):
     """Response schema for triggering workflows from Slack."""
 
-    triggered_workflows: List[WorkflowTriggerResult] = Field(default_factory=list)
+    triggered_workflows: List[WorkflowTriggerResult]
 
 
 class TemplateWorkflowResponse(BaseModel):
@@ -122,3 +156,16 @@ class TemplateWorkflowResponse(BaseModel):
     name: str
     description: str
     message: str
+
+
+# New schemas for agent token management
+class AgentTokenRequest(BaseModel):
+    token_type: str  # "bot_token" or "user_token"
+    token: str
+
+
+class AgentTokenResponse(BaseModel):
+    agent_id: int
+    token_type: str
+    masked_token: str
+    updated_at: Optional[str] = None

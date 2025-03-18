@@ -85,6 +85,7 @@ import {
     SlackConfigErrorModal,
     SlackSetupGuide,
     WorkflowAssociationModal,
+    SlackAgentDetail,
 } from './slack'
 
 // Calendly Widget Component
@@ -185,6 +186,8 @@ const Dashboard: React.FC = () => {
     const [settingsActiveTab, setSettingsActiveTab] = useState<'appearance' | 'api-keys'>('api-keys')
     const [selectedSlackAgent, setSelectedSlackAgent] = useState<SlackAgent | null>(null)
     const [showWorkflowAssociationModal, setShowWorkflowAssociationModal] = useState(false)
+    const [showAgentDetailModal, setShowAgentDetailModal] = useState(false)
+    const [selectedAgentForDetail, setSelectedAgentForDetail] = useState<SlackAgent | null>(null)
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -295,11 +298,21 @@ const Dashboard: React.FC = () => {
                     name: a.name,
                     workflow_id: a.workflow_id,
                     type: typeof a.workflow_id,
-                    spur_type: a.spur_type
+                    spur_type: a.spur_type,
+                    has_bot_token: a.has_bot_token,
+                    has_user_token: a.has_user_token
                 })))
 
                 setSlackAgents(agents)
                 setSlackConfigured(agents.length > 0)
+
+                // If we have a currently selected agent for the detail modal, update it
+                if (selectedAgentForDetail) {
+                    const updatedAgent = agents.find(a => a.id === selectedAgentForDetail.id)
+                    if (updatedAgent) {
+                        setSelectedAgentForDetail(updatedAgent)
+                    }
+                }
             } catch (error) {
                 console.error('Error refreshing Slack agents:', error)
             } finally {
@@ -839,6 +852,36 @@ const Dashboard: React.FC = () => {
         return null; // Return null to avoid rendering anything
     };
 
+    const handleOpenAgentDetail = (agent: SlackAgent) => {
+        setSelectedAgentForDetail(agent)
+        setShowAgentDetailModal(true)
+    }
+
+    // Add a dedicated function to refresh agents after token updates
+    const refreshAgentsAfterTokenUpdate = async () => {
+        try {
+            // Get the updated agents list
+            const agents = await getSlackAgents(true)
+
+            // Update the agents state
+            setSlackAgents(agents)
+
+            // Also update the selected agent for detail if we have one
+            if (selectedAgentForDetail) {
+                const updatedAgent = agents.find(a => a.id === selectedAgentForDetail.id)
+                if (updatedAgent) {
+                    setSelectedAgentForDetail(updatedAgent)
+                }
+            }
+
+            // Show success message
+            onAlert('Token configuration updated successfully', 'success')
+        } catch (error) {
+            console.error('Error refreshing agents after token update:', error)
+            onAlert('Token updated, but unable to refresh agents list', 'warning')
+        }
+    }
+
     return (
         <div {...getRootProps()} className="relative flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <input {...getInputProps()} />
@@ -862,6 +905,14 @@ const Dashboard: React.FC = () => {
 
             <CalendlyWidget />
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
+            <SlackAgentDetail
+                isOpen={showAgentDetailModal}
+                onOpenChange={setShowAgentDetailModal}
+                agent={selectedAgentForDetail}
+                updateAgentsCallback={setSlackAgents}
+                onAlert={onAlert}
+                onTokenUpdated={refreshAgentsAfterTokenUpdate}
+            />
             <div>
                 {/* Dashboard Header */}
                 <header className="mb-6 flex w-full items-center flex-col gap-2">
@@ -1300,6 +1351,7 @@ const Dashboard: React.FC = () => {
                                         <TableColumn>WORKSPACE</TableColumn>
                                         <TableColumn>TYPE</TableColumn>
                                         <TableColumn>WORKFLOW</TableColumn>
+                                        <TableColumn>TOKENS</TableColumn>
                                         <TableColumn>TRIGGERS</TableColumn>
                                         <TableColumn>STATUS</TableColumn>
                                         <TableColumn>ACTIONS</TableColumn>
@@ -1348,6 +1400,28 @@ const Dashboard: React.FC = () => {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
+                                                    <div className="flex items-center gap-1">
+                                                        {agent.has_bot_token ? (
+                                                            <Tooltip content="Bot Token Configured">
+                                                                <Chip size="sm" color="success" variant="dot">Bot</Chip>
+                                                            </Tooltip>
+                                                        ) : (
+                                                            <Tooltip content="No Bot Token">
+                                                                <Chip size="sm" color="warning" variant="dot">Bot</Chip>
+                                                            </Tooltip>
+                                                        )}
+                                                        {agent.has_user_token ? (
+                                                            <Tooltip content="User Token Configured">
+                                                                <Chip size="sm" color="success" variant="dot">User</Chip>
+                                                            </Tooltip>
+                                                        ) : (
+                                                            <Tooltip content="No User Token">
+                                                                <Chip size="sm" color="default" variant="dot">User</Chip>
+                                                            </Tooltip>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
                                                     <Switch
                                                         size="sm"
                                                         isSelected={agent.trigger_enabled}
@@ -1386,6 +1460,17 @@ const Dashboard: React.FC = () => {
                                                         >
                                                             <Tooltip content="Edit Agent">
                                                                 <Icon icon="solar:pen-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            onPress={() => handleOpenAgentDetail(agent)}
+                                                            aria-label="Manage Tokens"
+                                                        >
+                                                            <Tooltip content="Manage Tokens">
+                                                                <Icon icon="solar:key-minimalistic-bold" width={16} />
                                                             </Tooltip>
                                                         </Button>
                                                     </div>

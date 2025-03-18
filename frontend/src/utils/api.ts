@@ -1246,6 +1246,9 @@ export interface SlackAgent {
     trigger_on_channel_message: boolean
     trigger_keywords?: string[]
     created_at: string
+    has_bot_token: boolean
+    has_user_token: boolean
+    last_token_update?: string
 }
 
 export interface SlackOAuthResponse {
