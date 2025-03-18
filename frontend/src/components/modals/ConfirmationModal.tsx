@@ -46,7 +46,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }, [isOpen, onConfirm, onClose])
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal isOpen={isOpen} onClose={onClose} size="2xl">
             <ModalContent>
                 <ModalHeader>{title}</ModalHeader>
                 <ModalBody>
