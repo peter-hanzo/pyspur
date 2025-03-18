@@ -715,6 +715,7 @@ def list_runs(
     end_date: Optional[datetime] = Query(
         default=None, description="Filter runs before this date (inclusive)"
     ),
+    status: Optional[RunStatus] = Query(default=None, description="Filter runs by status"),
     db: Session = Depends(get_db),
 ):
     offset = (page - 1) * page_size
@@ -725,6 +726,10 @@ def list_runs(
         query = query.filter(RunModel.start_time >= start_date)
     if end_date:
         query = query.filter(RunModel.start_time <= end_date)
+
+    # Apply status filter if provided
+    if status:
+        query = query.filter(RunModel.status == status)
 
     # Order by start time descending and apply pagination
     runs = query.order_by(RunModel.start_time.desc()).offset(offset).limit(page_size).all()

@@ -22,7 +22,7 @@ import {
     VectorIndexCreateRequestSchema,
     VectorIndexResponseSchema,
 } from '@/types/api_types/ragSchemas'
-import { RunResponse } from '@/types/api_types/runSchemas'
+import { RunResponse, RunStatus } from '@/types/api_types/runSchemas'
 import { SessionCreate, SessionListResponse, SessionResponse } from '@/types/api_types/sessionSchemas'
 import { UserCreate, UserListResponse, UserResponse, UserUpdate } from '@/types/api_types/userSchemas'
 import {
@@ -211,7 +211,8 @@ export async function getWorkflowRuns(
     page: number = 1,
     pageSize: number = 10,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    status?: RunStatus
 ): Promise<RunResponse[]> {
     let url = `${API_BASE_URL}/wf/${workflowId}/runs/?page=${page}&page_size=${pageSize}`
 
@@ -221,6 +222,10 @@ export async function getWorkflowRuns(
     }
     if (endDate) {
         url += `&end_date=${endDate.toISOString()}`
+    }
+    // Add status filter if provided
+    if (status) {
+        url += `&status=${status}`
     }
 
     try {
