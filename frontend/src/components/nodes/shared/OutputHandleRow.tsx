@@ -1,5 +1,6 @@
-import React from 'react'
 import { Handle, Position } from '@xyflow/react'
+import React from 'react'
+
 import styles from '../DynamicNode.module.css'
 
 interface OutputHandleRowProps {
@@ -40,4 +41,4 @@ export const OutputHandleRow: React.FC<OutputHandleRowProps> = ({ id, keyName, i
             </div>
         </div>
     )
-} 
+}

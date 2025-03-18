@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react'
 import {
-    getKeyValue,
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
     Button,
     Progress,
+    Table,
+    TableBody,
+    TableCell,
+    TableColumn,
+    TableHeader,
+    TableRow,
+    getKeyValue,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { getAllRuns, downloadOutputFile } from '../utils/api'
+import React, { useEffect, useState } from 'react'
+
+import { downloadOutputFile, getAllRuns } from '../utils/api'
 
 interface Workflow {
     name: string

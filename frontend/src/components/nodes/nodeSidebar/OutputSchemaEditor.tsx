@@ -1,11 +1,28 @@
-import { Alert, Button, Card, CardBody, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Radio, RadioGroup, Tab, Tabs, Textarea, Tooltip, useDisclosure } from '@heroui/react'
+import {
+    Alert,
+    Button,
+    Card,
+    CardBody,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    Radio,
+    RadioGroup,
+    Tab,
+    Tabs,
+    Textarea,
+    useDisclosure,
+} from '@heroui/react'
 import { Icon } from '@iconify/react'
-import React, { useState, useEffect } from 'react'
+import axios from 'axios'
+import React, { useEffect, useState } from 'react'
+
 import { jsonOptions } from '../../../constants/jsonOptions'
 import { extractSchemaFromJsonSchema, generateJsonSchemaFromSchema } from '../../../utils/schemaUtils'
 import CodeEditor from '../../CodeEditor'
 import SchemaEditor from './SchemaEditor'
-import axios from 'axios'
 
 interface OutputSchemaEditorProps {
     nodeID: string
@@ -83,7 +100,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
         try {
             const response = await axios.post('/api/ai/generate_schema/', {
                 description: description,
-                existing_schema: generationType === 'enhance' ? schema : undefined
+                existing_schema: generationType === 'enhance' ? schema : undefined,
             })
 
             const newSchema = JSON.stringify(response.data, null, 2)
@@ -101,19 +118,19 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
     // Handle tab selection changes
     const handleTabChange = (key: React.Key) => {
         if (readOnly) {
-            return; // Prevent switching in readOnly mode
+            return // Prevent switching in readOnly mode
         }
 
-        const tabKey = key as string;
+        const tabKey = key as string
 
         if (tabKey === 'ai-generate') {
             // Open the modal when AI Generate tab is selected
-            onOpen();
+            onOpen()
             // Don't change the actual selected tab
         } else {
-            setSelectedTab(tabKey);
+            setSelectedTab(tabKey)
         }
-    };
+    }
 
     // Create the AI Generate tab title content
     const aiGenerateTabTitle = (
@@ -121,7 +138,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
             <Icon icon="solar:magic-stick-3-linear" width={16} />
             <span>AI Generate</span>
         </div>
-    );
+    )
 
     return (
         <div>
@@ -143,16 +160,14 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
             <Modal
                 isOpen={isOpen}
                 onClose={() => {
-                    resetModalState();
+                    resetModalState()
                 }}
                 size="5xl"
                 isDismissable={!isGenerating}
                 hideCloseButton={isGenerating}
             >
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1">
-                        Generate Schema
-                    </ModalHeader>
+                    <ModalHeader className="flex flex-col gap-1">Generate Schema</ModalHeader>
                     <ModalBody>
                         <RadioGroup
                             value={generationType}
@@ -164,7 +179,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
                             <Radio
                                 value="enhance"
                                 isDisabled={!schema || isGenerating}
-                                description={!schema ? "No existing schema to enhance" : undefined}
+                                description={!schema ? 'No existing schema to enhance' : undefined}
                             >
                                 Enhance Existing Schema
                             </Radio>
@@ -186,13 +201,15 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
                         )}
 
                         <Textarea
-                            label={generationType === 'new'
-                                ? "Describe the schema you want to generate"
-                                : "Describe how you want to enhance the schema"
+                            label={
+                                generationType === 'new'
+                                    ? 'Describe the schema you want to generate'
+                                    : 'Describe how you want to enhance the schema'
                             }
-                            placeholder={generationType === 'new'
-                                ? "Example: A schema for a user profile with name, email, age, and a list of hobbies"
-                                : "Example: Add a phone number field and make email required"
+                            placeholder={
+                                generationType === 'new'
+                                    ? 'Example: A schema for a user profile with name, email, age, and a list of hobbies'
+                                    : 'Example: Add a phone number field and make email required'
                             }
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
@@ -201,12 +218,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
                         />
                     </ModalBody>
                     <ModalFooter>
-                        <Button
-                            size="sm"
-                            variant="light"
-                            onClick={resetModalState}
-                            isDisabled={isGenerating}
-                        >
+                        <Button size="sm" variant="light" onClick={resetModalState} isDisabled={isGenerating}>
                             Cancel
                         </Button>
                         <Button
@@ -224,7 +236,7 @@ const OutputSchemaEditor: React.FC<OutputSchemaEditorProps> = ({
 
             <Tabs
                 aria-label="Schema Editor Options"
-                disabledKeys={readOnly ? ['simple', 'json', 'ai-generate'] : (!hasOpenAIKey ? ['ai-generate'] : [])}
+                disabledKeys={readOnly ? ['simple', 'json', 'ai-generate'] : !hasOpenAIKey ? ['ai-generate'] : []}
                 selectedKey={selectedTab}
                 onSelectionChange={handleTabChange}
             >

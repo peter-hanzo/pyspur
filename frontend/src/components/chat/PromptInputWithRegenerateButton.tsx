@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, cn, Tooltip } from '@heroui/react'
+import { Button, Tooltip, cn } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React from 'react'
 

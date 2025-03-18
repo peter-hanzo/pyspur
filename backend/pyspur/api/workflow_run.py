@@ -23,7 +23,7 @@ from ..models.run_model import RunModel, RunStatus
 from ..models.task_model import TaskModel, TaskStatus
 from ..models.workflow_model import WorkflowModel
 from ..nodes.factory import NodeFactory
-from ..nodes.logic.human_intervention import HumanInterventionNodeOutput, PauseException
+from ..nodes.logic.human_intervention import HumanInterventionNodeOutput, PauseError
 from ..schemas.pause_schemas import (
     PausedWorkflowResponseSchema,
     PauseHistoryResponseSchema,
@@ -196,7 +196,7 @@ async def run_workflow_blocking_v2(  # noqa: C901
         response.message = "Workflow execution completed successfully."
         return response
 
-    except PauseException as e:
+    except PauseError as e:
         # Make sure the run status is set to PAUSED
         new_run.status = RunStatus.PAUSED
         new_run.outputs = {k: v.model_dump() for k, v in executor.outputs.items() if v is not None}
@@ -336,7 +336,7 @@ async def run_workflow_blocking(  # noqa: C901
         # Refresh the run to get the updated tasks
         db.refresh(new_run)
         return outputs
-    except PauseException as e:
+    except PauseError as e:
         # Make sure the run status is set to PAUSED
         new_run.status = RunStatus.PAUSED
         new_run.outputs = {k: v.model_dump() for k, v in executor.outputs.items() if v is not None}
@@ -441,7 +441,7 @@ async def run_workflow_non_blocking(  # noqa: C901
                     run.status = RunStatus.COMPLETED
 
                 run.end_time = datetime.now(timezone.utc)
-            except PauseException:
+            except PauseError:
                 _handle_pause_exception(run, executor, task_recorder, workflow_version)
                 session.commit()
                 # Refresh the run to get the updated tasks
@@ -715,6 +715,7 @@ def list_runs(
     end_date: Optional[datetime] = Query(
         default=None, description="Filter runs before this date (inclusive)"
     ),
+    status: Optional[RunStatus] = Query(default=None, description="Filter runs by status"),
     db: Session = Depends(get_db),
 ):
     offset = (page - 1) * page_size
@@ -725,6 +726,10 @@ def list_runs(
         query = query.filter(RunModel.start_time >= start_date)
     if end_date:
         query = query.filter(RunModel.start_time <= end_date)
+
+    # Apply status filter if provided
+    if status:
+        query = query.filter(RunModel.status == status)
 
     # Order by start time descending and apply pagination
     runs = query.order_by(RunModel.start_time.desc()).offset(offset).limit(page_size).all()

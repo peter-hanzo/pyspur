@@ -1,29 +1,29 @@
-import React, { useState, useEffect } from 'react'
 import {
+    Button,
     Card,
     CardBody,
     CardHeader,
-    Button,
-    Input,
-    Divider,
     Chip,
-    Tooltip,
-    Tabs,
-    Tab,
-    Textarea,
-    Spinner,
+    Divider,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     Select,
     SelectItem,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import TextEditor from '../textEditor/TextEditor'
+import React, { useEffect, useState } from 'react'
+
+import type {
+    ChunkPreviewSchema as ChunkPreview,
+    ChunkPreviewResponseSchema as ChunkPreviewResponse,
+} from '@/types/api_types/ragSchemas'
 import { previewChunk } from '@/utils/api'
-import type { ChunkPreviewResponseSchema as ChunkPreviewResponse, ChunkPreviewSchema as ChunkPreview } from '@/types/api_types/ragSchemas'
+
+import TextEditor from '../textEditor/TextEditor'
 
 interface ChunkTemplate {
     enabled: boolean

@@ -217,7 +217,7 @@ def create_workflow(
     new_workflow = WorkflowModel(
         name=workflow_name,
         description=workflow_request.description,
-        definition=workflow_request.definition,
+        definition=workflow_request.definition.model_dump(),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )

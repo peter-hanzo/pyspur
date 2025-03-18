@@ -1,18 +1,19 @@
-import TraceCanvas from '@/components/canvas/TraceCanvas'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
+
+import TraceCanvas from '@/components/canvas/TraceCanvas'
+import { RunResponse } from '@/types/api_types/runSchemas'
+import { WorkflowDefinition } from '@/types/api_types/workflowSchemas'
+
 import Header from '../../components/Header'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { setTestInputs } from '../../store/flowSlice'
 import { fetchNodeTypes } from '../../store/nodeTypesSlice'
-import { AppDispatch, persistor, RootState } from '../../store/store'
+import { AppDispatch, RootState, persistor } from '../../store/store'
 import { getRunStatus } from '../../utils/api'
 import { rolloutWorkflowDefinition } from '../../utils/subworkflowUtils'
-
-import { RunResponse } from '@/types/api_types/runSchemas'
-import { WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 
 const TracePage: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>()

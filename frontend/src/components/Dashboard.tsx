@@ -1,11 +1,3 @@
-import { PausedWorkflowResponse, ResumeActionRequest } from '@/types/api_types/pausedWorkflowSchemas'
-import { RunResponse } from '@/types/api_types/runSchemas'
-import {
-    SpurType,
-    WorkflowCreateRequest,
-    WorkflowDefinition,
-    WorkflowResponse,
-} from '@/types/api_types/workflowSchemas'
 import {
     Accordion,
     AccordionItem,
@@ -42,6 +34,16 @@ import { useRouter } from 'next/router'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useSelector } from 'react-redux'
+
+import { PausedWorkflowResponse, ResumeActionRequest } from '@/types/api_types/pausedWorkflowSchemas'
+import { RunResponse } from '@/types/api_types/runSchemas'
+import {
+    SpurType,
+    WorkflowCreateRequest,
+    WorkflowDefinition,
+    WorkflowResponse,
+} from '@/types/api_types/workflowSchemas'
+
 import { RootState } from '../store/store'
 import { Template } from '../types/workflow'
 import {

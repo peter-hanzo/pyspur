@@ -1,6 +1,6 @@
-import React from 'react'
-import { VectorIndexWizard } from '@/components/rag/VectorIndexWizard'
 import Header from '@/components/Header'
+import { VectorIndexWizard } from '@/components/rag/VectorIndexWizard'
+
 export default function NewVectorIndexPage() {
     return (
         <div className="App relative">

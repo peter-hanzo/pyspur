@@ -1,6 +1,3 @@
-import { SessionResponse } from '@/types/api_types/sessionSchemas'
-import { WorkflowResponse } from '@/types/api_types/workflowSchemas'
-import { getWorkflow, listSessions } from '@/utils/api'
 import {
     Alert,
     Button,
@@ -16,6 +13,10 @@ import {
 import { Icon } from '@iconify/react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+
+import { SessionResponse } from '@/types/api_types/sessionSchemas'
+import { WorkflowResponse } from '@/types/api_types/workflowSchemas'
+import { getWorkflow, listSessions } from '@/utils/api'
 
 const SessionsPage: React.FC = () => {
     const router = useRouter()

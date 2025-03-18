@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react'
 import {
+    Alert,
+    Button,
     Card,
     CardBody,
     CardHeader,
-    Button,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    Alert,
     Dropdown,
-    DropdownTrigger,
+    DropdownItem,
     DropdownMenu,
     DropdownSection,
-    DropdownItem,
+    DropdownTrigger,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     Slider,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { getWorkflows, getWorkflowOutputVariables, startEvalRun } from '../../utils/api'
+import { useEffect, useState } from 'react'
+
+import { getWorkflowOutputVariables, getWorkflows, startEvalRun } from '../../utils/api'
+
 interface EvalCardProps {
     title: string
     description: string

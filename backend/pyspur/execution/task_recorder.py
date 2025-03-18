@@ -89,7 +89,11 @@ class TaskRecorder:
             existing_task = self.tasks[node_id]
 
             # If the existing task is COMPLETED, PAUSED, or RUNNING, don't create a new one
-            if existing_task.status in [TaskStatus.COMPLETED, TaskStatus.PAUSED, TaskStatus.RUNNING]:
+            if existing_task.status in [
+                TaskStatus.COMPLETED,
+                TaskStatus.PAUSED,
+                TaskStatus.RUNNING,
+            ]:
                 # Just update the inputs if needed
                 if inputs and not existing_task.inputs:
                     existing_task.inputs = inputs
@@ -109,10 +113,12 @@ class TaskRecorder:
             return
 
         # If we don't have a task in memory, check the database for any existing tasks
-        existing_task = self.db.query(TaskModel).filter(
-            TaskModel.run_id == self.run_id,
-            TaskModel.node_id == node_id
-        ).order_by(TaskModel.end_time.desc().nullslast()).first()
+        existing_task = (
+            self.db.query(TaskModel)
+            .filter(TaskModel.run_id == self.run_id, TaskModel.node_id == node_id)
+            .order_by(TaskModel.end_time.desc().nullslast())
+            .first()
+        )
 
         if existing_task:
             # If there's an existing task in the database, use it

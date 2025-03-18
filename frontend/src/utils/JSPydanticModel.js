@@ -72,50 +72,50 @@ class JSPydanticModel {
                     // Copy all fields from the original node
                     const processedNode = { ...node }
 
-                        // Process schemas for input, output, and config
-                        ;['input', 'output', 'config'].forEach((key) => {
-                            if (node[key]) {
-                                try {
-                                    const validator = this.ajv.compile(node[key])
-                                    const obj = {}
-                                    validator(obj)
+                    // Process schemas for input, output, and config
+                    ;['input', 'output', 'config'].forEach((key) => {
+                        if (node[key]) {
+                            try {
+                                const validator = this.ajv.compile(node[key])
+                                const obj = {}
+                                validator(obj)
 
-                                    // For config, include all properties defined in the schema, even without defaults
-                                    if (key === 'config' && node[key].properties) {
-                                        Object.keys(node[key].properties).forEach(propKey => {
-                                            // Check if property has an enum and default value
-                                            const prop = node[key].properties[propKey]
-                                            if (prop.enum && prop.default) {
-                                                obj[propKey] = prop.default
-                                            } else if (!(propKey in obj)) {
-                                                obj[propKey] = null;
-                                            }
-                                        });
-                                    }
-
-                                    // Merge the validated object with any existing fields for non-conditional nodes
-                                    processedNode[key] = {
-                                        ...node[key], // Keep original fields like title, description etc
-                                        ...obj, // Add validated default values
-                                    }
-
-                                    // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
-                                    if (node.name === 'LLMNode' && key === 'config') {
-                                        // Make sure there's a properties object
-                                        processedNode[key].properties = processedNode[key].properties || {}
-                                        processedNode[key].properties.api_base = {
-                                            type: 'string',
-                                            title: 'API Base',
+                                // For config, include all properties defined in the schema, even without defaults
+                                if (key === 'config' && node[key].properties) {
+                                    Object.keys(node[key].properties).forEach((propKey) => {
+                                        // Check if property has an enum and default value
+                                        const prop = node[key].properties[propKey]
+                                        if (prop.enum && prop.default) {
+                                            obj[propKey] = prop.default
+                                        } else if (!(propKey in obj)) {
+                                            obj[propKey] = null
                                         }
-                                    }
-
-                                    // Exclude JSON Schema keywords from the resulting object
-                                    processedNode[key] = this.excludeSchemaKeywords(processedNode[key])
-                                } catch (error) {
-                                    processedNode[key] = node[key] || {} // Fallback to original or empty object
+                                    })
                                 }
+
+                                // Merge the validated object with any existing fields for non-conditional nodes
+                                processedNode[key] = {
+                                    ...node[key], // Keep original fields like title, description etc
+                                    ...obj, // Add validated default values
+                                }
+
+                                // EXAMPLE: if this is the LLM node, define "api_base" so AJV doesn't strip it
+                                if (node.name === 'LLMNode' && key === 'config') {
+                                    // Make sure there's a properties object
+                                    processedNode[key].properties = processedNode[key].properties || {}
+                                    processedNode[key].properties.api_base = {
+                                        type: 'string',
+                                        title: 'API Base',
+                                    }
+                                }
+
+                                // Exclude JSON Schema keywords from the resulting object
+                                processedNode[key] = this.excludeSchemaKeywords(processedNode[key])
+                            } catch (error) {
+                                processedNode[key] = node[key] || {} // Fallback to original or empty object
                             }
-                        })
+                        }
+                    })
 
                     return processedNode
                 })
@@ -224,7 +224,7 @@ class JSPydanticModel {
 
                 // Handle required fields from config
                 if (node.config && node.config.required) {
-                    node.config.required.forEach(field => {
+                    node.config.required.forEach((field) => {
                         if (!this._metadata[category][index].config[field]) {
                             this._metadata[category][index].config[field] = {}
                         }

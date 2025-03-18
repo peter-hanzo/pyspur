@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
-import Header from '../../components/Header'
-import { PersistGate } from 'redux-persist/integration/react'
-import { persistor } from '../../store/store'
-import { getWorkflow } from '../../utils/api'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import LoadingSpinner from '../../components/LoadingSpinner'
-import { fetchNodeTypes } from '../../store/nodeTypesSlice'
-import { setTestInputs } from '../../store/flowSlice'
-import { AppDispatch } from '../../store/store'
+import { PersistGate } from 'redux-persist/integration/react'
+
 import { SpurType, WorkflowCreateRequest, WorkflowResponse } from '@/types/api_types/workflowSchemas'
+
+import Header from '../../components/Header'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import { setTestInputs } from '../../store/flowSlice'
+import { fetchNodeTypes } from '../../store/nodeTypesSlice'
+import { AppDispatch, persistor } from '../../store/store'
+import { getWorkflow } from '../../utils/api'
 
 // Use dynamic import for Canvas components to avoid SSR issues
 const EditorCanvas = dynamic(() => import('../../components/canvas/EditorCanvas'), {

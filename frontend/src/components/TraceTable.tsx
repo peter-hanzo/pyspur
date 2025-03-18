@@ -1,5 +1,3 @@
-import { RunResponse, RunStatus } from '@/types/api_types/runSchemas'
-import { getWorkflowRuns } from '@/utils/api'
 import type { DateValue } from '@heroui/react'
 import {
     Button,
@@ -20,6 +18,10 @@ import { Icon } from '@iconify/react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+
+import { RunResponse, RunStatus } from '@/types/api_types/runSchemas'
+import { getWorkflowRuns } from '@/utils/api'
+
 import NodeOutputDisplay from './nodes/NodeOutputDisplay'
 
 interface TraceTableProps {
@@ -198,6 +200,17 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
     const [page, setPage] = useState(1)
     const [hasMoreRuns, setHasMoreRuns] = useState(true)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [selectedStatus, setSelectedStatus] = useState<RunStatus | ''>('')
+
+    const statusOptions: { label: string; value: RunStatus | '' }[] = [
+        { label: 'All', value: '' },
+        { label: 'Completed', value: 'COMPLETED' },
+        { label: 'Running', value: 'RUNNING' },
+        { label: 'Pending', value: 'PENDING' },
+        { label: 'Failed', value: 'FAILED' },
+        { label: 'Cancelled', value: 'CANCELLED' },
+        { label: 'Paused', value: 'PAUSED' },
+    ]
 
     const createUTCDate = (date: Date, time: string): Date => {
         const [hours, minutes] = time.split(':').map(Number)
@@ -223,7 +236,14 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                 end = createUTCDate(new Date(endDate.toString()), endTime)
             }
 
-            const workflowRuns = await getWorkflowRuns(workflowId, currentPage, parseInt(numRuns), start, end)
+            const workflowRuns = await getWorkflowRuns(
+                workflowId,
+                currentPage,
+                parseInt(numRuns),
+                start,
+                end,
+                selectedStatus || undefined
+            )
 
             // Sort runs by start time in descending order (newest first)
             const sortedRuns = workflowRuns.sort((a, b) => {
@@ -265,7 +285,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         }, 5000) // Poll every 5 seconds if there are active runs
 
         return () => clearInterval(intervalId)
-    }, [workflowId, startDate, endDate, startTime, endTime, numRuns])
+    }, [workflowId, startDate, endDate, startTime, endTime, numRuns, selectedStatus])
 
     const handleApplyFilter = () => {
         setPage(1)
@@ -278,6 +298,7 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
         setStartTime('00:00')
         setEndTime('23:59')
         setNumRuns('100')
+        setSelectedStatus('')
         setPage(1)
     }
 
@@ -349,6 +370,20 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
                         <SelectItem key="200" value="200">
                             200 runs
                         </SelectItem>
+                    </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm text-default-600">Status</label>
+                    <Select
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value as RunStatus | '')}
+                        className="min-w-[150px]"
+                    >
+                        {statusOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
                     </Select>
                 </div>
                 <div className="flex gap-2">

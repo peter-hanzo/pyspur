@@ -1,12 +1,14 @@
-import CollapsibleNodePanel from '@/components/nodes/CollapsibleNodePanel'
-import { addToolToAgent, setSelectedNode } from '@/store/flowSlice'
-import { RootState } from '@/store/store'
 import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { NodeResizer } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import CollapsibleNodePanel from '@/components/nodes/CollapsibleNodePanel'
+import { addToolToAgent, setSelectedNode } from '@/store/flowSlice'
+import { RootState } from '@/store/store'
+
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
 import NodeOutputModal from '../NodeOutputModal'

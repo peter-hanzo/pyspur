@@ -1,5 +1,6 @@
-import { FlowWorkflowNode, FlowWorkflowEdge } from '@/types/api_types/nodeTypeSchemas'
 import dagre from '@dagrejs/dagre'
+
+import { FlowWorkflowEdge, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 
 export const getLayoutedNodes = (nodes: FlowWorkflowNode[], edges: FlowWorkflowEdge[], direction = 'LR') => {
     const dagreGraph = new dagre.graphlib.Graph()

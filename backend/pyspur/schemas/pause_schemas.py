@@ -10,6 +10,7 @@ from .workflow_schemas import WorkflowDefinitionSchema
 
 class PauseHistoryResponseSchema(BaseModel):
     """Schema for pause information from a node's output."""
+
     id: str  # Synthetic ID for API compatibility
     run_id: str
     node_id: str
@@ -24,6 +25,7 @@ class PauseHistoryResponseSchema(BaseModel):
 
 class PausedWorkflowResponseSchema(BaseModel):
     """Schema for a paused workflow, including its current pause state."""
+
     run: RunResponseSchema
     current_pause: PauseHistoryResponseSchema
     workflow: WorkflowDefinitionSchema

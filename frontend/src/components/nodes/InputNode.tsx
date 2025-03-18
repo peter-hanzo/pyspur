@@ -1,11 +1,13 @@
-import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { convertToPythonVariableName } from '@/utils/variableNameUtils'
 import { Alert, Button, Input } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { Handle, Position } from '@xyflow/react'
 import { isEqual } from 'lodash'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+
 import {
     deleteWorkflowInputVariable,
     setWorkflowInputVariable,

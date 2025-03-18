@@ -1,5 +1,3 @@
-import { FlowState } from '@/types/api_types/flowStateSchema'
-import { TestInput } from '@/types/api_types/workflowSchemas'
 import {
     Button,
     Modal,
@@ -12,9 +10,12 @@ import {
     Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import React, { Dispatch, SetStateAction, useState } from 'react'
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import SyntaxHighlighter, { oneDark } from 'react-syntax-highlighter'
+
+import { FlowState } from '@/types/api_types/flowStateSchema'
+import { TestInput } from '@/types/api_types/workflowSchemas'
 
 interface DeployModalProps {
     isOpen: boolean
@@ -249,6 +250,19 @@ int main() {
         return examples[language]
     }
 
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onOpenChange(false)
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, onOpenChange])
+
     return (
         <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="full">
             <ModalContent>
@@ -360,7 +374,12 @@ int main() {
                     )}
                 </ModalBody>
                 <ModalFooter>
-                    <Button color="primary" onPress={() => onOpenChange(false)}>
+                    <Button
+                        size="lg"
+                        color="primary"
+                        onPress={() => onOpenChange(false)}
+                        endContent={<span className="text-xs opacity-70">ESC</span>}
+                    >
                         Close
                     </Button>
                 </ModalFooter>

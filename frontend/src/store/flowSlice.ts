@@ -1,3 +1,8 @@
+import { PayloadAction, createSlice } from '@reduxjs/toolkit'
+import { Connection, EdgeChange, NodeChange, addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react'
+import { isEqual } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
+
 import { FlowState } from '@/types/api_types/flowStateSchema'
 import {
     CreateNodeResult,
@@ -9,10 +14,7 @@ import {
 import { SpurType, TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { computeJsonSchemaIntersection } from '@/utils/schemaUtils'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange } from '@xyflow/react'
-import { isEqual } from 'lodash'
-import { v4 as uuidv4 } from 'uuid'
+
 import { createNode } from '../utils/nodeFactory'
 
 const initialState: FlowState = {

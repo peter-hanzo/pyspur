@@ -1,6 +1,3 @@
-import DynamicGroupNode from '@/components/nodes/loops/DynamicGroupNode'
-import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
-import { CreateNodeResult, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
 import {
     Connection,
     Edge,
@@ -18,9 +15,14 @@ import isEqual from 'lodash/isEqual'
 import { useTheme } from 'next-themes'
 import { useCallback, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import AgentNode from '../components/nodes/agent/AgentNode'
+
+import DynamicGroupNode from '@/components/nodes/loops/DynamicGroupNode'
+import { FlowWorkflowNodeTypesByCategory } from '@/store/nodeTypesSlice'
+import { CreateNodeResult, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+
 import DynamicNode from '../components/nodes/DynamicNode'
 import InputNode from '../components/nodes/InputNode'
+import AgentNode from '../components/nodes/agent/AgentNode'
 import { CoalesceNode } from '../components/nodes/logic/CoalesceNode'
 import { RouterNode } from '../components/nodes/logic/RouterNode'
 import { createDynamicGroupNodeWithChildren } from '../components/nodes/loops/groupNodeUtils'
