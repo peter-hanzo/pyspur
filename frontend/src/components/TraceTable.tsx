@@ -78,8 +78,13 @@ const RunsTable: React.FC<{
     const formatDuration = (startTime?: string, endTime?: string) => {
         if (!startTime) return '-'
 
-        const start = parseISO(startTime)
-        const end = endTime ? parseISO(endTime) : new Date()
+        // Ensure timestamps are treated as UTC
+        const utcStartTime = startTime.endsWith('Z') ? startTime : startTime + 'Z'
+        const start = parseISO(utcStartTime)
+
+        // For end time, use the provided time or current time
+        const utcEndTime = endTime ? (endTime.endsWith('Z') ? endTime : endTime + 'Z') : undefined
+        const end = utcEndTime ? parseISO(utcEndTime) : new Date()
 
         // Calculate duration in seconds
         const durationInSeconds = (end.getTime() - start.getTime()) / 1000
@@ -97,7 +102,9 @@ const RunsTable: React.FC<{
     }
 
     const formatTimestamp = (timestamp: string) => {
-        const date = parseISO(timestamp)
+        // Ensure the timestamp is treated as UTC by appending 'Z' if it's not already there
+        const utcTimestamp = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z'
+        const date = parseISO(utcTimestamp)
         return (
             <div className="flex flex-col">
                 <span>{format(date, "MMM d, yyyy HH:mm:ss 'UTC'")}</span>
@@ -211,8 +218,13 @@ const TraceTable: React.FC<TraceTableProps> = ({ workflowId }) => {
             const workflowRuns = await getWorkflowRuns(workflowId, 1, parseInt(numRuns), start, end)
             // Sort runs by start time in descending order (newest first)
             const sortedRuns = workflowRuns.sort((a, b) => {
-                const dateA = a.start_time ? new Date(a.start_time).getTime() : 0
-                const dateB = b.start_time ? new Date(b.start_time).getTime() : 0
+                // Properly parse dates with UTC marker
+                const dateA = a.start_time
+                    ? new Date(a.start_time.endsWith('Z') ? a.start_time : a.start_time + 'Z').getTime()
+                    : 0
+                const dateB = b.start_time
+                    ? new Date(b.start_time.endsWith('Z') ? b.start_time : b.start_time + 'Z').getTime()
+                    : 0
                 return dateB - dateA
             })
             setRuns(sortedRuns)
