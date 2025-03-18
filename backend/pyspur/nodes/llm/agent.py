@@ -59,9 +59,7 @@ class AgentNode(SingleLLMCallNode):
     input_model = AgentNodeInput
     output_model = AgentNodeOutput
     visual_tag = VisualTag(acronym="AGNT", color="#fb8500")
-    tools: Optional[List[WorkflowNodeSchema]] = Field(
-        None, description="List of tool nodes that the agent can use"
-    )
+    tools: Optional[List[WorkflowNodeSchema]] = None
 
     def __init__(
         self,
