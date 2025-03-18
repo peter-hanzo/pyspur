@@ -9,6 +9,7 @@ import React, { memo, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import BaseNode from '../BaseNode'
 import styles from '../DynamicNode.module.css'
+import NodeOutputModal from '../NodeOutputModal'
 import { OutputHandleRow } from '../shared/OutputHandleRow'
 
 export interface AgentNodeProps {
@@ -30,6 +31,7 @@ const baseNodeStyle = {
 const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showNodePanel, setShowNodePanel] = useState(false)
+    const [isModalOpen, setIsModalOpen] = useState(false)
     const dispatch = useDispatch()
 
     // Select node data and associated config (if any)
@@ -94,7 +96,7 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                 positionAbsoluteY={0}
                 className={`group`}
                 isResizable={true}
-                handleOpenModal={() => {}}
+                handleOpenModal={() => setIsModalOpen(true)}
                 renderOutputHandles={renderOutputHandles}
             >
                 <div className={`h-full ${styles.nodeWrapper}`}>
@@ -130,6 +132,12 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                     />
                 </div>
             )}
+            <NodeOutputModal
+                isOpen={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                title={node?.data?.title || 'Agent Output'}
+                data={node?.data}
+            />
         </div>
     )
 }
