@@ -12,7 +12,6 @@ from ..models.user_session_model import MessageModel, SessionModel
 from ..models.workflow_model import WorkflowModel
 from ..nodes.base import BaseNode, BaseNodeOutput
 from ..nodes.factory import NodeFactory
-from ..nodes.llm.agent import AgentNode
 from ..nodes.logic.human_intervention import PauseException
 from ..schemas.workflow_schemas import (
     SpurType,
@@ -424,13 +423,6 @@ class WorkflowExecutor:
                     )
             self.context.db_session.commit()
 
-    def add_tools_to_agent(self, id: str, node_instance: BaseNode) -> None:
-        """Add tools to the agent for the node instance."""
-        if not isinstance(node_instance, AgentNode):
-            return
-        tools = [node for node in self.workflow.nodes if node.parent_id == id]
-        node_instance.add_tools(tools)
-
     async def _execute_node(self, node_id: str) -> Optional[BaseNodeOutput]:  # noqa: C901
         node = self._node_dict[node_id]
         node_input = {}
@@ -619,7 +611,6 @@ class WorkflowExecutor:
                 node_type_name=node.node_type,
                 config=node.config,
             )
-            self.add_tools_to_agent(node_id, node_instance)
             self.node_instances[node_id] = node_instance
 
             # Set workflow definition in node context if available

@@ -7,7 +7,7 @@ from jinja2 import Template
 from litellm import ChatCompletionMessageToolCall, ChatCompletionToolMessage
 from pydantic import BaseModel, Field
 
-from ...schemas.workflow_schemas import WorkflowNodeSchema
+from ...schemas.workflow_schemas import WorkflowDefinitionSchema, WorkflowNodeSchema
 from ...utils.pydantic_utils import get_nested_field
 from ..base import BaseNode, BaseNodeInput, BaseNodeOutput, VisualTag
 from ..factory import NodeFactory
@@ -27,6 +27,9 @@ class AgentNodeConfig(SingleLLMCallNodeConfig):
     Extends SingleLLMCallNodeConfig with support for tools.
     """
 
+    subworkflow: Optional[WorkflowDefinitionSchema] = Field(
+        None, description="Subworkflow containing tool nodes"
+    )
     max_iterations: int = Field(
         10, description="Maximum number of tool calls the agent can make in a single run"
     )
@@ -59,7 +62,6 @@ class AgentNode(SingleLLMCallNode):
     input_model = AgentNodeInput
     output_model = AgentNodeOutput
     visual_tag = VisualTag(acronym="AGNT", color="#fb8500")
-    tools: Optional[List[WorkflowNodeSchema]] = None
 
     def __init__(
         self,
@@ -69,13 +71,20 @@ class AgentNode(SingleLLMCallNode):
         tools: Optional[List[WorkflowNodeSchema]] = None,
     ) -> None:
         super().__init__(name, config, context)
-        self.tools = tools
+        if tools is not None:
+            self.subworkflow = WorkflowDefinitionSchema(nodes=tools, links=[])
 
     def setup(self) -> None:
         super().setup()
         # Create a dictionary of tool nodes for easy access
         self.tools_dict: Dict[str, WorkflowNodeSchema] = {}
-        tools: List[WorkflowNodeSchema] = self.tools or []
+        tools: List[WorkflowNodeSchema] = (
+            self.subworkflow.nodes
+            if self.subworkflow is not None
+            else self.config.subworkflow.nodes
+            if self.config.subworkflow.nodes is not None
+            else []
+        ) or []
         for tool in tools:
             self.tools_dict[tool.title.lower()] = tool
 
@@ -216,6 +225,7 @@ class AgentNode(SingleLLMCallNode):
                     or model_info.constraints.thinking_budget_tokens
                     or 1024,
                 }
+        assert len(self.tools_schemas) > 0, "No tools found in the agent node"
 
         try:
             num_iterations = 0
@@ -371,7 +381,6 @@ if __name__ == "__main__":
         # Create agent node
         agent_node = AgentNode(
             name="MathHelper",
-            tools=[tool_schema],
             config=AgentNodeConfig(
                 llm_info=ModelInfo(model=LLMModels.GPT_4O, temperature=0.7, max_tokens=1000),
                 system_message=(
@@ -394,8 +403,10 @@ if __name__ == "__main__":
                         "required": ["answer", "explanation"],
                     }
                 ),
+                subworkflow=None,
             ),
         )
+        agent_node.add_tools([tool_schema])
 
         # Create input
         test_input = AgentNodeInput.model_validate({"problem": "What is 25 × 13?"})
