@@ -27,6 +27,16 @@ class AgentNodeConfig(SingleLLMCallNodeConfig):
     Extends SingleLLMCallNodeConfig with support for tools.
     """
 
+    output_json_schema: str = Field(
+        default=(
+            '{"type": "object", "properties": {"output": {"type": "string"},'
+            ' "tool_calls": {"type": "array", "items": {"type": "string"} } },'
+            ' "required": ["output", "tool_calls"] }'
+        ),
+        title="Output JSON schema",
+        description="The JSON schema for the output of the node",
+    )
+
     subworkflow: Optional[WorkflowDefinitionSchema] = Field(
         None, description="Subworkflow containing tool nodes"
     )
@@ -367,6 +377,10 @@ class AgentNode(SingleLLMCallNode):
                         }
                     )
                 ) from inner_e
+
+        assistant_message_dict["tool_calls"] = [
+            str(m) for m in messages if m["role"] == "tool" or "tool_calls" in m
+        ]
 
         # Validate and return
         assistant_message = self.output_model.model_validate(assistant_message_dict)
