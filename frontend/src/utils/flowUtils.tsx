@@ -64,7 +64,7 @@ export const useNodeTypes = ({
                     types[node.name] = CoalesceNode
                 } else if (node.name === 'ForLoopNode') {
                     types[node.name] = (props: any) => <DynamicGroupNode key={props.id} {...props} />
-                } else if (node.name === 'Agent') {
+                } else if (node.name === 'AgentNode') {
                     types[node.name] = (props: any) => <AgentNode key={props.id} {...props} />
                 } else {
                     types[node.name] = (props: any) => (
