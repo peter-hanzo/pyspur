@@ -1,6 +1,6 @@
 import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { NodeResizer } from '@xyflow/react'
+import { NodeResizer, useStore } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import React, { memo, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -18,18 +18,6 @@ export interface AgentNodeProps {
     id: string
 }
 
-const baseNodeStyle = {
-    width: 'auto',
-    minWidth: '300px',
-    maxWidth: '600px',
-    height: 'auto',
-    minHeight: '150px',
-    maxHeight: '800px',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    backdropFilter: 'blur(8px)',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-}
-
 const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [showNodePanel, setShowNodePanel] = useState(false)
@@ -43,10 +31,28 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
     const nodeConfigs = useSelector((state: RootState) => state.flow.nodeConfigs)
 
+    // Determine selection state
+    const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNode)
+    const isSelected = String(id) === String(selectedNodeId)
+
     // Get tool nodes (nodes that are children of this agent node)
     const toolNodes = useMemo(() => {
         return nodeConfig?.tools || []
     }, [nodeConfig])
+
+    // Get dynamic dimensions based on node state
+    const { minWidth, minHeight } = useStore((store) => {
+        // Find all tool nodes of this agent
+        const childNodes = Array.from(store.nodeLookup.values()).filter((n: any) => 
+            n.parentNode === id || n.data?.agentId === id
+        );
+        
+        // Use minimum dimensions similar to DynamicGroupNode
+        return {
+            minWidth: 300,
+            minHeight: Math.max(150, toolNodes?.length ? 200 : 150),
+        };
+    }, (prev, next) => prev.minWidth === next.minWidth && prev.minHeight === next.minHeight);
 
     // Handlers for tool management
     const handleAddTool = () => {
@@ -83,9 +89,9 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
         <div className="w-full h-full relative">
             <NodeResizer
                 nodeId={id}
-                isVisible={true}
-                minWidth={Number(baseNodeStyle.minWidth)}
-                minHeight={Number(baseNodeStyle.minHeight)}
+                isVisible={isSelected}
+                minWidth={minWidth}
+                minHeight={minHeight}
                 lineStyle={{ borderColor: 'rgb(148 163 184)', display: 'none' }}
                 handleStyle={{ backgroundColor: 'rgb(148 163 184)', width: '1rem', height: '1rem', borderRadius: 2 }}
             />
@@ -96,7 +102,7 @@ const AgentNode: React.FC<AgentNodeProps> = ({ id }) => {
                 setIsCollapsed={setIsCollapsed}
                 positionAbsoluteX={0}
                 positionAbsoluteY={0}
-                className={`group`}
+                className={`group ${isSelected ? 'selected' : ''}`}
                 isResizable={true}
                 handleOpenModal={() => setIsModalOpen(true)}
                 renderOutputHandles={renderOutputHandles}
