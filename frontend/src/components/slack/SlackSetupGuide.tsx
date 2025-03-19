@@ -77,7 +77,7 @@ const SlackSetupGuide: React.FC<SlackSetupGuideProps> = ({
                 </ModalHeader>
                 <ModalBody>
                     <p className="mb-4">
-                        Set up Slack integration by providing your Bot Token directly:
+                        Set up Slack integration by providing your Bot Token directly. After configuration, you'll create your first Slack agent.
                     </p>
 
                     <Accordion>
@@ -165,8 +165,38 @@ const SlackSetupGuide: React.FC<SlackSetupGuideProps> = ({
                                     isLoading={isConfiguring}
                                     isDisabled={!botToken || isConfiguring}
                                 >
-                                    Save Token and Configure Slack
+                                    Save Token and Continue to Agent Setup
                                 </Button>
+
+                                <p className="text-sm text-default-500 mt-2">
+                                    After saving your token, you&apos;ll be guided to create your first Slack agent.
+                                </p>
+                            </div>
+                        </AccordionItem>
+
+                        <AccordionItem
+                            key="create-agent"
+                            subtitle="Create a Slack Agent"
+                            title={
+                                <div className="flex items-center">
+                                    <div className="bg-primary-50 dark:bg-primary-900 rounded-full h-6 w-6 flex items-center justify-center mr-2">
+                                        <span className="text-primary font-semibold text-sm">4</span>
+                                    </div>
+                                    <span className="font-medium">Create Your First Slack Agent</span>
+                                </div>
+                            }
+                        >
+                            <div className="pl-8 text-sm space-y-2">
+                                <p>After configuring your token, you&apos;ll be prompted to:</p>
+                                <ol className="list-decimal list-inside space-y-1 pl-2">
+                                    <li>Create a personalized Slack agent</li>
+                                    <li>Select which workflow to connect to your Slack agent</li>
+                                    <li>Configure trigger settings (mentions, direct messages, keywords)</li>
+                                    <li>Complete the setup to start using Slack with your workflows</li>
+                                </ol>
+                                <p className="mt-2 text-default-500">
+                                    You can create multiple agents for different purposes later from the Slack integration panel.
+                                </p>
                             </div>
                         </AccordionItem>
 
@@ -176,7 +206,7 @@ const SlackSetupGuide: React.FC<SlackSetupGuideProps> = ({
                             title={
                                 <div className="flex items-center">
                                     <div className="bg-primary-50 dark:bg-primary-900 rounded-full h-6 w-6 flex items-center justify-center mr-2">
-                                        <span className="text-primary font-semibold text-sm">4</span>
+                                        <span className="text-primary font-semibold text-sm">5</span>
                                     </div>
                                     <span className="font-medium">Configure Event Subscriptions (Optional)</span>
                                 </div>

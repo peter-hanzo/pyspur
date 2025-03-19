@@ -5,12 +5,12 @@ from pydantic import BaseModel
 
 class SlackAgentBase(BaseModel):
     name: str
-    slack_team_id: str
-    slack_team_name: str
+    slack_team_id: Optional[str] = "T00000000"  # Default placeholder
+    slack_team_name: Optional[str] = "Default Team"  # Default placeholder
     slack_channel_id: Optional[str] = None
     slack_channel_name: Optional[str] = None
     is_active: bool = True
-    spur_type: str = "workflow"  # "default", "spur-web", "spur-chat", etc.
+    spur_type: str = "workflow"  # "spur-web", "spur-chat", etc.
 
 
 class SlackAgentCreate(SlackAgentBase):
@@ -19,7 +19,7 @@ class SlackAgentCreate(SlackAgentBase):
     currently configured Slack token if not provided.
     """
 
-    workflow_id: Optional[str] = None
+    workflow_id: str  # Workflow to associate with this agent
     trigger_on_mention: bool = True
     trigger_on_direct_message: bool = True
     trigger_on_channel_message: bool = False

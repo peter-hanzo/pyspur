@@ -67,6 +67,12 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
 
     const handleSubmit = async () => {
         try {
+            // Ensure a workflow is selected
+            if (!selectedWorkflowId) {
+                setAlert({ type: 'danger', message: 'A workflow must be selected to create an agent' })
+                return
+            }
+
             setIsSubmitting(true)
             console.log('Creating Slack agent...')
 
@@ -78,7 +84,7 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
 
             // Create the agent
             const newAgent = await createSlackAgent(name, {
-                workflow_id: selectedWorkflowId || undefined,
+                workflow_id: selectedWorkflowId,
                 trigger_enabled: triggerEnabled,
                 trigger_on_mention: triggerOnMention,
                 trigger_on_direct_message: triggerOnDM,
@@ -98,7 +104,10 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
             }
         } catch (error) {
             console.error('Error creating agent:', error)
-            setAlert({ type: 'danger', message: 'Error creating agent. Please check if Slack is properly configured.' })
+            const errorMessage = error.response?.data?.detail
+                ? `Error: ${JSON.stringify(error.response.data.detail)}`
+                : 'Error creating agent. Please check if Slack is properly configured.'
+            setAlert({ type: 'danger', message: errorMessage })
         } finally {
             setIsSubmitting(false)
         }
@@ -107,6 +116,11 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
     const handleNext = () => {
         if (activeStep === 0 && !name.trim()) {
             setAlert({ type: 'danger', message: 'Please enter a name for the agent' })
+            return
+        }
+
+        if (activeStep === 1 && !selectedWorkflowId) {
+            setAlert({ type: 'danger', message: 'Please select a workflow for this agent' })
             return
         }
 
@@ -136,6 +150,15 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
             case 0:
                 return (
                     <div className="flex flex-col gap-6">
+                        <Alert className="mb-4" color="primary">
+                            <div className="flex items-center gap-2">
+                                <Info className="h-4 w-4" />
+                                <p>
+                                    Make sure Slack is properly configured before creating an agent.
+                                    You may need to connect your Slack workspace first.
+                                </p>
+                            </div>
+                        </Alert>
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Input
@@ -336,7 +359,7 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                                         <Chip size="sm" color="danger" variant="flat">Use with caution</Chip>
                                                     </div>
                                                     <p className="text-sm text-default-500">
-                                                        Agent will respond to all messages in channels it's added to
+                                                        Agent will respond to all messages in channels it&apos;s added to
                                                     </p>
                                                 </div>
                                             </Checkbox>

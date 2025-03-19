@@ -18,6 +18,8 @@ import {
 import { Icon } from '@iconify/react'
 import { SlackAgent, toggleSlackTrigger, testSlackConnection, deleteSlackAgent } from '@/utils/api'
 import AgentTokenManager from './AgentTokenManager'
+import TestConnectionModal from './TestConnectionModal'
+import TestConnectionResultModal from './TestConnectionResultModal'
 
 interface SlackAgentDetailProps {
     isOpen: boolean
@@ -41,6 +43,11 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
     const [isDeleting, setIsDeleting] = useState(false)
     const [keywords, setKeywords] = useState<string>(agent?.trigger_keywords?.join(', ') || '')
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [showTestConnectionModal, setShowTestConnectionModal] = useState(false)
+    const [showTestResultModal, setShowTestResultModal] = useState(false)
+    const [testConnectionSuccess, setTestConnectionSuccess] = useState(false)
+    const [testConnectionMessage, setTestConnectionMessage] = useState('')
+    const [testConnectionChannel, setTestConnectionChannel] = useState('general')
 
     const handleTokenUpdated = () => {
         // Refresh the agents list after token update
@@ -64,17 +71,22 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
         }
     }
 
-    const handleTestConnection = async () => {
+    const handleTestConnection = () => {
         if (!agent) return
-        setIsLoading(true)
-        try {
-            await testSlackConnection(agent, onAlert)
-        } catch (error) {
-            console.error('Error testing connection:', error)
-            onAlert?.('Failed to test connection', 'danger')
-        } finally {
-            setIsLoading(false)
+        if (!agent.has_bot_token) {
+            onAlert?.('Bot token required. Configure it first.', 'warning')
+            return
         }
+
+        // Show the test connection modal
+        setShowTestConnectionModal(true)
+    }
+
+    const handleTestComplete = (success: boolean, message: string, channel: string) => {
+        setTestConnectionSuccess(success)
+        setTestConnectionMessage(message)
+        setTestConnectionChannel(channel)
+        setShowTestResultModal(true)
     }
 
     const updateKeywords = async () => {
@@ -301,7 +313,6 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
                                 variant="light"
                                 startContent={<Icon icon="solar:test-tube-bold" width={20} />}
                                 onPress={handleTestConnection}
-                                isLoading={isLoading}
                             >
                                 Test Connection
                             </Button>
@@ -350,6 +361,24 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
                                 )}
                             </ModalContent>
                         </Modal>
+
+                        {/* Test Connection Modals */}
+                        <TestConnectionModal
+                            isOpen={showTestConnectionModal}
+                            onClose={() => setShowTestConnectionModal(false)}
+                            agent={agent}
+                            onAlert={onAlert}
+                            onTestComplete={handleTestComplete}
+                        />
+
+                        <TestConnectionResultModal
+                            isOpen={showTestResultModal}
+                            onClose={() => setShowTestResultModal(false)}
+                            agent={agent}
+                            channel={testConnectionChannel}
+                            isSuccess={testConnectionSuccess}
+                            message={testConnectionMessage}
+                        />
                     </>
                 )}
             </ModalContent>

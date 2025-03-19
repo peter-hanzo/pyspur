@@ -21,64 +21,35 @@ from ..schemas.slack_schemas import (
     SlackAgentUpdate,
     SlackMessage,
     SlackMessageResponse,
-    SlackOAuthResponse,
     SlackTriggerConfig,
     WorkflowAssociation,
     WorkflowTriggerRequest,
     WorkflowTriggerResult,
     WorkflowTriggersResponse,
 )
-from . import key_management
 from .secure_token_store import get_token_store
 from .workflow_run import run_workflow_non_blocking
 
 router = APIRouter()
 
-# OAuth configuration
-SLACK_CLIENT_ID = os.getenv("SLACK_CLIENT_ID", "")
-SLACK_CLIENT_SECRET = os.getenv("SLACK_CLIENT_SECRET", "")
-SLACK_REDIRECT_URI = os.getenv(
-    "SLACK_REDIRECT_URI", "http://localhost:8000/api/slack/oauth/callback"
-)
+# API Endpoints
+SLACK_API_URL = "https://slack.com/api"
+SLACK_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage"
 
 # Request timeout (in seconds)
 REQUEST_TIMEOUT = 10
-
-# Slack API endpoints
-SLACK_OAUTH_URL = "https://slack.com/oauth/v2/authorize"
-SLACK_TOKEN_URL = "https://slack.com/api/oauth.v2.access"
-SLACK_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage"
-
-
-def validate_redirect_uri() -> None:
-    """Validate the redirect URI to ensure it's not the default localhost URL in production"""
-    if SLACK_REDIRECT_URI == "http://localhost:8000/api/slack/oauth/callback":
-        # Check if we're in a production environment
-        if os.getenv("ENVIRONMENT", "").lower() == "production":
-            raise ValueError(
-                "SLACK_REDIRECT_URI is set to localhost but the environment is production. "
-                "Please configure a proper redirect URI."
-            )
 
 
 @router.get("/config/status")
 async def get_slack_config_status():
     """Check if Slack configuration is complete and return the status"""
     # Check if the required environment variables are set
-    client_id = os.getenv("SLACK_CLIENT_ID", "")
-    client_secret = os.getenv("SLACK_CLIENT_SECRET", "")
+    bot_token = os.getenv("SLACK_BOT_TOKEN", "")
 
     # Return the configuration status
     return {
-        "configured": bool(client_id and client_secret),
-        "missing_keys": [
-            key
-            for key, value in {
-                "SLACK_CLIENT_ID": client_id,
-                "SLACK_CLIENT_SECRET": client_secret,
-            }.items()
-            if not value
-        ],
+        "configured": bool(bot_token),
+        "missing_keys": [] if bot_token else ["SLACK_BOT_TOKEN"],
     }
 
 
@@ -86,8 +57,6 @@ async def get_slack_config_status():
 async def get_slack_required_keys():
     """Get information about the required Slack API keys and their current status"""
     # Get current values (masked for security)
-    client_id = os.getenv("SLACK_CLIENT_ID", "")
-    client_secret = os.getenv("SLACK_CLIENT_SECRET", "")
     bot_token = os.getenv("SLACK_BOT_TOKEN", "")
 
     # Function to mask key values for display
@@ -98,153 +67,26 @@ async def get_slack_required_keys():
             return "*" * len(value)
         return value[:4] + "*" * (len(value) - 8) + value[-4:]
 
-    # Prepare the response with key information
+    # Create a list of required keys with detailed information
     keys_info = [
         {
-            "name": "SLACK_CLIENT_ID",
-            "description": "Client ID from your Slack App's Basic Information page",
-            "configured": bool(client_id),
-            "masked_value": mask_value(client_id),
-            "required": True,
-            "purpose": "Used for initial OAuth authentication",
-            "help_url": "https://api.slack.com/authentication/basics",
-        },
-        {
-            "name": "SLACK_CLIENT_SECRET",
-            "description": "Client Secret from your Slack App's Basic Information page",
-            "configured": bool(client_secret),
-            "masked_value": mask_value(client_secret),
-            "required": True,
-            "purpose": "Used along with Client ID for OAuth authentication",
-            "help_url": "https://api.slack.com/authentication/basics",
-        },
-        {
             "name": "SLACK_BOT_TOKEN",
-            "description": "Bot User OAuth Token (starts with xoxb-)",
+            "description": "Bot Token from your Slack App, starting with 'xoxb-'",
             "configured": bool(bot_token),
             "masked_value": mask_value(bot_token),
-            "required": False,
-            "purpose": "Obtained after successful authentication, used for API operations",
+            "required": True,
+            "purpose": "Used to send messages and interact with Slack API",
             "help_url": "https://api.slack.com/authentication/token-types",
         },
     ]
 
-    # Determine overall status
+    # Check if all required keys are configured
     all_required_configured = all(key["configured"] for key in keys_info if key["required"])
 
     return {
         "configured": all_required_configured,
         "keys": keys_info,
-        "redirect_uri": SLACK_REDIRECT_URI,
-        "scopes_needed": "channels:read,chat:write,team:read,app_mentions:read,im:read,im:history",
     }
-
-
-@router.get("/oauth/authorize")
-async def authorize_slack():
-    """Generate the Slack OAuth authorization URL"""
-    # Check for missing credentials and provide detailed feedback
-    missing_keys = []
-    if not SLACK_CLIENT_ID:
-        missing_keys.append("SLACK_CLIENT_ID")
-    if not SLACK_CLIENT_SECRET:
-        missing_keys.append("SLACK_CLIENT_SECRET")
-
-    if missing_keys:
-        missing_keys_str = ", ".join(missing_keys)
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "missing_credentials",
-                "message": f"Slack credentials not configured: {missing_keys_str}",
-                "missing_keys": missing_keys,
-            },
-        )
-
-    try:
-        validate_redirect_uri()
-    except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    from urllib.parse import urlencode
-
-    # Updated scopes to include app_mentions:read for mention triggers
-    params = {
-        "client_id": SLACK_CLIENT_ID,
-        "scope": "channels:read,chat:write,team:read,app_mentions:read,im:read,im:history",
-        "redirect_uri": SLACK_REDIRECT_URI,
-    }
-
-    auth_url = f"{SLACK_OAUTH_URL}?{urlencode(params)}"
-    return {"auth_url": auth_url}
-
-
-@router.get("/oauth/callback", response_model=SlackOAuthResponse)
-async def slack_oauth_callback(code: str, request: Request, db: Session = Depends(get_db)):
-    """Handle the Slack OAuth callback and store the tokens"""
-    if not SLACK_CLIENT_ID or not SLACK_CLIENT_SECRET:
-        raise HTTPException(status_code=500, detail="Slack API credentials are not configured")
-
-    try:
-        validate_redirect_uri()
-    except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    # Exchange the authorization code for access tokens
-    try:
-        response = requests.post(
-            SLACK_TOKEN_URL,
-            data={
-                "client_id": SLACK_CLIENT_ID,
-                "client_secret": SLACK_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": SLACK_REDIRECT_URI,
-            },
-            timeout=REQUEST_TIMEOUT,
-        )
-        response.raise_for_status()
-        token_data = response.json()
-
-        if not token_data.get("ok", False):
-            raise HTTPException(status_code=400, detail=f"Slack error: {token_data.get('error')}")
-
-        # Store the tokens securely
-        bot_token = token_data.get("access_token")
-        if not bot_token:
-            raise HTTPException(status_code=400, detail="Bot token not found in OAuth response")
-
-        try:
-            key_management.set_env_variable("SLACK_BOT_TOKEN", bot_token)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to store token: {str(e)}")
-
-        # Extract team information
-        team_id = token_data.get("team", {}).get("id")
-        team_name = token_data.get("team", {}).get("name")
-
-        if not team_id or not team_name:
-            raise HTTPException(
-                status_code=400, detail="Team information not found in OAuth response"
-            )
-
-        # Create a default agent for this workspace
-        agent = SlackAgentModel(
-            name=f"{team_name} Agent",
-            slack_team_id=team_id,
-            slack_team_name=team_name,
-        )
-        db.add(agent)
-        db.commit()
-        db.refresh(agent)
-
-        return SlackOAuthResponse(
-            success=True,
-            message="Slack authentication successful",
-            team_name=team_name,
-        )
-
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Error communicating with Slack: {str(e)}")
 
 
 @router.get("/agents", response_model=List[SlackAgentResponse])
@@ -282,6 +124,13 @@ async def get_agents(db: Session = Depends(get_db)):
 @router.post("/agents", response_model=SlackAgentResponse)
 async def create_agent(agent_create: SlackAgentCreate, db: Session = Depends(get_db)):
     """Create a new Slack agent configuration"""
+    # Ensure workflow_id is provided
+    if not agent_create.workflow_id:
+        raise HTTPException(
+            status_code=400,
+            detail="workflow_id is required - every agent must be associated with a workflow",
+        )
+
     # Create a new agent from the agent_create fields
     new_agent = SlackAgentModel(
         name=agent_create.name,
@@ -832,66 +681,6 @@ async def slack_events(
     return {"ok": True}
 
 
-@router.post("/create-default-agent", response_model=SlackAgentResponse)
-async def create_default_agent(db: Session = Depends(get_db)):
-    """Create a default Slack agent for a basic setup"""
-    # Check if a default agent already exists
-    default_agent = (
-        db.query(SlackAgentModel).filter(SlackAgentModel.name == "Default Agent").first()
-    )
-
-    if not default_agent:
-        # Create a new default agent
-        default_agent = SlackAgentModel(
-            name="Default Agent",
-            slack_team_id="T00000000",  # Placeholder
-            slack_team_name="Default Team",
-            slack_channel_id=None,
-            slack_channel_name=None,
-            is_active=True,
-            workflow_id=None,
-            trigger_on_mention=True,
-            trigger_on_direct_message=True,
-            trigger_on_channel_message=False,
-            trigger_keywords=None,
-            trigger_enabled=True,
-            has_bot_token=False,
-            has_user_token=False,
-            spur_type="default",
-        )
-
-        db.add(default_agent)
-        db.commit()
-        db.refresh(default_agent)
-
-    # Convert the agent to a Pydantic model with proper boolean values
-    agent_dict = {
-        "id": default_agent.id,
-        "name": default_agent.name,
-        "slack_team_id": default_agent.slack_team_id,
-        "slack_team_name": default_agent.slack_team_name,
-        "slack_channel_id": default_agent.slack_channel_id,
-        "slack_channel_name": default_agent.slack_channel_name,
-        "is_active": bool(default_agent.is_active),
-        "workflow_id": default_agent.workflow_id,
-        "trigger_on_mention": bool(default_agent.trigger_on_mention),
-        "trigger_on_direct_message": bool(default_agent.trigger_on_direct_message),
-        "trigger_on_channel_message": bool(default_agent.trigger_on_channel_message),
-        "trigger_keywords": default_agent.trigger_keywords,
-        "trigger_enabled": bool(default_agent.trigger_enabled),
-        "has_bot_token": False
-        if default_agent.has_bot_token is None
-        else bool(default_agent.has_bot_token),
-        "has_user_token": False
-        if default_agent.has_user_token is None
-        else bool(default_agent.has_user_token),
-        "last_token_update": default_agent.last_token_update,
-        "spur_type": getattr(default_agent, "spur_type", "default") or "default",
-        "created_at": getattr(default_agent, "created_at", ""),
-    }
-    return SlackAgentResponse(**agent_dict)
-
-
 @router.post("/agents/{agent_id}/tokens", response_model=AgentTokenResponse)
 async def set_agent_token(
     agent_id: int, token_request: AgentTokenRequest, db: Session = Depends(get_db)
@@ -1002,3 +791,24 @@ async def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return None
+
+
+@router.post("/set-token", response_model=dict)
+async def set_slack_token(request: Request):
+    """Directly set the Slack bot token"""
+    try:
+        data = await request.json()
+        token = data.get("token")
+
+        if not token:
+            raise HTTPException(status_code=400, detail="Token is required")
+
+        # Store the token
+        try:
+            key_management.set_env_variable("SLACK_BOT_TOKEN", token)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to store token: {str(e)}")
+
+        return {"success": True, "message": "Slack token has been set successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error setting Slack token: {str(e)}")

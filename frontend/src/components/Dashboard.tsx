@@ -76,7 +76,6 @@ import {
     handleConnectToSlack,
     handleShowSlackSetup,
     getPauseHistory,
-    createDefaultSlackAgent,
     deleteSlackAgent,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
@@ -91,6 +90,7 @@ import {
     SlackAgentDetail,
     TestConnectionResultModal,
     TestConnectionModal,
+    SlackAgentWizard,
 } from './slack'
 
 // Calendly Widget Component
@@ -200,6 +200,7 @@ const Dashboard: React.FC = () => {
     const [testConnectionMessage, setTestConnectionMessage] = useState("");
     const [showTestConnectionInputModal, setShowTestConnectionInputModal] = useState(false);
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [showAgentWizardModal, setShowAgentWizardModal] = useState(false);
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -704,39 +705,31 @@ const Dashboard: React.FC = () => {
         try {
             const agents = await handleConnectToSlack(onAlert, setMissingSlackKeys, setShowConfigErrorModal)
 
-            if (agents && agents.length === 0) {
-                console.log('No agents found after connecting to Slack, creating a default agent...')
-                const newAgent = await createDefaultSlackAgent()
-
-                if (newAgent) {
-                    console.log('Successfully created default agent:', newAgent)
-                    // Update agents in state with the new agent
-                    setSlackAgents([newAgent])
-                    setSelectedSlackAgent(newAgent)
-                } else {
-                    onAlert('Connected to Slack, but failed to create an agent.', 'warning')
-                    return
-                }
-            } else if (agents && agents.length > 0) {
-                // Update the agents in state
+            if (agents) {
+                // Update agents in state
                 setSlackAgents(agents)
-                setSelectedSlackAgent(agents[0])
-            } else {
-                // No agents and couldn't create one
-                return
-            }
 
-            // Force the modal to show
-            console.log('Forcing workflow association modal to show')
-            setShowWorkflowAssociationModal(true)
+                if (agents.length === 0) {
+                    console.log('No agents found after connecting to Slack, showing agent wizard...')
+                    // Show the SlackAgentWizard instead of creating a default agent
+                    setShowAgentWizardModal(true)
+                } else {
+                    // If we have agents, select the first one for the workflow association modal
+                    setSelectedSlackAgent(agents[0])
 
-            // Also try with a timeout as a fallback
-            setTimeout(() => {
-                if (!showWorkflowAssociationModal) {
-                    console.log('Showing workflow association modal via timeout')
+                    // Force the workflow association modal to show for existing agents
+                    console.log('Forcing workflow association modal to show')
                     setShowWorkflowAssociationModal(true)
+
+                    // Also try with a timeout as a fallback
+                    setTimeout(() => {
+                        if (!showWorkflowAssociationModal) {
+                            console.log('Showing workflow association modal via timeout')
+                            setShowWorkflowAssociationModal(true)
+                        }
+                    }, 1000)
                 }
-            }, 1000)
+            }
         } catch (error) {
             console.error('Error connecting to Slack:', error)
         }
@@ -756,25 +749,16 @@ const Dashboard: React.FC = () => {
     const handleSlackTokenConfigured = async () => {
         // Refresh the Slack agents after token is configured
         try {
-            let agents = await getSlackAgents()
+            const agents = await getSlackAgents()
 
-            // If no agents exist, create a default one
+            // If no agents exist, show the agent wizard
             if (agents.length === 0) {
-                console.log('No agents found after token configuration, creating a default agent...')
-                const newAgent = await createDefaultSlackAgent()
+                console.log('No agents found after token configuration, showing agent wizard...')
+                setShowAgentWizardModal(true)
+                onAlert('Slack token configured successfully! Let&apos;s create your first agent.', 'success')
+            } else {
+                setSlackAgents(agents)
 
-                if (newAgent) {
-                    console.log('Successfully created default agent:', newAgent)
-                    // Refresh the agents list
-                    agents = await getSlackAgents()
-                } else {
-                    onAlert('Slack token configured, but failed to create an agent.', 'warning')
-                }
-            }
-
-            setSlackAgents(agents)
-
-            if (agents && agents.length > 0) {
                 // Show success message
                 onAlert('Slack token configured successfully!', 'success')
 
@@ -792,8 +776,6 @@ const Dashboard: React.FC = () => {
                         setShowWorkflowAssociationModal(true)
                     }
                 }, 1000)
-            } else {
-                onAlert('Slack token configured successfully!', 'success')
             }
         } catch (error) {
             console.error('Error fetching Slack agents:', error)
@@ -905,6 +887,27 @@ const Dashboard: React.FC = () => {
         } catch (error) {
             console.error('Error deleting agent:', error)
             onAlert('Failed to delete agent', 'danger')
+        }
+    }
+
+    // Handler for when an agent is created in the wizard
+    const handleAgentCreatedFromWizard = (newAgent: SlackAgent, workflowId?: string) => {
+        // Add the new agent to the list
+        setSlackAgents(prev => [...prev, newAgent])
+
+        // Close the wizard modal
+        setShowAgentWizardModal(false)
+
+        // Show success message
+        onAlert('Slack agent created successfully!', 'success')
+
+        // If the agent is associated with a workflow, we don't need to show the workflow modal
+        if (workflowId || newAgent.workflow_id) {
+            console.log('Agent already has a workflow associated:', workflowId || newAgent.workflow_id)
+        } else {
+            // If not, select it for workflow association
+            setSelectedSlackAgent(newAgent)
+            setShowWorkflowAssociationModal(true)
         }
     }
 
@@ -1708,6 +1711,18 @@ const Dashboard: React.FC = () => {
                     )}
                 </ModalContent>
             </Modal>
+
+            {/* Slack Agent Wizard Modal */}
+            {showAgentWizardModal && (
+                <div className="fixed inset-0 z-50 overflow-auto">
+                    <SlackAgentWizard
+                        workflows={workflows.filter(w => w.id !== undefined)}
+                        onCreated={(newAgent) => handleAgentCreatedFromWizard(newAgent)}
+                        onCancel={() => setShowAgentWizardModal(false)}
+                        isStandalone={false}
+                    />
+                </div>
+            )}
         </div>
     )
 }
