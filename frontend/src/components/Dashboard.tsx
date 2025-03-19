@@ -77,6 +77,7 @@ import {
     handleShowSlackSetup,
     getPauseHistory,
     createDefaultSlackAgent,
+    deleteSlackAgent,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
@@ -88,6 +89,8 @@ import {
     SlackSetupGuide,
     WorkflowAssociationModal,
     SlackAgentDetail,
+    TestConnectionResultModal,
+    TestConnectionModal,
 } from './slack'
 
 // Calendly Widget Component
@@ -190,6 +193,13 @@ const Dashboard: React.FC = () => {
     const [showWorkflowAssociationModal, setShowWorkflowAssociationModal] = useState(false)
     const [showAgentDetailModal, setShowAgentDetailModal] = useState(false)
     const [selectedAgentForDetail, setSelectedAgentForDetail] = useState<SlackAgent | null>(null)
+    const [showTestConnectionModal, setShowTestConnectionModal] = useState(false);
+    const [testConnectionChannel, setTestConnectionChannel] = useState("general");
+    const [testConnectionAgent, setTestConnectionAgent] = useState<SlackAgent | null>(null);
+    const [testConnectionSuccess, setTestConnectionSuccess] = useState(true);
+    const [testConnectionMessage, setTestConnectionMessage] = useState("");
+    const [showTestConnectionInputModal, setShowTestConnectionInputModal] = useState(false);
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -884,6 +894,20 @@ const Dashboard: React.FC = () => {
         }
     }
 
+    // Add a function to handle deleting a Slack agent
+    const handleDeleteAgent = async (agent: SlackAgent) => {
+        try {
+            const success = await deleteSlackAgent(agent.id, onAlert)
+            if (success) {
+                // Update the agents list by removing this agent
+                setSlackAgents(prevAgents => prevAgents.filter(a => a.id !== agent.id))
+            }
+        } catch (error) {
+            console.error('Error deleting agent:', error)
+            onAlert('Failed to delete agent', 'danger')
+        }
+    }
+
     return (
         <div {...getRootProps()} className="relative flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <input {...getInputProps()} />
@@ -1408,8 +1432,8 @@ const Dashboard: React.FC = () => {
                                                                 <Chip size="sm" color="success" variant="dot">Bot</Chip>
                                                             </Tooltip>
                                                         ) : (
-                                                            <Tooltip content="No Bot Token">
-                                                                <Chip size="sm" color="warning" variant="dot">Bot</Chip>
+                                                            <Tooltip content="No Bot Token - Required for testing and sending messages">
+                                                                <Chip size="sm" color="warning" variant="dot">Bot <Icon icon="lucide:alert-triangle" width={12} /></Chip>
                                                             </Tooltip>
                                                         )}
                                                         {agent.has_user_token ? (
@@ -1445,12 +1469,24 @@ const Dashboard: React.FC = () => {
                                                             isIconOnly
                                                             size="sm"
                                                             variant="light"
-                                                            onPress={() => testSlackConnection(agent, onAlert)}
+                                                            onPress={() => {
+                                                                if (!agent.has_bot_token) {
+                                                                    onAlert('Bot token required. Configure it now by clicking on the key icon.', 'warning');
+                                                                    return;
+                                                                }
+                                                                console.log(`Testing connection for agent ${agent.id} (${agent.name})`);
+
+                                                                // Store the agent for the modal
+                                                                setTestConnectionAgent(agent);
+
+                                                                // Show the test connection input modal instead of immediately testing
+                                                                setShowTestConnectionInputModal(true);
+                                                            }}
                                                             isDisabled={!agent.workflow_id}
                                                             aria-label="Test Connection"
                                                         >
-                                                            <Tooltip content="Test Connection">
-                                                                <Icon icon="solar:test-tube-bold" width={16} />
+                                                            <Tooltip content={agent.has_bot_token ? "Test Connection" : "Bot Token Required for Testing"}>
+                                                                <Icon icon={agent.has_bot_token ? "solar:test-tube-bold" : "lucide:alert-triangle"} width={16} className={!agent.has_bot_token ? "text-warning" : ""} />
                                                             </Tooltip>
                                                         </Button>
                                                         <Button
@@ -1473,6 +1509,22 @@ const Dashboard: React.FC = () => {
                                                         >
                                                             <Tooltip content="Manage Tokens">
                                                                 <Icon icon="solar:key-minimalistic-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            color="danger"
+                                                            onPress={() => {
+                                                                // Set agent to delete and show confirmation modal
+                                                                setSelectedAgentForDetail(agent);
+                                                                setShowDeleteConfirmModal(true);
+                                                            }}
+                                                            aria-label="Delete Agent"
+                                                        >
+                                                            <Tooltip content="Delete Agent">
+                                                                <Icon icon="solar:trash-bin-trash-bold" width={16} />
                                                             </Tooltip>
                                                         </Button>
                                                     </div>
@@ -1591,6 +1643,71 @@ const Dashboard: React.FC = () => {
                 onOpenChange={setIsSettingsModalOpen}
                 initialTab={settingsActiveTab}
             />
+
+            {/* Test Connection Input Modal */}
+            <TestConnectionModal
+                isOpen={showTestConnectionInputModal}
+                onClose={() => setShowTestConnectionInputModal(false)}
+                agent={testConnectionAgent}
+                onAlert={onAlert}
+                onTestComplete={(success, message, channelName) => {
+                    setTestConnectionSuccess(success);
+                    setTestConnectionMessage(message);
+                    setTestConnectionChannel(channelName);
+                    setShowTestConnectionModal(true);
+                }}
+            />
+
+            {/* Test Connection Result Modal */}
+            <TestConnectionResultModal
+                isOpen={showTestConnectionModal}
+                onClose={() => setShowTestConnectionModal(false)}
+                agent={testConnectionAgent}
+                channel={testConnectionChannel}
+                isSuccess={testConnectionSuccess}
+                message={testConnectionMessage}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={showDeleteConfirmModal} onOpenChange={setShowDeleteConfirmModal}>
+                <ModalContent>
+                    {() => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">Confirm Deletion</ModalHeader>
+                            <ModalBody>
+                                {selectedAgentForDetail && (
+                                    <>
+                                        <p>Are you sure you want to delete the agent <strong>{selectedAgentForDetail.name}</strong>?</p>
+                                        <p className="text-small text-default-500 mt-2">
+                                            This action cannot be undone. The agent and its token configuration will be permanently deleted.
+                                        </p>
+                                    </>
+                                )}
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button
+                                    color="default"
+                                    variant="light"
+                                    onPress={() => setShowDeleteConfirmModal(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    color="danger"
+                                    onPress={() => {
+                                        if (selectedAgentForDetail) {
+                                            handleDeleteAgent(selectedAgentForDetail)
+                                            setShowDeleteConfirmModal(false)
+                                        }
+                                    }}
+                                >
+                                    Delete Agent
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

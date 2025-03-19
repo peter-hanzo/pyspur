@@ -1466,10 +1466,15 @@ export const updateTriggerConfig = async (
     }
 }
 
-export const sendTestMessage = async (channel: string, text: string): Promise<SlackMessageResponse> => {
+export const sendTestMessage = async (channel: string, text: string, agentId?: number): Promise<SlackMessageResponse> => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/slack/test-message`, {
-            channel,
+        // Build the URL with the required query parameters
+        let url = `${API_BASE_URL}/slack/test-message?channel=${encodeURIComponent(channel)}`;
+        if (agentId) {
+            url += `&agent_id=${agentId}`;
+        }
+
+        const response = await axios.post(url, {
             text
         })
         return response.data
@@ -1666,25 +1671,50 @@ export const toggleSlackTrigger = async (
 export const testSlackConnection = async (
     agent: SlackAgent,
     onAlert?: AlertFunction
-): Promise<void> => {
+): Promise<{success: boolean, message: string, channel: string}> => {
+    // NOTE: This function is deprecated and has been replaced by direct API calls in the TestConnectionModal
+    // component. This is kept for backward compatibility only.
+
     if (!agent.workflow_id) {
-        onAlert?.('Please associate a workflow with this agent first', 'warning')
-        return
+        const errMsg = 'Please associate a workflow with this agent first';
+        onAlert?.(errMsg, 'warning');
+        return { success: false, message: errMsg, channel: '' };
     }
 
-    try {
-        const channel = prompt('Enter a Slack channel ID to send a test message (e.g., C12345678)')
-        if (!channel) return
+    if (!agent.has_bot_token) {
+        const errMsg = 'A bot token is required for sending messages. Please configure one first in the Authentication tab.';
+        onAlert?.(errMsg, 'warning');
+        return { success: false, message: errMsg, channel: '' };
+    }
 
+    // Use a fixed channel - this can be customized if needed
+    const channel = 'learning';
+
+    try {
         await sendTestMessage(
             channel,
-            `Test message from PySpur agent "${agent.name}"`
-        )
+            `Test message from PySpur agent "${agent.name}"`,
+            agent.id
+        );
 
-        onAlert?.('Test message sent successfully!', 'success')
-    } catch (error) {
-        console.error('Error sending test message:', error)
-        onAlert?.('Failed to send test message', 'danger')
+        const successMsg = 'Test message sent successfully!';
+        onAlert?.(successMsg, 'success');
+        return { success: true, message: successMsg, channel };
+    } catch (error: any) {
+        console.error('Error sending test message:', error);
+
+        // Extract the server error message if available
+        let errorMessage = 'Failed to send test message';
+        if (error.response?.data?.detail) {
+            if (error.response.data.detail === "No Slack bot token configured") {
+                errorMessage = 'No Slack bot token configured. Please add a bot token in the agent settings first.';
+            } else {
+                errorMessage = `Failed to send test message: ${error.response.data.detail}`;
+            }
+        }
+
+        onAlert?.(errorMessage, 'danger');
+        return { success: false, message: errorMessage, channel };
     }
 }
 
@@ -1753,5 +1783,30 @@ export const createSlackAgent = async (
     } catch (error) {
         console.error('Error creating custom Slack agent:', error)
         return null
+    }
+}
+
+/**
+ * Delete a Slack agent by ID
+ */
+export const deleteSlackAgent = async (
+    agentId: number,
+    onAlert?: AlertFunction
+): Promise<boolean> => {
+    try {
+        console.log('Deleting Slack agent:', agentId)
+
+        const response = await axios.delete(`${API_BASE_URL}/slack/agents/${agentId}`)
+
+        if (response.status === 204) {
+            onAlert?.('Slack agent deleted successfully!', 'success')
+            return true
+        } else {
+            throw new Error('Unexpected response status: ' + response.status)
+        }
+    } catch (error) {
+        console.error('Error deleting Slack agent:', error)
+        onAlert?.('Failed to delete Slack agent', 'danger')
+        return false
     }
 }

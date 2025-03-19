@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, cast
 
 import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -409,58 +411,101 @@ async def send_agent_message(agent_id: int, message: SlackMessage, db: Session =
 
 @router.post("/send-message", response_model=SlackMessageResponse)
 async def send_message(
-    message: SlackMessage, agent_id: Optional[int] = None, db: Session = Depends(get_db)
-):
+    channel: str, text: str, agent_id: Optional[int] = None, db: Session = Depends(get_db)
+) -> Dict[str, Any]:
     """Send a message to a Slack channel.
-    If agent_id is provided, uses that agent's token. Otherwise, uses the global bot token.
+
+    Args:
+        channel: The name of the channel to send the message to.
+        text: The text of the message to send.
+        agent_id: The ID of the agent to use for sending the message.
+        db: Database session.
+
+    Returns:
+        A dictionary containing metadata about the sent message.
+
     """
-    bot_token = None
+    import logging
 
-    # If agent_id is provided, get the agent's token
+    logger = logging.getLogger("pyspur")
+    logger.info(f"Attempting to send message to channel '{channel}' with agent_id: {agent_id}")
+
+    # Initialize WebClient with the bot token
+    token = None
+
+    # If agent_id is provided, try to get the agent-specific token
     if agent_id is not None:
+        # Try to get the agent
+        logger.info(f"Searching for agent with ID: {agent_id}")
         agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
-        if agent is None:
-            raise HTTPException(status_code=404, detail="Agent not found")
 
-        token_store = get_token_store()
-        bot_token = token_store.get_token(agent_id=agent_id, token_type="bot_token")
+        if agent:
+            logger.info(f"Found agent '{agent.name}' with has_bot_token={agent.has_bot_token}")
 
-    # Fall back to the global bot token if needed
-    if not bot_token:
-        bot_token = os.getenv("SLACK_BOT_TOKEN")
-        if not bot_token:
-            raise HTTPException(status_code=500, detail="No Slack bot token configured")
+            # If agent has a bot token, retrieve it
+            if agent.has_bot_token:
+                logger.info(f"Retrieving bot token for agent {agent_id}")
+                token_store = get_token_store()
+                token = token_store.get_token(agent_id, "bot_token")
+                logger.info(f"Token retrieved: {'Yes' if token else 'No'}")
+        else:
+            logger.error(f"Agent with ID {agent_id} not found")
 
-    # Send the message to Slack
-    try:
-        response = requests.post(
-            SLACK_POST_MESSAGE_URL,
-            headers={"Authorization": f"Bearer {bot_token}"},
-            json={
-                "channel": message.channel,
-                "text": message.text,
+    # If no agent-specific token, try to use the default token from environment
+    if not token:
+        logger.info("No agent-specific token found, using environment variables")
+        token = os.getenv("SLACK_BOT_TOKEN")
+
+    if not token:
+        logger.error("No Slack bot token configured")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "No Slack bot token configured",
+                "success": False,
             },
-            timeout=REQUEST_TIMEOUT,
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        if not result.get("ok", False):
-            raise HTTPException(status_code=400, detail=f"Slack error: {result.get('error')}")
-
-        return SlackMessageResponse(
-            success=True, message="Message sent successfully", ts=result.get("ts")
         )
 
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Error communicating with Slack: {str(e)}")
+    try:
+        client = WebClient(token=token)
+        logger.info(f"Sending message to channel '{channel}'")
+
+        # Send the message
+        response = client.chat_postMessage(
+            channel=channel,
+            text=text,
+        )
+
+        logger.info(f"Message sent successfully: {response['ok']}")
+        # Return the response
+        return {
+            "ts": response["ts"],
+            "channel": response["channel"],
+            "message": "Message sent successfully",  # Changed from response["message"] to a string
+            "success": True,
+        }
+    except SlackApiError as e:
+        logger.error(f"Error sending message to Slack: {str(e)}")
+        # If there was an error, raise an HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Error sending message to Slack: {str(e)}",
+                "success": False,
+            },
+        )
 
 
 @router.post("/test-message", response_model=SlackMessageResponse)
-async def test_message(channel: str, text: str = "Hello from PySpur! This is a test message."):
+async def test_message(
+    channel: str,
+    text: str = "Hello from PySpur! This is a test message.",
+    agent_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     """Test sending a message to a Slack channel"""
-    message = SlackMessage(channel=channel, text=text)
-    return await send_message(message)
+    response = await send_message(channel=channel, text=text, agent_id=agent_id, db=db)
+    return response
 
 
 @router.put("/agents/{agent_id}/workflow", response_model=SlackAgentResponse)
@@ -860,10 +905,7 @@ async def set_agent_token(
     token_key = f"slack_{token_request.token_type}_{agent_id}"
 
     # Store the token
-    token_store.set_token(token_key, token_request.token)
-
-    # Mask the token for the response
-    masked_token = token_store.mask_token(token_request.token)
+    masked_token = token_store.store_token(agent_id, token_request.token_type, token_request.token)
 
     # Update agent token flag
     if token_request.token_type == "bot_token":
@@ -895,15 +937,14 @@ async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     token_store = get_token_store()
-    token_key = f"slack_{token_type}_{agent_id}"
 
     # Get the token
-    token = token_store.get_token(token_key)
+    token = token_store.get_token(agent_id, token_type)
     if not token:
         raise HTTPException(status_code=404, detail=f"No {token_type} found for this agent")
 
     # Mask the token for the response
-    masked_token = token_store.mask_token(token)
+    masked_token = token_store._mask_token(token)
 
     # Get the last update timestamp
     last_token_update = str(agent.last_token_update) if agent.last_token_update else None
@@ -927,10 +968,9 @@ async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depen
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     token_store = get_token_store()
-    token_key = f"slack_{token_type}_{agent_id}"
 
     # Delete the token
-    token_store.delete_token(token_key)
+    token_store.delete_token(agent_id, token_type)
 
     # Update agent token flag
     if token_type == "bot_token":
@@ -940,6 +980,25 @@ async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depen
 
     current_timestamp = datetime.now(UTC).isoformat()
     agent.last_token_update = current_timestamp
+    db.commit()
+
+    return None
+
+
+@router.delete("/agents/{agent_id}", status_code=204)
+async def delete_agent(agent_id: int, db: Session = Depends(get_db)):
+    """Delete a Slack agent by ID"""
+    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Delete any associated tokens
+    token_store = get_token_store()
+    token_store.delete_token(agent_id, "bot_token")
+    token_store.delete_token(agent_id, "user_token")
+
+    # Delete the agent
+    db.delete(agent)
     db.commit()
 
     return None

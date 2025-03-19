@@ -16,7 +16,7 @@ import {
     Chip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { SlackAgent, toggleSlackTrigger, testSlackConnection } from '@/utils/api'
+import { SlackAgent, toggleSlackTrigger, testSlackConnection, deleteSlackAgent } from '@/utils/api'
 import AgentTokenManager from './AgentTokenManager'
 
 interface SlackAgentDetailProps {
@@ -38,7 +38,9 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
 }) => {
     const [selectedTab, setSelectedTab] = useState('tokens')
     const [isLoading, setIsLoading] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
     const [keywords, setKeywords] = useState<string>(agent?.trigger_keywords?.join(', ') || '')
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
     const handleTokenUpdated = () => {
         // Refresh the agents list after token update
@@ -113,6 +115,26 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
             onAlert?.('Failed to update keywords', 'danger')
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    const handleDeleteAgent = async () => {
+        if (!agent) return
+        setIsDeleting(true)
+        try {
+            const success = await deleteSlackAgent(agent.id, onAlert)
+            if (success) {
+                // Close the modal
+                onOpenChange(false)
+                // Update the agents list by removing this agent
+                updateAgentsCallback((agents) => agents.filter((a) => a.id !== agent.id))
+            }
+        } catch (error) {
+            console.error('Error deleting agent:', error)
+            onAlert?.('Failed to delete agent', 'danger')
+        } finally {
+            setIsDeleting(false)
+            setShowDeleteConfirm(false)
         }
     }
 
@@ -286,12 +308,48 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
                             <Button
                                 color="danger"
                                 variant="light"
-                                onPress={() => onOpenChange(false)}
-                                isDisabled={isLoading}
+                                onPress={() => setShowDeleteConfirm(true)}
+                                endContent={<Icon icon="solar:trash-bin-trash-bold" />}
                             >
+                                Delete Agent
+                            </Button>
+                            <Button color="primary" onPress={() => onOpenChange(false)}>
                                 Close
                             </Button>
                         </ModalFooter>
+
+                        {/* Delete confirmation modal */}
+                        <Modal isOpen={showDeleteConfirm} onOpenChange={setShowDeleteConfirm} size="sm">
+                            <ModalContent>
+                                {() => (
+                                    <>
+                                        <ModalHeader>Confirm Delete</ModalHeader>
+                                        <ModalBody>
+                                            <p>Are you sure you want to delete the agent <strong>{agent.name}</strong>?</p>
+                                            <p className="text-small text-default-500 mt-2">
+                                                This action cannot be undone. The agent and its token configuration will be permanently deleted.
+                                            </p>
+                                        </ModalBody>
+                                        <ModalFooter>
+                                            <Button
+                                                color="default"
+                                                variant="light"
+                                                onPress={() => setShowDeleteConfirm(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                color="danger"
+                                                onPress={handleDeleteAgent}
+                                                isLoading={isDeleting}
+                                            >
+                                                Delete Agent
+                                            </Button>
+                                        </ModalFooter>
+                                    </>
+                                )}
+                            </ModalContent>
+                        </Modal>
                     </>
                 )}
             </ModalContent>
