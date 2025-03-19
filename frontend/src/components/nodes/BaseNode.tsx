@@ -184,7 +184,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         // Check if parent is an AgentNode
         const parentNode = node?.parentId ? state.flow.nodes.find((n) => n.id === node.parentId) : undefined
 
-        return parentNode?.type === 'Agent'
+        return parentNode?.type === 'AgentNode'
     })
 
     const initialInputs = useSelector(selectInitialInputs, isEqual)
