@@ -3,6 +3,7 @@
     position: relative;
     width: 100%;
     min-height: 20px;
+    min-width: 300px;
 }
 
 /* Handles Wrapper */
