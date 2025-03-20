@@ -91,7 +91,6 @@ export const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
 }
 
 const generateNewNodeTitle = (nodes: FlowWorkflowNode[], nodeType: string): string => {
-    // Use UUID v4 for unique IDs instead of readable format
     const existingTitles = nodes.map((node) => node.data?.title)
     const sanitizedType = nodeType.replace(/\s+/g, '_')
     let counter = 1
