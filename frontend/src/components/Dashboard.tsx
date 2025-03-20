@@ -86,10 +86,10 @@ import SettingsModal from './modals/SettingsModal'
 import {
     SlackSetupGuide,
     WorkflowAssociationModal,
-    SlackAgentDetail,
     SlackAgentWizard,
     SlackTestConnection,
 } from './slack'
+import AgentTokenManager from './slack/AgentTokenManager'
 
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
@@ -189,7 +189,6 @@ const Dashboard: React.FC = () => {
     const [settingsActiveTab, setSettingsActiveTab] = useState<'appearance' | 'api-keys'>('api-keys')
     const [selectedSlackAgent, setSelectedSlackAgent] = useState<SlackAgent | null>(null)
     const [showWorkflowAssociationModal, setShowWorkflowAssociationModal] = useState(false)
-    const [showAgentDetailModal, setShowAgentDetailModal] = useState(false)
     const [selectedAgentForDetail, setSelectedAgentForDetail] = useState<SlackAgent | null>(null)
     const [showTestConnectionModal, setShowTestConnectionModal] = useState(false);
     const [testConnectionChannel, setTestConnectionChannel] = useState("general");
@@ -199,6 +198,7 @@ const Dashboard: React.FC = () => {
     const [showTestConnectionInputModal, setShowTestConnectionInputModal] = useState(false);
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
     const [showSlackAgentWizard, setShowSlackAgentWizard] = useState(false);
+    const [showAgentEditorModal, setShowAgentEditorModal] = useState(false);
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -814,9 +814,9 @@ const Dashboard: React.FC = () => {
         return null; // Return null to avoid rendering anything
     };
 
-    const handleOpenAgentDetail = (agent: SlackAgent) => {
+    const handleOpenAgentEditor = (agent: SlackAgent) => {
         setSelectedAgentForDetail(agent)
-        setShowAgentDetailModal(true)
+        setShowAgentEditorModal(true)
     }
 
     // Add a dedicated function to refresh agents after token updates
@@ -933,14 +933,6 @@ const Dashboard: React.FC = () => {
 
             <CalendlyWidget />
             <WelcomeModal isOpen={showWelcome} onClose={() => setShowWelcome(false)} />
-            <SlackAgentDetail
-                isOpen={showAgentDetailModal}
-                onOpenChange={setShowAgentDetailModal}
-                agent={selectedAgentForDetail}
-                updateAgentsCallback={setSlackAgents}
-                onAlert={onAlert}
-                onTokenUpdated={refreshAgentsAfterTokenUpdate}
-            />
             <div>
                 {/* Dashboard Header */}
                 <header className="mb-6 flex w-full items-center flex-col gap-2">
@@ -1443,22 +1435,11 @@ const Dashboard: React.FC = () => {
                                                             isIconOnly
                                                             size="sm"
                                                             variant="light"
-                                                            onPress={() => router.push(`/slack/edit-agent?id=${agent.id}`)}
+                                                            onPress={() => handleOpenAgentEditor(agent)}
                                                             aria-label="Edit Agent"
                                                         >
                                                             <Tooltip content="Edit Agent">
                                                                 <Icon icon="solar:pen-bold" width={16} />
-                                                            </Tooltip>
-                                                        </Button>
-                                                        <Button
-                                                            isIconOnly
-                                                            size="sm"
-                                                            variant="light"
-                                                            onPress={() => handleOpenAgentDetail(agent)}
-                                                            aria-label="Manage Tokens"
-                                                        >
-                                                            <Tooltip content="Manage Tokens">
-                                                                <Icon icon="solar:key-minimalistic-bold" width={16} />
                                                             </Tooltip>
                                                         </Button>
                                                         <Button
@@ -1648,6 +1629,18 @@ const Dashboard: React.FC = () => {
                 agent={testConnectionAgent}
                 onAlert={onAlert}
             />
+
+            {/* Add the Agent Editor Modal */}
+            {selectedAgentForDetail && (
+                <AgentTokenManager
+                    isOpen={showAgentEditorModal}
+                    onOpenChange={setShowAgentEditorModal}
+                    agent={selectedAgentForDetail}
+                    updateAgentsCallback={setSlackAgents}
+                    onAlert={onAlert}
+                    onTokenUpdated={refreshAgentsAfterTokenUpdate}
+                />
+            )}
         </div>
     )
 }
