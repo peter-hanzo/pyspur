@@ -29,6 +29,7 @@ interface TokenStatus {
 const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpdated, onAlert }) => {
     const [botToken, setBotToken] = useState('')
     const [userToken, setUserToken] = useState('')
+    const [appToken, setAppToken] = useState('')
     const [botTokenStatus, setBotTokenStatus] = useState<TokenStatus>({
         type: 'bot_token',
         label: 'Bot Token',
@@ -43,7 +44,15 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
         lastUpdated: null,
         exists: agent.has_user_token
     })
+    const [appTokenStatus, setAppTokenStatus] = useState<TokenStatus>({
+        type: 'app_token',
+        label: 'App Token',
+        masked: '',
+        lastUpdated: null,
+        exists: agent.has_app_token || false
+    })
     const [isLoading, setIsLoading] = useState(false)
+    const [message, setMessage] = useState('')
 
     useEffect(() => {
         if (agent) {
@@ -57,6 +66,11 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                 exists: agent.has_user_token,
                 lastUpdated: agent.last_token_update
             }))
+            setAppTokenStatus(prev => ({
+                ...prev,
+                exists: agent.has_app_token || false,
+                lastUpdated: agent.last_token_update
+            }))
 
             // If tokens exist, fetch their masked versions
             if (agent.has_bot_token) {
@@ -64,6 +78,9 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
             }
             if (agent.has_user_token) {
                 fetchMaskedToken('user_token')
+            }
+            if (agent.has_app_token) {
+                fetchMaskedToken('app_token')
             }
         }
     }, [agent])
@@ -76,6 +93,12 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
 
                 if (tokenType === 'bot_token') {
                     setBotTokenStatus(prev => ({
+                        ...prev,
+                        masked: data.masked_token,
+                        lastUpdated: data.updated_at
+                    }))
+                } else if (tokenType === 'app_token') {
+                    setAppTokenStatus(prev => ({
                         ...prev,
                         masked: data.masked_token,
                         lastUpdated: data.updated_at
@@ -94,58 +117,48 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
         }
     }
 
-    const saveToken = async (tokenType: string, tokenValue: string) => {
-        if (!tokenValue) {
-            onAlert?.('Please enter a token value', 'warning')
-            return
-        }
-
-        setIsLoading(true)
+    const saveTokens = async () => {
         try {
-            const response = await fetch(`/api/slack/agents/${agent.id}/tokens`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    token_type: tokenType,
-                    token: tokenValue
-                }),
-            })
+            const requests = [];
+            if (botToken.trim()) {
+                requests.push(
+                    fetch(`/api/slack/agents/${agent.id}/tokens/bot_token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: botToken })
+                    })
+                );
+            }
+            if (userToken.trim()) {
+                requests.push(
+                    fetch(`/api/slack/agents/${agent.id}/tokens/user_token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: userToken })
+                    })
+                );
+            }
+            if (appToken.trim()) {
+                requests.push(
+                    fetch(`/api/slack/agents/${agent.id}/tokens/app_token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: appToken })
+                    })
+                );
+            }
 
-            if (response.ok) {
-                const data = await response.json()
+            const responses = await Promise.all(requests);
 
-                // Update token status
-                if (tokenType === 'bot_token') {
-                    setBotTokenStatus(prev => ({
-                        ...prev,
-                        exists: true,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }))
-                    setBotToken('') // Clear input
-                } else {
-                    setUserTokenStatus(prev => ({
-                        ...prev,
-                        exists: true,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }))
-                    setUserToken('') // Clear input
-                }
-
-                onAlert?.(`${tokenType === 'bot_token' ? 'Bot' : 'User'} token saved successfully`, 'success')
-                onTokenUpdated?.()
+            if (responses.every(res => res.ok)) {
+                setMessage('Tokens saved successfully');
+                onTokenUpdated?.();
             } else {
-                const errorData = await response.json()
-                onAlert?.(`Failed to save token: ${errorData.detail}`, 'danger')
+                setMessage('Failed to save some tokens');
             }
         } catch (error) {
-            console.error(`Error saving ${tokenType}:`, error)
-            onAlert?.(`Failed to save ${tokenType}`, 'danger')
-        } finally {
-            setIsLoading(false)
+            console.error('Error saving tokens:', error);
+            setMessage('Error saving tokens');
         }
     }
 
@@ -165,6 +178,13 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                         masked: '',
                         lastUpdated: null
                     }))
+                } else if (tokenType === 'app_token') {
+                    setAppTokenStatus(prev => ({
+                        ...prev,
+                        exists: false,
+                        masked: '',
+                        lastUpdated: null
+                    }))
                 } else {
                     setUserTokenStatus(prev => ({
                         ...prev,
@@ -174,7 +194,7 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                     }))
                 }
 
-                onAlert?.(`${tokenType === 'bot_token' ? 'Bot' : 'User'} token deleted successfully`, 'success')
+                onAlert?.(`${tokenType === 'bot_token' ? 'Bot' : tokenType === 'app_token' ? 'App' : 'User'} token deleted successfully`, 'success')
                 onTokenUpdated?.()
             } else {
                 const errorData = await response.json()
@@ -255,7 +275,7 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                         <Button
                             color="primary"
                             size="sm"
-                            onPress={() => saveToken(tokenType, tokenValue)}
+                            onPress={() => saveTokens()}
                             isLoading={isLoading}
                             startContent={<Icon icon="solar:disk-bold" width={18} />}
                         >
@@ -281,13 +301,19 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
             <CardBody className="space-y-6">
                 {renderTokenSection('bot_token', botTokenStatus, botToken, setBotToken)}
                 {renderTokenSection('user_token', userTokenStatus, userToken, setUserToken)}
+                {renderTokenSection('app_token', appTokenStatus, appToken, setAppToken)}
             </CardBody>
             <CardFooter className="text-tiny text-default-500">
                 <p>
                     <Icon icon="solar:info-circle-bold" className="mr-1" width={16} inline={true} />
-                    Bot tokens start with <code>xoxb-</code> and User tokens start with <code>xoxp-</code>
+                    Bot tokens start with <code>xoxb-</code>, User tokens start with <code>xoxp-</code>, and App tokens start with <code>xapp-</code>
                 </p>
             </CardFooter>
+            {message && (
+                <CardFooter className="text-tiny text-default-500">
+                    <p>{message}</p>
+                </CardFooter>
+            )}
         </Card>
     )
 }

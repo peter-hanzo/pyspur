@@ -200,7 +200,7 @@ const Dashboard: React.FC = () => {
     const [testConnectionMessage, setTestConnectionMessage] = useState("");
     const [showTestConnectionInputModal, setShowTestConnectionInputModal] = useState(false);
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-    const [showAgentWizardModal, setShowAgentWizardModal] = useState(false);
+    const [showSlackAgentWizard, setShowSlackAgentWizard] = useState(false);
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -702,37 +702,7 @@ const Dashboard: React.FC = () => {
     }
 
     const callHandleConnectToSlack = async () => {
-        try {
-            const agents = await handleConnectToSlack(onAlert, setMissingSlackKeys, setShowConfigErrorModal)
-
-            if (agents) {
-                // Update agents in state
-                setSlackAgents(agents)
-
-                if (agents.length === 0) {
-                    console.log('No agents found after connecting to Slack, showing agent wizard...')
-                    // Show the SlackAgentWizard instead of creating a default agent
-                    setShowAgentWizardModal(true)
-                } else {
-                    // If we have agents, select the first one for the workflow association modal
-                    setSelectedSlackAgent(agents[0])
-
-                    // Force the workflow association modal to show for existing agents
-                    console.log('Forcing workflow association modal to show')
-                    setShowWorkflowAssociationModal(true)
-
-                    // Also try with a timeout as a fallback
-                    setTimeout(() => {
-                        if (!showWorkflowAssociationModal) {
-                            console.log('Showing workflow association modal via timeout')
-                            setShowWorkflowAssociationModal(true)
-                        }
-                    }, 1000)
-                }
-            }
-        } catch (error) {
-            console.error('Error connecting to Slack:', error)
-        }
+        setShowSlackAgentWizard(true);
     }
 
     const callHandleShowSlackSetup = async () => {
@@ -754,7 +724,7 @@ const Dashboard: React.FC = () => {
             // If no agents exist, show the agent wizard
             if (agents.length === 0) {
                 console.log('No agents found after token configuration, showing agent wizard...')
-                setShowAgentWizardModal(true)
+                setShowSlackAgentWizard(true)
                 onAlert('Slack token configured successfully! Let&apos;s create your first agent.', 'success')
             } else {
                 setSlackAgents(agents)
@@ -896,7 +866,7 @@ const Dashboard: React.FC = () => {
         setSlackAgents(prev => [...prev, newAgent])
 
         // Close the wizard modal
-        setShowAgentWizardModal(false)
+        setShowSlackAgentWizard(false)
 
         // Show success message
         onAlert('Slack agent created successfully!', 'success')
@@ -1345,33 +1315,13 @@ const Dashboard: React.FC = () => {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                <div className="flex justify-between mb-4">
-                                    <div className="flex gap-2">
-                                        <Button
-                                            color="primary"
-                                            size="sm"
-                                            startContent={<Icon icon="solar:add-circle-bold" width={18} />}
-                                            onPress={() => {
-                                                // Always navigate to dedicated page now
-                                                router.push('/slack/create-agent');
-                                            }}
-                                        >
-                                            Create New Agent
-                                        </Button>
-                                    </div>
+                                <div className="flex justify-end mb-4">
                                     <Button
-                                        color="primary"
-                                        size="sm"
-                                        startContent={<Icon icon="solar:refresh-linear" width={18} />}
-                                        onPress={() => {
-                                            setIsLoadingSlackAgents(true);
-                                            getSlackAgents(true) // Force refresh
-                                                .then(agents => setSlackAgents(agents))
-                                                .catch(err => console.error('Error refreshing agents:', err))
-                                                .finally(() => setIsLoadingSlackAgents(false));
-                                        }}
+                                        className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
+                                        startContent={<Icon icon="solar:add-circle-bold" width={16} className="flex-none text-background/60" />}
+                                        onPress={() => router.push('/slack/create-agent')}
                                     >
-                                        Refresh Agents
+                                        Create New Agent
                                     </Button>
                                 </div>
                                 <Table aria-label="Slack agents table" isHeaderSticky>
@@ -1713,12 +1663,12 @@ const Dashboard: React.FC = () => {
             </Modal>
 
             {/* Slack Agent Wizard Modal */}
-            {showAgentWizardModal && (
+            {showSlackAgentWizard && (
                 <div className="fixed inset-0 z-50 overflow-auto">
                     <SlackAgentWizard
                         workflows={workflows.filter(w => w.id !== undefined)}
                         onCreated={(newAgent) => handleAgentCreatedFromWizard(newAgent)}
-                        onCancel={() => setShowAgentWizardModal(false)}
+                        onCancel={() => setShowSlackAgentWizard(false)}
                         isStandalone={false}
                     />
                 </div>

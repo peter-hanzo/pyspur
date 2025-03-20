@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SlackAgentBase(BaseModel):
@@ -11,6 +11,9 @@ class SlackAgentBase(BaseModel):
     slack_channel_name: Optional[str] = None
     is_active: bool = True
     spur_type: str = "workflow"  # "spur-web", "spur-chat", etc.
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        return super().model_dump(*args, **kwargs)
 
 
 class SlackAgentCreate(SlackAgentBase):
@@ -50,13 +53,7 @@ class SlackAgentUpdate(BaseModel):
     spur_type: Optional[str] = None
 
     def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        """Method to handle pydantic v2 compatibility"""
-        if hasattr(super(), "model_dump"):
-            return super().model_dump(*args, **kwargs)
-        return super().dict(*args, **kwargs)
-
-    # Keep backwards compatibility
-    dict = model_dump
+        return super().model_dump(*args, **kwargs)
 
 
 class SlackAgentResponse(SlackAgentBase):
@@ -160,8 +157,10 @@ class TemplateWorkflowResponse(BaseModel):
 
 # New schemas for agent token management
 class AgentTokenRequest(BaseModel):
-    token_type: str  # "bot_token" or "user_token"
     token: str
+    token_type: Optional[str] = Field(
+        default=None, description="Optional. Token type provided via URL."
+    )
 
 
 class AgentTokenResponse(BaseModel):
@@ -169,3 +168,11 @@ class AgentTokenResponse(BaseModel):
     token_type: str
     masked_token: str
     updated_at: Optional[str] = None
+
+
+class SlackSocketModeResponse(BaseModel):
+    """Response schema for socket mode operations."""
+
+    agent_id: int
+    socket_mode_active: bool
+    message: str

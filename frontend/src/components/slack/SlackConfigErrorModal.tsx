@@ -32,7 +32,7 @@ const SlackConfigErrorModal: React.FC<SlackConfigErrorModalProps> = ({
                     </div>
 
                     <p className="mb-4">
-                        Slack integration requires a Bot Token to be configured. Please set up the following in Settings:
+                        Slack integration requires Bot, User, and App tokens to be configured for each Slack agent individually. Please set up the following in Settings:
                     </p>
 
                     <div className="bg-default-50 p-3 rounded-lg mb-4">

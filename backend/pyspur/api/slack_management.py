@@ -1,6 +1,6 @@
 import os
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
@@ -9,6 +9,7 @@ from slack_sdk.errors import SlackApiError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..integrations.slack.socket_client import get_socket_mode_client
 from ..models.run_model import RunModel
 from ..models.slack_agent_model import SlackAgentModel
 from ..models.workflow_model import WorkflowModel
@@ -21,6 +22,7 @@ from ..schemas.slack_schemas import (
     SlackAgentUpdate,
     SlackMessage,
     SlackMessageResponse,
+    SlackSocketModeResponse,
     SlackTriggerConfig,
     WorkflowAssociation,
     WorkflowTriggerRequest,
@@ -39,17 +41,148 @@ SLACK_POST_MESSAGE_URL = "https://slack.com/api/chat.postMessage"
 # Request timeout (in seconds)
 REQUEST_TIMEOUT = 10
 
+# Initialize the socket mode client and set up the workflow trigger callback
+socket_mode_client = get_socket_mode_client()
+
+
+# Callback function for socket mode events to trigger workflows
+async def handle_socket_mode_event(
+    trigger_request: WorkflowTriggerRequest, agent_id: int, say: Callable[..., Any]
+):
+    """Handle a socket mode event by triggering the associated workflow"""
+    import logging
+
+    logger = logging.getLogger("pyspur")
+    logger.info(f"Handling socket mode event for agent {agent_id}")
+
+    # Get a database session
+    db = next(get_db())
+
+    try:
+        agent = await _get_active_agent(db, agent_id)
+        if not agent:
+            return
+
+        if await _should_trigger_workflow(agent, trigger_request):
+            await _trigger_workflow(db, agent, trigger_request, say)
+
+    except Exception as e:
+        logger.error(f"Error in handle_socket_mode_event: {e}")
+    finally:
+        db.close()
+
+
+async def _get_active_agent(db: Session, agent_id: int) -> Optional[SlackAgentModel]:
+    """Get an active agent with workflow configured"""
+    agent = (
+        db.query(SlackAgentModel)
+        .filter(
+            SlackAgentModel.id == agent_id,
+            SlackAgentModel.is_active.is_(True),
+            SlackAgentModel.trigger_enabled.is_(True),
+            SlackAgentModel.workflow_id.isnot(None),
+        )
+        .first()
+    )
+
+    if not agent:
+        logging.getLogger("pyspur").warning(
+            f"Agent {agent_id} not found, not active, or has no workflow"
+        )
+    return agent
+
+
+async def _should_trigger_workflow(
+    agent: SlackAgentModel, trigger_request: WorkflowTriggerRequest
+) -> bool:
+    """Determine if the workflow should be triggered based on agent settings"""
+    # Check mention trigger
+    if bool(agent.trigger_on_mention) and trigger_request.event_type == "app_mention":
+        return True
+
+    # Check direct message trigger
+    if (
+        bool(agent.trigger_on_direct_message)
+        and trigger_request.event_type == "message"
+        and trigger_request.event_data.get("channel_type") == "im"
+    ):
+        return True
+
+    # Check channel message trigger
+    if (
+        bool(agent.trigger_on_channel_message)
+        and trigger_request.event_type == "message"
+        and trigger_request.event_data.get("channel_type") in ["channel", "group"]
+    ):
+        keywords = getattr(agent, "trigger_keywords", None)
+        if keywords and isinstance(keywords, list):
+            str_keywords = [str(k) for k in keywords if k is not None]
+            if str_keywords:
+                message_text = trigger_request.text.lower()
+                return any(keyword.lower() in message_text for keyword in str_keywords)
+        return True
+
+    return False
+
+
+async def _trigger_workflow(
+    db: Session,
+    agent: SlackAgentModel,
+    trigger_request: WorkflowTriggerRequest,
+    say: Callable[..., Any],
+):
+    """Trigger the workflow and handle the response"""
+    try:
+        # Prepare the run input
+        run_input = {
+            "message": trigger_request.text,
+            "channel_id": trigger_request.channel_id,
+            "user_id": trigger_request.user_id,
+            "event_type": trigger_request.event_type,
+            "event_data": trigger_request.event_data,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+        # Start the workflow run
+        background_tasks = BackgroundTasks()
+        run = await start_workflow_run(
+            db=db,
+            workflow_id=cast(str, agent.workflow_id),
+            run_input=run_input,
+            background_tasks=background_tasks,
+        )
+
+        # Let the user know we're processing their request
+        say(text=f"Processing your request... (Run ID: {run.id})")
+        logging.getLogger("pyspur").info(f"Started workflow run {run.id} for agent {agent.id}")
+
+    except Exception as e:
+        logging.getLogger("pyspur").error(f"Error triggering workflow for agent {agent.id}: {e}")
+        say(text=f"Sorry, I encountered an error: {str(e)}")
+
+
+# Set the callback for the socket mode client
+socket_mode_client.set_workflow_trigger_callback(handle_socket_mode_event)  # type: ignore
+
 
 @router.get("/config/status")
 async def get_slack_config_status():
     """Check if Slack configuration is complete and return the status"""
     # Check if the required environment variables are set
     bot_token = os.getenv("SLACK_BOT_TOKEN", "")
+    signing_secret = os.getenv("SLACK_SIGNING_SECRET", "")
 
     # Return the configuration status
     return {
-        "configured": bool(bot_token),
-        "missing_keys": [] if bot_token else ["SLACK_BOT_TOKEN"],
+        "configured": bool(bot_token) and bool(signing_secret),
+        "missing_keys": [
+            key
+            for key, value in {
+                "SLACK_BOT_TOKEN": bot_token,
+                "SLACK_SIGNING_SECRET": signing_secret,
+            }.items()
+            if not value
+        ],
     }
 
 
@@ -681,35 +814,37 @@ async def slack_events(
     return {"ok": True}
 
 
-@router.post("/agents/{agent_id}/tokens", response_model=AgentTokenResponse)
+@router.post("/agents/{agent_id}/tokens/{token_type}", response_model=AgentTokenResponse)
 async def set_agent_token(
-    agent_id: int, token_request: AgentTokenRequest, db: Session = Depends(get_db)
+    agent_id: int, token_type: str, token_request: AgentTokenRequest, db: Session = Depends(get_db)
 ):
-    """Set a token for a Slack agent"""
+    # Override token_request.token_type with the type from the URL
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
     token_store = get_token_store()
-    token_key = f"slack_{token_request.token_type}_{agent_id}"
-
-    # Store the token
-    masked_token = token_store.store_token(agent_id, token_request.token_type, token_request.token)
+    token_key = f"slack_{token_type}_{agent_id}"
+    stored_token = token_store.store_token(agent_id, token_type, token_request.token)
 
     # Update agent token flag
-    if token_request.token_type == "bot_token":
+    if token_type == "bot_token":
         agent.has_bot_token = True
-    elif token_request.token_type == "user_token":
+    elif token_type == "user_token":
         agent.has_user_token = True
+    elif token_type == "app_token":
+        agent.has_app_token = True
 
     current_timestamp = datetime.now(UTC).isoformat()
     agent.last_token_update = current_timestamp
     db.commit()
     db.refresh(agent)
 
+    # Mask the token for the response
+    masked_token = token_store._mask_token(token_request.token)
     return AgentTokenResponse(
         agent_id=agent_id,
-        token_type=token_request.token_type,
+        token_type=token_type,
         masked_token=masked_token,
         updated_at=current_timestamp,
     )
@@ -722,7 +857,7 @@ async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    if token_type not in ["bot_token", "user_token"]:
+    if token_type not in ["bot_token", "user_token", "app_token"]:
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     token_store = get_token_store()
@@ -753,7 +888,7 @@ async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depen
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    if token_type not in ["bot_token", "user_token"]:
+    if token_type not in ["bot_token", "user_token", "app_token"]:
         raise HTTPException(status_code=400, detail="Invalid token type")
 
     token_store = get_token_store()
@@ -766,6 +901,8 @@ async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depen
         agent.has_bot_token = False
     elif token_type == "user_token":
         agent.has_user_token = False
+    elif token_type == "app_token":
+        agent.has_app_token = False
 
     current_timestamp = datetime.now(UTC).isoformat()
     agent.last_token_update = current_timestamp
@@ -785,6 +922,7 @@ async def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     token_store = get_token_store()
     token_store.delete_token(agent_id, "bot_token")
     token_store.delete_token(agent_id, "user_token")
+    token_store.delete_token(agent_id, "app_token")
 
     # Delete the agent
     db.delete(agent)
@@ -812,3 +950,119 @@ async def set_slack_token(request: Request):
         return {"success": True, "message": "Slack token has been set successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error setting Slack token: {str(e)}")
+
+
+@router.post("/agents/{agent_id}/socket-mode/start", response_model=SlackSocketModeResponse)
+async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
+    """Start Socket Mode for a Slack agent"""
+    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    if not agent.has_bot_token:
+        raise HTTPException(status_code=400, detail="Agent doesn't have a bot token")
+
+    # Check if the agent has an app token or if there's one in the environment
+    if not agent.has_app_token and not os.getenv("SLACK_APP_TOKEN"):
+        raise HTTPException(
+            status_code=400,
+            detail="Socket Mode requires an app token. Please configure an app token for this agent or set the SLACK_APP_TOKEN environment variable.",
+        )
+
+    # Check if the signing secret is configured
+    signing_secret = os.getenv("SLACK_SIGNING_SECRET", "")
+    if not signing_secret:
+        raise HTTPException(
+            status_code=400, detail="SLACK_SIGNING_SECRET environment variable not configured"
+        )
+
+    # Start socket mode
+    success = socket_mode_client.start_socket_mode(agent_id)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to start Socket Mode")
+
+    return SlackSocketModeResponse(
+        agent_id=agent_id, socket_mode_active=True, message="Socket Mode started successfully"
+    )
+
+
+@router.post("/agents/{agent_id}/socket-mode/stop", response_model=SlackSocketModeResponse)
+async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
+    """Stop Socket Mode for a Slack agent"""
+    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Stop socket mode
+    success = socket_mode_client.stop_socket_mode(agent_id)
+
+    if not success and socket_mode_client.is_running(agent_id):
+        raise HTTPException(status_code=500, detail="Failed to stop Socket Mode")
+
+    return SlackSocketModeResponse(
+        agent_id=agent_id, socket_mode_active=False, message="Socket Mode stopped successfully"
+    )
+
+
+@router.get("/agents/{agent_id}/socket-mode/status", response_model=SlackSocketModeResponse)
+async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
+    """Get Socket Mode status for a Slack agent"""
+    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    is_active = socket_mode_client.is_running(agent_id)
+
+    return SlackSocketModeResponse(
+        agent_id=agent_id,
+        socket_mode_active=is_active,
+        message=f"Socket Mode is {'active' if is_active else 'inactive'}",
+    )
+
+
+@router.get("/agents/{agent_id}/debug-tokens")
+async def debug_agent_tokens(agent_id: int, db: Session = Depends(get_db)):
+    """Debug endpoint to check token storage for an agent"""
+    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    token_store = get_token_store()
+
+    # Check each token type
+    token_info = {
+        "agent_id": agent_id,
+        "agent_name": agent.name,
+        "has_bot_token_flag": agent.has_bot_token,
+        "has_user_token_flag": agent.has_user_token,
+        "has_app_token_flag": agent.has_app_token,
+        "last_token_update": agent.last_token_update,
+    }
+
+    # Try to get each token and check if it exists
+    try:
+        bot_token = token_store.get_token(agent_id, "bot_token")
+        token_info["bot_token_exists"] = bool(bot_token)
+        if bot_token:
+            token_info["bot_token_starts_with"] = bot_token[:5] + "..."
+    except Exception as e:
+        token_info["bot_token_error"] = str(e)
+
+    try:
+        user_token = token_store.get_token(agent_id, "user_token")
+        token_info["user_token_exists"] = bool(user_token)
+        if user_token:
+            token_info["user_token_starts_with"] = user_token[:5] + "..."
+    except Exception as e:
+        token_info["user_token_error"] = str(e)
+
+    try:
+        app_token = token_store.get_token(agent_id, "app_token")
+        token_info["app_token_exists"] = bool(app_token)
+        if app_token:
+            token_info["app_token_starts_with"] = app_token[:5] + "..."
+    except Exception as e:
+        token_info["app_token_error"] = str(e)
+
+    return token_info

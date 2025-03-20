@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Modal,
     ModalContent,
@@ -14,12 +14,23 @@ import {
     Switch,
     Input,
     Chip,
+    Spinner,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { SlackAgent, toggleSlackTrigger, testSlackConnection, deleteSlackAgent } from '@/utils/api'
+import {
+    SlackAgent,
+    toggleSlackTrigger,
+    testSlackConnection,
+    deleteSlackAgent,
+    startSocketMode,
+    stopSocketMode,
+    getSocketModeStatus,
+    SlackSocketModeResponse
+} from '@/utils/api'
 import AgentTokenManager from './AgentTokenManager'
 import TestConnectionModal from './TestConnectionModal'
 import TestConnectionResultModal from './TestConnectionResultModal'
+import SlackConfigErrorModal from './SlackConfigErrorModal'
 
 interface SlackAgentDetailProps {
     isOpen: boolean
@@ -29,6 +40,24 @@ interface SlackAgentDetailProps {
     onAlert?: (message: string, color: 'success' | 'danger' | 'warning' | 'default') => void
     onTokenUpdated?: () => void
 }
+
+// Update the type for the socketModeStatus state to include error responses
+type SocketModeResponse = SlackSocketModeResponse | {
+    error: true;
+    errorType: string;
+    message: string;
+    originalError?: any
+};
+
+// Add a type guard to check if a response is an error response
+const isErrorResponse = (response: SocketModeResponse): response is {
+    error: true;
+    errorType: string;
+    message: string;
+    originalError?: any
+} => {
+    return 'error' in response && response.error === true;
+};
 
 const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
     isOpen,
@@ -48,6 +77,138 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
     const [testConnectionSuccess, setTestConnectionSuccess] = useState(false)
     const [testConnectionMessage, setTestConnectionMessage] = useState('')
     const [testConnectionChannel, setTestConnectionChannel] = useState('general')
+
+    // Socket Mode state
+    const [socketModeStatus, setSocketModeStatus] = useState<SocketModeResponse | null>(null)
+    const [isSocketModeActive, setIsSocketModeActive] = useState(false)
+    const [isSocketModeLoading, setIsSocketModeLoading] = useState(false)
+
+    // New state variables
+    const [showConfigErrorModal, setShowConfigErrorModal] = useState(false)
+    const [configErrorMessage, setConfigErrorMessage] = useState('')
+    const [configErrorTitle, setConfigErrorTitle] = useState('Configuration Error')
+
+    // Fetch socket mode status when the component loads or when the tab changes to socket-mode
+    useEffect(() => {
+        if (agent && selectedTab === 'socket-mode') {
+            checkSocketModeStatus();
+        }
+    }, [agent, selectedTab]);
+
+    // Function to check the current socket mode status
+    const checkSocketModeStatus = async () => {
+        if (!agent) return;
+
+        setIsSocketModeLoading(true);
+        try {
+            const status = await getSocketModeStatus(agent.id);
+
+            // Check if response is an error object
+            if (isErrorResponse(status)) {
+                // Handle error silently (just log it) - we don't want to show errors for status checks
+                console.error('Error checking socket mode status:', status);
+                // Set to inactive if we can't determine status
+                setIsSocketModeActive(false);
+            } else {
+                // Success response
+                setSocketModeStatus(status);
+                setIsSocketModeActive(status.socket_mode_active);
+            }
+        } catch (error) {
+            // This should never happen with our new error handling, but just in case
+            console.error('Unexpected error checking socket mode status:', error);
+            setIsSocketModeActive(false);
+        } finally {
+            setIsSocketModeLoading(false);
+        }
+    };
+
+    // Function to start socket mode
+    const handleStartSocketMode = async () => {
+        if (!agent) return;
+
+        if (!agent.has_bot_token) {
+            onAlert?.('Bot token required for Socket Mode. Configure it first.', 'warning');
+            return;
+        }
+
+        setIsSocketModeLoading(true);
+        try {
+            const response = await startSocketMode(agent.id);
+
+            // Check if response is an error object
+            if (isErrorResponse(response)) {
+                // Handle error response
+                console.error('Socket Mode error:', response);
+
+                let errorTitle = 'Socket Mode Error';
+                const errorMessage = response.message;
+
+                if (response.errorType === 'SocketModeTokenError') {
+                    errorTitle = 'Socket Mode Token Required';
+                } else if (response.errorType === 'SocketModeServerError') {
+                    errorTitle = 'Server Error';
+                }
+
+                // Set state for the error modal
+                setConfigErrorTitle(errorTitle);
+                setConfigErrorMessage(errorMessage);
+                setShowConfigErrorModal(true);
+
+                // Also show a toast message
+                onAlert?.(
+                    errorTitle === 'Socket Mode Token Required'
+                        ? 'Socket Mode requires an app-level token. See details for more information.'
+                        : errorMessage,
+                    errorTitle.includes('Token') ? 'warning' : 'danger'
+                );
+            } else {
+                // Success response - it's a SlackSocketModeResponse
+                setSocketModeStatus(response);
+                setIsSocketModeActive(response.socket_mode_active);
+                onAlert?.('Socket Mode started successfully', 'success');
+            }
+        } catch (error: any) {
+            // This should never happen with our new error handling, but just in case
+            console.error('Unexpected error starting socket mode:', error);
+
+            setConfigErrorTitle('Unexpected Error');
+            setConfigErrorMessage('An unexpected error occurred while trying to start Socket Mode.');
+            setShowConfigErrorModal(true);
+
+            onAlert?.('An unexpected error occurred', 'danger');
+        } finally {
+            setIsSocketModeLoading(false);
+        }
+    };
+
+    // Function to stop socket mode
+    const handleStopSocketMode = async () => {
+        if (!agent) return;
+
+        setIsSocketModeLoading(true);
+        try {
+            const response = await stopSocketMode(agent.id);
+
+            // Check if response is an error object
+            if (isErrorResponse(response)) {
+                // Handle error response
+                console.error('Socket Mode stop error:', response);
+                onAlert?.(response.message, 'danger');
+            } else {
+                // Success response
+                setSocketModeStatus(response);
+                setIsSocketModeActive(response.socket_mode_active);
+                onAlert?.('Socket Mode stopped successfully', 'success');
+            }
+        } catch (error: any) {
+            // This should never happen with our new error handling, but just in case
+            console.error('Unexpected error stopping socket mode:', error);
+            onAlert?.('An unexpected error occurred while stopping Socket Mode', 'danger');
+        } finally {
+            setIsSocketModeLoading(false);
+        }
+    };
 
     const handleTokenUpdated = () => {
         // Refresh the agents list after token update
@@ -149,6 +310,15 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
             setShowDeleteConfirm(false)
         }
     }
+
+    // Add a function to open the settings modal
+    const handleGoToSettings = () => {
+        // Close the current modal
+        setShowConfigErrorModal(false);
+        // You might need logic here to navigate to settings or open a settings modal
+        // This depends on your application's structure
+        window.open('/settings/keys', '_blank');
+    };
 
     if (!agent) {
         return null
@@ -305,6 +475,91 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
                                         </Card>
                                     </div>
                                 </Tab>
+                                <Tab
+                                    key="socket-mode"
+                                    title={
+                                        <div className="flex items-center gap-2">
+                                            <Icon icon="solar:socket-outline" className="text-xl" />
+                                            <span>Socket Mode</span>
+                                        </div>
+                                    }
+                                >
+                                    <div className="py-4 space-y-4">
+                                        <Card className="border border-default-200">
+                                            <CardHeader>
+                                                <h3 className="text-medium font-medium">Socket Mode</h3>
+                                            </CardHeader>
+                                            <CardBody className="flex flex-col gap-4">
+                                                <p className="text-small">
+                                                    Socket Mode establishes a WebSocket connection with Slack, enabling real-time
+                                                    event processing without requiring a public URL for events. This is ideal for
+                                                    local development and environments without public endpoints.
+                                                </p>
+
+                                                <div className="flex items-center gap-3 my-2">
+                                                    <div className="flex-1">
+                                                        <h4 className="font-medium">Status:</h4>
+                                                        {isSocketModeLoading ? (
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <Spinner size="sm" />
+                                                                <span className="text-small">Checking status...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className={`w-2 h-2 rounded-full ${isSocketModeActive ? 'bg-success' : 'bg-danger'}`}></span>
+                                                                <span className="text-small">{isSocketModeActive ? 'Active' : 'Inactive'}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            color="primary"
+                                                            isDisabled={isSocketModeActive || isSocketModeLoading || !agent.has_bot_token}
+                                                            isLoading={isSocketModeLoading && !isSocketModeActive}
+                                                            onPress={handleStartSocketMode}
+                                                            startContent={<Icon icon="solar:play-bold" />}
+                                                        >
+                                                            Start
+                                                        </Button>
+                                                        <Button
+                                                            color="danger"
+                                                            isDisabled={!isSocketModeActive || isSocketModeLoading}
+                                                            isLoading={isSocketModeLoading && isSocketModeActive}
+                                                            onPress={handleStopSocketMode}
+                                                            startContent={<Icon icon="solar:stop-bold" />}
+                                                        >
+                                                            Stop
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {!agent.has_bot_token && (
+                                                    <div className="p-3 bg-warning-50 text-warning-800 rounded-md mt-2">
+                                                        <div className="flex items-start gap-2">
+                                                            <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5" />
+                                                            <div>
+                                                                <p className="font-medium">Bot Token Required</p>
+                                                                <p className="text-small">
+                                                                    You need to configure a bot token in the Authentication tab before using Socket Mode.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-4">
+                                                    <h4 className="font-medium mb-2">Requirements for Socket Mode:</h4>
+                                                    <ul className="list-disc list-inside text-small space-y-1 pl-2">
+                                                        <li>A bot token with the required scopes (connections:write)</li>
+                                                        <li>SLACK_SIGNING_SECRET environment variable configured</li>
+                                                        <li>Socket Mode enabled in your Slack app settings</li>
+                                                    </ul>
+                                                </div>
+                                            </CardBody>
+                                        </Card>
+                                    </div>
+                                </Tab>
                             </Tabs>
                         </ModalBody>
                         <ModalFooter>
@@ -378,6 +633,16 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
                             channel={testConnectionChannel}
                             isSuccess={testConnectionSuccess}
                             message={testConnectionMessage}
+                        />
+
+                        <SlackConfigErrorModal
+                            isOpen={showConfigErrorModal}
+                            onClose={() => setShowConfigErrorModal(false)}
+                            title={configErrorTitle}
+                            message={configErrorMessage}
+                            isSocketMode={true}
+                            onGoToSettings={handleGoToSettings}
+                            missingKeys={configErrorMessage.includes('SLACK_APP_TOKEN') ? ['SLACK_APP_TOKEN'] : []}
                         />
                     </>
                 )}

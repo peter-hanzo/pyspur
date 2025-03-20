@@ -1257,6 +1257,7 @@ export interface SlackAgent {
     created_at: string
     has_bot_token: boolean
     has_user_token: boolean
+    has_app_token?: boolean
     last_token_update?: string
 }
 
@@ -1841,5 +1842,105 @@ export const connectWithToken = async (
         console.error('Error connecting to Slack with token:', error);
         onAlert?.('Failed to connect to Slack. Please check if the token is valid.', 'danger');
         return undefined;
+    }
+};
+
+export interface SlackSocketModeResponse {
+    agent_id: number;
+    socket_mode_active: boolean;
+    message: string;
+}
+
+// Shared error handling for Socket Mode operations
+const handleSocketModeError = (error: any, operation: string): { error: true; errorType: string; message: string; originalError?: any } => {
+    console.error(`Error ${operation}:`, error);
+
+    // Handle app token errors
+    if (error?.response?.data?.detail?.includes('SLACK_APP_TOKEN') ||
+        error?.response?.data?.detail?.includes('not_allowed_token_type')) {
+        return {
+            error: true,
+            errorType: "SocketModeTokenError",
+            message: "Socket Mode requires an app-level token (SLACK_APP_TOKEN) that starts with 'xapp-'. " +
+                    "Please configure this token in your environment variables. " +
+                    "You can generate one from your Slack App settings under 'Basic Information' → 'App-Level Tokens'.",
+            originalError: error
+        };
+    }
+
+    // Handle 500 errors
+    if (error?.response?.status === 500) {
+        const errorDetail = error?.response?.data?.detail || '';
+        if (errorDetail.includes('token') || errorDetail.includes('xapp-') || errorDetail.includes('not_allowed_token_type')) {
+            return {
+                error: true,
+                errorType: "SocketModeTokenError",
+                message: "Socket Mode requires an app-level token (SLACK_APP_TOKEN) that starts with 'xapp-', " +
+                        "not a bot token. Please configure the correct token type in your environment variables.",
+                originalError: error
+            };
+        }
+        return {
+            error: true,
+            errorType: "SocketModeServerError",
+            message: `Server error occurred when ${operation}: ${errorDetail || 'Unknown server error'}`,
+            originalError: error
+        };
+    }
+
+    // Generic error handler
+    return {
+        error: true,
+        errorType: "UnknownError",
+        message: error?.message || `An unknown error occurred when ${operation}`,
+        originalError: error
+    };
+};
+
+/**
+ * Start Socket Mode for a Slack agent
+ */
+export const startSocketMode = async (
+    agentId: number
+): Promise<SlackSocketModeResponse | { error: true; errorType: string; message: string; originalError?: any }> => {
+    try {
+        const response = await axios.post(
+            `${API_BASE_URL}/slack/agents/${agentId}/socket-mode/start`
+        );
+        return response.data;
+    } catch (error: any) {
+        return handleSocketModeError(error, 'starting Socket Mode');
+    }
+};
+
+/**
+ * Stop Socket Mode for a Slack agent
+ */
+export const stopSocketMode = async (
+    agentId: number
+): Promise<SlackSocketModeResponse | { error: true; errorType: string; message: string; originalError?: any }> => {
+    try {
+        const response = await axios.post(
+            `${API_BASE_URL}/slack/agents/${agentId}/socket-mode/stop`
+        );
+        return response.data;
+    } catch (error: any) {
+        return handleSocketModeError(error, 'stopping Socket Mode');
+    }
+};
+
+/**
+ * Get Socket Mode status for a Slack agent
+ */
+export const getSocketModeStatus = async (
+    agentId: number
+): Promise<SlackSocketModeResponse | { error: true; errorType: string; message: string; originalError?: any }> => {
+    try {
+        const response = await axios.get(
+            `${API_BASE_URL}/slack/agents/${agentId}/socket-mode/status`
+        );
+        return response.data;
+    } catch (error: any) {
+        return handleSocketModeError(error, 'getting Socket Mode status');
     }
 };
