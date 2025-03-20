@@ -88,6 +88,7 @@ import {
     WorkflowAssociationModal,
     SlackAgentDetail,
     SlackAgentWizard,
+    SlackTestConnection,
 } from './slack'
 
 // Calendly Widget Component
@@ -1639,6 +1640,14 @@ const Dashboard: React.FC = () => {
                     />
                 </div>
             )}
+
+            {/* Test Connection Modal */}
+            <SlackTestConnection
+                isOpen={showTestConnectionInputModal}
+                onClose={() => setShowTestConnectionInputModal(false)}
+                agent={testConnectionAgent}
+                onAlert={onAlert}
+            />
         </div>
     )
 }
