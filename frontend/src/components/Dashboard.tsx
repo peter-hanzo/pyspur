@@ -1358,8 +1358,6 @@ const Dashboard: React.FC = () => {
                                         <TableColumn>WORKSPACE</TableColumn>
                                         <TableColumn>TYPE</TableColumn>
                                         <TableColumn>WORKFLOW</TableColumn>
-                                        <TableColumn>TOKENS</TableColumn>
-                                        <TableColumn>TRIGGERS</TableColumn>
                                         <TableColumn>STATUS</TableColumn>
                                         <TableColumn>ACTIONS</TableColumn>
                                     </TableHeader>
@@ -1405,36 +1403,6 @@ const Dashboard: React.FC = () => {
                                                             Not Connected
                                                         </Chip>
                                                     )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
-                                                        {agent.has_bot_token ? (
-                                                            <Tooltip content="Bot Token Configured">
-                                                                <Chip size="sm" color="success" variant="dot">Bot</Chip>
-                                                            </Tooltip>
-                                                        ) : (
-                                                            <Tooltip content="No Bot Token - Required for testing and sending messages">
-                                                                <Chip size="sm" color="warning" variant="dot">Bot <Icon icon="lucide:alert-triangle" width={12} /></Chip>
-                                                            </Tooltip>
-                                                        )}
-                                                        {agent.has_user_token ? (
-                                                            <Tooltip content="User Token Configured">
-                                                                <Chip size="sm" color="success" variant="dot">User</Chip>
-                                                            </Tooltip>
-                                                        ) : (
-                                                            <Tooltip content="No User Token">
-                                                                <Chip size="sm" color="default" variant="dot">User</Chip>
-                                                            </Tooltip>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Switch
-                                                        size="sm"
-                                                        isSelected={agent.trigger_enabled}
-                                                        isDisabled={!agent.workflow_id}
-                                                        aria-label="Trigger Enabled"
-                                                    />
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge
