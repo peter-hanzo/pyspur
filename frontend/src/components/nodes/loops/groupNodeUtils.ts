@@ -11,6 +11,7 @@ import { AppDispatch } from '@/store/store'
 import { createNode } from '@/utils/nodeFactory'
 
 import { updateNodeParentAndCoordinates } from '../../../store/flowSlice'
+import { v4 as uuidv4 } from 'uuid'
 
 export const GROUP_NODE_TYPES = ['ForLoopNode']
 
@@ -22,7 +23,7 @@ export const sortNodes = (a: Node, b: Node): number => {
     return a.type === 'group' && b.type !== 'group' ? -1 : 1
 }
 
-export const getId = (prefix = 'node') => `${prefix}_${Math.random() * 10000}`
+export const getId = (prefix = 'node') => `${prefix}_${uuidv4()}`
 
 export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node) => {
     const position = node.position ?? { x: 0, y: 0 }
@@ -208,35 +209,44 @@ export const createDynamicGroupNodeWithChildren = (
     nodeType: string,
     id: string,
     position: { x: number; y: number },
-    dispatch: AppDispatch
+    dispatch: AppDispatch,
+    title?: string
 ) => {
-    const loopNodeAndConfig = createNode(nodeTypes, nodeType, id, position, null, { width: 1200, height: 600 })
+    const loopNodeAndConfig = createNode(nodeTypes, nodeType, id, position, null, { width: 1200, height: 600 }, title)
 
     if (loopNodeAndConfig) {
         // Set initial dimensions for the loop node
 
-        // Create input node
+        // Create input node with readable title but UUID id
+        const inputNodeId = uuidv4()
+        const inputNodeTitle = title ? `${title}_input` : `${nodeType}_input`
         const inputNodeAndConfig = createNode(
             nodeTypes,
             'InputNode',
-            `${id}_input`,
+            inputNodeId,
             {
                 x: 0,
                 y: 300, // position.y + (height/2)
             },
-            loopNodeAndConfig.node.id
+            loopNodeAndConfig.node.id,
+            null,
+            inputNodeTitle
         )
 
-        // Create output node
+        // Create output node with readable title but UUID id
+        const outputNodeId = uuidv4()
+        const outputNodeTitle = title ? `${title}_output` : `${nodeType}_output`
         const outputNodeAndConfig = createNode(
             nodeTypes,
             'OutputNode',
-            `${id}_output`,
+            outputNodeId,
             {
                 x: 950, // position.x + width - 250
                 y: 300, // position.y + (height/2)
             },
-            loopNodeAndConfig.node.id
+            loopNodeAndConfig.node.id,
+            null,
+            outputNodeTitle
         )
 
         // Set input node's output schema to be fixed but empty initially
