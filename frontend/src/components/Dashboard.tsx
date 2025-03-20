@@ -184,17 +184,12 @@ const Dashboard: React.FC = () => {
     const [showSlackSetupGuide, setShowSlackSetupGuide] = useState(false)
     const [showConfigErrorModal, setShowConfigErrorModal] = useState(false)
     const [slackSetupInfo, setSlackSetupInfo] = useState<any>(null)
-    const [missingSlackKeys, setMissingSlackKeys] = useState<string[]>([])
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
     const [settingsActiveTab, setSettingsActiveTab] = useState<'appearance' | 'api-keys'>('api-keys')
     const [selectedSlackAgent, setSelectedSlackAgent] = useState<SlackAgent | null>(null)
     const [showWorkflowAssociationModal, setShowWorkflowAssociationModal] = useState(false)
     const [selectedAgentForDetail, setSelectedAgentForDetail] = useState<SlackAgent | null>(null)
-    const [showTestConnectionModal, setShowTestConnectionModal] = useState(false);
-    const [testConnectionChannel, setTestConnectionChannel] = useState("general");
     const [testConnectionAgent, setTestConnectionAgent] = useState<SlackAgent | null>(null);
-    const [testConnectionSuccess, setTestConnectionSuccess] = useState(true);
-    const [testConnectionMessage, setTestConnectionMessage] = useState("");
     const [showTestConnectionInputModal, setShowTestConnectionInputModal] = useState(false);
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
     const [showSlackAgentWizard, setShowSlackAgentWizard] = useState(false);
@@ -1278,11 +1273,6 @@ const Dashboard: React.FC = () => {
                                 {slackAgents.length > 0 && (
                                     <Chip color="primary" variant="flat" size="sm">
                                         {slackAgents.length}
-                                    </Chip>
-                                )}
-                                {slackAgents.filter(a => a.is_active && a.trigger_enabled).length > 0 && (
-                                    <Chip color="success" variant="flat" size="sm">
-                                        {slackAgents.filter(a => a.is_active && a.trigger_enabled).length} Active
                                     </Chip>
                                 )}
                             </div>
