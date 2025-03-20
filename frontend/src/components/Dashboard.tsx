@@ -20,9 +20,6 @@ import {
     TableRow,
     getKeyValue,
     useDisclosure,
-    Select,
-    SelectItem,
-    Switch,
     Badge,
     Tooltip,
 } from '@heroui/react'
@@ -62,20 +59,8 @@ import {
     takePauseAction,
     getSlackAgents,
     SlackAgent,
-    associateWorkflow,
-    updateTriggerConfig,
-    sendTestMessage,
-    getSlackAuthUrl,
-    connectToSlack,
     associateSlackWorkflow,
-    toggleSlackTrigger,
-    testSlackConnection,
-    AlertFunction,
-    getSlackRequiredKeys,
     fetchSlackSetupInfo,
-    handleConnectToSlack,
-    handleShowSlackSetup,
-    getPauseHistory,
     deleteSlackAgent,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
@@ -89,7 +74,7 @@ import {
     SlackAgentWizard,
     SlackTestConnection,
 } from './slack'
-import AgentTokenManager from './slack/AgentTokenManager'
+import SlackAgentEditor from './slack/SlackAgentEditor'
 
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
@@ -1622,7 +1607,7 @@ const Dashboard: React.FC = () => {
 
             {/* Add the Agent Editor Modal */}
             {selectedAgentForDetail && (
-                <AgentTokenManager
+                <SlackAgentEditor
                     isOpen={showAgentEditorModal}
                     onOpenChange={setShowAgentEditorModal}
                     agent={selectedAgentForDetail}
