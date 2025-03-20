@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, cast
 
 import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from loguru import logger
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from sqlalchemy.orm import Session
@@ -50,9 +51,6 @@ async def handle_socket_mode_event(
     trigger_request: WorkflowTriggerRequest, agent_id: int, say: Callable[..., Any]
 ):
     """Handle a socket mode event by triggering the associated workflow"""
-    import logging
-
-    logger = logging.getLogger("pyspur")
     logger.info(f"Handling socket mode event for agent {agent_id}")
 
     # Get a database session
@@ -86,9 +84,7 @@ async def _get_active_agent(db: Session, agent_id: int) -> Optional[SlackAgentMo
     )
 
     if not agent:
-        logging.getLogger("pyspur").warning(
-            f"Agent {agent_id} not found, not active, or has no workflow"
-        )
+        logger.warning(f"Agent {agent_id} not found, not active, or has no workflow")
     return agent
 
 
@@ -154,10 +150,10 @@ async def _trigger_workflow(
 
         # Let the user know we're processing their request
         say(text=f"Processing your request... (Run ID: {run.id})")
-        logging.getLogger("pyspur").info(f"Started workflow run {run.id} for agent {agent.id}")
+        logger.info(f"Started workflow run {run.id} for agent {agent.id}")
 
     except Exception as e:
-        logging.getLogger("pyspur").error(f"Error triggering workflow for agent {agent.id}: {e}")
+        logger.error(f"Error triggering workflow for agent {agent.id}: {e}")
         say(text=f"Sorry, I encountered an error: {str(e)}")
 
 
@@ -412,9 +408,6 @@ async def send_message(
         A dictionary containing metadata about the sent message.
 
     """
-    import logging
-
-    logger = logging.getLogger("pyspur")
     logger.info(f"Attempting to send message to channel '{channel}' with agent_id: {agent_id}")
 
     # Initialize WebClient with the bot token
@@ -491,8 +484,13 @@ async def test_message(
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Test sending a message to a Slack channel"""
-    response = await send_message(channel=channel, text=text, agent_id=agent_id, db=db)
-    return response
+    try:
+        # Attempt to send the test message using the Slack client
+        response = await send_message(channel=channel, text=text, agent_id=agent_id, db=db)
+        return response
+    except Exception as e:
+        logger.error(f"Error sending test message: {e}")
+        return {"success": False, "message": f"Error sending test message: {e}"}
 
 
 @router.put("/agents/{agent_id}/workflow", response_model=SlackAgentResponse)

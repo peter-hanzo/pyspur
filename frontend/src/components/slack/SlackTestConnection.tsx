@@ -67,12 +67,17 @@ const SlackTestConnection: React.FC<SlackTestConnectionProps> = ({
 
         setIsTesting(true)
         try {
-            await sendTestMessage(channel, message, agent.id)
-
-            const successMsg = 'Test message sent successfully!'
-            onAlert?.(successMsg, 'success')
-            setIsSuccess(true)
-            setResultMessage(successMsg)
+            const response = await sendTestMessage(channel, message, agent.id)
+            if (response.success) {
+                const successMsg = 'Test message sent successfully!'
+                onAlert?.(successMsg, 'success')
+                setIsSuccess(true)
+                setResultMessage(successMsg)
+            } else {
+                onAlert?.(response.message, 'danger')
+                setIsSuccess(false)
+                setResultMessage(response.message)
+            }
             setShowResult(true)
         } catch (error: any) {
             console.error('Error sending test message:', error)
