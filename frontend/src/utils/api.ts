@@ -1944,3 +1944,77 @@ export const getSocketModeStatus = async (
         return handleSocketModeError(error, 'getting Socket Mode status');
     }
 };
+
+/**
+ * Fetch a masked token for a Slack agent
+ */
+export const fetchMaskedToken = async (agentId: number, tokenType: string): Promise<{
+    masked_token: string;
+    updated_at: string;
+}> => {
+    const url = `${API_BASE_URL}/slack/agents/${agentId}/tokens/${tokenType}`
+    console.log(`Fetching masked token from: ${url}`)
+
+    try {
+        const response = await axios.get(url)
+        console.log(`Received masked token response for ${tokenType}:`, response.data)
+        return response.data
+    } catch (error: any) {
+        console.error(`Error fetching ${tokenType}:`, error.response || error)
+        if (error.response?.status === 404) {
+            console.warn(`Token ${tokenType} for agent ${agentId} not found`)
+        }
+        throw error
+    }
+}
+
+/**
+ * Save Slack tokens for an agent
+ */
+export const saveSlackTokens = async (agentId: number, tokens: {
+    bot_token?: string;
+    user_token?: string;
+    app_token?: string;
+}): Promise<void> => {
+    try {
+        const requests = [];
+        if (tokens.bot_token?.trim()) {
+            requests.push(
+                axios.post(`${API_BASE_URL}/slack/agents/${agentId}/tokens/bot_token`, {
+                    token: tokens.bot_token
+                })
+            );
+        }
+        if (tokens.user_token?.trim()) {
+            requests.push(
+                axios.post(`${API_BASE_URL}/slack/agents/${agentId}/tokens/user_token`, {
+                    token: tokens.user_token
+                })
+            );
+        }
+        if (tokens.app_token?.trim()) {
+            requests.push(
+                axios.post(`${API_BASE_URL}/slack/agents/${agentId}/tokens/app_token`, {
+                    token: tokens.app_token
+                })
+            );
+        }
+
+        await Promise.all(requests);
+    } catch (error) {
+        console.error('Error saving tokens:', error);
+        throw error;
+    }
+}
+
+/**
+ * Delete a Slack token for an agent
+ */
+export const deleteSlackToken = async (agentId: number, tokenType: string): Promise<void> => {
+    try {
+        await axios.delete(`${API_BASE_URL}/slack/agents/${agentId}/tokens/${tokenType}`)
+    } catch (error) {
+        console.error(`Error deleting ${tokenType}:`, error)
+        throw error
+    }
+}

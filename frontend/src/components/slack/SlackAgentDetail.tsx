@@ -28,9 +28,8 @@ import {
     SlackSocketModeResponse
 } from '@/utils/api'
 import AgentTokenManager from './AgentTokenManager'
-import TestConnectionModal from './TestConnectionModal'
-import TestConnectionResultModal from './TestConnectionResultModal'
-import SlackConfigErrorModal from './SlackConfigErrorModal'
+import SlackTestConnection from './SlackTestConnection'
+
 
 interface SlackAgentDetailProps {
     isOpen: boolean
@@ -73,10 +72,6 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
     const [keywords, setKeywords] = useState<string>(agent?.trigger_keywords?.join(', ') || '')
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [showTestConnectionModal, setShowTestConnectionModal] = useState(false)
-    const [showTestResultModal, setShowTestResultModal] = useState(false)
-    const [testConnectionSuccess, setTestConnectionSuccess] = useState(false)
-    const [testConnectionMessage, setTestConnectionMessage] = useState('')
-    const [testConnectionChannel, setTestConnectionChannel] = useState('general')
 
     // Socket Mode state
     const [socketModeStatus, setSocketModeStatus] = useState<SocketModeResponse | null>(null)
@@ -211,13 +206,18 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
     };
 
     const handleTokenUpdated = () => {
+        console.log('SlackAgentDetail - handleTokenUpdated called')
         // Refresh the agents list after token update
         // This would typically be implemented via the parent component's callback
-        onTokenUpdated?.()
-
-        // Also update the UI with a success message if onTokenUpdated doesn't handle it
-        if (!onTokenUpdated && onAlert) {
-            onAlert('Token configuration updated', 'success')
+        if (onTokenUpdated) {
+            console.log('Calling parent onTokenUpdated callback')
+            onTokenUpdated()
+        } else {
+            console.log('No onTokenUpdated callback provided')
+            // Also update the UI with a success message if onTokenUpdated doesn't handle it
+            if (onAlert) {
+                onAlert('Token configuration updated', 'success')
+            }
         }
     }
 
@@ -241,13 +241,6 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
 
         // Show the test connection modal
         setShowTestConnectionModal(true)
-    }
-
-    const handleTestComplete = (success: boolean, message: string, channel: string) => {
-        setTestConnectionSuccess(success)
-        setTestConnectionMessage(message)
-        setTestConnectionChannel(channel)
-        setShowTestResultModal(true)
     }
 
     const updateKeywords = async () => {
@@ -617,33 +610,14 @@ const SlackAgentDetail: React.FC<SlackAgentDetailProps> = ({
                             </ModalContent>
                         </Modal>
 
-                        {/* Test Connection Modals */}
-                        <TestConnectionModal
+                        {/* Test Connection Modal */}
+                        <SlackTestConnection
                             isOpen={showTestConnectionModal}
                             onClose={() => setShowTestConnectionModal(false)}
                             agent={agent}
                             onAlert={onAlert}
-                            onTestComplete={handleTestComplete}
                         />
 
-                        <TestConnectionResultModal
-                            isOpen={showTestResultModal}
-                            onClose={() => setShowTestResultModal(false)}
-                            agent={agent}
-                            channel={testConnectionChannel}
-                            isSuccess={testConnectionSuccess}
-                            message={testConnectionMessage}
-                        />
-
-                        <SlackConfigErrorModal
-                            isOpen={showConfigErrorModal}
-                            onClose={() => setShowConfigErrorModal(false)}
-                            title={configErrorTitle}
-                            message={configErrorMessage}
-                            isSocketMode={true}
-                            onGoToSettings={handleGoToSettings}
-                            missingKeys={configErrorMessage.includes('SLACK_APP_TOKEN') ? ['SLACK_APP_TOKEN'] : []}
-                        />
                     </>
                 )}
             </ModalContent>

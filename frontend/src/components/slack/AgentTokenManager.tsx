@@ -10,7 +10,7 @@ import {
     Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { SlackAgent } from '@/utils/api'
+import { SlackAgent, fetchMaskedToken, saveSlackTokens, deleteSlackToken } from '@/utils/api'
 
 interface AgentTokenManagerProps {
     agent: SlackAgent
@@ -55,61 +55,115 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
     const [message, setMessage] = useState('')
 
     useEffect(() => {
+        console.log('AgentTokenManager - Agent updated:', {
+            id: agent.id,
+            has_bot_token: agent.has_bot_token,
+            has_user_token: agent.has_user_token,
+            has_app_token: agent.has_app_token,
+            token_flags_type: {
+                bot: typeof agent.has_bot_token,
+                user: typeof agent.has_user_token,
+                app: typeof agent.has_app_token
+            }
+        })
+
         if (agent) {
+            // Convert token flags to booleans to ensure consistent type
+            const hasBotToken = Boolean(agent.has_bot_token)
+            const hasUserToken = Boolean(agent.has_user_token)
+            const hasAppToken = Boolean(agent.has_app_token)
+
+            console.log('Token flags after boolean conversion:', {
+                hasBotToken,
+                hasUserToken,
+                hasAppToken
+            })
+
+            // Update token statuses
             setBotTokenStatus(prev => ({
                 ...prev,
-                exists: agent.has_bot_token,
+                exists: hasBotToken,
                 lastUpdated: agent.last_token_update
             }))
             setUserTokenStatus(prev => ({
                 ...prev,
-                exists: agent.has_user_token,
+                exists: hasUserToken,
                 lastUpdated: agent.last_token_update
             }))
             setAppTokenStatus(prev => ({
                 ...prev,
-                exists: agent.has_app_token || false,
+                exists: hasAppToken,
                 lastUpdated: agent.last_token_update
             }))
 
-            // If tokens exist, fetch their masked versions
-            if (agent.has_bot_token) {
-                fetchMaskedToken('bot_token')
-            }
-            if (agent.has_user_token) {
-                fetchMaskedToken('user_token')
-            }
-            if (agent.has_app_token) {
-                fetchMaskedToken('app_token')
-            }
-        }
-    }, [agent])
+            // Always clear any input values when the agent changes
+            setBotToken('')
+            setUserToken('')
+            setAppToken('')
 
-    const fetchMaskedToken = async (tokenType: string) => {
-        try {
-            const response = await fetch(`/api/slack/agents/${agent.id}/tokens/${tokenType}`)
-            if (response.ok) {
-                const data = await response.json()
+            // Always fetch the masked tokens if they exist, even on agent change
+            // This ensures we always have up-to-date tokens
+            const fetchTokens = async () => {
+                console.log('Fetching tokens for agent:', agent.id, {
+                    hasBotToken,
+                    hasUserToken,
+                    hasAppToken
+                })
+                try {
+                    const promises = []
 
-                if (tokenType === 'bot_token') {
-                    setBotTokenStatus(prev => ({
-                        ...prev,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }))
-                } else if (tokenType === 'app_token') {
-                    setAppTokenStatus(prev => ({
-                        ...prev,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }))
-                } else {
-                    setUserTokenStatus(prev => ({
-                        ...prev,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }))
+                    if (hasBotToken) {
+                        console.log('Fetching bot token...')
+                        promises.push(fetchMaskedTokenAndUpdate('bot_token'))
+                    }
+                    if (hasUserToken) {
+                        console.log('Fetching user token...')
+                        promises.push(fetchMaskedTokenAndUpdate('user_token'))
+                    }
+                    if (hasAppToken) {
+                        console.log('Fetching app token...')
+                        promises.push(fetchMaskedTokenAndUpdate('app_token'))
+                    }
+
+                    if (promises.length > 0) {
+                        const results = await Promise.all(promises)
+                        console.log('Token fetch results:', results)
+                    } else {
+                        console.log('No tokens to fetch')
+                    }
+                    console.log('All token fetches completed')
+                } catch (error) {
+                    console.error('Error fetching masked tokens:', error)
+                    onAlert?.('Failed to load token information', 'warning')
                 }
+            }
+
+            fetchTokens()
+        }
+    }, [agent.id, agent.has_bot_token, agent.has_user_token, agent.has_app_token, agent.last_token_update])
+
+    const fetchMaskedTokenAndUpdate = async (tokenType: string) => {
+        try {
+            const data = await fetchMaskedToken(agent.id, tokenType)
+
+            if (tokenType === 'bot_token') {
+                setBotTokenStatus(prev => ({
+                    ...prev,
+                    masked: data.masked_token,
+                    lastUpdated: data.updated_at
+                }))
+            } else if (tokenType === 'app_token') {
+                setAppTokenStatus(prev => ({
+                    ...prev,
+                    masked: data.masked_token,
+                    lastUpdated: data.updated_at
+                }))
+            } else {
+                setUserTokenStatus(prev => ({
+                    ...prev,
+                    masked: data.masked_token,
+                    lastUpdated: data.updated_at
+                }))
             }
         } catch (error) {
             console.error(`Error fetching ${tokenType}:`, error)
@@ -119,87 +173,50 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
 
     const saveTokens = async () => {
         try {
-            const requests = [];
-            if (botToken.trim()) {
-                requests.push(
-                    fetch(`/api/slack/agents/${agent.id}/tokens/bot_token`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: botToken })
-                    })
-                );
-            }
-            if (userToken.trim()) {
-                requests.push(
-                    fetch(`/api/slack/agents/${agent.id}/tokens/user_token`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: userToken })
-                    })
-                );
-            }
-            if (appToken.trim()) {
-                requests.push(
-                    fetch(`/api/slack/agents/${agent.id}/tokens/app_token`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: appToken })
-                    })
-                );
-            }
-
-            const responses = await Promise.all(requests);
-
-            if (responses.every(res => res.ok)) {
-                setMessage('Tokens saved successfully');
-                onTokenUpdated?.();
-            } else {
-                setMessage('Failed to save some tokens');
-            }
+            await saveSlackTokens(agent.id, {
+                bot_token: botToken,
+                user_token: userToken,
+                app_token: appToken
+            });
+            setMessage('Tokens saved successfully');
+            onTokenUpdated?.();
         } catch (error) {
             console.error('Error saving tokens:', error);
-            setMessage('Error saving tokens');
+            setMessage('Failed to save tokens');
         }
     }
 
-    const deleteToken = async (tokenType: string) => {
+    const handleDeleteToken = async (tokenType: string) => {
         setIsLoading(true)
         try {
-            const response = await fetch(`/api/slack/agents/${agent.id}/tokens/${tokenType}`, {
-                method: 'DELETE',
-            })
+            await deleteSlackToken(agent.id, tokenType)
 
-            if (response.ok) {
-                // Update token status
-                if (tokenType === 'bot_token') {
-                    setBotTokenStatus(prev => ({
-                        ...prev,
-                        exists: false,
-                        masked: '',
-                        lastUpdated: null
-                    }))
-                } else if (tokenType === 'app_token') {
-                    setAppTokenStatus(prev => ({
-                        ...prev,
-                        exists: false,
-                        masked: '',
-                        lastUpdated: null
-                    }))
-                } else {
-                    setUserTokenStatus(prev => ({
-                        ...prev,
-                        exists: false,
-                        masked: '',
-                        lastUpdated: null
-                    }))
-                }
-
-                onAlert?.(`${tokenType === 'bot_token' ? 'Bot' : tokenType === 'app_token' ? 'App' : 'User'} token deleted successfully`, 'success')
-                onTokenUpdated?.()
+            // Update token status
+            if (tokenType === 'bot_token') {
+                setBotTokenStatus(prev => ({
+                    ...prev,
+                    exists: false,
+                    masked: '',
+                    lastUpdated: null
+                }))
+            } else if (tokenType === 'app_token') {
+                setAppTokenStatus(prev => ({
+                    ...prev,
+                    exists: false,
+                    masked: '',
+                    lastUpdated: null
+                }))
             } else {
-                const errorData = await response.json()
-                onAlert?.(`Failed to delete token: ${errorData.detail}`, 'danger')
+                setUserTokenStatus(prev => ({
+                    ...prev,
+                    exists: false,
+                    masked: '',
+                    lastUpdated: null
+                }))
             }
+
+            onAlert?.(`${tokenType === 'bot_token' ? 'Bot' : tokenType === 'app_token' ? 'App' : 'User'} token deleted successfully`, 'success')
+            onTokenUpdated?.()
         } catch (error) {
             console.error(`Error deleting ${tokenType}:`, error)
             onAlert?.(`Failed to delete ${tokenType}`, 'danger')
@@ -212,6 +229,13 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
         if (!dateString) return ''
         const date = new Date(dateString)
         return date.toLocaleString()
+    }
+
+    const getTokenPrefix = (tokenType: string) => {
+        if (tokenType === 'bot_token') return 'xoxb-'
+        if (tokenType === 'user_token') return 'xoxp-'
+        if (tokenType === 'app_token') return 'xapp-'
+        return ''
     }
 
     const renderTokenSection = (
@@ -238,8 +262,14 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                 {status.exists ? (
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 rounded border border-default-200 p-2 font-mono text-small">
-                                {status.masked}
+                            <div className="flex-1 font-mono text-small bg-default-100 rounded-lg p-3 border border-default-200">
+                                <div className="flex items-center gap-2">
+                                    <Icon icon="solar:key-minimalistic-bold" className="text-default-500" width={16} />
+                                    <span className="text-default-500">{status.masked}</span>
+                                </div>
+                                <div className="text-tiny text-default-400 mt-1">
+                                    Last updated: {formatDate(status.lastUpdated)}
+                                </div>
                             </div>
                             <Tooltip content="Delete token">
                                 <Button
@@ -247,40 +277,40 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                                     color="danger"
                                     variant="light"
                                     size="sm"
-                                    onPress={() => deleteToken(tokenType)}
+                                    onPress={() => handleDeleteToken(tokenType)}
                                     isLoading={isLoading}
                                 >
                                     <Icon icon="solar:trash-bin-trash-bold" width={20} />
                                 </Button>
                             </Tooltip>
                         </div>
-                        {status.lastUpdated && (
-                            <p className="text-tiny text-default-500">
-                                Last updated: {formatDate(status.lastUpdated)}
-                            </p>
-                        )}
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        <Input
-                            type="password"
-                            label={`Enter ${status.label}`}
-                            placeholder={`Paste ${status.label.toLowerCase()} here`}
-                            value={tokenValue}
-                            onChange={(e) => setTokenValue(e.target.value)}
-                            variant="bordered"
-                            size="sm"
-                            startContent={<Icon icon="solar:key-minimalistic-bold" width={18} />}
-                        />
-                        <Button
-                            color="primary"
-                            size="sm"
-                            onPress={() => saveTokens()}
-                            isLoading={isLoading}
-                            startContent={<Icon icon="solar:disk-bold" width={18} />}
-                        >
-                            Save Token
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1">
+                                <Input
+                                    type="password"
+                                    label={`Enter ${status.label}`}
+                                    placeholder={`Paste ${status.label.toLowerCase()} here`}
+                                    value={tokenValue}
+                                    onChange={(e) => setTokenValue(e.target.value)}
+                                    variant="bordered"
+                                    size="sm"
+                                    startContent={
+                                        <div className="pointer-events-none flex items-center">
+                                            <Icon icon="solar:key-minimalistic-bold" className="text-default-400" width={16} />
+                                        </div>
+                                    }
+                                    description={
+                                        <div className="flex items-center gap-1 mt-1 text-tiny text-default-400">
+                                            <Icon icon="solar:info-circle-bold" width={14} />
+                                            {status.label} should start with <code className="mx-1">{getTokenPrefix(tokenType)}</code>
+                                        </div>
+                                    }
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -302,16 +332,32 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                 {renderTokenSection('bot_token', botTokenStatus, botToken, setBotToken)}
                 {renderTokenSection('user_token', userTokenStatus, userToken, setUserToken)}
                 {renderTokenSection('app_token', appTokenStatus, appToken, setAppToken)}
+
+                {/* Save button - only show if there are tokens to save */}
+                {(botToken || userToken || appToken) && (
+                    <div className="flex justify-end pt-4 border-t border-default-200">
+                        <Button
+                            color="primary"
+                            size="sm"
+                            onPress={() => saveTokens()}
+                            isLoading={isLoading}
+                            startContent={<Icon icon="solar:disk-bold" width={18} />}
+                        >
+                            Save Tokens
+                        </Button>
+                    </div>
+                )}
             </CardBody>
-            <CardFooter className="text-tiny text-default-500">
-                <p>
-                    <Icon icon="solar:info-circle-bold" className="mr-1" width={16} inline={true} />
-                    Bot tokens start with <code>xoxb-</code>, User tokens start with <code>xoxp-</code>, and App tokens start with <code>xapp-</code>
-                </p>
-            </CardFooter>
             {message && (
                 <CardFooter className="text-tiny text-default-500">
-                    <p>{message}</p>
+                    <div className="flex items-center gap-2">
+                        <Icon
+                            icon={message.includes('success') ? "solar:check-circle-bold" : "solar:close-circle-bold"}
+                            className={message.includes('success') ? "text-success" : "text-danger"}
+                            width={16}
+                        />
+                        <p>{message}</p>
+                    </div>
                 </CardFooter>
             )}
         </Card>

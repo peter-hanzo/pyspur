@@ -245,6 +245,7 @@ async def get_agents(db: Session = Depends(get_db)):
             "trigger_enabled": bool(agent.trigger_enabled),
             "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
             "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
+            "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
             "last_token_update": agent.last_token_update,
             "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
             "created_at": getattr(agent, "created_at", ""),
@@ -313,6 +314,9 @@ async def create_agent(agent_create: SlackAgentCreate, db: Session = Depends(get
         "has_user_token": False
         if new_agent.has_user_token is None
         else bool(new_agent.has_user_token),
+        "has_app_token": False
+        if new_agent.has_app_token is None
+        else bool(new_agent.has_app_token),
         "last_token_update": new_agent.last_token_update,
         "spur_type": getattr(new_agent, "spur_type", "workflow") or "workflow",
         "created_at": getattr(new_agent, "created_at", ""),
@@ -344,6 +348,7 @@ async def get_agent(agent_id: int, db: Session = Depends(get_db)):
         "trigger_enabled": bool(agent.trigger_enabled),
         "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
         "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
+        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
         "last_token_update": agent.last_token_update,
         "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
         "created_at": getattr(agent, "created_at", ""),
@@ -521,6 +526,7 @@ async def associate_workflow(
         "trigger_enabled": bool(agent.trigger_enabled),
         "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
         "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
+        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
         "last_token_update": agent.last_token_update,
         "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
         "created_at": getattr(agent, "created_at", ""),
@@ -564,6 +570,7 @@ async def update_trigger_config(
         "trigger_enabled": bool(agent.trigger_enabled),
         "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
         "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
+        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
         "last_token_update": agent.last_token_update,
         "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
         "created_at": getattr(agent, "created_at", ""),
@@ -622,6 +629,7 @@ async def update_agent(
         "trigger_enabled": bool(agent.trigger_enabled),
         "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
         "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
+        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
         "last_token_update": agent.last_token_update,
         "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
         "created_at": getattr(agent, "created_at", ""),

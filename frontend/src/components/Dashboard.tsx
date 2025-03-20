@@ -84,12 +84,9 @@ import HumanInputModal from './modals/HumanInputModal'
 import WelcomeModal from './modals/WelcomeModal'
 import SettingsModal from './modals/SettingsModal'
 import {
-    SlackConfigErrorModal,
     SlackSetupGuide,
     WorkflowAssociationModal,
     SlackAgentDetail,
-    TestConnectionResultModal,
-    TestConnectionModal,
     SlackAgentWizard,
 } from './slack'
 
@@ -823,18 +820,49 @@ const Dashboard: React.FC = () => {
 
     // Add a dedicated function to refresh agents after token updates
     const refreshAgentsAfterTokenUpdate = async () => {
+        console.log('Dashboard - refreshAgentsAfterTokenUpdate called')
         try {
-            // Get the updated agents list
+            // Get the updated agents list - force a fresh fetch from the backend
+            console.log('Fetching updated agents with force refresh')
             const agents = await getSlackAgents(true)
+            console.log('Received updated agents:', agents.map(a => ({
+                id: a.id,
+                name: a.name,
+                has_bot_token: a.has_bot_token,
+                has_user_token: a.has_user_token,
+                has_app_token: a.has_app_token,
+                token_flags_type: {
+                    bot: typeof a.has_bot_token,
+                    user: typeof a.has_user_token,
+                    app: typeof a.has_app_token
+                }
+            })))
+
+            // Ensure token flags are properly set as booleans
+            const processedAgents = agents.map(agent => ({
+                ...agent,
+                has_bot_token: Boolean(agent.has_bot_token),
+                has_user_token: Boolean(agent.has_user_token),
+                has_app_token: Boolean(agent.has_app_token)
+            }))
 
             // Update the agents state
-            setSlackAgents(agents)
+            setSlackAgents(processedAgents)
 
             // Also update the selected agent for detail if we have one
             if (selectedAgentForDetail) {
-                const updatedAgent = agents.find(a => a.id === selectedAgentForDetail.id)
+                console.log('Updating selected agent for detail:', selectedAgentForDetail.id)
+                const updatedAgent = processedAgents.find(a => a.id === selectedAgentForDetail.id)
                 if (updatedAgent) {
+                    console.log('Found updated agent:', {
+                        id: updatedAgent.id,
+                        has_bot_token: updatedAgent.has_bot_token,
+                        has_user_token: updatedAgent.has_user_token,
+                        has_app_token: updatedAgent.has_app_token
+                    })
                     setSelectedAgentForDetail(updatedAgent)
+                } else {
+                    console.warn('Could not find updated agent with ID:', selectedAgentForDetail.id)
                 }
             }
 
@@ -1570,13 +1598,6 @@ const Dashboard: React.FC = () => {
                     onTokenConfigured={handleSlackTokenConfigured}
                 />
             )}
-            {/* Slack Configuration Error Modal */}
-            <SlackConfigErrorModal
-                isOpen={showConfigErrorModal}
-                onClose={() => setShowConfigErrorModal(false)}
-                missingKeys={missingSlackKeys}
-                onGoToSettings={handleGoToSettings}
-            />
 
             {/* Workflow Association Modal */}
             <WorkflowAssociationModal
@@ -1597,29 +1618,6 @@ const Dashboard: React.FC = () => {
                 initialTab={settingsActiveTab}
             />
 
-            {/* Test Connection Input Modal */}
-            <TestConnectionModal
-                isOpen={showTestConnectionInputModal}
-                onClose={() => setShowTestConnectionInputModal(false)}
-                agent={testConnectionAgent}
-                onAlert={onAlert}
-                onTestComplete={(success, message, channelName) => {
-                    setTestConnectionSuccess(success);
-                    setTestConnectionMessage(message);
-                    setTestConnectionChannel(channelName);
-                    setShowTestConnectionModal(true);
-                }}
-            />
-
-            {/* Test Connection Result Modal */}
-            <TestConnectionResultModal
-                isOpen={showTestConnectionModal}
-                onClose={() => setShowTestConnectionModal(false)}
-                agent={testConnectionAgent}
-                channel={testConnectionChannel}
-                isSuccess={testConnectionSuccess}
-                message={testConnectionMessage}
-            />
 
             {/* Delete Confirmation Modal */}
             <Modal isOpen={showDeleteConfirmModal} onOpenChange={setShowDeleteConfirmModal}>

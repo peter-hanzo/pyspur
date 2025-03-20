@@ -30,6 +30,7 @@ class SlackAgentCreate(SlackAgentBase):
     trigger_enabled: bool = True
     has_bot_token: bool = False
     has_user_token: bool = False
+    has_app_token: bool = False
     last_token_update: Optional[str] = None
 
 
@@ -50,6 +51,7 @@ class SlackAgentUpdate(BaseModel):
     trigger_enabled: Optional[bool] = None
     has_bot_token: Optional[bool] = None
     has_user_token: Optional[bool] = None
+    has_app_token: Optional[bool] = None
     spur_type: Optional[str] = None
 
     def model_dump(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
@@ -68,6 +70,7 @@ class SlackAgentResponse(SlackAgentBase):
     trigger_enabled: bool
     has_bot_token: bool = False
     has_user_token: bool = False
+    has_app_token: bool = False
     last_token_update: Optional[str] = None
 
     model_config = {"from_attributes": True}
@@ -157,6 +160,11 @@ class TemplateWorkflowResponse(BaseModel):
 
 # New schemas for agent token management
 class AgentTokenRequest(BaseModel):
+    """Request schema for token management of Slack agents.
+    Supports bot_token, user_token, and app_token types.
+    The app_token is required for Socket Mode connections.
+    """
+
     token: str
     token_type: Optional[str] = Field(
         default=None, description="Optional. Token type provided via URL."
@@ -164,6 +172,10 @@ class AgentTokenRequest(BaseModel):
 
 
 class AgentTokenResponse(BaseModel):
+    """Response schema for token management operations.
+    Supports bot_token, user_token, and app_token types.
+    """
+
     agent_id: int
     token_type: str
     masked_token: str
@@ -171,8 +183,25 @@ class AgentTokenResponse(BaseModel):
 
 
 class SlackSocketModeResponse(BaseModel):
-    """Response schema for socket mode operations."""
+    """Response schema for Socket Mode operations.
+
+    Socket Mode requires both a bot token and an app token to function.
+    It enables real-time message handling without exposing a public HTTP endpoint.
+    """
 
     agent_id: int
     socket_mode_active: bool
     message: str
+
+
+class SlackSocketModeConfig(BaseModel):
+    """Configuration schema for Socket Mode settings.
+
+    Socket Mode is a Slack feature that allows your app to receive events through a WebSocket connection
+    instead of using HTTP endpoints, which is useful for local development or environments
+    behind firewalls. It requires both a bot token and an app-level token.
+    """
+
+    enabled: bool = True
+    app_token: Optional[str] = None
+    use_global_app_token: bool = False  # Whether to use the global SLACK_APP_TOKEN env variable

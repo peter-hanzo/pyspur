@@ -195,7 +195,7 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
 
                     <Card className="mb-6 border border-default-200">
                         <CardBody>
-                            <Accordion>
+                            <Accordion defaultExpandedKeys={["1"]}>
                                 {/* Agent Information Section */}
                                 <AccordionItem
                                     key="1"
@@ -207,7 +207,6 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                         </div>
                                     }
                                     subtitle="Set your agent's name and connection details"
-                                    defaultOpen
                                 >
                                     <div className="space-y-4 pt-2">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -284,7 +283,6 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                         </div>
                                     }
                                     subtitle="Choose a workflow for this agent to run"
-                                    defaultOpen
                                 >
                                     <div className="space-y-4 pt-2">
                                         <div className="bg-default-50 rounded-lg p-4">
@@ -370,7 +368,6 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                         </div>
                                     }
                                     subtitle="Configure when your agent should respond"
-                                    defaultOpen
                                 >
                                     <div className="space-y-4 pt-2">
                                         <div className="flex items-center gap-4">
