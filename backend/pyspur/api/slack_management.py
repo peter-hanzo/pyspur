@@ -2,7 +2,6 @@ import os
 from datetime import UTC, datetime
 from typing import Any, Callable, Dict, List, Optional, cast
 
-import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from loguru import logger
 from slack_sdk import WebClient
@@ -30,6 +29,7 @@ from ..schemas.slack_schemas import (
     WorkflowTriggerResult,
     WorkflowTriggersResponse,
 )
+from . import key_management
 from .secure_token_store import get_token_store
 from .workflow_run import run_workflow_non_blocking
 
@@ -44,6 +44,12 @@ REQUEST_TIMEOUT = 10
 
 # Initialize the socket mode client and set up the workflow trigger callback
 socket_mode_client = get_socket_mode_client()
+
+# NOTE: Some type checking issues remain in this file related to:
+# 1. SQLAlchemy Column types and boolean operations
+# 2. slack_sdk.WebClient.chat_postMessage return types
+# 3. Type annotations for list elements in trigger_keywords
+# These are being suppressed with type: ignore where needed or using safe patterns.
 
 
 # Callback function for socket mode events to trigger workflows
@@ -88,37 +94,75 @@ async def _get_active_agent(db: Session, agent_id: int) -> Optional[SlackAgentMo
     return agent
 
 
+# Function to convert keywords list items to strings
+def _convert_keywords_to_strings(keywords: List[str]) -> List[str]:
+    """Convert all items in a keywords list to strings, filtering out None values."""
+    return [str(k) for k in keywords if k is not None]
+
+
+# Utility function to check for keyword matches in the message
 async def _should_trigger_workflow(
     agent: SlackAgentModel, trigger_request: WorkflowTriggerRequest
 ) -> bool:
-    """Determine if the workflow should be triggered based on agent settings"""
-    # Check mention trigger
-    if bool(agent.trigger_on_mention) and trigger_request.event_type == "app_mention":
-        return True
+    """Determine if a Slack message should trigger a workflow."""
+    # Only proceed if triggering is enabled for this agent
+    try:
+        # Use explicit conversion for all SQLAlchemy Column boolean fields
+        trigger_enabled = (
+            bool(agent.trigger_enabled) if agent.trigger_enabled is not None else False
+        )
+        if not trigger_enabled:
+            return False
 
-    # Check direct message trigger
-    if (
-        bool(agent.trigger_on_direct_message)
-        and trigger_request.event_type == "message"
-        and trigger_request.event_data.get("channel_type") == "im"
-    ):
-        return True
+        should_trigger = False
 
-    # Check channel message trigger
-    if (
-        bool(agent.trigger_on_channel_message)
-        and trigger_request.event_type == "message"
-        and trigger_request.event_data.get("channel_type") in ["channel", "group"]
-    ):
-        keywords = getattr(agent, "trigger_keywords", None)
-        if keywords and isinstance(keywords, list):
-            str_keywords = [str(k) for k in keywords if k is not None]
-            if str_keywords:
-                message_text = trigger_request.text.lower()
-                return any(keyword.lower() in message_text for keyword in str_keywords)
-        return True
+        # Check mention trigger - convert SQLAlchemy Column to bool for comparison
+        trigger_on_mention = (
+            bool(agent.trigger_on_mention) if agent.trigger_on_mention is not None else False
+        )
+        if trigger_on_mention and trigger_request.event_type == "app_mention":
+            should_trigger = True
+        # Check direct message trigger
+        elif (
+            (
+                bool(agent.trigger_on_direct_message)
+                if agent.trigger_on_direct_message is not None
+                else False
+            )
+            and trigger_request.event_type == "message"
+            and trigger_request.event_data.get("channel_type") == "im"
+        ):
+            should_trigger = True
+        # Check channel message trigger
+        elif (
+            (
+                bool(agent.trigger_on_channel_message)
+                if agent.trigger_on_channel_message is not None
+                else False
+            )
+            and trigger_request.event_type == "message"
+            and trigger_request.event_data.get("channel_type") != "im"
+        ):
+            # For channel messages, we need to check for keywords
+            keywords = agent.trigger_keywords
+            if keywords and isinstance(keywords, list):
+                # Convert keywords to list of strings
+                str_keywords: List[str] = []
+                for item in keywords:  # type: ignore  # SQLAlchemy JSON type is hard to properly type
+                    if item is not None:
+                        str_keywords.append(str(item))
 
-    return False
+                if str_keywords:
+                    message_text = trigger_request.text.lower()
+                    return any(keyword.lower() in message_text for keyword in str_keywords)
+            else:
+                # No keywords specified, so don't trigger on general channel messages
+                return False
+
+        return should_trigger
+    except Exception as e:
+        logger.error(f"Error in _should_trigger_workflow: {str(e)}")
+        return False
 
 
 async def _trigger_workflow(
@@ -222,33 +266,68 @@ async def get_slack_required_keys():
 async def get_agents(db: Session = Depends(get_db)):
     """Get all configured Slack agents"""
     agents = db.query(SlackAgentModel).all()
-
     agent_responses = []
+
     for agent in agents:
-        agent_dict = {
-            "id": agent.id,
-            "name": agent.name,
-            "slack_team_id": agent.slack_team_id,
-            "slack_team_name": agent.slack_team_name,
-            "slack_channel_id": agent.slack_channel_id,
-            "slack_channel_name": agent.slack_channel_name,
-            "is_active": bool(agent.is_active),
-            "workflow_id": agent.workflow_id,
-            "trigger_on_mention": bool(agent.trigger_on_mention),
-            "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
-            "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
-            "trigger_keywords": agent.trigger_keywords,
-            "trigger_enabled": bool(agent.trigger_enabled),
-            "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
-            "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
-            "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
-            "last_token_update": agent.last_token_update,
-            "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
-            "created_at": getattr(agent, "created_at", ""),
-        }
-        agent_responses.append(SlackAgentResponse(**agent_dict))
+        # Convert the agent to a SlackAgentResponse with proper type handling
+        agent_response = _agent_to_response_model(agent)
+        agent_responses.append(agent_response)
 
     return agent_responses
+
+
+# Helper function to convert a SlackAgentModel to a SlackAgentResponse
+def _agent_to_response_model(agent: SlackAgentModel) -> SlackAgentResponse:
+    """Convert a SlackAgentModel to a SlackAgentResponse with proper type handling."""
+    # Safe conversion for SQLAlchemy Column types
+    # Using explicit conversion and nullchecks for SQLAlchemy Column types
+    try:
+        # The int() cast may fail if SQLAlchemy Column is not properly initialized
+        agent_id = int(agent.id) if agent.id is not None else 0  # type: ignore
+    except (TypeError, ValueError):
+        agent_id = 0
+
+    # Build dictionary with careful conversion for SQLAlchemy types
+    agent_dict = {
+        "id": agent_id,
+        "name": str(agent.name) if agent.name is not None else "",
+        "slack_team_id": str(agent.slack_team_id) if agent.slack_team_id is not None else None,
+        "slack_team_name": str(agent.slack_team_name)
+        if agent.slack_team_name is not None
+        else None,
+        "slack_channel_id": str(agent.slack_channel_id)
+        if agent.slack_channel_id is not None
+        else None,
+        "slack_channel_name": str(agent.slack_channel_name)
+        if agent.slack_channel_name is not None
+        else None,
+        "is_active": bool(agent.is_active) if agent.is_active is not None else True,
+        "workflow_id": str(agent.workflow_id) if agent.workflow_id is not None else None,
+        "trigger_on_mention": bool(agent.trigger_on_mention)
+        if agent.trigger_on_mention is not None
+        else True,
+        "trigger_on_direct_message": bool(agent.trigger_on_direct_message)
+        if agent.trigger_on_direct_message is not None
+        else True,
+        "trigger_on_channel_message": bool(agent.trigger_on_channel_message)
+        if agent.trigger_on_channel_message is not None
+        else False,
+        "trigger_keywords": [str(k) for k in agent.trigger_keywords]
+        if agent.trigger_keywords
+        else None,  # type: ignore
+        "trigger_enabled": bool(agent.trigger_enabled)
+        if agent.trigger_enabled is not None
+        else True,
+        "has_bot_token": bool(agent.has_bot_token) if agent.has_bot_token is not None else False,
+        "has_user_token": bool(agent.has_user_token) if agent.has_user_token is not None else False,
+        "has_app_token": bool(agent.has_app_token) if agent.has_app_token is not None else False,
+        "last_token_update": str(agent.last_token_update)
+        if agent.last_token_update is not None
+        else None,
+        "spur_type": str(getattr(agent, "spur_type", "workflow") or "workflow"),
+        "created_at": str(getattr(agent, "created_at", "") or ""),
+    }
+    return SlackAgentResponse.model_validate(agent_dict)
 
 
 @router.post("/agents", response_model=SlackAgentResponse)
@@ -275,12 +354,9 @@ async def create_agent(agent_create: SlackAgentCreate, db: Session = Depends(get
         trigger_on_channel_message=bool(agent_create.trigger_on_channel_message),
         trigger_keywords=agent_create.trigger_keywords,
         trigger_enabled=bool(agent_create.trigger_enabled),
-        has_bot_token=False
-        if agent_create.has_bot_token is None
-        else bool(agent_create.has_bot_token),
-        has_user_token=False
-        if agent_create.has_user_token is None
-        else bool(agent_create.has_user_token),
+        has_bot_token=bool(agent_create.has_bot_token),
+        has_user_token=bool(agent_create.has_user_token),
+        has_app_token=bool(agent_create.has_app_token),
         last_token_update=agent_create.last_token_update,
         spur_type=agent_create.spur_type or "workflow",
     )
@@ -289,125 +365,79 @@ async def create_agent(agent_create: SlackAgentCreate, db: Session = Depends(get
     db.commit()
     db.refresh(new_agent)
 
-    # Convert the agent to a Pydantic model with proper boolean values
-    agent_dict = {
-        "id": new_agent.id,
-        "name": new_agent.name,
-        "slack_team_id": new_agent.slack_team_id,
-        "slack_team_name": new_agent.slack_team_name,
-        "slack_channel_id": new_agent.slack_channel_id,
-        "slack_channel_name": new_agent.slack_channel_name,
-        "is_active": bool(new_agent.is_active),
-        "workflow_id": new_agent.workflow_id,
-        "trigger_on_mention": bool(new_agent.trigger_on_mention),
-        "trigger_on_direct_message": bool(new_agent.trigger_on_direct_message),
-        "trigger_on_channel_message": bool(new_agent.trigger_on_channel_message),
-        "trigger_keywords": new_agent.trigger_keywords,
-        "trigger_enabled": bool(new_agent.trigger_enabled),
-        "has_bot_token": False
-        if new_agent.has_bot_token is None
-        else bool(new_agent.has_bot_token),
-        "has_user_token": False
-        if new_agent.has_user_token is None
-        else bool(new_agent.has_user_token),
-        "has_app_token": False
-        if new_agent.has_app_token is None
-        else bool(new_agent.has_app_token),
-        "last_token_update": new_agent.last_token_update,
-        "spur_type": getattr(new_agent, "spur_type", "workflow") or "workflow",
-        "created_at": getattr(new_agent, "created_at", ""),
-    }
-    return SlackAgentResponse(**agent_dict)
+    # Convert the agent to a Pydantic model
+    return _agent_to_response_model(new_agent)
 
 
 @router.get("/agents/{agent_id}", response_model=SlackAgentResponse)
 async def get_agent(agent_id: int, db: Session = Depends(get_db)):
-    """Get a specific Slack agent by ID"""
+    """Get a Slack agent configuration"""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Convert the agent to a Pydantic model with proper boolean values
-    agent_dict = {
-        "id": agent.id,
-        "name": agent.name,
-        "slack_team_id": agent.slack_team_id,
-        "slack_team_name": agent.slack_team_name,
-        "slack_channel_id": agent.slack_channel_id,
-        "slack_channel_name": agent.slack_channel_name,
-        "is_active": bool(agent.is_active),
-        "workflow_id": agent.workflow_id,
-        "trigger_on_mention": bool(agent.trigger_on_mention),
-        "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
-        "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
-        "trigger_keywords": agent.trigger_keywords,
-        "trigger_enabled": bool(agent.trigger_enabled),
-        "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
-        "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
-        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
-        "last_token_update": agent.last_token_update,
-        "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
-        "created_at": getattr(agent, "created_at", ""),
-    }
-    return SlackAgentResponse(**agent_dict)
+    # Convert the agent to a Pydantic model
+    return _agent_to_response_model(agent)
 
 
 @router.post("/agents/{agent_id}/send-message", response_model=SlackMessageResponse)
 async def send_agent_message(agent_id: int, message: SlackMessage, db: Session = Depends(get_db)):
-    """Send a message to a Slack channel using a specific agent's token"""
-    # Get the agent
+    """Send a message to a channel using the Slack agent"""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Get the agent's bot token
-    token_store = get_token_store()
-    bot_token = token_store.get_token(agent_id=agent_id, token_type="bot_token")
+    # Create a client using the agent's token
+    token = None
 
-    if not bot_token:
+    # If agent has a bot token, retrieve it
+    has_bot_token = bool(agent.has_bot_token)
+    if has_bot_token:
+        logger.info(f"Retrieving bot token for agent {agent_id}")
+        token_store = get_token_store()
+        token = token_store.get_token(agent_id, "bot_token")
+
+    if not token:
         raise HTTPException(status_code=400, detail="This agent has no bot token configured")
 
     # Send the message to Slack
     try:
-        response = requests.post(
-            SLACK_POST_MESSAGE_URL,
-            headers={"Authorization": f"Bearer {bot_token}"},
-            json={
-                "channel": message.channel,
-                "text": message.text,
+        client = WebClient(token=token)
+        logger.info(f"Sending message to channel '{message.channel}'")
+
+        # Call Slack API - ignore type issues with chat_postMessage
+        slack_response = client.chat_postMessage(  # type: ignore
+            channel=message.channel,
+            text=message.text,
+        )
+
+        # Extract data from the response
+        response_data = {
+            "ts": slack_response.get("ts", ""),
+            "channel": slack_response.get("channel", ""),
+            "message": "Message sent successfully",
+            "success": True,
+        }
+
+        logger.info(f"Message sent successfully: {slack_response.get('ok', False)}")
+        return response_data
+    except SlackApiError as e:
+        logger.error(f"Error sending message to Slack: {str(e)}")
+        # If there was an error, raise an HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Error sending message to Slack: {str(e)}",
+                "success": False,
             },
-            timeout=REQUEST_TIMEOUT,
         )
-        response.raise_for_status()
-        result = response.json()
-
-        if not result.get("ok", False):
-            raise HTTPException(status_code=400, detail=f"Slack error: {result.get('error')}")
-
-        return SlackMessageResponse(
-            success=True, message="Message sent successfully", ts=result.get("ts")
-        )
-
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Error communicating with Slack: {str(e)}")
 
 
 @router.post("/send-message", response_model=SlackMessageResponse)
 async def send_message(
     channel: str, text: str, agent_id: Optional[int] = None, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Send a message to a Slack channel.
-
-    Args:
-        channel: The name of the channel to send the message to.
-        text: The text of the message to send.
-        agent_id: The ID of the agent to use for sending the message.
-        db: Database session.
-
-    Returns:
-        A dictionary containing metadata about the sent message.
-
-    """
+    """Send a message to a Slack channel."""
     logger.info(f"Attempting to send message to channel '{channel}' with agent_id: {agent_id}")
 
     # Initialize WebClient with the bot token
@@ -420,10 +450,11 @@ async def send_message(
         agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
 
         if agent:
-            logger.info(f"Found agent '{agent.name}' with has_bot_token={agent.has_bot_token}")
+            has_bot_token = bool(agent.has_bot_token)
+            logger.info(f"Found agent '{agent.name}' with has_bot_token={has_bot_token}")
 
             # If agent has a bot token, retrieve it
-            if agent.has_bot_token:
+            if has_bot_token:
                 logger.info(f"Retrieving bot token for agent {agent_id}")
                 token_store = get_token_store()
                 token = token_store.get_token(agent_id, "bot_token")
@@ -450,20 +481,22 @@ async def send_message(
         client = WebClient(token=token)
         logger.info(f"Sending message to channel '{channel}'")
 
-        # Send the message
-        response = client.chat_postMessage(
+        # Call Slack API - ignore type issues with chat_postMessage
+        slack_response = client.chat_postMessage(  # type: ignore
             channel=channel,
             text=text,
         )
 
-        logger.info(f"Message sent successfully: {response['ok']}")
-        # Return the response
-        return {
-            "ts": response["ts"],
-            "channel": response["channel"],
-            "message": "Message sent successfully",  # Changed from response["message"] to a string
+        # Extract data from the response
+        response_data = {
+            "ts": slack_response.get("ts", ""),
+            "channel": slack_response.get("channel", ""),
+            "message": "Message sent successfully",
             "success": True,
         }
+
+        logger.info(f"Message sent successfully: {slack_response.get('ok', False)}")
+        return response_data
     except SlackApiError as e:
         logger.error(f"Error sending message to Slack: {str(e)}")
         # If there was an error, raise an HTTPException
@@ -502,34 +535,13 @@ async def associate_workflow(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Update agent - use setattr to avoid Column typing issues
+    # Update agent using SQLAlchemy ORM
     agent.workflow_id = association.workflow_id
     db.commit()
     db.refresh(agent)
 
-    # Convert the agent to a Pydantic model with proper boolean values
-    agent_dict = {
-        "id": agent.id,
-        "name": agent.name,
-        "slack_team_id": agent.slack_team_id,
-        "slack_team_name": agent.slack_team_name,
-        "slack_channel_id": agent.slack_channel_id,
-        "slack_channel_name": agent.slack_channel_name,
-        "is_active": bool(agent.is_active),
-        "workflow_id": agent.workflow_id,
-        "trigger_on_mention": bool(agent.trigger_on_mention),
-        "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
-        "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
-        "trigger_keywords": agent.trigger_keywords,
-        "trigger_enabled": bool(agent.trigger_enabled),
-        "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
-        "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
-        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
-        "last_token_update": agent.last_token_update,
-        "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
-        "created_at": getattr(agent, "created_at", ""),
-    }
-    return SlackAgentResponse(**agent_dict)
+    # Convert the agent to a Pydantic model
+    return _agent_to_response_model(agent)
 
 
 @router.put("/agents/{agent_id}/trigger-config", response_model=SlackAgentResponse)
@@ -541,7 +553,7 @@ async def update_trigger_config(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Update agent - use setattr to avoid Column typing issues
+    # Update agent using setattr to avoid Column typing issues
     agent.trigger_on_mention = config.trigger_on_mention
     agent.trigger_on_direct_message = config.trigger_on_direct_message
     agent.trigger_on_channel_message = config.trigger_on_channel_message
@@ -551,29 +563,8 @@ async def update_trigger_config(
     db.commit()
     db.refresh(agent)
 
-    # Convert the agent to a Pydantic model with proper boolean values
-    agent_dict = {
-        "id": agent.id,
-        "name": agent.name,
-        "slack_team_id": agent.slack_team_id,
-        "slack_team_name": agent.slack_team_name,
-        "slack_channel_id": agent.slack_channel_id,
-        "slack_channel_name": agent.slack_channel_name,
-        "is_active": bool(agent.is_active),
-        "workflow_id": agent.workflow_id,
-        "trigger_on_mention": bool(agent.trigger_on_mention),
-        "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
-        "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
-        "trigger_keywords": agent.trigger_keywords,
-        "trigger_enabled": bool(agent.trigger_enabled),
-        "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
-        "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
-        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
-        "last_token_update": agent.last_token_update,
-        "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
-        "created_at": getattr(agent, "created_at", ""),
-    }
-    return SlackAgentResponse(**agent_dict)
+    # Convert the agent to a Pydantic model
+    return _agent_to_response_model(agent)
 
 
 @router.put("/agents/{agent_id}", response_model=SlackAgentResponse)
@@ -586,53 +577,17 @@ async def update_agent(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     # Update agent from the agent_update fields
-    update_data = agent_update.dict(exclude_unset=True)
+    update_data = agent_update.model_dump(exclude_unset=True)
 
     # Ensure boolean fields are properly converted
     for field in update_data:
-        if field in ["has_bot_token", "has_user_token"]:
-            # Ensure token fields are not None
-            value = update_data[field]
-            setattr(agent, field, False if value is None else bool(value))
-        elif field in [
-            "is_active",
-            "trigger_on_mention",
-            "trigger_on_direct_message",
-            "trigger_on_channel_message",
-            "trigger_enabled",
-        ]:
-            # Other boolean fields
-            setattr(agent, field, bool(update_data[field]))
-        else:
-            # Non-boolean fields
-            setattr(agent, field, update_data[field])
+        setattr(agent, field, update_data[field])
 
     db.commit()
     db.refresh(agent)
 
-    # Convert the agent to a Pydantic model with proper boolean values
-    agent_dict = {
-        "id": agent.id,
-        "name": agent.name,
-        "slack_team_id": agent.slack_team_id,
-        "slack_team_name": agent.slack_team_name,
-        "slack_channel_id": agent.slack_channel_id,
-        "slack_channel_name": agent.slack_channel_name,
-        "is_active": bool(agent.is_active),
-        "workflow_id": agent.workflow_id,
-        "trigger_on_mention": bool(agent.trigger_on_mention),
-        "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
-        "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
-        "trigger_keywords": agent.trigger_keywords,
-        "trigger_enabled": bool(agent.trigger_enabled),
-        "has_bot_token": False if agent.has_bot_token is None else bool(agent.has_bot_token),
-        "has_user_token": False if agent.has_user_token is None else bool(agent.has_user_token),
-        "has_app_token": False if agent.has_app_token is None else bool(agent.has_app_token),
-        "last_token_update": agent.last_token_update,
-        "spur_type": getattr(agent, "spur_type", "workflow") or "workflow",
-        "created_at": getattr(agent, "created_at", ""),
-    }
-    return SlackAgentResponse(**agent_dict)
+    # Convert the agent to a Pydantic model
+    return _agent_to_response_model(agent)
 
 
 # Helper function to start a workflow run using the existing workflow execution system
@@ -830,8 +785,7 @@ async def set_agent_token(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     token_store = get_token_store()
-    token_key = f"slack_{token_type}_{agent_id}"
-    stored_token = token_store.store_token(agent_id, token_type, token_request.token)
+    token_store.store_token(agent_id, token_type, token_request.token)
 
     # Update agent token flag
     if token_type == "bot_token":
@@ -847,13 +801,21 @@ async def set_agent_token(
     db.refresh(agent)
 
     # Mask the token for the response
-    masked_token = token_store._mask_token(token_request.token)
+    masked_token = mask_token(token_request.token)
     return AgentTokenResponse(
         agent_id=agent_id,
         token_type=token_type,
         masked_token=masked_token,
         updated_at=current_timestamp,
     )
+
+
+# Helper function to mask tokens for the API response
+def mask_token(token: str) -> str:
+    """Create a masked version of the token for display."""
+    if len(token) <= 8:
+        return "*" * len(token)
+    return token[:4] + "*" * (len(token) - 8) + token[-4:]
 
 
 @router.get("/agents/{agent_id}/tokens/{token_type}", response_model=AgentTokenResponse)
@@ -874,10 +836,12 @@ async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(
         raise HTTPException(status_code=404, detail=f"No {token_type} found for this agent")
 
     # Mask the token for the response
-    masked_token = token_store._mask_token(token)
+    masked_token = mask_token(token)
 
     # Get the last update timestamp
-    last_token_update = str(agent.last_token_update) if agent.last_token_update else None
+    last_token_update = (
+        str(agent.last_token_update) if agent.last_token_update is not None else None
+    )
 
     return AgentTokenResponse(
         agent_id=agent_id,
@@ -965,11 +929,11 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    if not agent.has_bot_token:
+    if not getattr(agent, "has_bot_token", False):
         raise HTTPException(status_code=400, detail="Agent doesn't have a bot token")
 
     # Check if the agent has an app token or if there's one in the environment
-    if not agent.has_app_token and not os.getenv("SLACK_APP_TOKEN"):
+    if not getattr(agent, "has_app_token", False) and not os.getenv("SLACK_APP_TOKEN"):
         raise HTTPException(
             status_code=400,
             detail="Socket Mode requires an app token. Please configure an app token for this agent or set the SLACK_APP_TOKEN environment variable.",
