@@ -13,7 +13,7 @@ import {
 } from '@xyflow/react'
 import isEqual from 'lodash/isEqual'
 import { useTheme } from 'next-themes'
-import { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
 import DynamicGroupNode from '@/components/nodes/loops/DynamicGroupNode'
@@ -90,18 +90,19 @@ export const getNodeTitle = (data: FlowWorkflowNode['data']): string => {
     return data?.config?.title || data?.title || data?.type || 'Untitled'
 }
 
-const generateNewNodeId = (nodes: FlowWorkflowNode[], nodeType: string): string => {
-    const existingIds = nodes.map((node) => node.id)
+const generateNewNodeTitle = (nodes: FlowWorkflowNode[], nodeType: string): string => {
+    // Use UUID v4 for unique IDs instead of readable format
+    const existingTitles = nodes.map((node) => node.data?.title)
     const sanitizedType = nodeType.replace(/\s+/g, '_')
     let counter = 1
-    let newId = `${sanitizedType}_${counter}`
+    let newTitle = `${sanitizedType}_${counter}`
 
-    while (existingIds.includes(newId)) {
+    while (existingTitles.includes(newTitle)) {
         counter++
-        newId = `${sanitizedType}_${counter}`
+        newTitle = `${sanitizedType}_${counter}`
     }
 
-    return newId
+    return newTitle
 }
 
 export const createNodeAtCenter = (
@@ -111,7 +112,12 @@ export const createNodeAtCenter = (
     reactFlowInstance: ReactFlowInstance,
     dispatch: AppDispatch
 ): void => {
-    const id = generateNewNodeId(nodes, nodeType)
+    // Generate UUID for the node ID
+    const id = uuidv4()
+    
+    // Create a human-readable title (similar to previous ID format)
+    const nodeTitle = generateNewNodeTitle(nodes, nodeType)
+    
     const center = reactFlowInstance.screenToFlowPosition({
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
@@ -124,12 +130,12 @@ export const createNodeAtCenter = (
 
     // If this is a dynamic group node, handle it specially
     if (nodeType === 'ForLoopNode') {
-        const created = createDynamicGroupNodeWithChildren(nodeTypes, nodeType, id, position, dispatch)
+        const created = createDynamicGroupNodeWithChildren(nodeTypes, nodeType, id, position, dispatch, nodeTitle)
         if (created) return
     }
 
     // Otherwise create a normal node
-    const result = createNode(nodeTypes, nodeType, id, position)
+    const result = createNode(nodeTypes, nodeType, id, position, null, null, nodeTitle)
     if (result) {
         dispatch(addNodeWithConfig(result))
     }
@@ -158,8 +164,11 @@ export const duplicateNode = (nodeId: string, dispatch: AppDispatch, getState: (
         edges
     )
 
-    // Generate a new unique ID for the duplicated node using the existing function
-    const newNodeId = generateNewNodeId(nodes, sourceNode.type || 'default')
+    // Generate a new unique ID for the duplicated node using UUID
+    const newNodeId = uuidv4()
+    
+    // Create a title based on the original node's title 
+    const newNodeTitle = generateNewNodeTitle(nodes, sourceNode.type || 'default')
 
     // Create the new node with an offset position
     const newNode = {
@@ -171,7 +180,7 @@ export const duplicateNode = (nodeId: string, dispatch: AppDispatch, getState: (
         },
         data: {
             ...sourceNode.data,
-            title: newNodeId, // Update the title in node data
+            title: newNodeTitle, // Use the new descriptive title
         },
         selected: false,
     }
@@ -188,7 +197,7 @@ export const duplicateNode = (nodeId: string, dispatch: AppDispatch, getState: (
         node: newNode,
         config: {
             ...sourceNodeConfig,
-            title: newNodeId, // Update the title in config
+            title: newNodeTitle, // Use the new descriptive title
         },
     }
 
@@ -211,16 +220,18 @@ export const duplicateNode = (nodeId: string, dispatch: AppDispatch, getState: (
 
         // Duplicate each child node
         childNodes.forEach((childNode) => {
-            const newChildId = generateNewNodeId(nodes, childNode.type || 'default')
+            const newChildId = uuidv4()
             idMapping[childNode.id] = newChildId
-
+            
+            // Create readable title for the child node
+            const newChildTitle = generateNewNodeTitle(nodes, childNode.type || 'default')
             const newChildNode = {
                 ...childNode,
                 id: newChildId,
                 parentId: newNodeId,
                 data: {
                     ...childNode.data,
-                    title: newChildId,
+                    title: newChildTitle,
                 },
                 selected: false,
             }
@@ -234,7 +245,7 @@ export const duplicateNode = (nodeId: string, dispatch: AppDispatch, getState: (
                         node: newChildNode,
                         config: {
                             ...childConfig,
-                            title: newChildId,
+                            title: newChildTitle,
                         },
                     })
                 )
