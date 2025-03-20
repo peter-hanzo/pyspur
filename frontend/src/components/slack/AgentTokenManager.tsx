@@ -265,7 +265,7 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({ agent, onTokenUpd
                             <div className="flex-1 font-mono text-small bg-default-100 rounded-lg p-3 border border-default-200">
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:key-minimalistic-bold" className="text-default-500" width={16} />
-                                    <span className="text-default-500">{status.masked}</span>
+                                    <span className="text-default-500 truncate overflow-hidden max-w-[250px]">{status.masked}</span>
                                 </div>
                                 <div className="text-tiny text-default-400 mt-1">
                                     Last updated: {formatDate(status.lastUpdated)}
