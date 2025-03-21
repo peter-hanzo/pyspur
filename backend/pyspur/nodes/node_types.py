@@ -26,7 +26,7 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "SingleLLMCallNode",
         },
         {
-            "node_type_name": "Agent",
+            "node_type_name": "AgentNode",
             "module": ".nodes.llm.agent",
             "class_name": "AgentNode",
         },

@@ -1107,7 +1107,7 @@ const NodeSidebar: React.FC<NodeSidebarProps> = ({ nodeID, readOnly }) => {
     // Add this function after renderUrlVariableConfig but before renderConfigFields
     const renderMessageHistoryConfig = () => {
         // Only show for SingleLLMCallNode
-        if (nodeType !== 'SingleLLMCallNode' && nodeType !== 'Agent') {
+        if (nodeType !== 'SingleLLMCallNode' && nodeType !== 'AgentNode') {
             return null
         }
 

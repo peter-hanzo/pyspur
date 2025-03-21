@@ -22,6 +22,7 @@ from ..models.output_file_model import OutputFileModel
 from ..models.run_model import RunModel, RunStatus
 from ..models.task_model import TaskModel, TaskStatus
 from ..models.workflow_model import WorkflowModel
+from ..nodes.base import BaseNodeOutput
 from ..nodes.factory import NodeFactory
 from ..nodes.logic.human_intervention import HumanInterventionNodeOutput, PauseError
 from ..schemas.pause_schemas import (
@@ -87,6 +88,21 @@ def process_embedded_files(
 
     processed_inputs = find_and_replace_data_uris(processed_inputs)
     return processed_inputs
+
+
+def get_node_title_output_map(
+    nodes: List[WorkflowNodeSchema],
+    outputs: Dict[str, BaseNodeOutput],
+) -> Dict[str, Dict[str, Any]]:
+    """Create a dictionary of node titles to outputs."""
+    title_output_dict: Dict[str, Dict[str, Any]] = {}
+    for node_id, node_output in outputs.items():
+        # Find the node with this ID to get its title
+        node = next((n for n in nodes if n.id == node_id), None)
+        if node and hasattr(node, "title") and node.title and node_output:
+            # Use the node's title as the key
+            title_output_dict[node.title] = node_output.model_dump()
+    return title_output_dict
 
 
 @router.post(
@@ -180,14 +196,7 @@ async def run_workflow_blocking_v2(  # noqa: C901
         nodes = workflow_version.definition["nodes"]
         nodes = [WorkflowNodeSchema.model_validate(node) for node in nodes]
         # Create outputs dictionary using node titles as keys instead of node IDs
-        title_output_dict = {}
-        for node_id, node_output in outputs.items():
-            # Find the node with this ID to get its title
-            node = next((n for n in nodes if n.id == node_id), None)
-            if node and hasattr(node, "title") and node.title:
-                # Use the node's title as the key
-                title_output_dict[node.title] = node_output.model_dump()
-        new_run.outputs = title_output_dict
+        new_run.outputs = get_node_title_output_map(nodes, outputs)
         db.commit()
 
         # Refresh the run to get the updated tasks
@@ -199,7 +208,9 @@ async def run_workflow_blocking_v2(  # noqa: C901
     except PauseError as e:
         # Make sure the run status is set to PAUSED
         new_run.status = RunStatus.PAUSED
-        new_run.outputs = {k: v.model_dump() for k, v in executor.outputs.items() if v is not None}
+        new_run.outputs = get_node_title_output_map(
+            workflow_definition.nodes, {k: v for k, v in executor.outputs.items() if v is not None}
+        )
 
         # Get all blocked nodes from paused nodes
         paused_node_ids = [
@@ -330,7 +341,9 @@ async def run_workflow_blocking(  # noqa: C901
             new_run.status = RunStatus.COMPLETED
 
         new_run.end_time = datetime.now(timezone.utc)
-        new_run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+        new_run.outputs = get_node_title_output_map(
+            workflow_definition.nodes, {k: v for k, v in executor.outputs.items() if v is not None}
+        )
         db.commit()
 
         # Refresh the run to get the updated tasks
@@ -430,7 +443,7 @@ async def run_workflow_non_blocking(  # noqa: C901
                     node for node in workflow_definition.nodes if node.node_type == "InputNode"
                 )
                 outputs = await executor(run.initial_inputs[input_node.id])
-                run.outputs = {k: v.model_dump() for k, v in outputs.items()}
+                run.outputs = get_node_title_output_map(workflow_definition.nodes, outputs)
 
                 # Handle paused tasks if any
                 has_paused_tasks = _check_for_paused_tasks(run)
@@ -510,7 +523,9 @@ async def run_workflow_non_blocking(  # noqa: C901
     ) -> None:
         """Handle PauseException during workflow execution."""
         run.status = RunStatus.PAUSED
-        run.outputs = {k: v.model_dump() for k, v in executor.outputs.items() if v is not None}
+        run.outputs = get_node_title_output_map(
+            workflow_version.nodes, {k: v for k, v in executor.outputs.items() if v is not None}
+        )
 
         # Get all paused node IDs
         paused_node_ids = [task.node_id for task in run.tasks if task.status == TaskStatus.PAUSED]
