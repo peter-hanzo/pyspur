@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field
 
 class SlackAgentBase(BaseModel):
     name: str
-    slack_team_id: Optional[str] = "T00000000"  # Default placeholder
-    slack_team_name: Optional[str] = "Default Team"  # Default placeholder
+    slack_team_id: Optional[str] = None  # Will be populated upon Slack connection
+    slack_team_name: Optional[str] = None  # Will be populated upon Slack connection
     slack_channel_id: Optional[str] = None
     slack_channel_name: Optional[str] = None
     is_active: bool = True

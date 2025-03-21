@@ -1,3 +1,5 @@
+import asyncio
+import json
 import os
 from datetime import UTC, datetime
 from typing import Any, Callable, Dict, List, Optional, cast
@@ -10,8 +12,9 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..integrations.slack.socket_client import get_socket_mode_client
-from ..models.run_model import RunModel
+from ..models.run_model import RunModel, RunStatus
 from ..models.slack_agent_model import SlackAgentModel
+from ..models.task_model import TaskStatus
 from ..models.workflow_model import WorkflowModel
 from ..schemas.run_schemas import StartRunRequestSchema
 from ..schemas.slack_schemas import (
@@ -54,11 +57,15 @@ socket_mode_client = get_socket_mode_client()
 
 # Callback function for socket mode events to trigger workflows
 async def handle_socket_mode_event(
-    trigger_request: WorkflowTriggerRequest, agent_id: int, say: Callable[..., Any]
+    trigger_request: WorkflowTriggerRequest,
+    agent_id: int,
+    say: Callable[..., Any],
+    client: Optional[WebClient] = None,
 ):
     """Handle a socket mode event by triggering the associated workflow"""
     logger.info(f"Handling socket mode event for agent {agent_id}")
 
+    # This function can be called from a thread or directly, so we need to handle both cases
     # Get a database session
     db = next(get_db())
 
@@ -68,12 +75,28 @@ async def handle_socket_mode_event(
             return
 
         if await _should_trigger_workflow(agent, trigger_request):
-            await _trigger_workflow(db, agent, trigger_request, say)
+            await _trigger_workflow(db, agent, trigger_request, say, client)
 
     except Exception as e:
         logger.error(f"Error in handle_socket_mode_event: {e}")
+        import traceback
+
+        logger.error(f"Error details: {traceback.format_exc()}")
     finally:
         db.close()
+
+
+# Create a synchronous version of the handler that can be called from threads
+def handle_socket_mode_event_sync(
+    trigger_request: WorkflowTriggerRequest,
+    agent_id: int,
+    say: Callable[..., Any],
+    client: Optional[WebClient] = None,
+):
+    """Synchronous wrapper for handle_socket_mode_event to be used in threaded contexts"""
+    # Return the coroutine object without awaiting it
+    # The socket client will handle awaiting it appropriately
+    return handle_socket_mode_event(trigger_request, agent_id, say, client)
 
 
 async def _get_active_agent(db: Session, agent_id: int) -> Optional[SlackAgentModel]:
@@ -170,6 +193,7 @@ async def _trigger_workflow(
     agent: SlackAgentModel,
     trigger_request: WorkflowTriggerRequest,
     say: Callable[..., Any],
+    client: Optional[WebClient] = None,
 ):
     """Trigger the workflow and handle the response"""
     try:
@@ -193,16 +217,167 @@ async def _trigger_workflow(
         )
 
         # Let the user know we're processing their request
-        say(text=f"Processing your request... (Run ID: {run.id})")
+        # Use client if available, otherwise fall back to say function
+        if client and trigger_request.channel_id:
+            try:
+                client.chat_postMessage(
+                    channel=trigger_request.channel_id,
+                    text=f"Processing your request... (Run ID: {run.id})",
+                )
+            except Exception as e:
+                logger.error(f"Error using client to respond: {e}")
+                say(text=f"Processing your request... (Run ID: {run.id})")
+        else:
+            say(text=f"Processing your request... (Run ID: {run.id})")
+
         logger.info(f"Started workflow run {run.id} for agent {agent.id}")
+
+        # Manually execute background tasks since we're not in a FastAPI endpoint
+        logger.info(f"Manually executing background tasks for workflow run {run.id}")
+        for task in background_tasks.tasks:
+            logger.info(f"Executing task: {str(task)}")
+            await task()
+        logger.info(f"Background tasks execution completed for workflow run {run.id}")
+
+        # Wait for workflow to complete and return results to Slack
+        await _send_workflow_results_to_slack(run.id, trigger_request.channel_id, client, say)
 
     except Exception as e:
         logger.error(f"Error triggering workflow for agent {agent.id}: {e}")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
         say(text=f"Sorry, I encountered an error: {str(e)}")
 
 
-# Set the callback for the socket mode client
-socket_mode_client.set_workflow_trigger_callback(handle_socket_mode_event)  # type: ignore
+async def _send_workflow_results_to_slack(
+    run_id: str,
+    channel_id: str,
+    client: Optional[WebClient] = None,
+    say: Optional[Callable[..., Any]] = None,
+    db: Optional[Session] = None,
+):
+    """Get workflow results and send them back to Slack."""
+    own_db_session = db is None
+
+    try:
+        # Create a new database session if one wasn't provided
+        if own_db_session:
+            db = next(get_db())
+
+        # Wait for the workflow to complete (poll status)
+        # Poll for up to 2 minutes (24 attempts, 5 seconds apart)
+        max_attempts = 24
+        attempts = 0
+        run_complete = False
+        run = None
+
+        while attempts < max_attempts and not run_complete:
+            attempts += 1
+            # Get the run model from database
+            run = db.query(RunModel).filter(RunModel.id == run_id).first()
+
+            if not run:
+                logger.error(f"Run {run_id} not found in database")
+                break
+
+            # Check if the run has completed or failed
+            if run.status in [
+                RunStatus.COMPLETED,
+                RunStatus.FAILED,
+                RunStatus.PAUSED,
+                RunStatus.CANCELED,
+            ]:
+                run_complete = True
+                break
+
+            # Wait before polling again
+            await asyncio.sleep(5)
+
+        # Prepare the message to send back
+        if not run:
+            message = f"⚠️ Could not find workflow run {run_id}"
+        elif not run_complete:
+            message = f"⏱️ Workflow run {run_id} is still in progress (status: {run.status})"
+        elif run.status == RunStatus.COMPLETED:
+            # Format the output message
+            if run.outputs:
+                # Find the output node
+                output_content = None
+                # Typically outputs are stored with node IDs as keys
+                for node_id, output in run.outputs.items():
+                    # Look for output node or content that has relevant output data
+                    if isinstance(output, dict) and (
+                        "result" in output or "content" in output or "text" in output
+                    ):
+                        output_content = (
+                            output.get("result") or output.get("content") or output.get("text")
+                        )
+                        break
+
+                if output_content:
+                    message = (
+                        f"✅ Workflow completed successfully!\n\n*Output:*\n```{output_content}```"
+                    )
+                else:
+                    # If we can't find a specific output format, just return the full output as JSON
+                    message = f"✅ Workflow completed successfully!\n\n*Output:*\n```{json.dumps(run.outputs, indent=2)}```"
+            else:
+                message = "✅ Workflow completed successfully! (No output data available)"
+        elif run.status == RunStatus.FAILED:
+            message = "❌ Workflow run failed"
+            # Look for error messages in tasks
+            error_messages = []
+            if run.tasks:
+                for task in run.tasks:
+                    if task.status == TaskStatus.FAILED and task.error:
+                        error_messages.append(f"- Task {task.node_id}: {task.error}")
+
+            if error_messages:
+                message += "\n\n*Errors:*\n" + "\n".join(error_messages)
+        else:
+            message = f"⚠️ Workflow run {run_id} ended with status: {run.status}"
+
+        # Send the message back to Slack
+        if client and channel_id:
+            try:
+                logger.info(f"Sending workflow result to Slack channel {channel_id}")
+                client.chat_postMessage(channel=channel_id, text=message)
+                logger.info("Successfully sent workflow result to Slack")
+            except Exception as e:
+                logger.error(f"Error sending workflow results to Slack: {e}")
+                if say:
+                    say(text=message)
+        elif say:
+            logger.info("Using say function to send workflow result")
+            say(text=message)
+        else:
+            logger.error("Cannot send workflow results: No Slack client or say function available")
+
+    except Exception as e:
+        logger.error(f"Error sending workflow results to Slack: {e}")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
+
+        # Try to send error message
+        error_msg = f"Error retrieving workflow results: {str(e)}"
+        if client and channel_id:
+            try:
+                client.chat_postMessage(channel=channel_id, text=error_msg)
+            except Exception:
+                if say:
+                    say(text=error_msg)
+        elif say:
+            say(text=error_msg)
+    finally:
+        # Clean up if we created our own session
+        if own_db_session and db:
+            db.close()
+
+
+# Set the callback for the socket mode client - use the sync version
+socket_mode_client.set_workflow_trigger_callback(handle_socket_mode_event_sync)  # type: ignore
 
 
 @router.get("/config/status")
@@ -790,6 +965,25 @@ async def set_agent_token(
     # Update agent token flag
     if token_type == "bot_token":
         agent.has_bot_token = True
+
+        # Try to get team information when setting a bot token
+        try:
+            client = WebClient(token=token_request.token)
+            response = client.auth_test()
+            if response["ok"]:
+                team_id = response.get("team_id")
+                team_name = response.get("team")
+                if team_id:
+                    agent.slack_team_id = team_id
+                    agent.slack_team_name = team_name
+                    logger.info(
+                        f"Updated agent {agent_id} with team information: {team_name} ({team_id})"
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to retrieve team information: {str(e)}")
+            # Don't fail the token setting if we can't get team info
+            pass
+
     elif token_type == "user_token":
         agent.has_user_token = True
     elif token_type == "app_token":
@@ -1036,3 +1230,62 @@ async def debug_agent_tokens(agent_id: int, db: Session = Depends(get_db)):
         token_info["app_token_error"] = str(e)
 
     return token_info
+
+
+@router.post("/agents/{agent_id}/test-connection", response_model=dict)
+async def test_connection(agent_id: int, db: Session = Depends(get_db)):
+    """Test if the Slack connection for an agent works properly"""
+    try:
+        agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
+
+        if not agent.has_bot_token:
+            return {"success": False, "message": "Agent doesn't have a bot token configured"}
+
+        # Get the bot token from the token store
+        token_store = get_token_store()
+        bot_token = token_store.get_token(agent_id, "bot_token")
+
+        if not bot_token:
+            return {"success": False, "message": "Could not retrieve bot token"}
+
+        # Test the token by calling auth.test
+        from slack_sdk import WebClient
+        from slack_sdk.errors import SlackApiError
+
+        client = WebClient(token=bot_token)
+        try:
+            response = client.auth_test()
+            if response["ok"]:
+                team = response.get("team", "Unknown workspace")
+                team_id = response.get("team_id")
+                user = response.get("user", "Unknown bot")
+
+                # Update the agent's team information
+                if team_id:
+                    agent.slack_team_id = team_id
+                    agent.slack_team_name = team
+                    db.commit()
+                    logger.info(
+                        f"Updated agent {agent_id} with team information: {team} ({team_id})"
+                    )
+
+                return {
+                    "success": True,
+                    "message": f"Successfully connected to {team} as {user}",
+                    "team_id": team_id,
+                    "bot_id": response.get("bot_id"),
+                    "user_id": response.get("user_id"),
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"API call succeeded but returned not OK: {response.get('error', 'Unknown error')}",
+                }
+        except SlackApiError as e:
+            error_message = e.response["error"] if "error" in e.response else str(e)
+            return {"success": False, "message": f"API Error: {error_message}"}
+    except Exception as e:
+        logger.error(f"Error testing Slack connection: {e}")
+        return {"success": False, "message": f"Error: {str(e)}", "error": str(e)}

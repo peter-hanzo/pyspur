@@ -18,6 +18,7 @@ interface SlackTestConnectionProps {
     onClose: () => void
     agent: SlackAgent | null
     onAlert?: AlertFunction
+    onComplete?: (result: { success: boolean, message: string, error?: any }) => void
 }
 
 // Component that manages both test input and result states
@@ -25,7 +26,8 @@ const SlackTestConnection: React.FC<SlackTestConnectionProps> = ({
     isOpen,
     onClose,
     agent,
-    onAlert
+    onAlert,
+    onComplete
 }) => {
     // State for test input
     const [channel, setChannel] = useState('general')
@@ -73,10 +75,12 @@ const SlackTestConnection: React.FC<SlackTestConnectionProps> = ({
                 onAlert?.(successMsg, 'success')
                 setIsSuccess(true)
                 setResultMessage(successMsg)
+                onComplete?.({ success: true, message: successMsg })
             } else {
                 onAlert?.(response.message, 'danger')
                 setIsSuccess(false)
                 setResultMessage(response.message)
+                onComplete?.({ success: false, message: response.message })
             }
             setShowResult(true)
         } catch (error: any) {
@@ -87,6 +91,9 @@ const SlackTestConnection: React.FC<SlackTestConnectionProps> = ({
             if (error.response?.data?.detail) {
                 if (error.response.data.detail === "No Slack bot token configured") {
                     errorMessage = 'No Slack bot token configured. Please add a bot token in the agent settings first.'
+                } else if (error.response.data.detail.includes("installation") ||
+                          error.response.data.detail.includes("AuthorizeResult")) {
+                    errorMessage = 'Your Slack installation is no longer available. Please reinstall the app to reconnect.'
                 } else {
                     errorMessage = `Failed to send test message: ${error.response.data.detail}`
                 }
@@ -95,6 +102,7 @@ const SlackTestConnection: React.FC<SlackTestConnectionProps> = ({
             onAlert?.(errorMessage, 'danger')
             setIsSuccess(false)
             setResultMessage(errorMessage)
+            onComplete?.({ success: false, message: errorMessage, error })
             setShowResult(true)
         } finally {
             setIsTesting(false)

@@ -40,7 +40,7 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
 }) => {
     const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [alert, setAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null)
+    const [alert, setAlert] = useState<{ type: 'success' | 'danger' | 'warning' | 'default'; message: string } | null>(null)
 
     // Agent configuration state
     const [name, setName] = useState('')
@@ -53,8 +53,9 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
     const [triggerOnChannel, setTriggerOnChannel] = useState(false)
     const [keywords, setKeywords] = useState<string>('')
 
-    // Added for Slack token and socket mode support
+    // Token states for all three Slack token types
     const [botToken, setBotToken] = useState('')
+    const [userToken, setUserToken] = useState('')
     const [appToken, setAppToken] = useState('')
     const [enableSocketMode, setEnableSocketMode] = useState(false)
 
@@ -84,8 +85,8 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                 return
             }
 
-            if (!enableSocketMode && !botToken.trim()) {
-                setAlert({ type: 'danger', message: 'Bot Token is required for Classic Mode' })
+            if (!botToken.trim()) {
+                setAlert({ type: 'danger', message: 'Bot Token is required for Slack integration' })
                 return
             }
 
@@ -96,7 +97,7 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
             }
 
             setIsSubmitting(true)
-            console.log('Creating Slack agent...')
+            setAlert({ type: 'default', message: 'Creating Slack agent...' })
 
             // Parse keywords into an array
             const keywordsArray = keywords
@@ -104,41 +105,63 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                 .map(k => k.trim())
                 .filter(k => k.length > 0)
 
-            // Create the agent with appropriate token based on socket mode
-            const newAgent = await createSlackAgent(name, {
-                workflow_id: selectedWorkflowId,
-                trigger_enabled: triggerEnabled,
-                trigger_on_mention: triggerOnMention,
-                trigger_on_direct_message: triggerOnDM,
-                trigger_on_channel_message: triggerOnChannel,
-                trigger_keywords: keywordsArray,
-                enable_socket_mode: enableSocketMode,
-                ...(enableSocketMode ? { app_token: appToken } : { bot_token: botToken })
-            } as any)
+            try {
+                // Create the agent with all tokens
+                const newAgent = await createSlackAgent(name, {
+                    workflow_id: selectedWorkflowId,
+                    trigger_enabled: triggerEnabled,
+                    trigger_on_mention: triggerOnMention,
+                    trigger_on_direct_message: triggerOnDM,
+                    trigger_on_channel_message: triggerOnChannel,
+                    trigger_keywords: keywordsArray,
+                    bot_token: botToken.trim(),
+                    user_token: userToken.trim() || undefined,
+                    app_token: appToken.trim() || undefined
+                })
 
-            if (newAgent) {
-                setAlert({ type: 'success', message: 'Slack agent created successfully!' })
+                if (newAgent) {
+                    // Check if tokens were properly set
+                    const hasTokensSet =
+                        (botToken && newAgent.has_bot_token) ||
+                        (userToken && newAgent.has_user_token) ||
+                        (appToken && newAgent.has_app_token);
 
-                // Notify parent component with the new agent and the selected workflow ID
-                if (onCreated) {
-                    onCreated(newAgent, selectedWorkflowId)
+                    if (hasTokensSet) {
+                        setAlert({ type: 'success', message: 'Slack agent created successfully with tokens!' })
+                    } else {
+                        setAlert({
+                            type: 'warning',
+                            message: 'Agent created, but there might have been an issue setting tokens. You can update them in settings.'
+                        })
+                    }
+
+                    // Notify parent component with the new agent and the selected workflow ID
+                    if (onCreated) {
+                        onCreated(newAgent, selectedWorkflowId)
+                    }
+                } else {
+                    setAlert({ type: 'danger', message: 'Failed to create agent. Please try again.' })
                 }
-            } else {
-                setAlert({ type: 'danger', message: 'Failed to create agent. Please try again.' })
+            } catch (error) {
+                console.error('Error creating agent:', error)
+                const errorMessage = error.response?.data?.detail
+                    ? `Error: ${JSON.stringify(error.response.data.detail)}`
+                    : 'Error creating agent. Please check if Slack is properly configured.'
+                setAlert({ type: 'danger', message: errorMessage })
             }
-        } catch (error) {
-            console.error('Error creating agent:', error)
-            const errorMessage = error.response?.data?.detail
-                ? `Error: ${JSON.stringify(error.response.data.detail)}`
-                : 'Error creating agent. Please check if Slack is properly configured.'
-            setAlert({ type: 'danger', message: errorMessage })
         } finally {
             setIsSubmitting(false)
         }
     }
 
     const handleSpurTypeChange = (value: string) => {
-        setSpurType(value as SpurType | '')
+        // Only set valid SpurType values or empty string
+        if (value === '' || Object.values(SpurType).includes(value as SpurType)) {
+            setSpurType(value as SpurType | '')
+        } else {
+            console.warn(`Invalid SpurType value: ${value}`)
+            setSpurType('')
+        }
         // Reset workflow selection when type changes
         setSelectedWorkflowId('')
     }
@@ -182,6 +205,10 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                     startContent={
                                         alert.type === 'success' ? (
                                             <CheckCircle className="h-4 w-4" />
+                                        ) : alert.type === 'danger' ? (
+                                            <Info className="h-4 w-4" />
+                                        ) : alert.type === 'warning' ? (
+                                            <Info className="h-4 w-4" />
                                         ) : (
                                             <Info className="h-4 w-4" />
                                         )
@@ -229,34 +256,57 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                                     <span className="text-sm font-medium">Socket Mode</span>
                                                     <p className="text-xs text-default-500">
                                                         {enableSocketMode
-                                                            ? "Uses App-Level Token (xapp-)"
-                                                            : "Uses Bot User Token (xoxb-)"}
+                                                            ? "Required App-Level Token (xapp-)"
+                                                            : "Standard Slack Events API"}
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <div className="md:col-span-2">
-                                                {enableSocketMode ? (
-                                                    <Input
-                                                        label="Slack App Token"
-                                                        placeholder="xapp-..."
-                                                        value={appToken}
-                                                        onChange={(e) => setAppToken(e.target.value)}
-                                                        description="Enter your Slack App Token (starts with 'xapp-')"
-                                                        endContent={appToken && <span>{maskToken(appToken)}</span>}
-                                                        isRequired
-                                                    />
-                                                ) : (
-                                                    <Input
-                                                        label="Slack Bot Token"
-                                                        placeholder="xoxb-..."
-                                                        value={botToken}
-                                                        onChange={(e) => setBotToken(e.target.value)}
-                                                        description="Enter your Slack Bot User OAuth Token (starts with 'xoxb-')"
-                                                        endContent={botToken && <span>{maskToken(botToken)}</span>}
-                                                        isRequired
-                                                    />
-                                                )}
+                                                <Input
+                                                    label="Slack Bot Token"
+                                                    placeholder="xoxb-..."
+                                                    value={botToken}
+                                                    onChange={(e) => setBotToken(e.target.value)}
+                                                    description="Required for all integrations. Used for posting messages and interacting with the Slack API."
+                                                    endContent={botToken && <span>{maskToken(botToken)}</span>}
+                                                    isRequired
+                                                />
+                                                <p className="text-xs text-default-500 mt-1">
+                                                    <Info className="h-3 w-3 inline mr-1" />
+                                                    Bot Token (xoxb-) handles most API calls and is required for any Slack integration.
+                                                </p>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <Input
+                                                    label="Slack User Token (Optional)"
+                                                    placeholder="xoxp-..."
+                                                    value={userToken}
+                                                    onChange={(e) => setUserToken(e.target.value)}
+                                                    description="Optional. Grants additional permissions for actions that require a user context."
+                                                    endContent={userToken && <span>{maskToken(userToken)}</span>}
+                                                />
+                                                <p className="text-xs text-default-500 mt-1">
+                                                    <Info className="h-3 w-3 inline mr-1" />
+                                                    User Token (xoxp-) enables actions that require user permissions, like accessing files or private channels.
+                                                </p>
+                                            </div>
+
+                                            <div className="md:col-span-2">
+                                                <Input
+                                                    label={`Slack App Token ${enableSocketMode ? '(Required)' : '(Optional)'}`}
+                                                    placeholder="xapp-..."
+                                                    value={appToken}
+                                                    onChange={(e) => setAppToken(e.target.value)}
+                                                    description={enableSocketMode ? "Required for Socket Mode connections" : "Optional for Socket Mode in the future"}
+                                                    endContent={appToken && <span>{maskToken(appToken)}</span>}
+                                                    isRequired={enableSocketMode}
+                                                />
+                                                <p className="text-xs text-default-500 mt-1">
+                                                    <Info className="h-3 w-3 inline mr-1" />
+                                                    App Token (xapp-) is required for Socket Mode, which allows real-time event handling without exposing public endpoints.
+                                                </p>
                                             </div>
 
                                             <div className="md:col-span-2">

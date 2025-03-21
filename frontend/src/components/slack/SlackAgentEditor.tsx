@@ -29,6 +29,7 @@ import {
     getSocketModeStatus,
     startSocketMode,
     stopSocketMode,
+    updateTriggerConfig,
     SlackSocketModeResponse
 } from '@/utils/api'
 import SlackTestConnection from './SlackTestConnection'
@@ -69,6 +70,37 @@ const isErrorResponse = (response: SocketModeResponse): response is {
     return 'error' in response && response.error === true;
 };
 
+// Add a component to show installation unavailable error
+const SlackInstallationUnavailableAlert: React.FC<{
+    isVisible: boolean;
+    onReinstall: () => void;
+}> = ({ isVisible, onReinstall }) => {
+    if (!isVisible) return null;
+
+    return (
+        <div className="p-3 my-3 bg-warning-50 border border-warning-200 rounded-md">
+            <div className="flex items-start gap-2">
+                <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5 text-warning-600" />
+                <div>
+                    <p className="font-medium text-warning-700">Slack Connection Lost</p>
+                    <p className="text-small text-warning-600">
+                        Your Slack installation is no longer available. This can happen if the app was removed from your workspace or the installation data was lost.
+                    </p>
+                    <Button
+                        color="warning"
+                        size="sm"
+                        className="mt-2"
+                        startContent={<Icon icon="solar:refresh-bold" />}
+                        onPress={onReinstall}
+                    >
+                        Reinstall App
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     agent,
     isOpen,
@@ -79,31 +111,39 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     standalone = false
 }) => {
     const [selectedTab, setSelectedTab] = useState('tokens')
-    const [botToken, setBotToken] = useState('')
-    const [userToken, setUserToken] = useState('')
-    const [appToken, setAppToken] = useState('')
-    const [botTokenStatus, setBotTokenStatus] = useState<TokenStatus>({
-        type: 'bot_token',
-        label: 'Bot Token',
-        masked: '',
-        lastUpdated: null,
-        exists: agent.has_bot_token
+    const [botToken, setBotToken] = useState<string>('')
+    const [userToken, setUserToken] = useState<string>('')
+    const [appToken, setAppToken] = useState<string>('')
+    const [keywords, setKeywords] = useState<string>('')
+    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false)
+    const [tokenStatus, setTokenStatus] = useState<{
+        bot_token: TokenStatus;
+        user_token: TokenStatus;
+        app_token: TokenStatus;
+    }>({
+        bot_token: {
+            type: 'bot_token',
+            label: 'Bot Token',
+            masked: '',
+            lastUpdated: null,
+            exists: false
+        },
+        user_token: {
+            type: 'user_token',
+            label: 'User Token',
+            masked: '',
+            lastUpdated: null,
+            exists: false
+        },
+        app_token: {
+            type: 'app_token',
+            label: 'App Token',
+            masked: '',
+            lastUpdated: null,
+            exists: false
+        }
     })
-    const [userTokenStatus, setUserTokenStatus] = useState<TokenStatus>({
-        type: 'user_token',
-        label: 'User Token',
-        masked: '',
-        lastUpdated: null,
-        exists: agent.has_user_token
-    })
-    const [appTokenStatus, setAppTokenStatus] = useState<TokenStatus>({
-        type: 'app_token',
-        label: 'App Token',
-        masked: '',
-        lastUpdated: null,
-        exists: agent.has_app_token || false
-    })
-    const [isLoading, setIsLoading] = useState(false)
     const [message, setMessage] = useState('')
     const [isDeleting, setIsDeleting] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -113,100 +153,77 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     const [isSocketModeActive, setIsSocketModeActive] = useState(false)
     const [isSocketModeLoading, setIsSocketModeLoading] = useState(false)
 
+    // Installation status state
+    const [isInstallationUnavailable, setIsInstallationUnavailable] = useState(false)
+
     // Trigger settings state
-    const [keywords, setKeywords] = useState<string>(agent?.trigger_keywords?.join(', ') || '')
     const [showTestConnectionModal, setShowTestConnectionModal] = useState(false)
 
+    // Initialize token status on mount or when agent changes
     useEffect(() => {
-        console.log('AgentTokenManager - Agent updated:', {
-            id: agent.id,
-            has_bot_token: agent.has_bot_token,
-            has_user_token: agent.has_user_token,
-            has_app_token: agent.has_app_token,
-            token_flags_type: {
-                bot: typeof agent.has_bot_token,
-                user: typeof agent.has_user_token,
-                app: typeof agent.has_app_token
-            }
-        })
-
         if (agent) {
-            // Convert token flags to booleans to ensure consistent type
-            const hasBotToken = Boolean(agent.has_bot_token)
-            const hasUserToken = Boolean(agent.has_user_token)
-            const hasAppToken = Boolean(agent.has_app_token)
+            const hasBotToken = agent.has_bot_token || false
+            const hasUserToken = agent.has_user_token || false
+            const hasAppToken = agent.has_app_token || false
 
-            console.log('Token flags after boolean conversion:', {
-                hasBotToken,
-                hasUserToken,
-                hasAppToken
-            })
-
-            // Update token statuses
-            setBotTokenStatus(prev => ({
-                ...prev,
-                exists: hasBotToken,
-                lastUpdated: agent.last_token_update
-            }))
-            setUserTokenStatus(prev => ({
-                ...prev,
-                exists: hasUserToken,
-                lastUpdated: agent.last_token_update
-            }))
-            setAppTokenStatus(prev => ({
-                ...prev,
-                exists: hasAppToken,
-                lastUpdated: agent.last_token_update
-            }))
-
-            // Always clear any input values when the agent changes
-            setBotToken('')
-            setUserToken('')
-            setAppToken('')
-
-            // Update keywords
+            // Set keywords from agent
             setKeywords(agent?.trigger_keywords?.join(', ') || '')
 
-            // Always fetch the masked tokens if they exist, even on agent change
-            // This ensures we always have up-to-date tokens
-            const fetchTokens = async () => {
-                console.log('Fetching tokens for agent:', agent.id, {
-                    hasBotToken,
-                    hasUserToken,
-                    hasAppToken
-                })
-                try {
-                    const promises = []
-
-                    if (hasBotToken) {
-                        console.log('Fetching bot token...')
-                        promises.push(fetchMaskedTokenAndUpdate('bot_token'))
-                    }
-                    if (hasUserToken) {
-                        console.log('Fetching user token...')
-                        promises.push(fetchMaskedTokenAndUpdate('user_token'))
-                    }
-                    if (hasAppToken) {
-                        console.log('Fetching app token...')
-                        promises.push(fetchMaskedTokenAndUpdate('app_token'))
-                    }
-
-                    if (promises.length > 0) {
-                        const results = await Promise.all(promises)
-                        console.log('Token fetch results:', results)
-                    } else {
-                        console.log('No tokens to fetch')
-                    }
-                    console.log('All token fetches completed')
-                } catch (error) {
-                    console.error('Error fetching masked tokens:', error)
-                    onAlert?.('Failed to load token information', 'warning')
+            // Set initial token status
+            setTokenStatus({
+                bot_token: {
+                    type: 'bot_token',
+                    label: 'Bot Token',
+                    masked: '',
+                    lastUpdated: agent.last_token_update || null,
+                    exists: hasBotToken
+                },
+                user_token: {
+                    type: 'user_token',
+                    label: 'User Token',
+                    masked: '',
+                    lastUpdated: agent.last_token_update || null,
+                    exists: hasUserToken
+                },
+                app_token: {
+                    type: 'app_token',
+                    label: 'App Token',
+                    masked: '',
+                    lastUpdated: agent.last_token_update || null,
+                    exists: hasAppToken
                 }
-            }
+            })
 
+            // Fetch masked tokens
             fetchTokens()
         }
-    }, [agent.id, agent.has_bot_token, agent.has_user_token, agent.has_app_token, agent.last_token_update, agent.trigger_keywords])
+    }, [agent])
+
+    // Function to fetch all masked tokens for the agent
+    const fetchTokens = async () => {
+        if (!agent) return;
+
+        try {
+            const promises = []
+
+            if (agent.has_bot_token) {
+                promises.push(fetchMaskedTokenAndUpdate('bot_token'))
+            }
+            if (agent.has_user_token) {
+                promises.push(fetchMaskedTokenAndUpdate('user_token'))
+            }
+            if (agent.has_app_token) {
+                promises.push(fetchMaskedTokenAndUpdate('app_token'))
+            }
+
+            if (promises.length > 0) {
+                await Promise.all(promises)
+            }
+        } catch (error) {
+            console.error('Error fetching masked tokens:', error)
+            onAlert?.('Failed to load token information', 'warning')
+        }
+    }
 
     // Fetch socket mode status when the socket-mode tab is selected
     useEffect(() => {
@@ -220,22 +237,31 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
             const data = await fetchMaskedToken(agent.id, tokenType)
 
             if (tokenType === 'bot_token') {
-                setBotTokenStatus(prev => ({
+                setTokenStatus(prev => ({
                     ...prev,
-                    masked: data.masked_token,
-                    lastUpdated: data.updated_at
+                    bot_token: {
+                        ...prev.bot_token,
+                        masked: data.masked_token,
+                        lastUpdated: data.updated_at
+                    }
                 }))
             } else if (tokenType === 'app_token') {
-                setAppTokenStatus(prev => ({
+                setTokenStatus(prev => ({
                     ...prev,
-                    masked: data.masked_token,
-                    lastUpdated: data.updated_at
+                    app_token: {
+                        ...prev.app_token,
+                        masked: data.masked_token,
+                        lastUpdated: data.updated_at
+                    }
                 }))
             } else {
-                setUserTokenStatus(prev => ({
+                setTokenStatus(prev => ({
                     ...prev,
-                    masked: data.masked_token,
-                    lastUpdated: data.updated_at
+                    user_token: {
+                        ...prev.user_token,
+                        masked: data.masked_token,
+                        lastUpdated: data.updated_at
+                    }
                 }))
             }
         } catch (error) {
@@ -265,28 +291,15 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
             await deleteSlackToken(agent.id, tokenType)
 
             // Update token status
-            if (tokenType === 'bot_token') {
-                setBotTokenStatus(prev => ({
-                    ...prev,
+            setTokenStatus(prev => ({
+                ...prev,
+                [tokenType]: {
+                    ...prev[tokenType as keyof typeof prev],
                     exists: false,
                     masked: '',
                     lastUpdated: null
-                }))
-            } else if (tokenType === 'app_token') {
-                setAppTokenStatus(prev => ({
-                    ...prev,
-                    exists: false,
-                    masked: '',
-                    lastUpdated: null
-                }))
-            } else {
-                setUserTokenStatus(prev => ({
-                    ...prev,
-                    exists: false,
-                    masked: '',
-                    lastUpdated: null
-                }))
-            }
+                }
+            }))
 
             onAlert?.(`${tokenType === 'bot_token' ? 'Bot' : tokenType === 'app_token' ? 'App' : 'User'} token deleted successfully`, 'success')
             onTokenUpdated?.()
@@ -575,19 +588,65 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     };
 
     // Function to test connection
-    const handleTestConnection = () => {
-        if (!agent) return
+    const handleTestConnection = async () => {
+        if (!agent) return;
+
         if (!agent.has_bot_token) {
-            onAlert?.('Bot token required. Configure it first.', 'warning')
-            return
+            onAlert?.('Bot token required. Configure it first.', 'warning');
+            return;
         }
 
-        // Show the test connection modal
-        setShowTestConnectionModal(true)
+        setIsTestingConnection(true);
+        try {
+            const result = await testSlackConnection(agent.id);
+            handleTestConnectionComplete(result);
+        } catch (error) {
+            console.error("Error testing connection:", error);
+            handleTestConnectionComplete({
+                success: false,
+                message: error instanceof Error ? error.message : 'Unknown error testing Slack connection',
+                error
+            });
+        } finally {
+            setIsTestingConnection(false);
+        }
+    };
+
+    // Handle reinstall when installation is unavailable
+    const handleReinstall = () => {
+        if (onAlert) {
+            onAlert('Redirecting to Slack for reinstallation...', 'default')
+        }
+
+        // Use the connectToSlack function from the API utils
+        import('@/utils/api').then(({ connectToSlack }) => {
+            connectToSlack(onAlert)
+        }).catch(error => {
+            console.error('Error importing connectToSlack:', error)
+            onAlert?.('Failed to start Slack reinstallation process', 'danger')
+        })
+    }
+
+    // Callback for when the test connection reports an installation error
+    const handleTestConnectionComplete = (result: { success: boolean, message: string, error?: any }) => {
+        // Check for installation unavailable error
+        if (!result.success && result.message && (
+            result.message.includes('installation') ||
+            result.message.includes('reinstall') ||
+            (result.error?.response?.data?.detail && result.error.response.data.detail.includes('installation'))
+        )) {
+            setIsInstallationUnavailable(true)
+        }
     }
 
     const renderContent = () => (
         <div className="space-y-4">
+            {/* Display installation unavailable alert if needed */}
+            <SlackInstallationUnavailableAlert
+                isVisible={isInstallationUnavailable}
+                onReinstall={handleReinstall}
+            />
+
             <Tabs
                 selectedKey={selectedTab}
                 onSelectionChange={(key) => setSelectedTab(key.toString())}
@@ -623,9 +682,9 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                             </div>
                         </div>
 
-                        {renderTokenSection('bot_token', botTokenStatus, botToken, setBotToken)}
-                        {renderTokenSection('user_token', userTokenStatus, userToken, setUserToken)}
-                        {renderTokenSection('app_token', appTokenStatus, appToken, setAppToken)}
+                        {renderTokenSection('bot_token', tokenStatus.bot_token, botToken, setBotToken)}
+                        {renderTokenSection('user_token', tokenStatus.user_token, userToken, setUserToken)}
+                        {renderTokenSection('app_token', tokenStatus.app_token, appToken, setAppToken)}
 
                         {/* Save button - only show if there are tokens to save */}
                         {(botToken || userToken || appToken) && (
@@ -877,14 +936,20 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
 
             {!standalone && (
                 <div className="flex justify-end mt-4 pt-4 border-t border-default-200">
-                    <Button
-                        color="primary"
-                        variant="light"
-                        startContent={<Icon icon="solar:test-tube-bold" width={20} />}
-                        onPress={handleTestConnection}
+                    <Tooltip
+                        content="Bot token is required to test connection"
+                        isDisabled={agent.has_bot_token}
                     >
-                        Test Connection
-                    </Button>
+                        <Button
+                            color="primary"
+                            variant="light"
+                            startContent={<Icon icon="solar:test-tube-bold" width={20} />}
+                            onPress={handleTestConnection}
+                            isDisabled={!agent.has_bot_token}
+                        >
+                            Test Connection
+                        </Button>
+                    </Tooltip>
                 </div>
             )}
         </div>
@@ -924,6 +989,7 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                     onClose={() => setShowTestConnectionModal(false)}
                     agent={agent}
                     onAlert={onAlert}
+                    onComplete={handleTestConnectionComplete}
                 />
             </>
         )
@@ -965,6 +1031,7 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                 onClose={() => setShowTestConnectionModal(false)}
                 agent={agent}
                 onAlert={onAlert}
+                onComplete={handleTestConnectionComplete}
             />
         </>
     )
