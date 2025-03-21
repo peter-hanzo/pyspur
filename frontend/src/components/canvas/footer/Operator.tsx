@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react'
 import { MiniMap } from '@xyflow/react'
 import { useTheme } from 'next-themes'
 import { memo } from 'react'
+
 import { useModeStore } from '../../../store/modeStore'
 import UndoRedo from './UndoRedo'
 import ZoomInOut from './ZoomInOut'
@@ -49,7 +50,9 @@ const Operator: React.FC<OperatorProps> = ({ handleLayout, handleDownloadImage }
                         content={
                             <div className="px-1 py-2">
                                 <div className="text-small font-bold">Select</div>
-                                <div className="text-tiny">Press <kbd>V</kbd></div>
+                                <div className="text-tiny">
+                                    Press <kbd>V</kbd>
+                                </div>
                             </div>
                         }
                         placement="bottom"
@@ -71,7 +74,9 @@ const Operator: React.FC<OperatorProps> = ({ handleLayout, handleDownloadImage }
                         content={
                             <div className="px-1 py-2">
                                 <div className="text-small font-bold">Pan</div>
-                                <div className="text-tiny">Press <kbd>Space</kbd></div>
+                                <div className="text-tiny">
+                                    Press <kbd>Space</kbd>
+                                </div>
                             </div>
                         }
                         placement="bottom"
@@ -88,7 +93,10 @@ const Operator: React.FC<OperatorProps> = ({ handleLayout, handleDownloadImage }
                         content={
                             <div className="px-1 py-2">
                                 <div className="text-small font-bold">Layout Nodes</div>
-                                <div className="text-tiny">Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>L</kbd></div>
+                                <div className="text-tiny">
+                                    Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+
+                                    <kbd>L</kbd>
+                                </div>
                             </div>
                         }
                         placement="bottom"

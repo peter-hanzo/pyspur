@@ -8,8 +8,7 @@ from .base_model import BaseModel
 
 
 class WorkflowModel(BaseModel):
-    """
-    Represents a workflow in the system.
+    """Represents a workflow in the system.
 
     A version of the workflow is created only when the workflow is run.
     The latest or current version of the workflow is always stored in the
@@ -23,11 +22,14 @@ class WorkflowModel(BaseModel):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String)
     definition: Mapped[Any] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(timezone.utc), index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
+        index=True,
     )
 
     versions = relationship(

@@ -1,36 +1,35 @@
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
 import {
+    Alert,
     Button,
     Card,
     CardBody,
+    Divider,
     Input,
-    Textarea,
+    Progress,
     Select,
     SelectItem,
     SelectSection,
-    Progress,
-    Divider,
-    Chip,
-    Spinner,
-    Alert,
+    Textarea,
     Tooltip,
 } from '@heroui/react'
-import { Info, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
-import {
-    createVectorIndex,
-    getEmbeddingModels,
-    getVectorStores,
-    listDocumentCollections,
-    listApiKeys,
-    getApiKey,
-} from '@/utils/api'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, ArrowRight, CheckCircle, Info } from 'lucide-react'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
+
 import type {
     DocumentCollectionResponseSchema,
     VectorIndexCreateRequestSchema as VectorIndexCreateRequest,
 } from '@/types/api_types/ragSchemas'
 import type { EmbeddingModelConfig, VectorStoreConfig } from '@/utils/api'
-import { motion, AnimatePresence } from 'framer-motion'
+import {
+    createVectorIndex,
+    getApiKey,
+    getEmbeddingModels,
+    getVectorStores,
+    listApiKeys,
+    listDocumentCollections,
+} from '@/utils/api'
 
 interface EmbeddingConfig {
     name: string

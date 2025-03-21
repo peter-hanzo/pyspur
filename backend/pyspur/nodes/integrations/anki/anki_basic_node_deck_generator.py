@@ -1,58 +1,62 @@
 import json
-from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field
-from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
-from ...registry import NodeRegistry
-import genanki
 import os
 import random
-from typing_extensions import TypeAlias
+from typing import Any, Dict, List, Optional
+
+import genanki
 from jinja2 import Template
+from pydantic import BaseModel, Field
+from typing_extensions import TypeAlias
+
+from ...base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput
 
 # Type aliases for genanki types to help with type checking
 GenkaniModel: TypeAlias = Any  # genanki.Model
-GenkaniDeck: TypeAlias = Any   # genanki.Deck
-GenkaniNote: TypeAlias = Any   # genanki.Note
-GenkaniPackage: TypeAlias = Any # genanki.Package
+GenkaniDeck: TypeAlias = Any  # genanki.Deck
+GenkaniNote: TypeAlias = Any  # genanki.Note
+GenkaniPackage: TypeAlias = Any  # genanki.Package
 
 
 class AnkiBasicNodeInput(BaseNodeInput):
-    """Input for the AnkiBasic node - creates cards with just front and back sides"""
-    front: List[str] = Field(..., description="List of front (question) sides of the cards. Supports Jinja templating.")
-    back: List[str] = Field(..., description="List of back (answer) sides of the cards. Supports Jinja templating.")
+    """Input for the AnkiBasic node - creates cards with just front and back sides."""
+
+    front: List[str] = Field(
+        ..., description="List of front (question) sides of the cards. Supports Jinja templating."
+    )
+    back: List[str] = Field(
+        ..., description="List of back (answer) sides of the cards. Supports Jinja templating."
+    )
 
     class Config:
         extra = "allow"
 
 
 class AnkiBasicNodeOutput(BaseNodeOutput):
-    """Output for the AnkiBasic node"""
+    """Output for the AnkiBasic node."""
+
     deck_path: str = Field(..., description="Path to the generated Anki deck file")
     card_count: int = Field(..., description="Number of cards in the generated deck")
 
 
 class AnkiBasicNodeConfig(BaseNodeConfig):
-    """Configuration for the AnkiBasic node"""
-    deck_name: str = Field(
-        "Generated Basic Deck",
-        description="Name of the Anki deck"
-    )
+    """Configuration for the AnkiBasic node."""
+
+    deck_name: str = Field("Generated Basic Deck", description="Name of the Anki deck")
     output_dir: str = Field(
-        "data/anki_decks",
-        description="Directory where the deck file will be saved"
+        "data/anki_decks", description="Directory where the deck file will be saved"
     )
     model_id: Optional[int] = Field(
         None,
-        description="Optional unique model ID for the Anki model. If not provided, a random ID will be generated."
+        description="Optional unique model ID for the Anki model or a random ID will be generated.",
     )
     deck_id: Optional[int] = Field(
         None,
-        description="Optional unique deck ID for the Anki deck. If not provided, a random ID will be generated."
+        description="Optional unique deck ID for the Anki deck or a random ID will be generated.",
     )
     has_fixed_output: bool = True
     output_json_schema: str = Field(
         default=json.dumps(AnkiBasicNodeOutput.model_json_schema()),
-        description="The JSON schema for the output of the node"
+        description="The JSON schema for the output of the node",
     )
 
 
@@ -63,7 +67,8 @@ class AnkiBasicNodeConfig(BaseNodeConfig):
 #     subcategory="Flashcards",
 # )
 class AnkiBasicNode(BaseNode):
-    """Node for generating Anki decks with basic cards (front/back only)"""
+    """Generate Anki decks with basic cards (front/back only)."""
+
     name = "anki_basic_node"
     display_name = "AnkiBasicNode"
     logo = "/images/anki.png"
@@ -73,13 +78,15 @@ class AnkiBasicNode(BaseNode):
     input_model = AnkiBasicNodeInput
     output_model = AnkiBasicNodeOutput
 
-    def __init__(self, name: str, config: AnkiBasicNodeConfig, context: Optional[Any] = None) -> None:
+    def __init__(
+        self, name: str, config: AnkiBasicNodeConfig, context: Optional[Any] = None
+    ) -> None:
         super().__init__(name=name, config=config, context=context)
         # Create output directory if it doesn't exist
         os.makedirs(self.config.output_dir, exist_ok=True)
 
     def _render_template(self, template_str: str, data: Dict[str, Any]) -> str:
-        """Render a Jinja template string with the provided data"""
+        """Render a Jinja template string with the provided data."""
         try:
             return Template(template_str).render(**data)
         except Exception as e:
@@ -88,9 +95,7 @@ class AnkiBasicNode(BaseNode):
             raise e
 
     async def run(self, input: BaseModel) -> BaseModel:
-        """
-        Generate an Anki deck with basic cards from the provided front and back templates.
-        """
+        """Generate an Anki deck with basic cards from the provided front and back templates."""
         input_typed = AnkiBasicNodeInput.model_validate(input)
 
         if len(input_typed.front) != len(input_typed.back):
@@ -103,54 +108,46 @@ class AnkiBasicNode(BaseNode):
         # Create the basic Anki model
         model: GenkaniModel = genanki.Model(
             model_id,
-            'Basic',
+            "Basic",
             fields=[
-                {'name': 'Front'},
-                {'name': 'Back'},
+                {"name": "Front"},
+                {"name": "Back"},
             ],
             templates=[
                 {
-                    'name': 'Card 1',
-                    'qfmt': '{{Front}}',
-                    'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
+                    "name": "Card 1",
+                    "qfmt": "{{Front}}",
+                    "afmt": '{{FrontSide}}<hr id="answer">{{Back}}',
                 },
-            ])
+            ],
+        )
 
         # Create the deck
-        deck: GenkaniDeck = genanki.Deck(
-            deck_id,
-            self.config.deck_name
-        )
+        deck: GenkaniDeck = genanki.Deck(deck_id, self.config.deck_name)
 
         # Get input data for template rendering
         input_data = input_typed.model_dump()
 
         # Add cards to the deck
-        for front_template, back_template in zip(input_typed.front, input_typed.back):
+        for front_template, back_template in zip(input_typed.front, input_typed.back, strict=False):
             # Render templates
             front_rendered = self._render_template(front_template, input_data)
             back_rendered = self._render_template(back_template, input_data)
 
-            note: GenkaniNote = genanki.Note(
-                model=model,
-                fields=[front_rendered, back_rendered]
-            )
+            note: GenkaniNote = genanki.Note(model=model, fields=[front_rendered, back_rendered])
             deck.add_note(note)
 
         # Generate unique filename
         output_path = os.path.join(
             self.config.output_dir,
-            f"{self.config.deck_name.lower().replace(' ', '_')}_{deck_id}.apkg"
+            f"{self.config.deck_name.lower().replace(' ', '_')}_{deck_id}.apkg",
         )
 
         # Save the deck
         package: GenkaniPackage = genanki.Package(deck)
         package.write_to_file(output_path)
 
-        output = AnkiBasicNodeOutput(
-            deck_path=output_path,
-            card_count=len(input_typed.front)
-        )
+        output = AnkiBasicNodeOutput(deck_path=output_path, card_count=len(input_typed.front))
         return output
 
 
@@ -160,10 +157,7 @@ if __name__ == "__main__":
 
     async def example() -> None:
         # Create node configuration
-        config = AnkiBasicNodeConfig(
-            deck_name="Programming Concepts",
-            output_dir="data/anki_decks"
-        )
+        config = AnkiBasicNodeConfig(deck_name="Programming Concepts", output_dir="data/anki_decks")
 
         # Create node instance
         node = AnkiBasicNode(name="example_node", config=config)
@@ -172,12 +166,9 @@ if __name__ == "__main__":
         input_data = AnkiBasicNodeInput(
             front=[
                 "What is {{concept}}?",
-                "Explain the difference between {{thing1}} and {{thing2}}?"
+                "Explain the difference between {{thing1}} and {{thing2}}?",
             ],
-            back=[
-                "{{concept}} is {{definition}}",
-                "The key differences are:\n{{differences}}"
-            ]
+            back=["{{concept}} is {{definition}}", "The key differences are:\n{{differences}}"],
         )
 
         # Add template variables to the input

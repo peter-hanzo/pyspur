@@ -1,33 +1,29 @@
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
 import {
     Button,
     Card,
     CardBody,
-    Spinner,
-    Link,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    useDisclosure,
     Chip,
     Divider,
+    Link,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     Progress,
+    Spinner,
+    useDisclosure,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import {
-    getVectorIndex,
-    deleteVectorIndex,
-    getDocumentCollection,
-    getIndexProgress,
-} from '@/utils/api'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
+
 import type {
-    VectorIndexResponseSchema as VectorIndexResponse,
     DocumentCollectionResponseSchema as DocumentCollectionResponse,
-    ProcessingProgressSchema as ProcessingProgress
+    ProcessingProgressSchema as ProcessingProgress,
+    VectorIndexResponseSchema as VectorIndexResponse,
 } from '@/types/api_types/ragSchemas'
+import { deleteVectorIndex, getDocumentCollection, getIndexProgress, getVectorIndex } from '@/utils/api'
 
 export const VectorIndexDetails: React.FC = () => {
     const router = useRouter()

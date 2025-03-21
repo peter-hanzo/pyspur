@@ -1,10 +1,13 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { useKeyPress, getConnectedEdges } from '@xyflow/react'
-import { setNodes, setEdges } from '../store/flowSlice'
-import { FlowWorkflowNode, FlowWorkflowEdge } from '@/types/api_types/nodeTypeSchemas'
-import type { RootState } from '../store/store' // Assuming you have a RootState type for Redux
-import type { Node, Edge } from '@xyflow/react' // Assuming these types are provided by the library
+import { getConnectedEdges } from '@xyflow/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+
+import { FlowWorkflowEdge, FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+
+import { setEdges, setNodes } from '../store/flowSlice'
+import type { RootState } from '../store/store'
+
+// Assuming you have a RootState type for Redux
 
 // Define types for buffered nodes and edges
 type BufferedNode = FlowWorkflowNode & { selected?: boolean }

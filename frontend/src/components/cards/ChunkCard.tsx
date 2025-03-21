@@ -1,5 +1,5 @@
+import { Button, Card, CardBody, CardFooter } from '@heroui/react'
 import React from 'react'
-import { Card, CardBody, CardFooter, Button } from '@heroui/react'
 
 interface ChunkCardProps {
     text: string

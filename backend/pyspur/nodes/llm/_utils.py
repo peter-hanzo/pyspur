@@ -10,6 +10,7 @@ import litellm
 from docx2python import docx2python
 from dotenv import load_dotenv
 from litellm import acompletion
+from litellm.types.utils import Message
 from ollama import AsyncClient
 from pydantic import BaseModel, Field
 from tenacity import AsyncRetrying, stop_after_attempt, wait_random_exponential
@@ -159,9 +160,9 @@ def async_retry(*dargs, **dkwargs):
         ),
     ),
 )
-async def completion_with_backoff(**kwargs) -> str:
-    """
-    Calls the LLM completion endpoint with backoff.
+async def completion_with_backoff(**kwargs) -> Message:
+    """Call the LLM completion endpoint with backoff.
+
     Supports Azure OpenAI, standard OpenAI, or Ollama based on the model name.
     """
     try:
@@ -169,7 +170,8 @@ async def completion_with_backoff(**kwargs) -> str:
         logging.info("=== LLM Request Configuration ===")
         logging.info(f"Requested Model: {model}")
 
-        # Use Azure if either 'azure/' is prefixed or if an Azure API key is provided and not using Ollama
+        # Use Azure if either 'azure/' is prefixed or if an Azure API key
+        # is provided and not using Ollama
         if model.startswith("azure/") or (
             os.getenv("AZURE_OPENAI_API_KEY") and not model.startswith("ollama/")
         ):
@@ -185,11 +187,11 @@ async def completion_with_backoff(**kwargs) -> str:
         elif model.startswith("ollama/"):
             logging.info("=== Ollama Configuration ===")
             response = await acompletion(**kwargs, drop_params=True)
-            return response.choices[0].message.content
+            return response.choices[0].message
         else:
             logging.info("=== Standard Configuration ===")
             response = await acompletion(**kwargs, drop_params=True)
-            return response.choices[0].message.content
+            return response.choices[0].message
 
     except Exception as e:
         logging.error("=== LLM Request Error ===")
@@ -206,8 +208,8 @@ async def completion_with_backoff(**kwargs) -> str:
 
 
 def sanitize_json_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Makes a JSON schema compatible with the LLM providers.
+    """Make a JSON schema compatible with the LLM providers.
+
     * sets "additionalProperties" to False
     * adds all properties to the "required" list recursively
     """
@@ -228,13 +230,36 @@ async def generate_text(
     model_name: str,
     temperature: float = 0.5,
     json_mode: bool = False,
-    max_tokens: int = 100000,
+    max_tokens: int = 16384,
     api_base: Optional[str] = None,
     url_variables: Optional[Dict[str, str]] = None,
     output_json_schema: Optional[str] = None,
-    functions: Optional[List[Dict[str, Any]]] = None,
-    function_call: Optional[str] = None,
-) -> str:
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: Optional[str] = "auto",
+    thinking: Optional[Dict[str, Any]] = None,
+) -> Message:
+    """Generate text using the specified LLM model.
+
+    Args:
+        messages: List of message dictionaries with 'role' and 'content'
+        model_name: Name of the LLM model to use
+        temperature: Temperature for randomness, between 0.0 and 1.0
+        json_mode: Flag to indicate if JSON output is required
+        max_tokens: Maximum number of tokens the model can generate
+        api_base: Base URL for the API
+        url_variables: Dictionary of URL variables for file inputs
+        output_json_schema: JSON schema for the output format
+        tools: List of function schemas for function calling
+        tool_choice: By default the model will determine when and how many tools to use. You can
+            force specific behavior with the tool_choice parameter.
+            auto: (Default) Call zero, one, or multiple functions. tool_choice: "auto"
+            required: Call one or more functions. tool_choice: "required"
+            Forced Function: Call exactly one specific function.
+                tool_choice: {"type": "function", "function": {"name": "get_weather"}}
+
+        thinking: Thinking parameters for the model
+
+    """
     kwargs = {
         "model": model_name,
         "max_tokens": max_tokens,
@@ -243,16 +268,22 @@ async def generate_text(
     }
 
     # Add function calling parameters if provided
-    if functions:
-        kwargs["functions"] = functions
-        if function_call:
-            kwargs["function_call"] = function_call
+    if tools:
+        kwargs["tools"] = tools
+        if tool_choice:
+            kwargs["tool_choice"] = tool_choice
+
+    # Get model info to check capabilities
+    model_info = LLMModels.get_model_info(model_name)
+
+    # Only add thinking parameters if explicitly requested and supported by the model
+    if thinking and model_info and model_info.constraints.supports_thinking:
+        kwargs["thinking"] = thinking
 
     if model_name == "deepseek/deepseek-reasoner":
         kwargs.pop("temperature")
 
     # Get model info to check if it supports JSON output
-    model_info = LLMModels.get_model_info(model_name)
     if model_info and not model_info.constraints.supports_temperature:
         kwargs.pop("temperature", None)
     if model_info and not model_info.constraints.supports_max_tokens:
@@ -262,13 +293,11 @@ async def generate_text(
     # Only process JSON schema if the model supports it
     if supports_json:
         if output_json_schema is None:
-            output_json_schema = json.dumps(
-                {
-                    "type": "object",
-                    "properties": {"output": {"type": "string"}},
-                    "required": ["output"],
-                }
-            )
+            output_json_schema = {
+                "type": "object",
+                "properties": {"output": {"type": "string"}},
+                "required": ["output"],
+            }
         elif output_json_schema.strip() != "":
             output_json_schema = json.loads(output_json_schema)
             output_json_schema = sanitize_json_schema(output_json_schema)
@@ -300,7 +329,9 @@ async def generate_text(
                     message for message in messages if message["role"] == "system"
                 )
                 system_message["content"] += (
-                    "\nYou must respond with valid JSON only. No other text before or after the JSON Object. The JSON Object must adhere to this schema: "
+                    "\nYou must respond with valid JSON only."
+                    + " No other text before or after the JSON Object."
+                    + "The JSON Object must adhere to this schema: "
                     + schema_for_prompt
                 )
 
@@ -317,13 +348,20 @@ async def generate_text(
                 api_base=api_base,
             )
             response = raw_response
+            message_response = Message(
+                content=json.dumps(raw_response),
+                tool_calls=[],
+            )
         # Handle inputs with URL variables
         elif url_variables:
             # check if the mime type is supported
             mime_type = get_mime_type_for_url(url_variables["image"])
             if not model_info.constraints.is_mime_type_supported(mime_type):
                 raise ValueError(
-                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}. Supported types: {[mime.value for mime in model_info.constraints.supported_mime_types]}"""
+                    f"""Unsupported file type: "{mime_type.value}" for model {model_name}."""
+                    f""" Supported types: {
+                        [mime.value for mime in model_info.constraints.supported_mime_types]
+                    }"""
                 )
 
             # Transform messages to include URL content
@@ -354,7 +392,9 @@ async def generate_text(
                                         # Convert DOCX to XML
                                         xml_content = convert_docx_to_xml(str(file_path))
                                         # Encode the XML content directly
-                                        data_url = f"data:text/xml;base64,{base64.b64encode(xml_content.encode()).decode()}"
+                                        data_url = f"data:text/xml;base64,{
+                                            base64.b64encode(xml_content.encode()).decode()
+                                        }"
                                     else:
                                         data_url = encode_file_to_base64_data_url(str(file_path))
 
@@ -370,35 +410,52 @@ async def generate_text(
                     msg["content"] = content
                 transformed_messages.append(msg)
             kwargs["messages"] = transformed_messages
-            raw_response = await completion_with_backoff(**kwargs)
-            response = raw_response
+            message_response: Message = await completion_with_backoff(**kwargs)
+            response = message_response.content
+            raw_response = response
         else:
-            raw_response = await completion_with_backoff(**kwargs)
-            response = raw_response
+            message_response: Message = await completion_with_backoff(**kwargs)
+            response = message_response.content
+            raw_response = response
     else:
-        raw_response = await completion_with_backoff(**kwargs)
-        response = raw_response
+        if model_name.startswith("ollama"):
+            if api_base is None:
+                api_base = os.getenv("OLLAMA_BASE_URL")
+            kwargs["api_base"] = api_base
+        message_response: Message = await completion_with_backoff(**kwargs)
+        response = message_response.content
 
     # For models that don't support JSON output, wrap the response in a JSON structure
     if not supports_json:
         sanitized_response = response.replace('"', '\\"').replace("\n", "\\n")
+        if model_info and model_info.constraints.supports_reasoning:
+            separator = model_info.constraints.reasoning_separator
+            sanitized_response = re.sub(separator, "", sanitized_response, flags=re.DOTALL)
+
         # Check for provider-specific fields
         if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
             if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
                 provider_fields = raw_response.choices[0].message.provider_specific_fields
-                return json.dumps(
+                message_response.content = json.dumps(
                     {
                         "output": sanitized_response,
                         "provider_specific_fields": provider_fields,
                     }
                 )
-        return f'{{"output": "{sanitized_response}"}}'
+                return message_response
+        message_response.content = f'{{"output": "{sanitized_response}"}}'
+        return message_response
 
     # Ensure response is valid JSON for models that support it
     if supports_json:
         try:
-            json.loads(response)
-            return response
+            if message_response.tool_calls and len(message_response.tool_calls) > 0:
+                # If the model made tool calls, return the raw response
+                return message_response
+            else:
+                # Attempt to parse the response as JSON to validate it
+                _ = json.loads(response)
+                return message_response
         except json.JSONDecodeError:
             logging.error(f"Response is not valid JSON: {response}")
             # Try to fix common json issues
@@ -409,7 +466,8 @@ async def generate_text(
                     response = json_match.group(0)
                     try:
                         json.loads(response)
-                        return response
+                        message_response.content = response
+                        return message_response
                     except json.JSONDecodeError:
                         pass
 
@@ -419,22 +477,24 @@ async def generate_text(
             if hasattr(raw_response, "choices") and len(raw_response.choices) > 0:
                 if hasattr(raw_response.choices[0].message, "provider_specific_fields"):
                     provider_fields = raw_response.choices[0].message.provider_specific_fields
-                    return json.dumps(
+                    message_response.content = json.dumps(
                         {
                             "output": sanitized_response,
                             "provider_specific_fields": provider_fields,
                         }
                     )
-            return f'{{"output": "{sanitized_response}"}}'
+                    return message_response
+            message_response.content = f'{{"output": "{sanitized_response}"}}'
+            return message_response
 
-    return response
+    return message_response
 
 
 def convert_output_schema_to_json_schema(
     output_schema: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """
-    Convert a simple output schema to a JSON schema.
+    """Convert a simple output schema to a JSON schema.
+
     Simple output schema is a dictionary with field names and types.
     Types can be one of 'str', 'int', 'float' or 'bool'.
     """
@@ -470,19 +530,18 @@ async def ollama_with_backoff(
     options: Optional[OllamaOptions] = None,
     api_base: Optional[str] = None,
 ) -> str:
-    """
-    Make an async Ollama API call with exponential backoff retry logic.
+    """Make an async Ollama API call with exponential backoff retry logic.
 
     Args:
         model: The name of the Ollama model to use
         messages: List of message dictionaries with 'role' and 'content'
+        format: Format for the response, either 'json' or a dictionary
         options: OllamaOptions instance with model parameters
-        max_retries: Maximum number of retries
-        initial_wait: Initial wait time between retries in seconds
-        max_wait: Maximum wait time between retries in seconds
+        api_base: Base URL for the Ollama API
 
     Returns:
         Either a string response or a validated Pydantic model instance
+
     """
     client = AsyncClient(host=api_base)
     response = await client.chat(
@@ -495,12 +554,13 @@ async def ollama_with_backoff(
 
 
 def convert_docx_to_xml(file_path: str) -> str:
-    """
-    Convert a DOCX file to XML format.
+    """Convert a DOCX file to XML format.
+
     Args:
         file_path: Path to the DOCX file
     Returns:
         XML string representation of the DOCX file
+
     """
     try:
         with docx2python(file_path) as docx_content:

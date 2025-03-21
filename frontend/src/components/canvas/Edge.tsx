@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo } from 'react'
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, useReactFlow, EdgeProps, Edge } from '@xyflow/react'
 import { Button } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import { useDispatch } from 'react-redux'
-import { deleteEdge } from '../../store/flowSlice'
+import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath, useReactFlow } from '@xyflow/react'
 import { useTheme } from 'next-themes'
+import React, { useCallback, useMemo } from 'react'
+import { useDispatch } from 'react-redux'
+
+import { deleteEdge } from '../../store/flowSlice'
 
 // Static styles
 const staticStyles = {

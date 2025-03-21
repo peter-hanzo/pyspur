@@ -1,3 +1,8 @@
+import { PayloadAction, createSlice } from '@reduxjs/toolkit'
+import { Connection, EdgeChange, NodeChange, addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react'
+import { isEqual } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
+
 import { FlowState } from '@/types/api_types/flowStateSchema'
 import {
     CreateNodeResult,
@@ -6,20 +11,17 @@ import {
     NodeTypesConfig,
     Position,
 } from '@/types/api_types/nodeTypeSchemas'
-import { TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
+import { SpurType, TestInput, WorkflowDefinition } from '@/types/api_types/workflowSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
 import { computeJsonSchemaIntersection } from '@/utils/schemaUtils'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, NodeChange } from '@xyflow/react'
-import { isEqual } from 'lodash'
-import { v4 as uuidv4 } from 'uuid'
+
 import { createNode } from '../utils/nodeFactory'
 
 const initialState: FlowState = {
-    nodeTypes: {},
     nodes: [],
     edges: [],
     nodeConfigs: {},
+    nodeTypes: {},
     workflowID: null,
     selectedNode: null,
     selectedEdgeId: null,
@@ -34,6 +36,7 @@ const initialState: FlowState = {
         future: [],
     },
     isRunModalOpen: false,
+    spurType: SpurType.WORKFLOW, // Default to regular workflow
 }
 
 const saveToHistory = (state: FlowState) => {
@@ -131,9 +134,11 @@ const flowSlice = createSlice({
             state.workflowID = workflowID
             state.projectName = name
             state.nodeTypes = action.payload.nodeTypes
+            state.spurType = definition.spur_type || SpurType.WORKFLOW
             const { nodes, links } = definition
             state.nodes = nodes.map((node) => {
                 const { node: nodeObj } = createNode(
+                    // @ts-ignore - nodeTypes will be properly typed at runtime
                     state.nodeTypes,
                     node.node_type,
                     node.id,
@@ -248,18 +253,13 @@ const flowSlice = createSlice({
         updateNodeConfigOnly: (state, action: PayloadAction<{ id: string; data: any }>) => {
             const { id, data } = action.payload
             const currentConfig = state.nodeConfigs[id] || {}
-            if (data.few_shot_examples) {
-                const oldExamples = currentConfig.few_shot_examples || []
-                const newExamples = data.few_shot_examples
-                const maxLength = Math.max(oldExamples.length, newExamples.length)
-                const mergedExamples = []
-                for (let i = 0; i < maxLength; i++) {
-                    mergedExamples[i] = { ...(oldExamples[i] || {}), ...(newExamples[i] || {}) }
-                }
+
+            // Handle few_shot_examples directly without merging
+            if (data.few_shot_examples !== undefined) {
                 state.nodeConfigs[id] = {
                     ...currentConfig,
                     ...data,
-                    few_shot_examples: mergedExamples,
+                    few_shot_examples: data.few_shot_examples,
                 }
             } else {
                 state.nodeConfigs[id] = {
@@ -287,6 +287,38 @@ const flowSlice = createSlice({
                 connectedCoalesceNodes.forEach((coalesceNode) => {
                     rebuildCoalesceNodeSchema(state, coalesceNode)
                 })
+            }
+        },
+
+        addToolToAgent: (state, action: PayloadAction<{ nodeId: string; nodeTypeName: string }>) => {
+            const { nodeId, nodeTypeName } = action.payload
+            const node = state.nodes.find((n) => n.id === nodeId)
+            if (node) {
+                // Generate a new ID following the same pattern as other nodes
+                const existingIds = state.nodes.map((node) => node.id)
+                const sanitizedType = nodeTypeName.replace(/\s+/g, '_').replace(/Node/g, 'Tool')
+                let counter = 1
+                let newId = `${sanitizedType}_${counter}`
+                while (existingIds.includes(newId)) {
+                    counter++
+                    newId = `${sanitizedType}_${counter}`
+                }
+
+                // Create the new node using createNode
+                const result = createNode(
+                    // @ts-ignore - nodeTypes will be properly typed at runtime
+                    state.nodeTypes,
+                    nodeTypeName,
+                    newId,
+                    { x: 0, y: 0 },
+                    nodeId // Set parentId to the agent node's ID
+                )
+
+                if (result) {
+                    // Add the node and its config to the flow state
+                    state.nodes.push(result.node)
+                    state.nodeConfigs[result.node.id] = result.config
+                }
             }
         },
 
@@ -571,6 +603,7 @@ const flowSlice = createSlice({
 
             // Map over nodes and use createNode to generate both node and config
             const createdNodes = nodes.map((node) => {
+                // @ts-ignore - nodeTypes will be properly typed at runtime
                 const result = createNode(state.nodeTypes, node.node_type, node.id, {
                     x: node.coordinates.x,
                     y: node.coordinates.y,
@@ -774,6 +807,7 @@ export const {
     setEdges,
     updateNodeDataOnly,
     updateNodeConfigOnly,
+    addToolToAgent,
     setSelectedNode,
     setSelectedEdgeId,
     deleteNode,

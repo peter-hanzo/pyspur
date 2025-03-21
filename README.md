@@ -1,6 +1,6 @@
 ![PySpur](./docs/images/hero.png)
 
-<p align="center"><strong>PySpur is a graph UI for visualizing agent trajectories in Python. AI engineers use it to build agents, execute them step-by-step and inspect past runs.</strong></p>
+<p align="center"><strong>Iterate over your agents 10x faster. AI engineers use PySpur to iterate over AI agents visually without reinventing the wheel.</strong></p>
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-blue"></a>
@@ -27,27 +27,56 @@
   </a>
 </p>
 
-https://github.com/user-attachments/assets/1ebf78c9-94b2-468d-bbbb-566311df16fe
+https://github.com/user-attachments/assets/54d0619f-22fd-476c-bf19-9be083d7e710
 
 # 🕸️ Why PySpur?
 
-- 🖐️ **Drag-and-Drop**: Build, Test and Iterate in Seconds.
-- 🔄 **Loops**: Iterative Tool Calling with Memory.
+## Problem: It takes a 1,000 tiny paper cuts to make AI reliable
+
+AI engineers today face three problems of building agents: 
+
+* **Prompt Hell**: Hours of prompt tweaking and trial-and-error frustration.
+* **Workflow Blindspots**: Lack of visibility into step interactions causing hidden failures and confusion.
+* **Terminal Testing Nightmare** Squinting at raw outputs and manually parsing JSON.
+
+We've been there ourselves, too. We launched a graphic design agent early 2024 and quickly reached thousands of users, yet, struggled with the lack of its reliability and existing debugging tools. 
+
+## Solution: A playground for agents that saves time
+
+### Step 1: Define Test Cases
+
+https://github.com/user-attachments/assets/ed9ca45f-7346-463f-b8a4-205bf2c4588f
+ 
+### Step 2: Build the agent in Python code or via UI
+
+https://github.com/user-attachments/assets/7043aae4-fad1-42bd-953a-80c94fce8253
+
+### Step 3: Iterate obsessively
+
+https://github.com/user-attachments/assets/72c9901d-a39c-4f80-85a5-f6f76e55f473
+
+### Step 4: Deploy
+
+https://github.com/user-attachments/assets/b14f34b2-9f16-4bd0-8a0f-1c26e690af93
+
+# ✨ Core features:
+
+- 👤 **Human in the Loop**: Persistent workflows that wait for human approval.
+- 🔄 **Loops**: Iterative tool calling with memory.
 - 📤 **File Upload**: Upload files or paste URLs to process documents.
 - 📋 **Structured Outputs**: UI editor for JSON Schemas.
 - 🗃️ **RAG**: Parse, Chunk, Embed, and Upsert Data into a Vector DB.
 - 🖼️ **Multimodal**: Support for Video, Images, Audio, Texts, Code.
 - 🧰 **Tools**: Slack, Firecrawl.dev, Google Sheets, GitHub, and more.
-- 🧪 **Evals**: Evaluate Agents on Real-World Datasets.
+- 📊 **Traces**: Automatically capture execution traces of deployed agents.
+- 🧪 **Evals**: Evaluate agents on real-world datasets.
 - 🚀 **One-Click Deploy**: Publish as an API and integrate wherever you want.
 - 🐍 **Python-Based**: Add new nodes by creating a single Python file.
 - 🎛️ **Any-Vendor-Support**: >100 LLM providers, embedders, and vector DBs.
 
 # ⚡ Quick start
 
-## Option A: Using `pyspur` Python Package
-
-This is the quickest way to get started. Python 3.12 or higher is required.
+This is the quickest way to get started. Python 3.11 or higher is required.
 
 1. **Install PySpur:**
     ```sh
@@ -68,59 +97,19 @@ This is the quickest way to get started. Python 3.12 or higher is required.
     By default, this will start PySpur app at `http://localhost:6080` using a sqlite database.
     We recommend you configure a postgres instance URL in the `.env` file to get a more stable experience.
 
-4. **[Optional] Customize Your Deployment:**
-    You can customize your PySpur deployment in two ways:
+4. **[Optional] Configure Your Environment and Add API Keys:**
+    - **App UI**: Navigate to API Keys tab to add provider keys (OpenAI, Anthropic, etc.)
+    - **Manual**: Edit `.env` file (recommended: configure postgres) and restart with `pyspur serve`
 
-    a. **Through the app** (Recommended):
-       - Navigate to the API Keys tab in the app
-       - Add your API keys for various providers (OpenAI, Anthropic, etc.)
-       - Changes take effect immediately
 
-    b. **Manual Configuration**:
-       - Edit the `.env` file in your project directory
-       - It is recommended to configure a postgres database in .env for more reliability
-       - Restart the app with `pyspur serve`. Add `--sqlite` if you are not using postgres
+# 😎 Feature Reel
 
-## Option B: Using Docker (Recommended for Scalable, In-Production Systems)
+## Human-in-the-loop breakpoints:
 
-This is the recommended way for production deployments:
+These breakpoints pause the workflow when reached and resume whenever a human approves it.
+They enable human oversight for workflows that require quality assurance: verify critical outputs before the workflow proceeds.
 
-1. **Install Docker:**
-    First, install Docker by following the official installation guide for your operating system:
-    - [Docker for Linux](https://docs.docker.com/engine/install/)
-    - [Docker Desktop for Mac](https://docs.docker.com/desktop/install/mac-install/)
-
-2. **Create a PySpur Project:**
-    Once Docker is installed, create a new PySpur project with:
-    ```sh
-    curl -fsSL https://raw.githubusercontent.com/PySpur-com/pyspur/main/start_pyspur_docker.sh | bash -s pyspur-project
-    ```
-    This will:
-    - Start a new PySpur project in a new directory called `pyspur-project`
-    - Set up the necessary configuration files
-    - Start PySpur app automatically backed by a local postgres docker instance
-
-3. **Access PySpur:**
-    Go to `http://localhost:6080` in your browser.
-
-4. **[Optional] Customize Your Deployment:**
-    You can customize your PySpur deployment in two ways:
-
-    a. **Through the app** (Recommended):
-       - Navigate to the API Keys tab in the app
-       - Add your API keys for various providers (OpenAI, Anthropic, etc.)
-       - Changes take effect immediately
-
-    b. **Manual Configuration**:
-       - Edit the `.env` file in your project directory
-       - Restart the services with:
-         ```sh
-         docker compose up -d
-         ```
-
-That's it! Click on "New Spur" to create a workflow, or start with one of the stock templates.
-
-# ✨ Core Benefits
+https://github.com/user-attachments/assets/98cb2b4e-207c-4d97-965b-4fee47c94ce8
 
 ## Debug at Node Level:
 
@@ -161,8 +150,17 @@ https://github.com/user-attachments/assets/5bef7a16-ef9f-4650-b385-4ea70fa54c8a
 # 🛠️ PySpur Development Setup
 #### [ Instructions for development on Unix-like systems. Development on Windows/PC not supported ]
 
-For development, follow these steps:
+We recommend using Cursor/VS Code with our dev container (`.devcontainer/devcontainer.json`) for:
+- Consistent development environment with pre-configured tools and extensions
+- Optimized settings for Python and TypeScript development
+- Automatic hot-reloading and port forwarding
 
+**Option 1: Cursor/VS Code Dev Container (Recommended)**
+1. Install [Cursor](https://www.cursor.com/)/[VS Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Clone and open the repository
+3. Click "Reopen in Container" when prompted
+
+**Option 2: Manual Setup**
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/PySpur-com/pyspur.git
@@ -173,10 +171,11 @@ For development, follow these steps:
     ```sh
     docker compose -f docker-compose.dev.yml up --build -d
     ```
-    This will start a local instance of PySpur with hot-reloading enabled for development.
 
 3. **Customize your setup:**
-    Edit the `.env` file to configure your environment. By default, PySpur uses a local PostgreSQL database. To use an external database, modify the `POSTGRES_*` variables in `.env`.
+    Edit `.env` to configure your environment (e.g., PostgreSQL settings).
+
+Note: Manual setup requires additional configuration and may not include all dev container features.
 
 # ⭐ Support us
 

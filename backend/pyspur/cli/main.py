@@ -37,7 +37,7 @@ def init(
     path: Optional[str] = typer.Argument(
         None,
         help="Path where to initialize PySpur project. Defaults to current directory.",
-    )
+    ),
 ) -> None:
     """Initialize a new PySpur project in the specified directory."""
     target_dir = Path(path) if path else Path.cwd()
@@ -57,15 +57,55 @@ def init(
             print("[green]✓[/green] Created .env from template")
 
         # add PROJECT_ROOT to .env
-        with open(env_path, "a") as f:
-            f.write("""\nDO NOT CHANGE THIS VALUE\n""")
-            f.write("\nPROJECT_ROOT=" + str(target_dir) + "\n")
+        # Check if PROJECT_ROOT is already defined in .env
+        with open(env_path, "r") as f:
+            if "PROJECT_ROOT=" not in f.read():
+                with open(env_path, "a") as f:
+                    f.write("\n# ================================")
+                    f.write("\n# PROJECT_ROOT: DO NOT CHANGE THIS VALUE")
+                    f.write("\n# ================================")
+                    f.write("\nPROJECT_ROOT=" + str(target_dir) + "\n")
 
-        # Create a data directory
-        data_dir = target_dir / "data"
-        if not data_dir.exists():
-            data_dir.mkdir()
-            print("[green]✓[/green] Created data directory")
+        # add __init__.py to the project directory
+        init_file_path = target_dir / "__init__.py"
+        if not init_file_path.exists():
+            with open(init_file_path, "w") as f:
+                f.write("# This is an empty __init__.py file")
+            print("[green]✓[/green] Created __init__.py")
+
+        custom_dirs = {
+            "data": target_dir / "data",
+            "tools": target_dir / "tools",
+            "spurs": target_dir / "spurs",
+        }
+        # Create custom directories
+        for dir_name, dir_path in custom_dirs.items():
+            if not dir_path.exists():
+                dir_path.mkdir()
+                print(f"[green]✓[/green] Created {dir_name} directory")
+
+        # add __init__.py to the tools and spurs directories
+        for dir_name, dir_path in custom_dirs.items():
+            if dir_name in ["tools", "spurs"]:
+                init_file_path = dir_path / "__init__.py"
+                if not init_file_path.exists():
+                    with open(init_file_path, "w") as f:
+                        f.write("# This is an empty __init__.py file")
+                    print(f"[green]✓[/green] Created {dir_name}/__init__.py")
+
+        # add .gitignore to the project, if it doesn't exist
+        # if it exists, add data/ and .env to it
+        gitignore_path = target_dir / ".gitignore"
+        if not gitignore_path.exists():
+            with open(gitignore_path, "w") as f:
+                f.write("# PySpur project\n")
+                f.write("data/\n")
+                f.write(".env\n")
+        else:
+            with open(gitignore_path, "a") as f:
+                f.write("data/\n")
+                f.write(".env\n")
+        print("[green]✓[/green] Created a .gitignore file")
 
         print("\n[bold green]PySpur project initialized successfully! 🚀[/bold green]")
         print("\nNext steps:")

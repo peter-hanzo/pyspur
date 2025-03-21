@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from hashlib import md5
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, cast
 
 from pydantic import BaseModel, Field, create_model
 
@@ -11,9 +11,7 @@ from ..utils import pydantic_utils
 
 
 class VisualTag(BaseModel):
-    """
-    Pydantic model for visual tag properties.
-    """
+    """Pydantic model for visual tag properties."""
 
     acronym: str = Field(...)
     color: str = Field(
@@ -22,8 +20,8 @@ class VisualTag(BaseModel):
 
 
 class BaseNodeConfig(BaseModel):
-    """
-    Base class for node configuration models.
+    """Base class for node configuration models.
+
     Each node must define its output_schema.
     """
 
@@ -41,12 +39,14 @@ class BaseNodeConfig(BaseModel):
         default=False,
         description="Whether the node has a fixed output schema defined in config",
     )
-    pass
+    model_config = {
+        "extra": "allow",
+    }
 
 
 class BaseNodeOutput(BaseModel):
-    """
-    Base class for all node outputs.
+    """Base class for all node outputs.
+
     Each node type will define its own output model that inherits from this.
     """
 
@@ -54,8 +54,8 @@ class BaseNodeOutput(BaseModel):
 
 
 class BaseNodeInput(BaseModel):
-    """
-    Base class for node inputs.
+    """Base class for node inputs.
+
     Each node's input model will be dynamically created based on its predecessor nodes,
     with fields named after node IDs and types being the corresponding NodeOutputModels.
     """
@@ -64,18 +64,19 @@ class BaseNodeInput(BaseModel):
 
 
 class BaseNode(ABC):
-    """
-    Base class for all nodes.
+    """Base class for all nodes.
+
     Each node receives inputs as a Pydantic model where:
     - Field names are predecessor node IDs
     - Field types are the corresponding NodeOutputModels
     """
 
-    name: str
-    display_name: str = ""  # Will be used for config title, defaults to class name if not set
-    logo: Optional[str] = None
+    name: str = ""
+    display_name: str = ""
     category: Optional[str] = None
-    config_model: Type[BaseModel]
+    subcategory: Optional[str] = None
+    logo: Optional[str] = None
+    config_model: Type[BaseNodeConfig]
     output_model: Type[BaseNodeOutput]
     input_model: Type[BaseNodeInput]
     _config: BaseNodeConfig
@@ -101,8 +102,8 @@ class BaseNode(ABC):
         self.setup()
 
     def setup(self) -> None:
-        """
-        Setup method to define output_model and any other initialization.
+        """Define output_model and any other initialization.
+
         For dynamic schema nodes, these can be created based on self.config.
         """
         if self._config.has_fixed_output:
@@ -113,9 +114,7 @@ class BaseNode(ABC):
             self.output_model = model  # type: ignore
 
     def create_output_model_class(self, output_schema: Dict[str, str]) -> Type[BaseNodeOutput]:
-        """
-        Dynamically creates an output model based on the node's output schema.
-        """
+        """Dynamically creates an output model based on the node's output schema."""
         field_type_to_python_type = {
             "string": str,
             "str": str,
@@ -149,22 +148,22 @@ class BaseNode(ABC):
         )
 
     def create_composite_model_instance(
-        self, model_name: str, instances: List[BaseModel]
+        self, model_name: str, instances: Dict[str, BaseModel]
     ) -> Type[BaseNodeInput]:
-        """
-        Create a new Pydantic model that combines all the given models based on their instances.
+        """Create a new Pydantic model that combines all the given models based on their instances.
 
         Args:
-            instances: A list of Pydantic model instances.
+            model_name: The name of the new model.
+            instances: A dictionary of Pydantic model instances.
 
         Returns:
-            A new Pydantic model with fields named after the class names of the instances.
-        """
+            A new Pydantic model with fields named after the keys of the dictionary.
 
+        """
         # Create the new model class
         return create_model(
             model_name,
-            **{instance.__class__.__name__: (instance.__class__, ...) for instance in instances},
+            **{key: (instance.__class__, ...) for key, instance in instances.items()},
             __base__=BaseNodeInput,
             __config__=None,
             __doc__=f"Input model for {self.name} node",
@@ -182,31 +181,43 @@ class BaseNode(ABC):
             | BaseNodeInput
         ),
     ) -> BaseNodeOutput:
-        """
-        Validates inputs and runs the node's logic.
+        """Validate inputs and run the node's logic.
 
         Args:
-            inputs: Pydantic model containing predecessor outputs or a dictionary of node_id : NodeOutputModels
+            input: Pydantic model containing predecessor
+                outputs or a Dict[str<predecessor node name>, NodeOutputModel]
 
         Returns:
             The node's output model
+
         """
         if isinstance(input, dict):
             if all(isinstance(value, BaseNodeOutput) for value in input.values()) or all(
                 isinstance(value, BaseNodeInput) for value in input.values()
             ):
-                # Input is a dictionary of BaseNodeOutput instances, creating a composite model
+                # Input is a dictionary of BaseNodeOutput or BaseNodeInput instances,
+                # creating a composite model
+                composite_inputs: Dict[str, BaseModel] = cast(Dict[str, BaseModel], input)
                 self.input_model = self.create_composite_model_instance(
                     model_name=self.input_model.__name__,
-                    instances=list(input.values()),  # type: ignore we already checked that all values are BaseNodeOutput instances
+                    instances=composite_inputs,  # preserve original keys
                 )
-                data = {  # type: ignore
-                    instance.__class__.__name__: instance.model_dump()  # type: ignore
-                    for instance in input.values()
-                }
+                data: Dict[str, Any] = {}
+                for key, value in composite_inputs.items():
+                    data[key] = value.model_dump()
                 input = self.input_model.model_validate(data)
             else:
-                # Input is not a dictionary of BaseNodeOutput instances, validating as BaseNodeInput
+                # Input is a dictionary of primitive types
+                self.input_model = pydantic_utils.create_model(
+                    f"{self.name}Input",
+                    **{field_name: (type(value), value) for field_name, value in input.items()},
+                    __base__=BaseNodeInput,
+                    __config__=None,
+                    __doc__=f"Input model for {self.name} node",
+                    __module__=self.__module__,
+                    __validators__=None,
+                    __cls_kwargs__=None,
+                )
                 input = self.input_model.model_validate(input)
 
         self._input = input
@@ -217,56 +228,127 @@ class BaseNode(ABC):
         except AttributeError:
             output_validated = self.output_model.model_validate(result)
         except Exception as e:
-            raise ValueError(f"Output validation error in {self.name}: {e}")
+            # Print the result for better debuggability
+            try:
+                result_dump = result.model_dump() if hasattr(result, "model_dump") else result
+                print(f"Validation failed for node {self.name}. Result: {result_dump}")
+            except Exception as dump_error:
+                print(
+                    f"Validation failed for node {self.name}. Could not dump result: {dump_error}"
+                )
+                print(f"Result type: {type(result)}")
+            raise ValueError(f"Output validation error in {self.name}: {e}") from e
 
         self._output = output_validated
         return output_validated
 
     @abstractmethod
     async def run(self, input: BaseModel) -> BaseModel:
-        """
-        Abstract method where the node's core logic is implemented.
+        """Abstract method where the node's core logic is implemented.
 
         Args:
-            inputs: Pydantic model containing predecessor outputs
+            input: Pydantic model containing predecessor outputs
 
         Returns:
             An instance compatible with output_model
+
         """
         pass
 
     @property
     def config(self) -> Any:
-        """
-        Return the node's configuration.
-        """
+        """Return the node's configuration."""
         return self.config_model.model_validate(self._config.model_dump())
 
+    @property
+    def function_schema(self) -> Dict[str, Any]:
+        """Return the node's function schema.
+
+        Converts the config model's schema into a function schema format where
+        config fields become function parameters. If has_fixed_output is true,
+        both it and output_json_schema are excluded from the parameters.
+        """
+        config_schema = self.config_model.model_json_schema()
+
+        # Get description from the node's docstring if available
+        description = self.__class__.__doc__ or config_schema.get(
+            "description", f"Function schema for {self.name}"
+        )
+        # Clean up the docstring by removing extra whitespace and newlines
+        description = " ".join(line.strip() for line in description.split("\n")).strip()
+
+        # if has_fixed_output is true then no need to include it in the function schema
+        # and also remove output_json_schema from the parameters
+        properties = config_schema.get("properties", {})
+        if properties.get("has_fixed_output", {}).get("default", False):
+            properties = {
+                k: v
+                for k, v in properties.items()
+                if k not in ["has_fixed_output", "output_json_schema"]
+            }
+            # Also remove from required if present
+            required = [
+                r
+                for r in config_schema.get("required", [])
+                if r not in ["has_fixed_output", "output_json_schema"]
+            ]
+        else:
+            required = config_schema.get("required", [])
+
+        # Create function schema
+        function_schema = {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": description,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
+            },
+        }
+
+        # If there are any definitions in the original schema, preserve them
+        if "definitions" in config_schema:
+            function_schema["definitions"] = config_schema["definitions"]
+
+        return function_schema
+
+    async def call_as_tool(self, arguments: Dict[str, Any]) -> Any:
+        """Call the node as a tool with the given arguments.
+
+        Args:
+            arguments: The arguments to pass to the node
+
+        """
+        # generate the config model from the arguments
+        config_model = self.config_model.model_validate(arguments)
+
+        # create a new instance of the node with the config model
+        node_instance = self.__class__(self.name, config_model, self.context)
+        # run the node with the input model
+        input_model = self.input_model.model_validate(arguments)
+        node_instance._input = input_model
+        return await node_instance.run(input_model)
+
     def update_config(self, config: BaseNodeConfig) -> None:
-        """
-        Update the node's configuration.
-        """
+        """Update the node's configuration."""
         self._config = config
 
     @property
     def input(self) -> Any:
-        """
-        Return the node's input.
-        """
+        """Return the node's input."""
         return self.input_model.model_validate(self._input.model_dump())
 
     @property
     def output(self) -> Any:
-        """
-        Return the node's output.
-        """
+        """Return the node's output."""
         return self.output_model.model_validate(self._output.model_dump())
 
     @classmethod
     def get_default_visual_tag(cls) -> VisualTag:
-        """
-        Set a default visual tag for the node.
-        """
+        """Set a default visual tag for the node."""
         # default acronym is the first letter of each word in the node name
         acronym = "".join([word[0] for word in cls.name.split("_")]).upper()
 

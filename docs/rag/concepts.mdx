@@ -1,0 +1,75 @@
+---
+title: 'Concepts'
+description: 'Learn the basics of Retrieval Augmented Generation in PySpur'
+---
+
+# Understanding RAG in PySpur
+
+Retrieval Augmented Generation (RAG) is a powerful technique that enhances AI models by providing them with relevant information from your own data. Instead of relying solely on what an AI was trained on, RAG lets you ground responses in your specific documents, knowledge bases, and data.
+
+## Why Use RAG?
+
+RAG solves several common problems with traditional AI systems:
+
+- **Up-to-date information**: Include data that wasn't available when the AI was trained
+- **Private knowledge**: Incorporate your organization's proprietary information
+- **Reduced hallucinations**: Ground AI responses in factual information
+- **Source attribution**: Trace where information came from
+
+## How RAG Works in PySpur
+
+The RAG process in PySpur follows three simple steps:
+
+### Step 1. Document Collections
+
+Create collections of related documents to reference (PDFs, Word docs, text files, etc.).
+
+PySpur automatically:
+- Extracts text from files
+- Divides text into manageable chunks
+- Stores chunks with source metadata
+
+<video
+controls
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video" src="/images/rag/rag1.mp4" />
+
+### Step 2. Vector Indices
+
+Transform document chunks into searchable vector embeddings:
+- Converts text into mathematical representations
+- Stores embeddings in a vector database
+- Enables semantic search by meaning, not just keywords
+
+<video
+controls
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video" src="/images/rag/rag2.mp4" />
+
+### Step 3. Retriever Node
+
+Integrate RAG into your workflows:
+- Takes a query
+- Finds relevant chunks from your vector index
+- Provides context to LLM nodes for grounded AI responses
+
+<video
+controls
+  muted
+  loop
+  playsInline
+  className="w-full aspect-video" src="/images/rag/rag3.mp4" />
+
+## Best Practices
+
+For best results with RAG in PySpur:
+
+- **Add metadata to chunks**: Our chunk editor lets you add custom metadata to document chunks, improving retrieval accuracy by providing additional context about the source material and helping the LLM understand the relevance of information.
+- **Create focused collections**: Group related documents together in separate collections to improve search relevance and reduce noise when retrieving information for specific domains or topics.
+- **Experiment with chunk sizes**: Smaller chunks work better for specific questions while larger chunks provide more context. Try different sizes (150-500 tokens) based on your specific use case and document types.
+- **Choose the right embedding model**: Different models have different strengths and context lengths. Match your embedding model to your content type - specialized models often outperform general ones for domain-specific content.
+- **Provide clear instructions to your LLM**: Tell it explicitly to use the retrieved context, cite sources when possible, and acknowledge when information might be missing from the provided context.

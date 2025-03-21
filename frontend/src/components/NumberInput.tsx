@@ -1,5 +1,5 @@
-import React from 'react'
 import { Input } from '@heroui/react'
+import React from 'react'
 
 interface NumberInputProps {
     label: string

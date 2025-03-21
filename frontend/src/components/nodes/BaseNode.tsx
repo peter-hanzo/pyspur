@@ -1,26 +1,26 @@
-import usePartialRun from '@/hooks/usePartialRun'
-import store, { RootState } from '@/store/store'
-import { AlertState } from '@/types/alert'
-import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
-import { TaskStatus } from '@/types/api_types/taskSchemas'
-import { deleteNode, duplicateNode, getNodeTitle } from '@/utils/flowUtils'
-import { convertToPythonVariableName } from '@/utils/variableNameUtils'
-import { Alert, Button, Card, CardBody, CardHeader, Divider, Input } from '@heroui/react'
+import { Button, Card, CardBody, CardHeader, Divider, Input } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { createSelector } from '@reduxjs/toolkit'
 import { Handle, Position, useConnection, useNodeConnections, useUpdateNodeInternals } from '@xyflow/react'
+import { debounce } from 'lodash'
 import isEqual from 'lodash/isEqual'
-import React, { useMemo, useRef, useState, useEffect } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateNodeDataOnly, updateNodeParentAndCoordinates, updateNodeTitle } from '../../store/flowSlice'
-import NodeControls from './NodeControls'
-import styles from './BaseNode.module.css'
+
+import usePartialRun from '@/hooks/usePartialRun'
+import store, { RootState } from '@/store/store'
+import { FlowWorkflowNode } from '@/types/api_types/nodeTypeSchemas'
+import { TaskStatus } from '@/types/api_types/taskSchemas'
 import { isTargetAncestorOfSource } from '@/utils/cyclicEdgeUtils'
+import { deleteNode, duplicateNode, getNodeTitle } from '@/utils/flowUtils'
+import { convertToPythonVariableName } from '@/utils/variableNameUtils'
+
+import { updateNodeDataOnly, updateNodeParentAndCoordinates, updateNodeTitle } from '../../store/flowSlice'
+import { AlertContext } from '../canvas/EditorCanvas'
+import styles from './BaseNode.module.css'
+import NodeControls from './NodeControls'
 import NodeErrorDisplay from './NodeErrorDisplay'
 import NodeOutputDisplay from './NodeOutputDisplay'
-import { debounce } from 'lodash'
-
-const PUBLIC_URL = typeof window !== 'undefined' ? `http://${window.location.host}/` : 'http://localhost:6080/'
 
 export interface BaseNodeProps {
     isCollapsed: boolean
@@ -36,6 +36,7 @@ export interface BaseNodeProps {
     positionAbsoluteX?: number
     positionAbsoluteY?: number
     renderOutputHandles?: () => React.ReactNode
+    hideHandles?: boolean
 }
 
 const staticStyles = {
@@ -114,7 +115,8 @@ const baseNodeComparator = (prev: BaseNodeProps, next: BaseNodeProps) => {
         prev.className === next.className &&
         prev.isResizable === next.isResizable &&
         prev.positionAbsoluteX === next.positionAbsoluteX &&
-        prev.positionAbsoluteY === next.positionAbsoluteY
+        prev.positionAbsoluteY === next.positionAbsoluteY &&
+        isEqual(prev.children, next.children)
     )
 }
 
@@ -156,16 +158,15 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     positionAbsoluteX,
     positionAbsoluteY,
     renderOutputHandles,
+    hideHandles = false,
 }) => {
     const [editingTitle, setEditingTitle] = useState(false)
     const [isRunning, setIsRunning] = useState(false)
     const [titleInputValue, setTitleInputValue] = useState('')
-    const [alert, setAlert] = useState<AlertState>({
-        message: '',
-        color: 'default',
-        isVisible: false,
-    })
     const dispatch = useDispatch()
+
+    // Use the AlertContext
+    const { showAlert } = useContext(AlertContext)
 
     const connection = useConnection()
 
@@ -176,17 +177,21 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const parentPosition = useSelector((state: RootState) =>
         parentId ? state.flow.nodes.find((n) => n.id === parentId)?.position : undefined
     )
+    const isTool = useSelector((state: RootState) => {
+        const node = state.flow.nodes.find((n) => n.id === id)
+        if (node?.data?.isTool) return true
+
+        // Check if parent is an AgentNode
+        const parentNode = node?.parentId ? state.flow.nodes.find((n) => n.id === node.parentId) : undefined
+
+        return parentNode?.type === 'AgentNode'
+    })
 
     const initialInputs = useSelector(selectInitialInputs, isEqual)
 
     const availableOutputs = useSelector(selectAvailableOutputs, isEqual)
 
     const { executePartialRun, loading } = usePartialRun(dispatch)
-
-    const showAlert = (message: string, color: AlertState['color']) => {
-        setAlert({ message, color, isVisible: true })
-        setTimeout(() => setAlert((prev) => ({ ...prev, isVisible: false })), 3000)
-    }
 
     const handleDelete = () => {
         deleteNode(id, selectedNodeId, dispatch)
@@ -203,6 +208,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const nodeData = data
     const edges = useSelector((state: RootState) => state.flow.edges, isEqual)
     const nodes = useSelector((state: RootState) => state.flow.nodes, isEqual)
+    const node = nodes.find((n) => n.id === id)
+    const nodeType = node?.type
 
     const updateNodeInternals = useUpdateNodeInternals()
 
@@ -215,7 +222,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 if (sourceNode.type === 'RouterNode' && edge.sourceHandle) {
                     return {
                         ...sourceNode,
-                        handle_id: edge.targetHandle
+                        handle_id: edge.targetHandle,
                     }
                 }
                 return sourceNode
@@ -307,6 +314,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             break
         case 'CANCELED':
             outlineColor = 'gray'
+            break
+        case 'PAUSED':
+            outlineColor = 'orange'
             break
         default:
             if (status === 'completed') {
@@ -441,7 +451,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                             type: connection.fromNode.type,
                             handle_id: connection.fromHandle.id,
                             data: {
-                                title: (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
+                                title:
+                                    (connection.fromNode.data as { title?: string })?.title || connection.fromNode.id,
                             },
                         },
                     ]
@@ -466,20 +477,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     }, [edges, nodes, connection, id])
 
     useEffect(() => {
-        // Check if finalPredecessors differ from predecessorNodes
-        // (We do a deeper comparison to detect config/title changes, not just ID changes)
-        const hasChanged =
-            finalPredecessors.length !== predecessorNodes.length ||
-            finalPredecessors.some((newNode, i) => !isEqual(newNode, predecessorNodes[i]))
-
-        if (hasChanged) {
+        // Use lodash's isEqual for efficient deep comparison
+        if (!isEqual(finalPredecessors, predecessorNodes)) {
             setPredecessorNodes(finalPredecessors)
+            // Only update node internals when predecessors actually change
             updateNodeInternals(id)
         }
-    }, [finalPredecessors, predecessorNodes, updateNodeInternals, id])
+    }, [finalPredecessors, predecessorNodes, id, updateNodeInternals])
 
     const renderHandles = () => {
-        if (!nodeData) {
+        if (!nodeData || hideHandles || isTool) {
             return null
         }
         const dedupedPredecessors = finalPredecessors.filter(
@@ -492,9 +499,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                 <div className={`${styles.handlesColumn} ${styles.inputHandlesColumn}`} id="input-handles">
                     {dedupedPredecessors.map((node) => {
                         const handleId =
-                        node.type === 'RouterNode' && node.handle_id
-                            ? (node.data?.title + '.' + node.handle_id)
-                            : String(node.data?.title || node.id || '')
+                            node.type === 'RouterNode' && node.handle_id
+                                ? node.data?.title + '.' + node.handle_id
+                                : String(node.data?.title || node.id || '')
                         // set node id for router node as node.id + node.data.title
                         const nodeId = node.type === 'RouterNode' ? node?.id + '.' + node?.handle_id : node?.id
                         return (
@@ -516,9 +523,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     const nodeRef = useRef<HTMLDivElement | null>(null)
 
     const debouncedTitleChange = useMemo(
-        () => debounce((newTitle: string) => {
-            handleTitleChange(newTitle)
-        }, 300),
+        () =>
+            debounce((newTitle: string) => {
+                handleTitleChange(newTitle)
+            }, 300),
         []
     )
 
@@ -531,11 +539,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
 
     return (
         <>
-            {alert.isVisible && (
-                <div className="fixed bottom-4 right-4 z-50">
-                    <Alert color={alert.color}>{alert.message}</Alert>
-                </div>
-            )}
             <div
                 style={staticStyles.container}
                 draggable={false}
@@ -603,7 +606,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                                         <div style={{ display: 'flex', alignItems: 'center' }}>
                                             {data.logo && (
                                                 <img
-                                                    src={`${PUBLIC_URL}` + data.logo}
+                                                    src={data.logo}
                                                     alt="Node Logo"
                                                     className="mr-2 max-h-8 max-w-8 mb-3"
                                                 />
@@ -654,7 +657,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                             <CardBody key={`body-${id}`} className="px-3 py-2">
                                 <div className={styles.nodeWrapper} ref={nodeRef} id={`node-${id}-wrapper`}>
                                     {renderHandles()}
-                                    </div>
+                                </div>
                                 {children}
                                 {nodeData?.error && <NodeErrorDisplay error={nodeData?.error} />}
                                 <NodeOutputDisplay key={`output-display-${id}`} output={nodeData?.run} />
@@ -670,8 +673,8 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                     isInputNode={isInputNode}
                     hasRun={data?.run !== undefined}
                     handlePartialRun={handlePartialRun}
-                    handleDelete={handleDelete}
-                    handleDuplicate={handleDuplicate}
+                    handleDelete={!isInputNode && nodeType !== 'OutputNode' ? handleDelete : undefined}
+                    handleDuplicate={!isInputNode && nodeType !== 'OutputNode' ? handleDuplicate : undefined}
                     handleOpenModal={handleOpenModal}
                     handleDetach={parentId ? handleDetach : undefined}
                 />
@@ -680,4 +683,4 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     )
 }
 
-export default BaseNode
+export default React.memo(BaseNode, baseNodeComparator)

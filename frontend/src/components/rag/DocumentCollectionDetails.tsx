@@ -1,30 +1,34 @@
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
 import {
+    Accordion,
+    AccordionItem,
     Button,
     Card,
     CardBody,
-    CardHeader,
-    Spinner,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    useDisclosure,
-    Accordion,
-    AccordionItem,
     Chip,
     Divider,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    Spinner,
+    useDisclosure,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
+
+import type {
+    DocumentCollectionResponseSchema as DocumentCollectionResponse,
+    DocumentWithChunksSchema as DocumentWithChunks,
+} from '@/types/api_types/ragSchemas'
 import {
-    getDocumentCollection,
     addDocumentsToCollection,
     deleteDocumentCollection,
     getCollectionDocuments,
+    getDocumentCollection,
 } from '@/utils/api'
-import type { DocumentCollectionResponseSchema as DocumentCollectionResponse, DocumentWithChunksSchema as DocumentWithChunks } from '@/types/api_types/ragSchemas'
+
 import FileUploadBox from '../FileUploadBox'
 import ChunkCard from '../cards/ChunkCard'
 

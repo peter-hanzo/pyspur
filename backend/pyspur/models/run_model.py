@@ -16,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base_model import BaseModel
 from .output_file_model import OutputFileModel
 from .task_model import TaskModel
+from .workflow_model import WorkflowModel
 
 
 class RunStatus(PyEnum):
@@ -23,6 +24,8 @@ class RunStatus(PyEnum):
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    PAUSED = "PAUSED"  # Added for human intervention nodes
+    CANCELED = "CANCELED"  # Added for canceling workflows awaiting human approval
 
 
 class RunModel(BaseModel):
@@ -48,7 +51,7 @@ class RunModel(BaseModel):
         String, ForeignKey("datasets.id"), nullable=True, index=True
     )
     start_time: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
+        DateTime, default=datetime.now(timezone.utc), index=True
     )
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     outputs: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
@@ -67,6 +70,7 @@ class RunModel(BaseModel):
     output_file: Mapped[Optional["OutputFileModel"]] = relationship(
         "OutputFileModel", back_populates="run"
     )
+    workflow: Mapped["WorkflowModel"] = relationship("WorkflowModel", foreign_keys=[workflow_id])
 
     @property
     def percentage_complete(self) -> Optional[float]:

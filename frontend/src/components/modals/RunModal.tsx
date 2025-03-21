@@ -1,5 +1,3 @@
-import { TestInput } from '@/types/api_types/workflowSchemas'
-import { uploadTestFiles } from '@/utils/api'
 import {
     Alert,
     Button,
@@ -21,6 +19,10 @@ import {
 import { Icon } from '@iconify/react'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
+import { TestInput } from '@/types/api_types/workflowSchemas'
+import { uploadTestFiles } from '@/utils/api'
+
 import { useSaveWorkflow } from '../../hooks/useSaveWorkflow'
 import { addTestInput, deleteTestInput, setSelectedTestInputId, updateTestInput } from '../../store/flowSlice'
 import { getNodeMissingRequiredFields } from '../../store/nodeTypesSlice'
@@ -81,25 +83,30 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         }
     }, [isOpen, testData, selectedTestInputId, dispatch])
 
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                const canRun = selectedTestInputId || Object.values(editorContents).some((v) => v?.trim())
+                if (canRun) {
+                    const success = handleRun()
+                    if (success) {
+                        onOpenChange(false)
+                    }
+                }
+            } else if (event.key === 'Escape') {
+                onOpenChange(false)
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, selectedTestInputId, editorContents, onOpenChange])
+
     const getNextId = () => {
         const maxId = testData.reduce((max, row) => Math.max(max, row.id), 0)
         return maxId + 1
-    }
-
-    const handleAddRow = () => {
-        // Check if we have any content to add
-        const hasContent = Object.values(editorContents).some((v) => v?.trim())
-        if (!hasContent) return
-
-        const newId = getNextId()
-        const newTestInput: TestInput = {
-            id: newId,
-            ...editorContents,
-        }
-        setTestData([...testData, newTestInput])
-        setEditorContents({}) // Clear editor contents
-        dispatch(addTestInput(newTestInput))
-        saveWorkflow()
     }
 
     const handleDeleteRow = (id: number) => {
@@ -182,11 +189,95 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         // Handle file paths
         if (field.toLowerCase().includes('file') && content) {
             const fileName = content.split('/').pop() // Get just the filename from the path
+            const extension = (fileName?.split('.').pop() || '').toLowerCase()
+
+            // Convert local file paths to API endpoints
+            let filePath = content
+            if (filePath.startsWith('test_files/') || filePath.startsWith('run_files/')) {
+                filePath = window.location.origin + '/' + 'api/files/' + filePath
+            }
+
+            // Handle images
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension)) {
+                return (
+                    <div className="w-full">
+                        <img
+                            src={filePath}
+                            alt={fileName}
+                            style={{ maxWidth: '100%', maxHeight: '240px', objectFit: 'contain' }}
+                            className="rounded-md"
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                            <Icon icon="material-symbols:image" className="text-primary" />
+                            <Tooltip content={content} showArrow={true}>
+                                <span className="truncate text-xs">{fileName}</span>
+                            </Tooltip>
+                        </div>
+                    </div>
+                )
+            }
+
+            // Handle videos
+            if (['mp4', 'webm', 'ogg', 'ogv', 'mov'].includes(extension)) {
+                return (
+                    <div className="w-full">
+                        <video
+                            controls
+                            src={filePath}
+                            style={{ maxWidth: '100%', maxHeight: '240px' }}
+                            className="rounded-md"
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                            <Icon icon="material-symbols:video-file" className="text-primary" />
+                            <Tooltip content={content} showArrow={true}>
+                                <span className="truncate text-xs">{fileName}</span>
+                            </Tooltip>
+                        </div>
+                    </div>
+                )
+            }
+
+            // Handle PDFs
+            if (extension === 'pdf') {
+                return (
+                    <div className="w-full">
+                        <iframe
+                            src={filePath}
+                            style={{ width: '100%', height: '240px', border: 'none' }}
+                            className="rounded-md"
+                            title={`PDF: ${fileName}`}
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                            <Icon icon="material-symbols:description" className="text-primary" />
+                            <Tooltip content={content} showArrow={true}>
+                                <span className="truncate text-xs">{fileName}</span>
+                            </Tooltip>
+                        </div>
+                    </div>
+                )
+            }
+
+            // Handle audio
+            if (['mp3', 'wav', 'ogg', 'm4a'].includes(extension)) {
+                return (
+                    <div className="w-full">
+                        <audio controls className="w-full" src={filePath} />
+                        <div className="flex items-center gap-2 mt-1">
+                            <Icon icon="material-symbols:audio-file" className="text-primary" />
+                            <Tooltip content={content} showArrow={true}>
+                                <span className="truncate text-xs">{fileName}</span>
+                            </Tooltip>
+                        </div>
+                    </div>
+                )
+            }
+
+            // Default file icon for other file types
             return (
                 <div className="flex items-center gap-2">
                     <Icon icon="material-symbols:file-present" className="text-primary" />
                     <Tooltip content={content} showArrow={true}>
-                        <span className="max-w-[200px] truncate">{fileName}</span>
+                        <span className="truncate">{fileName}</span>
                     </Tooltip>
                 </div>
             )
@@ -222,7 +313,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
         return (
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <Tooltip content={content} showArrow={true}>
-                    <span className="max-w-[200px] truncate">{content}</span>
+                    <span className="truncate">{content}</span>
                 </Tooltip>
                 <Button isIconOnly size="sm" variant="light" onPress={() => handleDoubleClick(row.id, field)}>
                     <Icon icon="solar:pen-linear" />
@@ -311,7 +402,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             scrollBehavior="inside"
-            size="5xl"
+            size="full"
             classNames={{
                 base: 'overflow-hidden',
                 body: 'p-0',
@@ -327,12 +418,9 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                         )}
                         <ModalHeader className="flex flex-col gap-1">Run Test Cases</ModalHeader>
                         <ModalBody>
-                            <div className="flex flex-col gap-4 p-4 overflow-y-auto">
-                                <div className="border rounded-lg">
-                                    <div className="p-4 border-b bg-default-50">
-                                        <h3 className="text-lg font-semibold">Test Cases</h3>
-                                    </div>
-                                    <div className="p-4 overflow-x-auto">
+                            <div className="flex flex-col gap-4 p-4 overflow-y-auto w-full">
+                                <div className="border rounded-lg w-full">
+                                    <div className="p-4 overflow-x-auto w-full">
                                         <Table
                                             aria-label="Test cases table"
                                             selectionMode="single"
@@ -345,17 +433,25 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                 dispatch(setSelectedTestInputId(selectedKey))
                                             }}
                                             classNames={{
-                                                base: 'min-w-[800px]',
-                                                table: 'min-w-full',
+                                                base: 'w-full',
+                                                table: 'table-fixed w-full',
+                                                thead: 'w-full',
+                                                tbody: 'w-full',
                                             }}
                                         >
                                             <TableHeader>
                                                 {[
-                                                    <TableColumn key="id">ID</TableColumn>,
+                                                    <TableColumn key="id" width={60}>
+                                                        ID
+                                                    </TableColumn>,
                                                     ...workflowInputVariableNames.map((field) => (
-                                                        <TableColumn key={field}>{field}</TableColumn>
+                                                        <TableColumn key={field} className="flex-1">
+                                                            {field}
+                                                        </TableColumn>
                                                     )),
-                                                    <TableColumn key="actions">Actions</TableColumn>,
+                                                    <TableColumn key="actions" width={80}>
+                                                        Actions
+                                                    </TableColumn>,
                                                 ]}
                                             </TableHeader>
                                             <TableBody>
@@ -364,7 +460,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                                         {[
                                                             <TableCell key="id">{row.id}</TableCell>,
                                                             ...workflowInputVariableNames.map((field) => (
-                                                                <TableCell key={field}>
+                                                                <TableCell key={field} className="break-words">
                                                                     {renderCell(row, field)}
                                                                 </TableCell>
                                                             )),
@@ -496,13 +592,20 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                         </ModalBody>
                         <ModalFooter>
                             <div className="flex gap-2 justify-end w-full">
-                                <Button color="danger" variant="light" onPress={onClose}>
+                                <Button
+                                    size="lg"
+                                    color="danger"
+                                    variant="light"
+                                    onPress={onClose}
+                                    endContent={<span className="text-xs opacity-70">ESC</span>}
+                                >
                                     Cancel
                                 </Button>
-                                <Button color="primary" variant="bordered" onPress={handleSave}>
+                                <Button size="lg" color="primary" variant="bordered" onPress={handleSave}>
                                     Save & Close
                                 </Button>
                                 <Button
+                                    size="lg"
                                     color="primary"
                                     onPress={() => {
                                         const success = handleRun()
@@ -514,6 +617,7 @@ const RunModal: React.FC<RunModalProps> = ({ isOpen, onOpenChange, onRun, onSave
                                         !selectedTestInputId && !Object.values(editorContents).some((v) => v?.trim())
                                     }
                                     startContent={<Icon icon="material-symbols:play-arrow" />}
+                                    endContent={<span className="text-xs opacity-70">⌘+↵</span>}
                                 >
                                     Run
                                 </Button>

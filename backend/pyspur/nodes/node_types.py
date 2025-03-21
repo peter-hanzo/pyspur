@@ -5,18 +5,6 @@ from .registry import NodeRegistry
 
 # Simple lists of supported and deprecated node types
 
-LOGIC = [
-    {
-        "node_type_name": "RouterNode",
-        "module": ".nodes.logic.router",
-        "class_name": "RouterNode",
-    },
-    {
-        "node_type_name": "CoalesceNode",
-        "module": ".nodes.logic.coalesce",
-        "class_name": "CoalesceNode",
-    },
-]
 
 SUPPORTED_NODE_TYPES = {
     "Input/Output": [
@@ -38,6 +26,16 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "SingleLLMCallNode",
         },
         {
+            "node_type_name": "AgentNode",
+            "module": ".nodes.llm.agent",
+            "class_name": "AgentNode",
+        },
+        {
+            "node_type_name": "RetrieverNode",
+            "module": ".nodes.llm.retriever",
+            "class_name": "RetrieverNode",
+        },
+        {
             "node_type_name": "BestOfNNode",
             "module": ".nodes.llm.generative.best_of_n",
             "class_name": "BestOfNNode",
@@ -50,18 +48,34 @@ SUPPORTED_NODE_TYPES = {
             "class_name": "PythonFuncNode",
         },
     ],
-    "Logic": LOGIC,
+    "Logic": [
+        {
+            "node_type_name": "RouterNode",
+            "module": ".nodes.logic.router",
+            "class_name": "RouterNode",
+        },
+        {
+            "node_type_name": "CoalesceNode",
+            "module": ".nodes.logic.coalesce",
+            "class_name": "CoalesceNode",
+        },
+        {
+            "node_type_name": "MergeNode",
+            "module": ".nodes.logic.merge",
+            "class_name": "MergeNode",
+        },
+        {
+            "node_type_name": "StaticValueNode",
+            "module": ".nodes.primitives.static_value",
+            "class_name": "StaticValueNode",
+        },
+    ],
     "Experimental": [
         {
             "node_type_name": "ForLoopNode",
             "module": ".nodes.loops.for_loop_node",
             "class_name": "ForLoopNode",
-        },
-        {
-            "node_type_name": "RetrieverNode",
-            "module": ".nodes.llm.retriever",
-            "class_name": "RetrieverNode",
-        },
+        }
     ],
     "Integrations": [
         {
@@ -129,6 +143,44 @@ SUPPORTED_NODE_TYPES = {
             "module": ".nodes.integrations.jina.jina_reader",
             "class_name": "JinaReaderNode",
         },
+        # Reddit nodes
+        {
+            "node_type_name": "RedditCreatePostNode",
+            "module": ".nodes.integrations.reddit.reddit_create_post",
+            "class_name": "RedditCreatePostNode",
+        },
+        {
+            "node_type_name": "RedditGetTopPostsNode",
+            "module": ".nodes.integrations.reddit.reddit_get_top_posts",
+            "class_name": "RedditGetTopPostsNode",
+        },
+        {
+            "node_type_name": "RedditGetUserInfoNode",
+            "module": ".nodes.integrations.reddit.reddit_get_user_info",
+            "class_name": "RedditGetUserInfoNode",
+        },
+        {
+            "node_type_name": "RedditGetSubredditInfoNode",
+            "module": ".nodes.integrations.reddit.reddit_get_subreddit_info",
+            "class_name": "RedditGetSubredditInfoNode",
+        },
+        {
+            "node_type_name": "RedditGetSubredditStatsNode",
+            "module": ".nodes.integrations.reddit.reddit_get_subreddit_stats",
+            "class_name": "RedditGetSubredditStatsNode",
+        },
+        {
+            "node_type_name": "RedditGetTrendingSubredditsNode",
+            "module": ".nodes.integrations.reddit.reddit_get_trending_subreddits",
+            "class_name": "RedditGetTrendingSubredditsNode",
+        },
+    ],
+    "Search": [
+        {
+            "node_type_name": "ExaSearchNode",
+            "module": ".nodes.search.exa.search",
+            "class_name": "ExaSearchNode",
+        },
     ],
     "Tools": [
         {
@@ -140,11 +192,6 @@ SUPPORTED_NODE_TYPES = {
 }
 
 DEPRECATED_NODE_TYPES = [
-    {
-        "node_type_name": "StaticValueNode",
-        "module": ".nodes.primitives.static_value",
-        "class_name": "StaticValueNode",
-    },
     {
         "node_type_name": "MCTSNode",
         "module": ".nodes.llm.mcts",
@@ -220,7 +267,7 @@ def is_valid_node_type(node_type_name: str) -> bool:
     registered_nodes = NodeRegistry.get_registered_nodes()
     for nodes in registered_nodes.values():
         for node in nodes:
-            if node["node_type_name"] == node_type_name:
+            if node.node_type_name == node_type_name:
                 return True
 
     return False

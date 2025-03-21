@@ -1,7 +1,7 @@
-import React from 'react'
-import { useReactFlow, useViewport } from '@xyflow/react'
-import { Card, Button, Tooltip } from '@heroui/react'
+import { Button, Card, Tooltip } from '@heroui/react'
 import { Icon } from '@iconify/react'
+import { useReactFlow, useViewport } from '@xyflow/react'
+import React from 'react'
 
 const ZoomInOut: React.FC = () => {
     const { zoomIn, zoomOut } = useReactFlow()
@@ -24,7 +24,9 @@ const ZoomInOut: React.FC = () => {
                     content={
                         <div className="px-1 py-2">
                             <div className="text-small font-bold">Zoom Out</div>
-                            <div className="text-tiny">Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>-</kbd></div>
+                            <div className="text-tiny">
+                                Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>-</kbd>
+                            </div>
                         </div>
                     }
                     placement="bottom"
@@ -38,7 +40,9 @@ const ZoomInOut: React.FC = () => {
                     content={
                         <div className="px-1 py-2">
                             <div className="text-small font-bold">Zoom In</div>
-                            <div className="text-tiny">Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>+</kbd></div>
+                            <div className="text-tiny">
+                                Press <kbd>{navigator.platform.includes('Mac') ? '⌘ CMD' : 'Ctrl'}</kbd>+<kbd>+</kbd>
+                            </div>
                         </div>
                     }
                     placement="bottom"

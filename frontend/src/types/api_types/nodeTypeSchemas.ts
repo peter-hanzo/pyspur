@@ -1,6 +1,8 @@
+import { CoordinateExtent } from '@xyflow/react'
+
 import { RouteConditionGroup } from '@/types/api_types/routerSchemas'
 import { WorkflowNodeCoordinates } from '@/types/api_types/workflowSchemas'
-import { CoordinateExtent } from '@xyflow/react'
+
 import { ModelConstraints } from './modelMetadataSchemas'
 
 export interface NodeTypeSchema {

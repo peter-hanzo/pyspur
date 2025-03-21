@@ -1,20 +1,19 @@
-import React, { useState, Dispatch, SetStateAction } from 'react'
-import { useSelector } from 'react-redux'
 import {
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
     Button,
-    Tooltip,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     Select,
     SelectItem,
-    Switch,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/prism'
-import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
+import SyntaxHighlighter, { oneDark } from 'react-syntax-highlighter'
+
 import { FlowState } from '@/types/api_types/flowStateSchema'
 import { TestInput } from '@/types/api_types/workflowSchemas'
 
@@ -251,8 +250,21 @@ int main() {
         return examples[language]
     }
 
+    useEffect(() => {
+        if (!isOpen) return
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onOpenChange(false)
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isOpen, onOpenChange])
+
     return (
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
+        <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="full">
             <ModalContent>
                 <ModalHeader>
                     <div>API Endpoint Information</div>
@@ -362,7 +374,12 @@ int main() {
                     )}
                 </ModalBody>
                 <ModalFooter>
-                    <Button color="primary" onPress={() => onOpenChange(false)}>
+                    <Button
+                        size="lg"
+                        color="primary"
+                        onPress={() => onOpenChange(false)}
+                        endContent={<span className="text-xs opacity-70">ESC</span>}
+                    >
                         Close
                     </Button>
                 </ModalFooter>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+
 import { storeGoogleAccessToken } from '@/utils/api'
 
 const GoogleCallbackPage: React.FC = () => {
