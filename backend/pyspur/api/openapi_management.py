@@ -14,19 +14,19 @@ class OpenAPIEndpoint(BaseModel):
     operation_id: str | None = None
 
 
-class CreateNodesFromOpenAPIRequest(BaseModel):
+class CreateToolsFromOpenAPIRequest(BaseModel):
     endpoints: List[OpenAPIEndpoint]
     spec: Dict[str, Any]
 
 
-class CreateNodesResponse(TypedDict):
+class CreateToolsResponse(TypedDict):
     message: str
     created_nodes: List[NodeInfo]
 
 
-@router.post("/create_from_openapi/")
-async def create_nodes_from_openapi(request: CreateNodesFromOpenAPIRequest) -> CreateNodesResponse:
-    """Create nodes from selected OpenAPI endpoints."""
+@router.post("/create_tools/")
+async def create_tools_from_openapi(request: CreateToolsFromOpenAPIRequest) -> CreateToolsResponse:
+    """Create tools from selected OpenAPI endpoints."""
     try:
         created_nodes: List[NodeInfo] = []
         for endpoint in request.endpoints:

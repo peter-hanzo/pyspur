@@ -1053,19 +1053,19 @@ export interface OpenAPIEndpoint {
     operationId?: string
 }
 
-export const createNodesFromOpenAPI = async (endpoints: OpenAPIEndpoint[], fullSpec: any): Promise<any> => {
+export const createToolsFromOpenAPI = async (endpoints: OpenAPIEndpoint[], fullSpec: any): Promise<any> => {
     try {
         // For now, just log both the selected endpoints and the full spec
         console.log('Selected endpoints:', endpoints)
         console.log('Full OpenAPI spec:', fullSpec)
 
-        const response = await axios.post(`${API_BASE_URL}/nodes/create_from_openapi/`, {
+        const response = await axios.post(`${API_BASE_URL}/openapi/create_tools/`, {
             endpoints,
             spec: fullSpec
         })
         return response.data
     } catch (error) {
-        console.error('Error creating nodes from OpenAPI:', error)
+        console.error('Error creating tools from OpenAPI:', error)
         throw error
     }
 }

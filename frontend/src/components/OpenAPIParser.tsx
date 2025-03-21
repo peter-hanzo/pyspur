@@ -3,16 +3,17 @@ import {
     Card,
     CardBody,
     CardHeader,
-    Selection,
-    Table,
-    TableBody,
-    TableCell,
-    TableColumn,
-    TableHeader,
-    TableRow,
+    Divider,
+    Tab,
+    Tabs,
 } from '@heroui/react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
+
+import { RootState } from '../store/store'
+import { FlowWorkflowNodeType } from '../store/nodeTypesSlice'
 import CodeEditor from './CodeEditor'
+import NodeToolsSelector from './NodeToolsSelector'
 
 interface OpenAPIEndpoint {
     path: string
@@ -28,10 +29,15 @@ interface OpenAPIParserProps {
 const OpenAPIParser: React.FC<OpenAPIParserProps> = ({ onEndpointsSelected }) => {
     const [jsonInput, setJsonInput] = useState('')
     const [endpoints, setEndpoints] = useState<OpenAPIEndpoint[]>([])
-    const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
     const [error, setError] = useState<string | null>(null)
     const [parsedSpec, setParsedSpec] = useState<any>(null)
+    const [selectedTab, setSelectedTab] = useState('openapi')
+    const [selectedNodes, setSelectedNodes] = useState<FlowWorkflowNodeType[]>([])
+    
+    // Get node types from Redux store
+    const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data)
 
+    // Parse OpenAPI spec
     const parseOpenAPI = () => {
         try {
             const spec = JSON.parse(jsonInput)
@@ -59,67 +65,122 @@ const OpenAPIParser: React.FC<OpenAPIParserProps> = ({ onEndpointsSelected }) =>
         }
     }
 
+    // Handle creation of nodes or tools
     const handleCreateNodes = () => {
-        const selectedEndpointsList = endpoints.filter(
-            (_, index) => selectedKeys === 'all' || (selectedKeys as Set<string>).has(index.toString())
-        )
-        onEndpointsSelected(selectedEndpointsList, parsedSpec)
+        if (selectedTab === 'openapi' && parsedSpec) {
+            onEndpointsSelected(endpoints, parsedSpec)
+        } else if (selectedTab === 'nodes' && selectedNodes.length > 0) {
+            // Convert selected nodes to endpoints format for API
+            const nodeEndpoints = selectedNodes.map(node => ({
+                path: `/nodes/${node.name}`,
+                method: 'POST',
+                summary: node.config.title || node.name,
+                operationId: node.name,
+                nodeType: node.name,
+                // Include any additional metadata needed
+                metadata: {
+                    nodeType: node.name,
+                    input_schema: node.config.input_schema,
+                    output_schema: node.config.output_schema
+                }
+            }));
+            
+            onEndpointsSelected(nodeEndpoints, { 
+                info: { title: "Node Tools", version: "1.0.0" },
+                nodes: selectedNodes 
+            });
+        }
+    }
+
+    // Handle tab change
+    const handleTabChange = (key: React.Key) => {
+        setSelectedTab(key.toString())
     }
 
     return (
         <Card className="w-full mb-10">
             <CardHeader className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                    <h3 className="text-xl font-semibold">OpenAPI Specification Parser</h3>
+                    <h3 className="text-xl font-semibold">Create Tools</h3>
                     <p className="text-default-500">
-                        Paste your OpenAPI specification JSON to generate nodes for the selected endpoints.
+                        Create tools from OpenAPI specifications or existing nodes
                     </p>
                 </div>
-                <div className="flex flex-col gap-2">
-                    <div className="w-[800px]">
-                        <CodeEditor code={jsonInput} onChange={setJsonInput} mode="json" label="OpenAPI Specification" />
-                    </div>
-                    <Button color="primary" onPress={parseOpenAPI} className="w-fit" isDisabled={!jsonInput.trim()}>
-                        Parse Specification
-                    </Button>
-                    {error && <div className="text-danger text-sm mt-1">{error}</div>}
-                </div>
             </CardHeader>
-            {endpoints.length > 0 && (
-                <CardBody>
-                    <Table
-                        aria-label="OpenAPI Endpoints"
-                        selectionMode="multiple"
-                        selectedKeys={selectedKeys}
-                        onSelectionChange={setSelectedKeys}
-                        className="w-full"
+            <CardBody>
+                <Tabs 
+                    selectedKey={selectedTab} 
+                    onSelectionChange={handleTabChange}
+                    aria-label="Tool Creation Options"
+                >
+                    <Tab key="openapi" title="OpenAPI Specification">
+                        <div className="flex flex-col gap-4 mt-4">
+                            <div className="w-full max-w-[800px]">
+                                <CodeEditor 
+                                    code={jsonInput} 
+                                    onChange={setJsonInput} 
+                                    mode="json" 
+                                    label="OpenAPI Specification" 
+                                />
+                            </div>
+                            <Button 
+                                color="primary" 
+                                onPress={parseOpenAPI} 
+                                className="w-fit" 
+                                isDisabled={!jsonInput.trim()}
+                            >
+                                Parse Specification
+                            </Button>
+                            {error && <div className="text-danger text-sm mt-1">{error}</div>}
+                            
+                            {endpoints.length > 0 && (
+                                <div className="mt-4">
+                                    <h4 className="text-lg font-medium mb-2">Available Endpoints ({endpoints.length})</h4>
+                                    <div className="overflow-auto max-h-60 border border-default-200 rounded-lg p-4">
+                                        {endpoints.map((endpoint, index) => (
+                                            <div key={index} className="mb-2 pb-2 border-b border-default-100 last:border-0">
+                                                <div className="flex gap-2">
+                                                    <span className="px-2 py-1 bg-primary-100 text-primary rounded text-xs font-bold">
+                                                        {endpoint.method}
+                                                    </span>
+                                                    <span className="font-mono text-sm">{endpoint.path}</span>
+                                                </div>
+                                                {endpoint.summary && (
+                                                    <div className="text-sm text-default-500 mt-1 ml-10">
+                                                        {endpoint.summary}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </Tab>
+                    <Tab key="nodes" title="Node Types">
+                        <div className="mt-4">
+                            <h4 className="text-lg font-medium mb-2">Select Nodes to Use as Tools</h4>
+                            <NodeToolsSelector 
+                                nodeTypes={nodeTypes}
+                                onSelectionChange={setSelectedNodes}
+                            />
+                        </div>
+                    </Tab>
+                </Tabs>
+                
+                <Divider className="my-4" />
+                
+                <div className="flex justify-end mt-4">
+                    <Button
+                        color="primary"
+                        onClick={handleCreateNodes}
+                        isDisabled={(selectedTab === 'openapi' && endpoints.length === 0) || 
+                                   (selectedTab === 'nodes' && selectedNodes.length === 0)}
                     >
-                        <TableHeader>
-                            <TableColumn>Method</TableColumn>
-                            <TableColumn>Path</TableColumn>
-                            <TableColumn>Summary</TableColumn>
-                        </TableHeader>
-                        <TableBody>
-                            {endpoints.map((endpoint, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>{endpoint.method}</TableCell>
-                                    <TableCell>{endpoint.path}</TableCell>
-                                    <TableCell>{endpoint.summary || '-'}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    <div className="flex justify-end mt-4">
-                        <Button
-                            color="primary"
-                            onClick={handleCreateNodes}
-                            isDisabled={selectedKeys === 'all' ? false : (selectedKeys as Set<string>).size === 0}
-                        >
-                            Create Nodes for Selected Endpoints
-                        </Button>
-                    </div>
-                </CardBody>
-            )}
+                        Create Tools
+                    </Button>
+                </div>
+            </CardBody>
         </Card>
     )
 }
