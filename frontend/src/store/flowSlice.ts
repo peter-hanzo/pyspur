@@ -294,24 +294,27 @@ const flowSlice = createSlice({
             const { nodeId, nodeTypeName } = action.payload
             const node = state.nodes.find((n) => n.id === nodeId)
             if (node) {
-                // Generate a new ID following the same pattern as other nodes
-                const existingIds = state.nodes.map((node) => node.id)
+                // Generate a readable title
                 const sanitizedType = nodeTypeName.replace(/\s+/g, '_').replace(/Node/g, 'Tool')
+                const existingTitles = state.nodes.map((node) => node.data?.title)
                 let counter = 1
-                let newId = `${sanitizedType}_${counter}`
-                while (existingIds.includes(newId)) {
+                let newTitle = `${sanitizedType}_${counter}`
+                
+                while (existingTitles.includes(newTitle)) {
                     counter++
-                    newId = `${sanitizedType}_${counter}`
+                    newTitle = `${sanitizedType}_${counter}`
                 }
 
-                // Create the new node using createNode
+                // Create the new node using createNode with UUID for ID but readable title
                 const result = createNode(
                     // @ts-ignore - nodeTypes will be properly typed at runtime
                     state.nodeTypes,
                     nodeTypeName,
-                    newId,
+                    uuidv4(), // Use UUID for ID
                     { x: 0, y: 0 },
-                    nodeId // Set parentId to the agent node's ID
+                    nodeId, // Set parentId to the agent node's ID
+                    null,   // No dimensions provided
+                    newTitle // Provide the readable title
                 )
 
                 if (result) {

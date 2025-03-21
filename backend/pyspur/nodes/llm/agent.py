@@ -103,7 +103,7 @@ class AgentNode(SingleLLMCallNode):
         for tool in tools:
             # Create node instance
             tool_node_instance = NodeFactory.create_node(
-                node_name=tool.id,
+                node_name=tool.title,
                 node_type_name=tool.node_type,
                 config=tool.config,
             )
@@ -131,7 +131,7 @@ class AgentNode(SingleLLMCallNode):
                 tool_schema = tool.function_schema
             else:
                 tool_node_instance = NodeFactory.create_node(
-                    node_name=tool.id,
+                    node_name=tool.title,
                     node_type_name=tool.node_type,
                     config=tool.config,
                 )
@@ -155,7 +155,7 @@ class AgentNode(SingleLLMCallNode):
 
         # Create node instance
         tool_node_instance = NodeFactory.create_node(
-            node_name=tool_node.id,
+            node_name=tool_node.title,
             node_type_name=tool_node.node_type,
             config=tool_node.config,
         )
