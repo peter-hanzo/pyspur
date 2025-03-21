@@ -317,6 +317,18 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
         tokenValue: string,
         setTokenValue: (value: string) => void
     ) => {
+        // Get token description based on type
+        const getTokenDescription = (type: string) => {
+            if (type === 'bot_token') {
+                return "Bot tokens (xoxb-) are required for core functionality like sending messages to Slack channels. This is the primary token needed for most operations."
+            } else if (type === 'user_token') {
+                return "User tokens (xoxp-) allow actions to be performed as a specific user, such as accessing user-specific data or performing user-level actions."
+            } else if (type === 'app_token') {
+                return "App tokens (xapp-) are only used for Socket Mode connections to receive events in real-time without exposing a public endpoint. Cannot be used to send messages."
+            }
+            return ""
+        }
+
         return (
             <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -330,6 +342,10 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                             Not Configured
                         </Chip>
                     )}
+                </div>
+
+                <div className="text-small text-default-500 mb-2">
+                    {getTokenDescription(tokenType)}
                 </div>
 
                 {status.exists ? (
@@ -591,6 +607,22 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                     }
                 >
                     <div className="py-4 space-y-6">
+                        <div className="p-3 bg-default-50 border border-default-200 rounded-md mb-4">
+                            <h4 className="font-medium text-medium mb-2">Slack Token Overview</h4>
+                            <p className="text-small mb-2">
+                                Different token types serve different purposes in the Slack API:
+                            </p>
+                            <ul className="list-disc list-inside text-small space-y-1 pl-2">
+                                <li><span className="font-semibold">Bot Tokens (xoxb-)</span>: Required for sending messages and most API operations</li>
+                                <li><span className="font-semibold">User Tokens (xoxp-)</span>: For user-level actions (optional)</li>
+                                <li><span className="font-semibold">App Tokens (xapp-)</span>: Only for Socket Mode connections, cannot send messages</li>
+                            </ul>
+                            <div className="mt-2 flex items-center gap-2 text-small text-warning-700">
+                                <Icon icon="solar:info-circle-bold" width={16} />
+                                <span>App tokens cannot be used as a substitute for bot tokens when sending messages.</span>
+                            </div>
+                        </div>
+
                         {renderTokenSection('bot_token', botTokenStatus, botToken, setBotToken)}
                         {renderTokenSection('user_token', userTokenStatus, userToken, setUserToken)}
                         {renderTokenSection('app_token', appTokenStatus, appToken, setAppToken)}
@@ -735,6 +767,20 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                                 local development and environments without public endpoints.
                             </p>
 
+                            <div className="p-3 bg-default-50 rounded-md border border-default-200">
+                                <h4 className="font-medium text-medium mb-2">Token Requirements</h4>
+                                <ul className="list-disc list-inside text-small space-y-2 pl-2">
+                                    <li className="flex items-start">
+                                        <span className="font-semibold inline-block min-w-[100px]">Bot Token:</span>
+                                        <span className="flex-1">Required for authenticating API requests <span className={agent.has_bot_token ? "text-success" : "text-danger"}>({agent.has_bot_token ? "Configured ✓" : "Not Configured ✗"})</span></span>
+                                    </li>
+                                    <li className="flex items-start">
+                                        <span className="font-semibold inline-block min-w-[100px]">App Token:</span>
+                                        <span className="flex-1">Required specifically for Socket Mode connections <span className={agent.has_app_token ? "text-success" : "text-danger"}>({agent.has_app_token ? "Configured ✓" : "Not Configured ✗"})</span></span>
+                                    </li>
+                                </ul>
+                            </div>
+
                             <div className="flex items-center gap-3 my-2">
                                 <div className="flex-1">
                                     <h4 className="font-medium">Status:</h4>
@@ -787,12 +833,28 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
                                 </div>
                             )}
 
+                            {agent.has_bot_token && !agent.has_app_token && (
+                                <div className="p-3 bg-warning-50 text-warning-800 rounded-md mt-2">
+                                    <div className="flex items-start gap-2">
+                                        <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5" />
+                                        <div>
+                                            <p className="font-medium">App Token Required</p>
+                                            <p className="text-small">
+                                                Socket Mode requires an app-level token (xapp-) in addition to your bot token.
+                                                Configure an app token in the Authentication tab or in your environment variables.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="mt-4">
                                 <h4 className="font-medium mb-2">Requirements for Socket Mode:</h4>
                                 <ul className="list-disc list-inside text-small space-y-1 pl-2">
                                     <li>A bot token with the required scopes (connections:write)</li>
                                     <li>SLACK_SIGNING_SECRET environment variable configured</li>
                                     <li>Socket Mode enabled in your Slack app settings</li>
+                                    <li>An app-level token (xapp-) with connections:write scope</li>
                                 </ul>
                             </div>
                         </div>
@@ -832,7 +894,7 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     if (!standalone && isOpen !== undefined && onOpenChange !== undefined) {
         return (
             <>
-                <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl" scrollBehavior="inside">
+                <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="3xl" scrollBehavior="inside">
                     <ModalContent>
                         {() => (
                             <>

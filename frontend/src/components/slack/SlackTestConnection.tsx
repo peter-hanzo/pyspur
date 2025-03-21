@@ -259,7 +259,7 @@ const SlackTestConnection: React.FC<SlackTestConnectionProps> = ({
     )
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose}>
+        <Modal isOpen={isOpen} onClose={handleClose} size="3xl" scrollBehavior="inside">
             {showResult ? renderTestResult() : renderTestInput()}
         </Modal>
     )
