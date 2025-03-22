@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import traceback
 from datetime import UTC, datetime
 from typing import Any, Callable, Dict, List, Optional, cast
 
@@ -79,8 +80,6 @@ async def handle_socket_mode_event(
 
     except Exception as e:
         logger.error(f"Error in handle_socket_mode_event: {e}")
-        import traceback
-
         logger.error(f"Error details: {traceback.format_exc()}")
     finally:
         db.close()
@@ -244,8 +243,6 @@ async def _trigger_workflow(
 
     except Exception as e:
         logger.error(f"Error triggering workflow for agent {agent.id}: {e}")
-        import traceback
-
         logger.error(f"Traceback: {traceback.format_exc()}")
         say(text=f"Sorry, I encountered an error: {str(e)}")
 
@@ -356,8 +353,6 @@ async def _send_workflow_results_to_slack(
 
     except Exception as e:
         logger.error(f"Error sending workflow results to Slack: {e}")
-        import traceback
-
         logger.error(f"Traceback: {traceback.format_exc()}")
 
         # Try to send error message

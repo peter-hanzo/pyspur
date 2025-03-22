@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import threading
+import traceback
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional
 
@@ -98,8 +99,6 @@ class SocketModeClient:
             logger.error(f"Error in Slack app for agent {agent_id}: {error}")
 
             # Log detailed error information for debugging
-            import traceback
-
             logger.error(f"Error details: {traceback.format_exc()}")
 
     def _process_event(
@@ -180,14 +179,10 @@ class SocketModeClient:
                         loop.run_until_complete(callback_result)
                 except Exception as e:
                     logger.error(f"Error executing coroutine: {e}")
-                    import traceback
-
                     logger.error(f"Coroutine error details: {traceback.format_exc()}")
 
         except Exception as e:
             logger.error(f"Error processing event for agent {agent_id}: {e}")
-            import traceback
-
             logger.error(f"Error details: {traceback.format_exc()}")
         finally:
             db.close()
@@ -209,19 +204,18 @@ class SocketModeClient:
 
             # Get the tokens from the agent
             bot_token = getattr(agent, "slack_bot_token", None)
-            if not bot_token:
-                # Try to get token from secure token store
-                from ...api.secure_token_store import get_token_store
+            app_token = getattr(agent, "slack_app_token", None)
 
-                token_store = get_token_store()
+            # Initialize token store once to avoid redundant imports
+            from ...api.secure_token_store import get_token_store
+
+            token_store = get_token_store()
+
+            # Try to get tokens from secure token store if not available on agent
+            if not bot_token:
                 bot_token = token_store.get_token(agent_id, "bot_token")
 
-            app_token = getattr(agent, "slack_app_token", None)
             if not app_token:
-                # Try to get token from secure token store
-                from ...api.secure_token_store import get_token_store
-
-                token_store = get_token_store() if "token_store" not in locals() else token_store
                 app_token = token_store.get_token(agent_id, "app_token")
 
             # For Socket Mode, signing secret is optional
@@ -308,15 +302,12 @@ class SocketModeClient:
                 return True
 
             except Exception as e:
+                # Handle exception from socket mode initialization
                 logger.error(f"Error starting socket mode for agent {agent_id}: {e}")
-                import traceback
-
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 return False
         except Exception as e:
             logger.error(f"Error in socket mode setup for agent {agent_id}: {e}")
-            import traceback
-
             logger.error(f"Traceback: {traceback.format_exc()}")
             return False
         finally:
