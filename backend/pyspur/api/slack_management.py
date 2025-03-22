@@ -1140,6 +1140,20 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
             status_code=400, detail="SLACK_SIGNING_SECRET environment variable not configured"
         )
 
+    # Check if socket mode is disabled in the main process
+    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
+    if socket_mode_disabled:
+        return SlackSocketModeResponse(
+            agent_id=agent_id,
+            socket_mode_active=True,
+            message="Socket Mode request accepted. Socket Mode is managed by dedicated workers.",
+        )
+
     # Start socket mode
     success = socket_mode_client.start_socket_mode(agent_id)
 
@@ -1158,6 +1172,20 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    # Check if socket mode is disabled in the main process
+    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
+    if socket_mode_disabled:
+        return SlackSocketModeResponse(
+            agent_id=agent_id,
+            socket_mode_active=False,
+            message="Socket Mode stop request accepted. Socket Mode is managed by dedicated workers.",
+        )
+
     # Stop socket mode
     success = socket_mode_client.stop_socket_mode(agent_id)
 
@@ -1175,6 +1203,29 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Check if socket mode is disabled in the main process
+    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
+    if socket_mode_disabled:
+        # In this case, we need to check with the database if there should be a worker
+        # handling this agent
+        agent_is_active = (
+            bool(agent.is_active)
+            and bool(agent.trigger_enabled)
+            and bool(agent.has_bot_token)
+            and agent.workflow_id is not None
+        )
+
+        return SlackSocketModeResponse(
+            agent_id=agent_id,
+            socket_mode_active=agent_is_active,
+            message=f"Socket Mode is {'active' if agent_is_active else 'inactive'} (managed by dedicated workers)",
+        )
 
     is_active = socket_mode_client.is_running(agent_id)
 

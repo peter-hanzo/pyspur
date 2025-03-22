@@ -11,7 +11,7 @@ services:
     restart: on-failure
 
   backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.backend
       target: ${ENVIRONMENT:-development}
@@ -28,9 +28,33 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      - SOCKET_MODE_DISABLED=true
+
+  slack-socket-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: ${ENVIRONMENT:-development}
+    env_file:
+      - ./.env.example
+      - ./.env
+    command: python -m pyspur.integrations.slack.socket_worker
+    volumes:
+      - .:/pyspur
+      - ./.env:/pyspur/backend/.env
+      - pyspur_data:/pyspur/backend/data
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    deploy:
+      replicas: ${SOCKET_WORKERS:-1}
+    restart: unless-stopped
 
   frontend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.frontend
       target: ${ENVIRONMENT:-development}

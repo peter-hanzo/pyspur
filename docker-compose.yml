@@ -15,6 +15,27 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      - SOCKET_MODE_DISABLED=true
+
+  slack-socket-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.socket
+    env_file:
+      - ./.env.example
+      - ./.env
+    volumes:
+      - ./.env:/app/.env
+      - pyspur_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    deploy:
+      replicas: ${SOCKET_WORKERS:-2}
+    restart: unless-stopped
 
   db:
     image: postgres:17-alpine
