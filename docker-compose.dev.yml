@@ -9,6 +9,8 @@ services:
       - backend
       - frontend
     restart: on-failure
+    networks:
+      - pyspur_network
 
   backend:
     build:
@@ -23,6 +25,7 @@ services:
       - .:/pyspur
       - ./.env:/pyspur/backend/.env
       - pyspur_data:/pyspur/backend/data
+      - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -30,6 +33,8 @@ services:
         condition: service_healthy
     environment:
       - SOCKET_MODE_DISABLED=true
+    networks:
+      - pyspur_network
 
   slack-socket-worker:
     build:
@@ -44,6 +49,7 @@ services:
       - .:/pyspur
       - ./.env:/pyspur/backend/.env
       - pyspur_data:/pyspur/backend/data
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
         condition: service_healthy
@@ -52,6 +58,8 @@ services:
     deploy:
       replicas: ${SOCKET_WORKERS:-1}
     restart: unless-stopped
+    networks:
+      - pyspur_network
 
   frontend:
     build:
@@ -67,6 +75,8 @@ services:
       - /pyspur/frontend/node_modules
     depends_on:
       - backend
+    networks:
+      - pyspur_network
 
   db:
     image: postgres:17-alpine
@@ -80,6 +90,14 @@ services:
         test: ['CMD-SHELL', 'pg_isready -U pyspur']
         interval: 5s
         timeout: 5s
+    networks:
+      - pyspur_network
+
+networks:
+  pyspur_network:
+    name: pyspur_network
+    driver: bridge
+
 volumes:
   postgres_data:
   pyspur_data:  # Used to persist data like uploaded files, eval outputs, datasets

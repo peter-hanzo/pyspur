@@ -57,7 +57,6 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
     const [botToken, setBotToken] = useState('')
     const [userToken, setUserToken] = useState('')
     const [appToken, setAppToken] = useState('')
-    const [enableSocketMode, setEnableSocketMode] = useState(false)
 
     const maskToken = (token: string) => token.length > 8 ? token.substring(0, 4) + "••••" + token.substring(token.length - 4) : token
 
@@ -80,11 +79,6 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
             }
 
             // Validate token based on socket mode
-            if (enableSocketMode && !appToken.trim()) {
-                setAlert({ type: 'danger', message: 'App Token is required for Socket Mode' })
-                return
-            }
-
             if (!botToken.trim()) {
                 setAlert({ type: 'danger', message: 'Bot Token is required for Slack integration' })
                 return
@@ -246,22 +240,6 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
                                                 description="What users will see in Slack"
                                             />
 
-                                            <div className="flex items-center gap-2">
-                                                <Switch
-                                                    size="md"
-                                                    isSelected={enableSocketMode}
-                                                    onValueChange={setEnableSocketMode}
-                                                />
-                                                <div>
-                                                    <span className="text-sm font-medium">Socket Mode</span>
-                                                    <p className="text-xs text-default-500">
-                                                        {enableSocketMode
-                                                            ? "Required App-Level Token (xapp-)"
-                                                            : "Standard Slack Events API"}
-                                                    </p>
-                                                </div>
-                                            </div>
-
                                             <div className="md:col-span-2">
                                                 <Input
                                                     label="Slack Bot Token"
@@ -295,13 +273,12 @@ const SlackAgentWizard: React.FC<SlackAgentWizardProps> = ({
 
                                             <div className="md:col-span-2">
                                                 <Input
-                                                    label={`Slack App Token ${enableSocketMode ? '(Required)' : '(Optional)'}`}
+                                                    label="Slack App Token (Optional)"
                                                     placeholder="xapp-..."
                                                     value={appToken}
                                                     onChange={(e) => setAppToken(e.target.value)}
-                                                    description={enableSocketMode ? "Required for Socket Mode connections" : "Optional for Socket Mode in the future"}
+                                                    description="Required for Socket Mode connections which can be enabled after creation"
                                                     endContent={appToken && <span>{maskToken(appToken)}</span>}
-                                                    isRequired={enableSocketMode}
                                                 />
                                                 <p className="text-xs text-default-500 mt-1">
                                                     <Info className="h-3 w-3 inline mr-1" />

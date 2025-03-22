@@ -9,6 +9,7 @@ import os
 import random
 import signal
 import sys
+import time
 from typing import Any, Dict, List, Set
 
 from loguru import logger
@@ -22,6 +23,15 @@ from ...models.workflow_model import WorkflowModel  # noqa: F401
 from ...models.workflow_version_model import WorkflowVersionModel  # noqa: F401
 from .socket_client import SocketModeClient, get_socket_mode_client
 
+# Try to import psutil for zombie process detection
+try:
+    import psutil
+
+    HAVE_PSUTIL = True
+except ImportError:
+    HAVE_PSUTIL = False
+    logger.warning("psutil not available, zombie socket process detection disabled")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger.info("Starting Slack Socket Mode Worker")
@@ -30,10 +40,13 @@ logger.info("Starting Slack Socket Mode Worker")
 HEALTH_CHECK_INTERVAL = 30
 
 # Default monitor refresh interval (in seconds)
-DEFAULT_REFRESH_INTERVAL = 60
+DEFAULT_REFRESH_INTERVAL = 15
 
 # Maximum backoff time for reconnection attempts (in seconds)
 MAX_BACKOFF = 300
+
+# Maximum time to wait for a socket to stop before taking more drastic measures (in seconds)
+MAX_SOCKET_STOP_WAIT = 3
 
 # Track socket connection failures
 connection_failures: Dict[int, int] = {}
@@ -41,8 +54,18 @@ connection_failures: Dict[int, int] = {}
 reconnection_attempts: Dict[int, int] = {}
 # Track sockets that have been verified as healthy
 healthy_sockets: Set[int] = set()
+# Counter to track the number of consecutive shutdown failures
+shutdown_failures = 0
+
+# Import handler functions from slack_management
+from ...api.slack_management import handle_socket_mode_event_sync
 
 configure_mappers()
+
+# Set the workflow trigger callback
+socket_client = get_socket_mode_client()
+socket_client.set_workflow_trigger_callback(handle_socket_mode_event_sync)
+logger.info("Set workflow trigger callback for socket worker")
 
 
 def get_active_agents(db: Session) -> List[SlackAgentModel]:
@@ -111,6 +134,18 @@ def calculate_backoff(agent_id: int) -> float:
     return base_delay + jitter
 
 
+# Function to find and kill zombie slack processes - simplified to avoid psutil issues
+def kill_zombie_slack_processes() -> int:
+    """Find and kill any zombie Slack socket processes
+
+    Returns:
+        The number of processes killed
+
+    """
+    # Disabled due to psutil compatibility issues - just return 0 silently
+    return 0
+
+
 async def monitor_and_restart_sockets(
     socket_client: SocketModeClient, refresh_interval: int = DEFAULT_REFRESH_INTERVAL
 ):
@@ -124,9 +159,21 @@ async def monitor_and_restart_sockets(
     active_agent_ids: Dict[int, bool] = {}  # Maps agent_id to active status
     # Keep track of socket_mode_enabled status per agent
     socket_enabled_status: Dict[int, bool] = {}
+    # Track sockets we've tried to stop but may need additional force-stopping
+    socket_cleanup_attempts: Dict[int, int] = {}
+
+    # Log once at startup that zombie detection is disabled
+    logger.warning("Zombie process detection is disabled due to psutil compatibility issues")
 
     while True:
         try:
+            # Check for zombie socket processes - disabled due to psutil issues
+            try:
+                # This is now a no-op but we keep the structure in case we need to re-enable later
+                kill_zombie_slack_processes()
+            except Exception as e:
+                logger.error(f"Error in zombie process detection: {e}")
+
             db = next(get_db())
             try:
                 # First check all existing sockets to see if any should be forcibly stopped
@@ -141,20 +188,63 @@ async def monitor_and_restart_sockets(
                         if not agent:
                             logger.warning(f"Agent {agent_id} no longer exists, stopping socket")
                             socket_client.stop_socket_mode(agent_id)
+                            logger.debug(
+                                f"After stop for nonexistent agent {agent_id}, handlers: {list(socket_client._socket_mode_handlers.keys())}"
+                            )
                             if agent_id in healthy_sockets:
                                 healthy_sockets.remove(agent_id)
+                            # Remove from active agents to prevent restart
+                            if agent_id in active_agent_ids:
+                                del active_agent_ids[agent_id]
+                            # Clear any failure tracking
                             if agent_id in connection_failures:
                                 del connection_failures[agent_id]
                             if agent_id in reconnection_attempts:
                                 del reconnection_attempts[agent_id]
+                            if agent_id in socket_cleanup_attempts:
+                                del socket_cleanup_attempts[agent_id]
                             continue
 
                         # Check if socket_mode_enabled is explicitly False
-                        if not agent.socket_mode_enabled:
-                            logger.info(
+                        socket_mode_enabled = bool(agent.socket_mode_enabled)
+                        if not socket_mode_enabled:
+                            global shutdown_failures
+
+                            logger.debug(
                                 f"Agent {agent_id} has socket_mode_enabled=False, stopping socket"
                             )
-                            socket_client.stop_socket_mode(agent_id)
+                            result = socket_client.stop_socket_mode(agent_id)
+                            logger.debug(f"Stop result for agent {agent_id}: {result}")
+                            logger.debug(
+                                f"After stop, handlers: {list(socket_client._socket_mode_handlers.keys())}"
+                            )
+
+                            # Wait briefly to see if socket actually stopped
+                            for _ in range(MAX_SOCKET_STOP_WAIT):
+                                if not socket_client.is_running(agent_id):
+                                    break
+                                # Socket is still running - wait and check again
+                                time.sleep(1)
+
+                            # If socket is STILL running after our wait, take more drastic measures
+                            if socket_client.is_running(agent_id):
+                                logger.warning(
+                                    f"Socket for agent {agent_id} STILL running after {MAX_SOCKET_STOP_WAIT}s - taking drastic measures"
+                                )
+                                shutdown_failures += 1
+
+                                # If we've had multiple failures, consider forcibly restarting the entire service
+                                if shutdown_failures >= 3:
+                                    logger.critical(
+                                        f"Multiple socket shutdown failures detected ({shutdown_failures}). Forcibly terminating process!"
+                                    )
+                                    # Force a process restart by exiting with non-zero code
+                                    # Docker or supervisor should restart the process
+                                    os._exit(1)  # More forceful than sys.exit()
+                            else:
+                                # Reset counter if we successfully stopped
+                                shutdown_failures = 0
+
                             if agent_id in healthy_sockets:
                                 healthy_sockets.remove(agent_id)
                             # Remove from active agents to prevent restart
@@ -166,12 +256,50 @@ async def monitor_and_restart_sockets(
                             if agent_id in reconnection_attempts:
                                 del reconnection_attempts[agent_id]
 
+                            # Track this socket for additional cleanup if needed
+                            socket_cleanup_attempts[agent_id] = (
+                                socket_cleanup_attempts.get(agent_id, 0) + 1
+                            )
+                            logger.debug(
+                                f"Updated socket_cleanup_attempts for {agent_id}: {socket_cleanup_attempts[agent_id]}"
+                            )
+
                         # Double check that socket is truly stopped when it should be
-                        if not agent.socket_mode_enabled and socket_client.is_running(agent_id):
+                        if not socket_mode_enabled and socket_client.is_running(agent_id):
                             logger.warning(
                                 f"Socket for agent {agent_id} is still running despite being disabled, forcing stop"
                             )
                             socket_client.stop_socket_mode(agent_id)
+
+                            # If we've tried to stop this socket multiple times, take more drastic measures
+                            cleanup_attempts = socket_cleanup_attempts.get(agent_id, 0)
+                            if cleanup_attempts >= 3:
+                                logger.warning(
+                                    f"Multiple attempts to stop socket for agent {agent_id} failed, using force cleanup"
+                                )
+                                # Access internal state to force removal
+                                if (
+                                    hasattr(socket_client, "_socket_mode_handlers")
+                                    and agent_id in socket_client._socket_mode_handlers
+                                ):
+                                    try:
+                                        # Try one more time with direct access
+                                        handler = socket_client._socket_mode_handlers[agent_id]
+                                        if hasattr(handler, "close"):
+                                            handler.close()
+                                        # Force remove from internal tracking
+                                        del socket_client._socket_mode_handlers[agent_id]
+                                        logger.info(
+                                            f"Forced cleanup of socket handler for agent {agent_id}"
+                                        )
+                                    except Exception as cleanup_error:
+                                        logger.error(
+                                            f"Error during forced socket cleanup: {cleanup_error}"
+                                        )
+
+                                # Reset counters after force cleanup
+                                if agent_id in socket_cleanup_attempts:
+                                    del socket_cleanup_attempts[agent_id]
 
                     except Exception as e:
                         logger.error(f"Error checking agent {agent_id} socket status: {e}")
@@ -284,7 +412,7 @@ async def monitor_and_restart_sockets(
 
                 # Log status summary
                 if active_agent_ids:
-                    logger.info(
+                    logger.debug(
                         f"Socket status: {len(healthy_sockets)}/{len(active_agent_ids)} connections healthy"
                     )
 

@@ -931,6 +931,14 @@ const Dashboard: React.FC = () => {
                     message: 'Socket Mode stopped successfully'
                 };
             } else {
+                // Check if the agent has an app token before starting socket mode
+                if (!agent.has_app_token) {
+                    return {
+                        success: false,
+                        message: 'App-level token (xapp-) required for Socket Mode. Configure it in the agent settings.'
+                    };
+                }
+
                 // Start socket mode
                 const response = await startSocketMode(agent.id);
 
@@ -1225,6 +1233,283 @@ const Dashboard: React.FC = () => {
                         )}
                     </AccordionItem>
                     <AccordionItem
+                        key="slack-agents"
+                        aria-label="Slack Agents"
+                        id="slack-section"
+                        title={
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xl font-semibold">Slack Agents</h3>
+                                {slackAgents.length > 0 && (
+                                    <Chip color="primary" variant="flat" size="sm">
+                                        {slackAgents.length}
+                                    </Chip>
+                                )}
+                            </div>
+                        }
+                    >
+                        {isLoadingSlackAgents ? (
+                            <div className="flex justify-center p-4">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : slackAgents.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-8">
+                                <div className="max-w-md w-full">
+                                    <div className="flex flex-col items-center mb-6">
+                                        <div className="bg-default-100 rounded-full p-4 mb-4">
+                                            <Icon icon="logos:slack-icon" width={32} height={32} />
+                                        </div>
+                                        <h4 className="text-lg font-medium mb-2 text-center">No Slack Agents Connected</h4>
+                                        <p className="text-default-500 mb-4 text-center">
+                                            Connect PySpur to your Slack workspace to create agents that can interact with your workflows.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <Button
+                                            color="primary"
+                                            startContent={<Icon icon="logos:slack-icon" width={20} />}
+                                            onPress={callHandleConnectToSlack}
+                                            isDisabled={isLoadingSlackAgents}
+                                            className="w-full"
+                                        >
+                                            Connect to Slack
+                                        </Button>
+                                        <Button
+                                            variant="bordered"
+                                            startContent={<Icon icon="lucide:help-circle" width={20} />}
+                                            onPress={callHandleShowSlackSetup}
+                                            className="w-full"
+                                        >
+                                            View Setup Guide
+                                        </Button>
+                                        <Button
+                                            variant="flat"
+                                            startContent={<Icon icon="lucide:settings" width={20} />}
+                                            onPress={handleGoToSettings}
+                                            className="w-full"
+                                        >
+                                            Configure API Keys
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-end mb-4">
+                                    <Button
+                                        className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
+                                        startContent={<Icon icon="solar:add-circle-bold" width={16} className="flex-none text-background/60" />}
+                                        onPress={() => router.push('/slack/create-agent')}
+                                    >
+                                        Create New Agent
+                                    </Button>
+                                </div>
+
+                                <Table aria-label="Slack agents table" isHeaderSticky>
+                                    <TableHeader>
+                                        <TableColumn>NAME</TableColumn>
+                                        <TableColumn>WORKSPACE</TableColumn>
+                                        <TableColumn>TYPE</TableColumn>
+                                        <TableColumn>WORKFLOW</TableColumn>
+                                        <TableColumn>STATUS</TableColumn>
+                                        <TableColumn>
+                                            <div className="flex items-center gap-1">
+                                                SOCKET MODE
+                                                <Tooltip
+                                                    content={
+                                                        <div className="max-w-xs">
+                                                            <p className="text-small font-medium mb-1">Socket Mode establishes a WebSocket connection between your Slack app and PySpur, allowing you to receive events in real-time without exposing a public URL.</p>
+                                                            <p className="text-tiny">Once enabled, your agent will automatically process Slack events according to your trigger settings. Socket Mode requires both a bot token and an app-level token.</p>
+                                                        </div>
+                                                    }
+                                                    placement="top"
+                                                    showArrow={true}
+                                                >
+                                                    <Icon
+                                                        icon="solar:socket-outline"
+                                                        className="text-default-400 cursor-help"
+                                                        width={16}
+                                                    />
+                                                </Tooltip>
+                                            </div>
+                                        </TableColumn>
+                                        <TableColumn>ACTIONS</TableColumn>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {slackAgents.map((agent) => (
+                                            <TableRow key={agent.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon icon="solar:bot-bold" width={20} />
+                                                        <span>{agent.name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{agent.slack_team_name}</TableCell>
+                                                <TableCell>
+                                                    {logAgentInfo(agent)}
+                                                    {agent.spur_type ? (
+                                                        <SpurTypeChip spurType={agent.spur_type} />
+                                                    ) : (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            startContent={<Icon icon="lucide:bot" width={16} />}
+                                                        >
+                                                            Agent
+                                                        </Chip>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {agent.workflow_id ? (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            color="primary"
+                                                            className="cursor-pointer"
+                                                            onClick={() => window.open(`/workflows/${agent.workflow_id}`, '_blank')}
+                                                        >
+                                                            {agent.workflow_id}
+                                                        </Chip>
+                                                    ) : (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            color="warning"
+                                                        >
+                                                            Not Connected
+                                                        </Chip>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        color={agent.is_active ? "success" : "danger"}
+                                                        variant="flat"
+                                                    >
+                                                        {agent.is_active ? "Active" : "Inactive"}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {agent.socket_mode_enabled ? (
+                                                            <Badge color="success" variant="flat">
+                                                                Active
+                                                            </Badge>
+                                                        ) : !agent.has_app_token ? (
+                                                            <Badge color="warning" variant="flat">
+                                                                Missing App Token
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge color="default" variant="flat">
+                                                                Inactive
+                                                            </Badge>
+                                                        )}
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            color={agent.socket_mode_enabled ? "danger" : !agent.has_app_token ? "warning" : "success"}
+                                                            onPress={async () => {
+                                                                // Check if the agent has the required tokens
+                                                                if (!agent.has_bot_token) {
+                                                                    onAlert('Bot token required for Socket Mode. Configure it now by clicking on the key icon.', 'warning');
+                                                                    return;
+                                                                }
+
+                                                                if (!agent.has_app_token && agent.socket_mode_enabled === false) {
+                                                                    onAlert('App-level token (xapp-) required for Socket Mode. Configure it in the agent settings.', 'warning');
+                                                                    return;
+                                                                }
+
+                                                                const result = await handleSocketModeToggle(agent, agent.socket_mode_enabled || false, setSlackAgents);
+                                                                onAlert(result.message, result.success ? 'success' : 'danger');
+                                                            }}
+                                                            isDisabled={!agent.workflow_id || !agent.has_bot_token || (!agent.socket_mode_enabled && !agent.has_app_token)}
+                                                            aria-label={agent.socket_mode_enabled ? "Stop Socket Mode" : "Start Socket Mode"}
+                                                        >
+                                                            <Tooltip content={
+                                                                agent.socket_mode_enabled
+                                                                ? "Stop Socket Mode"
+                                                                : !agent.has_app_token
+                                                                ? "App-level token required. Click the key icon to configure tokens."
+                                                                : "Start Socket Mode"
+                                                            }>
+                                                                <Icon
+                                                                    icon={
+                                                                        agent.socket_mode_enabled
+                                                                        ? "solar:stop-circle-bold"
+                                                                        : !agent.has_app_token
+                                                                        ? "solar:danger-triangle-bold"
+                                                                        : "solar:play-circle-bold"
+                                                                    }
+                                                                    width={16}
+                                                                />
+                                                            </Tooltip>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            onPress={() => {
+                                                                if (!agent.has_bot_token) {
+                                                                    onAlert('Bot token required. Configure it now by clicking on the key icon.', 'warning');
+                                                                    return;
+                                                                }
+                                                                console.log(`Testing connection for agent ${agent.id} (${agent.name})`);
+
+                                                                // Store the agent for the modal
+                                                                setTestConnectionAgent(agent);
+
+                                                                // Show the test connection input modal instead of immediately testing
+                                                                setShowTestConnectionInputModal(true);
+                                                            }}
+                                                            isDisabled={!agent.workflow_id}
+                                                            aria-label="Test Connection"
+                                                        >
+                                                            <Tooltip content={agent.has_bot_token ? "Test Connection" : "Bot Token Required for Testing"}>
+                                                                <Icon icon={agent.has_bot_token ? "solar:test-tube-bold" : "lucide:alert-triangle"} width={16} className={!agent.has_bot_token ? "text-warning" : ""} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            onPress={() => handleOpenAgentEditor(agent)}
+                                                            aria-label="Edit Agent"
+                                                        >
+                                                            <Tooltip content="Edit Agent">
+                                                                <Icon icon="solar:pen-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            color="danger"
+                                                            onPress={() => {
+                                                                // Set agent to delete and show confirmation modal
+                                                                setSelectedAgentForDetail(agent);
+                                                                setShowDeleteConfirmModal(true);
+                                                            }}
+                                                            aria-label="Delete Agent"
+                                                        >
+                                                            <Tooltip content="Delete Agent">
+                                                                <Icon icon="solar:trash-bin-trash-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </AccordionItem>
+                    <AccordionItem
                         key="human-tasks"
                         aria-label="Human Tasks"
                         title={
@@ -1319,255 +1604,6 @@ const Dashboard: React.FC = () => {
                         ) : (
                             <div className="flex flex-col items-center justify-center p-8 text-center">
                                 <p className="text-muted-foreground">No tasks currently requiring human approval.</p>
-                            </div>
-                        )}
-                    </AccordionItem>
-                    <AccordionItem
-                        key="slack-agents"
-                        aria-label="Slack Agents"
-                        id="slack-section"
-                        title={
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-xl font-semibold">Slack Agents</h3>
-                                {slackAgents.length > 0 && (
-                                    <Chip color="primary" variant="flat" size="sm">
-                                        {slackAgents.length}
-                                    </Chip>
-                                )}
-                            </div>
-                        }
-                    >
-                        {isLoadingSlackAgents ? (
-                            <div className="flex justify-center p-4">
-                                <Spinner size="lg" />
-                            </div>
-                        ) : slackAgents.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-8">
-                                <div className="max-w-md w-full">
-                                    <div className="flex flex-col items-center mb-6">
-                                        <div className="bg-default-100 rounded-full p-4 mb-4">
-                                            <Icon icon="logos:slack-icon" width={32} height={32} />
-                                        </div>
-                                        <h4 className="text-lg font-medium mb-2 text-center">No Slack Agents Connected</h4>
-                                        <p className="text-default-500 mb-4 text-center">
-                                            Connect PySpur to your Slack workspace to create agents that can interact with your workflows.
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3">
-                                        <Button
-                                            color="primary"
-                                            startContent={<Icon icon="logos:slack-icon" width={20} />}
-                                            onPress={callHandleConnectToSlack}
-                                            isDisabled={isLoadingSlackAgents}
-                                            className="w-full"
-                                        >
-                                            Connect to Slack
-                                        </Button>
-                                        <Button
-                                            variant="bordered"
-                                            startContent={<Icon icon="lucide:help-circle" width={20} />}
-                                            onPress={callHandleShowSlackSetup}
-                                            className="w-full"
-                                        >
-                                            View Setup Guide
-                                        </Button>
-                                        <Button
-                                            variant="flat"
-                                            startContent={<Icon icon="lucide:settings" width={20} />}
-                                            onPress={handleGoToSettings}
-                                            className="w-full"
-                                        >
-                                            Configure API Keys
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-default-50 border border-default-200 rounded-md max-w-2xl">
-                                        <h4 className="font-medium text-medium mb-2 flex items-center gap-2">
-                                            <Icon icon="solar:socket-outline" width={20} />
-                                            Socket Mode
-                                        </h4>
-                                        <p className="text-small text-default-600 mb-2">
-                                            Socket Mode establishes a WebSocket connection between your Slack app and PySpur, allowing you to receive events in real-time without exposing a public URL.
-                                        </p>
-                                        <p className="text-tiny text-default-500">
-                                            Once enabled, your agent will automatically process Slack events according to your trigger settings. Socket Mode requires both a bot token and an app-level token.
-                                        </p>
-                                    </div>
-
-                                    <Button
-                                        className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
-                                        startContent={<Icon icon="solar:add-circle-bold" width={16} className="flex-none text-background/60" />}
-                                        onPress={() => router.push('/slack/create-agent')}
-                                    >
-                                        Create New Agent
-                                    </Button>
-                                </div>
-
-                                <Table aria-label="Slack agents table" isHeaderSticky>
-                                    <TableHeader>
-                                        <TableColumn>NAME</TableColumn>
-                                        <TableColumn>WORKSPACE</TableColumn>
-                                        <TableColumn>TYPE</TableColumn>
-                                        <TableColumn>WORKFLOW</TableColumn>
-                                        <TableColumn>STATUS</TableColumn>
-                                        <TableColumn>SOCKET MODE</TableColumn>
-                                        <TableColumn>ACTIONS</TableColumn>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {slackAgents.map((agent) => (
-                                            <TableRow key={agent.id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <Icon icon="solar:bot-bold" width={20} />
-                                                        <span>{agent.name}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>{agent.slack_team_name}</TableCell>
-                                                <TableCell>
-                                                    {logAgentInfo(agent)}
-                                                    {agent.spur_type ? (
-                                                        <SpurTypeChip spurType={agent.spur_type} />
-                                                    ) : (
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            startContent={<Icon icon="lucide:bot" width={16} />}
-                                                        >
-                                                            Agent
-                                                        </Chip>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {agent.workflow_id ? (
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            color="primary"
-                                                        >
-                                                            {agent.workflow_id}
-                                                        </Chip>
-                                                    ) : (
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            color="warning"
-                                                        >
-                                                            Not Connected
-                                                        </Chip>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        color={agent.is_active ? "success" : "danger"}
-                                                        variant="flat"
-                                                    >
-                                                        {agent.is_active ? "Active" : "Inactive"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        {agent.socket_mode_enabled ? (
-                                                            <Badge color="success" variant="flat">
-                                                                Active
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge color="default" variant="flat">
-                                                                Inactive
-                                                            </Badge>
-                                                        )}
-                                                        <Button
-                                                            isIconOnly
-                                                            size="sm"
-                                                            variant="light"
-                                                            color={agent.socket_mode_enabled ? "danger" : "success"}
-                                                            onPress={async () => {
-                                                                // Check if the agent has the required tokens
-                                                                if (!agent.has_bot_token) {
-                                                                    onAlert('Bot token required for Socket Mode. Configure it now by clicking on the key icon.', 'warning');
-                                                                    return;
-                                                                }
-
-                                                                if (!agent.has_app_token && agent.socket_mode_enabled === false) {
-                                                                    onAlert('App-level token (xapp-) required for Socket Mode. Configure it in the agent settings.', 'warning');
-                                                                    return;
-                                                                }
-
-                                                                const result = await handleSocketModeToggle(agent, agent.socket_mode_enabled || false, setSlackAgents);
-                                                                onAlert(result.message, result.success ? 'success' : 'danger');
-                                                            }}
-                                                            isDisabled={!agent.workflow_id || !agent.has_bot_token}
-                                                            aria-label={agent.socket_mode_enabled ? "Stop Socket Mode" : "Start Socket Mode"}
-                                                        >
-                                                            <Tooltip content={agent.socket_mode_enabled ? "Stop Socket Mode" : "Start Socket Mode"}>
-                                                                <Icon icon={agent.socket_mode_enabled ? "solar:stop-circle-bold" : "solar:play-circle-bold"} width={16} />
-                                                            </Tooltip>
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
-                                                            isIconOnly
-                                                            size="sm"
-                                                            variant="light"
-                                                            onPress={() => {
-                                                                if (!agent.has_bot_token) {
-                                                                    onAlert('Bot token required. Configure it now by clicking on the key icon.', 'warning');
-                                                                    return;
-                                                                }
-                                                                console.log(`Testing connection for agent ${agent.id} (${agent.name})`);
-
-                                                                // Store the agent for the modal
-                                                                setTestConnectionAgent(agent);
-
-                                                                // Show the test connection input modal instead of immediately testing
-                                                                setShowTestConnectionInputModal(true);
-                                                            }}
-                                                            isDisabled={!agent.workflow_id}
-                                                            aria-label="Test Connection"
-                                                        >
-                                                            <Tooltip content={agent.has_bot_token ? "Test Connection" : "Bot Token Required for Testing"}>
-                                                                <Icon icon={agent.has_bot_token ? "solar:test-tube-bold" : "lucide:alert-triangle"} width={16} className={!agent.has_bot_token ? "text-warning" : ""} />
-                                                            </Tooltip>
-                                                        </Button>
-                                                        <Button
-                                                            isIconOnly
-                                                            size="sm"
-                                                            variant="light"
-                                                            onPress={() => handleOpenAgentEditor(agent)}
-                                                            aria-label="Edit Agent"
-                                                        >
-                                                            <Tooltip content="Edit Agent">
-                                                                <Icon icon="solar:pen-bold" width={16} />
-                                                            </Tooltip>
-                                                        </Button>
-                                                        <Button
-                                                            isIconOnly
-                                                            size="sm"
-                                                            variant="light"
-                                                            color="danger"
-                                                            onPress={() => {
-                                                                // Set agent to delete and show confirmation modal
-                                                                setSelectedAgentForDetail(agent);
-                                                                setShowDeleteConfirmModal(true);
-                                                            }}
-                                                            aria-label="Delete Agent"
-                                                        >
-                                                            <Tooltip content="Delete Agent">
-                                                                <Icon icon="solar:trash-bin-trash-bold" width={16} />
-                                                            </Tooltip>
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
                             </div>
                         )}
                     </AccordionItem>

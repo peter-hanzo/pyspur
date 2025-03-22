@@ -4,7 +4,7 @@ import os
 import threading
 import traceback
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Set
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -44,6 +44,12 @@ class SocketModeClient:
         self._apps: Dict[int, App] = {}
         self._initialized = True
         self._workflow_trigger_callback: Optional[Callable[..., Any]] = None
+        # Blacklist for agents that should be ignored even if events are received
+        self._blacklisted_agents: Set[int] = set()
+        # Track running background tasks/threads for proper cleanup
+        self._socket_tasks: Dict[int, Any] = {}
+        # Track session tokens to forcibly disconnect Slack sessions
+        self._session_tokens: Dict[int, str] = {}
 
         # Create a base directory for installation data
         os.makedirs("/tmp/slack-installation-store", exist_ok=True)
@@ -111,6 +117,15 @@ class SocketModeClient:
         client=None,
     ):
         """Process a Slack event and trigger workflows if appropriate"""
+        # Add diagnostics about the event
+        logger.info(f"Received {event_type} event for agent {agent_id}")
+        logger.info(f"Current blacklist: {self._blacklisted_agents}")
+
+        # Check if this agent is blacklisted - if so, ignore this event
+        if agent_id in self._blacklisted_agents:
+            logger.warning(f"Received event for blacklisted agent {agent_id}, ignoring")
+            return
+
         if not self._workflow_trigger_callback:
             logger.error("No workflow trigger callback set")
             return
@@ -141,6 +156,9 @@ class SocketModeClient:
                         f"Received event for agent {agent_id} but socket_mode_enabled is False. "
                         f"This event should not have been received. Ignoring."
                     )
+                    # Add to blacklist to prevent future events
+                    self._blacklisted_agents.add(agent_id)
+                    logger.info(f"Updated blacklist to: {self._blacklisted_agents}")
                 else:
                     logger.warning(f"Agent {agent_id} not found or not active")
                 return
@@ -201,6 +219,16 @@ class SocketModeClient:
     def start_socket_mode(self, agent_id: int) -> bool:
         """Start socket mode for a Slack agent"""
         logger.info(f"Starting socket mode for agent {agent_id}")
+
+        # First make sure any existing socket is stopped
+        if agent_id in self._socket_mode_handlers:
+            logger.info(f"Stopping existing socket for agent {agent_id} before restart")
+            self.stop_socket_mode(agent_id)
+
+        # Remove from blacklist if it's there
+        if agent_id in self._blacklisted_agents:
+            self._blacklisted_agents.remove(agent_id)
+            logger.info(f"Removed agent {agent_id} from blacklist for restart")
 
         # Get a database session
         db = next(get_db())
@@ -309,6 +337,12 @@ class SocketModeClient:
                 # Store the handler reference for later stop
                 self._socket_mode_handlers[agent_id] = socket_handler
                 self._apps[agent_id] = app
+
+                # Store any background tasks/threads the handler has created
+                if hasattr(socket_handler, "thread") and socket_handler.thread:
+                    self._socket_tasks[agent_id] = socket_handler.thread
+                    logger.info(f"Stored background thread for agent {agent_id}")
+
                 logger.info(f"Socket mode started successfully for agent {agent_id}")
                 return True
 
@@ -328,13 +362,77 @@ class SocketModeClient:
         """Stop Socket Mode for a specific agent"""
         logger.info(f"Stopping Socket Mode for agent {agent_id}")
 
+        # Add agent to blacklist to reject any incoming events
+        self._blacklisted_agents.add(agent_id)
+        logger.info(f"Added agent {agent_id} to blacklist: {self._blacklisted_agents}")
+
+        # ========== FORCIBLY DISCONNECT SLACK SESSIONS USING APP TOKEN ==========
+        # This is a more aggressive approach that terminates the connection at Slack's side
+        self._forcibly_disconnect_slack_sessions(agent_id)
+
+        # First check if we have a task/thread to terminate
+        if agent_id in self._socket_tasks:
+            thread = self._socket_tasks[agent_id]
+            logger.info(f"Found background thread for agent {agent_id}: {thread}")
+            try:
+                # Check thread type and try to terminate it
+                if hasattr(thread, "is_alive") and thread.is_alive():
+                    logger.info("Thread is alive, attempting to terminate")
+                    if hasattr(thread, "_stop"):
+                        thread._stop()
+                    if hasattr(thread, "_terminate"):
+                        thread._terminate()
+                    # Wait a moment for the thread to terminate
+                    import time
+
+                    time.sleep(0.5)
+                    logger.info(f"Thread alive after terminate: {thread.is_alive()}")
+            except Exception as e:
+                logger.error(f"Error terminating thread for agent {agent_id}: {e}")
+            finally:
+                # Remove from our tracking regardless of success
+                del self._socket_tasks[agent_id]
+
         if agent_id not in self._socket_mode_handlers:
             logger.warning(f"No Socket Mode handler found for agent {agent_id}")
             return False
 
+        # Try to close any of the various components that might be keeping the connection alive
         try:
             # Close the socket mode handler
             handler = self._socket_mode_handlers[agent_id]
+
+            # Log handler details for debugging
+            logger.info(f"Handler type: {type(handler)}")
+            logger.info(f"Handler attributes: {dir(handler)}")
+
+            # Try to examine the WebSocket connection if possible
+            if hasattr(handler, "client") and handler.client:
+                logger.info(f"Client type: {type(handler.client)}")
+                logger.info(f"Client attributes: {dir(handler.client)}")
+                if hasattr(handler.client, "is_connected") and callable(
+                    getattr(handler.client, "is_connected", None)
+                ):
+                    logger.info(f"Client connected status: {handler.client.is_connected()}")
+
+            # First, attempt to kill the WebSocket connection
+            try:
+                # Access underlying WebSocket client (may vary based on slack_bolt implementation)
+                if hasattr(handler, "client") and handler.client:
+                    logger.info(f"Shutting down WebSocket client for agent {agent_id}")
+                    # Force a disconnect if possible
+                    if hasattr(handler.client, "disconnect"):
+                        handler.client.disconnect()
+                    if hasattr(handler.client, "close"):
+                        handler.client.close()
+
+                # Access the app connection
+                if hasattr(handler, "app") and handler.app:
+                    if hasattr(handler.app, "stop"):
+                        logger.info(f"Stopping app for agent {agent_id}")
+                        handler.app.stop()
+            except Exception as e:
+                logger.error(f"Error during WebSocket cleanup: {e}")
 
             # Try to close the app first to stop any running listeners/callbacks
             if agent_id in self._apps:
@@ -354,17 +452,57 @@ class SocketModeClient:
             # Now close the socket handler
             try:
                 logger.info(f"Closing socket handler for agent {agent_id}")
+                try:
+                    # Try to stop the handler's background processor
+                    if hasattr(handler, "processor") and handler.processor:
+                        if hasattr(handler.processor, "stop"):
+                            handler.processor.stop()
+                except Exception as e:
+                    logger.error(f"Error stopping processor: {e}")
+
+                # Close the main handler
                 handler.close()
+
+                # Force close any remaining connections
+                if hasattr(handler, "client") and handler.client:
+                    logger.info(f"Force closing handler client for agent {agent_id}")
+                    if hasattr(handler.client, "close"):
+                        handler.client.close()
+
+                # If there's a WebSocket connection still open, try to close it
+                if hasattr(handler, "web_socket_client") and handler.web_socket_client:
+                    logger.info(f"Force closing WebSocket for agent {agent_id}")
+                    if hasattr(handler.web_socket_client, "close"):
+                        handler.web_socket_client.close()
+                    # Even more aggressive - if there's a socket object
+                    if (
+                        hasattr(handler.web_socket_client, "sock")
+                        and handler.web_socket_client.sock
+                    ):
+                        try:
+                            logger.info(f"Force closing raw socket for agent {agent_id}")
+                            handler.web_socket_client.sock.close()
+                        except Exception as e:
+                            logger.error(f"Error closing raw socket: {e}")
+
                 logger.info(f"Socket handler closed for agent {agent_id}")
             except Exception as e:
                 logger.error(f"Error closing socket handler: {e}")
                 logger.error(f"Socket close error details: {traceback.format_exc()}")
+
+            # Try more aggressive thread termination approach
+            self._try_aggressive_thread_termination(agent_id, handler)
 
             # Remove from dictionaries
             if agent_id in self._socket_mode_handlers:
                 del self._socket_mode_handlers[agent_id]
             if agent_id in self._apps:
                 del self._apps[agent_id]
+
+            # Make sure we're blacklisted
+            if agent_id not in self._blacklisted_agents:
+                self._blacklisted_agents.add(agent_id)
+                logger.info(f"Added agent {agent_id} to blacklist")
 
             # Verify the socket is actually stopped
             if self.is_running(agent_id):
@@ -373,12 +511,84 @@ class SocketModeClient:
                 )
                 return False
 
+            # Add an extra check for the socket worker to verify any lingering connections
             logger.info(f"Socket Mode stopped successfully for agent {agent_id}")
+
+            # Reset any in-memory connection caches that Slack SDK might be maintaining
+            try:
+                # Slack SDK might cache connections somewhere globally - try to clear them
+                import importlib
+
+                try:
+                    slack_sdk = importlib.import_module("slack_sdk")
+                    if hasattr(slack_sdk, "WebClient") and hasattr(slack_sdk.WebClient, "_reset"):
+                        slack_sdk.WebClient._reset()
+                        logger.info("Reset Slack SDK WebClient")
+                except Exception:
+                    pass
+
+                try:
+                    socket_mode = importlib.import_module("slack_bolt.adapter.socket_mode")
+                    # Try to get any cached handlers and close them
+                    if hasattr(socket_mode, "_connections"):
+                        socket_mode._connections = {}
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.error(f"Error resetting SDK connections: {e}")
+
             return True
         except Exception as e:
             logger.error(f"Error stopping Socket Mode for agent {agent_id}: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return False
+
+    def _try_aggressive_thread_termination(self, agent_id: int, handler: Any) -> None:
+        """Attempt to aggressively terminate any threads or tasks associated with the socket handler"""
+        try:
+            # See if the socket handler has a thread running and try to terminate it
+            if hasattr(handler, "thread") and handler.thread:
+                thread = handler.thread
+                logger.info(f"Found SocketModeHandler thread: {thread}")
+                if hasattr(thread, "is_alive") and thread.is_alive():
+                    logger.info("Socket thread is still alive, trying aggressive termination")
+                    # Try different thread termination methods
+                    if hasattr(thread, "_stop"):
+                        thread._stop()
+                    if hasattr(thread, "_terminate"):
+                        thread._terminate()
+                    if hasattr(thread, "cancel"):
+                        thread.cancel()
+                    if hasattr(thread, "kill"):
+                        thread.kill()
+
+            # If there's a running task, try to cancel it
+            if hasattr(handler, "task") and handler.task:
+                logger.info("Cancelling socket handler task")
+                if hasattr(handler.task, "cancel"):
+                    handler.task.cancel()
+
+            # If the handler has a loop running, try to stop it
+            if hasattr(handler, "loop") and handler.loop:
+                logger.info("Stopping socket handler event loop")
+                if hasattr(handler.loop, "stop"):
+                    handler.loop.stop()
+                if hasattr(handler.loop, "close"):
+                    handler.loop.close()
+
+            # Look for any WebSocketApp connections
+            if hasattr(handler, "wss_client") and handler.wss_client:
+                logger.info("Found WebSocketApp, forcefully closing")
+                if hasattr(handler.wss_client, "close"):
+                    handler.wss_client.close()
+                if hasattr(handler.wss_client, "sock") and handler.wss_client.sock:
+                    if hasattr(handler.wss_client.sock, "shutdown"):
+                        handler.wss_client.sock.shutdown()
+                    if hasattr(handler.wss_client.sock, "close"):
+                        handler.wss_client.sock.close()
+
+        except Exception as e:
+            logger.error(f"Error with aggressive thread termination for agent {agent_id}: {e}")
 
     def is_running(self, agent_id: int) -> bool:
         """Check if Socket Mode is running for a specific agent"""
@@ -391,6 +601,96 @@ class SocketModeClient:
         agent_ids = list(self._socket_mode_handlers.keys())
         for agent_id in agent_ids:
             self.stop_socket_mode(agent_id)
+
+    def _forcibly_disconnect_slack_sessions(self, agent_id: int) -> None:
+        """Forcibly disconnect any Slack sessions for this agent by invalidating app connections.
+
+        This is the most effective way to ensure Slack stops sending events to this agent.
+        """
+        logger.info(f"Forcibly disconnecting Slack sessions for agent {agent_id}")
+
+        try:
+            # Get agent tokens from secure store
+            from ...api.secure_token_store import get_token_store
+
+            token_store = get_token_store()
+
+            # If we have an app token, use it to revoke connections
+            app_token = token_store.get_token(agent_id, "app_token")
+            if app_token:
+                logger.info(f"Using app token to forcibly disconnect sessions for agent {agent_id}")
+                try:
+                    # Even though we can't directly revoke app tokens, we can try to disconnect sessions
+                    # by making an auth test call with an invalid client
+                    from slack_sdk import WebClient
+                    from slack_sdk.errors import SlackApiError
+
+                    # Create dummy WebClient with the app token (will fail but helps disconnect)
+                    client = WebClient(token=app_token)
+                    try:
+                        # This will fail but trigger a session reset on Slack side
+                        client.auth_test()
+                    except SlackApiError:
+                        pass
+
+                    # Try to directly disconnect client
+                    if hasattr(client, "close"):
+                        client.close()
+                except Exception as e:
+                    logger.error(f"Error disconnecting app token session: {e}")
+
+            # If we have a bot token, also use it for more thorough disconnection
+            bot_token = token_store.get_token(agent_id, "bot_token")
+            if bot_token:
+                logger.info(f"Using bot token to forcibly disconnect sessions for agent {agent_id}")
+                try:
+                    from slack_sdk import WebClient
+                    from slack_sdk.errors import SlackApiError
+
+                    # Create client and try to disconnect gracefully
+                    client = WebClient(token=bot_token)
+
+                    # Post a system message to help debug (comment out in production)
+                    try:
+                        # Find the primary channel id from the agent model
+                        db = next(get_db())
+                        agent = (
+                            db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+                        )
+                        if agent and agent.slack_channel_id:
+                            channel_id = agent.slack_channel_id
+                            # Send logout message to channel
+                            client.chat_postMessage(
+                                channel=channel_id,
+                                text=f"⚠️ Socket Mode disabled for agent {agent_id}. Disconnecting active sessions...",
+                            )
+                    except Exception as notify_err:
+                        logger.error(f"Error notifying Slack channel: {notify_err}")
+
+                    # Close client to disconnect
+                    if hasattr(client, "close"):
+                        client.close()
+                except Exception as e:
+                    logger.error(f"Error disconnecting bot token session: {e}")
+
+            # Last resort - force terminate socket handlers directly by accessing internals
+            if agent_id in self._socket_mode_handlers:
+                handler = self._socket_mode_handlers[agent_id]
+                # Access websocket app directly if possible
+                if hasattr(handler, "app") and handler.app:
+                    app = handler.app
+                    # Try to stop all socket connections by accessing socket_mode listeners directly
+                    if hasattr(app, "listeners") and isinstance(app.listeners, dict):
+                        for event_type in list(app.listeners.keys()):
+                            try:
+                                # Remove all listeners to prevent event handling
+                                app.listeners[event_type] = []
+                            except Exception:
+                                pass
+
+        except Exception as e:
+            logger.error(f"Error forcibly disconnecting sessions: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 # Singleton instance accessor

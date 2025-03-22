@@ -9,6 +9,7 @@ services:
       - ../:/pyspur:cached
       - ../.env:/pyspur/backend/.env:cached
       - /pyspur/frontend/node_modules
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONPATH=/pyspur/backend
       - SOCKET_MODE_DISABLED=true
@@ -21,6 +22,7 @@ services:
     volumes:
       - ../:/pyspur:cached
       - ../.env:/pyspur/backend/.env:cached
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONPATH=/pyspur/backend
     depends_on:

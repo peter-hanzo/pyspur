@@ -56,6 +56,36 @@ socket_mode_client = get_socket_mode_client()
 # These are being suppressed with type: ignore where needed or using safe patterns.
 
 
+def _validate_agent_socket_mode(
+    db: Session, agent_id: int, say_callback: Optional[Callable[..., Any]] = None
+) -> bool:
+    """Validate if an agent should be processing socket mode events.
+
+    Args:
+        db: Database session
+        agent_id: Agent ID to validate
+        say_callback: Optional callback to send message if agent is disabled
+
+    Returns:
+        bool: True if agent should process events, False otherwise
+
+    """
+    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+
+    if not agent or not agent.socket_mode_enabled:
+        logger.warning(f"Rejecting event for agent {agent_id} - socket_mode_enabled=False")
+
+        # Send response to avoid hanging the client
+        if say_callback:
+            try:
+                say_callback(text="This Slack integration is currently disabled.")
+            except Exception:
+                pass
+        return False
+
+    return True
+
+
 # Callback function for socket mode events to trigger workflows
 async def handle_socket_mode_event(
     trigger_request: WorkflowTriggerRequest,
@@ -71,6 +101,10 @@ async def handle_socket_mode_event(
     db = next(get_db())
 
     try:
+        # First, explicitly check if this agent should actually be processing events
+        if not _validate_agent_socket_mode(db, agent_id, say):
+            return
+
         agent = await _get_active_agent(db, agent_id)
         if not agent:
             return
@@ -1168,44 +1202,190 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     )
 
 
+def _get_container_names(
+    container_name: str = None, container_prefix: str = None, client=None
+) -> list:
+    """Get container names to restart based on name or prefix.
+
+    Args:
+        container_name: Specific container name to stop
+        container_prefix: Prefix to match multiple containers
+        client: Docker client (if available)
+
+    Returns:
+        list: List of container names to restart
+
+    """
+    containers = []
+
+    # Try to find by exact name
+    if container_name:
+        if client:
+            try:
+                containers.append(client.containers.get(container_name))
+                logger.info(f"Found specific container: {container_name}")
+            except Exception:
+                logger.warning(f"Container not found: {container_name}")
+        else:
+            containers.append(container_name)
+
+    # Try to find by prefix
+    if container_prefix and client:
+        for container in client.containers.list():
+            if container.name.startswith(container_prefix):
+                if container not in containers:
+                    containers.append(container)
+                    logger.info(f"Found container by prefix: {container.name}")
+
+    return containers
+
+
+def _restart_with_cli(container_names: list, container_prefix: str = None) -> bool:
+    """Restart containers using Docker CLI.
+
+    Args:
+        container_names: List of container names to restart
+        container_prefix: Optional prefix to find additional containers
+
+    Returns:
+        bool: True if at least one container was restarted
+
+    """
+    success = False
+    try:
+        import subprocess
+
+        # Get container names if we only have prefix
+        if not container_names and container_prefix:
+            cmd = [
+                "docker",
+                "ps",
+                "--filter",
+                f"name={container_prefix}",
+                "--format",
+                "{{.Names}}",
+            ]
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            container_names = [name for name in result.stdout.strip().split("\n") if name]
+            logger.info(f"Found containers via CLI: {container_names}")
+
+        # Restart each container
+        for name in container_names:
+            try:
+                logger.info(f"Restarting container via CLI: {name}")
+                subprocess.run(
+                    ["docker", "restart", name], check=True, capture_output=True, text=True
+                )
+                success = True
+            except Exception as e:
+                logger.error(f"Failed to restart container {name} via CLI: {e}")
+    except Exception as e:
+        logger.error(f"Failed to use Docker CLI: {e}")
+
+    return success
+
+
+def stop_socket_worker_containers(container_name: str = None, container_prefix: str = None) -> bool:
+    """Stop or restart socket worker containers.
+
+    Args:
+        container_name: Specific container name to stop
+        container_prefix: Prefix to match multiple containers
+
+    Returns:
+        bool: True if at least one container was successfully managed
+
+    """
+    # Use environment variables if no parameters provided
+    if not container_name and not container_prefix:
+        container_name = os.environ.get("SOCKET_WORKER_CONTAINER", "pyspur-slack-socket-worker-1")
+        container_prefix = os.environ.get("SOCKET_WORKER_PREFIX", "pyspur-slack-socket-worker")
+
+    logger.info(f"Managing socket worker containers: {container_name} or prefix {container_prefix}")
+    success = False
+
+    # Try the Python Docker client first
+    try:
+        import docker
+
+        client = docker.from_env()
+        client.ping()  # Test connection
+
+        # Get containers to manage
+        containers = _get_container_names(container_name, container_prefix, client)
+
+        # Restart all found containers
+        for container in containers:
+            try:
+                container.restart()
+                success = True
+                logger.info(f"Restarted container: {container.name}")
+            except Exception as e:
+                logger.error(f"Failed to restart container {container.name}: {e}")
+
+    except Exception as e:
+        logger.warning(f"Docker client failed, falling back to CLI: {e}")
+        # Fallback to Docker CLI
+        container_names = [container_name] if container_name else []
+        success = _restart_with_cli(container_names, container_prefix) or success
+
+    return success
+
+
 @router.post("/agents/{agent_id}/socket-mode/stop", response_model=SlackSocketModeResponse)
 async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     """Stop Socket Mode for a Slack agent"""
-    agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
-    if agent is None:
-        raise HTTPException(status_code=404, detail="Agent not found")
+    try:
+        # Get agent
+        agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Check if socket mode is disabled in the main process
-    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
-        "true",
-        "1",
-        "yes",
-    )
+        # Check if socket mode is already disabled
+        if not agent.socket_mode_enabled:
+            return SlackSocketModeResponse(
+                agent_id=agent_id,
+                socket_mode_active=False,
+                message="Socket Mode already disabled",
+            )
 
-    if socket_mode_disabled:
-        # Even when socket mode is managed by workers, update the agent's socket_mode_enabled field
+        # Disable socket mode for the agent
         agent.socket_mode_enabled = False
         db.commit()
+
+        # Set default response message
+        message = "Socket Mode stopped."
+
+        # Force restart the socket worker containers to kill all connections
+        try:
+            container_name = os.environ.get(
+                "SOCKET_WORKER_CONTAINER", "pyspur-slack-socket-worker-1"
+            )
+            container_prefix = os.environ.get("SOCKET_WORKER_PREFIX", "pyspur-slack-socket-worker")
+
+            logger.info(
+                f"Restarting socket worker containers: {container_name} or {container_prefix}"
+            )
+
+            success = stop_socket_worker_containers(container_name, container_prefix)
+
+            if success:
+                message += " Worker containers restarted to kill all connections."
+            else:
+                message += " Warning: Failed to restart worker containers."
+
+        except Exception as e:
+            logger.error(f"Failed to restart socket worker containers: {e}")
+            message += " Error: Could not restart worker containers."
 
         return SlackSocketModeResponse(
             agent_id=agent_id,
             socket_mode_active=False,
-            message="Socket Mode stop request accepted. Socket Mode is managed by dedicated workers.",
+            message=message,
         )
-
-    # Stop socket mode
-    success = socket_mode_client.stop_socket_mode(agent_id)
-
-    if not success and socket_mode_client.is_running(agent_id):
-        raise HTTPException(status_code=500, detail="Failed to stop Socket Mode")
-
-    # Store socket mode status in the database
-    agent.socket_mode_enabled = False
-    db.commit()
-
-    return SlackSocketModeResponse(
-        agent_id=agent_id, socket_mode_active=False, message="Socket Mode stopped successfully"
-    )
+    except Exception as e:
+        logger.error(f"Error stopping socket mode: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop Socket Mode: {str(e)}")
 
 
 @router.get("/agents/{agent_id}/socket-mode/status", response_model=SlackSocketModeResponse)
