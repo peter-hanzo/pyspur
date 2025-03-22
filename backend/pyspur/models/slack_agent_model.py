@@ -5,7 +5,8 @@ from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.orm import relationship
 
 from .base_model import BaseModel
-
+from .workflow_model import WorkflowModel
+from .workflow_version_model import WorkflowVersionModel
 
 class SlackAgentModel(BaseModel):
     """Model for storing Slack agent configurations"""

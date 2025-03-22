@@ -12,12 +12,14 @@ import sys
 from typing import Any, Dict, List, Set
 
 from loguru import logger
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, configure_mappers
 
 from ...database import get_db
+# Import related models to ensure SQLAlchemy relationships are properly initialized
+from ...models.workflow_model import WorkflowModel
+from ...models.workflow_version_model import WorkflowVersionModel
 from ...models.slack_agent_model import SlackAgentModel
 
-# Import related models to ensure SQLAlchemy relationships are properly initialized
 from .socket_client import SocketModeClient, get_socket_mode_client
 
 # Configure logging
@@ -40,6 +42,7 @@ reconnection_attempts: Dict[int, int] = {}
 # Track sockets that have been verified as healthy
 healthy_sockets: Set[int] = set()
 
+configure_mappers()
 
 def get_active_agents(db: Session) -> List[SlackAgentModel]:
     """Get all active agents that have socket mode enabled"""
