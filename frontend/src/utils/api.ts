@@ -1274,16 +1274,6 @@ export interface SlackMessageResponse {
     ts?: string
 }
 
-// Slack Integration Functions
-export const getSlackAuthUrl = async (): Promise<{ auth_url: string }> => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/slack/oauth/authorize`)
-        return response.data
-    } catch (error) {
-        console.error('Error getting Slack auth URL:', error)
-        throw error
-    }
-}
 
 export const getSlackRequiredKeys = async (): Promise<{
     configured: boolean;
@@ -1519,22 +1509,6 @@ export interface AlertFunction {
     (message: string, color: 'success' | 'danger' | 'warning' | 'default'): void;
 }
 
-export const connectToSlack = async (onAlert?: AlertFunction): Promise<void> => {
-    try {
-        // Get the Slack auth URL
-        const response = await getSlackAuthUrl()
-        if (response.auth_url) {
-            // Open the auth URL in a new window/tab
-            window.open(response.auth_url, '_blank')
-        } else {
-            onAlert?.('Failed to get Slack authorization URL', 'danger')
-        }
-    } catch (error: any) {
-        console.error('Error connecting to Slack:', error)
-        // Let the error propagate to the caller for custom handling
-        throw error
-    }
-}
 
 export const toggleSlackTrigger = async (
     agentId: number,

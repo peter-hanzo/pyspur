@@ -70,37 +70,6 @@ const isErrorResponse = (response: SocketModeResponse): response is {
     return 'error' in response && response.error === true;
 };
 
-// Add a component to show installation unavailable error
-const SlackInstallationUnavailableAlert: React.FC<{
-    isVisible: boolean;
-    onReinstall: () => void;
-}> = ({ isVisible, onReinstall }) => {
-    if (!isVisible) return null;
-
-    return (
-        <div className="p-3 my-3 bg-warning-50 border border-warning-200 rounded-md">
-            <div className="flex items-start gap-2">
-                <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5 text-warning-600" />
-                <div>
-                    <p className="font-medium text-warning-700">Slack Connection Lost</p>
-                    <p className="text-small text-warning-600">
-                        Your Slack installation is no longer available. This can happen if the app was removed from your workspace or the installation data was lost.
-                    </p>
-                    <Button
-                        color="warning"
-                        size="sm"
-                        className="mt-2"
-                        startContent={<Icon icon="solar:refresh-bold" />}
-                        onPress={onReinstall}
-                    >
-                        Reinstall App
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     agent,
     isOpen,
@@ -152,9 +121,6 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
     const [socketModeStatus, setSocketModeStatus] = useState<SocketModeResponse | null>(null)
     const [isSocketModeActive, setIsSocketModeActive] = useState(false)
     const [isSocketModeLoading, setIsSocketModeLoading] = useState(false)
-
-    // Installation status state
-    const [isInstallationUnavailable, setIsInstallationUnavailable] = useState(false)
 
     // Trigger settings state
     const [showTestConnectionModal, setShowTestConnectionModal] = useState(false)
@@ -599,54 +565,28 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
         setIsTestingConnection(true);
         try {
             const result = await testSlackConnection(agent.id);
-            handleTestConnectionComplete(result);
+            // Simply show success/failure message
+            if (result.success) {
+                onAlert?.('Connection test successful!', 'success');
+            } else {
+                onAlert?.(`Connection test failed: ${result.message}`, 'danger');
+            }
+            setShowTestConnectionModal(true);
         } catch (error) {
             console.error("Error testing connection:", error);
-            handleTestConnectionComplete({
-                success: false,
-                message: error instanceof Error ? error.message : 'Unknown error testing Slack connection',
-                error
-            });
+            onAlert?.('Failed to test connection', 'danger');
         } finally {
             setIsTestingConnection(false);
         }
     };
 
-    // Handle reinstall when installation is unavailable
-    const handleReinstall = () => {
-        if (onAlert) {
-            onAlert('Redirecting to Slack for reinstallation...', 'default')
-        }
-
-        // Use the connectToSlack function from the API utils
-        import('@/utils/api').then(({ connectToSlack }) => {
-            connectToSlack(onAlert)
-        }).catch(error => {
-            console.error('Error importing connectToSlack:', error)
-            onAlert?.('Failed to start Slack reinstallation process', 'danger')
-        })
-    }
-
-    // Callback for when the test connection reports an installation error
+    // Simplified test connection handler - only needed for modal
     const handleTestConnectionComplete = (result: { success: boolean, message: string, error?: any }) => {
-        // Check for installation unavailable error
-        if (!result.success && result.message && (
-            result.message.includes('installation') ||
-            result.message.includes('reinstall') ||
-            (result.error?.response?.data?.detail && result.error.response.data.detail.includes('installation'))
-        )) {
-            setIsInstallationUnavailable(true)
-        }
+        // Just for getting results from the test connection modal if needed
     }
 
     const renderContent = () => (
         <div className="space-y-4">
-            {/* Display installation unavailable alert if needed */}
-            <SlackInstallationUnavailableAlert
-                isVisible={isInstallationUnavailable}
-                onReinstall={handleReinstall}
-            />
-
             <Tabs
                 selectedKey={selectedTab}
                 onSelectionChange={(key) => setSelectedTab(key.toString())}
