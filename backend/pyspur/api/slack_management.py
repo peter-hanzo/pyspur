@@ -1143,6 +1143,10 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     )
 
     if socket_mode_disabled:
+        # Even when socket mode is managed by workers, update the agent's socket_mode_enabled field
+        agent.socket_mode_enabled = True
+        db.commit()
+
         return SlackSocketModeResponse(
             agent_id=agent_id,
             socket_mode_active=True,
@@ -1154,6 +1158,10 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
 
     if not success:
         raise HTTPException(status_code=500, detail="Failed to start Socket Mode")
+
+    # Store socket mode status in the database
+    agent.socket_mode_enabled = True
+    db.commit()
 
     return SlackSocketModeResponse(
         agent_id=agent_id, socket_mode_active=True, message="Socket Mode started successfully"
@@ -1175,6 +1183,10 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     )
 
     if socket_mode_disabled:
+        # Even when socket mode is managed by workers, update the agent's socket_mode_enabled field
+        agent.socket_mode_enabled = False
+        db.commit()
+
         return SlackSocketModeResponse(
             agent_id=agent_id,
             socket_mode_active=False,
@@ -1186,6 +1198,10 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
 
     if not success and socket_mode_client.is_running(agent_id):
         raise HTTPException(status_code=500, detail="Failed to stop Socket Mode")
+
+    # Store socket mode status in the database
+    agent.socket_mode_enabled = False
+    db.commit()
 
     return SlackSocketModeResponse(
         agent_id=agent_id, socket_mode_active=False, message="Socket Mode stopped successfully"
@@ -1216,10 +1232,13 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
             and agent.workflow_id is not None
         )
 
+        # Also check the agent's socket_mode_enabled field
+        socket_mode_enabled = getattr(agent, "socket_mode_enabled", False)
+
         return SlackSocketModeResponse(
             agent_id=agent_id,
-            socket_mode_active=agent_is_active,
-            message=f"Socket Mode is {'active' if agent_is_active else 'inactive'} (managed by dedicated workers)",
+            socket_mode_active=agent_is_active and socket_mode_enabled,
+            message=f"Socket Mode is {'active' if (agent_is_active and socket_mode_enabled) else 'inactive'} (managed by dedicated workers)",
         )
 
     is_active = socket_mode_client.is_running(agent_id)

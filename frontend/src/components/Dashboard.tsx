@@ -59,9 +59,12 @@ import {
     takePauseAction,
     getSlackAgents,
     SlackAgent,
-    associateSlackWorkflow,
+    associateWorkflow,
     fetchSlackSetupInfo,
     deleteSlackAgent,
+    startSocketMode,
+    stopSocketMode,
+    getSocketModeStatus
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
@@ -735,7 +738,9 @@ const Dashboard: React.FC = () => {
         try {
             console.log(`Dashboard - Associating workflow: Agent ID=${agentId}, Workflow ID=${workflowId} (${typeof workflowId})`);
 
-            await associateSlackWorkflow(agentId, workflowId, setSlackAgents, onAlert)
+            // Call the API to associate the workflow with the agent
+            const updatedAgent = await associateWorkflow(agentId, workflowId);
+            onAlert?.('Workflow associated successfully', 'success');
 
             // Add a small delay and then force a refresh of the agents list
             setTimeout(async () => {
@@ -751,6 +756,7 @@ const Dashboard: React.FC = () => {
             }
         } catch (error) {
             console.error('Error associating workflow:', error)
+            onAlert?.('Failed to associate workflow', 'danger');
             throw error
         }
     }
@@ -889,6 +895,74 @@ const Dashboard: React.FC = () => {
             setShowWorkflowAssociationModal(true)
         }
     }
+
+    // Add this function to handle the socket mode toggle
+    const handleSocketModeToggle = async (agent: SlackAgent, isActive: boolean, updateAgents: React.Dispatch<React.SetStateAction<SlackAgent[]>>) => {
+        try {
+            if (!agent.has_bot_token) {
+                return {
+                    success: false,
+                    message: 'Bot token required for Socket Mode'
+                };
+            }
+
+            if (isActive) {
+                // Stop socket mode
+                const response = await stopSocketMode(agent.id);
+
+                // Check if the response contains an error
+                if ('error' in response && response.error === true) {
+                    return {
+                        success: false,
+                        message: response.message || 'Failed to stop Socket Mode'
+                    };
+                }
+
+                // Update agent in the list
+                updateAgents((prevAgents) =>
+                    prevAgents.map(a => a.id === agent.id
+                        ? { ...a, socket_mode_enabled: false }
+                        : a
+                    )
+                );
+
+                return {
+                    success: true,
+                    message: 'Socket Mode stopped successfully'
+                };
+            } else {
+                // Start socket mode
+                const response = await startSocketMode(agent.id);
+
+                // Check if the response contains an error
+                if ('error' in response && response.error === true) {
+                    return {
+                        success: false,
+                        message: response.message || 'Failed to start Socket Mode'
+                    };
+                }
+
+                // Update agent in the list
+                updateAgents((prevAgents) =>
+                    prevAgents.map(a => a.id === agent.id
+                        ? { ...a, socket_mode_enabled: true }
+                        : a
+                    )
+                );
+
+                return {
+                    success: true,
+                    message: 'Socket Mode started successfully'
+                };
+            }
+        } catch (error) {
+            console.error('Error toggling socket mode:', error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Unknown error toggling socket mode'
+            };
+        }
+    };
 
     return (
         <div {...getRootProps()} className="relative flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
@@ -1311,7 +1385,20 @@ const Dashboard: React.FC = () => {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                <div className="flex justify-end mb-4">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-3 bg-default-50 border border-default-200 rounded-md max-w-2xl">
+                                        <h4 className="font-medium text-medium mb-2 flex items-center gap-2">
+                                            <Icon icon="solar:socket-outline" width={20} />
+                                            Socket Mode
+                                        </h4>
+                                        <p className="text-small text-default-600 mb-2">
+                                            Socket Mode establishes a WebSocket connection between your Slack app and PySpur, allowing you to receive events in real-time without exposing a public URL.
+                                        </p>
+                                        <p className="text-tiny text-default-500">
+                                            Once enabled, your agent will automatically process Slack events according to your trigger settings. Socket Mode requires both a bot token and an app-level token.
+                                        </p>
+                                    </div>
+
                                     <Button
                                         className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
                                         startContent={<Icon icon="solar:add-circle-bold" width={16} className="flex-none text-background/60" />}
@@ -1320,6 +1407,7 @@ const Dashboard: React.FC = () => {
                                         Create New Agent
                                     </Button>
                                 </div>
+
                                 <Table aria-label="Slack agents table" isHeaderSticky>
                                     <TableHeader>
                                         <TableColumn>NAME</TableColumn>
@@ -1327,6 +1415,7 @@ const Dashboard: React.FC = () => {
                                         <TableColumn>TYPE</TableColumn>
                                         <TableColumn>WORKFLOW</TableColumn>
                                         <TableColumn>STATUS</TableColumn>
+                                        <TableColumn>SOCKET MODE</TableColumn>
                                         <TableColumn>ACTIONS</TableColumn>
                                     </TableHeader>
                                     <TableBody>
@@ -1379,6 +1468,46 @@ const Dashboard: React.FC = () => {
                                                     >
                                                         {agent.is_active ? "Active" : "Inactive"}
                                                     </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {agent.socket_mode_enabled ? (
+                                                            <Badge color="success" variant="flat">
+                                                                Active
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge color="default" variant="flat">
+                                                                Inactive
+                                                            </Badge>
+                                                        )}
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            color={agent.socket_mode_enabled ? "danger" : "success"}
+                                                            onPress={async () => {
+                                                                // Check if the agent has the required tokens
+                                                                if (!agent.has_bot_token) {
+                                                                    onAlert('Bot token required for Socket Mode. Configure it now by clicking on the key icon.', 'warning');
+                                                                    return;
+                                                                }
+
+                                                                if (!agent.has_app_token && agent.socket_mode_enabled === false) {
+                                                                    onAlert('App-level token (xapp-) required for Socket Mode. Configure it in the agent settings.', 'warning');
+                                                                    return;
+                                                                }
+
+                                                                const result = await handleSocketModeToggle(agent, agent.socket_mode_enabled || false, setSlackAgents);
+                                                                onAlert(result.message, result.success ? 'success' : 'danger');
+                                                            }}
+                                                            isDisabled={!agent.workflow_id || !agent.has_bot_token}
+                                                            aria-label={agent.socket_mode_enabled ? "Stop Socket Mode" : "Start Socket Mode"}
+                                                        >
+                                                            <Tooltip content={agent.socket_mode_enabled ? "Stop Socket Mode" : "Start Socket Mode"}>
+                                                                <Icon icon={agent.socket_mode_enabled ? "solar:stop-circle-bold" : "solar:play-circle-bold"} width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">

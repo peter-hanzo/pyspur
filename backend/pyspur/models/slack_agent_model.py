@@ -5,8 +5,9 @@ from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.orm import relationship
 
 from .base_model import BaseModel
-from .workflow_model import WorkflowModel
-from .workflow_version_model import WorkflowVersionModel
+from .workflow_model import WorkflowModel  # noqa: F401
+from .workflow_version_model import WorkflowVersionModel  # noqa: F401
+
 
 class SlackAgentModel(BaseModel):
     """Model for storing Slack agent configurations"""
@@ -40,6 +41,9 @@ class SlackAgentModel(BaseModel):
     trigger_on_channel_message = Column(Boolean, default=False)
     trigger_keywords = Column(JSON, default=list)
     trigger_enabled = Column(Boolean, default=True)
+
+    # Socket Mode configuration
+    socket_mode_enabled = Column(Boolean, default=False)
 
     # Creation timestamp
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))

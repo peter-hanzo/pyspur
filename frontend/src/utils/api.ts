@@ -1259,6 +1259,7 @@ export interface SlackAgent {
     has_user_token: boolean
     has_app_token?: boolean
     last_token_update?: string
+    socket_mode_enabled?: boolean
 }
 
 export interface SlackOAuthResponse {

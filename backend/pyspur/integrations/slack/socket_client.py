@@ -126,12 +126,23 @@ class SocketModeClient:
                     SlackAgentModel.id == agent_id,
                     SlackAgentModel.is_active.is_(True),
                     SlackAgentModel.trigger_enabled.is_(True),
+                    SlackAgentModel.socket_mode_enabled.is_(True),
                 )
                 .first()
             )
 
             if not agent:
-                logger.warning(f"Agent {agent_id} not found or not active")
+                # Check specifically for socket_mode_enabled to provide better logging
+                socket_check = (
+                    db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+                )
+                if socket_check and not getattr(socket_check, "socket_mode_enabled", False):
+                    logger.warning(
+                        f"Received event for agent {agent_id} but socket_mode_enabled is False. "
+                        f"This event should not have been received. Ignoring."
+                    )
+                else:
+                    logger.warning(f"Agent {agent_id} not found or not active")
                 return
 
             # Extract relevant information from the event
@@ -324,16 +335,49 @@ class SocketModeClient:
         try:
             # Close the socket mode handler
             handler = self._socket_mode_handlers[agent_id]
-            handler.close()
+
+            # Try to close the app first to stop any running listeners/callbacks
+            if agent_id in self._apps:
+                try:
+                    # Get the app and attempt to shutdown any active listeners
+                    app = self._apps[agent_id]
+                    # Disconnect all listeners and callbacks
+                    if hasattr(app, "client") and app.client:
+                        logger.info(f"Disconnecting client for agent {agent_id}")
+                        if hasattr(app.client, "close"):
+                            # Try to close the client's connection
+                            app.client.close()
+                except Exception as e:
+                    logger.error(f"Error shutting down app for agent {agent_id}: {e}")
+                    # Continue with handler close even if app shutdown fails
+
+            # Now close the socket handler
+            try:
+                logger.info(f"Closing socket handler for agent {agent_id}")
+                handler.close()
+                logger.info(f"Socket handler closed for agent {agent_id}")
+            except Exception as e:
+                logger.error(f"Error closing socket handler: {e}")
+                logger.error(f"Socket close error details: {traceback.format_exc()}")
 
             # Remove from dictionaries
-            del self._socket_mode_handlers[agent_id]
-            del self._apps[agent_id]
+            if agent_id in self._socket_mode_handlers:
+                del self._socket_mode_handlers[agent_id]
+            if agent_id in self._apps:
+                del self._apps[agent_id]
 
-            logger.info(f"Socket Mode stopped for agent {agent_id}")
+            # Verify the socket is actually stopped
+            if self.is_running(agent_id):
+                logger.error(
+                    f"Socket for agent {agent_id} is still reported as running after stop attempt"
+                )
+                return False
+
+            logger.info(f"Socket Mode stopped successfully for agent {agent_id}")
             return True
         except Exception as e:
             logger.error(f"Error stopping Socket Mode for agent {agent_id}: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
     def is_running(self, agent_id: int) -> bool:

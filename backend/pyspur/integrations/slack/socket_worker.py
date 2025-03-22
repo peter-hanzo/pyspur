@@ -15,11 +15,11 @@ from loguru import logger
 from sqlalchemy.orm import Session, configure_mappers
 
 from ...database import get_db
-# Import related models to ensure SQLAlchemy relationships are properly initialized
-from ...models.workflow_model import WorkflowModel
-from ...models.workflow_version_model import WorkflowVersionModel
 from ...models.slack_agent_model import SlackAgentModel
 
+# Import related models to ensure SQLAlchemy relationships are properly initialized
+from ...models.workflow_model import WorkflowModel  # noqa: F401
+from ...models.workflow_version_model import WorkflowVersionModel  # noqa: F401
 from .socket_client import SocketModeClient, get_socket_mode_client
 
 # Configure logging
@@ -44,6 +44,7 @@ healthy_sockets: Set[int] = set()
 
 configure_mappers()
 
+
 def get_active_agents(db: Session) -> List[SlackAgentModel]:
     """Get all active agents that have socket mode enabled"""
     agents = (
@@ -53,6 +54,9 @@ def get_active_agents(db: Session) -> List[SlackAgentModel]:
             SlackAgentModel.trigger_enabled,
             SlackAgentModel.has_bot_token,
             SlackAgentModel.workflow_id.isnot(None),
+            SlackAgentModel.socket_mode_enabled.is_(
+                True
+            ),  # Only get agents with socket mode enabled
         )
         .all()
     )
@@ -118,15 +122,79 @@ async def monitor_and_restart_sockets(
 
     """
     active_agent_ids: Dict[int, bool] = {}  # Maps agent_id to active status
+    # Keep track of socket_mode_enabled status per agent
+    socket_enabled_status: Dict[int, bool] = {}
 
     while True:
         try:
             db = next(get_db())
             try:
+                # First check all existing sockets to see if any should be forcibly stopped
+                # This performs a more targeted check before the broader agent scan
+                for agent_id in list(active_agent_ids.keys()):
+                    try:
+                        # Get the current agent status directly to ensure we have latest data
+                        agent = (
+                            db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
+                        )
+
+                        if not agent:
+                            logger.warning(f"Agent {agent_id} no longer exists, stopping socket")
+                            socket_client.stop_socket_mode(agent_id)
+                            if agent_id in healthy_sockets:
+                                healthy_sockets.remove(agent_id)
+                            if agent_id in connection_failures:
+                                del connection_failures[agent_id]
+                            if agent_id in reconnection_attempts:
+                                del reconnection_attempts[agent_id]
+                            continue
+
+                        # Check if socket_mode_enabled is explicitly False
+                        if not agent.socket_mode_enabled:
+                            logger.info(
+                                f"Agent {agent_id} has socket_mode_enabled=False, stopping socket"
+                            )
+                            socket_client.stop_socket_mode(agent_id)
+                            if agent_id in healthy_sockets:
+                                healthy_sockets.remove(agent_id)
+                            # Remove from active agents to prevent restart
+                            if agent_id in active_agent_ids:
+                                del active_agent_ids[agent_id]
+                            # Clear any failure tracking
+                            if agent_id in connection_failures:
+                                del connection_failures[agent_id]
+                            if agent_id in reconnection_attempts:
+                                del reconnection_attempts[agent_id]
+
+                        # Double check that socket is truly stopped when it should be
+                        if not agent.socket_mode_enabled and socket_client.is_running(agent_id):
+                            logger.warning(
+                                f"Socket for agent {agent_id} is still running despite being disabled, forcing stop"
+                            )
+                            socket_client.stop_socket_mode(agent_id)
+
+                    except Exception as e:
+                        logger.error(f"Error checking agent {agent_id} socket status: {e}")
+                        # If we can't check, try to stop it anyway as a safety measure
+                        socket_client.stop_socket_mode(agent_id)
+
+                # Now continue with the regular scan for agents that should have active sockets
                 # Get all agents that should have active socket connections
                 agents = get_active_agents(db)
                 # Extract the integer IDs from SQLAlchemy objects
                 current_agent_ids = {int(agent.id): True for agent in agents}
+
+                # Also track which agents have socket mode explicitly enabled
+                current_socket_enabled = {
+                    int(agent.id): bool(agent.socket_mode_enabled)
+                    for agent in db.query(SlackAgentModel)
+                    .filter(
+                        SlackAgentModel.is_active,
+                        SlackAgentModel.has_bot_token,
+                        SlackAgentModel.workflow_id.isnot(None),
+                    )
+                    .all()
+                }
 
                 # Find agents that need to be started/restarted
                 for agent_id in current_agent_ids:
@@ -165,6 +233,26 @@ async def monitor_and_restart_sockets(
                                 reconnection_attempts.get(agent_id, 0) + 1
                             )
 
+                # Check for agents where socket_mode_enabled has been switched off
+                for agent_id, was_enabled in socket_enabled_status.items():
+                    # If it was enabled before but now disabled, stop the socket
+                    if (
+                        was_enabled
+                        and agent_id in current_socket_enabled
+                        and not current_socket_enabled[agent_id]
+                    ):
+                        logger.info(
+                            f"Stopping socket for agent {agent_id} - socket_mode_enabled turned off"
+                        )
+                        socket_client.stop_socket_mode(agent_id)
+                        if agent_id in healthy_sockets:
+                            healthy_sockets.remove(agent_id)
+                        # Clear any failure tracking
+                        if agent_id in connection_failures:
+                            del connection_failures[agent_id]
+                        if agent_id in reconnection_attempts:
+                            del reconnection_attempts[agent_id]
+
                 # Stop sockets for agents that are no longer active
                 for agent_id in list(active_agent_ids.keys()):
                     if agent_id not in current_agent_ids:
@@ -180,8 +268,19 @@ async def monitor_and_restart_sockets(
                         if agent_id in reconnection_attempts:
                             del reconnection_attempts[agent_id]
 
+                # Before updating our tracking, verify all reported active sockets are truly active
+                for agent_id in list(socket_client._socket_mode_handlers.keys()):
+                    # If this socket should be disabled but is still connected somehow
+                    if agent_id in current_socket_enabled and not current_socket_enabled[agent_id]:
+                        logger.warning(
+                            f"Found lingering socket connection for agent {agent_id}, forcing close"
+                        )
+                        socket_client.stop_socket_mode(agent_id)
+
                 # Update our tracking of active agents
                 active_agent_ids = current_agent_ids
+                # Update our tracking of socket_mode_enabled status
+                socket_enabled_status = current_socket_enabled
 
                 # Log status summary
                 if active_agent_ids:
