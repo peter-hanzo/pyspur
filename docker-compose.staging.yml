@@ -27,15 +27,17 @@ services:
   slack-socket-worker:
     build:
       context: .
-      dockerfile: Dockerfile.socket
+      dockerfile: Dockerfile.backend
+      target: production
+    command: python -m pyspur.integrations.slack.socket_worker
     env_file:
       - ./.env.example
       - ./.env
     environment:
       - ENVIRONMENT=staging
     volumes:
-      - ./.env:/app/.env
-      - pyspur_data:/app/data
+      - ./.env:/pyspur/backend/.env
+      - pyspur_data:/pyspur/backend/data
     depends_on:
       db:
         condition: service_healthy
