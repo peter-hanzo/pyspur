@@ -1311,7 +1311,6 @@ const Dashboard: React.FC = () => {
                                         <TableColumn>WORKSPACE</TableColumn>
                                         <TableColumn>TYPE</TableColumn>
                                         <TableColumn>WORKFLOW</TableColumn>
-                                        <TableColumn>STATUS</TableColumn>
                                         <TableColumn>
                                             <div className="flex items-center gap-1">
                                                 SOCKET MODE
@@ -1379,14 +1378,6 @@ const Dashboard: React.FC = () => {
                                                             Not Connected
                                                         </Chip>
                                                     )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        color={agent.is_active ? "success" : "danger"}
-                                                        variant="flat"
-                                                    >
-                                                        {agent.is_active ? "Active" : "Inactive"}
-                                                    </Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
