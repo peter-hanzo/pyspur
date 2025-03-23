@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     vim \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --system uv
+RUN pip install uv
 
 COPY backend/ backend/
 RUN uv pip install --system -e "/pyspur/backend/[dev]"
