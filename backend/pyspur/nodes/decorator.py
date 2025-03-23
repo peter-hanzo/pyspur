@@ -16,9 +16,8 @@ from typing import (
 from jinja2 import Template
 from pydantic import BaseModel, Field, create_model
 
-from pyspur.utils import pydantic_utils
-
 from ..execution.workflow_execution_context import WorkflowExecutionContext
+from ..utils.pydantic_utils import json_schema_to_model
 from .base import BaseNode, BaseNodeConfig, BaseNodeInput, BaseNodeOutput, VisualTag
 
 
@@ -172,7 +171,7 @@ def tool_function(
                 _output_model = return_type
                 is_output_model_defined = True
             elif isinstance(return_type, type) and issubclass(return_type, BaseModel):
-                _output_model = pydantic_utils.json_schema_to_model(
+                _output_model = json_schema_to_model(
                     json_schema=return_type.model_json_schema(),
                     model_class_name=f"{func_name}",
                     base_class=BaseNodeOutput,
