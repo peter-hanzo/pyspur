@@ -1,0 +1,22 @@
+---
+title: 'Concepts'
+description: 'Understanding Tools in PySpur'
+---
+
+
+## What Are Tools in PySpur?
+
+Tools are fundamental building blocks in PySpur that encapsulate specific logic or functionality. They are reusable components that can be combined to create complex workflows, automate tasks, or integrate with external services.
+We use the term Node and Tool interchangeably in PySpur.
+
+## Characteristics of Tools
+
+We recommend PySpur tools be designed with the following characteristics in mind:
+
+1. **Stateless** - Tools do not maintain internal state between executions. They receive inputs, perform computations, and produce outputs without side effects.
+2. **Serializable I/O** - Tools should accept and return serializable data structures. This to ensure that LLMs can use the tools.
+
+
+## Custom Tools
+
+PySpur allows you to create custom tools by converting Python functions into PySpur tools. This process involves using the `@tool_function` decorator to register your function as a tool.
