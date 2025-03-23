@@ -1275,52 +1275,6 @@ export interface SlackMessageResponse {
 }
 
 
-export const getSlackRequiredKeys = async (): Promise<{
-    configured: boolean;
-    keys: Array<{
-        name: string;
-        description: string;
-        configured: boolean;
-        masked_value: string;
-        required: boolean;
-        purpose: string;
-        help_url: string;
-    }>;
-}> => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/slack/required-keys`)
-        return response.data
-    } catch (error) {
-        console.error('Error getting Slack required keys:', error)
-        throw error
-    }
-}
-
-/**
- * Fetches Slack setup information including required keys and their configuration status
- * @returns The Slack setup information object or null if there was an error
- */
-export const fetchSlackSetupInfo = async (): Promise<{
-    configured: boolean;
-    keys: Array<{
-        name: string;
-        description: string;
-        configured: boolean;
-        masked_value: string;
-        required: boolean;
-        purpose: string;
-        help_url: string;
-    }>;
-} | null> => {
-    try {
-        const info = await getSlackRequiredKeys()
-        return info
-    } catch (error) {
-        console.error('Error fetching Slack setup info:', error)
-        return null
-    }
-}
-
 export const getSlackAgents = async (forceRefresh = false): Promise<SlackAgent[]> => {
     const maxRetries = 2;
     let lastError = null;
@@ -1495,14 +1449,6 @@ export const handleSlackCallback = async (code: string): Promise<SlackOAuthRespo
     }
 }
 
-export const checkSlackConfig = async (): Promise<boolean> => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/slack/config/status`)
-        return response.data.configured
-    } catch (error) {
-        return false
-    }
-}
 
 // Higher-level Slack handler functions
 export interface AlertFunction {

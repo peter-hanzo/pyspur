@@ -59,12 +59,9 @@ import {
     takePauseAction,
     getSlackAgents,
     SlackAgent,
-    associateWorkflow,
-    fetchSlackSetupInfo,
     deleteSlackAgent,
     startSocketMode,
     stopSocketMode,
-    getSocketModeStatus
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
@@ -684,17 +681,6 @@ const Dashboard: React.FC = () => {
         setShowSlackAgentWizard(true);
     }
 
-    const callHandleShowSlackSetup = async () => {
-        try {
-            const info = await fetchSlackSetupInfo()
-            setSlackSetupInfo(info)
-            setShowSlackSetupGuide(true)
-        } catch (error) {
-            console.error('Error preparing Slack setup:', error)
-            onAlert('Failed to prepare Slack setup. Please try again.', 'danger')
-        }
-    }
-
 
     // Debug log when agents change
     useEffect(() => {
@@ -1206,14 +1192,7 @@ const Dashboard: React.FC = () => {
                                         >
                                             Connect to Slack
                                         </Button>
-                                        <Button
-                                            variant="bordered"
-                                            startContent={<Icon icon="lucide:help-circle" width={20} />}
-                                            onPress={callHandleShowSlackSetup}
-                                            className="w-full"
-                                        >
-                                            View Setup Guide
-                                        </Button>
+
                                         <Button
                                             variant="flat"
                                             startContent={<Icon icon="lucide:settings" width={20} />}

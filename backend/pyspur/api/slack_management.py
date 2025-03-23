@@ -409,62 +409,6 @@ async def _send_workflow_results_to_slack(
 socket_mode_client.set_workflow_trigger_callback(handle_socket_mode_event_sync)  # type: ignore
 
 
-@router.get("/config/status")
-async def get_slack_config_status():
-    """Check if Slack configuration is complete and return the status"""
-    # Check if the required environment variables are set
-    bot_token = os.getenv("SLACK_BOT_TOKEN", "")
-    signing_secret = os.getenv("SLACK_SIGNING_SECRET", "")
-
-    # Return the configuration status
-    return {
-        "configured": bool(bot_token) and bool(signing_secret),
-        "missing_keys": [
-            key
-            for key, value in {
-                "SLACK_BOT_TOKEN": bot_token,
-                "SLACK_SIGNING_SECRET": signing_secret,
-            }.items()
-            if not value
-        ],
-    }
-
-
-@router.get("/required-keys")
-async def get_slack_required_keys():
-    """Get information about the required Slack API keys and their current status"""
-    # Get current values (masked for security)
-    bot_token = os.getenv("SLACK_BOT_TOKEN", "")
-
-    # Function to mask key values for display
-    def mask_value(value: str) -> str:
-        if not value:
-            return ""
-        if len(value) <= 8:
-            return "*" * len(value)
-        return value[:4] + "*" * (len(value) - 8) + value[-4:]
-
-    # Create a list of required keys with detailed information
-    keys_info = [
-        {
-            "name": "SLACK_BOT_TOKEN",
-            "description": "Bot Token from your Slack App, starting with 'xoxb-'",
-            "configured": bool(bot_token),
-            "masked_value": mask_value(bot_token),
-            "required": True,
-            "purpose": "Used to send messages and interact with Slack API",
-            "help_url": "https://api.slack.com/authentication/token-types",
-        },
-    ]
-
-    # Check if all required keys are configured
-    all_required_configured = all(key["configured"] for key in keys_info if key["required"])
-
-    return {
-        "configured": all_required_configured,
-        "keys": keys_info,
-    }
-
 
 @router.get("/agents", response_model=List[SlackAgentResponse])
 async def get_agents(db: Session = Depends(get_db)):
