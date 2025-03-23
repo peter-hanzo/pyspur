@@ -18,7 +18,7 @@ ENV PYTHONPATH=/pyspur/backend
 # Development-specific instructions here
 
 # Frontend build stage
-FROM node:23-alpine AS frontend-builder
+FROM node:23-slim AS frontend-builder
 WORKDIR /pyspur/frontend
 COPY frontend/package*.json ./
 RUN npm ci
