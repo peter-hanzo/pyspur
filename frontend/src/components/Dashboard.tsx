@@ -62,6 +62,7 @@ import {
     deleteSlackAgent,
     startSocketMode,
     stopSocketMode,
+    getSocketModeStatus,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
@@ -177,6 +178,8 @@ const Dashboard: React.FC = () => {
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
     const [showSlackAgentWizard, setShowSlackAgentWizard] = useState(false);
     const [showAgentEditorModal, setShowAgentEditorModal] = useState(false);
+    // Create a ref to track current agents without causing re-renders
+    const currentAgentsRef = React.useRef<SlackAgent[]>(slackAgents);
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -281,17 +284,41 @@ const Dashboard: React.FC = () => {
             try {
                 const agents = await getSlackAgents(true) // Force refresh to get latest data
 
+                // For each agent, check the actual socket mode status
+                for (const agent of agents) {
+                    try {
+                        // Only check status for agents with bot token and app token
+                        if (agent.has_bot_token && agent.has_app_token) {
+                            console.log(`Checking socket mode status for agent ${agent.id}`)
+                            const statusResponse = await getSocketModeStatus(agent.id)
+
+                            // Only update if we got a successful response
+                            if (!('error' in statusResponse)) {
+                                agent.socket_mode_enabled = statusResponse.socket_mode_active
+                                console.log(`Updated socket_mode_enabled for agent ${agent.id} to ${agent.socket_mode_enabled}`)
+                            }
+                        }
+                    } catch (statusError) {
+                        console.error(`Error checking socket mode status for agent ${agent.id}:`, statusError)
+                    }
+                }
+
                 // Log agent data for debugging
-                console.log('Refreshed agents:', agents.map(a => ({
+                console.log('Refreshed agents with socket status:', agents.map(a => ({
                     id: a.id,
                     name: a.name,
                     workflow_id: a.workflow_id,
                     type: typeof a.workflow_id,
                     spur_type: a.spur_type,
                     has_bot_token: a.has_bot_token,
-                    has_user_token: a.has_user_token
+                    has_user_token: a.has_user_token,
+                    socket_mode_enabled: a.socket_mode_enabled
                 })))
 
+                // Update our ref to track current state without triggering a re-render cycle
+                currentAgentsRef.current = agents;
+
+                // Update state
                 setSlackAgents(agents)
                 setSlackConfigured(agents.length > 0)
 
@@ -312,6 +339,71 @@ const Dashboard: React.FC = () => {
         // Initial fetch of agents
         refreshSlackAgents()
 
+        // Set up a refresh interval to periodically check socket mode status
+        // Only check status every 30 seconds to avoid excessive API calls
+        const statusRefreshInterval = setInterval(() => {
+            // Only refresh when the page is visible
+            if (document.visibilityState === 'visible') {
+                console.log('Running periodic socket mode status refresh')
+                // Use a "light" refresh that only checks the status of active agents
+                const checkSocketStatus = async () => {
+                    try {
+                        // Get current agents from our ref to avoid dependency on state
+                        const currentAgents = currentAgentsRef.current;
+
+                        // Only check agents that should be active (have both tokens)
+                        const agentsToCheck = currentAgents.filter(a => a.has_bot_token && a.has_app_token)
+
+                        // Get fresh status for each agent
+                        const updatedAgents = [...currentAgents]
+                        let hasChanges = false
+
+                        for (const agent of agentsToCheck) {
+                            try {
+                                const statusResponse = await getSocketModeStatus(agent.id)
+                                if (!('error' in statusResponse)) {
+                                    // Find the agent in our current list
+                                    const agentIndex = updatedAgents.findIndex(a => a.id === agent.id)
+                                    if (agentIndex >= 0) {
+                                        // Only update if the status changed
+                                        if (updatedAgents[agentIndex].socket_mode_enabled !== statusResponse.socket_mode_active) {
+                                            updatedAgents[agentIndex].socket_mode_enabled = statusResponse.socket_mode_active
+                                            hasChanges = true
+                                            console.log(`Status check: Updated agent ${agent.id} socket_mode_enabled to ${statusResponse.socket_mode_active}`)
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error(`Error checking status for agent ${agent.id}:`, error)
+                            }
+                        }
+
+                        // Only update state if something changed to avoid unnecessary re-renders
+                        if (hasChanges) {
+                            // Update the ref first
+                            currentAgentsRef.current = updatedAgents;
+
+                            // Then update the state
+                            setSlackAgents(updatedAgents)
+
+                            // Also update the selected agent if needed
+                            if (selectedAgentForDetail) {
+                                const updatedAgent = updatedAgents.find(a => a.id === selectedAgentForDetail.id)
+                                if (updatedAgent && updatedAgent.socket_mode_enabled !== selectedAgentForDetail.socket_mode_enabled) {
+                                    setSelectedAgentForDetail(updatedAgent)
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error in periodic status check:', error)
+                    }
+                }
+
+                // Run the status check
+                checkSocketStatus()
+            }
+        }, 30000) // 30 seconds
+
         // Listen for router events
         const handleRouteChange = (url: string, { shallow }: { shallow: boolean }) => {
             // If returning to dashboard, refresh agents
@@ -331,12 +423,13 @@ const Dashboard: React.FC = () => {
         router.events.on('routeChangeComplete', handleRouteChange)
         document.addEventListener('visibilitychange', handleVisibilityChange)
 
-        // Clean up event listeners
+        // Clean up event listeners and interval
         return () => {
+            clearInterval(statusRefreshInterval)
             router.events.off('routeChangeComplete', handleRouteChange)
             document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
-    }, [router.events])
+    }, [router.events, selectedAgentForDetail])
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString)
@@ -681,7 +774,6 @@ const Dashboard: React.FC = () => {
         setShowSlackAgentWizard(true);
     }
 
-
     // Debug log when agents change
     useEffect(() => {
         if (slackAgents.length > 0) {
@@ -868,12 +960,52 @@ const Dashboard: React.FC = () => {
                     };
                 }
 
-                // Update agent in the list
+                // Immediately check the status to ensure UI updates correctly
+                try {
+                    console.log(`Checking socket mode status immediately after starting for agent ${agent.id}`);
+                    // Wait a brief moment to allow the backend to start the socket mode
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // Check the status
+                    const statusResponse = await getSocketModeStatus(agent.id);
+
+                    if (!('error' in statusResponse)) {
+                        console.log(`Got immediate status response:`, statusResponse);
+                        // Update agent in the list with the accurate status
+                        updateAgents((prevAgents) =>
+                            prevAgents.map(a => a.id === agent.id
+                                ? { ...a, socket_mode_enabled: statusResponse.socket_mode_active }
+                                : a
+                            )
+                        );
+
+                        // Also update the ref
+                        currentAgentsRef.current = currentAgentsRef.current.map(a =>
+                            a.id === agent.id ? { ...a, socket_mode_enabled: statusResponse.socket_mode_active } : a
+                        );
+
+                        return {
+                            success: true,
+                            message: statusResponse.socket_mode_active
+                                ? 'Socket Mode started successfully'
+                                : 'Socket Mode was started but appears to be inactive - check server logs'
+                        };
+                    }
+                } catch (statusError) {
+                    console.error(`Error checking socket mode status after starting:`, statusError);
+                }
+
+                // If we couldn't get an accurate status, update the UI optimistically
                 updateAgents((prevAgents) =>
                     prevAgents.map(a => a.id === agent.id
                         ? { ...a, socket_mode_enabled: true }
                         : a
                     )
+                );
+
+                // Update the ref
+                currentAgentsRef.current = currentAgentsRef.current.map(a =>
+                    a.id === agent.id ? { ...a, socket_mode_enabled: true } : a
                 );
 
                 return {

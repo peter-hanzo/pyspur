@@ -8,6 +8,8 @@ import logging
 import os
 import signal
 import sys
+import types
+from datetime import datetime
 from typing import Optional
 
 from loguru import logger
@@ -26,13 +28,10 @@ def get_active_agents(db: Session) -> list[SlackAgentModel]:
     """Get all active agents that have socket mode enabled"""
     agents = (
         db.query(SlackAgentModel)
-        .filter(
-            SlackAgentModel.is_active,
-            SlackAgentModel.trigger_enabled,
-            SlackAgentModel.has_bot_token,
-            SlackAgentModel.workflow_id.isnot(None),
-            SlackAgentModel.socket_mode_enabled.is_(True),
+        .filter_by(
+            is_active=True, trigger_enabled=True, has_bot_token=True, socket_mode_enabled=True
         )
+        .filter(SlackAgentModel.workflow_id.isnot(None))
         .all()
     )
     return agents
@@ -41,7 +40,7 @@ def get_active_agents(db: Session) -> list[SlackAgentModel]:
 def setup_shutdown_handler(socket_client: SocketModeClient, agent_id: int):
     """Set up signal handlers for graceful shutdown"""
 
-    def handle_shutdown(signum: int, frame) -> None:
+    def handle_shutdown(signum: int, frame: Optional[types.FrameType]) -> None:
         logger.info(f"Worker {agent_id} received signal {signum}, shutting down")
         socket_client.stop_socket_mode(agent_id)
         sys.exit(0)
@@ -67,12 +66,12 @@ async def check_agent_status(db: Session, agent_id: int) -> bool:
             logger.warning(f"Agent {agent_id} no longer exists")
             return False
 
-        return bool(
-            agent.is_active
-            and agent.trigger_enabled
-            and agent.has_bot_token
-            and agent.workflow_id is not None
-            and agent.socket_mode_enabled
+        return (
+            bool(agent.is_active)
+            and bool(agent.trigger_enabled)
+            and bool(agent.has_bot_token)
+            and bool(agent.workflow_id)
+            and bool(agent.socket_mode_enabled)
         )
     except Exception as e:
         logger.error(f"Error checking agent {agent_id} status: {e}")
@@ -97,6 +96,29 @@ async def run_worker(agent_id: int):
     worker_id = os.environ.get("HOSTNAME", "unknown")
     logger.info(f"Socket worker {worker_id} started for agent {agent_id}")
 
+    # Create a marker file to indicate this worker is running
+    # This helps with tracking workers even if the API restarts
+    marker_dir = "/tmp/pyspur_socket_workers"
+    os.makedirs(marker_dir, exist_ok=True)
+    marker_file = f"{marker_dir}/agent_{agent_id}.pid"
+    with open(marker_file, "w") as f:
+        f.write(str(os.getpid()))
+
+    status_file = f"{marker_dir}/agent_{agent_id}.status"
+
+    # Register a cleanup function to remove the marker file when the process exits
+    import atexit
+
+    def cleanup_marker():
+        try:
+            if os.path.exists(marker_file):
+                os.remove(marker_file)
+                logger.info(f"Removed marker file {marker_file}")
+        except Exception as e:
+            logger.error(f"Error removing marker file: {e}")
+
+    atexit.register(cleanup_marker)
+
     # Add a brief delay to ensure database is ready
     await asyncio.sleep(5)
 
@@ -109,13 +131,34 @@ async def run_worker(agent_id: int):
 
         logger.info(f"Socket mode started for agent {agent_id}")
 
-        # Keep checking the agent's status
+        # Write status information to a status file
+        try:
+            with open(status_file, "w") as f:
+                import json
+
+                status_info = {
+                    "agent_id": agent_id,
+                    "started_at": datetime.now().isoformat(),
+                    "pid": os.getpid(),
+                    "hostname": worker_id,
+                    "status": "running",
+                }
+                f.write(json.dumps(status_info))
+        except Exception as status_err:
+            logger.error(f"Error writing status file: {status_err}")
+
+        # Keep checking the agent's status and be resilient to database connection issues
+        max_retries = 3
+        retry_count = 0
         while True:
             try:
                 db = next(get_db())
                 try:
                     # Check if we should still be running
                     should_run = await check_agent_status(db, agent_id)
+                    # Reset retry counter on successful check
+                    retry_count = 0
+
                     if not should_run:
                         logger.info(f"Agent {agent_id} is no longer active, shutting down")
                         break
@@ -128,22 +171,54 @@ async def run_worker(agent_id: int):
                         success = socket_client.start_socket_mode(agent_id)
                         if not success:
                             logger.error(f"Failed to restart socket for agent {agent_id}")
-                            break
+                            retry_count += 1
+                            if retry_count >= max_retries:
+                                logger.error(
+                                    f"Reached max retries ({max_retries}) for agent {agent_id}, shutting down"
+                                )
+                                break
                 finally:
                     db.close()
-
-                # Sleep before next check
-                await asyncio.sleep(30)  # Check every 30 seconds
-
+            except asyncio.CancelledError:
+                logger.info(f"Worker {agent_id} received cancellation, shutting down gracefully")
+                break
             except Exception as e:
                 logger.error(f"Error in worker loop for agent {agent_id}: {e}")
-                await asyncio.sleep(5)  # Brief sleep before retry
+                retry_count += 1
+                if retry_count >= max_retries:
+                    logger.error(
+                        f"Reached max retries ({max_retries}) for agent {agent_id}, shutting down"
+                    )
+                    break
+                await asyncio.sleep(5)
 
     except Exception as e:
         logger.error(f"Critical error in worker for agent {agent_id}: {e}")
     finally:
-        # Ensure socket is stopped
-        socket_client.stop_socket_mode(agent_id)
+        # Ensure socket is stopped and cleanup is performed
+        try:
+            socket_client.stop_socket_mode(agent_id)
+        except Exception as stop_err:
+            logger.error(f"Error stopping socket mode: {stop_err}")
+
+        # Update status file to indicate shutdown
+        try:
+            with open(status_file, "w") as f:
+                import json
+
+                status_info = {
+                    "agent_id": agent_id,
+                    "shutdown_at": datetime.now().isoformat(),
+                    "pid": os.getpid(),
+                    "hostname": worker_id,
+                    "status": "stopped",
+                }
+                f.write(json.dumps(status_info))
+        except Exception as status_err:
+            logger.error(f"Error updating status file on shutdown: {status_err}")
+
+        # Try to clean up marker files
+        cleanup_marker()
 
 
 def main(agent_id: Optional[int] = None):
@@ -168,11 +243,13 @@ def main(agent_id: Optional[int] = None):
 
 if __name__ == "__main__":
     # If running directly, get agent ID from environment
-    agent_id = os.environ.get("SLACK_AGENT_ID")
-    if agent_id:
-        try:
-            agent_id = int(agent_id)
-        except ValueError:
-            logger.error(f"Invalid agent ID: {agent_id}")
-            sys.exit(1)
+    agent_id_str = os.environ.get("SLACK_AGENT_ID")
+    if not agent_id_str:
+        logger.error("No agent ID provided")
+        sys.exit(1)
+    try:
+        agent_id = int(agent_id_str)
+    except ValueError:
+        logger.error(f"Invalid agent ID: {agent_id_str}")
+        sys.exit(1)
     main(agent_id)
