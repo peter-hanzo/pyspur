@@ -30,7 +30,3 @@ COPY frontend/package*.json ./
 RUN npm install
 
 WORKDIR /pyspur
-
-# Install Docker CLI using shared script
-COPY docker-install.sh /tmp/
-RUN bash /tmp/docker-install.sh && rm /tmp/docker-install.sh

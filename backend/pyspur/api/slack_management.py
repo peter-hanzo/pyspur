@@ -409,7 +409,6 @@ async def _send_workflow_results_to_slack(
 socket_mode_client.set_workflow_trigger_callback(handle_socket_mode_event_sync)  # type: ignore
 
 
-
 @router.get("/agents", response_model=List[SlackAgentResponse])
 async def get_agents(db: Session = Depends(get_db)):
     """Get all configured Slack agents"""

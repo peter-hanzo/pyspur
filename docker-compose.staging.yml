@@ -12,7 +12,7 @@ services:
       - ./.env
     environment:
       - ENVIRONMENT=staging
-      - SOCKET_MODE_DISABLED=true
+      - SOCKET_MODE_DISABLED=false
     volumes:
       - .:/pyspur:ro
       - /pyspur/backend/pyspur/static/
@@ -23,29 +23,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-  slack-socket-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-      target: production
-    command: python -m pyspur.integrations.slack.socket_worker
-    env_file:
-      - ./.env.example
-      - ./.env
-    environment:
-      - ENVIRONMENT=staging
-    volumes:
-      - ./.env:/pyspur/backend/.env
-      - pyspur_data:/pyspur/backend/data
-    depends_on:
-      db:
-        condition: service_healthy
-      backend:
-        condition: service_started
-    deploy:
-      replicas: ${SOCKET_WORKERS:-2}
-    restart: unless-stopped
 
   db:
     image: postgres:17-alpine

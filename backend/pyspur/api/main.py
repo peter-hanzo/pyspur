@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import threading
 from contextlib import ExitStack, asynccontextmanager
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -19,12 +20,14 @@ load_dotenv()
 # Create an ExitStack to manage resources
 exit_stack = ExitStack()
 temporary_static_dir = None
+socket_manager = None
+socket_thread = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan and cleanup."""
-    global temporary_static_dir
+    global temporary_static_dir, socket_manager, socket_thread
 
     # Setup: Create temporary directory and extract static files
     temporary_static_dir = Path(tempfile.mkdtemp())
@@ -47,17 +50,35 @@ async def lifespan(app: FastAPI):
         logger.info("Socket Mode is disabled in main process - use dedicated socket workers")
     else:
         logger.info("Socket Mode enabled in main process")
-        # Import socket client lazily to avoid circular imports
-        from ..integrations.slack.socket_client import get_socket_mode_client
+        # Import socket manager lazily to avoid circular imports
+        from ..integrations.slack.socket_manager import SocketManager, run_socket_manager
 
-        # Initialize socket client but don't start any connections here
-        # The socket client will be used on-demand by the API
-        socket_client = get_socket_mode_client()
-        logger.info("Socket Mode client initialized")
+        # Initialize socket manager
+        socket_manager = SocketManager()
+        logger.info("Socket manager initialized")
+
+        # Start the socket manager in a background thread
+        socket_thread = threading.Thread(
+            target=run_socket_manager,
+            name="socket_manager",
+            daemon=True,  # Ensure thread is daemonized
+        )
+        socket_thread.start()
+        logger.info("Socket manager thread started")
 
     yield
 
-    # Cleanup: Remove temporary directory and close ExitStack
+    # Cleanup: Stop socket manager and remove temporary directory
+    if socket_manager:
+        logger.info("Stopping socket manager...")
+        socket_manager.stopping = True
+        if socket_thread and socket_thread.is_alive():
+            try:
+                # Give the thread a chance to stop gracefully
+                socket_thread.join(timeout=5)
+            except Exception as e:
+                logger.error(f"Error stopping socket manager thread: {e}")
+
     exit_stack.close()
     shutil.rmtree(temporary_static_dir, ignore_errors=True)
 
