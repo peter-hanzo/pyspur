@@ -202,37 +202,22 @@ const AgentTokenManager: React.FC<AgentTokenManagerProps> = ({
         try {
             const data = await fetchMaskedToken(agent.id, tokenType)
 
-            if (tokenType === 'bot_token') {
-                setTokenStatus(prev => ({
-                    ...prev,
-                    bot_token: {
-                        ...prev.bot_token,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }
-                }))
-            } else if (tokenType === 'app_token') {
-                setTokenStatus(prev => ({
-                    ...prev,
-                    app_token: {
-                        ...prev.app_token,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }
-                }))
-            } else {
-                setTokenStatus(prev => ({
-                    ...prev,
-                    user_token: {
-                        ...prev.user_token,
-                        masked: data.masked_token,
-                        lastUpdated: data.updated_at
-                    }
-                }))
-            }
+            // Update token status with the fetched data
+            setTokenStatus(prev => ({
+                ...prev,
+                [tokenType]: {
+                    ...prev[tokenType as keyof typeof prev],
+                    masked: data.masked_token,
+                    lastUpdated: data.updated_at,
+                    exists: Boolean(data.masked_token)
+                }
+            }))
         } catch (error) {
             console.error(`Error fetching ${tokenType}:`, error)
-            onAlert?.(`Failed to fetch ${tokenType}`, 'danger')
+            // Only show alert for non-404 errors
+            if (!(error?.response?.status === 404)) {
+                onAlert?.(`Failed to fetch ${tokenType}`, 'danger')
+            }
         }
     }
 

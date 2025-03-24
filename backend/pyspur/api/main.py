@@ -40,31 +40,6 @@ async def lifespan(app: FastAPI):
     if static_dir.exists():
         shutil.copytree(static_dir, temporary_static_dir, dirs_exist_ok=True)
 
-    # Check if socket mode should be disabled in the main process
-    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
-        "true",
-        "1",
-        "yes",
-    )
-    if socket_mode_disabled:
-        logger.info("Socket Mode is disabled in main process - use dedicated socket workers")
-    else:
-        logger.info("Socket Mode enabled in main process")
-        # Import socket manager lazily to avoid circular imports
-        from ..integrations.slack.socket_manager import SocketManager, run_socket_manager
-
-        # Initialize socket manager
-        socket_manager = SocketManager()
-        logger.info("Socket manager initialized")
-
-        # Start the socket manager in a background thread
-        socket_thread = threading.Thread(
-            target=run_socket_manager,
-            name="socket_manager",
-            daemon=True,  # Ensure thread is daemonized
-        )
-        socket_thread.start()
-        logger.info("Socket manager thread started")
 
     yield
 

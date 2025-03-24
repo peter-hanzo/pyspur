@@ -1733,7 +1733,7 @@ export const getSocketModeStatus = async (
  */
 export const fetchMaskedToken = async (agentId: number, tokenType: string): Promise<{
     masked_token: string;
-    updated_at: string;
+    updated_at: string | null;
 }> => {
     const url = `${API_BASE_URL}/slack/agents/${agentId}/tokens/${tokenType}`
     console.log(`Fetching masked token from: ${url}`)
@@ -1746,6 +1746,11 @@ export const fetchMaskedToken = async (agentId: number, tokenType: string): Prom
         console.error(`Error fetching ${tokenType}:`, error.response || error)
         if (error.response?.status === 404) {
             console.warn(`Token ${tokenType} for agent ${agentId} not found`)
+            // Return empty state instead of throwing
+            return {
+                masked_token: '',
+                updated_at: null
+            }
         }
         throw error
     }

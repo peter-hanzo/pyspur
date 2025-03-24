@@ -1095,11 +1095,14 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    if not getattr(agent, "has_bot_token", False):
+    # Convert SQLAlchemy Column to bool
+    has_bot_token = bool(getattr(agent, "has_bot_token", False))
+    if not has_bot_token:
         raise HTTPException(status_code=400, detail="Agent doesn't have a bot token")
 
     # Check if the agent has an app token or if there's one in the environment
-    if not getattr(agent, "has_app_token", False) and not os.getenv("SLACK_APP_TOKEN"):
+    has_app_token = bool(getattr(agent, "has_app_token", False))
+    if not has_app_token and not os.getenv("SLACK_APP_TOKEN"):
         raise HTTPException(
             status_code=400,
             detail="Socket Mode requires an app token. Please configure an app token for this agent or set the SLACK_APP_TOKEN environment variable.",
@@ -1112,167 +1115,28 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
             status_code=400, detail="SLACK_SIGNING_SECRET environment variable not configured"
         )
 
-    # Check if socket mode is disabled in the main process
-    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
-        "true",
-        "1",
-        "yes",
-    )
-
-    if socket_mode_disabled:
-        # Even when socket mode is managed by workers, update the agent's socket_mode_enabled field
-        agent.socket_mode_enabled = True
-        db.commit()
-
-        return SlackSocketModeResponse(
-            agent_id=agent_id,
-            socket_mode_active=True,
-            message="Socket Mode request accepted. Socket Mode is managed by dedicated workers.",
-        )
-
-    # Start socket mode
-    success = socket_mode_client.start_socket_mode(agent_id)
-
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to start Socket Mode")
-
-    # Store socket mode status in the database
+    # Update the agent's socket_mode_enabled field
     agent.socket_mode_enabled = True
     db.commit()
 
+    # Import socket manager lazily to avoid circular imports
+    from ..integrations.slack.socket_manager import SocketManager
+
+    # Initialize socket manager and start worker
+    socket_manager = SocketManager()
+    success = socket_manager.start_worker(agent_id)
+
+    if not success:
+        # If worker failed to start, revert the socket_mode_enabled flag
+        agent.socket_mode_enabled = False
+        db.commit()
+        raise HTTPException(status_code=500, detail="Failed to start Socket Mode worker")
+
     return SlackSocketModeResponse(
-        agent_id=agent_id, socket_mode_active=True, message="Socket Mode started successfully"
+        agent_id=agent_id,
+        socket_mode_active=True,
+        message="Socket Mode worker started successfully.",
     )
-
-
-def _get_container_names(
-    container_name: str = None, container_prefix: str = None, client=None
-) -> list:
-    """Get container names to restart based on name or prefix.
-
-    Args:
-        container_name: Specific container name to stop
-        container_prefix: Prefix to match multiple containers
-        client: Docker client (if available)
-
-    Returns:
-        list: List of container names to restart
-
-    """
-    containers = []
-
-    # Try to find by exact name
-    if container_name:
-        if client:
-            try:
-                containers.append(client.containers.get(container_name))
-                logger.info(f"Found specific container: {container_name}")
-            except Exception:
-                logger.warning(f"Container not found: {container_name}")
-        else:
-            containers.append(container_name)
-
-    # Try to find by prefix
-    if container_prefix and client:
-        for container in client.containers.list():
-            if container.name.startswith(container_prefix):
-                if container not in containers:
-                    containers.append(container)
-                    logger.info(f"Found container by prefix: {container.name}")
-
-    return containers
-
-
-def _restart_with_cli(container_names: list, container_prefix: str = None) -> bool:
-    """Restart containers using Docker CLI.
-
-    Args:
-        container_names: List of container names to restart
-        container_prefix: Optional prefix to find additional containers
-
-    Returns:
-        bool: True if at least one container was restarted
-
-    """
-    success = False
-    try:
-        import subprocess
-
-        # Get container names if we only have prefix
-        if not container_names and container_prefix:
-            cmd = [
-                "docker",
-                "ps",
-                "--filter",
-                f"name={container_prefix}",
-                "--format",
-                "{{.Names}}",
-            ]
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            container_names = [name for name in result.stdout.strip().split("\n") if name]
-            logger.info(f"Found containers via CLI: {container_names}")
-
-        # Restart each container
-        for name in container_names:
-            try:
-                logger.info(f"Restarting container via CLI: {name}")
-                subprocess.run(
-                    ["docker", "restart", name], check=True, capture_output=True, text=True
-                )
-                success = True
-            except Exception as e:
-                logger.error(f"Failed to restart container {name} via CLI: {e}")
-    except Exception as e:
-        logger.error(f"Failed to use Docker CLI: {e}")
-
-    return success
-
-
-def stop_socket_worker_containers(container_name: str = None, container_prefix: str = None) -> bool:
-    """Stop or restart socket worker containers.
-
-    Args:
-        container_name: Specific container name to stop
-        container_prefix: Prefix to match multiple containers
-
-    Returns:
-        bool: True if at least one container was successfully managed
-
-    """
-    # Use environment variables if no parameters provided
-    if not container_name and not container_prefix:
-        container_name = os.environ.get("SOCKET_WORKER_CONTAINER", "pyspur-slack-socket-worker-1")
-        container_prefix = os.environ.get("SOCKET_WORKER_PREFIX", "pyspur-slack-socket-worker")
-
-    logger.info(f"Managing socket worker containers: {container_name} or prefix {container_prefix}")
-    success = False
-
-    # Try the Python Docker client first
-    try:
-        import docker
-
-        client = docker.from_env()
-        client.ping()  # Test connection
-
-        # Get containers to manage
-        containers = _get_container_names(container_name, container_prefix, client)
-
-        # Restart all found containers
-        for container in containers:
-            try:
-                container.restart()
-                success = True
-                logger.info(f"Restarted container: {container.name}")
-            except Exception as e:
-                logger.error(f"Failed to restart container {container.name}: {e}")
-
-    except Exception as e:
-        logger.warning(f"Docker client failed, falling back to CLI: {e}")
-        # Fallback to Docker CLI
-        container_names = [container_name] if container_name else []
-        success = _restart_with_cli(container_names, container_prefix) or success
-
-    return success
 
 
 @router.post("/agents/{agent_id}/socket-mode/stop", response_model=SlackSocketModeResponse)
@@ -1285,7 +1149,8 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Agent not found")
 
         # Check if socket mode is already disabled
-        if not agent.socket_mode_enabled:
+        socket_mode_enabled = bool(getattr(agent, "socket_mode_enabled", False))
+        if not socket_mode_enabled:
             return SlackSocketModeResponse(
                 agent_id=agent_id,
                 socket_mode_active=False,
@@ -1296,36 +1161,24 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
         agent.socket_mode_enabled = False
         db.commit()
 
-        # Set default response message
-        message = "Socket Mode stopped."
+        # Import socket manager lazily to avoid circular imports
+        from ..integrations.slack.socket_manager import SocketManager
 
-        # Force restart the socket worker containers to kill all connections
-        try:
-            container_name = os.environ.get(
-                "SOCKET_WORKER_CONTAINER", "pyspur-slack-socket-worker-1"
-            )
-            container_prefix = os.environ.get("SOCKET_WORKER_PREFIX", "pyspur-slack-socket-worker")
+        # Initialize socket manager and stop worker
+        socket_manager = SocketManager()
+        success = socket_manager.stop_worker(agent_id)
 
-            logger.info(
-                f"Restarting socket worker containers: {container_name} or {container_prefix}"
-            )
-
-            success = stop_socket_worker_containers(container_name, container_prefix)
-
-            if success:
-                message += " Worker containers restarted to kill all connections."
-            else:
-                message += " Warning: Failed to restart worker containers."
-
-        except Exception as e:
-            logger.error(f"Failed to restart socket worker containers: {e}")
-            message += " Error: Could not restart worker containers."
-
+        message = (
+            "Socket Mode worker stopped successfully."
+            if success
+            else "Failed to stop Socket Mode worker."
+        )
         return SlackSocketModeResponse(
             agent_id=agent_id,
             socket_mode_active=False,
             message=message,
         )
+
     except Exception as e:
         logger.error(f"Error stopping socket mode: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to stop Socket Mode: {str(e)}")
@@ -1338,38 +1191,35 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Check if socket mode is disabled in the main process
-    socket_mode_disabled = os.environ.get("SOCKET_MODE_DISABLED", "").lower() in (
-        "true",
-        "1",
-        "yes",
+    # Import socket manager lazily to avoid circular imports
+    from ..integrations.slack.socket_manager import SocketManager
+
+    # Initialize socket manager and check worker status
+    socket_manager = SocketManager()
+    worker_running = (
+        agent_id in socket_manager.workers and socket_manager.workers[agent_id].is_alive()
     )
 
-    if socket_mode_disabled:
-        # In this case, we need to check with the database if there should be a worker
-        # handling this agent
-        agent_is_active = (
-            bool(agent.is_active)
-            and bool(agent.trigger_enabled)
-            and bool(agent.has_bot_token)
-            and agent.workflow_id is not None
-        )
+    # Convert SQLAlchemy Columns to bool
+    is_active = bool(getattr(agent, "is_active", True))
+    trigger_enabled = bool(getattr(agent, "trigger_enabled", True))
+    has_bot_token = bool(getattr(agent, "has_bot_token", False))
+    socket_mode_enabled = bool(getattr(agent, "socket_mode_enabled", False))
+    workflow_id = getattr(agent, "workflow_id", None)
 
-        # Also check the agent's socket_mode_enabled field
-        socket_mode_enabled = getattr(agent, "socket_mode_enabled", False)
-
-        return SlackSocketModeResponse(
-            agent_id=agent_id,
-            socket_mode_active=agent_is_active and socket_mode_enabled,
-            message=f"Socket Mode is {'active' if (agent_is_active and socket_mode_enabled) else 'inactive'} (managed by dedicated workers)",
-        )
-
-    is_active = socket_mode_client.is_running(agent_id)
+    # Check if the agent should be active
+    agent_is_active = (
+        is_active
+        and trigger_enabled
+        and has_bot_token
+        and workflow_id is not None
+        and socket_mode_enabled
+    )
 
     return SlackSocketModeResponse(
         agent_id=agent_id,
-        socket_mode_active=is_active,
-        message=f"Socket Mode is {'active' if is_active else 'inactive'}",
+        socket_mode_active=worker_running and agent_is_active,
+        message=f"Socket Mode worker is {'active' if (worker_running and agent_is_active) else 'inactive'}",
     )
 
 
