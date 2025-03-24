@@ -82,6 +82,7 @@ class LLMModel(BaseModel):
 
 class LLMModels(str, Enum):
     # OpenAI Models
+    O1_PRO = "openai/o1-pro"
     O3_MINI = "openai/o3-mini"
     O3_MINI_2025_01_31 = "openai/o3-mini-2025-01-31"
     GPT_4O_MINI = "openai/gpt-4o-mini"
@@ -203,6 +204,18 @@ class LLMModels(str, Enum):
                     max_temperature=2.0,
                     supports_max_tokens=False,
                     supports_temperature=False,
+                ).add_mime_categories({MimeCategory.IMAGES}),
+            ),
+            cls.O1_PRO.value: LLMModel(
+                id=cls.O1_PRO.value,
+                provider=LLMProvider.OPENAI,
+                name="O1 Pro",
+                constraints=ModelConstraints(
+                    max_tokens=100000,
+                    max_temperature=2.0,
+                    supports_max_tokens=False,
+                    supports_temperature=False,
+                    supports_JSON_output=True,
                 ).add_mime_categories({MimeCategory.IMAGES}),
             ),
             cls.O1_2024_12_17.value: LLMModel(
