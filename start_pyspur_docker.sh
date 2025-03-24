@@ -63,9 +63,6 @@ if ! download_file "docker-compose.yml"; then
     exit 1
 fi
 
-# Download Dockerfile.socket if available
-download_file "Dockerfile.socket" || print_message "Optional Dockerfile.socket not found, will use image from registry" "$YELLOW"
-
 # Download and copy .env.example to .env
 if ! download_file ".env.example"; then
     exit 1

@@ -2,15 +2,11 @@
 FROM python:3.12 as base
 WORKDIR /pyspur
 
-# Install bash completion and development tools
+# Install bash completion
 RUN apt-get update && apt-get install -y \
     bash-completion \
     nano \
     vim \
-    libpq-dev \
-    gcc \
-    curl \
-    make \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install uv
