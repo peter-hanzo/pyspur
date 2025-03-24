@@ -9,8 +9,6 @@ services:
       - backend
       - frontend
     restart: on-failure
-    networks:
-      - pyspur_network
 
   backend:
     build:
@@ -25,7 +23,6 @@ services:
       - .:/pyspur
       - ./.env:/pyspur/backend/.env
       - pyspur_data:/pyspur/backend/data
-      - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -59,11 +56,6 @@ services:
         test: ['CMD-SHELL', 'pg_isready -U pyspur']
         interval: 5s
         timeout: 5s
-
-networks:
-  pyspur_network:
-    name: pyspur_network
-    driver: bridge
 
 volumes:
   postgres_data:

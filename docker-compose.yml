@@ -10,14 +10,11 @@ services:
     volumes:
       - ./.env:/pyspur/backend/.env
       - pyspur_data:/pyspur/backend/data
-      - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      - SOCKET_MODE_DISABLED=false
 
   db:
     image: postgres:17-alpine
