@@ -271,24 +271,24 @@ PROVIDER_CONFIGS = [
             ProviderParameter(name="FIRECRAWL_API_KEY", description="Firecrawl API Key"),
         ],
     ),
-    # Add Slack Provider
-    ProviderConfig(
-        id="slack",
-        name="Slack",
-        description="Slack messaging and notification service",
-        category="messaging",
-        icon="logos:slack-icon",
-        parameters=[
-            ProviderParameter(
-                name="SLACK_BOT_TOKEN", description="Slack Bot User OAuth Token (starts with xoxb-)"
-            ),
-            ProviderParameter(
-                name="SLACK_USER_TOKEN",
-                description="Slack User OAuth Token (starts with xoxp-)",
-                required=False,
-            ),
-        ],
-    ),
+    # # Add Slack Provider
+    # ProviderConfig(
+    #     id="slack",
+    #     name="Slack",
+    #     description="Slack messaging and notification service",
+    #     category="messaging",
+    #     icon="logos:slack-icon",
+    #     parameters=[
+    #         ProviderParameter(
+    #             name="SLACK_BOT_TOKEN", description="Slack Bot User OAuth Token (starts with xoxb-)"
+    #         ),
+    #         ProviderParameter(
+    #             name="SLACK_USER_TOKEN",
+    #             description="Slack User OAuth Token (starts with xoxp-)",
+    #             required=False,
+    #         ),
+    #     ],
+    # ),
     # Add Exa Provider
     ProviderConfig(
         id="exa",
