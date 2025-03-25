@@ -558,12 +558,6 @@ async def ollama_with_backoff(
 
     """
     client = AsyncClient(host=api_base)
-    print("=== Ollama Configuration ===")
-    print(f"Model: '{model}' '{model.replace('ollama/', '')}'")
-    print(f"API Base: {api_base}")
-    print(f"Messages: {messages}")
-    print(f"Format: {format}")
-    print(f"Options: {options}")
     try:
         response = await client.chat(
             model=model.replace("ollama/", ""),
@@ -571,8 +565,6 @@ async def ollama_with_backoff(
             format=format,
             options=(options or OllamaOptions()).to_dict(),
         )
-        print("=== Ollama Response ===")
-        print(f"Response: {response}")
         return response.message.content
     except Exception as e:
         logging.error(f"Error calling Ollama API: {e}")
