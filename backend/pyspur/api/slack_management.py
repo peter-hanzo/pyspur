@@ -11,6 +11,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException,
 from loguru import logger
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web.async_client import AsyncWebClient
+from slack_sdk.web.async_slack_response import AsyncSlackResponse
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -55,10 +57,6 @@ socket_mode_client = get_socket_mode_client()
 T = TypeVar("T")
 
 # Add these type annotations to better handle slack_sdk method calls
-from slack_sdk.web.client import WebClient
-
-# Define auth test response type
-AuthTestResponse = Dict[str, str]
 
 
 def _validate_agent_socket_mode(
@@ -917,11 +915,12 @@ async def set_agent_token(
 
         # Try to get team information when setting a bot token
         try:
-            client = WebClient(token=token_request.token)
-            response: AuthTestResponse = client.auth_test()  # type: ignore
-            if response["ok"]:
-                team_id = response.get("team_id")
-                team_name = response.get("team")
+            client = AsyncWebClient(token=token_request.token)
+            response: AsyncSlackResponse = await client.auth_test()
+            response_data: Dict[str, Any] = response.data if isinstance(response.data, dict) else {}
+            if response_data.get("ok"):
+                team_id = str(response_data.get("team_id", ""))
+                team_name = str(response_data.get("team", ""))
                 if team_id:
                     agent.set_field("slack_team_id", team_id)
                     agent.set_field("slack_team_name", team_name)
@@ -1391,13 +1390,14 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
             return {"success": False, "message": "Could not retrieve bot token"}
 
         # Test the token by calling auth.test
-        client = WebClient(token=bot_token)
+        client = AsyncWebClient(token=bot_token)
         try:
-            response: AuthTestResponse = client.auth_test()  # type: ignore
-            if response["ok"]:
-                team = response.get("team", "Unknown workspace")
-                team_id = response.get("team_id")
-                user = response.get("user", "Unknown bot")
+            response: AsyncSlackResponse = await client.auth_test()
+            response_data: Dict[str, Any] = response.data if isinstance(response.data, dict) else {}
+            if response_data.get("ok"):
+                team = str(response_data.get("team", "Unknown workspace"))
+                team_id = str(response_data.get("team_id", ""))
+                user = str(response_data.get("user", "Unknown bot"))
 
                 # Update the agent's team information
                 if team_id:
@@ -1412,13 +1412,13 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
                     "success": True,
                     "message": f"Successfully connected to {team} as {user}",
                     "team_id": team_id,
-                    "bot_id": response.get("bot_id"),
-                    "user_id": response.get("user_id"),
+                    "bot_id": response_data["bot_id"],
+                    "user_id": response_data["user_id"],
                 }
             else:
                 return {
                     "success": False,
-                    "message": f"API call succeeded but returned not OK: {response.get('error', 'Unknown error')}",
+                    "message": f"API call succeeded but returned not OK: {response_data.get('error', 'Unknown error')}",
                 }
         except SlackApiError as e:
             error_response = cast(Dict[str, Any], getattr(e, "response", {}))
