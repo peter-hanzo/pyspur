@@ -320,7 +320,8 @@ def get_env_variable(name: str) -> Optional[str]:
 
 
 def set_env_variable(name: str, value: str):
-    """Sets an environment variable both in the .env file and in the current process.
+    """Set an environment variable both in the .env file and in the current process.
+
     Also ensures the value is properly quoted if it contains special characters.
     """
     # Ensure the value is properly quoted if it contains spaces or special characters
@@ -345,7 +346,8 @@ def delete_env_variable(name: str):
 
 
 def mask_key_value(value: str, param_type: str = "password") -> str:
-    """Masks the key value based on the parameter type.
+    """Mask the key value based on the parameter type.
+
     For password types, shows only the first and last few characters.
     For other types, shows the full value.
     """
@@ -364,13 +366,13 @@ def mask_key_value(value: str, param_type: str = "password") -> str:
 
 @router.get("/providers", description="Get all provider configurations")
 async def get_providers():
-    """Returns all provider configurations"""
+    """Return all provider configurations."""
     return PROVIDER_CONFIGS
 
 
 @router.get("/", description="Get a list of all environment variable names")
 async def list_api_keys():
-    """Returns a list of all model provider keys"""
+    """Return a list of all model provider keys."""
     return [k["name"] for k in MODEL_PROVIDER_KEYS]
 
 
@@ -379,7 +381,8 @@ async def list_api_keys():
     description="Get the masked value of a specific environment variable",
 )
 async def get_api_key(name: str):
-    """Returns the masked value of the specified environment variable.
+    """Return the masked value of the specified environment variable.
+
     Requires authentication.
     """
     # Find the parameter configuration
@@ -401,7 +404,8 @@ async def get_api_key(name: str):
 
 @router.post("/", description="Add or update an environment variable")
 async def set_api_key(api_key: APIKey):
-    """Adds a new environment variable or updates an existing one.
+    """Add a new environment variable or updates an existing one.
+
     Requires authentication.
     """
     if api_key.name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
@@ -414,7 +418,8 @@ async def set_api_key(api_key: APIKey):
 
 @router.delete("/{name}", description="Delete an environment variable")
 async def delete_api_key(name: str):
-    """Deletes the specified environment variable.
+    """Delete the specified environment variable.
+
     Requires authentication.
     """
     if name not in [k["name"] for k in MODEL_PROVIDER_KEYS]:
@@ -446,7 +451,7 @@ async def get_embedding_models() -> Dict[str, EmbeddingModelConfig]:
                 models[model.value] = model_info
         return models
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/vector-stores/", response_model=Dict[str, VectorStoreConfig])
@@ -461,4 +466,10 @@ async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
                 store.required_env_vars = [p.name for p in provider_config.parameters if p.required]
         return stores
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/anon-data/", description="Get the status of anonymous telemetry data")
+async def get_anon_data_status() -> bool:
+    """Get the status of anonymous telemetry data."""
+    return os.getenv("DISABLE_ANONYMOUS_TELEMETRY", "false").lower() == "true"
