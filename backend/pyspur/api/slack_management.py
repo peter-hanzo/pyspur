@@ -4,8 +4,9 @@ import os
 import traceback
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
 
+import psutil
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from loguru import logger
 from slack_sdk import WebClient
@@ -55,6 +56,9 @@ T = TypeVar("T")
 
 # Add these type annotations to better handle slack_sdk method calls
 from slack_sdk.web.client import WebClient
+
+# Define auth test response type
+AuthTestResponse = Dict[str, str]
 
 
 def _validate_agent_socket_mode(
@@ -183,10 +187,10 @@ async def _should_trigger_workflow(
             and trigger_request.event_data.get("channel_type") != "im"
         ):
             # For channel messages, we need to check for keywords
-            keywords = agent.trigger_keywords
+            keywords = getattr(agent, "trigger_keywords", []) or []
             if isinstance(keywords, list):
                 str_keywords: List[str] = []
-                for item in keywords:
+                for item in cast(List[Union[str, None]], keywords):
                     if item is not None:
                         str_keywords.append(str(item))
                 if str_keywords:
@@ -227,7 +231,7 @@ async def _trigger_workflow(
         background_tasks = BackgroundTasks()
         run = await start_workflow_run(
             db=db,
-            workflow_id=cast(str, agent.workflow_id),
+            workflow_id=str(getattr(agent, "workflow_id", "") or ""),
             run_input=run_input,
             background_tasks=background_tasks,
         )
@@ -410,10 +414,14 @@ async def get_agents(db: Session = Depends(get_db)) -> List[SlackAgentResponse]:
     return agent_responses
 
 
+def _get_nullable_str(value: Any) -> Optional[str]:
+    """Helper to safely convert nullable SQLAlchemy column to string"""
+    return str(value) if value is not None else None
+
+
 # Helper function to convert a SlackAgentModel to a SlackAgentResponse
 def _agent_to_response_model(agent: SlackAgentModel) -> SlackAgentResponse:
     """Convert a SlackAgentModel to a SlackAgentResponse with proper type handling."""
-    # Safe conversion for SQLAlchemy Column types
     try:
         agent_id = int(str(agent.id))
     except (TypeError, ValueError):
@@ -423,31 +431,21 @@ def _agent_to_response_model(agent: SlackAgentModel) -> SlackAgentResponse:
     agent_dict = {
         "id": agent_id,
         "name": str(agent.name),
-        "slack_team_id": str(agent.slack_team_id) if agent.slack_team_id is not None else None,
-        "slack_team_name": str(agent.slack_team_name)
-        if agent.slack_team_name is not None
-        else None,
-        "slack_channel_id": str(agent.slack_channel_id)
-        if agent.slack_channel_id is not None
-        else None,
-        "slack_channel_name": str(agent.slack_channel_name)
-        if agent.slack_channel_name is not None
-        else None,
+        "slack_team_id": _get_nullable_str(agent.slack_team_id),
+        "slack_team_name": _get_nullable_str(agent.slack_team_name),
+        "slack_channel_id": _get_nullable_str(agent.slack_channel_id),
+        "slack_channel_name": _get_nullable_str(agent.slack_channel_name),
         "is_active": bool(agent.is_active),
-        "workflow_id": str(agent.workflow_id) if agent.workflow_id is not None else None,
+        "workflow_id": _get_nullable_str(agent.workflow_id),
         "trigger_on_mention": bool(agent.trigger_on_mention),
         "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
         "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
-        "trigger_keywords": [str(k) for k in agent.trigger_keywords]
-        if agent.trigger_keywords is not None
-        else None,
+        "trigger_keywords": [str(k) for k in getattr(agent, "trigger_keywords", []) or []],
         "trigger_enabled": bool(agent.trigger_enabled),
         "has_bot_token": bool(agent.has_bot_token),
         "has_user_token": bool(agent.has_user_token),
         "has_app_token": bool(agent.has_app_token),
-        "last_token_update": str(agent.last_token_update)
-        if agent.last_token_update is not None
-        else None,
+        "last_token_update": _get_nullable_str(agent.last_token_update),
         "spur_type": str(getattr(agent, "spur_type", "workflow") or "workflow"),
         "created_at": str(getattr(agent, "created_at", "") or ""),
     }
@@ -659,7 +657,7 @@ async def associate_workflow(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    agent.workflow_id = association.workflow_id
+    agent.set_field("workflow_id", association.workflow_id)
     db.commit()
     db.refresh(agent)
 
@@ -676,12 +674,12 @@ async def update_trigger_config(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Update agent using setattr to avoid Column typing issues
-    agent.trigger_on_mention = config.trigger_on_mention
-    agent.trigger_on_direct_message = config.trigger_on_direct_message
-    agent.trigger_on_channel_message = config.trigger_on_channel_message
-    agent.trigger_keywords = config.trigger_keywords
-    agent.trigger_enabled = config.trigger_enabled
+    # Update agent using set_field for type safety
+    agent.set_field("trigger_on_mention", config.trigger_on_mention)
+    agent.set_field("trigger_on_direct_message", config.trigger_on_direct_message)
+    agent.set_field("trigger_on_channel_message", config.trigger_on_channel_message)
+    agent.set_field("trigger_keywords", config.trigger_keywords)
+    agent.set_field("trigger_enabled", config.trigger_enabled)
 
     db.commit()
     db.refresh(agent)
@@ -776,8 +774,8 @@ async def trigger_workflow(
     # Process each agent to see if it should be triggered
     for agent in agents:
         # Cast SQLAlchemy Column types to Python types for the constructor
-        agent_id = int(str(agent.id)) if agent.id is not None else 0
-        workflow_id = str(agent.workflow_id) if agent.workflow_id is not None else ""
+        agent_id = agent.get_id()
+        workflow_id = agent.get_workflow_id()
 
         trigger_result = WorkflowTriggerResult(
             agent_id=agent_id,
@@ -811,7 +809,7 @@ async def trigger_workflow(
             if keywords and isinstance(keywords, list):
                 # Make sure keywords is a list of strings before using len
                 str_keywords: List[str] = []
-                for item in keywords:
+                for item in cast(List[Union[str, None]], keywords):
                     if item is not None:
                         str_keywords.append(str(item))
                 if len(str_keywords) > 0:
@@ -838,7 +836,7 @@ async def trigger_workflow(
                 # Start the workflow run using the standard workflow execution system
                 run = await start_workflow_run(
                     db=db,
-                    workflow_id=str(agent.workflow_id) if agent.workflow_id is not None else "",
+                    workflow_id=str(getattr(agent, "workflow_id", "") or ""),
                     run_input=run_input,
                     background_tasks=background_tasks,
                 )
@@ -915,18 +913,18 @@ async def set_agent_token(
 
     # Update agent token flag
     if token_type == "bot_token":
-        agent.has_bot_token = True
+        agent.set_field("has_bot_token", True)
 
         # Try to get team information when setting a bot token
         try:
             client = WebClient(token=token_request.token)
-            response = client.auth_test()
+            response: AuthTestResponse = client.auth_test()  # type: ignore
             if response["ok"]:
                 team_id = response.get("team_id")
                 team_name = response.get("team")
                 if team_id:
-                    agent.slack_team_id = team_id
-                    agent.slack_team_name = team_name
+                    agent.set_field("slack_team_id", team_id)
+                    agent.set_field("slack_team_name", team_name)
                     logger.info(
                         f"Updated agent {agent_id} with team information: {team_name} ({team_id})"
                     )
@@ -936,12 +934,12 @@ async def set_agent_token(
             pass
 
     elif token_type == "user_token":
-        agent.has_user_token = True
+        agent.set_field("has_user_token", True)
     elif token_type == "app_token":
-        agent.has_app_token = True
+        agent.set_field("has_app_token", True)
 
     current_timestamp = datetime.now(UTC).isoformat()
-    agent.last_token_update = current_timestamp
+    agent.set_field("last_token_update", current_timestamp)
     db.commit()
     db.refresh(agent)
 
@@ -984,9 +982,7 @@ async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(
     masked_token = mask_token(token)
 
     # Get the last update timestamp - handle the value directly
-    last_token_update = (
-        str(agent.last_token_update) if agent.last_token_update is not None else None
-    )
+    last_token_update = _get_nullable_str(agent.last_token_update)
 
     return AgentTokenResponse(
         agent_id=agent_id,
@@ -1013,14 +1009,14 @@ async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depen
 
     # Update agent token flag
     if token_type == "bot_token":
-        agent.has_bot_token = False
+        agent.set_field("has_bot_token", False)
     elif token_type == "user_token":
-        agent.has_user_token = False
+        agent.set_field("has_user_token", False)
     elif token_type == "app_token":
-        agent.has_app_token = False
+        agent.set_field("has_app_token", False)
 
     current_timestamp = datetime.now(UTC).isoformat()
-    agent.last_token_update = current_timestamp
+    agent.set_field("last_token_update", current_timestamp)
     db.commit()
 
     return None
@@ -1113,8 +1109,8 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
             status_code=400, detail="SLACK_SIGNING_SECRET environment variable not configured"
         )
 
-    # Update the agent's socket_mode_enabled field - use setattr to avoid Column typing issues
-    agent.socket_mode_enabled = True
+    # Update the agent's socket_mode_enabled field - use set_field to avoid Column typing issues
+    agent.set_field("socket_mode_enabled", True)
     db.commit()
     db.refresh(agent)
 
@@ -1127,7 +1123,7 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
 
     if not success:
         # If worker failed to start, revert the socket_mode_enabled flag
-        agent.socket_mode_enabled = False
+        agent.set_field("socket_mode_enabled", False)
         db.commit()
         db.refresh(agent)
         raise HTTPException(status_code=500, detail="Failed to start Socket Mode worker")
@@ -1158,7 +1154,7 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
             )
 
         # Disable socket mode for the agent
-        agent.socket_mode_enabled = False
+        agent.set_field("socket_mode_enabled", False)
         db.commit()
         db.refresh(agent)
 
@@ -1233,18 +1229,10 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
             logger.info(
                 f"Registering previously untracked worker process for agent {agent_id}: pid={pid}"
             )
-            try:
-                import multiprocessing
-
-                import psutil
-
-                process = psutil.Process(pid)
-                dummy_process = multiprocessing.Process()
-                dummy_process.__dict__["_popen"] = process._popen
-                socket_manager.workers[agent_id] = dummy_process
-                worker_exists = True
-            except Exception as e:
-                logger.error(f"Error registering worker process: {e}")
+            process = psutil.Process(pid)
+            # Store the psutil Process object directly
+            socket_manager.workers[agent_id] = process
+            worker_exists = True
 
     # Convert SQLAlchemy Columns to bool
     is_active = bool(getattr(agent, "is_active", True))
@@ -1268,7 +1256,7 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
     # If worker is running but agent isn't marked as enabled in DB, update the DB
     if worker_running and not socket_mode_enabled:
         logger.info(f"Updating agent {agent_id} socket_mode_enabled to True to match actual state")
-        agent.socket_mode_enabled = True
+        agent.set_field("socket_mode_enabled", True)
         db.commit()
         db.refresh(agent)
         socket_mode_enabled = True
@@ -1314,14 +1302,14 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
                     logger.info(
                         f"Failed to start worker for agent {agent_id}, updating DB state to match"
                     )
-                    agent.socket_mode_enabled = False
+                    agent.set_field("socket_mode_enabled", False)
                     db.commit()
                     db.refresh(agent)
                     socket_mode_enabled = False
                     agent_is_active = False
             except Exception as e:
                 logger.error(f"Error attempting to restore socket mode for agent {agent_id}: {e}")
-                agent.socket_mode_enabled = False
+                agent.set_field("socket_mode_enabled", False)
                 db.commit()
                 db.refresh(agent)
                 socket_mode_enabled = False
@@ -1353,7 +1341,7 @@ async def debug_agent_tokens(agent_id: int, db: Session = Depends(get_db)):
         "has_bot_token_flag": agent.has_bot_token,
         "has_user_token_flag": agent.has_user_token,
         "has_app_token_flag": agent.has_app_token,
-        "last_token_update": agent.last_token_update,
+        "last_token_update": _get_nullable_str(agent.last_token_update),
     }
 
     # Try to get each token and check if it exists
@@ -1405,7 +1393,7 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
         # Test the token by calling auth.test
         client = WebClient(token=bot_token)
         try:
-            response = client.auth_test()
+            response: AuthTestResponse = client.auth_test()  # type: ignore
             if response["ok"]:
                 team = response.get("team", "Unknown workspace")
                 team_id = response.get("team_id")
@@ -1413,8 +1401,8 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
 
                 # Update the agent's team information
                 if team_id:
-                    agent.slack_team_id = team_id
-                    agent.slack_team_name = team
+                    agent.set_field("slack_team_id", team_id)
+                    agent.set_field("slack_team_name", team)
                     db.commit()
                     logger.info(
                         f"Updated agent {agent_id} with team information: {team} ({team_id})"
@@ -1433,7 +1421,8 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
                     "message": f"API call succeeded but returned not OK: {response.get('error', 'Unknown error')}",
                 }
         except SlackApiError as e:
-            error_message = e.response.get("error", str(e))
+            error_response = cast(Dict[str, Any], getattr(e, "response", {}))
+            error_message = str(error_response.get("error", str(e)))
             return {"success": False, "message": f"API Error: {error_message}"}
     except Exception as e:
         logger.error(f"Error testing Slack connection: {e}")
@@ -1478,25 +1467,17 @@ async def recover_orphaned_workers(db: Session = Depends(get_db)) -> Dict[str, A
 
                     # Check if process is still running
                     is_running = False
-                    try:
-                        # Import psutil within the try block
-                        import psutil
 
-                        process = psutil.Process(pid)
-                        # Check if the command line contains socket_worker.py
-                        cmdline = process.cmdline()
-                        cmdline_str = " ".join(cmdline)
-                        if (
-                            "socket_worker.py" in cmdline_str
-                            and f"SLACK_AGENT_ID={agent_id}" in cmdline_str
-                        ):
-                            is_running = True
-                            logger.info(
-                                f"Found running worker process for agent {agent_id}: pid={pid}"
-                            )
-                    except (ImportError, psutil.NoSuchProcess, psutil.AccessDenied):
-                        # Process not running or psutil not available
-                        pass
+                    process = psutil.Process(pid)
+                    # Check if the command line contains socket_worker.py
+                    cmdline = process.cmdline()
+                    cmdline_str = " ".join(cmdline)
+                    if (
+                        "socket_worker.py" in cmdline_str
+                        and f"SLACK_AGENT_ID={agent_id}" in cmdline_str
+                    ):
+                        is_running = True
+                        logger.info(f"Found running worker process for agent {agent_id}: pid={pid}")
 
                     if is_running:
                         # Update the agent record to reflect the running worker
@@ -1508,23 +1489,14 @@ async def recover_orphaned_workers(db: Session = Depends(get_db)) -> Dict[str, A
                                 logger.info(
                                     f"Recovering agent {agent_id} - worker is running but DB state was socket_mode_enabled=False"
                                 )
-                                agent.socket_mode_enabled = True
+                                agent.set_field("socket_mode_enabled", True)
                                 db.commit()
 
                                 # Try to register the process with the socket manager
                                 try:
-                                    import multiprocessing
-
-                                    import psutil
-
                                     process = psutil.Process(pid)
-                                    dummy_process = multiprocessing.Process()
-                                    # Use a safer approach to set up the process
-                                    if hasattr(process, "_popen") and hasattr(
-                                        dummy_process, "__dict__"
-                                    ):
-                                        dummy_process.__dict__["_popen"] = process._popen
-                                        socket_manager.workers[agent_id] = dummy_process
+                                    # Store the psutil Process object directly
+                                    socket_manager.workers[agent_id] = process
                                     recovered += 1
                                 except Exception as e:
                                     logger.error(f"Error registering worker process: {e}")
