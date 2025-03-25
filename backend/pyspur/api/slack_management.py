@@ -423,23 +423,31 @@ def _agent_to_response_model(agent: SlackAgentModel) -> SlackAgentResponse:
     agent_dict = {
         "id": agent_id,
         "name": str(agent.name),
-        "slack_team_id": str(agent.slack_team_id) if agent.slack_team_id else None,
-        "slack_team_name": str(agent.slack_team_name) if agent.slack_team_name else None,
-        "slack_channel_id": str(agent.slack_channel_id) if agent.slack_channel_id else None,
-        "slack_channel_name": str(agent.slack_channel_name) if agent.slack_channel_name else None,
+        "slack_team_id": str(agent.slack_team_id) if agent.slack_team_id is not None else None,
+        "slack_team_name": str(agent.slack_team_name)
+        if agent.slack_team_name is not None
+        else None,
+        "slack_channel_id": str(agent.slack_channel_id)
+        if agent.slack_channel_id is not None
+        else None,
+        "slack_channel_name": str(agent.slack_channel_name)
+        if agent.slack_channel_name is not None
+        else None,
         "is_active": bool(agent.is_active),
-        "workflow_id": str(agent.workflow_id) if agent.workflow_id else None,
+        "workflow_id": str(agent.workflow_id) if agent.workflow_id is not None else None,
         "trigger_on_mention": bool(agent.trigger_on_mention),
         "trigger_on_direct_message": bool(agent.trigger_on_direct_message),
         "trigger_on_channel_message": bool(agent.trigger_on_channel_message),
         "trigger_keywords": [str(k) for k in agent.trigger_keywords]
-        if agent.trigger_keywords
+        if agent.trigger_keywords is not None
         else None,
         "trigger_enabled": bool(agent.trigger_enabled),
         "has_bot_token": bool(agent.has_bot_token),
         "has_user_token": bool(agent.has_user_token),
         "has_app_token": bool(agent.has_app_token),
-        "last_token_update": str(agent.last_token_update) if agent.last_token_update else None,
+        "last_token_update": str(agent.last_token_update)
+        if agent.last_token_update is not None
+        else None,
         "spur_type": str(getattr(agent, "spur_type", "workflow") or "workflow"),
         "created_at": str(getattr(agent, "created_at", "") or ""),
     }
@@ -976,7 +984,9 @@ async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(
     masked_token = mask_token(token)
 
     # Get the last update timestamp - handle the value directly
-    last_token_update = str(agent.last_token_update) if agent.last_token_update else None
+    last_token_update = (
+        str(agent.last_token_update) if agent.last_token_update is not None else None
+    )
 
     return AgentTokenResponse(
         agent_id=agent_id,
