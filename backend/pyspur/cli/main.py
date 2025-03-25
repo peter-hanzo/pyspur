@@ -159,6 +159,12 @@ def serve(
         print("[yellow]Running database migrations...[/yellow]")
         run_migrations()
 
+        if os.getenv("DISABLE_ANONYMOUS_TELEMETRY", "false").lower() != "true":
+            print(
+                "[yellow]Note: We collect anonymous telemetry data that helps us improve PySpur."
+                " You can disable this by setting DISABLE_ANONYMOUS_TELEMETRY=true in .env[/yellow]"
+            )
+
         # Start the server
         print(f"\n[green]Starting PySpur server at http://{host}:{port} 🚀[/green]")
         uvicorn.run(
@@ -166,11 +172,6 @@ def serve(
             host=host,
             port=port,
         )
-        if os.getenv("DISABLE_ANONYMOUS_TELEMETRY", "false").lower() != "true":
-            print(
-                "[yellow]Note: We collect anonymous telemetry data that helps us improve PySpur."
-                " You can disable this by setting DISABLE_ANONYMOUS_TELEMETRY=true in .env[/yellow]"
-            )
 
     except Exception as e:
         print(f"[red]Error starting server: {str(e)}[/red]")

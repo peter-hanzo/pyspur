@@ -5,7 +5,7 @@ import Head from 'next/head'
 import { Router } from 'next/router'
 import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Provider } from 'react-redux'
 
 import { getAnonDataStatus } from '@/utils/api'
@@ -14,13 +14,14 @@ import store from '../store/store'
 import '../styles/globals.css'
 
 const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
-    let disableTracking = false
-    let hasDataStatusBeenChecked = false
+    const [disableTracking, setDisableTracking] = useState(false)
+    const [hasDataStatusBeenChecked, setHasDataStatusBeenChecked] = useState(false)
     useEffect(() => {
         const initializePostHog = async () => {
-            disableTracking = await getAnonDataStatus()
-            hasDataStatusBeenChecked = true
-            if (disableTracking) {
+            const status = await getAnonDataStatus()
+            setDisableTracking(status)
+            setHasDataStatusBeenChecked(true)
+            if (status) {
                 console.log('Anon data tracking is disabled')
                 return
             }
@@ -47,43 +48,23 @@ const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
     }, [])
 
     return (
-        ((!hasDataStatusBeenChecked || disableTracking) && (
-            <Provider store={store}>
-                <Head>
-                    <link rel="icon" type="image/png" href="/pyspur-black.png" media="(prefers-color-scheme: light)" />
-                    <link rel="icon" type="image/png" href="/pyspur-white.png" media="(prefers-color-scheme: dark)" />
-                </Head>
-                <HeroUIProvider>
-                    <NextThemesProvider attribute="class" defaultTheme="system">
-                        <Component {...pageProps} />
-                    </NextThemesProvider>
-                </HeroUIProvider>
-            </Provider>
-        )) || (
-            <PostHogProvider client={posthog}>
-                <Provider store={store}>
-                    <Head>
-                        <link
-                            rel="icon"
-                            type="image/png"
-                            href="/pyspur-black.png"
-                            media="(prefers-color-scheme: light)"
-                        />
-                        <link
-                            rel="icon"
-                            type="image/png"
-                            href="/pyspur-white.png"
-                            media="(prefers-color-scheme: dark)"
-                        />
-                    </Head>
-                    <HeroUIProvider>
-                        <NextThemesProvider attribute="class" defaultTheme="system">
+        <Provider store={store}>
+            <Head>
+                <link rel="icon" type="image/png" href="/pyspur-black.png" media="(prefers-color-scheme: light)" />
+                <link rel="icon" type="image/png" href="/pyspur-white.png" media="(prefers-color-scheme: dark)" />
+            </Head>
+            <HeroUIProvider>
+                <NextThemesProvider attribute="class" defaultTheme="system">
+                    {hasDataStatusBeenChecked && !disableTracking ? (
+                        <PostHogProvider client={posthog}>
                             <Component {...pageProps} />
-                        </NextThemesProvider>
-                    </HeroUIProvider>
-                </Provider>
-            </PostHogProvider>
-        )
+                        </PostHogProvider>
+                    ) : (
+                        <Component {...pageProps} />
+                    )}
+                </NextThemesProvider>
+            </HeroUIProvider>
+        </Provider>
     )
 }
 
