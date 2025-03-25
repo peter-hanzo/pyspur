@@ -422,9 +422,22 @@ async def generate_text(
         if model_name.startswith("ollama"):
             if api_base is None:
                 api_base = os.getenv("OLLAMA_BASE_URL")
-            kwargs["api_base"] = api_base
-        message_response: Message = await completion_with_backoff(**kwargs)
-        response = message_response.content
+            options = OllamaOptions(temperature=temperature, max_tokens=max_tokens)
+            raw_response = await ollama_with_backoff(
+                model=model_name,
+                options=options,
+                messages=messages,
+                format="json",
+                api_base=api_base,
+            )
+            response = raw_response
+            message_response = Message(
+                content=json.dumps(raw_response),
+                tool_calls=[],
+            )
+        else:
+            message_response: Message = await completion_with_backoff(**kwargs)
+            response = message_response.content
 
     # For models that don't support JSON output, wrap the response in a JSON structure
     if not supports_json:
@@ -545,13 +558,17 @@ async def ollama_with_backoff(
 
     """
     client = AsyncClient(host=api_base)
-    response = await client.chat(
-        model=model.replace("ollama/", ""),
-        messages=messages,
-        format=format,
-        options=(options or OllamaOptions()).to_dict(),
-    )
-    return response.message.content
+    try:
+        response = await client.chat(
+            model=model.replace("ollama/", ""),
+            messages=messages,
+            format=format,
+            options=(options or OllamaOptions()).to_dict(),
+        )
+        return response.message.content
+    except Exception as e:
+        logging.error(f"Error calling Ollama API: {e}")
+        raise e
 
 
 def convert_docx_to_xml(file_path: str) -> str:
