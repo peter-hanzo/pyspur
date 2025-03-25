@@ -467,3 +467,9 @@ async def get_vector_stores_endpoint() -> Dict[str, VectorStoreConfig]:
         return stores
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/anon-data/", description="Get the status of anonymous telemetry data")
+async def get_anon_data_status() -> bool:
+    """Get the status of anonymous telemetry data."""
+    return os.getenv("DISABLE_ANONYMOUS_TELEMETRY", "false").lower() == "true"

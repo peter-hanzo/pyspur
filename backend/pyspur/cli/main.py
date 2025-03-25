@@ -117,6 +117,11 @@ def init(
             "    b. Start the server with 'pyspur serve'"
         )
 
+        print(
+            "[yellow]Note: We collect anonymous telemetry data that helps us improve PySpur."
+            " You can disable this by setting DISABLE_ANONYMOUS_TELEMETRY=true in .env[/yellow]"
+        )
+
     except Exception as e:
         print(f"[red]Error initializing project: {str(e)}[/red]")
         raise typer.Exit(1) from e
@@ -161,6 +166,11 @@ def serve(
             host=host,
             port=port,
         )
+        if os.getenv("DISABLE_ANONYMOUS_TELEMETRY", "false").lower() != "true":
+            print(
+                "[yellow]Note: We collect anonymous telemetry data that helps us improve PySpur."
+                " You can disable this by setting DISABLE_ANONYMOUS_TELEMETRY=true in .env[/yellow]"
+            )
 
     except Exception as e:
         print(f"[red]Error starting server: {str(e)}[/red]")

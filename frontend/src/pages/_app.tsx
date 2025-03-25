@@ -8,30 +8,46 @@ import { PostHogProvider } from 'posthog-js/react'
 import React, { useEffect } from 'react'
 import { Provider } from 'react-redux'
 
+import { getAnonDataStatus } from '@/utils/api'
+
 import store from '../store/store'
 import '../styles/globals.css'
 
 const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
+    let disableTracking = false
+    let hasDataStatusBeenChecked = false
     useEffect(() => {
-        posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY as string, {
-            api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-            person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
-            // Enable debug mode in development
-            loaded: (posthog) => {
-                if (process.env.NODE_ENV === 'development') posthog.debug()
-            },
-        })
+        const initializePostHog = async () => {
+            disableTracking = await getAnonDataStatus()
+            hasDataStatusBeenChecked = true
+            if (disableTracking) {
+                console.log('Anon data tracking is disabled')
+                return
+            }
 
-        const handleRouteChange = () => posthog?.capture('$pageview')
+            posthog.init('phc_4pzMZbAOQXaTwYMdZm7x5P9GW4eEqsxgRcFQDWGOepP' as string, {
+                api_host: 'https://us.i.posthog.com' as string,
+                autocapture: true,
+                person_profiles: 'always',
+                loaded: (posthog) => {
+                    if (process.env.NODE_ENV === 'development') posthog.debug()
+                },
+            })
 
-        Router.events.on('routeChangeComplete', handleRouteChange)
+            const handleRouteChange = () => posthog?.capture('$pageview')
 
-        return () => {
-            Router.events.off('routeChangeComplete', handleRouteChange)
+            Router.events.on('routeChangeComplete', handleRouteChange)
+
+            return () => {
+                Router.events.off('routeChangeComplete', handleRouteChange)
+            }
         }
+
+        initializePostHog()
     }, [])
+
     return (
-        <PostHogProvider client={posthog}>
+        ((!hasDataStatusBeenChecked || disableTracking) && (
             <Provider store={store}>
                 <Head>
                     <link rel="icon" type="image/png" href="/pyspur-black.png" media="(prefers-color-scheme: light)" />
@@ -43,7 +59,31 @@ const MyApp: React.FC<AppProps> = ({ Component, pageProps }) => {
                     </NextThemesProvider>
                 </HeroUIProvider>
             </Provider>
-        </PostHogProvider>
+        )) || (
+            <PostHogProvider client={posthog}>
+                <Provider store={store}>
+                    <Head>
+                        <link
+                            rel="icon"
+                            type="image/png"
+                            href="/pyspur-black.png"
+                            media="(prefers-color-scheme: light)"
+                        />
+                        <link
+                            rel="icon"
+                            type="image/png"
+                            href="/pyspur-white.png"
+                            media="(prefers-color-scheme: dark)"
+                        />
+                    </Head>
+                    <HeroUIProvider>
+                        <NextThemesProvider attribute="class" defaultTheme="system">
+                            <Component {...pageProps} />
+                        </NextThemesProvider>
+                    </HeroUIProvider>
+                </Provider>
+            </PostHogProvider>
+        )
     )
 }
 
