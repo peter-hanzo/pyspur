@@ -19,13 +19,20 @@ const StockTools: React.FC = () => {
     const nodeTypes = useSelector((state: RootState) => state.nodeTypes.data)
     const status = useSelector((state: RootState) => state.nodeTypes.status)
     const [searchTerm, setSearchTerm] = useState('')
-    const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set())
-    const [selectedSubcategory, setSelectedSubcategory] = useState<Set<string>>(new Set())
+    const [selectedCategory, setSelectedCategory] = useState<string[]>([])
+    const [selectedSubcategory, setSelectedSubcategory] = useState<string[]>([])
     const [filteredNodeTypes, setFilteredNodeTypes] = useState<typeof nodeTypes>({})
+    const [isClient, setIsClient] = useState(false)
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
 
     // Filter nodes based on search term
     useEffect(() => {
-        const newFilteredTypes = Object.keys(nodeTypes || {}).reduce(
+        if (!nodeTypes) return
+
+        const newFilteredTypes = Object.keys(nodeTypes).reduce(
             (acc, category) => {
                 if (searchTerm.trim().length === 0) {
                     return nodeTypes
@@ -37,20 +44,11 @@ const StockTools: React.FC = () => {
                 )
                 if (filteredNodes.length > 0) {
                     acc[category] = filteredNodes
-                    // Auto-expand categories with matching nodes
-                    setSelectedCategory((prev) => {
-                        const newSet = new Set(prev)
-                        newSet.add(category)
-                        return newSet
-                    })
-                    // Auto-expand subcategories that contain matching nodes
+                    // Update selected categories and subcategories through state updates
+                    setSelectedCategory((prev) => Array.from(new Set([...prev, category])))
                     filteredNodes.forEach((node) => {
                         if (node.category) {
-                            setSelectedSubcategory((prev) => {
-                                const newSet = new Set(prev)
-                                newSet.add(node.category || '')
-                                return newSet
-                            })
+                            setSelectedSubcategory((prev) => Array.from(new Set([...prev, node.category || ''])))
                         }
                     })
                 }
@@ -126,6 +124,14 @@ const StockTools: React.FC = () => {
         )
     }
 
+    if (!isClient) {
+        return (
+            <div className="w-full flex justify-center items-center py-8">
+                <div className="text-default-500">Loading...</div>
+            </div>
+        )
+    }
+
     if (status === 'loading') {
         return (
             <div className="w-full flex justify-center items-center py-8">
@@ -165,8 +171,8 @@ const StockTools: React.FC = () => {
             <div className="max-h-[calc(100vh-16rem)] overflow-hidden">
                 <Accordion
                     selectionMode="multiple"
-                    selectedKeys={Array.from(selectedCategory)}
-                    onSelectionChange={(keys) => setSelectedCategory(new Set(Array.from(keys) as string[]))}
+                    selectedKeys={selectedCategory}
+                    onSelectionChange={(keys) => setSelectedCategory(Array.from(keys) as string[])}
                 >
                     {Object.keys(filteredNodeTypes)
                         .filter((category) => category !== 'Input/Output')
@@ -180,9 +186,9 @@ const StockTools: React.FC = () => {
                                         <div className="max-h-[60vh] overflow-auto pr-2">
                                             <Accordion
                                                 selectionMode="multiple"
-                                                selectedKeys={Array.from(selectedSubcategory)}
+                                                selectedKeys={selectedSubcategory}
                                                 onSelectionChange={(keys) =>
-                                                    setSelectedSubcategory(new Set(Array.from(keys) as string[]))
+                                                    setSelectedSubcategory(Array.from(keys) as string[])
                                                 }
                                             >
                                                 {Object.entries(groupNodesBySubcategory(nodes)).map(

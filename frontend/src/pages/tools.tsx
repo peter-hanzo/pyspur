@@ -86,14 +86,14 @@ const ToolsPage: React.FC = () => {
                     </Tab>
                     <Tab key="openapi" title="OpenAPI Tools">
                         <div className="py-4">
-                            <SpecTools onSpecCreated={handleEndpointsSelected} />
+                            <SpecTools />
                         </div>
                     </Tab>
-                    {/* <Tab key="mcp" title="MCP Tools">
+                    <Tab key="mcp" title="MCP Tools">
                         <div className="py-4">
                             <MCPTools />
                         </div>
-                    </Tab> */}
+                    </Tab>
                 </Tabs>
             </div>
         </div>

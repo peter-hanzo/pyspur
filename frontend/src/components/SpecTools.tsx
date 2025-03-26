@@ -4,11 +4,9 @@ import React, { useState } from 'react'
 import OpenAPIParser from './OpenAPIParser'
 import RegisteredSpecs from './RegisteredSpecs'
 
-interface SpecToolsProps {
-    onSpecCreated: (endpoints: any[], fullSpec: any) => void
-}
 
-const SpecTools: React.FC<SpecToolsProps> = ({ onSpecCreated }) => {
+
+const SpecTools: React.FC = () => {
     const [selectedTab, setSelectedTab] = useState('create')
 
     return (
