@@ -1,13 +1,4 @@
-import {
-    Accordion,
-    AccordionItem,
-    Card,
-    CardBody,
-    CardHeader,
-    Checkbox,
-    Divider,
-    Input
-} from '@heroui/react'
+import { Accordion, AccordionItem, Card, CardBody, CardHeader, Checkbox, Divider, Input } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import React, { useEffect, useState } from 'react'
 
@@ -22,10 +13,10 @@ interface NodeToolsSelectorProps {
 /**
  * Component to display nodes as tools with checkboxes for selection
  */
-const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({ 
-    nodeTypes, 
-    onSelectionChange, 
-    initialSelection = [] 
+const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
+    nodeTypes,
+    onSelectionChange,
+    initialSelection = [],
 }) => {
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedCategory, setSelectedCategory] = useState<Set<string>>(new Set())
@@ -35,10 +26,13 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     // Initialize selected nodes from initial selection
     useEffect(() => {
         if (initialSelection.length > 0) {
-            const selected = initialSelection.reduce((acc, node) => {
-                acc[node.name] = true
-                return acc
-            }, {} as Record<string, boolean>)
+            const selected = initialSelection.reduce(
+                (acc, node) => {
+                    acc[node.name] = true
+                    return acc
+                },
+                {} as Record<string, boolean>
+            )
             setSelectedNodes(selected)
         }
     }, [initialSelection])
@@ -75,7 +69,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             .map(([nodeName]) => {
                 // Find the node in the nodeTypes
                 for (const category in nodeTypes) {
-                    const node = nodeTypes[category].find(n => n.name === nodeName)
+                    const node = nodeTypes[category].find((n) => n.name === nodeName)
                     if (node) {
                         return node
                     }
@@ -83,15 +77,15 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 return null
             })
             .filter(Boolean) as FlowWorkflowNodeType[]
-        
+
         onSelectionChange(selected)
     }, [selectedNodes, nodeTypes, onSelectionChange])
 
     // Handle node selection
     const handleNodeSelect = (node: FlowWorkflowNodeType) => {
-        setSelectedNodes(prev => ({
+        setSelectedNodes((prev) => ({
             ...prev,
-            [node.name]: !prev[node.name]
+            [node.name]: !prev[node.name],
         }))
     }
 
@@ -112,21 +106,17 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     // Render node card
     const renderNodeCard = (node: FlowWorkflowNodeType) => {
         const isSelected = !!selectedNodes[node.name]
-        
+
         return (
-            <Card 
-                key={node.name} 
+            <Card
+                key={node.name}
                 className="my-2 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => handleNodeSelect(node)}
             >
                 <CardHeader className="pb-0 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         {node.logo ? (
-                            <img
-                                src={node.logo}
-                                alt="Node Logo"
-                                className="max-h-7 max-w-7"
-                            />
+                            <img src={node.logo} alt="Node Logo" className="max-h-7 max-w-7" />
                         ) : (
                             <div
                                 className="node-acronym-tag float-left text-white px-2 py-1 rounded-full text-xs inline-block"
@@ -179,7 +169,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 className="mb-4"
                 startContent={<Icon icon="akar-icons:search" className="text-default-500" />}
             />
-            
+
             <div className="max-h-[60vh] overflow-auto">
                 <Accordion
                     selectionMode="multiple"
@@ -215,9 +205,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                                             )}
                                         </Accordion>
                                     ) : (
-                                        <div className="pl-4">
-                                            {filteredNodeTypes[category].map(renderNodeCard)}
-                                        </div>
+                                        <div className="pl-4">{filteredNodeTypes[category].map(renderNodeCard)}</div>
                                     )}
                                 </AccordionItem>
                             )
@@ -228,4 +216,4 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     )
 }
 
-export default NodeToolsSelector 
+export default NodeToolsSelector

@@ -1,12 +1,14 @@
-import { Alert, Button, Tab, Tabs } from '@heroui/react'
+import { Alert, Tab, Tabs } from '@heroui/react'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import Header from '../components/Header'
-import OpenAPIParser from '../components/OpenAPIParser'
+import MCPTools from '../components/MCPTools'
+import SpecTools from '../components/SpecTools'
+import StockTools from '../components/StockTools'
 import { fetchNodeTypes } from '../store/nodeTypesSlice'
 import { RootState } from '../store/store'
-import { createToolsFromOpenAPI } from '../utils/api'
+import { createOpenAPISpec } from '../utils/api'
 
 const ToolsPage: React.FC = () => {
     const dispatch = useDispatch()
@@ -20,20 +22,20 @@ const ToolsPage: React.FC = () => {
         type: 'success',
         isVisible: false,
     })
-    const [selectedTab, setSelectedTab] = React.useState('create')
+    const [selectedTab, setSelectedTab] = React.useState('stock')
 
     // Fetch node types if not already loaded
     useEffect(() => {
         if (nodeTypesStatus === 'idle') {
-            dispatch(fetchNodeTypes())
+            dispatch(fetchNodeTypes() as any)
         }
     }, [dispatch, nodeTypesStatus])
 
-    const handleEndpointsSelected = async (endpoints: any[], fullSpec: any) => {
+    const handleEndpointsSelected = async (fullSpec: any) => {
         try {
-            await createToolsFromOpenAPI(endpoints, fullSpec)
+            await createOpenAPISpec(fullSpec)
             setAlert({
-                message: 'Tools created successfully!',
+                message: 'OpenAPI spec created successfully!',
                 type: 'success',
                 isVisible: true,
             })
@@ -42,7 +44,7 @@ const ToolsPage: React.FC = () => {
             }, 3000)
         } catch (error) {
             setAlert({
-                message: 'Failed to create tools. Please try again.',
+                message: 'Failed to create OpenAPI spec. Please try again.',
                 type: 'error',
                 isVisible: true,
             })
@@ -75,28 +77,21 @@ const ToolsPage: React.FC = () => {
                         </div>
                     </div>
                 </header>
-                
-                <Tabs 
-                    aria-label="Tools Management" 
-                    selectedKey={selectedTab}
-                    onSelectionChange={handleTabChange}
-                >
-                    <Tab key="create" title="Create Tools">
+
+                <Tabs aria-label="Tools Management" selectedKey={selectedTab} onSelectionChange={handleTabChange}>
+                    <Tab key="stock" title="Stock Tools">
                         <div className="py-4">
-                            <OpenAPIParser onEndpointsSelected={handleEndpointsSelected} />
+                            <StockTools />
                         </div>
                     </Tab>
-                    <Tab key="manage" title="Manage Tools">
+                    <Tab key="openapi" title="OpenAPI Tools">
                         <div className="py-4">
-                            <div className="bg-default-50 rounded-lg p-6 text-center">
-                                <h3 className="text-xl font-semibold mb-2">Tool Management</h3>
-                                <p className="text-default-500 mb-4">
-                                    This feature is coming soon. You'll be able to view, edit, and delete your tools here.
-                                </p>
-                                <Button color="primary" variant="flat" disabled>
-                                    View All Tools
-                                </Button>
-                            </div>
+                            <SpecTools onSpecCreated={handleEndpointsSelected} />
+                        </div>
+                    </Tab>
+                    <Tab key="mcp" title="MCP Tools">
+                        <div className="py-4">
+                            <MCPTools />
                         </div>
                     </Tab>
                 </Tabs>
