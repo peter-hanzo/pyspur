@@ -329,6 +329,16 @@ export const deleteApiKey = async (name: string): Promise<any> => {
     }
 }
 
+export const getAnonDataStatus = async (): Promise<boolean> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/env-mgmt/anon-data/`)
+        return response.data
+    } catch (error) {
+        console.error('Error getting anonymous data status:', error)
+        throw error
+    }
+}
+
 export const uploadDataset = async (name: string, description: string, file: File): Promise<DatasetResponse> => {
     try {
         const formData = new FormData()
