@@ -15,7 +15,6 @@ services:
     volumes:
       - .:/pyspur:ro
       - /pyspur/backend/pyspur/static/
-      - ./.env:/pyspur/backend/.env
       - pyspur_data:/pyspur/backend/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
