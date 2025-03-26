@@ -626,7 +626,7 @@ async def send_message(
                 "message": f"Error sending message to Slack: {str(e)}",
                 "success": False,
             },
-        )
+        ) from e
 
 
 @router.post("/test-message", response_model=SlackMessageResponse)

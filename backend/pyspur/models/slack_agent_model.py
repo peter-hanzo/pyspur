@@ -6,8 +6,6 @@ from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.orm import relationship
 
 from .base_model import BaseModel
-from .workflow_model import WorkflowModel  # noqa: F401
-from .workflow_version_model import WorkflowVersionModel  # noqa: F401
 
 
 class SlackAgentModel(BaseModel):

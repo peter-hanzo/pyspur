@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Worker process for handling a single Slack Socket Mode connection.
+
 This runs in a separate process managed by the SocketManager.
 """
 
@@ -25,7 +26,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def get_active_agents(db: Session) -> list[SlackAgentModel]:
-    """Get all active agents that have socket mode enabled"""
+    """Get all active agents that have socket mode enabled."""
     agents = (
         db.query(SlackAgentModel)
         .filter_by(
@@ -38,7 +39,7 @@ def get_active_agents(db: Session) -> list[SlackAgentModel]:
 
 
 def setup_shutdown_handler(socket_client: SocketModeClient, agent_id: int):
-    """Set up signal handlers for graceful shutdown"""
+    """Set up signal handlers for graceful shutdown."""
 
     def handle_shutdown(signum: int, frame: Optional[types.FrameType]) -> None:
         logger.info(f"Worker {agent_id} received signal {signum}, shutting down")
@@ -50,7 +51,7 @@ def setup_shutdown_handler(socket_client: SocketModeClient, agent_id: int):
 
 
 async def check_agent_status(db: Session, agent_id: int) -> bool:
-    """Check if the agent is still active and should be running
+    """Check if the agent is still active and should be running.
 
     Args:
         db: Database session

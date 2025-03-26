@@ -1,3 +1,4 @@
+# type: ignore
 import asyncio
 import logging
 import os
@@ -22,6 +23,7 @@ logger = logging.getLogger("pyspur")
 
 class SocketModeClient:
     """Client for handling Slack Socket Mode connections.
+
     This manages real-time event processing from Slack.
     """
 
@@ -57,7 +59,7 @@ class SocketModeClient:
         logger.info("SocketModeClient initialized")
 
     def set_workflow_trigger_callback(self, callback: Callable[..., Any]):
-        """Set the callback function to be called when a workflow should be triggered
+        """Set the callback function to be called when a workflow should be triggered.
 
         The callback can be either a regular function or an async coroutine function.
         If it's a coroutine function, it will be properly awaited when called.
@@ -68,7 +70,7 @@ class SocketModeClient:
         logger.info(f"Setting workflow trigger callback. Is async: {is_async}")
 
     def _register_event_handlers(self, app: App, agent_id: int):
-        """Register event handlers for the Slack app"""
+        """Register event handlers for the Slack app."""
 
         @app.event("app_mention")
         def handle_app_mention(
@@ -116,7 +118,7 @@ class SocketModeClient:
         say: Callable,
         client=None,
     ):
-        """Process a Slack event and trigger workflows if appropriate"""
+        """Process a Slack event and trigger workflows if appropriate."""
         # Add diagnostics about the event
         logger.info(f"Received {event_type} event for agent {agent_id}")
         logger.info(f"Current blacklist: {self._blacklisted_agents}")
@@ -217,7 +219,7 @@ class SocketModeClient:
             db.close()
 
     def start_socket_mode(self, agent_id: int) -> bool:
-        """Start socket mode for a Slack agent"""
+        """Start socket mode for a Slack agent."""
         logger.info(f"Starting socket mode for agent {agent_id}")
 
         # First make sure any existing socket is stopped
@@ -296,13 +298,13 @@ class SocketModeClient:
 
                 # Manually store the installation data for this workspace
                 # Get bot info to retrieve the bot_id, bot_user_id, and team_id
-                bot_info_response = app.client.auth_test()
+                bot_info_response = app.client.auth_test()  # type: ignore
                 if not bot_info_response["ok"]:
                     logger.error(f"Failed to get bot info: {bot_info_response['error']}")
                     return False
 
-                team_id = bot_info_response["team_id"]
-                bot_user_id = bot_info_response["user_id"]
+                team_id = str(bot_info_response["team_id"])  # type: ignore
+                bot_user_id = str(bot_info_response["user_id"])  # type: ignore
 
                 # Create and store installation data
                 installation = Installation(
@@ -359,7 +361,7 @@ class SocketModeClient:
             db.close()
 
     def stop_socket_mode(self, agent_id: int) -> bool:
-        """Stop Socket Mode for a specific agent"""
+        """Stop Socket Mode for a specific agent."""
         logger.info(f"Stopping Socket Mode for agent {agent_id}")
 
         # Add agent to blacklist to reject any incoming events
@@ -544,7 +546,7 @@ class SocketModeClient:
             return False
 
     def _try_aggressive_thread_termination(self, agent_id: int, handler: Any) -> None:
-        """Attempt to aggressively terminate any threads or tasks associated with the socket handler"""
+        """Attempt to aggressively terminate any threads or tasks associated with the socket handler."""
         try:
             # See if the socket handler has a thread running and try to terminate it
             if hasattr(handler, "thread") and handler.thread:
@@ -591,11 +593,11 @@ class SocketModeClient:
             logger.error(f"Error with aggressive thread termination for agent {agent_id}: {e}")
 
     def is_running(self, agent_id: int) -> bool:
-        """Check if Socket Mode is running for a specific agent"""
+        """Check if Socket Mode is running for a specific agent."""
         return agent_id in self._socket_mode_handlers
 
     def stop_all(self):
-        """Stop all Socket Mode handlers"""
+        """Stop all Socket Mode handlers."""
         logger.info("Stopping all Socket Mode handlers")
 
         agent_ids = list(self._socket_mode_handlers.keys())
@@ -695,5 +697,5 @@ class SocketModeClient:
 
 # Singleton instance accessor
 def get_socket_mode_client() -> SocketModeClient:
-    """Get the singleton SocketModeClient instance"""
+    """Get the singleton SocketModeClient instance."""
     return SocketModeClient()
