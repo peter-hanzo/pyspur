@@ -916,8 +916,8 @@ async def set_agent_token(
         # Try to get team information when setting a bot token
         try:
             client = AsyncWebClient(token=token_request.token)
-            response: AsyncSlackResponse = await client.auth_test()
-            response_data: Dict[str, Any] = response.data if isinstance(response.data, dict) else {}
+            response: AsyncSlackResponse = await client.auth_test()  # type: ignore
+            response_data: Dict[str, Any] = response.data if isinstance(response.data, dict) else {}  # type: ignore
             if response_data.get("ok"):
                 team_id = str(response_data.get("team_id", ""))
                 team_name = str(response_data.get("team", ""))
@@ -1391,9 +1391,10 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
 
         # Test the token by calling auth.test
         client = AsyncWebClient(token=bot_token)
+
         try:
-            response: AsyncSlackResponse = await client.auth_test()
-            response_data: Dict[str, Any] = response.data if isinstance(response.data, dict) else {}
+            response: AsyncSlackResponse = await client.auth_test()  # type: ignore
+            response_data: Dict[str, Any] = response.data if isinstance(response.data, dict) else {}  # type: ignore
             if response_data.get("ok"):
                 team = str(response_data.get("team", "Unknown workspace"))
                 team_id = str(response_data.get("team_id", ""))
@@ -1418,7 +1419,10 @@ async def test_connection(agent_id: int, db: Session = Depends(get_db)):
             else:
                 return {
                     "success": False,
-                    "message": f"API call succeeded but returned not OK: {response_data.get('error', 'Unknown error')}",
+                    "message": (
+                        f"API call succeeded but returned not OK: "
+                        f"{response_data.get('error', 'Unknown error')}"
+                    ),
                 }
         except SlackApiError as e:
             error_response = cast(Dict[str, Any], getattr(e, "response", {}))
