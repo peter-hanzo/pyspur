@@ -3,7 +3,6 @@ import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import Header from '../components/Header'
-import MCPTools from '../components/MCPTools'
 import SpecTools from '../components/SpecTools'
 import StockTools from '../components/StockTools'
 import { fetchNodeTypes } from '../store/nodeTypesSlice'
@@ -89,11 +88,11 @@ const ToolsPage: React.FC = () => {
                             <SpecTools />
                         </div>
                     </Tab>
-                    <Tab key="mcp" title="MCP Tools">
+                    {/* <Tab key="mcp" title="MCP Tools">
                         <div className="py-4">
                             <MCPTools />
                         </div>
-                    </Tab>
+                    </Tab> */}
                 </Tabs>
             </div>
         </div>
