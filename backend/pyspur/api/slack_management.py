@@ -129,14 +129,14 @@ def handle_socket_mode_event_sync(
     say: Callable[..., Any],
     client: Optional[WebClient] = None,
 ):
-    """Synchronous wrapper for handle_socket_mode_event to be used in threaded contexts"""
+    """Synchronous wrapper for handle_socket_mode_event to be used in threaded contexts."""
     # Return the coroutine object without awaiting it
     # The socket client will handle awaiting it appropriately
     return handle_socket_mode_event(trigger_request, agent_id, say, client)
 
 
 async def _get_active_agent(db: Session, agent_id: int) -> Optional[SlackAgentModel]:
-    """Get an active agent with workflow configured"""
+    """Get an active agent with workflow configured."""
     agent = (
         db.query(SlackAgentModel)
         .filter(
@@ -400,7 +400,7 @@ socket_mode_client.set_workflow_trigger_callback(handle_socket_mode_event_sync) 
 
 @router.get("/agents", response_model=List[SlackAgentResponse])
 async def get_agents(db: Session = Depends(get_db)) -> List[SlackAgentResponse]:
-    """Get all configured Slack agents"""
+    """Get all configured Slack agents."""
     agents = db.query(SlackAgentModel).all()
     agent_responses: List[SlackAgentResponse] = []
 
@@ -413,7 +413,7 @@ async def get_agents(db: Session = Depends(get_db)) -> List[SlackAgentResponse]:
 
 
 def _get_nullable_str(value: Any) -> Optional[str]:
-    """Helper to safely convert nullable SQLAlchemy column to string"""
+    """Helper to safely convert nullable SQLAlchemy column to string."""
     return str(value) if value is not None else None
 
 
@@ -452,7 +452,7 @@ def _agent_to_response_model(agent: SlackAgentModel) -> SlackAgentResponse:
 
 @router.post("/agents", response_model=SlackAgentResponse)
 async def create_agent(agent_create: SlackAgentCreate, db: Session = Depends(get_db)):
-    """Create a new Slack agent configuration"""
+    """Create a new Slack agent configuration."""
     # Ensure workflow_id is provided
     if not agent_create.workflow_id:
         raise HTTPException(
@@ -491,7 +491,7 @@ async def create_agent(agent_create: SlackAgentCreate, db: Session = Depends(get
 
 @router.get("/agents/{agent_id}", response_model=SlackAgentResponse)
 async def get_agent(agent_id: int, db: Session = Depends(get_db)):
-    """Get a Slack agent configuration"""
+    """Get a Slack agent configuration."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -502,7 +502,7 @@ async def get_agent(agent_id: int, db: Session = Depends(get_db)):
 
 @router.post("/agents/{agent_id}/send-message", response_model=SlackMessageResponse)
 async def send_agent_message(agent_id: int, message: SlackMessage, db: Session = Depends(get_db)):
-    """Send a message to a channel using the Slack agent"""
+    """Send a message to a channel using the Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -550,7 +550,7 @@ async def send_agent_message(agent_id: int, message: SlackMessage, db: Session =
                 "message": f"Error sending message to Slack: {str(e)}",
                 "success": False,
             },
-        )
+        ) from e
 
 
 @router.post("/send-message", response_model=SlackMessageResponse)
@@ -636,7 +636,7 @@ async def test_message(
     agent_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Test sending a message to a Slack channel"""
+    """Test sending a message to a Slack channel."""
     try:
         # Attempt to send the test message using the Slack client
         response = await send_message(channel=channel, text=text, agent_id=agent_id, db=db)
@@ -650,7 +650,7 @@ async def test_message(
 async def associate_workflow(
     agent_id: int, association: WorkflowAssociation, db: Session = Depends(get_db)
 ):
-    """Associate a workflow with a Slack agent"""
+    """Associate a workflow with a Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -667,7 +667,7 @@ async def associate_workflow(
 async def update_trigger_config(
     agent_id: int, config: SlackTriggerConfig, db: Session = Depends(get_db)
 ):
-    """Update the trigger configuration for a Slack agent"""
+    """Update the trigger configuration for a Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -751,7 +751,7 @@ async def trigger_workflow(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Trigger workflows based on a Slack event"""
+    """Trigger workflows based on a Slack event."""
     result = WorkflowTriggersResponse(triggered_workflows=[])
 
     # Find agents that match the team ID
@@ -857,7 +857,7 @@ async def slack_events(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Handle Slack events from the Events API"""
+    """Handle Slack events from the Events API."""
     data = await request.json()
 
     # Handle Slack URL verification challenge
@@ -962,7 +962,7 @@ def mask_token(token: str) -> str:
 
 @router.get("/agents/{agent_id}/tokens/{token_type}", response_model=AgentTokenResponse)
 async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(get_db)):
-    """Get a masked token for a Slack agent"""
+    """Get a masked token for a Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -993,7 +993,7 @@ async def get_agent_token(agent_id: int, token_type: str, db: Session = Depends(
 
 @router.delete("/agents/{agent_id}/tokens/{token_type}", status_code=204)
 async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depends(get_db)):
-    """Delete a token for a Slack agent"""
+    """Delete a token for a Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -1023,7 +1023,7 @@ async def delete_agent_token(agent_id: int, token_type: str, db: Session = Depen
 
 @router.delete("/agents/{agent_id}", status_code=204)
 async def delete_agent(agent_id: int, db: Session = Depends(get_db)):
-    """Delete a Slack agent by ID"""
+    """Delete a Slack agent by ID."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -1043,7 +1043,7 @@ async def delete_agent(agent_id: int, db: Session = Depends(get_db)):
 
 @router.post("/set-token", response_model=dict)
 async def set_slack_token(request: Request):
-    """Directly set the Slack bot token"""
+    """Directly set the Slack bot token."""
     try:
         data = await request.json()
         token = data.get("token")
@@ -1055,11 +1055,11 @@ async def set_slack_token(request: Request):
         try:
             key_management.set_env_variable("SLACK_BOT_TOKEN", token)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to store token: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to store token: {str(e)}") from e
 
         return {"success": True, "message": "Slack token has been set successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error setting Slack token: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error setting Slack token: {str(e)}") from e
 
 
 # Define a lifespan context manager for FastAPI
@@ -1088,7 +1088,7 @@ async def lifespan(app: FastAPI):
 # Fix socket mode assignments for starting socket mode
 @router.post("/agents/{agent_id}/socket-mode/start", response_model=SlackSocketModeResponse)
 async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
-    """Start Socket Mode for a Slack agent"""
+    """Start Socket Mode for a Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -1136,7 +1136,7 @@ async def start_socket_mode(agent_id: int, db: Session = Depends(get_db)):
 
 @router.post("/agents/{agent_id}/socket-mode/stop", response_model=SlackSocketModeResponse)
 async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
-    """Stop Socket Mode for a Slack agent"""
+    """Stop Socket Mode for a Slack agent."""
     try:
         # Get agent
         agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
@@ -1177,12 +1177,12 @@ async def stop_socket_mode(agent_id: int, db: Session = Depends(get_db)):
 
     except Exception as e:
         logger.error(f"Error stopping socket mode: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to stop Socket Mode: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop Socket Mode: {str(e)}") from e
 
 
 @router.get("/agents/{agent_id}/socket-mode/status", response_model=SlackSocketModeResponse)
 async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
-    """Get Socket Mode status for a Slack agent"""
+    """Get Socket Mode status for a Slack agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -1326,7 +1326,7 @@ async def get_socket_mode_status(agent_id: int, db: Session = Depends(get_db)):
 
 @router.get("/agents/{agent_id}/debug-tokens")
 async def debug_agent_tokens(agent_id: int, db: Session = Depends(get_db)):
-    """Debug endpoint to check token storage for an agent"""
+    """Debug endpoint to check token storage for an agent."""
     agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -1373,7 +1373,7 @@ async def debug_agent_tokens(agent_id: int, db: Session = Depends(get_db)):
 
 @router.post("/agents/{agent_id}/test-connection", response_model=dict)
 async def test_connection(agent_id: int, db: Session = Depends(get_db)):
-    """Test if the Slack connection for an agent works properly"""
+    """Test if the Slack connection for an agent works properly."""
     try:
         agent = db.query(SlackAgentModel).filter(SlackAgentModel.id == agent_id).first()
         if agent is None:
