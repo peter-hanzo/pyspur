@@ -12,6 +12,7 @@ from .file_management import router as file_management_router
 from .key_management import router as key_management_router
 from .node_management import router as node_management_router
 from .openai_compatible_api import router as openai_compatible_api_router
+from .openapi_management import router as openapi_router
 from .output_file_management import router as output_file_management_router
 from .rag_management import router as rag_management_router
 from .run_management import router as run_management_router
@@ -47,3 +48,4 @@ api_app.include_router(file_management_router, prefix="/files", tags=["files"])
 api_app.include_router(ai_management_router, prefix="/ai", tags=["ai"])
 api_app.include_router(user_management_router, prefix="/user", tags=["users"])
 api_app.include_router(session_management_router, prefix="/session", tags=["sessions"])
+api_app.include_router(openapi_router, prefix="/openapi", tags=["openapi"])

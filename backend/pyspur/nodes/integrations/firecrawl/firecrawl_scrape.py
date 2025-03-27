@@ -11,17 +11,23 @@ from ...utils.template_utils import render_template_or_get_first_string
 
 
 class FirecrawlScrapeNodeInput(BaseNodeInput):
-    """Input for the FirecrawlScrape node"""
+    """Input for the FirecrawlScrape node."""
 
     class Config:
+        """Config for the FirecrawlScrape node input."""
+
         extra = "allow"
 
 
 class FirecrawlScrapeNodeOutput(BaseNodeOutput):
+    """Output for the FirecrawlScrape node."""
+
     markdown: str = Field(..., description="The scraped data in markdown format.")
 
 
 class FirecrawlScrapeNodeConfig(BaseNodeConfig):
+    """Configuration for the FirecrawlScrape node."""
+
     url_template: str = Field(
         "",
         description="The URL to scrape and convert into clean markdown or structured data.",
@@ -41,6 +47,8 @@ class FirecrawlScrapeNodeConfig(BaseNodeConfig):
     position="after:FirecrawlCrawlNode",
 )
 class FirecrawlScrapeNode(BaseNode):
+    """Scrapes a URL and returns the content in markdown or structured format."""
+
     name = "firecrawl_scrape_node"
     config_model = FirecrawlScrapeNodeConfig
     input_model = FirecrawlScrapeNodeInput
@@ -48,9 +56,7 @@ class FirecrawlScrapeNode(BaseNode):
     category = "Firecrawl"  # This will be used by the frontend for subcategory grouping
 
     async def run(self, input: BaseModel) -> BaseModel:
-        """
-        Scrapes a URL and returns the content in markdown or structured format.
-        """
+        """Scrapes a URL and returns the content in markdown or structured format."""
         try:
             # Grab the entire dictionary from the input
             raw_input_dict = input.model_dump()

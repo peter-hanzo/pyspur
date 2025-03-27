@@ -2,3 +2,4 @@
 test.db
 /app/integrations/google/token.json
 data/
+pyspur/openapi_specs/

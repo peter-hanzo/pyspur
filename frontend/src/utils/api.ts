@@ -1056,6 +1056,66 @@ export const uploadTestFiles = async (
     }
 }
 
+export interface OpenAPIEndpoint {
+    path: string
+    method: string
+    summary?: string
+    operationId?: string
+    description?: string
+    input_schema?: any
+    output_schema?: any
+}
+
+export interface OpenAPISpec {
+    id: string
+    name: string
+    description: string
+    version: string
+    endpoints: OpenAPIEndpoint[]
+    raw_spec: any
+}
+
+export const createOpenAPISpec = async (fullSpec: any): Promise<OpenAPISpec> => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/openapi/specs/`, {
+            spec: fullSpec,
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error creating OpenAPI spec:', error)
+        throw error
+    }
+}
+
+export const listOpenAPISpecs = async (): Promise<OpenAPISpec[]> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/openapi/specs/`)
+        return response.data
+    } catch (error) {
+        console.error('Error listing OpenAPI specs:', error)
+        throw error
+    }
+}
+
+export const getOpenAPISpec = async (specId: string): Promise<OpenAPISpec> => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/openapi/specs/${specId}`)
+        return response.data
+    } catch (error) {
+        console.error('Error getting OpenAPI spec:', error)
+        throw error
+    }
+}
+
+export const deleteOpenAPISpec = async (specId: string): Promise<void> => {
+    try {
+        await axios.delete(`${API_BASE_URL}/openapi/specs/${specId}`)
+    } catch (error) {
+        console.error('Error deleting OpenAPI spec:', error)
+        throw error
+    }
+}
+
 // Add new functions for paused workflows
 export const listPausedWorkflows = async (
     page: number = 1,
