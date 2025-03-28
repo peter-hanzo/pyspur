@@ -20,6 +20,8 @@ import {
     TableRow,
     getKeyValue,
     useDisclosure,
+    Badge,
+    Tooltip,
 } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { formatDistanceToNow } from 'date-fns'
@@ -55,11 +57,24 @@ import {
     listApiKeys,
     listPausedWorkflows,
     takePauseAction,
+    getSlackAgents,
+    SlackAgent,
+    deleteSlackAgent,
+    startSocketMode,
+    stopSocketMode,
+    getSocketModeStatus,
 } from '../utils/api'
 import TemplateCard from './cards/TemplateCard'
 import SpurTypeChip from './chips/SpurTypeChip'
 import HumanInputModal from './modals/HumanInputModal'
 import WelcomeModal from './modals/WelcomeModal'
+import SettingsModal from './modals/SettingsModal'
+import {
+    SlackSetupGuide,
+    SlackAgentWizard,
+    SlackTestConnection,
+} from './slack'
+import SlackAgentEditor from './slack/SlackAgentEditor'
 
 // Calendly Widget Component
 const CalendlyWidget: React.FC = () => {
@@ -124,6 +139,7 @@ const CalendlyWidget: React.FC = () => {
     return null
 }
 
+// Slack Setup Guide component
 const Dashboard: React.FC = () => {
     const router = useRouter()
     const [workflows, setWorkflows] = useState<WorkflowResponse[]>([])
@@ -147,6 +163,23 @@ const Dashboard: React.FC = () => {
     const [showAlert, setShowAlert] = useState(false)
     const { isOpen: isNewSpurModalOpen, onOpen: onOpenNewSpurModal, onClose: onCloseNewSpurModal } = useDisclosure()
     const [selectedSpurType, setSelectedSpurType] = useState<SpurType>(SpurType.WORKFLOW)
+    const [slackAgents, setSlackAgents] = useState<SlackAgent[]>([])
+    const [isLoadingSlackAgents, setIsLoadingSlackAgents] = useState(false)
+    const [slackConfigured, setSlackConfigured] = useState(false)
+    const [showSlackSetupGuide, setShowSlackSetupGuide] = useState(false)
+    const [showConfigErrorModal, setShowConfigErrorModal] = useState(false)
+    const [slackSetupInfo, setSlackSetupInfo] = useState<any>(null)
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+    const [settingsActiveTab, setSettingsActiveTab] = useState<'appearance' | 'api-keys'>('api-keys')
+    const [selectedSlackAgent, setSelectedSlackAgent] = useState<SlackAgent | null>(null)
+    const [selectedAgentForDetail, setSelectedAgentForDetail] = useState<SlackAgent | null>(null)
+    const [testConnectionAgent, setTestConnectionAgent] = useState<SlackAgent | null>(null);
+    const [showTestConnectionInputModal, setShowTestConnectionInputModal] = useState(false);
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [showSlackAgentWizard, setShowSlackAgentWizard] = useState(false);
+    const [showAgentEditorModal, setShowAgentEditorModal] = useState(false);
+    // Create a ref to track current agents without causing re-renders
+    const currentAgentsRef = React.useRef<SlackAgent[]>(slackAgents);
 
     // Function to show alerts
     const onAlert = (message: string, color: 'success' | 'danger' | 'warning' | 'default' = 'default') => {
@@ -241,6 +274,162 @@ const Dashboard: React.FC = () => {
 
         fetchPausedWorkflows()
     }, [])
+
+    // Add a new effect to refresh agents on page focus or return
+    useEffect(() => {
+        // Function to refresh Slack agents
+        const refreshSlackAgents = async () => {
+            console.log('Refreshing Slack agents')
+            setIsLoadingSlackAgents(true)
+            try {
+                const agents = await getSlackAgents(true) // Force refresh to get latest data
+
+                // For each agent, check the actual socket mode status
+                for (const agent of agents) {
+                    try {
+                        // Only check status for agents with bot token and app token
+                        if (agent.has_bot_token && agent.has_app_token) {
+                            console.log(`Checking socket mode status for agent ${agent.id}`)
+                            const statusResponse = await getSocketModeStatus(agent.id)
+
+                            // Only update if we got a successful response
+                            if (!('error' in statusResponse)) {
+                                agent.socket_mode_enabled = statusResponse.socket_mode_active
+                                console.log(`Updated socket_mode_enabled for agent ${agent.id} to ${agent.socket_mode_enabled}`)
+                            }
+                        }
+                    } catch (statusError) {
+                        console.error(`Error checking socket mode status for agent ${agent.id}:`, statusError)
+                    }
+                }
+
+                // Log agent data for debugging
+                console.log('Refreshed agents with socket status:', agents.map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    workflow_id: a.workflow_id,
+                    type: typeof a.workflow_id,
+                    spur_type: a.spur_type,
+                    has_bot_token: a.has_bot_token,
+                    has_user_token: a.has_user_token,
+                    socket_mode_enabled: a.socket_mode_enabled
+                })))
+
+                // Update our ref to track current state without triggering a re-render cycle
+                currentAgentsRef.current = agents;
+
+                // Update state
+                setSlackAgents(agents)
+                setSlackConfigured(agents.length > 0)
+
+                // If we have a currently selected agent for the detail modal, update it
+                if (selectedAgentForDetail) {
+                    const updatedAgent = agents.find(a => a.id === selectedAgentForDetail.id)
+                    if (updatedAgent) {
+                        setSelectedAgentForDetail(updatedAgent)
+                    }
+                }
+            } catch (error) {
+                console.error('Error refreshing Slack agents:', error)
+            } finally {
+                setIsLoadingSlackAgents(false)
+            }
+        }
+
+        // Initial fetch of agents
+        refreshSlackAgents()
+
+        // Set up a refresh interval to periodically check socket mode status
+        // Only check status every 30 seconds to avoid excessive API calls
+        const statusRefreshInterval = setInterval(() => {
+            // Only refresh when the page is visible
+            if (document.visibilityState === 'visible') {
+                console.log('Running periodic socket mode status refresh')
+                // Use a "light" refresh that only checks the status of active agents
+                const checkSocketStatus = async () => {
+                    try {
+                        // Get current agents from our ref to avoid dependency on state
+                        const currentAgents = currentAgentsRef.current;
+
+                        // Only check agents that should be active (have both tokens)
+                        const agentsToCheck = currentAgents.filter(a => a.has_bot_token && a.has_app_token)
+
+                        // Get fresh status for each agent
+                        const updatedAgents = [...currentAgents]
+                        let hasChanges = false
+
+                        for (const agent of agentsToCheck) {
+                            try {
+                                const statusResponse = await getSocketModeStatus(agent.id)
+                                if (!('error' in statusResponse)) {
+                                    // Find the agent in our current list
+                                    const agentIndex = updatedAgents.findIndex(a => a.id === agent.id)
+                                    if (agentIndex >= 0) {
+                                        // Only update if the status changed
+                                        if (updatedAgents[agentIndex].socket_mode_enabled !== statusResponse.socket_mode_active) {
+                                            updatedAgents[agentIndex].socket_mode_enabled = statusResponse.socket_mode_active
+                                            hasChanges = true
+                                            console.log(`Status check: Updated agent ${agent.id} socket_mode_enabled to ${statusResponse.socket_mode_active}`)
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.error(`Error checking status for agent ${agent.id}:`, error)
+                            }
+                        }
+
+                        // Only update state if something changed to avoid unnecessary re-renders
+                        if (hasChanges) {
+                            // Update the ref first
+                            currentAgentsRef.current = updatedAgents;
+
+                            // Then update the state
+                            setSlackAgents(updatedAgents)
+
+                            // Also update the selected agent if needed
+                            if (selectedAgentForDetail) {
+                                const updatedAgent = updatedAgents.find(a => a.id === selectedAgentForDetail.id)
+                                if (updatedAgent && updatedAgent.socket_mode_enabled !== selectedAgentForDetail.socket_mode_enabled) {
+                                    setSelectedAgentForDetail(updatedAgent)
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error in periodic status check:', error)
+                    }
+                }
+
+                // Run the status check
+                checkSocketStatus()
+            }
+        }, 30000) // 30 seconds
+
+        // Listen for router events
+        const handleRouteChange = (url: string, { shallow }: { shallow: boolean }) => {
+            // If returning to dashboard, refresh agents
+            if (url === '/dashboard' && !shallow) {
+                setTimeout(() => refreshSlackAgents(), 500) // Small delay to ensure backend state is updated
+            }
+        }
+
+        // Listen for focus events
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refreshSlackAgents()
+            }
+        }
+
+        // Add event listeners
+        router.events.on('routeChangeComplete', handleRouteChange)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
+        // Clean up event listeners and interval
+        return () => {
+            clearInterval(statusRefreshInterval)
+            router.events.off('routeChangeComplete', handleRouteChange)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+    }, [router.events, selectedAgentForDetail])
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString)
@@ -574,6 +763,265 @@ const Dashboard: React.FC = () => {
         noKeyboard: true,
     })
 
+    const handleGoToSettings = () => {
+        // Open settings modal with API keys tab pre-selected
+        setSettingsActiveTab('api-keys')
+        setIsSettingsModalOpen(true)
+        setShowConfigErrorModal(false) // Close the error modal
+    }
+
+    const callHandleConnectToSlack = async () => {
+        setShowSlackAgentWizard(true);
+    }
+
+    // Debug log when agents change
+    useEffect(() => {
+        if (slackAgents.length > 0) {
+            console.log('Slack agents updated:', slackAgents.map(a => ({
+                id: a.id,
+                name: a.name,
+                workflow_id: a.workflow_id,
+                workflow_id_type: typeof a.workflow_id,
+                spur_type: a.spur_type,
+                spur_type_type: typeof a.spur_type
+            })));
+        }
+        return () => {}; // Empty cleanup function
+    }, [slackAgents]);
+
+    const handleAgentCreated = (newAgent: SlackAgent) => {
+        // Update the agents list with the new agent
+        setSlackAgents(prevAgents => [...prevAgents, newAgent])
+
+        // Show success message
+        onAlert('Slack agent created successfully!', 'success')
+
+        // No need to close modal since we're using a dedicated page
+    }
+
+    // Helper function to log agent information
+    const logAgentInfo = (agent: SlackAgent) => {
+        console.log(`Agent ${agent.id} (${agent.name}) spur_type:`, agent.spur_type, typeof agent.spur_type);
+        return null; // Return null to avoid rendering anything
+    };
+
+    const handleOpenAgentEditor = (agent: SlackAgent) => {
+        setSelectedAgentForDetail(agent)
+        setShowAgentEditorModal(true)
+    }
+
+    // Add a dedicated function to refresh agents after token updates
+    const refreshAgentsAfterTokenUpdate = async () => {
+        console.log('Dashboard - refreshAgentsAfterTokenUpdate called')
+        try {
+            // Get the updated agents list - force a fresh fetch from the backend
+            console.log('Fetching updated agents with force refresh')
+            const agents = await getSlackAgents(true)
+            console.log('Received updated agents:', agents.map(a => ({
+                id: a.id,
+                name: a.name,
+                has_bot_token: a.has_bot_token,
+                has_user_token: a.has_user_token,
+                has_app_token: a.has_app_token,
+                token_flags_type: {
+                    bot: typeof a.has_bot_token,
+                    user: typeof a.has_user_token,
+                    app: typeof a.has_app_token
+                }
+            })))
+
+            // Ensure token flags are properly set as booleans
+            const processedAgents = agents.map(agent => ({
+                ...agent,
+                has_bot_token: Boolean(agent.has_bot_token),
+                has_user_token: Boolean(agent.has_user_token),
+                has_app_token: Boolean(agent.has_app_token)
+            }))
+
+            // Update the agents state
+            setSlackAgents(processedAgents)
+
+            // Also update the selected agent for detail if we have one
+            if (selectedAgentForDetail) {
+                console.log('Updating selected agent for detail:', selectedAgentForDetail.id)
+                const updatedAgent = processedAgents.find(a => a.id === selectedAgentForDetail.id)
+                if (updatedAgent) {
+                    console.log('Found updated agent:', {
+                        id: updatedAgent.id,
+                        has_bot_token: updatedAgent.has_bot_token,
+                        has_user_token: updatedAgent.has_user_token,
+                        has_app_token: updatedAgent.has_app_token
+                    })
+                    setSelectedAgentForDetail(updatedAgent)
+                } else {
+                    console.warn('Could not find updated agent with ID:', selectedAgentForDetail.id)
+                }
+            }
+
+            // Show success message
+            onAlert('Token configuration updated successfully', 'success')
+        } catch (error) {
+            console.error('Error refreshing agents after token update:', error)
+            onAlert('Token updated, but unable to refresh agents list', 'warning')
+        }
+    }
+
+    // Add a function to handle deleting a Slack agent
+    const handleDeleteAgent = async (agent: SlackAgent) => {
+        try {
+            const success = await deleteSlackAgent(agent.id, onAlert)
+            if (success) {
+                // Update the agents list by removing this agent
+                setSlackAgents(prevAgents => prevAgents.filter(a => a.id !== agent.id))
+            }
+        } catch (error) {
+            console.error('Error deleting agent:', error)
+            onAlert('Failed to delete agent', 'danger')
+        }
+    }
+
+    // Handler for when an agent is created in the wizard
+    const handleAgentCreatedFromWizard = (newAgent: SlackAgent, workflowId?: string) => {
+        // Add the new agent to the list
+        setSlackAgents(prev => [...prev, newAgent])
+
+        // Close the wizard modal
+        setShowSlackAgentWizard(false)
+
+        // Show success message
+        onAlert('Slack agent created successfully!', 'success')
+
+        // If the agent is associated with a workflow, we don't need to show the workflow modal
+        if (workflowId || newAgent.workflow_id) {
+            console.log('Agent already has a workflow associated:', workflowId || newAgent.workflow_id)
+        } else {
+            // If not, select it for workflow association
+            setSelectedSlackAgent(newAgent)
+
+            // Scroll to the Slack section to show the updated agent
+            const slackSection = document.getElementById('slack-section')
+            if (slackSection) {
+                slackSection.scrollIntoView({ behavior: 'smooth' })
+            }
+        }
+    }
+
+    // Add this function to handle the socket mode toggle
+    const handleSocketModeToggle = async (agent: SlackAgent, isActive: boolean, updateAgents: React.Dispatch<React.SetStateAction<SlackAgent[]>>) => {
+        try {
+            if (!agent.has_bot_token) {
+                return {
+                    success: false,
+                    message: 'Bot token required for Socket Mode'
+                };
+            }
+
+            if (isActive) {
+                // Stop socket mode
+                const response = await stopSocketMode(agent.id);
+
+                // Check if the response contains an error
+                if ('error' in response && response.error === true) {
+                    return {
+                        success: false,
+                        message: response.message || 'Failed to stop Socket Mode'
+                    };
+                }
+
+                // Update agent in the list
+                updateAgents((prevAgents) =>
+                    prevAgents.map(a => a.id === agent.id
+                        ? { ...a, socket_mode_enabled: false }
+                        : a
+                    )
+                );
+
+                return {
+                    success: true,
+                    message: 'Socket Mode stopped successfully'
+                };
+            } else {
+                // Check if the agent has an app token before starting socket mode
+                if (!agent.has_app_token) {
+                    return {
+                        success: false,
+                        message: 'App-level token (xapp-) required for Socket Mode. Configure it in the agent settings.'
+                    };
+                }
+
+                // Start socket mode
+                const response = await startSocketMode(agent.id);
+
+                // Check if the response contains an error
+                if ('error' in response && response.error === true) {
+                    return {
+                        success: false,
+                        message: response.message || 'Failed to start Socket Mode'
+                    };
+                }
+
+                // Immediately check the status to ensure UI updates correctly
+                try {
+                    console.log(`Checking socket mode status immediately after starting for agent ${agent.id}`);
+                    // Wait a brief moment to allow the backend to start the socket mode
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // Check the status
+                    const statusResponse = await getSocketModeStatus(agent.id);
+
+                    if (!('error' in statusResponse)) {
+                        console.log(`Got immediate status response:`, statusResponse);
+                        // Update agent in the list with the accurate status
+                        updateAgents((prevAgents) =>
+                            prevAgents.map(a => a.id === agent.id
+                                ? { ...a, socket_mode_enabled: statusResponse.socket_mode_active }
+                                : a
+                            )
+                        );
+
+                        // Also update the ref
+                        currentAgentsRef.current = currentAgentsRef.current.map(a =>
+                            a.id === agent.id ? { ...a, socket_mode_enabled: statusResponse.socket_mode_active } : a
+                        );
+
+                        return {
+                            success: true,
+                            message: statusResponse.socket_mode_active
+                                ? 'Socket Mode started successfully'
+                                : 'Socket Mode was started but appears to be inactive - check server logs'
+                        };
+                    }
+                } catch (statusError) {
+                    console.error(`Error checking socket mode status after starting:`, statusError);
+                }
+
+                // If we couldn't get an accurate status, update the UI optimistically
+                updateAgents((prevAgents) =>
+                    prevAgents.map(a => a.id === agent.id
+                        ? { ...a, socket_mode_enabled: true }
+                        : a
+                    )
+                );
+
+                // Update the ref
+                currentAgentsRef.current = currentAgentsRef.current.map(a =>
+                    a.id === agent.id ? { ...a, socket_mode_enabled: true } : a
+                );
+
+                return {
+                    success: true,
+                    message: 'Socket Mode started successfully'
+                };
+            }
+        } catch (error) {
+            console.error('Error toggling socket mode:', error);
+            return {
+                success: false,
+                message: error instanceof Error ? error.message : 'Unknown error toggling socket mode'
+            };
+        }
+    };
+
     return (
         <div {...getRootProps()} className="relative flex flex-col gap-2 max-w-7xl w-full mx-auto pt-2 px-6">
             <input {...getInputProps()} />
@@ -643,7 +1091,7 @@ const Dashboard: React.FC = () => {
 
                 {/* Wrap sections in Accordion */}
                 <Accordion
-                    defaultExpandedKeys={new Set(['workflows', 'templates', 'human-tasks'])}
+                    defaultExpandedKeys={new Set(['workflows', 'templates', 'human-tasks', 'slack-agents'])}
                     selectionMode="multiple"
                 >
                     <AccordionItem
@@ -835,6 +1283,267 @@ const Dashboard: React.FC = () => {
                         )}
                     </AccordionItem>
                     <AccordionItem
+                        key="slack-agents"
+                        aria-label="Slack Agents"
+                        id="slack-section"
+                        title={
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xl font-semibold">Slack Agents</h3>
+                                {slackAgents.length > 0 && (
+                                    <Chip color="primary" variant="flat" size="sm">
+                                        {slackAgents.length}
+                                    </Chip>
+                                )}
+                            </div>
+                        }
+                    >
+                        {isLoadingSlackAgents ? (
+                            <div className="flex justify-center p-4">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : slackAgents.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-8">
+                                <div className="max-w-md w-full">
+                                    <div className="flex flex-col items-center mb-6">
+                                        <div className="bg-default-100 rounded-full p-4 mb-4">
+                                            <Icon icon="logos:slack-icon" width={32} height={32} />
+                                        </div>
+                                        <h4 className="text-lg font-medium mb-2 text-center">No Slack Agents Connected</h4>
+                                        <p className="text-default-500 mb-4 text-center">
+                                            Connect PySpur to your Slack workspace to create agents that can interact with your workflows.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <Button
+                                            color="primary"
+                                            startContent={<Icon icon="logos:slack-icon" width={20} />}
+                                            onPress={callHandleConnectToSlack}
+                                            isDisabled={isLoadingSlackAgents}
+                                            className="w-full"
+                                        >
+                                            Connect to Slack
+                                        </Button>
+
+                                        <Button
+                                            variant="flat"
+                                            startContent={<Icon icon="lucide:settings" width={20} />}
+                                            onPress={handleGoToSettings}
+                                            className="w-full"
+                                        >
+                                            Configure API Keys
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-end mb-4">
+                                    <Button
+                                        className="bg-foreground text-background dark:bg-foreground/90 dark:text-background/90"
+                                        startContent={<Icon icon="solar:add-circle-bold" width={16} className="flex-none text-background/60" />}
+                                        onPress={() => router.push('/slack/create-agent')}
+                                    >
+                                        Create New Agent
+                                    </Button>
+                                </div>
+
+                                <Table aria-label="Slack agents table" isHeaderSticky>
+                                    <TableHeader>
+                                        <TableColumn>NAME</TableColumn>
+                                        <TableColumn>WORKSPACE</TableColumn>
+                                        <TableColumn>TYPE</TableColumn>
+                                        <TableColumn>WORKFLOW</TableColumn>
+                                        <TableColumn>
+                                            <div className="flex items-center gap-1">
+                                                SOCKET MODE
+                                                <Tooltip
+                                                    content={
+                                                        <div className="max-w-xs">
+                                                            <p className="text-small font-medium mb-1">Socket Mode establishes a WebSocket connection between your Slack app and PySpur, allowing you to receive events in real-time without exposing a public URL.</p>
+                                                            <p className="text-tiny">Once enabled, your agent will automatically process Slack events according to your trigger settings. Socket Mode requires both a bot token and an app-level token.</p>
+                                                        </div>
+                                                    }
+                                                    placement="top"
+                                                    showArrow={true}
+                                                >
+                                                    <Icon
+                                                        icon="solar:socket-outline"
+                                                        className="text-default-400 cursor-help"
+                                                        width={16}
+                                                    />
+                                                </Tooltip>
+                                            </div>
+                                        </TableColumn>
+                                        <TableColumn>ACTIONS</TableColumn>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {slackAgents.map((agent) => (
+                                            <TableRow key={agent.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon icon="solar:bot-bold" width={20} />
+                                                        <span>{agent.name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{agent.slack_team_name}</TableCell>
+                                                <TableCell>
+                                                    {logAgentInfo(agent)}
+                                                    {agent.spur_type ? (
+                                                        <SpurTypeChip spurType={agent.spur_type} />
+                                                    ) : (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            startContent={<Icon icon="lucide:bot" width={16} />}
+                                                        >
+                                                            Agent
+                                                        </Chip>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {agent.workflow_id ? (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            color="primary"
+                                                            className="cursor-pointer"
+                                                            onClick={() => window.open(`/workflows/${agent.workflow_id}`, '_blank')}
+                                                        >
+                                                            {agent.workflow_id}
+                                                        </Chip>
+                                                    ) : (
+                                                        <Chip
+                                                            size="sm"
+                                                            variant="flat"
+                                                            color="warning"
+                                                        >
+                                                            Not Connected
+                                                        </Chip>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {agent.socket_mode_enabled ? (
+                                                            <Badge color="success" variant="flat">
+                                                                Active
+                                                            </Badge>
+                                                        ) : !agent.has_app_token ? (
+                                                            <Badge color="warning" variant="flat">
+                                                                Missing App Token
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge color="default" variant="flat">
+                                                                Inactive
+                                                            </Badge>
+                                                        )}
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            color={agent.socket_mode_enabled ? "danger" : !agent.has_app_token ? "warning" : "success"}
+                                                            onPress={async () => {
+                                                                // Check if the agent has the required tokens
+                                                                if (!agent.has_bot_token) {
+                                                                    onAlert('Bot token required for Socket Mode. Configure it now by clicking on the key icon.', 'warning');
+                                                                    return;
+                                                                }
+
+                                                                if (!agent.has_app_token && agent.socket_mode_enabled === false) {
+                                                                    onAlert('App-level token (xapp-) required for Socket Mode. Configure it in the agent settings.', 'warning');
+                                                                    return;
+                                                                }
+
+                                                                const result = await handleSocketModeToggle(agent, agent.socket_mode_enabled || false, setSlackAgents);
+                                                                onAlert(result.message, result.success ? 'success' : 'danger');
+                                                            }}
+                                                            isDisabled={!agent.workflow_id || !agent.has_bot_token || (!agent.socket_mode_enabled && !agent.has_app_token)}
+                                                            aria-label={agent.socket_mode_enabled ? "Stop Socket Mode" : "Start Socket Mode"}
+                                                        >
+                                                            <Tooltip content={
+                                                                agent.socket_mode_enabled
+                                                                ? "Stop Socket Mode"
+                                                                : !agent.has_app_token
+                                                                ? "App-level token required. Click the key icon to configure tokens."
+                                                                : "Start Socket Mode"
+                                                            }>
+                                                                <Icon
+                                                                    icon={
+                                                                        agent.socket_mode_enabled
+                                                                        ? "solar:stop-circle-bold"
+                                                                        : !agent.has_app_token
+                                                                        ? "solar:danger-triangle-bold"
+                                                                        : "solar:play-circle-bold"
+                                                                    }
+                                                                    width={16}
+                                                                />
+                                                            </Tooltip>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            onPress={() => {
+                                                                if (!agent.has_bot_token) {
+                                                                    onAlert('Bot token required. Configure it now by clicking on the key icon.', 'warning');
+                                                                    return;
+                                                                }
+                                                                console.log(`Testing connection for agent ${agent.id} (${agent.name})`);
+
+                                                                // Store the agent for the modal
+                                                                setTestConnectionAgent(agent);
+
+                                                                // Show the test connection input modal instead of immediately testing
+                                                                setShowTestConnectionInputModal(true);
+                                                            }}
+                                                            isDisabled={!agent.workflow_id}
+                                                            aria-label="Test Connection"
+                                                        >
+                                                            <Tooltip content={agent.has_bot_token ? "Test Connection" : "Bot Token Required for Testing"}>
+                                                                <Icon icon={agent.has_bot_token ? "solar:test-tube-bold" : "lucide:alert-triangle"} width={16} className={!agent.has_bot_token ? "text-warning" : ""} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            onPress={() => handleOpenAgentEditor(agent)}
+                                                            aria-label="Edit Agent"
+                                                        >
+                                                            <Tooltip content="Edit Agent">
+                                                                <Icon icon="solar:pen-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                        <Button
+                                                            isIconOnly
+                                                            size="sm"
+                                                            variant="light"
+                                                            color="danger"
+                                                            onPress={() => {
+                                                                // Set agent to delete and show confirmation modal
+                                                                setSelectedAgentForDetail(agent);
+                                                                setShowDeleteConfirmModal(true);
+                                                            }}
+                                                            aria-label="Delete Agent"
+                                                        >
+                                                            <Tooltip content="Delete Agent">
+                                                                <Icon icon="solar:trash-bin-trash-bold" width={16} />
+                                                            </Tooltip>
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </AccordionItem>
+                    <AccordionItem
                         key="human-tasks"
                         aria-label="Human Tasks"
                         title={
@@ -1003,6 +1712,97 @@ const Dashboard: React.FC = () => {
                     </ModalFooter>
                 </ModalContent>
             </Modal>
+            {/* Slack Setup Guide Modal */}
+            {showSlackSetupGuide && (
+                <SlackSetupGuide
+                    onClose={() => setShowSlackSetupGuide(false)}
+                    onConnectClick={callHandleConnectToSlack}
+                    setupInfo={slackSetupInfo}
+                    onGoToSettings={handleGoToSettings}
+                />
+            )}
+
+
+            {/* Settings Modal */}
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onOpenChange={setIsSettingsModalOpen}
+                initialTab={settingsActiveTab}
+            />
+
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={showDeleteConfirmModal} onOpenChange={setShowDeleteConfirmModal}>
+                <ModalContent>
+                    {() => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">Confirm Deletion</ModalHeader>
+                            <ModalBody>
+                                {selectedAgentForDetail && (
+                                    <>
+                                        <p>Are you sure you want to delete the agent <strong>{selectedAgentForDetail.name}</strong>?</p>
+                                        <p className="text-small text-default-500 mt-2">
+                                            This action cannot be undone. The agent and its token configuration will be permanently deleted.
+                                        </p>
+                                    </>
+                                )}
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button
+                                    color="default"
+                                    variant="light"
+                                    onPress={() => setShowDeleteConfirmModal(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    color="danger"
+                                    onPress={() => {
+                                        if (selectedAgentForDetail) {
+                                            handleDeleteAgent(selectedAgentForDetail)
+                                            setShowDeleteConfirmModal(false)
+                                        }
+                                    }}
+                                >
+                                    Delete Agent
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
+
+            {/* Slack Agent Wizard Modal */}
+            {showSlackAgentWizard && (
+                <div className="fixed inset-0 z-50 overflow-auto">
+                    <SlackAgentWizard
+                        workflows={workflows.filter(w => w.id !== undefined)}
+                        onCreated={(newAgent) => handleAgentCreatedFromWizard(newAgent)}
+                        onCancel={() => setShowSlackAgentWizard(false)}
+                        isStandalone={false}
+                    />
+                </div>
+            )}
+
+            {/* Test Connection Modal */}
+            <SlackTestConnection
+                isOpen={showTestConnectionInputModal}
+                onClose={() => setShowTestConnectionInputModal(false)}
+                agent={testConnectionAgent}
+                onAlert={onAlert}
+            />
+
+            {/* Add the Agent Editor Modal */}
+            {selectedAgentForDetail && (
+                <SlackAgentEditor
+                    isOpen={showAgentEditorModal}
+                    onOpenChange={setShowAgentEditorModal}
+                    agent={selectedAgentForDetail}
+                    updateAgentsCallback={setSlackAgents}
+                    onAlert={onAlert}
+                    onTokenUpdated={refreshAgentsAfterTokenUpdate}
+                />
+            )}
         </div>
     )
 }

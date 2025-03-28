@@ -1,5 +1,7 @@
+import os
 import shutil
 import tempfile
+import threading
 from contextlib import ExitStack, asynccontextmanager
 from importlib.resources import as_file, files
 from pathlib import Path
@@ -9,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 
 from .api_app import api_app
 
@@ -17,12 +20,14 @@ load_dotenv()
 # Create an ExitStack to manage resources
 exit_stack = ExitStack()
 temporary_static_dir = None
+socket_manager = None
+socket_thread = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan and cleanup."""
-    global temporary_static_dir
+    global temporary_static_dir, socket_manager, socket_thread
 
     # Setup: Create temporary directory and extract static files
     temporary_static_dir = Path(tempfile.mkdtemp())
@@ -35,9 +40,20 @@ async def lifespan(app: FastAPI):
     if static_dir.exists():
         shutil.copytree(static_dir, temporary_static_dir, dirs_exist_ok=True)
 
+
     yield
 
-    # Cleanup: Remove temporary directory and close ExitStack
+    # Cleanup: Stop socket manager and remove temporary directory
+    if socket_manager:
+        logger.info("Stopping socket manager...")
+        socket_manager.stopping = True
+        if socket_thread and socket_thread.is_alive():
+            try:
+                # Give the thread a chance to stop gracefully
+                socket_thread.join(timeout=5)
+            except Exception as e:
+                logger.error(f"Error stopping socket manager thread: {e}")
+
     exit_stack.close()
     shutil.rmtree(temporary_static_dir, ignore_errors=True)
 

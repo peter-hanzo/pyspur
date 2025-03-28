@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
 RUN pip install uv
 WORKDIR /pyspur/backend
 COPY backend/pyproject.toml .
@@ -34,4 +35,4 @@ RUN mkdir -p /pyspur/backend/pyspur/static
 RUN rm -rf /pyspur/backend/pyspur/static/*
 COPY --from=frontend-builder /pyspur/frontend/out/ /pyspur/backend/pyspur/static/
 COPY .env.example /pyspur/backend/pyspur/templates/.env.example
-# Production-specific instructions here 
+# Production-specific instructions here

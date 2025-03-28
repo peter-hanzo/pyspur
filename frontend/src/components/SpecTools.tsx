@@ -4,8 +4,6 @@ import React, { useState } from 'react'
 import OpenAPIParser from './OpenAPIParser'
 import RegisteredSpecs from './RegisteredSpecs'
 
-
-
 const SpecTools: React.FC = () => {
     const [selectedTab, setSelectedTab] = useState('create')
 

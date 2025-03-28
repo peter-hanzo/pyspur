@@ -11,7 +11,7 @@ services:
     restart: on-failure
 
   backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.backend
       target: ${ENVIRONMENT:-development}
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
 
   frontend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.frontend
       target: ${ENVIRONMENT:-development}
@@ -55,6 +55,7 @@ services:
         test: ['CMD-SHELL', 'pg_isready -U pyspur']
         interval: 5s
         timeout: 5s
+
 volumes:
   postgres_data:
   pyspur_data:  # Used to persist data like uploaded files, eval outputs, datasets
