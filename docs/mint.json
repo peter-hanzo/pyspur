@@ -68,6 +68,13 @@
       ]
     },
     {
+      "group": "Tools",
+      "pages": [
+        "tools/concepts",
+        "tools/tool-function"
+      ]
+    },
+    {
       "group": "RAG",
       "pages": [
         "rag/concepts"

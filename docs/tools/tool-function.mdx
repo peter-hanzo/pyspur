@@ -1,0 +1,65 @@
+# Creating Custom Tools in PySpur using @tool_function
+
+This guide will walk you through the process of converting an arbitrary Python function into a PySpur tool using the `@tool_function` decorator. This allows you to integrate custom logic into your PySpur workflows seamlessly.
+
+## Prerequisites
+
+- Ensure you have initialized a PySpur project using the `pyspur init` command.
+
+## Step-by-Step Guide
+
+### Step 1: Create a Tool File
+
+1. Navigate to the `tools` directory in your PySpur project. This directory is created automatically when you initialize your project.
+
+2. Create a new Python file for your tool. For example, `my_custom_tool.py`.
+
+### Step 2: Define Your Function
+
+1. In your new tool file, define the Python function you want to convert into a tool. This function should contain the logic you wish to execute.
+
+```python
+def foo(param1: str, param2: int = 42) -> dict:
+    """A simple example function."""
+    return {"param1": param1, "param2": param2}
+```
+
+### Step 3: Decorate Your Function
+
+1. Import the `tool_function` decorator from the appropriate module.
+
+2. Use the `@tool_function` decorator to register your function as a tool. You can specify optional parameters such as `name`, `description`, `category`, and `output_model`.
+
+```python
+from pyspur.nodes.decorator import tool_function
+
+@tool_function(
+    name="bar", 
+    description="A custom tool example", 
+    category="Custom")
+def foo(param1: str, param2: int = 42) -> dict:
+    """A simple example function."""
+    return {"param1": param1, "param2": param2}
+```
+
+#### @tool_function Parameters
+
+- **name** (Optional[str]): The name of the tool. Defaults to the function name if not provided.
+- **display_name** (Optional[str]): A human-readable name for the tool, used in the UI. Defaults to a title-cased version of the function name.
+- **description** (Optional[str]): A brief description of what the tool does. Defaults to the function's docstring if not provided.
+- **category** (Optional[str]): A category for organizing the tool within the UI. Useful for grouping similar tools.
+- **visual_tag** (Optional[Dict[str, str]]): Visual styling options for the tool in the UI.
+- **has_fixed_output** (bool): Indicates whether the tool has a fixed output schema. Defaults to `True`.
+- **output_model** (Optional[Type[BaseNodeOutput]]): A custom output model to use instead of generating one automatically@tool_function
+
+#### Returns
+
+- **ToolFunction**: The decorated function, which can still be called normally but is now also registered as a PySpur tool.
+
+
+
+
+### Step 4: Using the Tool in a SpuNow you should be able to see the 
+
+A tool named `bar` will now appear in the tools panel in the app under the `Custom` section.
+This tool can be used in your Spur workflows just like any other built-in tool.
