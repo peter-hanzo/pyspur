@@ -17,6 +17,7 @@ class LLMProvider(str, Enum):
     OLLAMA = "ollama"
     AZURE_OPENAI = "azure"
     DEEPSEEK = "deepseek"
+    XAI = "xai"
 
 
 class ModelConstraints(BaseModel):
@@ -139,6 +140,8 @@ class LLMModels(str, Enum):
     OLLAMA_MISTRAL = "ollama/mistral"
     OLLAMA_CODELLAMA = "ollama/codellama"
     OLLAMA_MIXTRAL = "ollama/mixtral-8x7b-instruct-v0.1"
+
+    XAI_GROK_2 = "xai/grok-2-latest"
 
     @classmethod
     def get_model_info(cls, model_id: str) -> LLMModel | None:
@@ -570,6 +573,15 @@ class LLMModels(str, Enum):
                 provider=LLMProvider.OLLAMA,
                 name="Mistral Small 24B",
                 constraints=ModelConstraints(max_tokens=4096, max_temperature=2.0, supports_JSON_output=False),
+            ),
+            cls.XAI_GROK_2.value: LLMModel(
+                    id=cls.XAI_GROK_2.value,
+                    provider=LLMProvider.XAI,
+                    name="xAI Grok 2 Latest",
+                    constraints=ModelConstraints(
+                            max_tokens=131072,
+                            max_temperature=1.0,
+                    ),
             ),
         }
         return model_registry.get(model_id)
